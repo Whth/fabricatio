@@ -1,0 +1,58 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Build
+        run: |
+          uv build
+
+      - name: Get current version
+        id: get_version
+        run: |
+          CURRENT_VERSION=$(grep '^version' pyproject.toml | cut -d '"' -f 2)
+          echo "CURRENT_VERSION=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Get latest tag
+        uses: JinoArch/get-latest-tag@latest
+        id: tag
+
+      - name: Check if version has changed
+        id: check_version_change
+        run: |
+          LATEST_TAG=${{ steps.tag.outputs.latestTag  }}
+          echo "Latest tag is $LATEST_TAG"
+          echo "Current version is ${{ steps.get_version.outputs.CURRENT_VERSION }}"
+          if [ "$LATEST_TAG" != "${{ steps.get_version.outputs.CURRENT_VERSION }}" ]; then
+              echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+            else
+              echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+
+      - name: Create Release and upload assets
+        if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+          name: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}

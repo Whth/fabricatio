@@ -1,0 +1,25 @@
+name: Pre-commit checks
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - '**'
+
+jobs:
+  pre-commit-check:
+    runs-on: ubuntu-latest
+    environment: pre-commit
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - name: Initialize pre-commit
+        run: uvx pre-commit install
+      - name: Run pre-commit hooks
+        run: uvx pre-commit run --all-files
