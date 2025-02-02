@@ -1,14 +1,38 @@
 [project]
 name = "fabrik"
 version = "0.1.0"
-description = "Add your description here"
+description = "A multi-agent framework."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "whthyotta@qq.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aiohttp>=3.11.11",
+    "aiomultiprocess>=0.9.1",
+    "asyncio>=3.4.3",
+    "litellm>=1.60.0",
+    "loguru>=0.7.3",
+    "pydantic>=2.10.6",
+    "rich>=13.9.4",
+    "tiktoken>=0.8.0",
+    "toml>=0.10.2",
+    "typer>=0.15.1",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+
+[[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
