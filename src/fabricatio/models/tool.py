@@ -1,15 +1,12 @@
 from inspect import signature, getfullargspec
-from typing import Callable, ParamSpec, TypeVar, List
+from typing import Callable, List
 
 from pydantic import Field
 
 from fabricatio.models.generic import WithBriefing
 
-P = ParamSpec("P")
-R = TypeVar("R")
 
-
-class Tool(WithBriefing):
+class Tool[**P, R](WithBriefing):
     """A class representing a tool with a callable source function."""
     source: Callable[P, R]
 
@@ -34,7 +31,7 @@ class ToolBox(WithBriefing):
     tools: List[Tool] = Field(default_factory=list)
     """A list of tools in the toolbox."""
 
-    def collect_tool(self, func: Callable[P, R]) -> Callable[P, R]:
+    def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]:
         """Add a callable function to the toolbox as a tool.
 
         Args:
@@ -64,7 +61,7 @@ class ToolBox(WithBriefing):
                f"## {len(self.tools)} tools available:\n")
         return f"{toc}\n\n{list_out}"
 
-    def invoke_tool(self, name: str, *args: P.args, **kwargs: P.kwargs) -> R:
+    def invoke_tool[**P, R](self, name: str, *args: P.args, **kwargs: P.kwargs) -> R:
         """Invoke a tool by name with the provided arguments.
 
         Args:
