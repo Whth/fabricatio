@@ -216,8 +216,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pymitter" },
-    { name = "rich" },
-    { name = "tiktoken" },
     { name = "typer" },
 ]
 
@@ -232,8 +230,6 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "pymitter", specifier = ">=1.0.0" },
-    { name = "rich", specifier = ">=13.9.4" },
-    { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
 

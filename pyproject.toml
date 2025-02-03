@@ -23,8 +23,6 @@ dependencies = [
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
     "pymitter>=1.0.0",
-    "rich>=13.9.4",
-    "tiktoken>=0.8.0",
     "typer>=0.15.1",
 ]
 
