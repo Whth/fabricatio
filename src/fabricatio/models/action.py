@@ -1,7 +1,11 @@
-from pydantic import Field
+from abc import abstractmethod
 
-from fabricatio.models.generic import Named, Memorable, Described
+from fabricatio.models.generic import WithBriefing
 
 
-class Action(Named, Memorable, Described):
-    role: str = Field(default="", description="Role Name")
+class Action(WithBriefing):
+    pass
+
+    @abstractmethod
+    async def execute(self, *args, **kwargs):
+        pass
