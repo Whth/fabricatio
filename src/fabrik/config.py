@@ -1,5 +1,5 @@
 from appdirs import user_config_dir
-from pydantic import Field, BaseModel, HttpUrl, SecretStr
+from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -12,8 +12,60 @@ from pydantic_settings import (
 
 
 class LLMConfig(BaseModel):
-    api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com/v1"), description="OpenAI API Endpoint")
-    api_key: SecretStr = Field(default=SecretStr("sk-xxx"), description="OpenAI API Key")
+    api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com"))
+    """
+    OpenAI API Endpoint.
+    """
+
+    api_key: SecretStr = Field(default=SecretStr(""))
+    """
+    OpenAI API key. Empty by default for security reasons, should be set before use.
+    """
+
+    timeout: PositiveInt = Field(default=300)
+    """
+    The timeout of the LLM model in seconds. Default is 300 seconds as per request.
+    """
+
+    max_retries: PositiveInt = Field(default=3)
+    """
+    The maximum number of retries. Default is 3 retries.
+    """
+
+    model: str = Field(default="gpt-3.5-turbo")
+    """
+    The LLM model name. Set to 'gpt-3.5-turbo' as per request.
+    """
+
+    temperature: NonNegativeFloat = Field(default=1.0)
+    """
+    The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request.
+    """
+
+    stop_sign: str = Field(default="")
+    """
+    The stop sign of the LLM model. No default stop sign specified.
+    """
+
+    top_p: NonNegativeFloat = Field(default=0.35)
+    """
+    The top p of the LLM model. Controls diversity via nucleus sampling. Set to 0.35 as per request.
+    """
+
+    generation_count: PositiveInt = Field(default=1)
+    """
+    The number of generations to generate. Default is 1.
+    """
+
+    stream: bool = Field(default=False)
+    """
+    Whether to stream the LLM model's response. Default is False.
+    """
+
+    max_tokens: PositiveInt = Field(default=8192)
+    """
+    The maximum number of tokens to generate. Set to 8192 as per request.
+    """
 
 
 class Settings(BaseSettings):
@@ -21,11 +73,15 @@ class Settings(BaseSettings):
         env_prefix="FABRIK_",
         env_nested_delimiter="__",
         pyproject_toml_depth=1,
-        toml_file=["fabrik.toml", f"{user_config_dir("fabrik",roaming=True)}.toml"],
+        toml_file=["fabrik.toml", f"{user_config_dir("fabrik", roaming=True)}.toml"],
         env_file=[".env", ".envrc"],
+        use_attribute_docstrings=True,
     )
 
-    llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM Config")
+    llm: LLMConfig = Field(default_factory=LLMConfig)
+    """
+    LLM Configuration
+    """
 
     @classmethod
     def settings_customise_sources(
@@ -36,7 +92,6 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-
         return (
             DotEnvSettingsSource(settings_cls),
             EnvSettingsSource(settings_cls),
