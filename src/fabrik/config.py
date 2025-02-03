@@ -1,5 +1,7 @@
+from typing import Literal
+
 from appdirs import user_config_dir
-from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field
+from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field, FilePath
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -68,6 +70,18 @@ class LLMConfig(BaseModel):
     """
 
 
+class DebugConfig(BaseModel):
+    log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
+    """
+    The log level of the application.
+    """
+
+    log_file: FilePath = Field(default=f"{user_config_dir("fabrik", roaming=True)}.log")
+    """
+    The log file of the application.
+    """
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="FABRIK_",
@@ -83,14 +97,19 @@ class Settings(BaseSettings):
     LLM Configuration
     """
 
+    debug: DebugConfig = Field(default_factory=DebugConfig)
+    """
+    Debug Configuration
+    """
+
     @classmethod
     def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
+            cls,
+            settings_cls: type[BaseSettings],
+            init_settings: PydanticBaseSettingsSource,
+            env_settings: PydanticBaseSettingsSource,
+            dotenv_settings: PydanticBaseSettingsSource,
+            file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             DotEnvSettingsSource(settings_cls),
