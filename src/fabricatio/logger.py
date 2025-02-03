@@ -1,6 +1,6 @@
 from loguru import logger
 
-from fabrik.config import configs
+from fabricatio.config import configs
 
 logger.level(configs.debug.log_level)
 logger.add(configs.debug.log_file, rotation="1 weeks", retention="1 month", compression="zip")

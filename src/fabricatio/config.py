@@ -76,7 +76,7 @@ class DebugConfig(BaseModel):
     The log level of the application.
     """
 
-    log_file: FilePath = Field(default=f"{user_config_dir("fabrik", roaming=True)}.log")
+    log_file: FilePath = Field(default=f"{user_config_dir("fabricatio", roaming=True)}.log")
     """
     The log file of the application.
     """
@@ -87,7 +87,7 @@ class Settings(BaseSettings):
         env_prefix="FABRIK_",
         env_nested_delimiter="__",
         pyproject_toml_depth=1,
-        toml_file=["fabrik.toml", f"{user_config_dir("fabrik", roaming=True)}.toml"],
+        toml_file=["fabricatio.toml", f"{user_config_dir("fabricatio", roaming=True)}.toml"],
         env_file=[".env", ".envrc"],
         use_attribute_docstrings=True,
     )
