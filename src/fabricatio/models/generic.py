@@ -1,8 +1,13 @@
 from asyncio import Queue
-from typing import List, Iterable, Any, Dict, Self
+from typing import Iterable, Any, Dict, Self
+from typing import List
 
+import litellm
+from litellm.types.utils import StreamingChoices, ModelResponse, Choices
 from pydantic import BaseModel, Field, PositiveInt, NonNegativeInt, ConfigDict
+from pydantic import HttpUrl, SecretStr, NonNegativeFloat
 
+from fabricatio.config import configs
 from fabricatio.models.utils import Messages
 
 
@@ -160,14 +165,6 @@ class Memorable(Base):
         self.memory.clear()
         # Return the current instance object to support method chaining
         return self
-
-
-from typing import List
-import litellm
-from pydantic import HttpUrl, SecretStr, Field, NonNegativeFloat, PositiveInt
-from fabricatio.config import configs
-
-from litellm.types.utils import StreamingChoices, ModelResponse, Choices
 
 
 class LLMUsage(Base):
