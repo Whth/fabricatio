@@ -1,7 +1,9 @@
 from loguru import logger
+from rich import traceback
 
 from fabricatio.config import configs
 
+traceback.install()
 logger.level(configs.debug.log_level)
 logger.add(configs.debug.log_file, rotation="1 weeks", retention="1 month", compression="zip")
 
