@@ -1,14 +1,43 @@
-from typing import List, TypeVar, Iterable, Any, Dict
+from asyncio import Queue
+from typing import List, Iterable, Any, Dict, Self
 
 from pydantic import BaseModel, Field, PositiveInt, NonNegativeInt, ConfigDict
 
 from fabricatio.models.utils import Messages
 
-M = TypeVar("M", bound="BaseModel")
-
 
 class Base(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
+
+
+class WithToDo(Base):
+    todo: Queue[str] = Field(default_factory=Queue)
+    """
+    The todo list of the current instance.
+    """
+
+    async def add_todo(self, todo_msg: str) -> Self:
+        """
+        Add a todo item to the todo list.
+        Args:
+            todo_msg: The todo item to be added to the todo list.
+
+        Returns:
+            Self: The current instance object to support method chaining.
+        """
+
+        await  self.todo.put(todo_msg)
+        return self
+
+    async def get_todo(self) -> str:
+        """
+        Get the last todo item from the todo list.
+        Returns:
+            str: The last todo item from the todo list.
+
+        """
+        # Pop the last todo item from the todo list
+        return await self.todo.get()
 
 
 class Named(Base):
@@ -25,6 +54,18 @@ class Described(Base):
     """
 
 
+class WithBriefing(Named, Described):
+
+    @property
+    def briefing(self) -> str:
+        """
+        Get the briefing of the object.
+        Returns:
+            str: The briefing of the object.
+        """
+        return f"{self.name}: {self.description}" if self.description else self.name
+
+
 class Memorable(Base):
     memory: List[str] = Field(default_factory=list)
     """
@@ -35,7 +76,7 @@ class Memorable(Base):
     Maximum size of the memory list.
     """
 
-    def add_memory(self: M, memories: str | Iterable[str]) -> M:
+    def add_memory(self, memories: str | Iterable[str]) -> Self:
         """
         Add memory items to the memory list.
 
@@ -61,7 +102,7 @@ class Memorable(Base):
         # Return the current instance object to support method chaining
         return self
 
-    def top_memories(self: M, n: PositiveInt = 1) -> List[str]:
+    def top_memories(self, n: PositiveInt = 1) -> List[str]:
         """
         Get the top memory items from the memory list.
 
@@ -79,7 +120,7 @@ class Memorable(Base):
         # Get the top memory items from the memory list
         return self.memory[-n:]
 
-    def top_memories_as_string(self: M, n: PositiveInt = 1, separator: str = "\n\n") -> str:
+    def top_memories_as_string(self, n: PositiveInt = 1, separator: str = "\n\n") -> str:
         """
         Get the memory items as a string.
 
@@ -100,7 +141,7 @@ class Memorable(Base):
         # Join memory items with the separator
         return separator.join(memories)
 
-    def clear_memories(self: M) -> M:
+    def clear_memories(self) -> Self:
         """
         Clear all memory items.
 
