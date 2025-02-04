@@ -78,4 +78,4 @@ class Messages(list):
         Returns:
             list[dict]: A list of dictionaries representing the messages.
         """
-        return [message.dict() for message in self]
+        return [message.model_dump() for message in self]
