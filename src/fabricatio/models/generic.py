@@ -1,11 +1,19 @@
 from asyncio import Queue
-from typing import Iterable, Any, Dict, Self
-from typing import List
+from typing import Iterable, Any, Dict, Self, List
 
 import litellm
 from litellm.types.utils import StreamingChoices, ModelResponse, Choices
-from pydantic import BaseModel, Field, PositiveInt, NonNegativeInt, ConfigDict
-from pydantic import HttpUrl, SecretStr, NonNegativeFloat
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    NonNegativeInt,
+    ConfigDict,
+    HttpUrl,
+    SecretStr,
+    NonNegativeFloat,
+    PrivateAttr,
+)
 
 from fabricatio.config import configs
 from fabricatio.models.utils import Messages
@@ -16,7 +24,7 @@ class Base(BaseModel):
 
 
 class WithToDo(Base):
-    todo: Queue[str] = Field(default_factory=Queue)
+    _todo: Queue[str] = PrivateAttr(default_factory=Queue)
     """
     The todo list of the current instance.
     """
@@ -31,7 +39,7 @@ class WithToDo(Base):
             Self: The current instance object to support method chaining.
         """
 
-        await  self.todo.put(todo_msg)
+        await self._todo.put(todo_msg)
         return self
 
     async def get_todo(self) -> str:
@@ -42,7 +50,7 @@ class WithToDo(Base):
 
         """
         # Pop the last todo item from the todo list
-        return await self.todo.get()
+        return await self._todo.get()
 
 
 class Named(Base):
