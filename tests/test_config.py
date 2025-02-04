@@ -1,9 +1,11 @@
+from pydantic import HttpUrl
+
 from fabricatio.config import LLMConfig, DebugConfig
 
 
 def test_llm_config_defaults():
     llm_config = LLMConfig()
-    assert llm_config.api_endpoint == "https://api.openai.com"
+    assert llm_config.api_endpoint == HttpUrl("https://api.openai.com")
     assert llm_config.api_key.get_secret_value() == ""
     assert llm_config.timeout == 300
     assert llm_config.max_retries == 3
@@ -23,5 +25,5 @@ def test_debug_config_defaults():
 
 
 def test_settings_defaults(settings):
-    assert settings.llm.api_endpoint == "https://api.openai.com"
+    assert settings.llm.api_endpoint == HttpUrl("https://api.openai.com")
     assert settings.debug.log_level == "INFO"
