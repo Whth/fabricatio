@@ -10,7 +10,7 @@ def test_tool_call():
 
 
 def test_toolbox_collect_tool():
-    toolbox = ToolBox()
+    toolbox = ToolBox(name="test_toolbox", description="test toolbox desc")
 
     @toolbox.collect_tool
     def test_func():

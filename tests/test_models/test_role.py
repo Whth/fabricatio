@@ -11,5 +11,5 @@ class TestWorkflow(WorkFlow):
 
 @pytest.mark.asyncio
 async def test_role_act():
-    role = Role(workflows=[TestWorkflow()])
+    role = Role(workflows=[TestWorkflow(name="test_workflow")], name="test_role")
     await role.act()
