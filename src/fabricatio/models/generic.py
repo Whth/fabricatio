@@ -111,7 +111,7 @@ class Memorable(Base):
         self.memory.extend(memories)
         # Limit the memory list size if the maximum size is set
         if self.memory_max_size > 0:
-            self.memory = self.memory[-self.memory_max_size:]
+            self.memory = self.memory[-self.memory_max_size :]
         # Return the current instance object to support method chaining
         return self
 
@@ -236,17 +236,17 @@ class LLMUsage(Base):
         litellm.api_base = self.llm_api_endpoint.unicode_string()
 
     async def aquery(
-            self,
-            messages: List[Dict[str, str]],
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            n: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        messages: List[Dict[str, str]],
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        n: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> ModelResponse:
         """
         Asynchronously queries the language model to generate a response based on the provided messages and parameters.
@@ -281,18 +281,18 @@ class LLMUsage(Base):
         )
 
     async def aask(
-            self,
-            question: str,
-            system_message: str = "",
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            n: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        question: str,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        n: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> List[Choices | StreamingChoices]:
         return (
             await self.aquery(
@@ -308,3 +308,47 @@ class LLMUsage(Base):
                 max_retries=max_retries,
             )
         ).choices
+
+    def dump_llm_config(self) -> Dict[str, Any]:
+        """
+        Dump the LLM configuration to a dictionary.
+
+        Returns:
+        - Dict[str,Any]: A dictionary containing the LLM configuration.
+        """
+        return {
+            "llm_api_endpoint": self.llm_api_endpoint,
+            "llm_api_key": self.llm_api_key,
+            "llm_timeout": self.llm_timeout,
+            "llm_max_retries": self.llm_max_retries,
+            "llm_model": self.llm_model,
+            "llm_temperature": self.llm_temperature,
+            "llm_stop_sign": self.llm_stop_sign,
+            "llm_top_p": self.llm_top_p,
+            "llm_generation_count": self.llm_generation_count,
+            "llm_stream": self.llm_stream,
+            "llm_max_tokens": self.llm_max_tokens,
+        }
+
+    def load_config(self, config: Dict[str, Any]) -> Self:
+        """
+        Load the LLM configuration from a dictionary.
+
+        Parameters:
+        - config (Dict[str,Any]): A dictionary containing the LLM configuration.
+
+        Returns:
+        - Self: The current instance object to support method chaining.
+        """
+        self.llm_api_endpoint = config["llm_api_endpoint"]
+        self.llm_api_key = config["llm_api_key"]
+        self.llm_timeout = config["llm_timeout"]
+        self.llm_max_retries = config["llm_max_retries"]
+        self.llm_model = config["llm_model"]
+        self.llm_temperature = config["llm_temperature"]
+        self.llm_stop_sign = config["llm_stop_sign"]
+        self.llm_top_p = config["llm_top_p"]
+        self.llm_generation_count = config["llm_generation_count"]
+        self.llm_stream = config["llm_stream"]
+        self.llm_max_tokens = config["llm_max_tokens"]
+        return self
