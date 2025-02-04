@@ -1,5 +1,5 @@
 from asyncio import Queue
-from typing import Iterable, Any, Dict, Self, List
+from typing import Iterable, Any, Dict, Self, List, Optional
 
 import litellm
 from litellm.types.utils import StreamingChoices, ModelResponse, Choices
@@ -176,57 +176,57 @@ class Memorable(Base):
 
 
 class LLMUsage(Base):
-    llm_api_endpoint: HttpUrl = Field(default=configs.llm.api_endpoint)
+    llm_api_endpoint: Optional[HttpUrl] = None
     """
     The OpenAI API endpoint.
     """
 
-    llm_api_key: SecretStr = Field(default=configs.llm.api_key)
+    llm_api_key: Optional[SecretStr] = None
     """
     The OpenAI API key.
     """
 
-    llm_timeout: PositiveInt = Field(default=configs.llm.timeout)
+    llm_timeout: Optional[PositiveInt] = None
     """
     The timeout of the LLM model.
     """
 
-    llm_max_retries: PositiveInt = Field(default=configs.llm.max_retries)
+    llm_max_retries: Optional[PositiveInt] = None
     """
     The maximum number of retries.
     """
 
-    llm_model: str = Field(default=configs.llm.model)
+    llm_model: Optional[str] = None
     """
     The LLM model name.
     """
 
-    llm_temperature: NonNegativeFloat = Field(default=configs.llm.temperature)
+    llm_temperature: Optional[NonNegativeFloat] = None
     """
     The temperature of the LLM model.
     """
 
-    llm_stop_sign: str = Field(default=configs.llm.stop_sign)
+    llm_stop_sign: Optional[str] = None
     """
     The stop sign of the LLM model.
     """
 
-    llm_top_p: NonNegativeFloat = Field(default=configs.llm.top_p)
+    llm_top_p: Optional[NonNegativeFloat] = None
     """
     The top p of the LLM model.
     """
 
-    llm_generation_count: PositiveInt = Field(default=configs.llm.generation_count)
+    llm_generation_count: Optional[PositiveInt] = None
     """
     The number of generations to generate.
     """
 
-    llm_stream: bool = Field(default=configs.llm.stream)
+    llm_stream: Optional[bool] = None
     """
     Whether to stream the LLM model's response.
     """
 
-    llm_max_tokens: PositiveInt = Field(default=configs.llm.max_tokens)
+    llm_max_tokens: Optional[PositiveInt] = None
     """
     The maximum number of tokens to generate.
     """
@@ -269,15 +269,15 @@ class LLMUsage(Base):
         # Call the underlying asynchronous completion function with the provided and default parameters
         return await litellm.acompletion(
             messages=messages,
-            model=model or self.llm_model,
-            temperature=temperature or self.llm_temperature,
-            stop=stop or self.llm_stop_sign,
-            top_p=top_p or self.llm_top_p,
-            max_tokens=max_tokens or self.llm_max_tokens,
-            n=n or self.llm_generation_count,
-            stream=stream or self.llm_stream,
-            timeout=timeout or self.llm_timeout,
-            max_retries=max_retries or self.llm_max_retries,
+            model=model or self.llm_model or configs.llm.model,
+            temperature=temperature or self.llm_temperature or configs.llm.temperature,
+            stop=stop or self.llm_stop_sign or configs.llm.stop_sign,
+            top_p=top_p or self.llm_top_p or configs.llm.top_p,
+            max_tokens=max_tokens or self.llm_max_tokens or configs.llm.max_tokens,
+            n=n or self.llm_generation_count or configs.llm.generation_count,
+            stream=stream or self.llm_stream or configs.llm.stream,
+            timeout=timeout or self.llm_timeout or configs.llm.timeout,
+            max_retries=max_retries or self.llm_max_retries or configs.llm.max_retries,
         )
 
     async def aask(
@@ -309,46 +309,37 @@ class LLMUsage(Base):
             )
         ).choices
 
-    def dump_llm_config(self) -> Dict[str, Any]:
+    def fallback_to(self, other: Self) -> Self:
         """
-        Dump the LLM configuration to a dictionary.
-
-        Returns:
-        - Dict[str,Any]: A dictionary containing the LLM configuration.
-        """
-        return {
-            "llm_api_endpoint": self.llm_api_endpoint,
-            "llm_api_key": self.llm_api_key,
-            "llm_timeout": self.llm_timeout,
-            "llm_max_retries": self.llm_max_retries,
-            "llm_model": self.llm_model,
-            "llm_temperature": self.llm_temperature,
-            "llm_stop_sign": self.llm_stop_sign,
-            "llm_top_p": self.llm_top_p,
-            "llm_generation_count": self.llm_generation_count,
-            "llm_stream": self.llm_stream,
-            "llm_max_tokens": self.llm_max_tokens,
-        }
-
-    def load_config(self, config: Dict[str, Any]) -> Self:
-        """
-        Load the LLM configuration from a dictionary.
+        Fallback to another instance's attribute values if the current instance's attributes are None.
 
         Parameters:
-        - config (Dict[str,Any]): A dictionary containing the LLM configuration.
+        - other: Self type, representing another instance from which to copy attribute values.
 
         Returns:
-        - Self: The current instance object to support method chaining.
+        - Self: The current instance, allowing for method chaining.
         """
-        self.llm_api_endpoint = config["llm_api_endpoint"]
-        self.llm_api_key = config["llm_api_key"]
-        self.llm_timeout = config["llm_timeout"]
-        self.llm_max_retries = config["llm_max_retries"]
-        self.llm_model = config["llm_model"]
-        self.llm_temperature = config["llm_temperature"]
-        self.llm_stop_sign = config["llm_stop_sign"]
-        self.llm_top_p = config["llm_top_p"]
-        self.llm_generation_count = config["llm_generation_count"]
-        self.llm_stream = config["llm_stream"]
-        self.llm_max_tokens = config["llm_max_tokens"]
+
+        # Define the list of attribute names to check and potentially copy
+        attr_names = [
+            "llm_api_endpoint",
+            "llm_api_key",
+            "llm_model",
+            "llm_stop_sign",
+            "llm_temperature",
+            "llm_top_p",
+            "llm_generation_count",
+            "llm_stream",
+            "llm_max_tokens",
+            "llm_timeout",
+            "llm_max_retries",
+        ]
+
+        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
+        for attr_name in attr_names:
+            # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
+            if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
+                setattr(self, attr_name, attr)
+
+        # Return the current instance to allow for method chaining
         return self
