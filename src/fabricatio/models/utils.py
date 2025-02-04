@@ -1,9 +1,10 @@
 from typing import Literal, Self, List, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class Message(BaseModel):
+    model_config = ConfigDict(use_attribute_docstrings=True)
     role: Literal["user", "system", "assistant"] = Field(default="user")
     """
     Who is sending the message.
