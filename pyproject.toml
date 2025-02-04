@@ -5,7 +5,7 @@ description = "A multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Whth", email = "whthyotta@qq.com" }
+    { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -24,6 +24,10 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pymitter>=1.0.0",
     "rich>=13.9.4",
+]
+
+[project.optional-dependencies]
+cli = [
     "typer>=0.15.1",
 ]
 
