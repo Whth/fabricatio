@@ -15,6 +15,12 @@ classifiers = [
     "Framework :: Pydantic :: 2",
     "Typing :: Typed",
 ]
+keywords = [
+    "ai",
+    "agents",
+    "multi-agent",
+    "llm",
+]
 requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.11.11",
@@ -22,6 +28,7 @@ dependencies = [
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "litellm>=1.60.0",
+    "llm-ie>=0.4.2",
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
@@ -48,9 +55,42 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
+    "ruff>=0.9.4",
 ]
 cli = [
     "click>=8.1.8",
+]
+
+[tool.ruff]
+include = ["pyproject.toml", "src/fabricatio/*.py", "tests/*.py"]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double" # Like Black, use double quotes for strings.
+
+[tool.ruff.lint]
+select = [
+    "F",        # Pyflakes
+    "E",        # pycodestyle (Error)
+    "I",        # isort
+    "N",        # pep8-naming
+    "D",        # pydocstyle
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "T10",      # flake8-debugger
+    "T20",      # flake8-print
+    "PYI006",   # flake8-pyi (bad-version-info-comparison)
+    "RUF100",   # Ruff-specific rules (unused-noqa)
+]
+ignore = [
+    "E111",     # Ignore indentation-with-invalid-multiple rule; formatter enforces consistent indentation.
+    "E114",     # Ignore indentation-with-invalid-multiple-comment rule; formatter enforces consistent indentation.
+    "E117",     # Ignore over-indented rule; formatter enforces consistent indentation.
+    "N818",     # Ignore error-suffix-on-exception-name rule; pyventus uses Exception suffix.
+    "D100",     # Ignore undocumented-public-module rule; module names imply their content.
+    "D206",     # Ignore indent-with-spaces rule; formatter enforces consistent indentation.
+    "D300",     # Ignore triple-single-quotes rule; formatter enforces consistent quotes.
 ]
 
 [[tool.uv.index]]
