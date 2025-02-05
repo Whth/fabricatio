@@ -309,7 +309,7 @@ class LLMUsage(Base):
             )
         ).choices
 
-    def fallback_to(self, other: Self) -> Self:
+    def fallback_to(self, other: "LLMUsage") -> Self:
         """
         Fallback to another instance's attribute values if the current instance's attributes are None.
 
