@@ -1,14 +1,19 @@
-from typing import List
+from typing import Dict, Any
 
 from pydantic import Field
 
+from fabricatio.core import env
 from fabricatio.models.action import WorkFlow
+from fabricatio.models.events import Event
 from fabricatio.models.generic import Memorable, WithToDo, WithBriefing, LLMUsage
 
 
-class Role[T: WorkFlow](Memorable, WithBriefing, WithToDo, LLMUsage):
-    workflows: List[T] = Field(frozen=True)
-    """A list of action names that the role can perform."""
+class Role[W: WorkFlow, E: Event | str](Memorable, WithBriefing, WithToDo, LLMUsage):
 
-    async def act(self):
-        pass
+    registry: Dict[E, W] = Field(...)
+    """ The registry of events and workflows."""
+
+    def model_post_init(self, __context: Any) -> None:
+        for event, workflow in self.registry.items():
+            workflow.fallback_to(self)
+            env.on(event, workflow.serve)
