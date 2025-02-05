@@ -66,3 +66,11 @@ class Event(BaseModel):
         """
         self.segments.extend(event.segments)
         return self
+
+    def __hash__(self):
+        return hash(self.collapse())
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, Event):
+            other = other.collapse()
+        return self.collapse() == other
