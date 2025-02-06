@@ -7,43 +7,22 @@ from fabricatio.models.generic import WithBriefing, LLMUsage
 from fabricatio.models.task import Task
 
 
-class Action[**P, R](WithBriefing, LLMUsage):
-    input_keys: Tuple[str, ...] = Field(default_factory=tuple)
-    """ The keys of the input data."""
+class Action(WithBriefing, LLMUsage):
+
     output_key: str = Field(default="")
     """ The key of the output data."""
 
     @abstractmethod
-    async def execute(self, *args: P.args) -> R:
+    async def _execute(self, **kwargs) -> Any:
         """Execute the action with the provided arguments.
 
         Args:
-            *args: Positional arguments required for the execution.
+            **kwargs: The arguments to be used for the action execution.
 
         Returns:
             The result of the action execution.
         """
         pass
-
-    def get_input_data(self, cxt: Dict[str, Any]) -> P.args:
-        """Retrieve input data from the context based on input keys.
-
-        Args:
-            cxt: The context dictionary containing input data.
-
-        Returns:
-            A tuple of input data values corresponding to the input keys.
-        """
-        return tuple(cxt[k] for k in self.input_keys)
-
-    def set_output_data(self, cxt: Dict[str, Any], output: R) -> None:
-        """Set the output data in the context under the output key.
-
-        Args:
-            cxt: The context dictionary to store the output data.
-            output: The output data to be stored.
-        """
-        cxt[self.output_key] = output
 
     async def act(self, cxt: Dict[str, Any]) -> None:
         """Perform the action by executing it and setting the output data.
@@ -51,7 +30,9 @@ class Action[**P, R](WithBriefing, LLMUsage):
         Args:
             cxt: The context dictionary containing input and output data.
         """
-        self.set_output_data(cxt, await self.execute(*self.get_input_data(cxt)))
+        ret = await self._execute(**cxt)
+        if self.output_key:
+            cxt[self.output_key] = ret
 
 
 class WorkFlow(WithBriefing, LLMUsage):
