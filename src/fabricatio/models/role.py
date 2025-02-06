@@ -8,9 +8,9 @@ from fabricatio.models.events import Event
 from fabricatio.models.generic import Memorable, WithToDo, WithBriefing, LLMUsage
 
 
-class Role[W: WorkFlow, E: Event | str](Memorable, WithBriefing, WithToDo, LLMUsage):
+class Role(Memorable, WithBriefing, WithToDo, LLMUsage):
 
-    registry: Dict[E, W] = Field(...)
+    registry: Dict[Event | str, WorkFlow] = Field(...)
     """ The registry of events and workflows."""
 
     def model_post_init(self, __context: Any) -> None:

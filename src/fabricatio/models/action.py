@@ -1,8 +1,9 @@
 from abc import abstractmethod
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Type
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
+from fabricatio.logging import logger
 from fabricatio.models.generic import WithBriefing, LLMUsage
 from fabricatio.models.task import Task
 
@@ -36,9 +37,12 @@ class Action(WithBriefing, LLMUsage):
 
 
 class WorkFlow(WithBriefing, LLMUsage):
-    steps: Tuple[Action, ...] = Field(...)
+    _context: Dict[str, Any] = PrivateAttr(default=dict)
+    """ The context dictionary to be used for workflow execution."""
+    _instances: Tuple[Action, ...] = PrivateAttr(...)
+
+    steps: Tuple[Type[Action], ...] = Field(...)
     """ The steps to be executed in the workflow."""
-    _context: Dict
     task_input_key: str = Field(default="input")
     """ The key of the task input data."""
     task_output_key: str = Field(default="output")
@@ -50,7 +54,9 @@ class WorkFlow(WithBriefing, LLMUsage):
         Args:
             __context: The context to be used for initialization.
         """
-        for step in self.steps:
+
+        self._instances = tuple(step() for step in self.steps)
+        for step in self._instances:
             step.fallback_to(self)
 
     async def serve(self, task: Task) -> None:
@@ -59,14 +65,16 @@ class WorkFlow(WithBriefing, LLMUsage):
         Args:
             task: The task to be served.
         """
+
         task.start()
+        self._context[self.task_input_key] = task
+        modified = self._context
         try:
-            self._context[self.task_input_key] = task
-            modified = self._context
-            for step in self.steps:
+            for step in self._instances:
                 modified = await step.act(modified)
-        except Exception:
-            task.fail()
-            return
-        task.finish(modified[self.task_output_key])
-        self._context.clear()
+            task.finish(modified[self.task_output_key])
+        except Exception as e:
+            logger.error(f"Error during task execution: {e}")  # Log the exception
+            task.fail()  # Mark the task as failed
+        finally:
+            self._context.clear()

@@ -1,11 +1,11 @@
-from typing import List, Self
+from typing import List, Self, ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class Event(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
-    delimiter: str = Field(default=".", frozen=True)
+    delimiter: ClassVar[str] = Field(default=".", frozen=True)
     """ The delimiter used to separate the event name into segments."""
 
     segments: List[str] = Field(default_factory=list, frozen=True)

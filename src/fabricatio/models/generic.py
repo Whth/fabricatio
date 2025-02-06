@@ -232,8 +232,8 @@ class LLMUsage(Base):
     """
 
     def model_post_init(self, __context: Any) -> None:
-        litellm.api_key = self.llm_api_key.get_secret_value()
-        litellm.api_base = self.llm_api_endpoint.unicode_string()
+        litellm.api_key = self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key
+        litellm.api_base = self.llm_api_endpoint.unicode_string() if self.llm_api_endpoint else configs.llm.api_endpoint
 
     async def aquery(
         self,

@@ -144,6 +144,9 @@ class Env(BaseModel):
             *args: Positional arguments to pass to the listeners.
             **kwargs: Keyword arguments to pass to the listeners.
         """
+        if isinstance(event, Event):
+            event = event.collapse()
+
         self._ee.emit(event, *args, **kwargs)
 
     async def emit_async[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
@@ -155,6 +158,8 @@ class Env(BaseModel):
             *args: Positional arguments to pass to the listeners.
             **kwargs: Keyword arguments to pass to the listeners.
         """
+        if isinstance(event, Event):
+            event = event.collapse()
         return await self._ee.emit_async(event, *args, **kwargs)
 
 

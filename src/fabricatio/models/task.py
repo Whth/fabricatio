@@ -4,6 +4,8 @@ from typing import Self
 from pydantic import Field, PrivateAttr
 
 from fabricatio.core import env
+from fabricatio.logging import logger
+from fabricatio.models.events import Event
 from fabricatio.models.generic import WithBriefing
 
 
@@ -28,7 +30,7 @@ class Task[T](WithBriefing):
 
     def status_label(self, status: TaskStatus):
         """Return a formatted status label for the task."""
-        return f"{self.name}-{status.value}"
+        return f"{self.name}{Event.delimiter}{status.value}"
 
     @property
     def pending_label(self):
@@ -57,6 +59,7 @@ class Task[T](WithBriefing):
 
     def finish(self, output: T) -> Self:
         """Mark the task as finished and set the output."""
+        logger.info(f"Finishing task {self.name}")
         self.status = TaskStatus.Finished
         self._output = output
         env.emit(self.failed_label, self)
@@ -64,6 +67,7 @@ class Task[T](WithBriefing):
 
     def start(self) -> Self:
         """Mark the task as running."""
+        logger.info(f"Starting task {self.name}")
         self.status = TaskStatus.Running
         env.emit(self.running_label, self)
         return self
@@ -76,6 +80,7 @@ class Task[T](WithBriefing):
 
     def fail(self) -> Self:
         """Mark the task as failed."""
+        logger.error(f"Task {self.name} failed")
         self.status = TaskStatus.Failed
         env.emit(self.failed_label, self)
         return self
