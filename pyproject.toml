@@ -28,11 +28,11 @@ dependencies = [
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "litellm>=1.60.0",
-    "llm-ie>=0.4.2",
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
     "pymitter>=1.0.0",
+    "regex>=2024.11.6",
     "rich>=13.9.4",
 ]
 
