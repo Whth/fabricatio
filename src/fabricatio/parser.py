@@ -37,11 +37,6 @@ class Capture(Base):
         Returns:
             str | None: The captured text if the pattern is found, otherwise None.
 
-        Examples:
-            >>> Capture(pattern=r"(\d+)").capture("123")
-            "123"
-            >>> Capture(pattern=r"(\d+)").capture("abc")
-            None
         """
         if match := self._compiled.search(text):
             return match.group()
