@@ -37,7 +37,7 @@ class Action(WithBriefing, LLMUsage):
 
 
 class WorkFlow(WithBriefing, LLMUsage):
-    _context: Dict[str, Any] = PrivateAttr(default=dict)
+    _context: Dict[str, Any] = PrivateAttr(default_factory=dict)
     """ The context dictionary to be used for workflow execution."""
     _instances: Tuple[Action, ...] = PrivateAttr(...)
 
