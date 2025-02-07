@@ -20,6 +20,7 @@ class Talk(Action):
 async def main():
     Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))})
     await env.emit_async(task.pending_label, task)
+    logger.info("task emitted")
     print(await task.get_output())
 
 
