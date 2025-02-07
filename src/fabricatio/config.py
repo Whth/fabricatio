@@ -1,7 +1,7 @@
 from typing import Literal
 
 from appdirs import user_config_dir
-from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field, FilePath
+from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field, FilePath, ConfigDict
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -14,6 +14,7 @@ from pydantic_settings import (
 
 
 class LLMConfig(BaseModel):
+    model_config = ConfigDict(use_attribute_docstrings=True)
     api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com"))
     """
     OpenAI API Endpoint.
@@ -70,7 +71,17 @@ class LLMConfig(BaseModel):
     """
 
 
+class PymitterConfig(BaseModel):
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    delimiter: str = Field(default=".", frozen=True)
+    """
+    The delimiter used to separate the event name into segments.
+    """
+
+
 class DebugConfig(BaseModel):
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
     log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     """
     The log level of the application.
@@ -102,14 +113,19 @@ class Settings(BaseSettings):
     Debug Configuration
     """
 
+    pymitter: PymitterConfig = Field(default_factory=PymitterConfig)
+    """
+    Pymitter Configuration
+    """
+
     @classmethod
     def settings_customise_sources(
-            cls,
-            settings_cls: type[BaseSettings],
-            init_settings: PydanticBaseSettingsSource,
-            env_settings: PydanticBaseSettingsSource,
-            dotenv_settings: PydanticBaseSettingsSource,
-            file_secret_settings: PydanticBaseSettingsSource,
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             DotEnvSettingsSource(settings_cls),

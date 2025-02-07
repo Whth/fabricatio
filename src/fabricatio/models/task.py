@@ -3,9 +3,9 @@ from typing import Self
 
 from pydantic import Field, PrivateAttr
 
+from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.logging import logger
-from fabricatio.models.events import Event
 from fabricatio.models.generic import WithBriefing
 
 
@@ -30,7 +30,7 @@ class Task[T](WithBriefing):
 
     def status_label(self, status: TaskStatus):
         """Return a formatted status label for the task."""
-        return f"{self.name}{Event.delimiter}{status.value}"
+        return f"{self.name}{configs.pymitter.delimiter}{status.value}"
 
     @property
     def pending_label(self):
