@@ -56,3 +56,10 @@ jobs:
             dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Upload to PyPI
+        if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
+        run: |
+          uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
