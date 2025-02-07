@@ -63,32 +63,34 @@ class Task[T](WithBriefing):
         """Return the cancelled status label for the task."""
         return self.status_label(TaskStatus.Cancelled)
 
-    def finish(self, output: T) -> Self:
+    async def finish(self, output: T) -> Self:
         """Mark the task as finished and set the output."""
         logger.info(f"Finishing task {self.name}")
         self.status = TaskStatus.Finished
-        self._output.put(output)
-        env.emit(self.failed_label, self)
+        await self._output.put(output)
+        logger.debug(f"Output set for task {self.name}")
+        await env.emit_async(self.finished_label, self)
+        logger.debug(f"Emitted finished event for task {self.name}")
         return self
 
-    def start(self) -> Self:
+    async def start(self) -> Self:
         """Mark the task as running."""
         logger.info(f"Starting task {self.name}")
         self.status = TaskStatus.Running
-        env.emit(self.running_label, self)
+        await env.emit_async(self.running_label, self)
         return self
 
-    def cancel(self) -> Self:
+    async def cancel(self) -> Self:
         """Mark the task as cancelled."""
         self.status = TaskStatus.Cancelled
-        env.emit(self.cancelled_label, self)
+        await env.emit_async(self.cancelled_label, self)
         return self
 
-    def fail(self) -> Self:
+    async def fail(self) -> Self:
         """Mark the task as failed."""
         logger.error(f"Task {self.name} failed")
         self.status = TaskStatus.Failed
-        env.emit(self.failed_label, self)
+        await env.emit_async(self.failed_label, self)
         return self
 
     @property

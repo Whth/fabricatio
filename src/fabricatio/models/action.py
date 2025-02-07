@@ -1,4 +1,6 @@
+import traceback
 from abc import abstractmethod
+from asyncio import Queue
 from typing import Tuple, Dict, Any, Type
 
 from pydantic import Field, PrivateAttr
@@ -25,7 +27,7 @@ class Action(WithBriefing, LLMUsage):
         """
         pass
 
-    async def act(self, cxt: Dict[str, Any]) -> None:
+    async def act(self, cxt: Dict[str, Any]) -> Dict[str, Any]:
         """Perform the action by executing it and setting the output data.
 
         Args:
@@ -35,11 +37,13 @@ class Action(WithBriefing, LLMUsage):
         if self.output_key:
             logger.debug(f"Setting output: {self.output_key}")
             cxt[self.output_key] = ret
+        return cxt
 
 
 class WorkFlow(WithBriefing, LLMUsage):
-    _context: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """ The context dictionary to be used for workflow execution."""
+
     _instances: Tuple[Action, ...] = PrivateAttr(...)
 
     steps: Tuple[Type[Action], ...] = Field(...)
@@ -67,19 +71,21 @@ class WorkFlow(WithBriefing, LLMUsage):
             task: The task to be served.
         """
 
-        task.start()
-        self._context[self.task_input_key] = task
-        modified = self._context
+        await task.start()
+        await self._context.put({self.task_input_key: task})
         current_action = None
         try:
             for step in self._instances:
                 logger.debug(f"Executing step: {step.name}")
-                modified = await step.act(modified)
+                ctx = await self._context.get()
+                modified_ctx = await step.act(ctx)
+                await self._context.put(modified_ctx)
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
-            task.finish(modified[self.task_output_key])
+            await task.finish((await self._context.get()).get(self.task_output_key, None))
         except Exception as e:
             logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
-            task.fail()  # Mark the task as failed
+            logger.error(traceback.format_exc())  # Add this line to log the traceback
+            await task.fail()  # Mark the task as failed
         finally:
-            self._context.clear()
+            await self._context.get()
