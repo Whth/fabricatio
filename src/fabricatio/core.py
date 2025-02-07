@@ -3,6 +3,7 @@ from typing import Callable, Self, overload
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymitter import EventEmitter
 
+from fabricatio.config import configs
 from fabricatio.models.events import Event
 
 
@@ -15,7 +16,14 @@ class Env(BaseModel):
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    _ee: EventEmitter = PrivateAttr(default_factory=EventEmitter)
+    _ee: EventEmitter = PrivateAttr(
+        default_factory=lambda: EventEmitter(
+            delimiter=configs.pymitter.delimiter,
+            new_listener=configs.pymitter.new_listener_event,
+            max_listeners=configs.pymitter.max_listeners,
+            wildcard=True,
+        )
+    )
 
     @overload
     def on(self, event: str | Event, /, ttl: int = -1) -> Self:

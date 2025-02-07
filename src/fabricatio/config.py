@@ -78,6 +78,16 @@ class PymitterConfig(BaseModel):
     The delimiter used to separate the event name into segments.
     """
 
+    new_listener_event: bool = Field(default=False, frozen=True)
+    """
+    If set, a newListener event is emitted when a new listener is added.
+    """
+
+    max_listeners: int = Field(default=-1, frozen=True)
+    """
+    The maximum number of listeners per event.
+    """
+
 
 class DebugConfig(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
