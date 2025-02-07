@@ -87,5 +87,3 @@ class WorkFlow(WithBriefing, LLMUsage):
             logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
             logger.error(traceback.format_exc())  # Add this line to log the traceback
             await task.fail()  # Mark the task as failed
-        finally:
-            await self._context.get()

@@ -3,16 +3,15 @@ from typing import Any
 
 from fabricatio import env, Role, Action, Task, logger, WorkFlow
 
-task = Task(name="world", goal="say hello", description="say hello to the world")
+task = Task(name="say hello", goal="say hello", description="say hello to the world")
 
 
 class Talk(Action):
     name: str = "talk"
-    description: str = "talk to the world"
-    output_key: str = "echo"
+    output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = f"Hello {task_input.name}"
+        ret = f"Hello fabricatio!"
         logger.info("executing talk action")
         return ret
 
@@ -20,7 +19,7 @@ class Talk(Action):
 async def main():
     Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))})
     await env.emit_async(task.pending_label, task)
-    logger.info("task emitted")
+
     print(await task.get_output())
 
 
