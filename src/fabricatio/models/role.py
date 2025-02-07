@@ -3,7 +3,7 @@ from typing import Dict, Any
 from pydantic import Field
 
 from fabricatio.core import env
-from fabricatio.logging import logger
+from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.events import Event
 from fabricatio.models.generic import Memorable, WithToDo, WithBriefing, LLMUsage

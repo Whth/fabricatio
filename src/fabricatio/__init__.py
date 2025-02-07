@@ -1,5 +1,5 @@
 from fabricatio.core import env
-from fabricatio.logging import logger
+from fabricatio.journal import logger
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.events import Event
 from fabricatio.models.role import Role

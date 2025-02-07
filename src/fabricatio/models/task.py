@@ -6,7 +6,7 @@ from pydantic import Field, PrivateAttr
 
 from fabricatio.config import configs
 from fabricatio.core import env
-from fabricatio.logging import logger
+from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 
 

@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Any, Type
 
 from pydantic import Field, PrivateAttr
 
-from fabricatio.logging import logger
+from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing, LLMUsage
 from fabricatio.models.task import Task
 
