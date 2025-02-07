@@ -1,3 +1,4 @@
+from asyncio import Queue
 from enum import Enum
 from typing import Self
 
@@ -22,11 +23,16 @@ class TaskStatus(Enum):
 class Task[T](WithBriefing):
     """Class that represents a task with a status and output."""
 
-    _output: T = PrivateAttr(default="")
+    _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     status: TaskStatus = Field(default=TaskStatus.Pending)
     """The status of the task."""
     goal: str = Field(default="")
     """The goal of the task."""
+
+    async def get_output(self) -> T:
+        """Get the output of the task."""
+        logger.debug(f"Getting output for task {self.name}")
+        return await self._output.get()
 
     def status_label(self, status: TaskStatus):
         """Return a formatted status label for the task."""
@@ -61,7 +67,7 @@ class Task[T](WithBriefing):
         """Mark the task as finished and set the output."""
         logger.info(f"Finishing task {self.name}")
         self.status = TaskStatus.Finished
-        self._output = output
+        self._output.put(output)
         env.emit(self.failed_label, self)
         return self
 

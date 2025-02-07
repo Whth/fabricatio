@@ -14,11 +14,11 @@ class Action(WithBriefing, LLMUsage):
     """ The key of the output data."""
 
     @abstractmethod
-    async def _execute(self, **kwargs) -> Any:
+    async def _execute(self, **cxt) -> Any:
         """Execute the action with the provided arguments.
 
         Args:
-            **kwargs: The arguments to be used for the action execution.
+            **cxt: The context dictionary containing input and output data.
 
         Returns:
             The result of the action execution.
@@ -33,6 +33,7 @@ class Action(WithBriefing, LLMUsage):
         """
         ret = await self._execute(**cxt)
         if self.output_key:
+            logger.debug(f"Setting output: {self.output_key}")
             cxt[self.output_key] = ret
 
 
@@ -43,9 +44,9 @@ class WorkFlow(WithBriefing, LLMUsage):
 
     steps: Tuple[Type[Action], ...] = Field(...)
     """ The steps to be executed in the workflow."""
-    task_input_key: str = Field(default="input")
+    task_input_key: str = Field(default="task_input")
     """ The key of the task input data."""
-    task_output_key: str = Field(default="output")
+    task_output_key: str = Field(default="task_output")
     """ The key of the task output data."""
 
     def model_post_init(self, __context: Any) -> None:
@@ -69,12 +70,16 @@ class WorkFlow(WithBriefing, LLMUsage):
         task.start()
         self._context[self.task_input_key] = task
         modified = self._context
+        current_action = None
         try:
             for step in self._instances:
+                logger.debug(f"Executing step: {step.name}")
                 modified = await step.act(modified)
+                current_action = step.name
+            logger.info(f"Finished executing workflow: {self.name}")
             task.finish(modified[self.task_output_key])
         except Exception as e:
-            logger.error(f"Error during task execution: {e}")  # Log the exception
+            logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
             task.fail()  # Mark the task as failed
         finally:
             self._context.clear()
