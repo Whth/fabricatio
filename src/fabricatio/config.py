@@ -108,6 +108,7 @@ class Settings(BaseSettings):
         env_prefix="FABRIK_",
         env_nested_delimiter="__",
         pyproject_toml_depth=1,
+        pyproject_toml_table_header=("tool", "fabricatio"),
         toml_file=["fabricatio.toml", f"{user_config_dir("fabricatio", roaming=True)}.toml"],
         env_file=[".env", ".envrc"],
         use_attribute_docstrings=True,
