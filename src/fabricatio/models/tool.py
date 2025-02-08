@@ -1,5 +1,5 @@
 from inspect import signature, getfullargspec
-from typing import Callable, List, Any
+from typing import Callable, List, Any, Self
 
 from pydantic import Field
 
@@ -55,14 +55,22 @@ class ToolBox(WithBriefing):
 
         Returns:
             Callable[P, R]: The added function.
-
-        Raises:
-            AssertionError: If the provided function is not callable or lacks a name.
         """
 
-        tool = Tool(source=func)
-        self.tools.append(tool)
+        self.tools.append(Tool(source=func))
         return func
+
+    def add_tool[**P, R](self, func: Callable[P, R]) -> Self:
+        """Add a callable function to the toolbox as a tool.
+
+        Args:
+            func (Callable): The function to be added as a tool.
+
+        Returns:
+            Self: The current instance of the toolbox.
+        """
+        self.tools.append(Tool(source=func))
+        return self
 
     @property
     def briefing(self) -> str:

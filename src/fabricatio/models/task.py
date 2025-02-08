@@ -23,11 +23,28 @@ class TaskStatus(Enum):
 class Task[T](WithBriefing):
     """Class that represents a task with a status and output."""
 
+    name: str = Field(...)
+    """The name of the task."""
+    description: str = Field(default="")
+    """The description of the task."""
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     status: TaskStatus = Field(default=TaskStatus.Pending)
     """The status of the task."""
     goal: str = Field(default="")
     """The goal of the task."""
+
+    @classmethod
+    def simple_task(cls, name: str, goal: str, description: str) -> Self:
+        """Create a simple task with a name, goal, and description."""
+        return cls(name=name, goal=goal, description=description)
+
+    def update_task(self, goal: str = None, description: str = None) -> Self:
+        """Update the goal and description of the task."""
+        if goal:
+            self.goal = goal
+        if description:
+            self.description = description
+        return self
 
     async def get_output(self) -> T:
         """Get the output of the task."""
