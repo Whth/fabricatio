@@ -1,18 +1,18 @@
 from asyncio import Queue
-from typing import Iterable, Any, Dict, Self, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Self
 
 import litellm
-from litellm.types.utils import StreamingChoices, ModelResponse, Choices
+from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import (
     BaseModel,
-    Field,
-    PositiveInt,
-    NonNegativeInt,
     ConfigDict,
+    Field,
     HttpUrl,
-    SecretStr,
     NonNegativeFloat,
+    NonNegativeInt,
+    PositiveInt,
     PrivateAttr,
+    SecretStr,
 )
 
 from fabricatio.config import configs

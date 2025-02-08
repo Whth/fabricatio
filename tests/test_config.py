@@ -1,6 +1,6 @@
 from pydantic import HttpUrl
 
-from fabricatio.config import LLMConfig, DebugConfig
+from fabricatio.config import DebugConfig, LLMConfig
 
 
 def test_llm_config_defaults():

@@ -1,5 +1,5 @@
-from inspect import signature, getfullargspec
-from typing import Callable, List, Any, Self
+from inspect import getfullargspec, signature
+from typing import Any, Callable, List, Self
 
 from pydantic import Field
 

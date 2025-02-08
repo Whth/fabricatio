@@ -1,6 +1,6 @@
 import pytest
 
-from fabricatio.models.generic import WithToDo, Memorable
+from fabricatio.models.generic import Memorable, WithToDo
 
 
 @pytest.mark.asyncio

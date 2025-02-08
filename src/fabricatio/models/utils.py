@@ -1,6 +1,6 @@
-from typing import Literal, Self, List, Dict
+from typing import Dict, List, Literal, Self
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Message(BaseModel):

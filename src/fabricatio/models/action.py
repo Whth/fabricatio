@@ -1,12 +1,12 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue
-from typing import Tuple, Dict, Any, Type
+from typing import Any, Dict, Tuple, Type
 
 from pydantic import Field, PrivateAttr
 
 from fabricatio.journal import logger
-from fabricatio.models.generic import WithBriefing, LLMUsage
+from fabricatio.models.generic import LLMUsage, WithBriefing
 from fabricatio.models.task import Task
 
 

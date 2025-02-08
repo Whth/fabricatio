@@ -1,15 +1,15 @@
 from typing import Literal
 
 from appdirs import user_config_dir
-from pydantic import BaseModel, HttpUrl, SecretStr, PositiveInt, NonNegativeFloat, Field, FilePath, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, FilePath, HttpUrl, NonNegativeFloat, PositiveInt, SecretStr
 from pydantic_settings import (
     BaseSettings,
-    SettingsConfigDict,
-    PydanticBaseSettingsSource,
-    TomlConfigSettingsSource,
-    PyprojectTomlConfigSettingsSource,
-    EnvSettingsSource,
     DotEnvSettingsSource,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    PyprojectTomlConfigSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
 )
 
 

@@ -3,6 +3,7 @@ import pytest
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.task import Task
 
+
 class TestAction(Action):
     async def _execute(self, *args, **kwargs):
         return "executed"

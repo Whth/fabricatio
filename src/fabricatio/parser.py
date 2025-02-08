@@ -1,6 +1,6 @@
 from typing import Any, Self, Tuple
 
-from pydantic import PrivateAttr, Field
+from pydantic import Field, PrivateAttr
 from regex import Pattern, compile
 
 from fabricatio.models.generic import Base
