@@ -61,3 +61,7 @@ class Capture(Base):
             Self: The instance of the class with the captured code block.
         """
         return cls(pattern=f"```{language}\n(.*?)\n```", target_groups=(1,))
+
+
+JsonCapture = Capture.capture_code_block("json")
+PythonCapture = Capture.capture_code_block("python")
