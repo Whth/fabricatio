@@ -99,6 +99,12 @@ class Task[T](WithBriefing):
         await env.emit_async(self.pending_label, self)
         return self
 
+    async def delegate(self) -> T:
+        """Delegate the task to the environment."""
+        logger.info(f"Delegating task {self.name}")
+        await env.emit_async(self.pending_label, self)
+        return await self.get_output()
+
     @property
     def briefing(self) -> str:
         """Return a briefing of the task including its goal."""
