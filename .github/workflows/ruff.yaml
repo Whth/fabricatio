@@ -1,0 +1,26 @@
+name: Pre-commit checks
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - '**'
+
+jobs:
+  ruff-linter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup ruff
+        uses: astral-sh/ruff-action@v3
+        with:
+          github-token: ${{ secrets.PAT }}
+
+
+      - name: Ruff check
+        run: ruff check --fix
+      - name: Ruff format
+        run: ruff format

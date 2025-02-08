@@ -63,36 +63,25 @@ cli = [
 ]
 
 [tool.ruff]
-include = ["pyproject.toml", "src/fabricatio/*.py", "tests/*.py"]
+include = ["pyproject.toml", "src/fabricatio/*.py", "tests/*.py","examples/*.py"]
 line-length = 120
-
+target-version = "py312"
 [tool.ruff.format]
 quote-style = "double" # Like Black, use double quotes for strings.
 
 [tool.ruff.lint]
 select = [
     "F",        # Pyflakes
-    "E",        # pycodestyle (Error)
     "I",        # isort
     "N",        # pep8-naming
-    "D",        # pydocstyle
-    "UP",       # pyupgrade
     "B",        # flake8-bugbear
     "C4",       # flake8-comprehensions
     "T10",      # flake8-debugger
     "T20",      # flake8-print
     "PYI006",   # flake8-pyi (bad-version-info-comparison)
-    "RUF100",   # Ruff-specific rules (unused-noqa)
+    "RUF",      # Ruff-specific rules
 ]
-ignore = [
-    "E111",     # Ignore indentation-with-invalid-multiple rule; formatter enforces consistent indentation.
-    "E114",     # Ignore indentation-with-invalid-multiple-comment rule; formatter enforces consistent indentation.
-    "E117",     # Ignore over-indented rule; formatter enforces consistent indentation.
-    "N818",     # Ignore error-suffix-on-exception-name rule; pyventus uses Exception suffix.
-    "D100",     # Ignore undocumented-public-module rule; module names imply their content.
-    "D206",     # Ignore indent-with-spaces rule; formatter enforces consistent indentation.
-    "D300",     # Ignore triple-single-quotes rule; formatter enforces consistent quotes.
-]
+
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
