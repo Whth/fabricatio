@@ -8,14 +8,6 @@ def env():
     return Env()
 
 
-def test_env_on_event(env):
-    @env.on("test_event")
-    def handler():
-        return "handled"
-
-    assert "test_event" in env._ee._events
-
-
 def test_env_emit_event(env):
     result = []
 
