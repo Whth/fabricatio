@@ -93,6 +93,12 @@ class Task[T](WithBriefing):
         await env.emit_async(self.failed_label, self)
         return self
 
+    async def publish(self) -> Self:
+        """Publish the task to the environment."""
+        logger.info(f"Publishing task {self.name}")
+        await env.emit_async(self.pending_label, self)
+        return self
+
     @property
     def briefing(self) -> str:
         """Return a briefing of the task including its goal."""
