@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from fabricatio import env, Role, Action, Task, logger, WorkFlow
+from fabricatio import Role, Action, Task, logger, WorkFlow
 
 task = Task(name="say hello", goal="say hello", description="say hello to the world")
 
@@ -18,9 +18,8 @@ class Talk(Action):
 
 async def main():
     Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))})
-    await env.emit_async(task.pending_label, task)
 
-    print(await task.get_output())
+    print(await task.delegate())
 
 
 if __name__ == "__main__":
