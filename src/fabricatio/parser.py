@@ -1,6 +1,6 @@
-from typing import Any
+from typing import Any, Self, Tuple
 
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, Field
 from regex import Pattern, compile
 
 from fabricatio.models.generic import Base
@@ -15,7 +15,10 @@ class Capture(Base):
         _compiled (Pattern): The compiled regular expression pattern.
     """
 
-    pattern: str
+    target_groups: Tuple[int, ...] = Field(default_factory=tuple)
+    """The target groups to capture from the pattern."""
+    pattern: str = Field(frozen=True)
+    """The regular expression pattern to search for."""
     _compiled: Pattern = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
@@ -27,7 +30,7 @@ class Capture(Base):
         """
         self._compiled = compile(self.pattern)
 
-    def capture(self, text: str) -> str | None:
+    def capture(self, text: str) -> Tuple[str, ...] | None:
         """
         Capture the first occurrence of the pattern in the given text.
 
@@ -38,5 +41,23 @@ class Capture(Base):
             str | None: The captured text if the pattern is found, otherwise None.
 
         """
-        if match := self._compiled.search(text):
-            return match.group()
+        match = self._compiled.search(text)
+        if match is None:
+            return None
+
+        if self.target_groups:
+            return tuple(match.group(g) for g in self.target_groups)
+        else:
+            return (match.group(),)
+
+    @classmethod
+    def capture_code_block(cls, language: str) -> Self:
+        """
+        Capture the first occurrence of a code block in the given text.
+        Args:
+            language (str): The text containing the code block.
+
+        Returns:
+            Self: The instance of the class with the captured code block.
+        """
+        return cls(pattern=f"```{language}\n(.*?)\n```", target_groups=(1,))
