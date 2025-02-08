@@ -21,11 +21,13 @@ from fabricatio.models.utils import Messages
 
 class Base(BaseModel):
     """Base class for all models with Pydantic configuration."""
+
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 class WithToDo(Base):
     """Class that manages a todo list using an asynchronous queue."""
+
     _todo: Queue[str] = PrivateAttr(default_factory=Queue)
     """
     The todo list of the current instance.
@@ -55,6 +57,7 @@ class WithToDo(Base):
 
 class Named(Base):
     """Class that includes a name attribute."""
+
     name: str = Field(frozen=True)
     """
     Name of the object.
@@ -63,6 +66,7 @@ class Named(Base):
 
 class Described(Base):
     """Class that includes a description attribute."""
+
     description: str = Field(default="", frozen=True)
     """
     Description of the object.
@@ -71,6 +75,7 @@ class Described(Base):
 
 class WithBriefing(Named, Described):
     """Class that provides a briefing based on the name and description."""
+
     @property
     def briefing(self) -> str:
         """Get the briefing of the object.
@@ -83,6 +88,7 @@ class WithBriefing(Named, Described):
 
 class Memorable(Base):
     """Class that manages a memory list with a maximum size."""
+
     memory: List[str] = Field(default_factory=list)
     """
     Memory list.
@@ -153,6 +159,7 @@ class Memorable(Base):
 
 class LLMUsage(Base):
     """Class that manages LLM (Large Language Model) usage parameters and methods."""
+
     llm_api_endpoint: Optional[HttpUrl] = None
     """
     The OpenAI API endpoint.
