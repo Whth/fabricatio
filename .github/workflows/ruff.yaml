@@ -18,9 +18,3 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           github-token: ${{ secrets.PAT }}
-
-
-      - name: Ruff check
-        run: ruff check --fix
-      - name: Ruff format
-        run: ruff format
