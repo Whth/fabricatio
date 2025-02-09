@@ -7,6 +7,8 @@ task = Task(name="say hello", goal="say hello", description="say hello to the wo
 
 
 class Talk(Action):
+    """Action that says hello to the world."""
+
     name: str = "talk"
     output_key: str = "task_output"
 
@@ -17,6 +19,7 @@ class Talk(Action):
 
 
 async def main():
+    """Main function."""
     Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))})
 
     print(await task.delegate())
