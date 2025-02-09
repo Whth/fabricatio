@@ -56,6 +56,7 @@ dev = [
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
     "ruff>=0.9.4",
+    "uv>=0.5.29",
 ]
 cli = [
     "typer>=0.15.1",
