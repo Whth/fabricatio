@@ -17,6 +17,7 @@ class Role(Memorable, WithBriefing, WithToDo, LLMUsage):
     """ The registry of events and workflows."""
 
     def model_post_init(self, __context: Any) -> None:
+        """Register the workflows in the role to the event bus."""
         for event, workflow in self.registry.items():
             workflow.fallback_to(self)
             logger.debug(

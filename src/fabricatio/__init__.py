@@ -1,3 +1,5 @@
+"""Fabricatio is a Python library for building llm app using event-based agent structure."""
+
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import Action, WorkFlow

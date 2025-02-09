@@ -18,11 +18,11 @@ class Talk(Action):
         return ret
 
 
-async def main():
+async def main() -> None:
     """Main function."""
     Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))})
 
-    print(await task.delegate())
+    logger.success(f"Result: {await task.delegate()}")
 
 
 if __name__ == "__main__":

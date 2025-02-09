@@ -104,12 +104,16 @@ select = [
 ignore=[
     "S101",
     "ANN401",
-    "PYI063"
+    "ANN003",
+    "D100",
+    "PYI063",
+    "ASYNC109"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 ignore-decorators = ["typing.overload"]
-
+[tool.ruff.lint.pylint]
+max-args = 15
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
