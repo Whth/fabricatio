@@ -116,6 +116,13 @@ ignore-decorators = ["typing.overload"]
 [tool.ruff.lint.pylint]
 max-args = 15
 
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+
+
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
