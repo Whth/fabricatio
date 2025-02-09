@@ -11,6 +11,7 @@ from fabricatio.models.task import Task
 
 
 class Role(Memorable, WithBriefing, WithToDo, LLMUsage):
+    """Class that represents a role with a registry of events and workflows."""
 
     registry: dict[Event | str, WorkFlow] = Field(...)
     """ The registry of events and workflows."""
@@ -25,4 +26,3 @@ class Role(Memorable, WithBriefing, WithToDo, LLMUsage):
 
     async def propose(self, prompt: str) -> Task:
         """Propose a task to the role."""
-        # TODO

@@ -1,4 +1,4 @@
-from typing import Callable, Self, overload
+from typing import Callable, Optional, Self, overload
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymitter import EventEmitter
@@ -38,7 +38,7 @@ class Env(BaseModel):
     def on[**P, R](
         self,
         event: str | Event,
-        func: Callable[P, R] = None,
+        func: Optional[Callable[P, R]] = None,
         /,
         ttl: int = -1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -58,7 +58,7 @@ class Env(BaseModel):
     def on[**P, R](
         self,
         event: str | Event,
-        func: Callable[P, R] = None,
+        func: Optional[Callable[P, R]] = None,
         /,
         ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
@@ -117,9 +117,11 @@ class Env(BaseModel):
     def once[**P, R](
         self,
         event: str | Event,
-        func: Callable[P, R] = None,
+        func: Optional[Callable[P, R]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """Args:
+        """Registers an event listener with a specific function that listens only once.
+
+        Args:
             event (str | Event): The event to listen for.
             func (Callable[P, R]): The function to be called when the event is emitted.
 

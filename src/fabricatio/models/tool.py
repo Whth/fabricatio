@@ -79,7 +79,7 @@ class ToolBox(WithBriefing):
             str: A brief description of the toolbox.
         """
         list_out = "\n\n".join([f"- {tool.briefing}" for tool in self.tools])
-        toc = f"## {self.name}: {self.description}\n" f"## {len(self.tools)} tools available:"
+        toc = f"## {self.name}: {self.description}\n## {len(self.tools)} tools available:"
         return f"{toc}\n\n{list_out}"
 
     def invoke_tool[**P, R](self, name: str, *args: P.args, **kwargs: P.kwargs) -> R:

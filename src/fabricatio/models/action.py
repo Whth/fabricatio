@@ -1,7 +1,7 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Tuple, Type, Unpack
 
 from pydantic import Field, PrivateAttr
 
@@ -11,12 +11,13 @@ from fabricatio.models.task import Task
 
 
 class Action(WithBriefing, LLMUsage):
+    """Class that represents an action to be executed in a workflow."""
 
     output_key: str = Field(default="")
     """ The key of the output data."""
 
     @abstractmethod
-    async def _execute(self, **cxt) -> Any:
+    async def _execute(self, **cxt: Unpack) -> Any:
         """Execute the action with the provided arguments.
 
         Args:
@@ -41,6 +42,8 @@ class Action(WithBriefing, LLMUsage):
 
 
 class WorkFlow(WithBriefing, LLMUsage):
+    """Class that represents a workflow to be executed in a task."""
+
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """ The context dictionary to be used for workflow execution."""
 
@@ -81,7 +84,7 @@ class WorkFlow(WithBriefing, LLMUsage):
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
             await task.finish((await self._context.get()).get(self.task_output_key, None))
-        except Exception as e:
+        except RuntimeError as e:
             logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
             logger.error(traceback.format_exc())  # Add this line to log the traceback
             await task.fail()  # Mark the task as failed

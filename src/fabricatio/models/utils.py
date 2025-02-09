@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Message(BaseModel):
+    """A class representing a message."""
+
     model_config = ConfigDict(use_attribute_docstrings=True)
     role: Literal["user", "system", "assistant"] = Field(default="user")
     """
@@ -16,8 +18,7 @@ class Message(BaseModel):
 
 
 class Messages(list):
-    """A list of messages.
-    """
+    """A list of messages."""
 
     def add_message(self, role: Literal["user", "system", "assistant"], content: str) -> Self:
         """Adds a message to the list with the specified role and content.
