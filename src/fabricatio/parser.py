@@ -7,8 +7,7 @@ from fabricatio.models.generic import Base
 
 
 class Capture(Base):
-    """
-    A class to capture patterns in text using regular expressions.
+    """A class to capture patterns in text using regular expressions.
 
     Attributes:
         pattern (str): The regular expression pattern to search for.
@@ -22,8 +21,7 @@ class Capture(Base):
     _compiled: Pattern = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
-        """
-        Initialize the compiled regular expression pattern after the model is initialized.
+        """Initialize the compiled regular expression pattern after the model is initialized.
 
         Args:
             __context (Any): The context in which the model is initialized.
@@ -31,8 +29,7 @@ class Capture(Base):
         self._compiled = compile(self.pattern)
 
     def capture(self, text: str) -> Tuple[str, ...] | None:
-        """
-        Capture the first occurrence of the pattern in the given text.
+        """Capture the first occurrence of the pattern in the given text.
 
         Args:
             text (str): The text to search the pattern in.
@@ -47,13 +44,12 @@ class Capture(Base):
 
         if self.target_groups:
             return tuple(match.group(g) for g in self.target_groups)
-        else:
-            return (match.group(),)
+        return (match.group(),)
 
     @classmethod
     def capture_code_block(cls, language: str) -> Self:
-        """
-        Capture the first occurrence of a code block in the given text.
+        """Capture the first occurrence of a code block in the given text.
+
         Args:
             language (str): The text containing the code block.
 

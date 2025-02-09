@@ -56,7 +56,6 @@ class ToolBox(WithBriefing):
         Returns:
             Callable[P, R]: The added function.
         """
-
         self.tools.append(Tool(source=func))
         return func
 

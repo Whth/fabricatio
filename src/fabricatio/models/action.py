@@ -59,7 +59,6 @@ class WorkFlow(WithBriefing, LLMUsage):
         Args:
             __context: The context to be used for initialization.
         """
-
         self._instances = tuple(step() for step in self.steps)
         for step in self._instances:
             step.fallback_to(self)
@@ -70,7 +69,6 @@ class WorkFlow(WithBriefing, LLMUsage):
         Args:
             task: The task to be served.
         """
-
         await task.start()
         await self._context.put({self.task_input_key: task})
         current_action = None

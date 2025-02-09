@@ -8,12 +8,7 @@ from fabricatio.models.events import Event
 
 
 class Env(BaseModel):
-    """
-    Environment class that manages event handling using EventEmitter.
-
-    Attributes:
-        _ee (EventEmitter): Private attribute for event handling.
-    """
+    """Environment class that manages event handling using EventEmitter."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     _ee: EventEmitter = PrivateAttr(
@@ -67,8 +62,8 @@ class Env(BaseModel):
         /,
         ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """
-        Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
+        """Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
+
         Args:
             event (str | Event): The event to listen for.
             func (Callable[P, R]): The function to be called when the event is emitted.
@@ -82,9 +77,8 @@ class Env(BaseModel):
         if func is None:
             return self._ee.on(event, ttl=ttl)
 
-        else:
-            self._ee.on(event, func, ttl=ttl)
-            return self
+        self._ee.on(event, func, ttl=ttl)
+        return self
 
     @overload
     def once[**P, R](
@@ -125,9 +119,7 @@ class Env(BaseModel):
         event: str | Event,
         func: Callable[P, R] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """
-
-        Args:
+        """Args:
             event (str | Event): The event to listen for.
             func (Callable[P, R]): The function to be called when the event is emitted.
 
@@ -139,13 +131,11 @@ class Env(BaseModel):
         if func is None:
             return self._ee.once(event)
 
-        else:
-            self._ee.once(event, func)
-            return self
+        self._ee.once(event, func)
+        return self
 
     def emit[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Emits an event to all registered listeners.
+        """Emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.
@@ -158,8 +148,7 @@ class Env(BaseModel):
         self._ee.emit(event, *args, **kwargs)
 
     async def emit_async[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Asynchronously emits an event to all registered listeners.
+        """Asynchronously emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.

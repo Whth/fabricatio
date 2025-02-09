@@ -16,13 +16,11 @@ class Message(BaseModel):
 
 
 class Messages(list):
-    """
-    A list of messages.
+    """A list of messages.
     """
 
     def add_message(self, role: Literal["user", "system", "assistant"], content: str) -> Self:
-        """
-        Adds a message to the list with the specified role and content.
+        """Adds a message to the list with the specified role and content.
 
         Args:
             role (Literal["user", "system", "assistant"]): The role of the message sender.
@@ -36,8 +34,7 @@ class Messages(list):
         return self
 
     def add_user_message(self, content: str) -> Self:
-        """
-        Adds a user message to the list with the specified content.
+        """Adds a user message to the list with the specified content.
 
         Args:
             content (str): The content of the user message.
@@ -48,8 +45,7 @@ class Messages(list):
         return self.add_message("user", content)
 
     def add_system_message(self, content: str) -> Self:
-        """
-        Adds a system message to the list with the specified content.
+        """Adds a system message to the list with the specified content.
 
         Args:
             content (str): The content of the system message.
@@ -60,8 +56,7 @@ class Messages(list):
         return self.add_message("system", content)
 
     def add_assistant_message(self, content: str) -> Self:
-        """
-        Adds an assistant message to the list with the specified content.
+        """Adds an assistant message to the list with the specified content.
 
         Args:
             content (str): The content of the assistant message.
@@ -72,8 +67,7 @@ class Messages(list):
         return self.add_message("assistant", content)
 
     def as_list(self) -> List[Dict[str, str]]:
-        """
-        Converts the messages to a list of dictionaries.
+        """Converts the messages to a list of dictionaries.
 
         Returns:
             list[dict]: A list of dictionaries representing the messages.

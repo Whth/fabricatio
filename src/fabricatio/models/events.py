@@ -13,8 +13,7 @@ class Event(BaseModel):
 
     @classmethod
     def from_string(cls, event: str) -> Self:
-        """
-        Create an Event instance from a string.
+        """Create an Event instance from a string.
 
         Args:
             event (str): The event string.
@@ -25,20 +24,17 @@ class Event(BaseModel):
         return cls(segments=event.split(configs.pymitter.delimiter))
 
     def collapse(self) -> str:
-        """
-        Collapse the event into a string.
+        """Collapse the event into a string.
         """
         return configs.pymitter.delimiter.join(self.segments)
 
     def clone(self) -> Self:
-        """
-        Clone the event.
+        """Clone the event.
         """
         return Event(segments=[segment for segment in self.segments])
 
     def push(self, segment: str) -> Self:
-        """
-        Push a segment to the event.
+        """Push a segment to the event.
         """
         assert segment, "The segment must not be empty."
         assert configs.pymitter.delimiter not in segment, "The segment must not contain the delimiter."
@@ -47,21 +43,18 @@ class Event(BaseModel):
         return self
 
     def pop(self) -> str:
-        """
-        Pop a segment from the event.
+        """Pop a segment from the event.
         """
         return self.segments.pop()
 
     def clear(self) -> Self:
-        """
-        Clear the event.
+        """Clear the event.
         """
         self.segments.clear()
         return self
 
     def concat(self, event: Self) -> Self:
-        """
-        Concatenate another event to this event.
+        """Concatenate another event to this event.
         """
         self.segments.extend(event.segments)
         return self

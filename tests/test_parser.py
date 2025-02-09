@@ -2,8 +2,7 @@ from fabricatio import Capture
 
 
 def test_capture():
-    """
-    Test the Capture class.
+    """Test the Capture class.
     """
     capture = Capture(pattern=r"(\d+)", target_groups=(1,))
     assert capture.capture("123") == ("123",)
