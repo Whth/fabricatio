@@ -27,6 +27,7 @@ dependencies = [
     "aiomultiprocess>=0.9.1",
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
+    "gitpython>=3.1.44",
     "litellm>=1.60.0",
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
@@ -34,12 +35,10 @@ dependencies = [
     "pymitter>=1.0.0",
     "regex>=2024.11.6",
     "rich>=13.9.4",
+    "shutilwhich>=1.1.0",
 ]
 
-[project.optional-dependencies]
-cli = [
-    "typer>=0.15.1",
-]
+
 
 [build-system]
 requires = ["hatchling"]
@@ -59,8 +58,13 @@ dev = [
     "ruff>=0.9.4",
 ]
 cli = [
-    "click>=8.1.8",
+    "typer>=0.15.1",
 ]
+rag = [
+    "faiss-cpu>=1.10.0",
+    "pymilvus>=2.5.4",
+]
+
 
 [tool.ruff]
 include = ["pyproject.toml", "src/fabricatio/*.py", "examples/*.py"]
@@ -98,7 +102,9 @@ select = [
     "RUF",      # Ruff-specific rules
 ]
 ignore=[
-    "S101",     # flake8-bandit
+    "S101",
+    "ANN401",
+    "PYI063"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
