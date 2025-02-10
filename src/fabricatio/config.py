@@ -61,7 +61,7 @@ class LLMConfig(BaseModel):
     The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request.
     """
 
-    stop_sign: str | List[str] = Field(default="\n\n")
+    stop_sign: str | List[str] = Field(default=("\n\n", "User:"))
     """
     The stop sign of the LLM model. No default stop sign specified.
     """
