@@ -5,7 +5,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue
 from enum import Enum
-from typing import Optional, Self
+from typing import List, Optional, Self
 
 from pydantic import Field, PrivateAttr
 
@@ -51,6 +51,9 @@ class Task[T](WithBriefing, WithJsonExample):
 
     goal: str = Field(default="")
     """The goal of the task."""
+
+    dependencies: List[str] = Field(default_factory=list)
+    """The file dependencies of the task, a list of file paths."""
 
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """The output queue of the task."""
