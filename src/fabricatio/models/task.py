@@ -5,11 +5,10 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue
 from enum import Enum
-from typing import List, Optional, Self
+from typing import Any, List, Optional, Self
 
 from pydantic import Field, PrivateAttr
 
-from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event
@@ -55,11 +54,21 @@ class Task[T](WithBriefing, WithJsonExample):
     dependencies: List[str] = Field(default_factory=list)
     """The file dependencies of the task, a list of file paths."""
 
+    namespace: List[str] = Field(default_factory=list)
+    """The namespace of the task, a list of namespace segment, as string."""
+
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """The output queue of the task."""
 
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
+
+    _namespace: Event = PrivateAttr(default_factory=Event)
+    """The namespace of the task as an event, which is generated from the namespace list."""
+
+    def model_post_init(self, __context: Any) -> None:
+        """Initialize the task with a namespace event."""
+        self._namespace.segments.extend(self.namespace)
 
     @classmethod
     def simple_task(cls, name: str, goal: str, description: str) -> Self:
@@ -109,7 +118,7 @@ class Task[T](WithBriefing, WithJsonExample):
         Returns:
             str: The formatted status label.
         """
-        return f"{self.name}{configs.pymitter.delimiter}{status.value}"
+        return self._namespace.derive(self.name).push(status.value).collapse()
 
     @property
     def pending_label(self) -> str:
@@ -205,36 +214,16 @@ class Task[T](WithBriefing, WithJsonExample):
         await env.emit_async(self.failed_label, self)
         return self
 
-    async def publish(self, event_namespace: Event | str = "") -> Self:
-        """Publish the task with an optional event namespace.
-
-        Args:
-            event_namespace (Event | str, optional): The event namespace to use. Defaults to an empty string.
-
-        Returns:
-            Task: The published instance of the `Task` class.
-        """
-        if isinstance(event_namespace, str):
-            event_namespace = Event.from_string(event_namespace)
-
+    async def publish(self) -> Self:
+        """Publish the task to the event bus."""
         logger.info(f"Publishing task {self.name}")
-        await env.emit_async(event_namespace.concat(self.pending_label).collapse(), self)
+        await env.emit_async(self.pending_label, self)
         return self
 
-    async def delegate(self, event_namespace: Event | str = "") -> T:
-        """Delegate the task with an optional event namespace and return the output.
-
-        Args:
-            event_namespace (Event | str, optional): The event namespace to use. Defaults to an empty string.
-
-        Returns:
-            T: The output of the task.
-        """
-        if isinstance(event_namespace, str):
-            event_namespace = Event.from_string(event_namespace)
-
+    async def delegate(self) -> T:
+        """Delegate the task to the event bus and wait for the output."""
         logger.info(f"Delegating task {self.name}")
-        await env.emit_async(event_namespace.concat(self.pending_label).collapse(), self)
+        await env.emit_async(self.pending_label, self)
         return await self.get_output()
 
     @property

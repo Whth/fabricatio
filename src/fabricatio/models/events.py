@@ -25,6 +25,10 @@ class Event(BaseModel):
         """
         return cls(segments=event.split(configs.pymitter.delimiter))
 
+    def derive(self, event: Self | str) -> Self:
+        """Derive a new event from this event and another event or a string."""
+        return self.clone().concat(event)
+
     def collapse(self) -> str:
         """Collapse the event into a string."""
         return configs.pymitter.delimiter.join(self.segments)
