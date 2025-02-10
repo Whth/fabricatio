@@ -50,8 +50,10 @@ class Event(BaseModel):
         self.segments.clear()
         return self
 
-    def concat(self, event: Self) -> Self:
+    def concat(self, event: Self | str) -> Self:
         """Concatenate another event to this event."""
+        if isinstance(event, str):
+            event = Event.from_string(event)
         self.segments.extend(event.segments)
         return self
 
