@@ -1,6 +1,7 @@
 from typing import Any, Self, Tuple
 
-from pydantic import Field, PrivateAttr
+import regex
+from pydantic import Field, PositiveInt, PrivateAttr
 from regex import Pattern, compile
 
 from fabricatio.models.generic import Base
@@ -18,6 +19,8 @@ class Capture(Base):
     """The target groups to capture from the pattern."""
     pattern: str = Field(frozen=True)
     """The regular expression pattern to search for."""
+    flags: PositiveInt = Field(default=regex.DOTALL | regex.MULTILINE | regex.IGNORECASE, frozen=True)
+    """The flags to use when compiling the regular expression pattern."""
     _compiled: Pattern = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
@@ -26,7 +29,7 @@ class Capture(Base):
         Args:
             __context (Any): The context in which the model is initialized.
         """
-        self._compiled = compile(self.pattern)
+        self._compiled = compile(self.pattern, self.flags)
 
     def capture(self, text: str) -> Tuple[str, ...] | None:
         """Capture the first occurrence of the pattern in the given text.
