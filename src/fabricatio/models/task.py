@@ -1,4 +1,4 @@
-"""This module defines the Task class, which represents a task with a status and output.
+"""This module defines the `Task` class, which represents a task with a status and output.
 
 It includes methods to manage the task's lifecycle, such as starting, finishing, cancelling, and failing the task.
 """
@@ -12,11 +12,20 @@ from pydantic import Field, PrivateAttr
 from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
+from fabricatio.models.events import Event
 from fabricatio.models.generic import WithBriefing, WithJsonExample
 
 
 class TaskStatus(Enum):
-    """Enum that represents the status of a task."""
+    """An enumeration representing the status of a task.
+
+    Attributes:
+        Pending: The task is pending.
+        Running: The task is currently running.
+        Finished: The task has been successfully completed.
+        Failed: The task has failed.
+        Cancelled: The task has been cancelled.
+    """
 
     Pending = "pending"
     Running = "running"
@@ -26,13 +35,11 @@ class TaskStatus(Enum):
 
 
 class Task[T](WithBriefing, WithJsonExample):
-    """Class that represents a task with a status and output.
+    """A class representing a task with a status and output.
 
     Attributes:
         name (str): The name of the task.
         description (str): The description of the task.
-        _output (Queue): The output queue of the task.
-        _status (TaskStatus): The status of the task.
         goal (str): The goal of the task.
     """
 
@@ -47,6 +54,7 @@ class Task[T](WithBriefing, WithJsonExample):
 
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """The output queue of the task."""
+
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
 
@@ -60,7 +68,7 @@ class Task[T](WithBriefing, WithJsonExample):
             description (str): The description of the task.
 
         Returns:
-            Self: A new instance of the Task class.
+            Task: A new instance of the `Task` class.
         """
         return cls(name=name, goal=goal, description=description)
 
@@ -68,11 +76,11 @@ class Task[T](WithBriefing, WithJsonExample):
         """Update the goal and description of the task.
 
         Args:
-            goal (Optional[str]): The new goal of the task.
-            description (Optional[str]): The new description of the task.
+            goal (str, optional): The new goal of the task.
+            description (str, optional): The new description of the task.
 
         Returns:
-            Self: The updated instance of the Task class.
+            Task: The updated instance of the `Task` class.
         """
         if goal:
             self.goal = goal
@@ -152,7 +160,7 @@ class Task[T](WithBriefing, WithJsonExample):
             output (T): The output of the task.
 
         Returns:
-            Self: The finished instance of the Task class.
+            Task: The finished instance of the `Task` class.
         """
         logger.info(f"Finishing task {self.name}")
         self._status = TaskStatus.Finished
@@ -166,7 +174,7 @@ class Task[T](WithBriefing, WithJsonExample):
         """Mark the task as running.
 
         Returns:
-            Self: The running instance of the Task class.
+            Task: The running instance of the `Task` class.
         """
         logger.info(f"Starting task {self.name}")
         self._status = TaskStatus.Running
@@ -177,7 +185,7 @@ class Task[T](WithBriefing, WithJsonExample):
         """Mark the task as cancelled.
 
         Returns:
-            Self: The cancelled instance of the Task class.
+            Task: The cancelled instance of the `Task` class.
         """
         self._status = TaskStatus.Cancelled
         await env.emit_async(self.cancelled_label, self)
@@ -187,31 +195,43 @@ class Task[T](WithBriefing, WithJsonExample):
         """Mark the task as failed.
 
         Returns:
-            Self: The failed instance of the Task class.
+            Task: The failed instance of the `Task` class.
         """
         logger.error(f"Task {self.name} failed")
         self._status = TaskStatus.Failed
         await env.emit_async(self.failed_label, self)
         return self
 
-    async def publish(self) -> Self:
-        """Publish the task to the environment.
+    async def publish(self, event_namespace: Event | str = "") -> Self:
+        """Publish the task with an optional event namespace.
+
+        Args:
+            event_namespace (Event | str, optional): The event namespace to use. Defaults to an empty string.
 
         Returns:
-            Self: The published instance of the Task class.
+            Task: The published instance of the `Task` class.
         """
+        if isinstance(event_namespace, str):
+            event_namespace = Event.from_string(event_namespace)
+
         logger.info(f"Publishing task {self.name}")
-        await env.emit_async(self.pending_label, self)
+        await env.emit_async(event_namespace.concat(self.pending_label).collapse(), self)
         return self
 
-    async def delegate(self) -> T:
-        """Delegate the task to the environment.
+    async def delegate(self, event_namespace: Event | str = "") -> T:
+        """Delegate the task with an optional event namespace and return the output.
+
+        Args:
+            event_namespace (Event | str, optional): The event namespace to use. Defaults to an empty string.
 
         Returns:
             T: The output of the task.
         """
+        if isinstance(event_namespace, str):
+            event_namespace = Event.from_string(event_namespace)
+
         logger.info(f"Delegating task {self.name}")
-        await env.emit_async(self.pending_label, self)
+        await env.emit_async(event_namespace.concat(self.pending_label).collapse(), self)
         return await self.get_output()
 
     @property
