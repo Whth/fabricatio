@@ -12,7 +12,7 @@ from pydantic import Field, PrivateAttr
 from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
-from fabricatio.models.generic import WithBriefing
+from fabricatio.models.generic import WithBriefing, WithJsonExample
 
 
 class TaskStatus(Enum):
@@ -25,26 +25,30 @@ class TaskStatus(Enum):
     Cancelled = "cancelled"
 
 
-class Task[T](WithBriefing):
+class Task[T](WithBriefing, WithJsonExample):
     """Class that represents a task with a status and output.
 
     Attributes:
         name (str): The name of the task.
         description (str): The description of the task.
         _output (Queue): The output queue of the task.
-        status (TaskStatus): The status of the task.
+        _status (TaskStatus): The status of the task.
         goal (str): The goal of the task.
     """
 
     name: str = Field(...)
     """The name of the task."""
+
     description: str = Field(default="")
     """The description of the task."""
-    _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
-    status: TaskStatus = Field(default=TaskStatus.Pending)
-    """The status of the task."""
+
     goal: str = Field(default="")
     """The goal of the task."""
+
+    _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
+    """The output queue of the task."""
+    _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
+    """The status of the task."""
 
     @classmethod
     def simple_task(cls, name: str, goal: str, description: str) -> Self:
@@ -151,7 +155,7 @@ class Task[T](WithBriefing):
             Self: The finished instance of the Task class.
         """
         logger.info(f"Finishing task {self.name}")
-        self.status = TaskStatus.Finished
+        self._status = TaskStatus.Finished
         await self._output.put(output)
         logger.debug(f"Output set for task {self.name}")
         await env.emit_async(self.finished_label, self)
@@ -165,7 +169,7 @@ class Task[T](WithBriefing):
             Self: The running instance of the Task class.
         """
         logger.info(f"Starting task {self.name}")
-        self.status = TaskStatus.Running
+        self._status = TaskStatus.Running
         await env.emit_async(self.running_label, self)
         return self
 
@@ -175,7 +179,7 @@ class Task[T](WithBriefing):
         Returns:
             Self: The cancelled instance of the Task class.
         """
-        self.status = TaskStatus.Cancelled
+        self._status = TaskStatus.Cancelled
         await env.emit_async(self.cancelled_label, self)
         return self
 
@@ -186,7 +190,7 @@ class Task[T](WithBriefing):
             Self: The failed instance of the Task class.
         """
         logger.error(f"Task {self.name} failed")
-        self.status = TaskStatus.Failed
+        self._status = TaskStatus.Failed
         await env.emit_async(self.failed_label, self)
         return self
 
