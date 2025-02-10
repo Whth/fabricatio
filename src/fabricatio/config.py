@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import List, Literal
 
 from appdirs import user_config_dir
 from pydantic import BaseModel, ConfigDict, Field, FilePath, HttpUrl, NonNegativeFloat, PositiveInt, SecretStr
@@ -29,6 +29,7 @@ class LLMConfig(BaseModel):
         stream (bool): Whether to stream the LLM model's response. Default is False.
         max_tokens (PositiveInt): The maximum number of tokens to generate. Set to 8192 as per request.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True)
     api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com"))
     """
@@ -60,7 +61,7 @@ class LLMConfig(BaseModel):
     The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request.
     """
 
-    stop_sign: str = Field(default="")
+    stop_sign: str | List[str] = Field(default="\n\n")
     """
     The stop sign of the LLM model. No default stop sign specified.
     """
@@ -94,6 +95,7 @@ class PymitterConfig(BaseModel):
         new_listener_event (bool): If set, a newListener event is emitted when a new listener is added.
         max_listeners (int): The maximum number of listeners per event.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True)
     delimiter: str = Field(default=".", frozen=True)
     """
@@ -118,6 +120,7 @@ class DebugConfig(BaseModel):
         log_level (Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]): The log level of the application.
         log_file (FilePath): The log file of the application.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
@@ -139,6 +142,7 @@ class Settings(BaseSettings):
         debug (DebugConfig): Debug Configuration
         pymitter (PymitterConfig): Pymitter Configuration
     """
+
     model_config = SettingsConfigDict(
         env_prefix="FABRIK_",
         env_nested_delimiter="__",
