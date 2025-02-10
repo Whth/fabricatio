@@ -1,7 +1,8 @@
 from asyncio import Queue
-from typing import Any, Dict, Iterable, List, Optional, Self
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self
 
 import litellm
+import orjson
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import (
     BaseModel,
@@ -190,7 +191,7 @@ class LLMUsage(Base):
     The temperature of the LLM model.
     """
 
-    llm_stop_sign: Optional[str] = None
+    llm_stop_sign: Optional[str | List[str]] = None
     """
     The stop sign of the LLM model.
     """
@@ -229,7 +230,7 @@ class LLMUsage(Base):
         messages: List[Dict[str, str]],
         model: str | None = None,
         temperature: NonNegativeFloat | None = None,
-        stop: str | None = None,
+        stop: str | List[str] | None = None,
         top_p: NonNegativeFloat | None = None,
         max_tokens: PositiveInt | None = None,
         n: PositiveInt | None = None,
@@ -274,7 +275,7 @@ class LLMUsage(Base):
         system_message: str = "",
         model: str | None = None,
         temperature: NonNegativeFloat | None = None,
-        stop: str | None = None,
+        stop: str | List[str] | None = None,
         top_p: NonNegativeFloat | None = None,
         max_tokens: PositiveInt | None = None,
         n: PositiveInt | None = None,
@@ -321,7 +322,7 @@ class LLMUsage(Base):
         system_message: str = "",
         model: str | None = None,
         temperature: NonNegativeFloat | None = None,
-        stop: str | None = None,
+        stop: str | List[str] | None = None,
         top_p: NonNegativeFloat | None = None,
         max_tokens: PositiveInt | None = None,
         stream: bool | None = None,
@@ -365,6 +366,61 @@ class LLMUsage(Base):
             .message.content
         )
 
+    async def aask_validate[T](
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
+    ) -> T:
+        """Asynchronously ask a question and validate the response using a given validator.
+
+        Args:
+            question (str): The question to ask.
+            validator (Callable[[str], T | None]): A function to validate the response.
+            max_validations (PositiveInt): Maximum number of validation attempts.
+            system_message (str): System message to include in the request.
+            model (str | None): The model to use for the request.
+            temperature (NonNegativeFloat | None): Temperature setting for the request.
+            stop (str | None): Stop sequence for the request.
+            top_p (NonNegativeFloat | None): Top-p sampling parameter.
+            max_tokens (PositiveInt | None): Maximum number of tokens in the response.
+            stream (bool | None): Whether to stream the response.
+            timeout (PositiveInt | None): Timeout for the request.
+            max_retries (PositiveInt | None): Maximum number of retries for the request.
+
+        Returns:
+            T: The validated response.
+
+        Raises:
+            ValueError: If the response fails to validate after the maximum number of attempts.
+        """
+        for _ in range(max_validations):
+            if (
+                response := await self.aask(
+                    question,
+                    system_message,
+                    model,
+                    temperature,
+                    stop,
+                    top_p,
+                    max_tokens,
+                    stream,
+                    timeout,
+                    max_retries,
+                )
+            ) and (validated := validator(response)):
+                return validated
+        raise ValueError("Failed to validate the response.")
+
     def fallback_to(self, other: "LLMUsage") -> Self:
         """Fallback to another instance's attribute values if the current instance's attributes are None.
 
@@ -397,3 +453,19 @@ class LLMUsage(Base):
 
         # Return the current instance to allow for method chaining
         return self
+
+
+class WithJsonExample(Base):
+    """Class that provides a JSON schema for the model."""
+
+    @classmethod
+    def json_example(cls) -> str:
+        """Return a JSON example for the model.
+
+        Returns:
+            str: A JSON example for the model.
+        """
+        return orjson.dumps(
+            {field_name: field_info.description for field_name, field_info in cls.model_fields.items()},
+            option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS,
+        ).decode()
