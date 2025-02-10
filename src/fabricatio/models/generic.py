@@ -1,5 +1,5 @@
 from asyncio import Queue
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self
+from typing import Callable, Dict, Iterable, List, Optional, Self
 
 import litellm
 import orjson
@@ -216,15 +216,6 @@ class LLMUsage(Base):
     The maximum number of tokens to generate.
     """
 
-    def model_post_init(self, __context: Any) -> None:
-        """Initialize the LLM model with API key and endpoint.
-
-        Args:
-            __context (Any): The context passed during model initialization.
-        """
-        litellm.api_key = self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key
-        litellm.api_base = self.llm_api_endpoint.unicode_string() if self.llm_api_endpoint else configs.llm.api_endpoint
-
     async def aquery(
         self,
         messages: List[Dict[str, str]],
@@ -267,6 +258,10 @@ class LLMUsage(Base):
             stream=stream or self.llm_stream or configs.llm.stream,
             timeout=timeout or self.llm_timeout or configs.llm.timeout,
             max_retries=max_retries or self.llm_max_retries or configs.llm.max_retries,
+            api_key=self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value(),
+            base_url=self.llm_api_endpoint.unicode_string()
+            if self.llm_api_endpoint
+            else configs.llm.api_endpoint.unicode_string(),
         )
 
     async def ainvoke(
