@@ -215,13 +215,21 @@ class Task[T](WithBriefing, WithJsonExample):
         return self
 
     async def publish(self) -> Self:
-        """Publish the task to the event bus."""
+        """Publish the task to the event bus.
+
+        Returns:
+            Task: The published instance of the `Task` class
+        """
         logger.info(f"Publishing task {self.name}")
         await env.emit_async(self.pending_label, self)
         return self
 
     async def delegate(self) -> T:
-        """Delegate the task to the event bus and wait for the output."""
+        """Delegate the task to the event bus and wait for the output.
+
+        Returns:
+            T: The output of the task
+        """
         logger.info(f"Delegating task {self.name}")
         await env.emit_async(self.pending_label, self)
         return await self.get_output()
