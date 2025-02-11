@@ -1,7 +1,17 @@
 from typing import List, Literal
 
 from appdirs import user_config_dir
-from pydantic import BaseModel, ConfigDict, Field, FilePath, HttpUrl, NonNegativeFloat, PositiveInt, SecretStr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    DirectoryPath,
+    Field,
+    FilePath,
+    HttpUrl,
+    NonNegativeFloat,
+    PositiveInt,
+    SecretStr,
+)
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -11,6 +21,8 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
+
+ROAMING_DIR = user_config_dir("fabricatio", "", roaming=True)
 
 
 class LLMConfig(BaseModel):
@@ -128,10 +140,18 @@ class DebugConfig(BaseModel):
     The log level of the application.
     """
 
-    log_file: FilePath = Field(default=f"{user_config_dir('fabricatio', roaming=True)}.log")
+    log_file: FilePath = Field(default=f"{ROAMING_DIR}/fabricatio.log")
     """
     The log file of the application.
     """
+
+
+class Code2PromptConfig(BaseModel):
+    """Code2Prompt configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    template_dir: DirectoryPath = Field(default=f"{ROAMING_DIR}/templates")
+    """The directory containing the templates for code2prompt."""
 
 
 class Settings(BaseSettings):
@@ -148,7 +168,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         pyproject_toml_depth=1,
         pyproject_toml_table_header=("tool", "fabricatio"),
-        toml_file=["fabricatio.toml", f"{user_config_dir('fabricatio', roaming=True)}.toml"],
+        toml_file=["fabricatio.toml", f"{ROAMING_DIR}/fabricatio.toml"],
         env_file=[".env", ".envrc"],
         use_attribute_docstrings=True,
     )
@@ -167,6 +187,8 @@ class Settings(BaseSettings):
     """
     Pymitter Configuration
     """
+
+    code2prompt: Code2PromptConfig = Field(default_factory=Code2PromptConfig)
 
     @classmethod
     def settings_customise_sources(
