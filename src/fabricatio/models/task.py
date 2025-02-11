@@ -40,6 +40,8 @@ class Task[T](WithBriefing, WithJsonExample):
         name (str): The name of the task.
         description (str): The description of the task.
         goal (str): The goal of the task.
+        dependencies (List[str]): The file dependencies of the task, a list of file paths.
+        namespace (List[str]): The namespace of the task, a list of namespace segment, as string.
     """
 
     name: str = Field(...)
