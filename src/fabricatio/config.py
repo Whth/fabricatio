@@ -140,7 +140,7 @@ class DebugConfig(BaseModel):
     The log level of the application.
     """
 
-    log_file: FilePath = Field(default=f"{ROAMING_DIR}/fabricatio.log")
+    log_file: FilePath = Field(default=rf"{ROAMING_DIR}\fabricatio.log")
     """
     The log file of the application.
     """
@@ -150,7 +150,9 @@ class Code2PromptConfig(BaseModel):
     """Code2Prompt configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    template_dir: DirectoryPath = Field(default=f"{ROAMING_DIR}/templates")
+    template_dir: List[DirectoryPath] = Field(
+        default_factory=lambda: [r".\c2p_templates", rf"{ROAMING_DIR}\c2p_templates"]
+    )
     """The directory containing the templates for code2prompt."""
 
 
@@ -168,7 +170,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         pyproject_toml_depth=1,
         pyproject_toml_table_header=("tool", "fabricatio"),
-        toml_file=["fabricatio.toml", f"{ROAMING_DIR}/fabricatio.toml"],
+        toml_file=["fabricatio.toml", rf"{ROAMING_DIR}\fabricatio.toml"],
         env_file=[".env", ".envrc"],
         use_attribute_docstrings=True,
     )
