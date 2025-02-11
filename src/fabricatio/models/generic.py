@@ -1,4 +1,5 @@
 from asyncio import Queue
+from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Self
 
 import litellm
@@ -464,3 +465,47 @@ class WithJsonExample(Base):
             {field_name: field_info.description for field_name, field_info in cls.model_fields.items()},
             option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS,
         ).decode()
+
+
+class WithDependency(Base):
+    """Class that manages file dependencies."""
+
+    dependencies: List[str] = Field(default_factory=list)
+    """The file dependencies of the task, a list of file paths."""
+
+    def add_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
+        """Add a file dependency to the task.
+
+        Args:
+            dependency (str | Path | List[str | Path]): The file dependency to add to the task.
+
+        Returns:
+            Self: The current instance of the task.
+        """
+        if not isinstance(dependency, list):
+            dependency = [dependency]
+        self.dependencies.extend(Path(d).as_posix() for d in dependency)
+        return self
+
+    def remove_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
+        """Remove a file dependency from the task.
+
+        Args:
+            dependency (str | Path | List[str | Path]): The file dependency to remove from the task.
+
+        Returns:
+            Self: The current instance of the task.
+        """
+        if not isinstance(dependency, list):
+            dependency = [dependency]
+        for d in dependency:
+            self.dependencies.remove(Path(d).as_posix())
+        return self
+
+    def generate_prompt(self) -> str:
+        """Generate a prompt for the task based on the file dependencies.
+
+        Returns:
+            str: The generated prompt for the task.
+        """
+        return orjson.dumps({p: Path(p).read_text() for p in self.dependencies}, option=orjson.OPT_SORT_KEYS).decode()
