@@ -1,5 +1,5 @@
 """module for actions."""
 
-from fabricatio.actions.transmission import SendTask
+from fabricatio.actions.transmission import PublishTask
 
-__all__ = ["SendTask"]
+__all__ = ["PublishTask"]

@@ -11,7 +11,7 @@ from pydantic import Field, PrivateAttr
 
 from fabricatio.core import env
 from fabricatio.journal import logger
-from fabricatio.models.events import Event
+from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import WithBriefing, WithDependency, WithJsonExample
 
 
@@ -69,7 +69,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """Initialize the task with a namespace event."""
         self._namespace.segments.extend(self.namespace)
 
-    def move_to(self, new_namespace: List[str]) -> Self:
+    def move_to(self, new_namespace: EventLike) -> Self:
         """Move the task to a new namespace.
 
         Args:
