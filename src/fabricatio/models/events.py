@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from fabricatio.config import configs
 
+type EventLike = str | List[str] | Self
+
 
 class Event(BaseModel):
     """A class representing an event."""
@@ -14,11 +16,11 @@ class Event(BaseModel):
     """ The segments of the namespaces."""
 
     @classmethod
-    def instantiate_from(cls, event: str | List[str] | Self) -> Self:
+    def instantiate_from(cls, event: EventLike) -> Self:
         """Create an Event instance from a string or list of strings or an Event instance.
 
         Args:
-            event (str | List[str] | Event): The event to instantiate from.
+            event (EventLike): The event to instantiate from.
 
         Returns:
             Event: The Event instance.
@@ -30,7 +32,7 @@ class Event(BaseModel):
 
         return cls(segments=event)
 
-    def derive(self, event: Self | str) -> Self:
+    def derive(self, event: EventLike) -> Self:
         """Derive a new event from this event and another event or a string."""
         return self.clone().concat(event)
 
@@ -63,7 +65,7 @@ class Event(BaseModel):
         self.segments.clear()
         return self
 
-    def concat(self, event: Self | str) -> Self:
+    def concat(self, event: EventLike) -> Self:
         """Concatenate another event to this event."""
         self.segments.extend(Event.instantiate_from(event).segments)
         return self
