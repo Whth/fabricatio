@@ -1,20 +1,22 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue
-from typing import Any, Dict, Tuple, Type, Unpack
+from typing import Any, Dict, Self, Tuple, Type, Unpack
 
 from pydantic import Field, PrivateAttr
 
 from fabricatio.journal import logger
-from fabricatio.models.generic import LLMUsage, WithBriefing
+from fabricatio.models.generic import LLMUsage, ProposeTask, WithBriefing
 from fabricatio.models.task import Task
 
 
-class Action(WithBriefing, LLMUsage):
+class Action(ProposeTask):
     """Class that represents an action to be executed in a workflow."""
 
+    personality: str = Field(default="")
+    """The personality of whom the action belongs to."""
     output_key: str = Field(default="")
-    """ The key of the output data."""
+    """The key of the output data."""
 
     @abstractmethod
     async def _execute(self, **cxt: Unpack) -> Any:
@@ -39,6 +41,12 @@ class Action(WithBriefing, LLMUsage):
             logger.debug(f"Setting output: {self.output_key}")
             cxt[self.output_key] = ret
         return cxt
+
+    def briefing(self) -> str:
+        """Return a brief description of the action."""
+        if self.personality:
+            return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
+        return f"# The action you are going to perform: \n{super().briefing}"
 
 
 class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
@@ -69,8 +77,19 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
             temp.append(step if isinstance(step, Action) else step())
         self._instances = tuple(temp)
 
-        for step in self._instances:
-            step.fallback_to(self)
+    def inject_personality(self, personality: str) -> Self:
+        """Inject the personality of the workflow.
+
+        Args:
+            personality: The personality to be injected.
+
+        Returns:
+            Self: The instance of the workflow with the injected personality.
+        """
+        for a in self._instances:
+            if not a.personality:
+                a.personality = personality
+        return self
 
     async def serve(self, task: Task) -> None:
         """Serve the task by executing the workflow steps.
@@ -99,3 +118,9 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
         """Initialize the context dictionary for workflow execution."""
         logger.debug(f"Initializing context for workflow: {self.name}")
         await self._context.put({self.task_input_key: None, **dict(self.extra_init_context)})
+
+    def fallback_to_self(self) -> Self:
+        """Set the fallback for each step to the workflow itself."""
+        for step in self._instances:
+            step.fallback_to(self)
+        return self
