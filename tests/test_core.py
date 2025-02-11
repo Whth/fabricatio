@@ -33,11 +33,11 @@ def test_env_emit_event_with_args(env):
 def test_env_emit_event_with_event_class(env):
     result = []
 
-    @env.on(Event.from_string("test.event"))
+    @env.on(Event.instantiate_from("test.event"))
     def handler():
         result.append("handled")
 
-    env.emit(Event.from_string("test.event"))
+    env.emit(Event.instantiate_from("test.event"))
     assert result == ["handled"]
 
 

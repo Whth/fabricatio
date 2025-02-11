@@ -14,16 +14,21 @@ class Event(BaseModel):
     """ The segments of the namespaces."""
 
     @classmethod
-    def from_string(cls, event: str) -> Self:
-        """Create an Event instance from a string.
+    def instantiate_from(cls, event: str | List[str] | Self) -> Self:
+        """Create an Event instance from a string or list of strings or an Event instance.
 
         Args:
-            event (str): The event string.
+            event (str | List[str] | Event): The event to instantiate from.
 
         Returns:
             Event: The Event instance.
         """
-        return cls(segments=event.split(configs.pymitter.delimiter))
+        if isinstance(event, Event):
+            return event.clone()
+        if isinstance(event, str):
+            event = event.split(configs.pymitter.delimiter)
+
+        return cls(segments=event)
 
     def derive(self, event: Self | str) -> Self:
         """Derive a new event from this event and another event or a string."""
@@ -60,17 +65,13 @@ class Event(BaseModel):
 
     def concat(self, event: Self | str) -> Self:
         """Concatenate another event to this event."""
-        if isinstance(event, str):
-            event = Event.from_string(event)
-        self.segments.extend(event.segments)
+        self.segments.extend(Event.instantiate_from(event).segments)
         return self
 
     def __hash__(self) -> int:
         """Return the hash of the event, using the collapsed string."""
         return hash(self.collapse())
 
-    def __eq__(self, other: Self | str) -> bool:
+    def __eq__(self, other: str | List[str] | Self) -> bool:
         """Check if the event is equal to another event or a string."""
-        if isinstance(other, Event):
-            other = other.collapse()
-        return self.collapse() == other
+        return self.collapse() == Event.instantiate_from(other).collapse()
