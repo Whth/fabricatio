@@ -39,7 +39,6 @@ dependencies = [
     "questionary>=2.1.0",
     "regex>=2024.11.6",
     "rich>=13.9.4",
-    "shutilwhich>=1.1.0",
 ]
 
 
