@@ -45,6 +45,10 @@ class Event(BaseModel):
         self.segments.append(segment)
         return self
 
+    def push_wildcard(self) -> Self:
+        """Push a wildcard segment to the event."""
+        return self.push("*")
+
     def pop(self) -> str:
         """Pop a segment from the event."""
         return self.segments.pop()
