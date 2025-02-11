@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from appdirs import user_config_dir
 from pydantic import (
@@ -44,59 +44,37 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com"))
-    """
-    OpenAI API Endpoint.
-    """
+    """OpenAI API Endpoint."""
 
     api_key: SecretStr = Field(default=SecretStr(""))
-    """
-    OpenAI API key. Empty by default for security reasons, should be set before use.
-    """
+    """OpenAI API key. Empty by default for security reasons, should be set before use."""
 
     timeout: PositiveInt = Field(default=300)
-    """
-    The timeout of the LLM model in seconds. Default is 300 seconds as per request.
-    """
+    """The timeout of the LLM model in seconds. Default is 300 seconds as per request."""
 
     max_retries: PositiveInt = Field(default=3)
-    """
-    The maximum number of retries. Default is 3 retries.
-    """
+    """The maximum number of retries. Default is 3 retries."""
 
     model: str = Field(default="gpt-3.5-turbo")
-    """
-    The LLM model name. Set to 'gpt-3.5-turbo' as per request.
-    """
+    """The LLM model name. Set to 'gpt-3.5-turbo' as per request."""
 
     temperature: NonNegativeFloat = Field(default=1.0)
-    """
-    The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request.
-    """
+    """The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request."""
 
     stop_sign: str | List[str] = Field(default=("\n\n", "User:"))
-    """
-    The stop sign of the LLM model. No default stop sign specified.
-    """
+    """The stop sign of the LLM model. No default stop sign specified."""
 
     top_p: NonNegativeFloat = Field(default=0.35)
-    """
-    The top p of the LLM model. Controls diversity via nucleus sampling. Set to 0.35 as per request.
-    """
+    """The top p of the LLM model. Controls diversity via nucleus sampling. Set to 0.35 as per request."""
 
     generation_count: PositiveInt = Field(default=1)
-    """
-    The number of generations to generate. Default is 1.
-    """
+    """The number of generations to generate. Default is 1."""
 
     stream: bool = Field(default=False)
-    """
-    Whether to stream the LLM model's response. Default is False.
-    """
+    """Whether to stream the LLM model's response. Default is False."""
 
     max_tokens: PositiveInt = Field(default=8192)
-    """
-    The maximum number of tokens to generate. Set to 8192 as per request.
-    """
+    """The maximum number of tokens to generate. Set to 8192 as per request."""
 
 
 class PymitterConfig(BaseModel):
@@ -110,19 +88,13 @@ class PymitterConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     delimiter: str = Field(default=".", frozen=True)
-    """
-    The delimiter used to separate the event name into segments.
-    """
+    """The delimiter used to separate the event name into segments."""
 
     new_listener_event: bool = Field(default=False, frozen=True)
-    """
-    If set, a newListener event is emitted when a new listener is added.
-    """
+    """If set, a newListener event is emitted when a new listener is added."""
 
     max_listeners: int = Field(default=-1, frozen=True)
-    """
-    The maximum number of listeners per event.
-    """
+    """The maximum number of listeners per event."""
 
 
 class DebugConfig(BaseModel):
@@ -136,14 +108,10 @@ class DebugConfig(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
-    """
-    The log level of the application.
-    """
+    """The log level of the application."""
 
     log_file: FilePath = Field(default=rf"{ROAMING_DIR}\fabricatio.log")
-    """
-    The log file of the application.
-    """
+    """The log file of the application."""
 
 
 class Code2PromptConfig(BaseModel):
@@ -156,6 +124,14 @@ class Code2PromptConfig(BaseModel):
     """The directory containing the templates for code2prompt."""
 
 
+class MagikaConfig(BaseModel):
+    """Magika configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_dir: Optional[DirectoryPath] = Field(default=None)
+    """The directory containing the models for magika."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -163,6 +139,8 @@ class Settings(BaseSettings):
         llm (LLMConfig): LLM Configuration
         debug (DebugConfig): Debug Configuration
         pymitter (PymitterConfig): Pymitter Configuration
+        code2prompt (Code2PromptConfig): Code2Prompt Configuration
+        magika (MagikaConfig): Magika Configuration
     """
 
     model_config = SettingsConfigDict(
@@ -176,21 +154,19 @@ class Settings(BaseSettings):
     )
 
     llm: LLMConfig = Field(default_factory=LLMConfig)
-    """
-    LLM Configuration
-    """
+    """LLM Configuration"""
 
     debug: DebugConfig = Field(default_factory=DebugConfig)
-    """
-    Debug Configuration
-    """
+    """Debug Configuration"""
 
     pymitter: PymitterConfig = Field(default_factory=PymitterConfig)
-    """
-    Pymitter Configuration
-    """
+    """Pymitter Configuration"""
 
     code2prompt: Code2PromptConfig = Field(default_factory=Code2PromptConfig)
+    """Code2Prompt Configuration"""
+
+    magika: MagikaConfig = Field(default_factory=MagikaConfig)
+    """Magika Configuration"""
 
     @classmethod
     def settings_customise_sources(

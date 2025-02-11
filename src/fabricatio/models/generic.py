@@ -18,6 +18,7 @@ from pydantic import (
 )
 
 from fabricatio.config import configs
+from fabricatio.fs.readers import magika
 from fabricatio.models.utils import Messages
 
 
@@ -508,4 +509,9 @@ class WithDependency(Base):
         Returns:
             str: The generated prompt for the task.
         """
-        return orjson.dumps({p: Path(p).read_text() for p in self.dependencies}, option=orjson.OPT_SORT_KEYS).decode()
+        contents = [Path(d).read_text("utf-8") for d in self.dependencies]
+        recognized = [magika.identify_path(c) for c in contents]
+        out = ""
+        for r, p, c in zip(recognized, self.dependencies, contents, strict=False):
+            out += f"---\n\n> {p}\n```{r.dl.ct_label}\n{c}\n```\n\n"
+        return out
