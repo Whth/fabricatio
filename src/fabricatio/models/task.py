@@ -12,7 +12,7 @@ from pydantic import Field, PrivateAttr
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event
-from fabricatio.models.generic import WithBriefing, WithJsonExample
+from fabricatio.models.generic import WithBriefing, WithDependency, WithJsonExample
 
 
 class TaskStatus(Enum):
@@ -33,7 +33,7 @@ class TaskStatus(Enum):
     Cancelled = "cancelled"
 
 
-class Task[T](WithBriefing, WithJsonExample):
+class Task[T](WithBriefing, WithJsonExample, WithDependency):
     """A class representing a task with a status and output.
 
     Attributes:
@@ -53,9 +53,6 @@ class Task[T](WithBriefing, WithJsonExample):
     goal: str = Field(default="")
     """The goal of the task."""
 
-    dependencies: List[str] = Field(default_factory=list)
-    """The file dependencies of the task, a list of file paths."""
-
     namespace: List[str] = Field(default_factory=list)
     """The namespace of the task, a list of namespace segment, as string."""
 
@@ -71,6 +68,19 @@ class Task[T](WithBriefing, WithJsonExample):
     def model_post_init(self, __context: Any) -> None:
         """Initialize the task with a namespace event."""
         self._namespace.segments.extend(self.namespace)
+
+    def move_to(self, new_namespace: List[str]) -> Self:
+        """Move the task to a new namespace.
+
+        Args:
+            new_namespace (List[str]): The new namespace to move the task to.
+
+        Returns:
+            Task: The moved instance of the `Task` class.
+        """
+        self.namespace = new_namespace
+        self._namespace.clear().concat(new_namespace)
+        return self
 
     @classmethod
     def simple_task(cls, name: str, goal: str, description: str) -> Self:
