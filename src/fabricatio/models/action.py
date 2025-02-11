@@ -41,7 +41,7 @@ class Action(WithBriefing, LLMUsage):
         return cxt
 
 
-class WorkFlow(WithBriefing, LLMUsage):
+class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
     """Class that represents a workflow to be executed in a task."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
@@ -49,12 +49,14 @@ class WorkFlow(WithBriefing, LLMUsage):
 
     _instances: Tuple[Action, ...] = PrivateAttr(...)
 
-    steps: Tuple[Type[Action], ...] = Field(...)
-    """ The steps to be executed in the workflow."""
+    steps: Tuple[A, ...] = Field(...)
+    """ The steps to be executed in the workflow, actions or action classes."""
     task_input_key: str = Field(default="task_input")
     """ The key of the task input data."""
     task_output_key: str = Field(default="task_output")
     """ The key of the task output data."""
+    extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)
+    """ The extra context dictionary to be used for workflow initialization."""
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the workflow by setting fallbacks for each step.
@@ -62,7 +64,11 @@ class WorkFlow(WithBriefing, LLMUsage):
         Args:
             __context: The context to be used for initialization.
         """
-        self._instances = tuple(step() for step in self.steps)
+        temp = []
+        for step in self.steps:
+            temp.append(step if isinstance(step, Action) else step())
+        self._instances = tuple(temp)
+
         for step in self._instances:
             step.fallback_to(self)
 
@@ -73,13 +79,13 @@ class WorkFlow(WithBriefing, LLMUsage):
             task: The task to be served.
         """
         await task.start()
-        await self._context.put({self.task_input_key: task})
+        await self._init_context()
         current_action = None
         try:
             for step in self._instances:
                 logger.debug(f"Executing step: {step.name}")
-                ctx = await self._context.get()
-                modified_ctx = await step.act(ctx)
+                cxt = await self._context.get()
+                modified_ctx = await step.act(cxt)
                 await self._context.put(modified_ctx)
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
@@ -88,3 +94,8 @@ class WorkFlow(WithBriefing, LLMUsage):
             logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
             logger.error(traceback.format_exc())  # Add this line to log the traceback
             await task.fail()  # Mark the task as failed
+
+    async def _init_context(self) -> None:
+        """Initialize the context dictionary for workflow execution."""
+        logger.debug(f"Initializing context for workflow: {self.name}")
+        await self._context.put({self.task_input_key: None, **dict(self.extra_init_context)})
