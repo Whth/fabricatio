@@ -6,7 +6,7 @@ from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.events import Event
-from fabricatio.models.generic import ProposeTask
+from fabricatio.models.task import ProposeTask
 
 
 class Role(ProposeTask):

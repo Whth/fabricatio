@@ -118,10 +118,11 @@ class Code2PromptConfig(BaseModel):
     """Code2Prompt configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    template_dir: List[DirectoryPath] = Field(
-        default_factory=lambda: [r".\c2p_templates", rf"{ROAMING_DIR}\c2p_templates"]
-    )
+    template_dir: List[DirectoryPath] = Field(default_factory=lambda: [r".\templates", rf"{ROAMING_DIR}\templates"])
     """The directory containing the templates for code2prompt."""
+
+    template_suffix: str = Field(default=".hbs", frozen=True)
+    """The suffix of the template files for code2prompt."""
 
 
 class MagikaConfig(BaseModel):

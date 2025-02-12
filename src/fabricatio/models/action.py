@@ -6,8 +6,8 @@ from typing import Any, Dict, Self, Tuple, Type, Unpack
 from pydantic import Field, PrivateAttr
 
 from fabricatio.journal import logger
-from fabricatio.models.generic import LLMUsage, ProposeTask, WithBriefing
-from fabricatio.models.task import Task
+from fabricatio.models.generic import LLMUsage, WithBriefing
+from fabricatio.models.task import ProposeTask, Task
 
 
 class Action(ProposeTask):

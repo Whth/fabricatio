@@ -26,9 +26,7 @@ class CycleTask(Action):
 
     name: str = "cycle_task"
     """The name of the action."""
-    description: str = "Cycle a task through a list of targets."
+    description: str = "Cycle a task through a list of targets"
 
     async def _execute(self, task_input: Task, **_) -> None:
         """Execute the action by cycling the task through the specified targets."""
-
-        # TODO

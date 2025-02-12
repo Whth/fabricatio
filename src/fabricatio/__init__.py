@@ -8,13 +8,16 @@ from fabricatio.models.role import Role
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.utils import Messages
-from fabricatio.parser import Capture
+from fabricatio.parser import Capture, CodeBlockCapture, JsonCapture, PythonCapture
 
 __all__ = [
     "Action",
     "Capture",
+    "CodeBlockCapture",
     "Event",
+    "JsonCapture",
     "Messages",
+    "PythonCapture",
     "Role",
     "Task",
     "ToolBox",

@@ -24,7 +24,7 @@ class Tool[**P, R](WithBriefing):
         assert self.name, "The tool must have a name."
         self.description = self.description or self.source.__doc__ or ""
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+    def invoke(self, *args: P.args, **kwargs: P.kwargs) -> R:
         """Invoke the tool's source function with the provided arguments."""
         return self.source(*args, **kwargs)
 
@@ -82,20 +82,18 @@ class ToolBox(WithBriefing):
         toc = f"## {self.name}: {self.description}\n## {len(self.tools)} tools available:"
         return f"{toc}\n\n{list_out}"
 
-    def invoke_tool[**P, R](self, name: str, *args: P.args, **kwargs: P.kwargs) -> R:
+    def get[**P, R](self, name: str) -> Tool[P, R]:
         """Invoke a tool by name with the provided arguments.
 
         Args:
             name (str): The name of the tool to invoke.
-            *args (P.args): Positional arguments to pass to the tool.
-            **kwargs (P.kwargs): Keyword arguments to pass to the tool.
 
         Returns:
-            R: The result of the tool's execution.
+            Tool: The tool instance with the specified name.
 
         Raises:
             AssertionError: If no tool with the specified name is found.
         """
         tool = next((tool for tool in self.tools if tool.name == name), None)
         assert tool, f"No tool named {name} found."
-        return tool(*args, **kwargs)
+        return tool
