@@ -60,6 +60,7 @@ dev = [
     "pytest-xdist>=3.6.1",
     "ruff>=0.9.4",
     "uv>=0.5.29",
+    "viztracer>=1.0.2",
 ]
 cli = [
     "typer>=0.15.1",
@@ -67,6 +68,11 @@ cli = [
 rag = [
     "faiss-cpu>=1.10.0",
     "pymilvus>=2.5.4",
+]
+
+full = [
+    { group = "cli" },
+    { group = "rag" },
 ]
 
 

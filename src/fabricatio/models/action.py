@@ -56,6 +56,7 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
     """ The context dictionary to be used for workflow execution."""
 
     _instances: Tuple[Action, ...] = PrivateAttr(...)
+    """ The instances of the workflow steps."""
 
     steps: Tuple[A, ...] = Field(...)
     """ The steps to be executed in the workflow, actions or action classes."""
