@@ -6,6 +6,8 @@ from pathlib import Path
 import requests
 import typer
 
+from fabricatio.config import ROAMING_DIR
+
 app = typer.Typer()
 
 
@@ -51,7 +53,9 @@ def extract_with_7z(file_path: Path, extract_to: Path) -> None:
 
 
 @app.command()
-def download_and_extract(output_dir: str = typer.Argument(..., help="Directory to extract the templates to")) -> None:
+def download_and_extract(
+    output_dir: str = typer.Argument(default=ROAMING_DIR, help="Directory to extract the templates to"),
+) -> None:
     """Download and extract the templates.tar.gz file from the latest release of the fabricatio GitHub repository.
 
     Args:
