@@ -268,7 +268,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.0.dev1"
+version = "0.2.0.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -304,6 +304,9 @@ dev = [
     { name = "ruff" },
     { name = "uv" },
     { name = "viztracer" },
+]
+full = [
+    { name = "fabricatio" },
 ]
 rag = [
     { name = "faiss-cpu" },
@@ -346,7 +349,7 @@ dev = [
     { name = "uv", specifier = ">=0.5.29" },
     { name = "viztracer", specifier = ">=1.0.2" },
 ]
-full = []
+full = [{ name = "fabricatio", extras = ["rag"] }]
 rag = [
     { name = "faiss-cpu", specifier = ">=1.10.0" },
     { name = "pymilvus", specifier = ">=2.5.4" },

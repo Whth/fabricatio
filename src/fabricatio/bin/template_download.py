@@ -49,7 +49,7 @@ def extract_with_7z(file_path: Path, extract_to: Path) -> None:
     Raises:
         subprocess.CalledProcessError: If the 7z command fails.
     """
-    subprocess.run(["7z", "x", file_path, f"-o{extract_to}"], check=True)
+    subprocess.run(["7z", "x", file_path, f"-o{extract_to}"], check=True)  # noqa: S603, S607
 
 
 @app.command()
