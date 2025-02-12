@@ -1,3 +1,5 @@
+"""A module for defining tools and toolboxes."""
+
 from inspect import getfullargspec, signature
 from typing import Any, Callable, List, Self
 

@@ -1,3 +1,5 @@
+"""A module that manages templates for code generation."""
+
 from typing import Any, Dict, List, Self
 
 from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, PrivateAttr

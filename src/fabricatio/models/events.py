@@ -1,3 +1,5 @@
+"""The module containing the Event class."""
+
 from typing import List, Self
 
 from pydantic import BaseModel, ConfigDict, Field

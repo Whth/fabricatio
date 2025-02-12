@@ -1,3 +1,5 @@
+"""A module containing utility classes for the models."""
+
 from typing import Dict, List, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field

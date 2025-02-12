@@ -1,3 +1,5 @@
+"""Configuration module for the Fabricatio application."""
+
 from pathlib import Path
 from typing import List, Literal, Optional
 

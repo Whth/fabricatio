@@ -1,3 +1,5 @@
+"""Core module that contains the Env class for managing event handling."""
+
 from typing import Callable, Optional, Self, overload
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr

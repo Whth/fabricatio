@@ -1,3 +1,5 @@
+"""Module that contains the Role class."""
+
 from typing import Any
 
 from pydantic import Field

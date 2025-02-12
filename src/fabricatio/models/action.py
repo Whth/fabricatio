@@ -1,3 +1,5 @@
+"""Module that contains the classes for actions and workflows."""
+
 import traceback
 from abc import abstractmethod
 from asyncio import Queue

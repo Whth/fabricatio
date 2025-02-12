@@ -1,3 +1,5 @@
+"""A module to parse text using regular expressions."""
+
 from typing import Any, Self, Tuple
 
 import regex
