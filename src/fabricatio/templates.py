@@ -10,7 +10,7 @@ class TemplateManager(BaseModel):
     """A class that manages templates for code generation."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    templates_dir: List[DirectoryPath] = Field(default=configs.code2prompt.template_dir)
+    templates_dir: List[DirectoryPath] = Field(default_factory=lambda: list(configs.code2prompt.template_dir))
     """The directories containing the templates. first element has the highest override priority."""
     _discovered_templates: Dict[str, FilePath] = PrivateAttr(default_factory=dict)
 
@@ -26,6 +26,7 @@ class TemplateManager(BaseModel):
             for f in d.rglob(f"*{configs.code2prompt.template_suffix}", case_sensitive=False)
             if f.is_file()
         ]
+
         self._discovered_templates = {f.stem: f for f in discovered}
         logger.info(f"Discovered {len(self._discovered_templates)} templates.")
         return self

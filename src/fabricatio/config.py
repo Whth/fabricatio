@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Literal, Optional
 
 from appdirs import user_config_dir
@@ -118,7 +119,9 @@ class Code2PromptConfig(BaseModel):
     """Code2Prompt configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    template_dir: List[DirectoryPath] = Field(default_factory=lambda: [r".\templates", rf"{ROAMING_DIR}\templates"])
+    template_dir: List[DirectoryPath] = Field(
+        default_factory=lambda: [Path(r".\templates"), Path(rf"{ROAMING_DIR}\templates")]
+    )
     """The directory containing the templates for code2prompt."""
 
     template_suffix: str = Field(default=".hbs", frozen=True)
