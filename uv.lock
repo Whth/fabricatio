@@ -281,18 +281,17 @@ dependencies = [
     { name = "loguru" },
     { name = "magika" },
     { name = "orjson" },
+    { name = "pybars3" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pymitter" },
     { name = "questionary" },
     { name = "regex" },
     { name = "rich" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
-cli = [
-    { name = "typer" },
-]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -323,16 +322,17 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "magika", specifier = ">=0.5.1" },
     { name = "orjson", specifier = ">=3.10.15" },
+    { name = "pybars3", specifier = ">=0.9.7" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "pymitter", specifier = ">=1.0.0" },
     { name = "questionary", specifier = ">=2.1.0" },
     { name = "regex", specifier = ">=2024.11.6" },
     { name = "rich", specifier = ">=13.9.4" },
+    { name = "typer", specifier = ">=0.15.1" },
 ]
 
 [package.metadata.requires-dev]
-cli = [{ name = "typer", specifier = ">=0.15.1" }]
 dev = [
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=0.25.3" },
@@ -1082,6 +1082,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pybars3"
+version = "0.9.7"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "pymeta3" },
+]
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ec/1a/2fb847db017f9f89ab8519d96e35fb3dacb6170a0643fddba3b366af0af1/pybars3-0.9.7.tar.gz", hash = "sha256:6ac847e905e53b9c5b936af112c910475e27bf767f79f4528c16f9af1ec0e252", size = 29203 }
+
+[[package]]
 name = "pycodestyle"
 version = "2.12.1"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -1173,6 +1182,12 @@ sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/7c/2d/c3338d48ea6
 wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293 },
 ]
+
+[[package]]
+name = "pymeta3"
+version = "0.5.1"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ce/af/409edba35fc597f1e386e3860303791ab5a28d6cc9a8aecbc567051b19a9/PyMeta3-0.5.1.tar.gz", hash = "sha256:18bda326d9a9bbf587bfc0ee0bc96864964d78b067288bcf55d4d98681d05bcb", size = 29566 }
 
 [[package]]
 name = "pymilvus"
