@@ -1,29 +1,27 @@
 from fabricatio.models.events import Event
 
-
 def test_event_from_string():
-    event = Event.instantiate_from("test.event")
-    assert event.segments == ["test", "event"]
-
+    event = Event.from_string("test_event: {'key': 'value'}")
+    assert event.name == "test_event"
+    assert event.data == {"key": "value"}
 
 def test_event_collapse():
-    event = Event.instantiate_from("test.event")
-    assert event.collapse() == "test.event"
-
+    event = Event(name="test_event", data={"key": "value"})
+    collapsed_event = event.collapse()
+    assert collapsed_event == {"name": "test_event", "data": {"key": "value"}}
 
 def test_event_push():
-    event = Event.instantiate_from("test.event")
-    event.push("new_segment")
-    assert event.segments == ["test", "event", "new_segment"]
-
+    event = Event(name="test_event", data={"key": "value"})
+    event.push("new_key", "new_value")
+    assert event.data["new_key"] == "new_value"
 
 def test_event_pop():
-    event = Event.instantiate_from("test.event")
-    assert event.pop() == "event"
-    assert event.segments == ["test"]
-
+    event = Event(name="test_event", data={"key": "value"})
+    popped_value = event.pop("key")
+    assert popped_value == "value"
+    assert "key" not in event.data
 
 def test_event_clear():
-    event = Event.instantiate_from("test.event")
+    event = Event(name="test_event", data={"key": "value"})
     event.clear()
-    assert event.segments == []
+    assert event.data == {}

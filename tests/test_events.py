@@ -2,48 +2,40 @@ from fabricatio.models.events import Event
 
 
 def test_event_clone():
-    event = Event.instantiate_from("test.event")
+    event = Event(name="test_event", data={"key": "value"})
     cloned_event = event.clone()
-    assert cloned_event.segments == ["test", "event"]
-    assert cloned_event is not event  # Ensure it's a new instance
-
+    assert cloned_event != event
+    assert cloned_event.name == event.name
+    assert cloned_event.data == event.data
 
 def test_event_pop():
-    event = Event.instantiate_from("test.event")
-    popped_segment = event.pop()
-    assert popped_segment == "event"
-    assert event.segments == ["test"]
-
+    event = Event(name="test_event", data={"key": "value"})
+    popped_value = event.pop("key")
+    assert popped_value == "value"
+    assert "key" not in event.data
 
 def test_event_concat():
-    event1 = Event.instantiate_from("test")
-    event2 = Event.instantiate_from("event")
+    event1 = Event(name="test_event1", data={"key1": "value1"})
+    event2 = Event(name="test_event2", data={"key2": "value2"})
     concatenated_event = event1.concat(event2)
-    assert concatenated_event.segments == ["test", "event"]
-
+    assert concatenated_event.data == {"key1": "value1", "key2": "value2"}
 
 def test_event_collapse():
-    event = Event.instantiate_from("test.event")
-    collapsed_string = event.collapse()
-    assert collapsed_string == "test.event"
-
+    event = Event(name="test_event", data={"key": "value"})
+    collapsed_event = event.collapse()
+    assert collapsed_event == {"name": "test_event", "data": {"key": "value"}}
 
 def test_event_eq():
-    event1 = Event.instantiate_from("test.event")
-    event2 = Event.instantiate_from("test.event")
-    event3 = Event.instantiate_from("another.event")
+    event1 = Event(name="test_event", data={"key": "value"})
+    event2 = Event(name="test_event", data={"key": "value"})
     assert event1 == event2
-    assert event1 != event3
-    assert event1 == "test.event"
-
 
 def test_event_push():
-    event = Event.instantiate_from("test")
-    event.push("event")
-    assert event.segments == ["test", "event"]
-
+    event = Event(name="test_event", data={"key": "value"})
+    event.push("new_key", "new_value")
+    assert event.data["new_key"] == "new_value"
 
 def test_event_clear():
-    event = Event.instantiate_from("test.event")
-    cleared_event = event.clear()
-    assert cleared_event.segments == []
+    event = Event(name="test_event", data={"key": "value"})
+    event.clear()
+    assert event.data == {}

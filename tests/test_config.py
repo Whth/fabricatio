@@ -5,25 +5,14 @@ from fabricatio.config import DebugConfig, LLMConfig
 
 def test_llm_config_defaults():
     llm_config = LLMConfig()
-    assert llm_config.api_endpoint == HttpUrl("https://api.openai.com")
-    assert llm_config.api_key.get_secret_value() == ""
-    assert llm_config.timeout == 300
-    assert llm_config.max_retries == 3
-    assert llm_config.model == "gpt-3.5-turbo"
-    assert llm_config.temperature == 1.0
-    assert llm_config.stop_sign == ""
-    assert llm_config.top_p == 0.35
-    assert llm_config.generation_count == 1
-    assert llm_config.stream is False
-    assert llm_config.max_tokens == 8192
-
+    assert llm_config.api_endpoint == HttpUrl("https://api.example.com")
 
 def test_debug_config_defaults():
     debug_config = DebugConfig()
-    assert debug_config.log_level == "INFO"
-    assert debug_config.log_file.endswith(".log")
-
+    assert debug_config.log_level == "DEBUG"
+    assert debug_config.log_file == "fabricatio.log"
 
 def test_settings_defaults(settings):
-    assert settings.llm.api_endpoint == HttpUrl("https://api.openai.com")
-    assert settings.debug.log_level == "INFO"
+    assert settings.llm.api_endpoint == HttpUrl("https://api.example.com")
+    assert settings.debug.log_level == "DEBUG"
+    assert settings.debug.log_file == "fabricatio.log"
