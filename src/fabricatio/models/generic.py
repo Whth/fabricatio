@@ -1,6 +1,7 @@
-from asyncio import Queue
+"""This module defines generic classes for models in the Fabricatio library."""
+
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Self
+from typing import Callable, Dict, List, Optional, Self
 
 import litellm
 import orjson
@@ -11,9 +12,7 @@ from pydantic import (
     Field,
     HttpUrl,
     NonNegativeFloat,
-    NonNegativeInt,
     PositiveInt,
-    PrivateAttr,
     SecretStr,
 )
 
@@ -28,52 +27,18 @@ class Base(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
-class WithToDo(Base):
-    """Class that manages a todo list using an asynchronous queue."""
-
-    _todo: Queue[str] = PrivateAttr(default_factory=Queue)
-    """
-    The todo list of the current instance.
-    """
-
-    async def add_todo(self, todo_msg: str) -> Self:
-        """Add a todo item to the todo list.
-
-        Args:
-            todo_msg (str): The todo item to be added to the todo list.
-
-        Returns:
-            Self: The current instance object to support method chaining.
-        """
-        await self._todo.put(todo_msg)
-        return self
-
-    async def get_todo(self) -> str:
-        """Get the last todo item from the todo list.
-
-        Returns:
-            str: The last todo item from the todo list.
-        """
-        # Pop the last todo item from the todo list
-        return await self._todo.get()
-
-
 class Named(Base):
     """Class that includes a name attribute."""
 
     name: str = Field(frozen=True)
-    """
-    Name of the object.
-    """
+    """The name of the object."""
 
 
 class Described(Base):
     """Class that includes a description attribute."""
 
     description: str = Field(default="", frozen=True)
-    """
-    Description of the object.
-    """
+    """The description of the object."""
 
 
 class WithBriefing(Named, Described):
@@ -89,134 +54,41 @@ class WithBriefing(Named, Described):
         return f"{self.name}: {self.description}" if self.description else self.name
 
 
-class Memorable(Base):
-    """Class that manages a memory list with a maximum size."""
-
-    memory: List[str] = Field(default_factory=list)
-    """
-    Memory list.
-    """
-    memory_max_size: NonNegativeInt = Field(default=0)
-    """
-    Maximum size of the memory list.
-    """
-
-    def add_memory(self, memories: str | Iterable[str]) -> Self:
-        """Add memory items to the memory list.
-
-        Args:
-            memories (str | Iterable[str]): A single memory item as a string or multiple memory items as an iterable.
-
-        Returns:
-            Self: The current instance object to support method chaining.
-        """
-        # Convert a single memory item to a list
-        if isinstance(memories, str):
-            memories = [memories]
-        # Add memory items to the memory list
-        self.memory.extend(memories)
-        # Limit the memory list size if the maximum size is set
-        if self.memory_max_size > 0:
-            self.memory = self.memory[-self.memory_max_size :]
-        # Return the current instance object to support method chaining
-        return self
-
-    def top_memories(self, n: PositiveInt = 1) -> List[str]:
-        """Get the top memory items from the memory list.
-
-        Args:
-            n (PositiveInt): The number of top memory items to return.
-
-        Returns:
-            List[str]: The top memory items from the memory list.
-        """
-        # Get the top memory items from the memory list
-        return self.memory[-n:]
-
-    def top_memories_as_string(self, n: PositiveInt = 1, separator: str = "\n\n") -> str:
-        """Get the memory items as a string.
-
-        Args:
-            n (PositiveInt): The number of memory items to return.
-            separator (str): The separator to join memory items.
-
-        Returns:
-            str: The memory items as a string.
-        """
-        # Get the top memory items from the memory list
-        memories = self.top_memories(n)
-        # Join memory items with the separator
-        return separator.join(memories)
-
-    def clear_memories(self) -> Self:
-        """Clear all memory items.
-
-        Returns:
-            Self: The current instance object to support method chaining.
-        """
-        # Clear all memory items from the memory list
-        self.memory.clear()
-        # Return the current instance object to support method chaining
-        return self
-
-
 class LLMUsage(Base):
     """Class that manages LLM (Large Language Model) usage parameters and methods."""
 
     llm_api_endpoint: Optional[HttpUrl] = None
-    """
-    The OpenAI API endpoint.
-    """
+    """The OpenAI API endpoint."""
 
     llm_api_key: Optional[SecretStr] = None
-    """
-    The OpenAI API key.
-    """
+    """The OpenAI API key."""
 
     llm_timeout: Optional[PositiveInt] = None
-    """
-    The timeout of the LLM model.
-    """
+    """The timeout of the LLM model."""
 
     llm_max_retries: Optional[PositiveInt] = None
-    """
-    The maximum number of retries.
-    """
+    """The maximum number of retries."""
 
     llm_model: Optional[str] = None
-    """
-    The LLM model name.
-    """
+    """The LLM model name."""
 
     llm_temperature: Optional[NonNegativeFloat] = None
-    """
-    The temperature of the LLM model.
-    """
+    """The temperature of the LLM model."""
 
     llm_stop_sign: Optional[str | List[str]] = None
-    """
-    The stop sign of the LLM model.
-    """
+    """The stop sign of the LLM model."""
 
     llm_top_p: Optional[NonNegativeFloat] = None
-    """
-    The top p of the LLM model.
-    """
+    """The top p of the LLM model."""
 
     llm_generation_count: Optional[PositiveInt] = None
-    """
-    The number of generations to generate.
-    """
+    """The number of generations to generate."""
 
     llm_stream: Optional[bool] = None
-    """
-    Whether to stream the LLM model's response.
-    """
+    """Whether to stream the LLM model's response."""
 
     llm_max_tokens: Optional[PositiveInt] = None
-    """
-    The maximum number of tokens to generate.
-    """
+    """The maximum number of tokens to generate."""
 
     async def aquery(
         self,
