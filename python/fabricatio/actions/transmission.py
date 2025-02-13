@@ -6,7 +6,6 @@ from fabricatio.models.events import EventLike
 from fabricatio.models.task import Task
 
 
-
 class PublishTask(Action):
     """An action that publishes a task to a list of targets."""
 

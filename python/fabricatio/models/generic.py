@@ -5,6 +5,9 @@ from typing import Callable, Dict, List, Optional, Self
 
 import litellm
 import orjson
+from fabricatio.config import configs
+from fabricatio.fs.readers import magika
+from fabricatio.models.utils import Messages
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import (
     BaseModel,
@@ -15,10 +18,6 @@ from pydantic import (
     PositiveInt,
     SecretStr,
 )
-
-from fabricatio.config import configs
-from fabricatio.fs.readers import magika
-from fabricatio.models.utils import Messages
 
 
 class Base(BaseModel):

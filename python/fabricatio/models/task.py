@@ -7,13 +7,12 @@ from asyncio import Queue
 from enum import Enum
 from typing import Any, List, Optional, Self
 
-from pydantic import Field, PrivateAttr, ValidationError
-
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import LLMUsage, WithBriefing, WithDependency, WithJsonExample
 from fabricatio.parser import JsonCapture
+from pydantic import Field, PrivateAttr, ValidationError
 
 
 class TaskStatus(Enum):

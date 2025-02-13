@@ -3,9 +3,8 @@
 from inspect import getfullargspec, signature
 from typing import Any, Callable, List, Self
 
-from pydantic import Field
-
 from fabricatio.models.generic import WithBriefing
+from pydantic import Field
 
 
 class Tool[**P, R](WithBriefing):

@@ -2,13 +2,12 @@
 
 from typing import Any
 
-from pydantic import Field
-
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.events import Event
 from fabricatio.models.task import ProposeTask
+from pydantic import Field
 
 
 class Role(ProposeTask):

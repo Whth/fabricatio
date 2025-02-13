@@ -2,9 +2,8 @@
 
 from typing import List, Self
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from fabricatio.config import configs
+from pydantic import BaseModel, ConfigDict, Field
 
 type EventLike = str | List[str] | Self
 

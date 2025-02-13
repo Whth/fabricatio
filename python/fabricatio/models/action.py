@@ -5,11 +5,10 @@ from abc import abstractmethod
 from asyncio import Queue
 from typing import Any, Dict, Self, Tuple, Type, Unpack
 
-from pydantic import Field, PrivateAttr
-
 from fabricatio.journal import logger
 from fabricatio.models.generic import LLMUsage, WithBriefing
 from fabricatio.models.task import ProposeTask, Task
+from pydantic import Field, PrivateAttr
 
 
 class Action(ProposeTask):
