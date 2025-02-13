@@ -19,14 +19,14 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-
+      - name: Install nightly rust
+        run: |
+          rustup install nightly
       - name: Install deps
         continue-on-error: true
         run: |
           uv sync
-      - name: Install nightly rust
-        run: |
-          rustup install nightly
+
 
       - name: Install maturin
         run: |
