@@ -19,6 +19,11 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
+      - name: Install minimal nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
 
       - name: Build
         run: |
