@@ -22,7 +22,13 @@ jobs:
 
       - name: Build
         run: |
-          uv build
+          uv sync
+          make tools
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --r
 
       - name: Get current version
         id: get_version
@@ -67,6 +73,7 @@ jobs:
       - name: Upload to PyPI
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
         run: |
-          uv publish
+          make
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          MATURIN_USERNAME: __token__
+          MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}

@@ -1,0 +1,15 @@
+[package]
+name = "tools"
+edition = "2024"
+
+
+[dependencies]
+reqwest = { version = "0.12.12", features = ["blocking", "json"] }
+tar = "0.4.43"
+flate2 = "1.0.35"
+serde_json = "1.0.138"
+clap = { version = "4.5.29", features = ["derive"] }
+
+[[bin]]
+name = "tdown"
+path = "src/bin/template_download.rs"
