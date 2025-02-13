@@ -26,14 +26,15 @@ jobs:
       - name: Install nightly rust
         run: |
           rustup install nightly
+
+      - name: Install maturin
+        run: |
+          cargo install maturin
       - name: Build
         run: |
-          make tools
+          make 
 
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: --r
+
 
       - name: Get current version
         id: get_version
