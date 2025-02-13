@@ -7,8 +7,16 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-clap = "4.5.29"
+clap = { version = "4.5.29", features = ["derive"] }
 handlebars = "6.3.1"
 rayon = "1.10.0"
 pyo3 = { version = "0.23.4", features = ["extension-module"] }
+reqwest = { version = "0.12.12", features = ["blocking", "json"] }
+tar = "0.4.43"
+flate2 = "1.0.35"
+serde_json = "1.0.138"
 
+
+[[bin]]
+name="templates_downloader"
+path = "src/downloaders.rs"
