@@ -24,7 +24,7 @@ async def main() -> None:
         name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))}
     )
     logger.info(Task.json_example())
-    logger.info(f"proposed task: {await role.propose('say hello to Jhon')}")
+    logger.info(f"proposed task: {await role.propose('write a rust clap cli that can download a html page')}")
 
 
 if __name__ == "__main__":

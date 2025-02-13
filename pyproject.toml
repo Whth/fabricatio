@@ -26,8 +26,6 @@ keywords = [
 
 requires-python = ">=3.12"
 dependencies = [
-    "aiohttp>=3.11.11",
-    "aiomultiprocess>=0.9.1",
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "code2prompt",
@@ -36,23 +34,24 @@ dependencies = [
     "loguru>=0.7.3",
     "magika>=0.5.1",
     "orjson>=3.10.15",
-    "pybars3>=0.9.7",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
     "pymitter>=1.0.0",
     "questionary>=2.1.0",
     "regex>=2024.11.6",
     "rich>=13.9.4",
-    "typer>=0.15.1",
 ]
 
 [project.scripts]
 templates = "fabricatio.bin.template_download:download_and_extract"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
 
 [dependency-groups]
 dev = [
