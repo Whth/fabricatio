@@ -1,6 +1,6 @@
 [package]
 name = "tools"
-edition = "2024"
+edition = "2021"
 
 
 [dependencies]

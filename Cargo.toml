@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio"
-edition = "2024"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
