@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "flate2",
