@@ -19,15 +19,15 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - name: Install minimal nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
 
-      - name: Build
+      - name: Install deps
         run: |
           uv sync
+      - name: Install nightly rust
+        run: |
+          rustup install nightly
+      - name: Build
+        run: |
           make tools
 
       - uses: PyO3/maturin-action@v1
