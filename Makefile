@@ -12,8 +12,9 @@ tools:
 	rm $(DATA)/scripts/*.dwarf || true
 
 bdist:clean tools
-	uvx maturin sdist -o $(DIST)
-	uvx maturin build  -r -o $(DIST)
+	source .\.venv\Scripts\activate
+	uvx  --with-editable . maturin sdist -o $(DIST)
+	uvx  --with-editable . maturin build  -r -o $(DIST)
 
 clean:
 	rm -rf $(DIST) $(DATA)
