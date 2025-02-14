@@ -3,16 +3,18 @@
 It includes methods to manage the task's lifecycle, such as starting, finishing, cancelling, and failing the task.
 """
 
-from asyncio import Queue
 from enum import Enum
 from typing import Any, List, Optional, Self
 
+from asyncio import Queue
+from pydantic import Field, PrivateAttr, ValidationError
+
+from fabricatio._rust_instances import template_manager
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import LLMUsage, WithBriefing, WithDependency, WithJsonExample
 from fabricatio.parser import JsonCapture
-from pydantic import Field, PrivateAttr, ValidationError
 
 
 class TaskStatus(Enum):
@@ -273,11 +275,12 @@ class ProposeTask(LLMUsage, WithBriefing):
                 logger.error(f"Failed to parse task from JSON: {e}")
                 return None
 
+        template_data = {
+            "prompt": prompt,
+            "json_example": Task.json_example()
+        }
         return await self.aask_validate(
-            f"{prompt} \n\nBased on requirement above, "
-            f"you need to construct a task to satisfy that requirement in JSON format "
-            f"written like this: \n\n```json\n{Task.json_example()}\n```\n\n"
-            f"No extra explanation needed. ",
+            template_manager.render_template("propose_task", template_data),
             _validate_json,
             system_message=f"# your personal briefing: \n{self.briefing}",
         )
