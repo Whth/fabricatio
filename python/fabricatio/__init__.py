@@ -1,9 +1,6 @@
 """Fabricatio is a Python library for building llm app using event-based agent structure."""
 
-from fabricatio._rust import TemplateManager
-
 from fabricatio._rust_instances import template_manager
-from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.fs import magika
 from fabricatio.journal import logger

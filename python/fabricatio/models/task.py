@@ -3,11 +3,9 @@
 It includes methods to manage the task's lifecycle, such as starting, finishing, cancelling, and failing the task.
 """
 
+from asyncio import Queue
 from enum import Enum
 from typing import Any, List, Optional, Self
-
-from asyncio import Queue
-from pydantic import Field, PrivateAttr, ValidationError
 
 from fabricatio._rust_instances import template_manager
 from fabricatio.core import env
@@ -15,6 +13,7 @@ from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import LLMUsage, WithBriefing, WithDependency, WithJsonExample
 from fabricatio.parser import JsonCapture
+from pydantic import Field, PrivateAttr, ValidationError
 
 
 class TaskStatus(Enum):
