@@ -11,7 +11,7 @@ tools:
 	rm $(DATA)/scripts/*.pdb || true
 	rm $(DATA)/scripts/*.dwarf || true
 
-dev:
+dev: tools
 	uvx  --with-editable . maturin develop --uv -r
 
 bdist:clean tools

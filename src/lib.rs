@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 /// import the module.
 #[pymodule]
 #[pyo3(name = "_rust")]
-fn string_sum(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _rust(_m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 

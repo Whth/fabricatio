@@ -11,3 +11,6 @@ pyo3 = { version = "0.23.4", features = ["extension-module"] }
 [workspace]
 members = ["src/tools"]
 
+[workspace.package]
+authors = ["Whth <zettainspector@foxmail.com>"]
+license-file = "LICENSE"
