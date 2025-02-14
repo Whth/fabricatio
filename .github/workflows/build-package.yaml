@@ -23,9 +23,8 @@ jobs:
         run: |
           rustup default nightly
       - name: Install deps
-        continue-on-error: true
         run: |
-          uv sync
+          uv sync --no-install-project
       - name: Build
         run: |
           make 
