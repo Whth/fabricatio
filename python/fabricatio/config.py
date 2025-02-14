@@ -1,6 +1,5 @@
 """Configuration module for the Fabricatio application."""
 
-from pathlib import Path
 from typing import List, Literal, Optional
 
 from appdirs import user_config_dir
@@ -122,7 +121,7 @@ class Code2PromptConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     template_dir: List[DirectoryPath] = Field(
-        default_factory=lambda: [Path(r".\templates"), Path(rf"{ROAMING_DIR}\templates")]
+        default_factory=lambda: [DirectoryPath(r".\templates"), DirectoryPath(rf"{ROAMING_DIR}\templates")]
     )
     """The directory containing the templates for code2prompt."""
 
@@ -176,12 +175,12 @@ class Settings(BaseSettings):
 
     @classmethod
     def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
+            cls,
+            settings_cls: type[BaseSettings],
+            init_settings: PydanticBaseSettingsSource,
+            env_settings: PydanticBaseSettingsSource,
+            dotenv_settings: PydanticBaseSettingsSource,
+            file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Customize settings sources.
 

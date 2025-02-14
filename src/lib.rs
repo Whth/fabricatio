@@ -1,4 +1,3 @@
-mod downloaders;
 mod templates;
 use pyo3::prelude::*;
 

@@ -10,6 +10,34 @@ class TemplateManager:
             template_dirs (List[Path]): A list of paths to directories containing templates.
         """
 
+    @property
+    def template_count(self) -> int:
+        """Get the number of templates discovered."""
+
+    @property
+    def templates(self) -> List[str]:
+        """Get a list of template names."""
+
+    def get_template(self, name: str) -> str:
+        """
+        Get a template by name.
+        Args:
+            name (str): The name of the template to retrieve.
+
+        Returns:
+            str: The template content.
+        """
+
+    def get_template_source(self, name: str) -> str:
+        """
+        Get the source path of a template by name.
+        Args:
+            name (str): The name of the template to retrieve.
+
+        Returns:
+            str: The source path of the template.
+        """
+
     def discover_templates(self) -> None:
         """Discover templates in the specified directories."""
 

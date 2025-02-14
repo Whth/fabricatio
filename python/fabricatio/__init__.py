@@ -1,5 +1,8 @@
 """Fabricatio is a Python library for building llm app using event-based agent structure."""
 
+from fabricatio._rust import TemplateManager
+
+from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.fs import magika
 from fabricatio.journal import logger
@@ -10,7 +13,8 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.utils import Message, Messages
 from fabricatio.parser import Capture, CodeBlockCapture, JsonCapture, PythonCapture
-from fabricatio.templates import templates_manager
+
+template_manager = TemplateManager(configs.code2prompt.template_dir)
 
 __all__ = [
     "Action",
@@ -28,5 +32,5 @@ __all__ = [
     "env",
     "logger",
     "magika",
-    "templates_manager",
+    "template_manager"
 ]

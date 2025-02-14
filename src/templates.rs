@@ -21,7 +21,7 @@ impl TemplateManager {
     fn new(template_dirs: Vec<Bound<'_, PyAny>>) -> PyResult<Self> {
         let template_dirs: Vec<PathBuf> = template_dirs
             .into_iter()
-            .map(|dir| dir.extract::<String>().map(PathBuf::from))
+            .map(|dir| dir.call_method0("as_posix")?.extract::<String>().map(PathBuf::from))
             .collect::<PyResult<Vec<PathBuf>>>()?;
 
         let mut manager = TemplateManager {
@@ -32,6 +32,18 @@ impl TemplateManager {
         manager.discover_templates();
         Ok(manager)
     }
+
+    #[getter]
+    fn template_count(&self) -> usize {
+        self.discovered_templates.len()
+    }
+
+
+    #[getter]
+    fn templates(&self) -> Vec<String> {
+        self.discovered_templates.keys().cloned().collect()
+    }
+
 
     /// Discover the templates in the template directories.
     fn discover_templates(&mut self) {
@@ -53,6 +65,27 @@ impl TemplateManager {
         self.discovered_templates = discovered;
     }
 
+    fn get_template(&self, name: &str) -> PyResult<String> {
+        if let Some(path) = self.discovered_templates.get(name) {
+            let template = std::fs::read_to_string(path)?;
+            Ok(template)
+        } else {
+            Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Template not found".to_string(),
+            ))
+        }
+    }
+
+
+    fn get_template_source(&self, name: &str) -> PyResult<String> {
+        if let Some(path) = self.discovered_templates.get(name) {
+            Ok(path.to_string_lossy().to_string())
+        } else {
+            Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Template not found".to_string(),
+            ))
+        }
+    }
     /// Render a template with the given data.
     fn render_template(&self, name: &str, data: &Bound<'_, PyDict>) -> PyResult<String> {
         let data: HashMap<String, String> = data.extract()?;
