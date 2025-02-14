@@ -12,11 +12,12 @@ tools:
 	rm $(DATA)/scripts/*.dwarf || true
 
 bdist:clean tools
-	source .\.venv\Scripts\activate
 	uvx  --with-editable . maturin sdist -o $(DIST)
 	uvx  --with-editable . maturin build  -r -o $(DIST)
 
 clean:
 	rm -rf $(DIST) $(DATA)
 
+publish:tools
+	uvx  --with-editable . maturin publish
 .PHONY: tools

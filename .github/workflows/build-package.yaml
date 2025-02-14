@@ -75,7 +75,7 @@ jobs:
       - name: Upload to PyPI
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
         run: |
-          make
+          make publish
         env:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
