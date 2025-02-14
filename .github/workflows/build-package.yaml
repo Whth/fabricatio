@@ -10,7 +10,10 @@ on:
 
 jobs:
   check-and-release:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,10 +52,7 @@ jobs:
           uv sync --no-install-project
       - name: Build
         run: |
-          make 
-
-
-
+          make
 
       - name: Packing templates
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
