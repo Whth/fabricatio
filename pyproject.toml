@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.0-dev.5"
+version = "0.2.0-dev.6"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -54,6 +54,7 @@ data = "extra"
 [dependency-groups]
 dev = [
     "maturin>=1.8.2",
+    "maturin-import-hook>=0.2.0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
