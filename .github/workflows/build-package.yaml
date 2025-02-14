@@ -14,23 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: "latest"
-      - name: Install nightly rust
-        run: |
-          rustup default nightly
-      - name: Install deps
-        run: |
-          uv sync --no-install-project
-      - name: Build
-        run: |
-          make 
-
-
-
       - name: Get current version
         id: get_version
         run: |
@@ -53,6 +36,24 @@ jobs:
               echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
           fi
         shell: bash
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - name: Install nightly rust
+        run: |
+          rustup default nightly
+      - name: Install deps
+        run: |
+          uv sync --no-install-project
+      - name: Build
+        run: |
+          make 
+
+
+
+
       - name: Packing templates
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
         run: |
