@@ -22,5 +22,5 @@ clean:
 	rm -rf $(DIST) $(DATA)
 
 publish:tools
-	uvx  --with-editable . maturin publish
+	uvx  --with-editable . maturin publish --skip-existing
 .PHONY: tools
