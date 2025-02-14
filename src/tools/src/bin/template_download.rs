@@ -57,7 +57,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Retrieve release information
     let latest_release = retrieve_release(&client)?;
-    println!("Latest release: {:?}", latest_release);
     let assets = latest_release["assets"].as_array().unwrap();
     let tar_gz_asset = assets.iter().find(|asset| asset["name"] == "templates.tar.gz");
 
@@ -68,6 +67,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Download and extract the release
         download_release(&client, download_url, &tar_gz_path)?;
         extract_release(&tar_gz_path, &path)?;
+
+        // Delete the compressed file after extraction
+        println!("Deleting compressed file...");
+        std::fs::remove_file(&tar_gz_path)?;
     } else {
         println!("templates.tar.gz not found in the latest release.");
     }
