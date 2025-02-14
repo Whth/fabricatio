@@ -8,7 +8,11 @@ use pyo3::prelude::*;
 /// import the module.
 #[pymodule]
 #[pyo3(name = "_rust")]
-fn _rust(_m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Add the TemplateManager class to the Python module
+    templates::register(python, m)?;
+
     Ok(())
 }
+
 

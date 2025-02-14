@@ -6,7 +6,10 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+handlebars = "6.3.1"
 pyo3 = { version = "0.23.4", features = ["extension-module"] }
+serde = "1.0.217"
+walkdir = "2.5.0"
 
 [workspace]
 members = ["src/tools"]
