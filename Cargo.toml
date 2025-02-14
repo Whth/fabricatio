@@ -1,5 +1,6 @@
 [package]
 name = "fabricatio"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
@@ -10,5 +11,3 @@ pyo3 = { version = "0.23.4", features = ["extension-module"] }
 [workspace]
 members = ["src/tools"]
 
-[workspace.package]
-edition = "2024"

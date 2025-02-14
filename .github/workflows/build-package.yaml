@@ -26,11 +26,6 @@ jobs:
         continue-on-error: true
         run: |
           uv sync
-
-
-      - name: Install maturin
-        run: |
-          cargo install maturin
       - name: Build
         run: |
           make 

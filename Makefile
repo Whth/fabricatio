@@ -12,8 +12,8 @@ tools:
 	rm $(DATA)/scripts/*.dwarf || true
 
 bdist:clean tools
-	maturin sdist -o $(DIST)
-	maturin build  -r -o $(DIST)
+	uvx maturin sdist -o $(DIST)
+	uvx maturin build  -r -o $(DIST)
 
 clean:
 	rm -rf $(DIST) $(DATA)
