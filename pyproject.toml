@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.0-dev.10"
+version = "0.2.0-dev.11"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -9,6 +9,7 @@ authors = [
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
@@ -20,6 +21,7 @@ keywords = [
     "agents",
     "multi-agent",
     "llm",
+    "pyo3"
 ]
 
 
