@@ -1,10 +1,10 @@
 """A module for defining tools and toolboxes."""
-from inspect import signature, iscoroutinefunction
-from typing import Any, Callable, List, Self, Optional, Iterable
 
+from inspect import iscoroutinefunction, signature
+from typing import Any, Callable, Iterable, List, Optional, Self, Union
+
+from fabricatio.models.generic import Base, WithBriefing
 from pydantic import Field
-
-from fabricatio.models.generic import WithBriefing, Base
 
 
 class Tool[**P, R](WithBriefing):
@@ -107,10 +107,12 @@ class ToolBox(WithBriefing):
 
 
 class ToolUsage(Base):
-    tools: Optional[List[ToolBox]]
+    """A class representing the usage of tools in a task."""
+
+    toolboxes: Optional[List[ToolBox]]
     """The tools used by the task, a list of ToolBox instances."""
 
-    def supply_tools_from(self, others: "ToolUsage" | Iterable["ToolUsage"]) -> Self:
+    def supply_tools_from(self, others: Union["ToolUsage", Iterable["ToolUsage"]]) -> Self:
         """Supplies tools from other ToolUsage instances to this instance.
 
         Args:
@@ -123,10 +125,10 @@ class ToolUsage(Base):
         if isinstance(others, ToolUsage):
             others = [others]
         for other in others:
-            self.tools.extend(other.tools)
+            self.toolboxes.extend(other.toolboxes)
         return self
 
-    def provide_tools_to(self, others: "ToolUsage" | Iterable["ToolUsage"]) -> Self:
+    def provide_tools_to(self, others: Union["ToolUsage", Iterable["ToolUsage"]]) -> Self:
         """Provides tools from this instance to other ToolUsage instances.
 
         Args:
@@ -139,5 +141,5 @@ class ToolUsage(Base):
         if isinstance(others, ToolUsage):
             others = [others]
         for other in others:
-            other.tools.extend(self.tools)
+            other.toolboxes.extend(self.toolboxes)
         return self

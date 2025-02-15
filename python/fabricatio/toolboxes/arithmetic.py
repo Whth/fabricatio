@@ -1,6 +1,6 @@
 from fabricatio.models.tool import ToolBox
 
-arithmetic_tools = ToolBox(name='ArithmeticToolBox', description='A toolbox for arithmetic operations.')
+arithmetic_tools = ToolBox(name="ArithmeticToolBox", description="A toolbox for arithmetic operations.")
 
 
 @arithmetic_tools.collect_tool
@@ -58,6 +58,3 @@ def divide(a: float, b: float) -> float:
 
     """
     return a / b
-
-
-print(arithmetic_tools.briefing)

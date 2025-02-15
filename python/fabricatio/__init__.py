@@ -28,5 +28,5 @@ __all__ = [
     "env",
     "logger",
     "magika",
-    "template_manager"
+    "template_manager",
 ]

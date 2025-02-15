@@ -1,10 +1,15 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Self, Iterable
+from typing import Callable, Dict, Iterable, List, Optional, Self, Union
 
 import litellm
 import orjson
+from fabricatio._rust_instances import template_manager
+from fabricatio.config import configs
+from fabricatio.fs.readers import magika
+from fabricatio.models.utils import Messages
+from fabricatio.parser import JsonCapture
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import (
     BaseModel,
@@ -15,10 +20,6 @@ from pydantic import (
     PositiveInt,
     SecretStr,
 )
-
-from fabricatio.config import configs
-from fabricatio.fs.readers import magika
-from fabricatio.models.utils import Messages
 
 
 class Base(BaseModel):
@@ -91,17 +92,17 @@ class LLMUsage(Base):
     """The maximum number of tokens to generate."""
 
     async def aquery(
-            self,
-            messages: List[Dict[str, str]],
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | List[str] | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            n: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        messages: List[Dict[str, str]],
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        n: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> ModelResponse:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
@@ -139,18 +140,18 @@ class LLMUsage(Base):
         )
 
     async def ainvoke(
-            self,
-            question: str,
-            system_message: str = "",
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | List[str] | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            n: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        question: str,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        n: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> List[Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
 
@@ -186,17 +187,17 @@ class LLMUsage(Base):
         ).choices
 
     async def aask(
-            self,
-            question: str,
-            system_message: str = "",
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | List[str] | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        question: str,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> str:
         """Asynchronously asks the language model a question and returns the response content.
 
@@ -236,19 +237,19 @@ class LLMUsage(Base):
         )
 
     async def aask_validate[T](
-            self,
-            question: str,
-            validator: Callable[[str], T | None],
-            max_validations: PositiveInt = 2,
-            system_message: str = "",
-            model: str | None = None,
-            temperature: NonNegativeFloat | None = None,
-            stop: str | List[str] | None = None,
-            top_p: NonNegativeFloat | None = None,
-            max_tokens: PositiveInt | None = None,
-            stream: bool | None = None,
-            timeout: PositiveInt | None = None,
-            max_retries: PositiveInt | None = None,
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
     ) -> T:
         """Asynchronously ask a question and validate the response using a given validator.
 
@@ -274,21 +275,90 @@ class LLMUsage(Base):
         """
         for _ in range(max_validations):
             if (
-                    response := await self.aask(
-                        question=question,
-                        system_message=system_message,
-                        model=model,
-                        temperature=temperature,
-                        stop=stop,
-                        top_p=top_p,
-                        max_tokens=max_tokens,
-                        stream=stream,
-                        timeout=timeout,
-                        max_retries=max_retries,
-                    )
+                response := await self.aask(
+                    question=question,
+                    system_message=system_message,
+                    model=model,
+                    temperature=temperature,
+                    stop=stop,
+                    top_p=top_p,
+                    max_tokens=max_tokens,
+                    stream=stream,
+                    timeout=timeout,
+                    max_retries=max_retries,
+                )
             ) and (validated := validator(response)):
                 return validated
         raise ValueError("Failed to validate the response.")
+
+    async def achoose[T: WithBriefing](
+        self,
+        instruction: str,
+        choices: List[T],
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
+    ) -> List[T]:
+        """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
+
+        Args:
+            instruction: The user-provided instruction/question description.
+            choices: A list of candidate options, requiring elements to have `name` and `briefing` fields.
+            max_validations: Maximum number of validation failures, default is 2.
+            system_message: Custom system-level prompt, defaults to an empty string.
+            model: The name of the LLM model to use.
+            temperature: Sampling temperature to control randomness in generation.
+            stop: Stop condition string or list for generation.
+            top_p: Core sampling probability threshold.
+            max_tokens: Maximum token limit for the generated result.
+            stream: Whether to enable streaming response mode.
+            timeout: Request timeout in seconds.
+            max_retries: Maximum number of retries.
+
+        Returns:
+            List[T]: The final validated selection result list, with element types matching the input `choices`.
+
+        Important:
+            - Uses a template engine to generate structured prompts.
+            - Ensures response compliance through JSON parsing and format validation.
+            - Relies on `aask_validate` to implement retry mechanisms with validation.
+        """
+        prompt = template_manager.render_template(
+            "make_choice",
+            {"instruction": instruction, "options": [m.model_dump(include={"name", "briefing"}) for m in choices]},
+        )
+        names = [c.name for c in choices]
+
+        def _validate(response: str) -> List[T] | None:
+            cap = JsonCapture.capture(response)
+            ret = orjson.loads(cap)
+            if not isinstance(ret, List):
+                return None
+            if any(n not in names for n in ret):
+                return None
+            return ret
+
+        return await self.aask_validate(
+            question=prompt,
+            validator=_validate,
+            max_validations=max_validations,
+            system_message=system_message,
+            model=model,
+            temperature=temperature,
+            stop=stop,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            stream=stream,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
 
     def fallback_to(self, other: "LLMUsage") -> Self:
         """Fallback to another instance's attribute values if the current instance's attributes are None.
@@ -300,7 +370,8 @@ class LLMUsage(Base):
             Self: The current instance, allowing for method chaining.
         """
         # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
-        for attr_name in LLMUsage.model_fields.keys():
+        # noinspection PydanticTypeChecker,PyTypeChecker
+        for attr_name in LLMUsage.model_fields:
             # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
             if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
                 setattr(self, attr_name, attr)
@@ -308,7 +379,7 @@ class LLMUsage(Base):
         # Return the current instance to allow for method chaining
         return self
 
-    def hold_to(self, others: "LLMUsage" | Iterable["LLMUsage"]):
+    def hold_to(self, others: Union["LLMUsage", Iterable["LLMUsage"]]) -> Self:
         """Hold to another instance's attribute values if the current instance's attributes are None.
 
         Args:
@@ -318,7 +389,8 @@ class LLMUsage(Base):
             Self: The current instance, allowing for method chaining.
         """
         for other in others:
-            for attr_name in LLMUsage.model_fields.keys():
+            # noinspection PyTypeChecker,PydanticTypeChecker
+            for attr_name in LLMUsage.model_fields:
                 if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
                     setattr(other, attr_name, attr)
 

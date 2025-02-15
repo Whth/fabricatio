@@ -3,13 +3,11 @@
 from typing import Any, Self, Tuple
 
 import regex
-from pydantic import Field, PositiveInt, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr
 from regex import Pattern, compile
 
-from fabricatio.models.generic import Base
 
-
-class Capture(Base):
+class Capture(BaseModel):
     """A class to capture patterns in text using regular expressions.
 
     Attributes:
@@ -17,6 +15,7 @@ class Capture(Base):
         _compiled (Pattern): The compiled regular expression pattern.
     """
 
+    model_config = ConfigDict(use_attribute_docstrings=True)
     target_groups: Tuple[int, ...] = Field(default_factory=tuple)
     """The target groups to capture from the pattern."""
     pattern: str = Field(frozen=True)

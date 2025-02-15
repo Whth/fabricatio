@@ -1,0 +1,24 @@
+{{!-- Template for making a choice among multiple options --}}
+### Instruction:
+
+{{instruction}}
+
+### Options:
+
+{{#each options}}
+- {{briefing}}
+{{/each}}
+
+### Task:
+
+Please choose the most appropriate option(s) from the list above. Return your choice as a JSON array of the selected option names.
+
+Example:
+
+```json
+["option1", "option2"]
+```
+### Warnings:
+
+Note that All items in list you returned **MUST** be contained in [{{#each options}}"{{name}}", {{/each}}], No extra items are allowed.
+Your response shall not have any explanation, only the JSON array of selected option names.

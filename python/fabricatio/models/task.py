@@ -274,10 +274,7 @@ class ProposeTask(LLMUsage, WithBriefing):
                 logger.error(f"Failed to parse task from JSON: {e}")
                 return None
 
-        template_data = {
-            "prompt": prompt,
-            "json_example": Task.json_example()
-        }
+        template_data = {"prompt": prompt, "json_example": Task.json_example()}
         return await self.aask_validate(
             template_manager.render_template("propose_task", template_data),
             _validate_json,
