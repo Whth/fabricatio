@@ -1,13 +1,10 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Self
+from typing import Callable, Dict, List, Optional, Self, Iterable
 
 import litellm
 import orjson
-from fabricatio.config import configs
-from fabricatio.fs.readers import magika
-from fabricatio.models.utils import Messages
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import (
     BaseModel,
@@ -18,6 +15,10 @@ from pydantic import (
     PositiveInt,
     SecretStr,
 )
+
+from fabricatio.config import configs
+from fabricatio.fs.readers import magika
+from fabricatio.models.utils import Messages
 
 
 class Base(BaseModel):
@@ -90,17 +91,17 @@ class LLMUsage(Base):
     """The maximum number of tokens to generate."""
 
     async def aquery(
-        self,
-        messages: List[Dict[str, str]],
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        n: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+            self,
+            messages: List[Dict[str, str]],
+            model: str | None = None,
+            temperature: NonNegativeFloat | None = None,
+            stop: str | List[str] | None = None,
+            top_p: NonNegativeFloat | None = None,
+            max_tokens: PositiveInt | None = None,
+            n: PositiveInt | None = None,
+            stream: bool | None = None,
+            timeout: PositiveInt | None = None,
+            max_retries: PositiveInt | None = None,
     ) -> ModelResponse:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
@@ -138,18 +139,18 @@ class LLMUsage(Base):
         )
 
     async def ainvoke(
-        self,
-        question: str,
-        system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        n: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+            self,
+            question: str,
+            system_message: str = "",
+            model: str | None = None,
+            temperature: NonNegativeFloat | None = None,
+            stop: str | List[str] | None = None,
+            top_p: NonNegativeFloat | None = None,
+            max_tokens: PositiveInt | None = None,
+            n: PositiveInt | None = None,
+            stream: bool | None = None,
+            timeout: PositiveInt | None = None,
+            max_retries: PositiveInt | None = None,
     ) -> List[Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
 
@@ -185,17 +186,17 @@ class LLMUsage(Base):
         ).choices
 
     async def aask(
-        self,
-        question: str,
-        system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+            self,
+            question: str,
+            system_message: str = "",
+            model: str | None = None,
+            temperature: NonNegativeFloat | None = None,
+            stop: str | List[str] | None = None,
+            top_p: NonNegativeFloat | None = None,
+            max_tokens: PositiveInt | None = None,
+            stream: bool | None = None,
+            timeout: PositiveInt | None = None,
+            max_retries: PositiveInt | None = None,
     ) -> str:
         """Asynchronously asks the language model a question and returns the response content.
 
@@ -235,19 +236,19 @@ class LLMUsage(Base):
         )
 
     async def aask_validate[T](
-        self,
-        question: str,
-        validator: Callable[[str], T | None],
-        max_validations: PositiveInt = 2,
-        system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+            self,
+            question: str,
+            validator: Callable[[str], T | None],
+            max_validations: PositiveInt = 2,
+            system_message: str = "",
+            model: str | None = None,
+            temperature: NonNegativeFloat | None = None,
+            stop: str | List[str] | None = None,
+            top_p: NonNegativeFloat | None = None,
+            max_tokens: PositiveInt | None = None,
+            stream: bool | None = None,
+            timeout: PositiveInt | None = None,
+            max_retries: PositiveInt | None = None,
     ) -> T:
         """Asynchronously ask a question and validate the response using a given validator.
 
@@ -273,18 +274,18 @@ class LLMUsage(Base):
         """
         for _ in range(max_validations):
             if (
-                response := await self.aask(
-                    question,
-                    system_message,
-                    model,
-                    temperature,
-                    stop,
-                    top_p,
-                    max_tokens,
-                    stream,
-                    timeout,
-                    max_retries,
-                )
+                    response := await self.aask(
+                        question=question,
+                        system_message=system_message,
+                        model=model,
+                        temperature=temperature,
+                        stop=stop,
+                        top_p=top_p,
+                        max_tokens=max_tokens,
+                        stream=stream,
+                        timeout=timeout,
+                        max_retries=max_retries,
+                    )
             ) and (validated := validator(response)):
                 return validated
         raise ValueError("Failed to validate the response.")
@@ -298,29 +299,28 @@ class LLMUsage(Base):
         Returns:
             Self: The current instance, allowing for method chaining.
         """
-        # Define the list of attribute names to check and potentially copy
-        attr_names = [
-            "llm_api_endpoint",
-            "llm_api_key",
-            "llm_model",
-            "llm_stop_sign",
-            "llm_temperature",
-            "llm_top_p",
-            "llm_generation_count",
-            "llm_stream",
-            "llm_max_tokens",
-            "llm_timeout",
-            "llm_max_retries",
-        ]
-
         # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
-        for attr_name in attr_names:
+        for attr_name in LLMUsage.model_fields.keys():
             # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
             if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
                 setattr(self, attr_name, attr)
 
         # Return the current instance to allow for method chaining
         return self
+
+    def hold_to(self, others: "LLMUsage" | Iterable["LLMUsage"]):
+        """Hold to another instance's attribute values if the current instance's attributes are None.
+
+        Args:
+            others (LLMUsage | Iterable[LLMUsage]): Another instance or iterable of instances from which to copy attribute values.
+
+        Returns:
+            Self: The current instance, allowing for method chaining.
+        """
+        for other in others:
+            for attr_name in LLMUsage.model_fields.keys():
+                if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
+                    setattr(other, attr_name, attr)
 
 
 class WithJsonExample(Base):
