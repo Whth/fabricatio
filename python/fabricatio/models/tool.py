@@ -1,11 +1,10 @@
 """A module for defining tools and toolboxes."""
-
 from inspect import signature, iscoroutinefunction
-from typing import Any, Callable, List, Self
+from typing import Any, Callable, List, Self, Optional, Iterable
 
 from pydantic import Field
 
-from fabricatio.models.generic import WithBriefing
+from fabricatio.models.generic import WithBriefing, Base
 
 
 class Tool[**P, R](WithBriefing):
@@ -25,6 +24,7 @@ class Tool[**P, R](WithBriefing):
         self.name = self.name or self.source.__name__
         assert self.name, "The tool must have a name."
         self.description = self.description or self.source.__doc__ or ""
+        self.description = self.description.strip()
 
     def invoke(self, *args: P.args, **kwargs: P.kwargs) -> R:
         """Invoke the tool's source function with the provided arguments."""
@@ -104,3 +104,40 @@ class ToolBox(WithBriefing):
         tool = next((tool for tool in self.tools if tool.name == name), None)
         assert tool, f"No tool named {name} found."
         return tool
+
+
+class ToolUsage(Base):
+    tools: Optional[List[ToolBox]]
+    """The tools used by the task, a list of ToolBox instances."""
+
+    def supply_tools_from(self, others: "ToolUsage" | Iterable["ToolUsage"]) -> Self:
+        """Supplies tools from other ToolUsage instances to this instance.
+
+        Args:
+            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
+                from which to take tools.
+
+        Returns:
+            Self: The current ToolUsage instance with updated tools.
+        """
+        if isinstance(others, ToolUsage):
+            others = [others]
+        for other in others:
+            self.tools.extend(other.tools)
+        return self
+
+    def provide_tools_to(self, others: "ToolUsage" | Iterable["ToolUsage"]) -> Self:
+        """Provides tools from this instance to other ToolUsage instances.
+
+        Args:
+            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
+                to which to provide tools.
+
+        Returns:
+            Self: The current ToolUsage instance.
+        """
+        if isinstance(others, ToolUsage):
+            others = [others]
+        for other in others:
+            other.tools.extend(self.tools)
+        return self
