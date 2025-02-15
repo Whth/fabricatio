@@ -5,10 +5,11 @@ from abc import abstractmethod
 from asyncio import Queue
 from typing import Any, Dict, Self, Tuple, Type, Unpack
 
+from pydantic import Field, PrivateAttr
+
 from fabricatio.journal import logger
 from fabricatio.models.generic import LLMUsage, WithBriefing
 from fabricatio.models.task import ProposeTask, Task
-from pydantic import Field, PrivateAttr
 
 
 class Action(ProposeTask):
@@ -123,6 +124,5 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
 
     def fallback_to_self(self) -> Self:
         """Set the fallback for each step to the workflow itself."""
-        for step in self._instances:
-            step.fallback_to(self)
+        self.hold_to(self._instances)
         return self
