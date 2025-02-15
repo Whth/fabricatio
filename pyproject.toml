@@ -24,6 +24,10 @@ keywords = [
     "pyo3"
 ]
 
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
 
 
 requires-python = ">=3.12"

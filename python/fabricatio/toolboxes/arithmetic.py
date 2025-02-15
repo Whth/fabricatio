@@ -1,3 +1,5 @@
+"""Arithmetic tools for Fabricatio."""
+
 from fabricatio.models.tool import ToolBox
 
 arithmetic_tools = ToolBox(name="ArithmeticToolBox", description="A toolbox for arithmetic operations.")
