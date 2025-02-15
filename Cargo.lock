@@ -371,7 +371,6 @@ version = "0.0.0"
 dependencies = [
  "handlebars",
  "pyo3",
- "serde",
  "walkdir",
 ]
 

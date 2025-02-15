@@ -1,10 +1,11 @@
 """A module for defining tools and toolboxes."""
 
-from inspect import getfullargspec, signature
+from inspect import signature, iscoroutinefunction
 from typing import Any, Callable, List, Self
 
-from fabricatio.models.generic import WithBriefing
 from pydantic import Field
+
+from fabricatio.models.generic import WithBriefing
 
 
 class Tool[**P, R](WithBriefing):
@@ -36,10 +37,15 @@ class Tool[**P, R](WithBriefing):
         Returns:
             str: A brief description of the tool.
         """
-        source_signature = str(signature(self.source))
         # 获取源函数的返回类型
-        return_annotation = getfullargspec(self.source).annotations.get("return", "None")
-        return f"{self.name}{source_signature} -> {return_annotation}\n{self.description}"
+
+        return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}\n{_desc_wrapper(self.description)}"
+
+
+def _desc_wrapper(desc: str) -> str:
+    lines = desc.split("\n")
+    lines_indent = [f"    {line}" for line in ['"""', *lines, '"""']]
+    return "\n".join(lines_indent)
 
 
 class ToolBox(WithBriefing):
@@ -79,7 +85,7 @@ class ToolBox(WithBriefing):
         Returns:
             str: A brief description of the toolbox.
         """
-        list_out = "\n\n".join([f"- {tool.briefing}" for tool in self.tools])
+        list_out = "\n\n".join([f"{tool.briefing}" for tool in self.tools])
         toc = f"## {self.name}: {self.description}\n## {len(self.tools)} tools available:"
         return f"{toc}\n\n{list_out}"
 

@@ -19,30 +19,9 @@ def depend_on_external_cmd[**P, R](bin_name: str, install_tip: str) -> Callable[
         RuntimeError: If the required binary is not found.
     """
 
-    def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        """Decorator to wrap the function with binary presence check.
-
-        Args:
-            func (Callable[P, R]): The function to be decorated.
-
-        Returns:
-            Callable[P, R]: The wrapped function.
-        """
-
+    def _decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            """Wrapper function to check for the presence of the required binary.
-
-            Args:
-                *args: Positional arguments for the function.
-                **kwargs: Keyword arguments for the function.
-
-            Returns:
-                R: The result of the function call.
-
-            Raises:
-                RuntimeError: If the required binary is not found.
-            """
+        def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             if which(bin_name) is None:
                 err = (
                     f"{bin_name} is required to run function: {func.__name__}, please install it first.\n{install_tip}"
@@ -51,6 +30,6 @@ def depend_on_external_cmd[**P, R](bin_name: str, install_tip: str) -> Callable[
                 raise RuntimeError(err)
             return func(*args, **kwargs)
 
-        return wrapper
+        return _wrapper
 
-    return decorator
+    return _decorator
