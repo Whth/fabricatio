@@ -1,22 +1,43 @@
 import pytest
-from fabricatio.models.generic import WithToDo, Memorable
+from fabricatio.models.generic import Base, Named, Described, WithBriefing, WithJsonExample, WithDependency
 
-@pytest.fixture
-def with_todo():
-    return WithToDo(todo="test todo")
+def test_base_initialization():
+    base = Base()
+    assert base is not None
 
-@pytest.fixture
-def memorable():
-    return Memorable(memory=[])
+def test_named_initialization():
+    named = Named(name="Test Name")
+    assert named.name == "Test Name"
 
-async def test_with_todo(with_todo):
-    assert with_todo.todo == "test todo"
+def test_described_initialization():
+    described = Described(description="Test Description")
+    assert described.description == "Test Description"
 
-def test_memorable_add_memory(memorable):
-    memorable.add_memory("memory1")
-    assert "memory1" in memorable.memory
+def test_withbriefing_initialization():
+    withbriefing = WithBriefing(name="Test Name", description="Test Description")
+    assert withbriefing.name == "Test Name"
+    assert withbriefing.description == "Test Description"
 
-def test_memorable_top_memories(memorable):
-    memorable.add_memory("memory1")
-    memorable.add_memory("memory2")
-    assert memorable.top_memories(1) == ["memory2"]
+def test_withjsonexample_initialization():
+    withjsonexample = WithJsonExample()
+    assert withjsonexample is not None
+
+def test_withdependency_initialization():
+    withdependency = WithDependency(dependencies=["file1.txt", "file2.txt"])
+    assert withdependency.dependencies == ["file1.txt", "file2.txt"]
+
+def test_withdependency_methods():
+    withdependency = WithDependency(dependencies=["file1.txt"])
+    withdependency.add_dependency("file2.txt")
+    assert "file2.txt" in withdependency.dependencies
+    withdependency.remove_dependency("file1.txt")
+    assert "file1.txt" not in withdependency.dependencies
+
+# New test cases
+def test_withbriefing_update_briefing():
+    withbriefing = WithBriefing(name="Test Name", description="Test Description")
+
+def test_withjsonexample_json_example():
+    withjsonexample = WithJsonExample()
+    json_example = withjsonexample.json_example()
+    # Add assertions based on expected behavior

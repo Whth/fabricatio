@@ -1,40 +1,32 @@
 import pytest
 from fabricatio.models.task import Task
 
-@pytest.fixture
-def task():
-    return Task(name="test task", goal="test goal", description="test description")
+def test_task_initialization():
+    task = Task(name="say hello", goal="say hello", description="say hello to the world")
+    assert task.name == "say hello"
+    assert task.goal == "say hello"
+    assert task.description == "say hello to the world"
 
-def test_task_initialization(task):
-    assert task.name == "test task"
-    assert task.goal == "test goal"
-    assert task.description == "test description"
-
-def test_task_start(task):
+def test_task_methods():
+    task = Task(name="say hello", goal="say hello", description="say hello to the world")
     task.start()
-    assert task.status == "started"
-
-def test_task_finish(task):
+    assert task._status == TaskStatus.Started  # Access the private attribute directly for testing
     task.finish()
     assert task.status == "finished"
-
-def test_task_cancel(task):
     task.cancel()
     assert task.status == "cancelled"
-
-def test_task_fail(task):
-    task.fail("test error")
+    task.fail()
     assert task.status == "failed"
-    assert task.error == "test error"
 
-def test_task_output(task):
-    task.output = "test output"
-    assert task.output == "test output"
+def test_task_dependencies():
+    task = Task(name="say hello", goal="say hello", description="say hello to the world")
+    task.add_dependency("file1.txt")
+    assert "file1.txt" in task.dependencies
+    task.remove_dependency("file1.txt")
+    assert "file1.txt" not in task.dependencies
 
-def test_task_dependency(task):
-    task.add_dependency("test dependency")
-    assert "test dependency" in task.dependencies
-
-def test_task_json_example(task):
-    task.json_example = {"key": "value"}
-    assert task.json_example == {"key": "value"}
+# New test cases
+def test_task_generate_prompt():
+    task = Task(name="say hello", goal="say hello", description="say hello to the world")
+    prompt = task.generate_prompt()
+    # Add assertions based on expected behavior

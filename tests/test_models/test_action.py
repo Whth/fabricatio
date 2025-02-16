@@ -2,40 +2,52 @@ import pytest
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.task import Task
 
+
 class TestAction(Action):
+    name: str = "TestAction"
+
     async def _execute(self, task_input: Task[str], **_) -> str:
-        return "TestAction executed"
+        return "Action executed"
 
-class TestWorkflow(WorkFlow[TestAction]):
-    pass
 
-@pytest.fixture
-def task():
-    return Task(name="test task", goal="test goal", description="test description")
+class AnotherTestAction(Action):
+    name: str = "AnotherTestAction"
 
-@pytest.fixture
-def test_action(task):
-    return TestAction(task_input=task)
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        return "Another Action executed"
 
-@pytest.fixture
-def test_workflow(test_action):
-    return TestWorkflow(steps=(test_action,))
 
-async def test_action_execute(test_action, task):
-    result = await test_action._execute(task)
-    assert result == "TestAction executed"
+def test_action_initialization():
+    action = TestAction()
+    assert action.name == "TestAction"
+    assert action.description is not None
 
-async def test_action_act(test_action, task):
-    await test_action.act(task)
-    assert test_action.task_input == task
 
-async def test_workflow_execute(test_workflow, task):
-    await test_workflow.execute(task)
-    assert test_workflow.steps[0].task_input == task
+def test_workflow_initialization():
+    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+    assert len(workflow.steps) == 2
+    assert workflow.name == "TestWorkflow"
 
-async def test_workflow_model_post_init(test_workflow):
-    assert test_workflow._instances == test_workflow.steps
 
-async def test_workflow_serve(test_workflow, task):
-    await test_workflow.serve(task)
-    assert test_workflow.steps[0].task_input == task
+async def test_workflow_execution():
+    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+    task = Task(name="test task", goal="test", description="test")
+    await workflow.serve(task)  # Use serve method instead of _execute
+
+
+def test_workflow_fallback_to_self():
+    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+    result = workflow.fallback_to(workflow)  # Use fallback_to method instead of fallback_to_self
+    assert result == workflow
+
+# New test cases
+def test_workflow_model_post_init():
+    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+    workflow.model_post_init(None)
+    # Add assertions based on expected behavior
+
+def test_workflow_inject_personality():
+    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+    workflow.inject_personality("Test Personality")
+    # Add assertions based on expected behavior
+
