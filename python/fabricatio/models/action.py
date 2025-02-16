@@ -8,10 +8,11 @@ from typing import Any, Dict, Self, Tuple, Type, Unpack
 from fabricatio.journal import logger
 from fabricatio.models.generic import LLMUsage, WithBriefing
 from fabricatio.models.task import ProposeTask, Task
+from fabricatio.models.tool import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(ProposeTask):
+class Action(ProposeTask, ToolBoxUsage):
     """Class that represents an action to be executed in a workflow."""
 
     personality: str = Field(default="")
@@ -50,7 +51,7 @@ class Action(ProposeTask):
         return f"# The action you are going to perform: \n{super().briefing}"
 
 
-class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
+class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage, ToolBoxUsage):
     """Class that represents a workflow to be executed in a task."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
@@ -121,7 +122,12 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, LLMUsage):
         logger.debug(f"Initializing context for workflow: {self.name}")
         await self._context.put({self.task_input_key: None, **dict(self.extra_init_context)})
 
-    def fallback_to_self(self) -> Self:
+    def steps_fallback_to_self(self) -> Self:
         """Set the fallback for each step to the workflow itself."""
         self.hold_to(self._instances)
+        return self
+
+    def steps_supply_tools_from_self(self) -> Self:
+        """Supply the tools from the workflow to each step."""
+        self.provide_tools_to(self._instances)
         return self

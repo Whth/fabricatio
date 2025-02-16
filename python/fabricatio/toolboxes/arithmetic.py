@@ -2,10 +2,10 @@
 
 from fabricatio.models.tool import ToolBox
 
-arithmetic_tools = ToolBox(name="ArithmeticToolBox", description="A toolbox for arithmetic operations.")
+arithmetic_toolbox = ToolBox(name="ArithmeticToolBox", description="A toolbox for arithmetic operations.")
 
 
-@arithmetic_tools.collect_tool
+@arithmetic_toolbox.collect_tool
 def add(a: float, b: float) -> float:
     """Add two numbers.
 
@@ -19,7 +19,7 @@ def add(a: float, b: float) -> float:
     return a + b
 
 
-@arithmetic_tools.collect_tool
+@arithmetic_toolbox.collect_tool
 def subtract(a: float, b: float) -> float:
     """Subtract two numbers.
 
@@ -33,7 +33,7 @@ def subtract(a: float, b: float) -> float:
     return a - b
 
 
-@arithmetic_tools.collect_tool
+@arithmetic_toolbox.collect_tool
 def multiply(a: float, b: float) -> float:
     """Multiply two numbers.
 
@@ -47,7 +47,7 @@ def multiply(a: float, b: float) -> float:
     return a * b
 
 
-@arithmetic_tools.collect_tool
+@arithmetic_toolbox.collect_tool
 def divide(a: float, b: float) -> float:
     """Divide two numbers.
 

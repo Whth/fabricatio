@@ -1,8 +1,9 @@
 """A module for defining tools and toolboxes."""
 
 from inspect import iscoroutinefunction, signature
-from typing import Any, Callable, Iterable, List, Optional, Self, Union
+from typing import Any, Callable, Iterable, List, Self, Set, Union
 
+from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
 from pydantic import Field
 
@@ -28,6 +29,7 @@ class Tool[**P, R](WithBriefing):
 
     def invoke(self, *args: P.args, **kwargs: P.kwargs) -> R:
         """Invoke the tool's source function with the provided arguments."""
+        logger.info(f"Invoking tool: {self.name} with args: {args} and kwargs: {kwargs}")
         return self.source(*args, **kwargs)
 
     @property
@@ -105,14 +107,23 @@ class ToolBox(WithBriefing):
         assert tool, f"No tool named {name} found."
         return tool
 
+    def __hash__(self) -> int:
+        """Return a hash of the toolbox based on its briefing."""
+        return hash(self.briefing)
 
-class ToolUsage(Base):
+
+class ToolBoxUsage(Base):
     """A class representing the usage of tools in a task."""
 
-    toolboxes: Optional[List[ToolBox]]
-    """The tools used by the task, a list of ToolBox instances."""
+    toolboxes: Set[ToolBox] = Field(default_factory=set)
+    """A set of toolboxes used by the instance."""
 
-    def supply_tools_from(self, others: Union["ToolUsage", Iterable["ToolUsage"]]) -> Self:
+    @property
+    def available_toolbox_names(self) -> List[str]:
+        """Return a list of available toolbox names."""
+        return [toolbox.name for toolbox in self.toolboxes]
+
+    def supply_tools_from(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
         """Supplies tools from other ToolUsage instances to this instance.
 
         Args:
@@ -122,13 +133,13 @@ class ToolUsage(Base):
         Returns:
             Self: The current ToolUsage instance with updated tools.
         """
-        if isinstance(others, ToolUsage):
+        if isinstance(others, ToolBoxUsage):
             others = [others]
         for other in others:
-            self.toolboxes.extend(other.toolboxes)
+            self.toolboxes.update(other.toolboxes)
         return self
 
-    def provide_tools_to(self, others: Union["ToolUsage", Iterable["ToolUsage"]]) -> Self:
+    def provide_tools_to(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
         """Provides tools from this instance to other ToolUsage instances.
 
         Args:
@@ -138,8 +149,8 @@ class ToolUsage(Base):
         Returns:
             Self: The current ToolUsage instance.
         """
-        if isinstance(others, ToolUsage):
+        if isinstance(others, ToolBoxUsage):
             others = [others]
         for other in others:
-            other.toolboxes.extend(self.toolboxes)
+            other.toolboxes.update(self.toolboxes)
         return self

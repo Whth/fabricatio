@@ -1,7 +1,15 @@
 """Contains the built-in toolboxes for the Fabricatio package."""
 
-from fabricatio.toolboxes.task import TaskToolBox
+from typing import Set
+
+from fabricatio.models.tool import ToolBox
+from fabricatio.toolboxes.arithmetic import arithmetic_toolbox
+from fabricatio.toolboxes.task import task_toolbox
+
+basic_toolboxes: Set[ToolBox] = {task_toolbox, arithmetic_toolbox}
 
 __all__ = [
-    "TaskToolBox",
+    "arithmetic_toolbox",
+    "basic_toolboxes",
+    "task_toolbox",
 ]
