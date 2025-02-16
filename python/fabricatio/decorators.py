@@ -1,7 +1,11 @@
 from functools import wraps
+from inspect import signature
 from shutil import which
 from typing import Callable, Optional
 
+from questionary import confirm
+
+from fabricatio.config import configs
 from fabricatio.journal import logger
 
 
@@ -36,3 +40,29 @@ def depend_on_external_cmd[**P, R](
         return _wrapper
 
     return _decorator
+
+
+def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, R]:
+    """Decorator to confirm before executing a function.
+
+    Args:
+        func (Callable): The function to be executed
+
+    Returns:
+        Callable: A decorator that wraps the function to confirm before execution.
+    """
+    if not configs.general.confirm_on_fs_ops:
+        # Skip confirmation if the configuration is set to False
+        return func
+
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+        if confirm(
+            f"Are you sure to execute function: {func.__name__}{signature(func)} \nArgs:{args}?\nKwargs:{kwargs}",
+            instruction="Please input [Yes/No] to proceed (default: Yes):",
+        ).ask():
+            return func(*args, **kwargs)
+        logger.warning(f"Function: {func.__name__} canceled by user.")
+        return None
+
+    return _wrapper
