@@ -10,13 +10,13 @@ from fabricatio.journal import logger
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: str, homepage: Optional[str] = None
+    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 
     Args:
         bin_name (str): The name of the required binary.
-        install_tip (str): Installation instructions for the required binary.
+        install_tip (Optional[str]): Installation instructions for the required binary.
         homepage (Optional[str]): The homepage of the required binary.
 
     Returns:
@@ -30,10 +30,12 @@ def depend_on_external_cmd[**P, R](
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             if which(bin_name) is None:
-                err = f"`{bin_name}` is required to run function: {func.__name__}, please install it and add to PATH first.\nInstall tip: {install_tip}"
+                err = f"`{bin_name}` is required to run {func.__name__}{signature(func)}, please install it the to `PATH` first."
+                if install_tip is not None:
+                    err += f"\nInstall tip: {install_tip}"
                 if homepage is not None:
                     err += f"\nHomepage: {homepage}"
-                logger.critical(err)
+                logger.error(err)
                 raise RuntimeError(err)
             return func(*args, **kwargs)
 
@@ -58,11 +60,11 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
     @wraps(func)
     def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
         if confirm(
-            f"Are you sure to execute function: {func.__name__}{signature(func)} \nArgs:{args}?\nKwargs:{kwargs}",
+            f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
             instruction="Please input [Yes/No] to proceed (default: Yes):",
         ).ask():
             return func(*args, **kwargs)
-        logger.warning(f"Function: {func.__name__} canceled by user.")
+        logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
         return None
 
     return _wrapper
