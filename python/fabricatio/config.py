@@ -137,6 +137,17 @@ class MagikaConfig(BaseModel):
     """The directory containing the models for magika."""
 
 
+class GeneralConfig(BaseModel):
+    """Global configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    workspace: DirectoryPath = Field(default=DirectoryPath(r"."))
+    """The workspace directory for the application."""
+
+    confirm_on_fs_ops: bool = Field(default=True)
+    """Whether to confirm on file system operations."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -172,6 +183,8 @@ class Settings(BaseSettings):
 
     magika: MagikaConfig = Field(default_factory=MagikaConfig)
     """Magika Configuration"""
+
+    general: GeneralConfig = Field(default_factory=GeneralConfig)
 
     @classmethod
     def settings_customise_sources(
