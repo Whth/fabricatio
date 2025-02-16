@@ -5,9 +5,10 @@ from typing import Any, Set
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
+from fabricatio.models.advanced import ProposeTask
 from fabricatio.models.events import Event
-from fabricatio.models.task import ProposeTask, ToolBoxUsage
 from fabricatio.models.tool import ToolBox
+from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.toolboxes import basic_toolboxes
 from pydantic import Field
 

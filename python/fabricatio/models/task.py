@@ -5,16 +5,13 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue
 from enum import Enum
-from typing import Any, Iterable, List, Optional, Self, Set, Union
+from typing import Any, List, Optional, Self
 
-from fabricatio._rust_instances import template_manager
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
-from fabricatio.models.generic import LLMUsage, WithBriefing, WithDependency, WithJsonExample
-from fabricatio.models.tool import ToolBox
-from fabricatio.parser import JsonCapture
-from pydantic import Field, NonNegativeFloat, PositiveInt, PrivateAttr, ValidationError
+from fabricatio.models.generic import WithBriefing, WithDependency, WithJsonExample
+from pydantic import Field, PrivateAttr
 
 
 class TaskStatus(Enum):
@@ -256,132 +253,3 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
             str: The briefing of the task.
         """
         return f"{super().briefing}\n{self.goal}"
-
-
-class ProposeTask(LLMUsage, WithBriefing):
-    """A class that proposes a task based on a prompt."""
-
-    async def propose(
-        self,
-        prompt: str,
-        max_validations: PositiveInt = 2,
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
-    ) -> Task:
-        """Asynchronously proposes a task based on a given prompt and parameters.
-
-        Parameters:
-            prompt: The prompt text for proposing a task, which is a string that must be provided.
-            max_validations: The maximum number of validations allowed, default is 2.
-            model: The model to be used, default is None.
-            temperature: The sampling temperature, default is None.
-            stop: The stop sequence(s) for generation, default is None.
-            top_p: The nucleus sampling parameter, default is None.
-            max_tokens: The maximum number of tokens to be generated, default is None.
-            stream: Whether to stream the output, default is None.
-            timeout: The timeout for the operation, default is None.
-            max_retries: The maximum number of retries for the operation, default is None.
-
-        Returns:
-            A Task object based on the proposal result.
-        """
-        assert prompt, "Prompt must be provided."
-
-        def _validate_json(response: str) -> None | Task:
-            try:
-                cap = JsonCapture.capture(response)
-                logger.debug(f"Response: \n{response}")
-                logger.info(f"Captured JSON: \n{cap}")
-                return Task.model_validate_json(cap)
-            except ValidationError as e:
-                logger.error(f"Failed to parse task from JSON: {e}")
-                return None
-
-        template_data = {"prompt": prompt, "json_example": Task.json_example()}
-        return await self.aask_validate(
-            question=template_manager.render_template("propose_task", template_data),
-            validator=_validate_json,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-            max_validations=max_validations,
-            model=model,
-            temperature=temperature,
-            stop=stop,
-            top_p=top_p,
-            max_tokens=max_tokens,
-            stream=stream,
-            timeout=timeout,
-            max_retries=max_retries,
-        )
-
-
-class ToolBoxUsage(LLMUsage):
-    """A class representing the usage of tools in a task."""
-
-    toolboxes: Set[ToolBox] = Field(default_factory=set)
-    """A set of toolboxes used by the instance."""
-
-    async def choose_toolboxes(self, task: Task):
-        pass
-
-    async def choose_tool(self, task, toolbox: ToolBox | str):
-        pass
-
-    @property
-    def available_toolbox_names(self) -> List[str]:
-        """Return a list of available toolbox names."""
-        return [toolbox.name for toolbox in self.toolboxes]
-
-    def supply_tools_from(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
-        """Supplies tools from other ToolUsage instances to this instance.
-
-        Args:
-            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
-                from which to take tools.
-
-        Returns:
-            Self: The current ToolUsage instance with updated tools.
-        """
-        if isinstance(others, ToolBoxUsage):
-            others = [others]
-        for other in others:
-            self.toolboxes.update(other.toolboxes)
-        return self
-
-    def provide_tools_to(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
-        """Provides tools from this instance to other ToolUsage instances.
-
-        Args:
-            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
-                to which to provide tools.
-
-        Returns:
-            Self: The current ToolUsage instance.
-        """
-        if isinstance(others, ToolBoxUsage):
-            others = [others]
-        for other in others:
-            other.toolboxes.update(self.toolboxes)
-        return self
-
-
-class HandleTask(WithBriefing, ToolBoxUsage):
-    async def handle[T](
-        self,
-        task: Task[T],
-        max_validations: PositiveInt = 2,
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
-    ) -> T:
-        """Asynchronously handles a task based on a given task object and parameters."""

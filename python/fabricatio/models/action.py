@@ -6,8 +6,10 @@ from asyncio import Queue
 from typing import Any, Dict, Self, Tuple, Type, Unpack
 
 from fabricatio.journal import logger
+from fabricatio.models.advanced import ProposeTask
 from fabricatio.models.generic import WithBriefing
-from fabricatio.models.task import ProposeTask, Task, ToolBoxUsage
+from fabricatio.models.task import Task
+from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
