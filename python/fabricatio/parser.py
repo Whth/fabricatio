@@ -66,7 +66,7 @@ class Capture(BaseModel):
             return None
         try:
             return convertor(cap)
-        except Exception as e:
+        except ValueError as e:
             logger.error(f"Failed to convert text using convertor: {convertor.__name__}, error: \n{e}")
             return None
 

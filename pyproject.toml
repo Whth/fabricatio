@@ -24,11 +24,6 @@ keywords = [
     "pyo3"
 ]
 
-[project.urls]
-Homepage = "https://github.com/Whth/fabricatio"
-Repository = "https://github.com/Whth/fabricatio"
-Issues = "https://github.com/Whth/fabricatio/issues"
-
 
 requires-python = ">=3.12"
 dependencies = [
@@ -48,7 +43,10 @@ dependencies = [
     "rich>=13.9.4",
 ]
 
-
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"

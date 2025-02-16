@@ -369,6 +369,8 @@ class LLMUsage(Base):
     async def ajudge(
         self,
         prompt: str,
+        affirm_case: str = "",
+        deny_case: str = "",
         max_validations: PositiveInt = 2,
         system_message: str = "",
         model: str | None = None,
@@ -384,6 +386,8 @@ class LLMUsage(Base):
 
         Args:
             prompt (str): The input prompt to be judged.
+            affirm_case (str, optional): The affirmative case for the AI model. Defaults to "".
+            deny_case (str, optional): The negative case for the AI model. Defaults to "".
             max_validations (PositiveInt, optional): Maximum number of validation attempts. Defaults to 2.
             system_message (str, optional): System message for the AI model. Defaults to "".
             model (str | None, optional): AI model to use. Defaults to None.
@@ -410,7 +414,9 @@ class LLMUsage(Base):
             return ret
 
         return await self.aask_validate(
-            question=template_manager.render_template("make_judgment", {"prompt": prompt}),
+            question=template_manager.render_template(
+                "make_judgment", {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case}
+            ),
             validator=_validate,
             max_validations=max_validations,
             system_message=system_message,
