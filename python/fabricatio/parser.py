@@ -1,10 +1,12 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Self, Tuple
+from typing import Any, Callable, Self, Tuple
 
 import regex
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr
 from regex import Pattern, compile
+
+from fabricatio.journal import logger
 
 
 class Capture(BaseModel):
@@ -32,7 +34,7 @@ class Capture(BaseModel):
         """
         self._compiled = compile(self.pattern, self.flags)
 
-    def capture(self, text: str) -> Tuple[str, ...] | None:
+    def capture(self, text: str) -> Tuple[str, ...] | str | None:
         """Capture the first occurrence of the pattern in the given text.
 
         Args:
@@ -48,7 +50,25 @@ class Capture(BaseModel):
 
         if self.target_groups:
             return tuple(match.group(g) for g in self.target_groups)
-        return (match.group(),)
+        return match.group(1)
+
+    def convert_with[T](self, text: str, convertor: Callable[[Tuple[str, ...]], T] | Callable[[str], T]) -> T | None:
+        """Convert the given text using the pattern.
+
+        Args:
+            text (str): The text to search the pattern in.
+            convertor (Callable[[Tuple[str, ...]], T] | Callable[[str], T]): The function to convert the captured text.
+
+        Returns:
+            str | None: The converted text if the pattern is found, otherwise None.
+        """
+        if cap := self.capture(text) is None:
+            return None
+        try:
+            return convertor(cap)
+        except Exception as e:
+            logger.error(f"Failed to convert text using convertor: {convertor.__name__}, error: \n{e}")
+            return None
 
     @classmethod
     def capture_code_block(cls, language: str) -> Self:
@@ -60,7 +80,7 @@ class Capture(BaseModel):
         Returns:
             Self: The instance of the class with the captured code block.
         """
-        return cls(pattern=f"```{language}\n(.*?)\n```", target_groups=(1,))
+        return cls(pattern=f"```{language}\n(.*?)\n```")
 
 
 JsonCapture = Capture.capture_code_block("json")

@@ -268,8 +268,8 @@ class ProposeTask(LLMUsage, WithBriefing):
             try:
                 cap = JsonCapture.capture(response)
                 logger.debug(f"Response: \n{response}")
-                logger.info(f"Captured JSON: \n{cap[0]}")
-                return Task.model_validate_json(cap[0] if cap else response)
+                logger.info(f"Captured JSON: \n{cap}")
+                return Task.model_validate_json(cap)
             except ValidationError as e:
                 logger.error(f"Failed to parse task from JSON: {e}")
                 return None

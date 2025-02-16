@@ -17,6 +17,7 @@ from pydantic import (
     Field,
     HttpUrl,
     NonNegativeFloat,
+    NonNegativeInt,
     PositiveInt,
     SecretStr,
 )
@@ -295,6 +296,7 @@ class LLMUsage(Base):
         self,
         instruction: str,
         choices: List[T],
+        k: NonNegativeInt = 0,
         max_validations: PositiveInt = 2,
         system_message: str = "",
         model: str | None = None,
@@ -311,6 +313,7 @@ class LLMUsage(Base):
         Args:
             instruction: The user-provided instruction/question description.
             choices: A list of candidate options, requiring elements to have `name` and `briefing` fields.
+            k: The number of choices to select, 0 means infinite.
             max_validations: Maximum number of validation failures, default is 2.
             system_message: Custom system-level prompt, defaults to an empty string.
             model: The name of the LLM model to use.
@@ -332,14 +335,17 @@ class LLMUsage(Base):
         """
         prompt = template_manager.render_template(
             "make_choice",
-            {"instruction": instruction, "options": [m.model_dump(include={"name", "briefing"}) for m in choices]},
+            {
+                "instruction": instruction,
+                "options": [m.model_dump(include={"name", "briefing"}) for m in choices],
+                "k": k,
+            },
         )
         names = [c.name for c in choices]
 
         def _validate(response: str) -> List[T] | None:
-            cap = JsonCapture.capture(response)
-            ret = orjson.loads(cap)
-            if not isinstance(ret, List):
+            ret = JsonCapture.convert_with(response, orjson.loads)
+            if not isinstance(ret, List) or len(ret) != k:
                 return None
             if any(n not in names for n in ret):
                 return None
@@ -347,6 +353,64 @@ class LLMUsage(Base):
 
         return await self.aask_validate(
             question=prompt,
+            validator=_validate,
+            max_validations=max_validations,
+            system_message=system_message,
+            model=model,
+            temperature=temperature,
+            stop=stop,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            stream=stream,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
+
+    async def ajudge(
+        self,
+        prompt: str,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        model: str | None = None,
+        temperature: NonNegativeFloat | None = None,
+        stop: str | List[str] | None = None,
+        top_p: NonNegativeFloat | None = None,
+        max_tokens: PositiveInt | None = None,
+        stream: bool | None = None,
+        timeout: PositiveInt | None = None,
+        max_retries: PositiveInt | None = None,
+    ) -> bool:
+        """Asynchronously judges a prompt using AI validation.
+
+        Args:
+            prompt (str): The input prompt to be judged.
+            max_validations (PositiveInt, optional): Maximum number of validation attempts. Defaults to 2.
+            system_message (str, optional): System message for the AI model. Defaults to "".
+            model (str | None, optional): AI model to use. Defaults to None.
+            temperature (NonNegativeFloat | None, optional): Sampling temperature. Defaults to None.
+            stop (str | List[str] | None, optional): Stop sequences. Defaults to None.
+            top_p (NonNegativeFloat | None, optional): Nucleus sampling parameter. Defaults to None.
+            max_tokens (PositiveInt | None, optional): Maximum number of tokens to generate. Defaults to None.
+            stream (bool | None, optional): Whether to stream the response. Defaults to None.
+            timeout (PositiveInt | None, optional): Timeout in seconds. Defaults to None.
+            max_retries (PositiveInt | None, optional): Maximum number of retries. Defaults to None.
+
+        Returns:
+            bool: The judgment result (True or False) based on the AI's response.
+
+        Notes:
+            The method uses an internal validator to ensure the response is a boolean value.
+            If the response cannot be converted to a boolean, it will return None.
+        """
+
+        def _validate(response: str) -> bool | None:
+            ret = JsonCapture.convert_with(response, orjson.loads)
+            if not isinstance(ret, bool):
+                return None
+            return ret
+
+        return await self.aask_validate(
+            question=template_manager.render_template("make_judgment", {"prompt": prompt}),
             validator=_validate,
             max_validations=max_validations,
             system_message=system_message,
