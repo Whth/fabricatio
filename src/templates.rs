@@ -12,13 +12,15 @@ pub struct TemplateManager {
     templates_dir: Vec<PathBuf>,
     discovered_templates: HashMap<String, PathBuf>,
     handlebars: Handlebars<'static>,
+    suffix: String,
 }
 
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
     #[new]
-    fn new(template_dirs: Vec<Bound<'_, PyAny>>) -> PyResult<Self> {
+    #[pyo3(signature = (template_dirs, suffix=None))]
+    fn new(template_dirs: Vec<Bound<'_, PyAny>>,suffix:Option<String>) -> PyResult<Self> {
         let template_dirs: Vec<PathBuf> = template_dirs
             .into_iter()
             .map(|dir| dir.call_method0("as_posix")?.extract::<String>().map(PathBuf::from))
@@ -28,6 +30,7 @@ impl TemplateManager {
             templates_dir: template_dirs,
             discovered_templates: HashMap::new(),
             handlebars: Handlebars::new(),
+            suffix:suffix.unwrap_or("hbs".to_string()) 
         };
         manager.discover_templates();
         Ok(manager)
@@ -54,6 +57,7 @@ impl TemplateManager {
                 .into_iter()
                 .filter_map(|e| e.ok())
                 .filter(|e| e.file_type().is_file())
+                .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some(&self.suffix))
             {
                 let path = entry.path();
                 if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {

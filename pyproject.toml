@@ -82,7 +82,7 @@ full = [
 
 
 [tool.ruff]
-include = ["pyproject.toml", "python/fabricatio/*.py", "examples/*.py"]
+include = ["pyproject.toml", "python/fabricatio/*.py","python/fabricatio/*.pyi", "examples/*.py"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]
@@ -122,6 +122,7 @@ ignore = [
     "ANN003",
     "D100",
     "PYI063",
+    "PYI021",
     "ASYNC109"
 ]
 [tool.ruff.lint.pydocstyle]

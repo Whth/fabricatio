@@ -116,17 +116,17 @@ class DebugConfig(BaseModel):
     """The log file of the application."""
 
 
-class Code2PromptConfig(BaseModel):
-    """Code2Prompt configuration class."""
+class TemplateConfig(BaseModel):
+    """Template configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     template_dir: List[DirectoryPath] = Field(
         default_factory=lambda: [DirectoryPath(r".\templates"), DirectoryPath(rf"{ROAMING_DIR}\templates")]
     )
-    """The directory containing the templates for code2prompt."""
+    """The directory containing the templates."""
 
-    template_suffix: str = Field(default=".hbs", frozen=True)
-    """The suffix of the template files for code2prompt."""
+    template_suffix: str = Field(default="hbs", frozen=True)
+    """The suffix of the templates."""
 
 
 class MagikaConfig(BaseModel):
@@ -144,7 +144,7 @@ class Settings(BaseSettings):
         llm (LLMConfig): LLM Configuration
         debug (DebugConfig): Debug Configuration
         pymitter (PymitterConfig): Pymitter Configuration
-        code2prompt (Code2PromptConfig): Code2Prompt Configuration
+        templates (TemplateConfig): Template Configuration
         magika (MagikaConfig): Magika Configuration
     """
 
@@ -167,20 +167,20 @@ class Settings(BaseSettings):
     pymitter: PymitterConfig = Field(default_factory=PymitterConfig)
     """Pymitter Configuration"""
 
-    code2prompt: Code2PromptConfig = Field(default_factory=Code2PromptConfig)
-    """Code2Prompt Configuration"""
+    templates: TemplateConfig = Field(default_factory=TemplateConfig)
+    """Template Configuration"""
 
     magika: MagikaConfig = Field(default_factory=MagikaConfig)
     """Magika Configuration"""
 
     @classmethod
     def settings_customise_sources(
-            cls,
-            settings_cls: type[BaseSettings],
-            init_settings: PydanticBaseSettingsSource,
-            env_settings: PydanticBaseSettingsSource,
-            dotenv_settings: PydanticBaseSettingsSource,
-            file_secret_settings: PydanticBaseSettingsSource,
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Customize settings sources.
 

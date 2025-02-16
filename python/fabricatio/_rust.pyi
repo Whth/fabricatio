@@ -1,13 +1,13 @@
 from pathlib import Path
-from typing import Dict, List, Any
-
+from typing import Any, Dict, List, Optional
 
 class TemplateManager:
-    def __init__(self, template_dirs: List[Path]) -> None:
-        """
-        Initialize the template manager.
+    def __init__(self, template_dirs: List[Path], suffix: Optional[str] = None) -> None:
+        """Initialize the template manager.
+
         Args:
             template_dirs (List[Path]): A list of paths to directories containing templates.
+            suffix (str, optional): The suffix of template files. None means 'hbs' suffix .
         """
 
     @property
@@ -19,8 +19,8 @@ class TemplateManager:
         """Get a list of template names."""
 
     def get_template(self, name: str) -> str:
-        """
-        Get a template by name.
+        """Get a template by name.
+
         Args:
             name (str): The name of the template to retrieve.
 
@@ -29,8 +29,8 @@ class TemplateManager:
         """
 
     def get_template_source(self, name: str) -> str:
-        """
-        Get the source path of a template by name.
+        """Get the source path of a template by name.
+
         Args:
             name (str): The name of the template to retrieve.
 
@@ -42,8 +42,8 @@ class TemplateManager:
         """Discover templates in the specified directories."""
 
     def render_template(self, name: str, data: Dict[str, Any]) -> str:
-        """
-        Render a template with the given name and data.
+        """Render a template with the given name and data.
+
         Args:
             name (str): The name of the template to render.
             data (Dict[str, Any]): The data to pass to the template.
