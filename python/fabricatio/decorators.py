@@ -1,3 +1,5 @@
+"""Decorators for Fabricatio."""
+
 from functools import wraps
 from inspect import signature
 from shutil import which

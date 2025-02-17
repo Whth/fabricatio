@@ -44,7 +44,10 @@ class ProposeTask(LLMUsage, WithBriefing):
         Returns:
             A Task object based on the proposal result.
         """
-        assert prompt, "Prompt must be provided."
+        if not prompt:
+            err = f"{self.name}: Prompt must be provided."
+            logger.error(err)
+            raise ValueError(err)
 
         def _validate_json(response: str) -> None | Task:
             try:

@@ -47,8 +47,10 @@ class Event(BaseModel):
 
     def push(self, segment: str) -> Self:
         """Push a segment to the event."""
-        assert segment, "The segment must not be empty."
-        assert configs.pymitter.delimiter not in segment, "The segment must not contain the delimiter."
+        if not segment:
+            raise ValueError("The segment must not be empty.")
+        if configs.pymitter.delimiter in segment:
+            raise ValueError("The segment must not contain the delimiter.")
 
         self.segments.append(segment)
         return self
