@@ -1,0 +1,52 @@
+You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available. 
+
+**Task Briefing:**
+{{ task }}
+
+**Available Tools:**
+{{#each tools }}
+{{ this }}
+
+{{/each }}
+
+Please draft the Python code that uses these tools to accomplish the task. Ensure that the code is well-documented and follows best practices. The code should be executable and should include any necessary imports.
+Further, to ensure I can retrieve the execute result, you need to specify variable names that represent the output of your code. These variables should be named with JSON serializable values.
+
+
+**Response Format:**
+1. Provide the Python code as a codeblock.
+2. Ensure the code can be compiled and executed without errors.
+
+
+**Example Response:**
+
+----
+
+```python
+from {{tool_module_name}} import ({{#each tool_class_names }}
+    {{this}},
+{{/each }})
+
+# Your code here
+
+output1 = # Your output here
+output2 = # Your output here
+another_output = # Your output here
+
+
+```
+
+```json
+[
+    "output1",
+    "output2",
+    "another_output"
+]
+```
+
+----
+
+**Warning:**
+
+- No extra explanation is needed. Only the python code and the JSON array is required.
+- Do not include any imports that are not necessary for the code to run.

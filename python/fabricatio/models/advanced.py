@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple, Unpack
 
 import orjson
 from fabricatio._rust_instances import template_manager
+from fabricatio.config import configs
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import LLMKwargs
 from fabricatio.models.task import Task
@@ -87,6 +88,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
             question=template_manager.render_template(
                 "draft_tool_usage_code",
                 {
+                    "tool_module_name": configs.toolbox.tool_module_name,
                     "task": task.briefing,
                     "tools": [tool.briefing for tool in tools],
                 },
