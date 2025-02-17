@@ -178,7 +178,7 @@ wheels = [
 [[package]]
 name = "code2prompt"
 version = "2.0.0"
-source = { git = "https://github.com/mufeedvh/code2prompt#28bf1dc0f9b847a890045a2b0bb95a84aa54520b" }
+source = { git = "https://github.com/mufeedvh/code2prompt?rev=d157ee84827458bd6816142e213886487d28bd3d#d157ee84827458bd6816142e213886487d28bd3d" }
 
 [[package]]
 name = "colorama"
@@ -259,7 +259,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.0.dev14"
+version = "0.2.0.dev16"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -278,6 +278,16 @@ dependencies = [
     { name = "rich" },
 ]
 
+[package.optional-dependencies]
+full = [
+    { name = "faiss-cpu" },
+    { name = "pymilvus" },
+]
+rag = [
+    { name = "faiss-cpu" },
+    { name = "pymilvus" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "maturin" },
@@ -294,19 +304,14 @@ dev = [
     { name = "uv" },
     { name = "viztracer" },
 ]
-full = [
-    { name = "fabricatio" },
-]
-rag = [
-    { name = "faiss-cpu" },
-    { name = "pymilvus" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "appdirs", specifier = ">=1.4.4" },
     { name = "asyncio", specifier = ">=3.4.3" },
-    { name = "code2prompt", git = "https://github.com/mufeedvh/code2prompt" },
+    { name = "code2prompt", git = "https://github.com/mufeedvh/code2prompt?rev=d157ee84827458bd6816142e213886487d28bd3d" },
+    { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },
+    { name = "faiss-cpu", marker = "extra == 'rag'", specifier = ">=1.10.0" },
     { name = "gitpython", specifier = ">=3.1.44" },
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
@@ -314,6 +319,7 @@ requires-dist = [
     { name = "orjson", specifier = ">=3.10.15" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
+    { name = "pymilvus", marker = "extra == 'rag'", specifier = ">=2.5.4" },
     { name = "pymitter", specifier = ">=1.0.0" },
     { name = "questionary", specifier = ">=2.1.0" },
     { name = "regex", specifier = ">=2024.11.6" },
@@ -335,11 +341,6 @@ dev = [
     { name = "ruff", specifier = ">=0.9.4" },
     { name = "uv", specifier = ">=0.5.29" },
     { name = "viztracer", specifier = ">=1.0.2" },
-]
-full = [{ name = "fabricatio", extras = ["rag"] }]
-rag = [
-    { name = "faiss-cpu", specifier = ">=1.10.0" },
-    { name = "pymilvus", specifier = ">=2.5.4" },
 ]
 
 [[package]]
@@ -382,9 +383,9 @@ dependencies = [
     { name = "pycodestyle" },
     { name = "pyflakes" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/37/72/e8d66150c4fcace3c0a450466aa3480506ba2cae7b61e100a2613afc3907/flake8-7.1.1.tar.gz", hash = "sha256:049d058491e228e03e67b390f311bbf88fce2dbaa8fa673e7aea87b7198b8d38" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/37/72/e8d66150c4fcace3c0a450466aa3480506ba2cae7b61e100a2613afc3907/flake8-7.1.1.tar.gz", hash = "sha256:049d058491e228e03e67b390f311bbf88fce2dbaa8fa673e7aea87b7198b8d38", size = 48054 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d9/42/65004373ac4617464f35ed15931b30d764f53cdd30cc78d5aea349c8c050/flake8-7.1.1-py2.py3-none-any.whl", hash = "sha256:597477df7860daa5aa0fdd84bf5208a043ab96b8e96ab708770ae0364dd03213" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d9/42/65004373ac4617464f35ed15931b30d764f53cdd30cc78d5aea349c8c050/flake8-7.1.1-py2.py3-none-any.whl", hash = "sha256:597477df7860daa5aa0fdd84bf5208a043ab96b8e96ab708770ae0364dd03213", size = 57731 },
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.0-dev.16"
+version = "0.2.0-dev.17"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -47,6 +47,8 @@ dependencies = [
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
@@ -59,6 +61,9 @@ data = "extra"
 dev = [
     "maturin>=1.8.2",
     "maturin-import-hook>=0.2.0",
+    "ruff>=0.9.4",
+    "uv>=0.5.29",
+    "viztracer>=1.0.2",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
@@ -67,10 +72,9 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
-    "ruff>=0.9.4",
-    "uv>=0.5.29",
-    "viztracer>=1.0.2",
 ]
+
+[project.optional-dependencies]
 rag = [
     "faiss-cpu>=1.10.0",
     "pymilvus>=2.5.4",
@@ -79,7 +83,6 @@ rag = [
 full = [
     "fabricatio[rag]",
 ]
-
 
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py","python/fabricatio/*.pyi", "examples/*.py"]
@@ -136,7 +139,7 @@ testpaths = [
 ]
 
 [tool.uv.sources]
-code2prompt = { git = "https://github.com/mufeedvh/code2prompt" }
+code2prompt = { git = "https://github.com/mufeedvh/code2prompt", rev = "d157ee84827458bd6816142e213886487d28bd3d" }
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
