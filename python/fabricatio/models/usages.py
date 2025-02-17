@@ -1,6 +1,6 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
-from typing import Callable, Dict, Iterable, List, NotRequired, Optional, Self, Set, TypedDict, Union, Unpack
+from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack
 
 import litellm
 import orjson
@@ -8,25 +8,13 @@ from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
+from fabricatio.models.kwargs_types import ChooseKwargs, LLMKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import Field, HttpUrl, NonNegativeFloat, NonNegativeInt, PositiveInt, SecretStr
-
-
-class LLMKwargs(TypedDict):
-    """A type representing the keyword arguments for the LLM (Large Language Model) usage."""
-
-    model: NotRequired[str]
-    temperature: NotRequired[NonNegativeFloat]
-    stop: NotRequired[str | List[str]]
-    top_p: NotRequired[NonNegativeFloat]
-    max_tokens: NotRequired[PositiveInt]
-    stream: NotRequired[bool]
-    timeout: NotRequired[PositiveInt]
-    max_retries: NotRequired[PositiveInt]
 
 
 class LLMUsage(Base):
@@ -319,14 +307,6 @@ class LLMUsage(Base):
                     setattr(other, attr_name, attr)
 
 
-class ChooseKwargs(LLMKwargs):
-    """A type representing the keyword arguments for the choose method."""
-
-    max_validations: NotRequired[PositiveInt]
-    system_message: NotRequired[str]
-    k: NotRequired[NonNegativeInt]
-
-
 class ToolBoxUsage(LLMUsage):
     """A class representing the usage of tools in a task."""
 
@@ -404,7 +384,7 @@ class ToolBoxUsage(LLMUsage):
             **kwargs,
         )
 
-    async def gather_tools(
+    async def gather_tools_fine_grind(
         self,
         task: Task,
         box_choose_kwargs: Optional[ChooseKwargs] = None,
@@ -430,6 +410,18 @@ class ToolBoxUsage(LLMUsage):
         for toolbox in chosen_toolboxes:
             chosen_tools.extend(await self.choose_tools(task, toolbox, **tool_choose_kwargs))
         return chosen_tools
+
+    async def gather_tools(self, task: Task, **kwargs: Unpack[ChooseKwargs]) -> List[Tool]:
+        """Asynchronously gathers tools based on the provided task.
+
+        Args:
+            task (Task): The task for which to gather tools.
+            **kwargs (Unpack[ChooseKwargs]): Keyword arguments for choosing tools, such as `system_message`, `k`, `max_validations`, `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
+
+        Returns:
+            List[Tool]: A list of tools gathered based on the provided task.
+        """
+        return await self.gather_tools_fine_grind(task, kwargs, kwargs)
 
     def supply_tools_from[S: "ToolBoxUsage"](self, others: Union[S, Iterable[S]]) -> Self:
         """Supplies tools from other ToolUsage instances to this instance.
