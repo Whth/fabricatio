@@ -342,7 +342,7 @@ class ToolBoxUsage(LLMUsage):
             logger.warning("No toolboxes available.")
             return []
         return await self.achoose(
-            instruction=task.briefing,
+            instruction=task.briefing,  # TODO write a template to build a more robust instruction
             choices=list(self.toolboxes),
             k=k,
             max_validations=max_validations,
@@ -376,7 +376,7 @@ class ToolBoxUsage(LLMUsage):
             logger.warning(f"No tools available in toolbox {toolbox.name}.")
             return []
         return await self.achoose(
-            instruction=task.briefing,
+            instruction=task.briefing,  # TODO write a template to build a more robust instruction
             choices=toolbox.tools,
             k=k,
             max_validations=max_validations,

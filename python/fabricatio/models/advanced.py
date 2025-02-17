@@ -1,14 +1,18 @@
 """A module for advanced models and functionalities."""
 
-from typing import List
+from types import CodeType
+from typing import List, Optional, Tuple, Unpack
 
+import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.models.generic import WithBriefing
+from fabricatio.models.kwargs_types import LLMKwargs
 from fabricatio.models.task import Task
+from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
-from fabricatio.parser import JsonCapture
+from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
-from pydantic import NonNegativeFloat, PositiveInt, ValidationError
+from pydantic import PositiveInt, ValidationError
 
 
 class ProposeTask(LLMUsage, WithBriefing):
@@ -18,28 +22,14 @@ class ProposeTask(LLMUsage, WithBriefing):
         self,
         prompt: str,
         max_validations: PositiveInt = 2,
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Task:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
             prompt: The prompt text for proposing a task, which is a string that must be provided.
             max_validations: The maximum number of validations allowed, default is 2.
-            model: The model to be used, default is None.
-            temperature: The sampling temperature, default is None.
-            stop: The stop sequence(s) for generation, default is None.
-            top_p: The nucleus sampling parameter, default is None.
-            max_tokens: The maximum number of tokens to be generated, default is None.
-            stream: Whether to stream the output, default is None.
-            timeout: The timeout for the operation, default is None.
-            max_retries: The maximum number of retries for the operation, default is None.
+            **kwargs: The keyword arguments for the LLM (Large Language Model) usage.
 
         Returns:
             A Task object based on the proposal result.
@@ -65,32 +55,63 @@ class ProposeTask(LLMUsage, WithBriefing):
             validator=_validate_json,
             system_message=f"# your personal briefing: \n{self.briefing}",
             max_validations=max_validations,
-            model=model,
-            temperature=temperature,
-            stop=stop,
-            top_p=top_p,
-            max_tokens=max_tokens,
-            stream=stream,
-            timeout=timeout,
-            max_retries=max_retries,
+            **kwargs,
         )
 
 
 class HandleTask(WithBriefing, ToolBoxUsage):
     """A class that handles a task based on a task object."""
 
-    async def handle[T](
+    async def draft_tool_usage_code(
         self,
-        task: Task[T],
-        max_validations: PositiveInt = 2,
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
-    ) -> T:
+        task: Task,
+        tools: List[Tool],
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Tuple[CodeType, List[str]]:
+        """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
+        logger.info(f"Drafting tool usage code for task: {task.briefing}")
+
+        if not tools:
+            err = f"{self.name}: Tools must be provided to draft the tool usage code."
+            logger.error(err)
+            raise ValueError(err)
+
+        def _validator(response: str) -> Tuple[CodeType, List[str]] | None:
+            if (source := PythonCapture.convert_with(response, lambda resp: compile(resp, "<string>", "exec"))) and (
+                to_extract := JsonCapture.convert_with(response, orjson.loads)
+            ):
+                return source, to_extract
+            return None
+
+        return await self.aask_validate(
+            question=template_manager.render_template(
+                "draft_tool_usage_code",
+                {
+                    "task": task.briefing,
+                    "tools": [tool.briefing for tool in tools],
+                },
+            ),
+            validator=_validator,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+            **kwargs,
+        )
+
+    async def handle_fin_grind(
+        self,
+        task: Task,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
-        # TODO: Implement the handle method
+        logger.info(f"Handling task: {task.briefing}")
+
+        tools = await self.gather_tools(task)
+        logger.info(f"{self.name} have gathered {len(tools)} tools gathered")
+
+        if tools:
+            executor = ToolExecutor(execute_sequence=tools)
+            code, to_extract = await self.draft_tool_usage_code(task, tools, **kwargs)
+            cxt = await executor.execute(code)
+            if to_extract:
+                return tuple(cxt.get(k) for k in to_extract)
+
+        return None

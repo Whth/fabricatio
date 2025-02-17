@@ -167,6 +167,6 @@ class ToolExecutor(BaseModel):
         tools = []
         while tool_name := recipe.pop(0):
             for toolbox in toolboxes:
-                tools.append(toolbox.get(tool_name))
+                tools.append(toolbox[tool_name])
 
         return cls(execute_sequence=tools)
