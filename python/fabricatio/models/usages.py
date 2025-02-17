@@ -9,7 +9,7 @@ from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
 from fabricatio.models.task import Task
-from fabricatio.models.tool import ToolBox
+from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
@@ -75,8 +75,8 @@ class LLMUsage(Base):
 
         Args:
             messages (List[Dict[str, str]]): A list of messages, where each message is a dictionary containing the role and content of the message.
-            n (PositiveInt | None): The number of responses to generate.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             ModelResponse: An object containing the generated response and other metadata from the model.
@@ -110,9 +110,9 @@ class LLMUsage(Base):
 
         Args:
             question (str): The question to ask the model.
-            system_message (str): The system message to provide context to the model.
-            n (PositiveInt | None): The number of responses to generate.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            system_message (str): The system message to provide context to the model. Defaults to an empty string.
+            n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             List[Choices | StreamingChoices]: A list of choices or streaming choices from the model response.
@@ -135,8 +135,8 @@ class LLMUsage(Base):
 
         Args:
             question (str): The question to ask the model.
-            system_message (str): The system message to provide context to the model.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            system_message (str): The system message to provide context to the model. Defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             str: The content of the model's response message.
@@ -162,14 +162,14 @@ class LLMUsage(Base):
         system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
     ) -> T:
-        """Asynchronously ask a question and validate the response using a given validator.
+        """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
             question (str): The question to ask.
             validator (Callable[[str], T | None]): A function to validate the response.
-            max_validations (PositiveInt): Maximum number of validation attempts.
-            system_message (str): System message to include in the request.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
+            system_message (str): System message to include in the request. Defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             T: The validated response.
@@ -202,10 +202,10 @@ class LLMUsage(Base):
         Args:
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
-            k (NonNegativeInt): The number of choices to select, 0 means infinite.
+            k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
             max_validations (PositiveInt): Maximum number of validation failures, default is 2.
             system_message (str): Custom system-level prompt, defaults to an empty string.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             List[T]: The final validated selection result list, with element types matching the input `choices`.
@@ -254,11 +254,11 @@ class LLMUsage(Base):
 
         Args:
             prompt (str): The input prompt to be judged.
-            affirm_case (str): The affirmative case for the AI model.
-            deny_case (str): The negative case for the AI model.
-            max_validations (PositiveInt): Maximum number of validation attempts.
-            system_message (str): System message for the AI model.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            affirm_case (str): The affirmative case for the AI model. Defaults to an empty string.
+            deny_case (str): The negative case for the AI model. Defaults to an empty string.
+            max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
+            system_message (str): System message for the AI model. Defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
@@ -319,6 +319,14 @@ class LLMUsage(Base):
                     setattr(other, attr_name, attr)
 
 
+class ChooseKwargs(LLMKwargs):
+    """A type representing the keyword arguments for the choose method."""
+
+    max_validations: NotRequired[PositiveInt]
+    system_message: NotRequired[str]
+    k: NotRequired[NonNegativeInt]
+
+
 class ToolBoxUsage(LLMUsage):
     """A class representing the usage of tools in a task."""
 
@@ -333,19 +341,19 @@ class ToolBoxUsage(LLMUsage):
     async def choose_toolboxes(
         self,
         task: Task,
+        system_message: str = "",
         k: NonNegativeInt = 0,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
     ) -> List[ToolBox]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
         Args:
             task (Task): The task for which to choose toolboxes.
-            k (NonNegativeInt): The number of toolboxes to select, 0 means infinite.
-            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
             system_message (str): Custom system-level prompt, defaults to an empty string.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            k (NonNegativeInt): The number of toolboxes to select, 0 means infinite. Defaults to 0.
+            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
 
         Returns:
             List[ToolBox]: The selected toolboxes.
@@ -362,11 +370,68 @@ class ToolBoxUsage(LLMUsage):
             **kwargs,
         )
 
-    async def choose_tools(self, task: Task):
-        # TODO Implement this method
-        pass
+    async def choose_tools(
+        self,
+        task: Task,
+        toolbox: ToolBox,
+        system_message: str = "",
+        k: NonNegativeInt = 0,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[Tool]:
+        """Asynchronously executes a multi-choice decision-making process to choose tools.
 
-    def supply_tools_from(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
+        Args:
+            task (Task): The task for which to choose tools.
+            toolbox (ToolBox): The toolbox from which to choose tools.
+            system_message (str): Custom system-level prompt, defaults to an empty string.
+            k (NonNegativeInt): The number of tools to select, 0 means infinite. Defaults to 0.
+            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
+
+        Returns:
+            List[Tool]: The selected tools.
+        """
+        if not toolbox.tools:
+            logger.warning(f"No tools available in toolbox {toolbox.name}.")
+            return []
+        return await self.achoose(
+            instruction=task.briefing,
+            choices=toolbox.tools,
+            k=k,
+            max_validations=max_validations,
+            system_message=system_message,
+            **kwargs,
+        )
+
+    async def gather_tools(
+        self,
+        task: Task,
+        box_choose_kwargs: Optional[ChooseKwargs] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs] = None,
+    ) -> List[Tool]:
+        """Asynchronously gathers tools based on the provided task and toolbox and tool selection criteria.
+
+        Args:
+            task (Task): The task for which to gather tools.
+            box_choose_kwargs (Optional[ChooseKwargs]): Keyword arguments for choosing toolboxes, such as `system_message`, `k`, `max_validations`, `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
+            tool_choose_kwargs (Optional[ChooseKwargs]): Keyword arguments for choosing tools, such as `system_message`, `k`, `max_validations`, `model`, `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
+
+        Returns:
+            List[Tool]: A list of tools gathered based on the provided task and toolbox and tool selection criteria.
+        """
+        box_choose_kwargs = box_choose_kwargs or {}
+        tool_choose_kwargs = tool_choose_kwargs or {}
+
+        # Choose the toolboxes
+        chosen_toolboxes = await self.choose_toolboxes(task, **box_choose_kwargs)
+        # Choose the tools
+        chosen_tools = []
+        for toolbox in chosen_toolboxes:
+            chosen_tools.extend(await self.choose_tools(task, toolbox, **tool_choose_kwargs))
+        return chosen_tools
+
+    def supply_tools_from[S: "ToolBoxUsage"](self, others: Union[S, Iterable[S]]) -> Self:
         """Supplies tools from other ToolUsage instances to this instance.
 
         Args:
@@ -382,7 +447,7 @@ class ToolBoxUsage(LLMUsage):
             self.toolboxes.update(other.toolboxes)
         return self
 
-    def provide_tools_to(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
+    def provide_tools_to[S: "ToolBoxUsage"](self, others: Union[S, Iterable[S]]) -> Self:
         """Provides tools from this instance to other ToolUsage instances.
 
         Args:
