@@ -1,9 +1,13 @@
 """A module for defining tools and toolboxes."""
 
+from importlib.machinery import ModuleSpec
+from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
-from types import CodeType
+from sys import modules
+from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, overload
 
+from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from pydantic import BaseModel, ConfigDict, Field
@@ -124,14 +128,18 @@ class ToolExecutor(BaseModel):
     execute_sequence: List[Tool] = Field(default_factory=list, frozen=True)
     """The sequence of tools to execute."""
 
-    def inject_tools[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
-        """Inject the tools into the context."""
-        cxt = cxt or {}
-        return {**cxt, **{tool.name: tool for tool in self.execute_sequence}}
+    def inject_tools[M: ModuleType](self, module: Optional[M] = None) -> M:
+        """Inject the tools into the provided module."""
+        module = module or module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None))
+        for tool in self.execute_sequence:
+            setattr(module, tool.name, tool.invoke)
+        return module
 
     def execute[C: Dict[str, Any]](self, source: CodeType, cxt: Optional[C] = None) -> C:
         """Execute the sequence of tools with the provided context."""
-        exec(source, (cxt := self.inject_tools(cxt)))  # noqa: S102
+        modules[configs.toolbox.tool_module_name] = self.inject_tools()
+        exec(source, cxt)  # noqa: S102
+        modules.pop(configs.toolbox.tool_module_name)
         return cxt
 
     @overload

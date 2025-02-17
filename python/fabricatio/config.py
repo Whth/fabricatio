@@ -148,6 +148,15 @@ class GeneralConfig(BaseModel):
     """Whether to confirm on file system operations."""
 
 
+class ToolBoxConfig(BaseModel):
+    """Toolbox configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    tool_module_name: str = Field(default="Toolbox")
+    """The name of the module containing the toolbox."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -185,6 +194,10 @@ class Settings(BaseSettings):
     """Magika Configuration"""
 
     general: GeneralConfig = Field(default_factory=GeneralConfig)
+    """General Configuration"""
+
+    toolbox: ToolBoxConfig = Field(default_factory=ToolBoxConfig)
+    """Toolbox Configuration"""
 
     @classmethod
     def settings_customise_sources(
