@@ -117,10 +117,8 @@ select = [
     "RUF", # Ruff-specific rules
 ]
 ignore = [
-    "S101",
     "ANN401",
     "ANN003",
-    "D100",
     "PYI063",
     "PYI021",
     "ASYNC109"

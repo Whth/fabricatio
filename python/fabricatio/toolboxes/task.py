@@ -1,3 +1,5 @@
+"""This module contains the toolbox for tasks management."""
+
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 

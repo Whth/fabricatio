@@ -28,7 +28,9 @@ class Tool[**P, R](WithBriefing):
     def model_post_init(self, __context: Any) -> None:
         """Initialize the tool with a name and a source function."""
         self.name = self.name or self.source.__name__
-        assert self.name, "The tool must have a name."
+
+        if not self.name:
+            raise RuntimeError("The tool must have a source function.")
         self.description = self.description or self.source.__doc__ or ""
         self.description = self.description.strip()
 
@@ -106,13 +108,13 @@ class ToolBox(WithBriefing):
             Tool: The tool instance with the specified name.
 
         Raises:
-            AssertionError: If no tool with the specified name is found.
+            ValueError: If no tool with the specified name is found.
         """
         tool = next((tool for tool in self.tools if tool.name == name), None)
         if tool is None:
             err = f"No tool with the name {name} found in the toolbox."
             logger.error(err)
-            raise AssertionError(err)
+            raise ValueError(err)
 
         return tool
 

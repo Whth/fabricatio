@@ -1,3 +1,5 @@
+"""File system tool box."""
+
 from fabricatio.fs.curd import copy_file, create_directory, delete_directory, delete_file, move_file, tree
 from fabricatio.models.tool import ToolBox
 

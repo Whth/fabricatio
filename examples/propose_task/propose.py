@@ -1,3 +1,5 @@
+"""Example of proposing a task to a role."""
+
 import asyncio
 from typing import Any
 

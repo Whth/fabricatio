@@ -1,3 +1,5 @@
+"""Actions for transmitting tasks to targets."""
+
 from typing import List
 
 from fabricatio.journal import logger

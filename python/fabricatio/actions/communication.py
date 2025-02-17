@@ -1,3 +1,5 @@
+"""Actions that involve communication with the user."""
+
 from fabricatio.models.action import Action
 from fabricatio.models.task import Task
 

@@ -1,3 +1,5 @@
+"""Example of a simple hello world program using fabricatio."""
+
 import asyncio
 from typing import Any
 

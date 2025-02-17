@@ -1,3 +1,5 @@
+"""Simple chat example."""
+
 import asyncio
 from typing import Any
 

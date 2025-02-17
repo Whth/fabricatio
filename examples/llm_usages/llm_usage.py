@@ -1,3 +1,5 @@
+"""Example of using the library."""
+
 import asyncio
 from typing import Any, Callable
 
