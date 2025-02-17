@@ -1,11 +1,12 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
-from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union
+from typing import Callable, Dict, Iterable, List, NotRequired, Optional, Self, Set, TypedDict, Union, Unpack
 
 import litellm
 import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
+from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
@@ -13,6 +14,19 @@ from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
 from litellm.types.utils import Choices, ModelResponse, StreamingChoices
 from pydantic import Field, HttpUrl, NonNegativeFloat, NonNegativeInt, PositiveInt, SecretStr
+
+
+class LLMKwargs(TypedDict):
+    """A type representing the keyword arguments for the LLM (Large Language Model) usage."""
+
+    model: NotRequired[str]
+    temperature: NotRequired[NonNegativeFloat]
+    stop: NotRequired[str | List[str]]
+    top_p: NotRequired[NonNegativeFloat]
+    max_tokens: NotRequired[PositiveInt]
+    stream: NotRequired[bool]
+    timeout: NotRequired[PositiveInt]
+    max_retries: NotRequired[PositiveInt]
 
 
 class LLMUsage(Base):
@@ -54,15 +68,8 @@ class LLMUsage(Base):
     async def aquery(
         self,
         messages: List[Dict[str, str]],
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
         n: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ModelResponse:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
@@ -84,15 +91,15 @@ class LLMUsage(Base):
         # Call the underlying asynchronous completion function with the provided and default parameters
         return await litellm.acompletion(
             messages=messages,
-            model=model or self.llm_model or configs.llm.model,
-            temperature=temperature or self.llm_temperature or configs.llm.temperature,
-            stop=stop or self.llm_stop_sign or configs.llm.stop_sign,
-            top_p=top_p or self.llm_top_p or configs.llm.top_p,
-            max_tokens=max_tokens or self.llm_max_tokens or configs.llm.max_tokens,
             n=n or self.llm_generation_count or configs.llm.generation_count,
-            stream=stream or self.llm_stream or configs.llm.stream,
-            timeout=timeout or self.llm_timeout or configs.llm.timeout,
-            max_retries=max_retries or self.llm_max_retries or configs.llm.max_retries,
+            model=kwargs.get("model") or self.llm_model or configs.llm.model,
+            temperature=kwargs.get("temperature") or self.llm_temperature or configs.llm.temperature,
+            stop=kwargs.get("stop") or self.llm_stop_sign or configs.llm.stop_sign,
+            top_p=kwargs.get("top_p") or self.llm_top_p or configs.llm.top_p,
+            max_tokens=kwargs.get("max_tokens") or self.llm_max_tokens or configs.llm.max_tokens,
+            stream=kwargs.get("stream") or self.llm_stream or configs.llm.stream,
+            timeout=kwargs.get("timeout") or self.llm_timeout or configs.llm.timeout,
+            max_retries=kwargs.get("max_retries") or self.llm_max_retries or configs.llm.max_retries,
             api_key=self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value(),
             base_url=self.llm_api_endpoint.unicode_string()
             if self.llm_api_endpoint
@@ -103,15 +110,8 @@ class LLMUsage(Base):
         self,
         question: str,
         system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
         n: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
 
@@ -134,15 +134,8 @@ class LLMUsage(Base):
         return (
             await self.aquery(
                 messages=Messages().add_system_message(system_message).add_user_message(question),
-                model=model,
-                temperature=temperature,
-                stop=stop,
-                top_p=top_p,
-                max_tokens=max_tokens,
                 n=n,
-                stream=stream,
-                timeout=timeout,
-                max_retries=max_retries,
+                **kwargs,
             )
         ).choices
 
@@ -150,14 +143,7 @@ class LLMUsage(Base):
         self,
         question: str,
         system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Asynchronously asks the language model a question and returns the response content.
 
@@ -182,14 +168,7 @@ class LLMUsage(Base):
                     n=1,
                     question=question,
                     system_message=system_message,
-                    model=model,
-                    temperature=temperature,
-                    stop=stop,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    stream=stream,
-                    timeout=timeout,
-                    max_retries=max_retries,
+                    **kwargs,
                 )
             )
             .pop()
@@ -202,14 +181,7 @@ class LLMUsage(Base):
         validator: Callable[[str], T | None],
         max_validations: PositiveInt = 2,
         system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> T:
         """Asynchronously ask a question and validate the response using a given validator.
 
@@ -238,14 +210,7 @@ class LLMUsage(Base):
                 response := await self.aask(
                     question=question,
                     system_message=system_message,
-                    model=model,
-                    temperature=temperature,
-                    stop=stop,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    stream=stream,
-                    timeout=timeout,
-                    max_retries=max_retries,
+                    **kwargs,
                 )
             ) and (validated := validator(response)):
                 return validated
@@ -258,14 +223,7 @@ class LLMUsage(Base):
         k: NonNegativeInt = 0,
         max_validations: PositiveInt = 2,
         system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[T]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -315,14 +273,7 @@ class LLMUsage(Base):
             validator=_validate,
             max_validations=max_validations,
             system_message=system_message,
-            model=model,
-            temperature=temperature,
-            stop=stop,
-            top_p=top_p,
-            max_tokens=max_tokens,
-            stream=stream,
-            timeout=timeout,
-            max_retries=max_retries,
+            **kwargs,
         )
 
     async def ajudge(
@@ -332,14 +283,7 @@ class LLMUsage(Base):
         deny_case: str = "",
         max_validations: PositiveInt = 2,
         system_message: str = "",
-        model: str | None = None,
-        temperature: NonNegativeFloat | None = None,
-        stop: str | List[str] | None = None,
-        top_p: NonNegativeFloat | None = None,
-        max_tokens: PositiveInt | None = None,
-        stream: bool | None = None,
-        timeout: PositiveInt | None = None,
-        max_retries: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> bool:
         """Asynchronously judges a prompt using AI validation.
 
@@ -379,14 +323,7 @@ class LLMUsage(Base):
             validator=_validate,
             max_validations=max_validations,
             system_message=system_message,
-            model=model,
-            temperature=temperature,
-            stop=stop,
-            top_p=top_p,
-            max_tokens=max_tokens,
-            stream=stream,
-            timeout=timeout,
-            max_retries=max_retries,
+            **kwargs,
         )
 
     def fallback_to(self, other: "LLMUsage") -> Self:
@@ -430,11 +367,28 @@ class ToolBoxUsage(LLMUsage):
     toolboxes: Set[ToolBox] = Field(default_factory=set)
     """A set of toolboxes used by the instance."""
 
-    async def choose_toolboxes(self, task: Task):
-        # TODO: Implement this method
-        pass
+    async def choose_toolboxes(
+        self,
+        task: Task,
+        k: NonNegativeInt = 0,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[ToolBox]:
+        """Asynchronously executes a multi-choice decision-making process to choose toolboxes."""
+        if not self.toolboxes:
+            logger.warning("No toolboxes available.")
+            return []
+        return await self.achoose(
+            instruction=task.briefing,
+            choices=list(self.toolboxes),
+            k=k,
+            max_validations=max_validations,
+            system_message=system_message,
+            **kwargs,
+        )
 
-    async def choose_tool(self, task, toolbox: ToolBox | str):
+    async def choose_tools(self, task: Task):
         # TODO Implement this method
         pass
 
