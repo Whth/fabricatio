@@ -1,11 +1,12 @@
 """A module for defining tools and toolboxes."""
 
 from inspect import iscoroutinefunction, signature
-from typing import Any, Callable, List, Self
+from types import CodeType
+from typing import Any, Callable, Dict, List, Optional, Self, overload
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Tool[**P, R](WithBriefing):
@@ -53,7 +54,7 @@ def _desc_wrapper(desc: str) -> str:
 class ToolBox(WithBriefing):
     """A class representing a collection of tools."""
 
-    tools: List[Tool] = Field(default_factory=list)
+    tools: List[Tool] = Field(default_factory=list, frozen=True)
     """A list of tools in the toolbox."""
 
     def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]:
@@ -104,9 +105,58 @@ class ToolBox(WithBriefing):
             AssertionError: If no tool with the specified name is found.
         """
         tool = next((tool for tool in self.tools if tool.name == name), None)
-        assert tool, f"No tool named {name} found."
+        if tool is None:
+            err = f"No tool with the name {name} found in the toolbox."
+            logger.error(err)
+            raise AssertionError(err)
+
         return tool
 
     def __hash__(self) -> int:
         """Return a hash of the toolbox based on its briefing."""
         return hash(self.briefing)
+
+
+class ToolExecutor(BaseModel):
+    """A class representing a tool executor with a sequence of tools to execute."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    execute_sequence: List[Tool] = Field(default_factory=list, frozen=True)
+    """The sequence of tools to execute."""
+
+    def inject_tools[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
+        """Inject the tools into the context."""
+        cxt = cxt or {}
+        return {**cxt, **{tool.name: tool for tool in self.execute_sequence}}
+
+    def execute[C: Dict[str, Any]](self, source: CodeType, cxt: Optional[C] = None) -> C:
+        """Execute the sequence of tools with the provided context."""
+        exec(source, (cxt := self.inject_tools(cxt)))  # noqa: S102
+        return cxt
+
+    @overload
+    def take[C: Dict[str, Any]](self, keys: List[str], source: CodeType, cxt: Optional[C] = None) -> C:
+        """Check the output of the tools with the provided context."""
+        ...
+
+    @overload
+    def take[C: Dict[str, Any]](self, keys: str, source: CodeType, cxt: Optional[C] = None) -> Any:
+        """Check the output of the tools with the provided context."""
+        ...
+
+    def take[C: Dict[str, Any]](self, keys: List[str] | str, source: CodeType, cxt: Optional[C] = None) -> C | Any:
+        """Check the output of the tools with the provided context."""
+        cxt = self.execute(source, cxt)
+        if isinstance(keys, str):
+            return cxt[keys]
+        return {key: cxt[key] for key in keys}
+
+    @classmethod
+    def from_recipe(cls, recipe: List[str], toolboxes: List[ToolBox]) -> Self:
+        """Create a tool executor from a recipe and a list of toolboxes."""
+        tools = []
+        while tool_name := recipe.pop(0):
+            for toolbox in toolboxes:
+                tools.append(toolbox.get(tool_name))
+
+        return cls(execute_sequence=tools)
