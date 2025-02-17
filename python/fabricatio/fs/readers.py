@@ -1,3 +1,5 @@
+"""Filesystem readers for Fabricatio."""
+
 from magika import Magika
 
 from fabricatio.config import configs

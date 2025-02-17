@@ -1,3 +1,5 @@
+"""File system create, update, read, delete operations."""
+
 import shutil
 import subprocess
 from pathlib import Path
