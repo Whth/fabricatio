@@ -75,15 +75,8 @@ class LLMUsage(Base):
 
         Args:
             messages (List[Dict[str, str]]): A list of messages, where each message is a dictionary containing the role and content of the message.
-            model (str | None): The name of the model to use. If not provided, the default model will be used.
-            temperature (NonNegativeFloat | None): Controls the randomness of the output. Lower values make the output more deterministic.
-            stop (str | None): A sequence at which to stop the generation of the response.
-            top_p (NonNegativeFloat | None): Controls the diversity of the output through nucleus sampling.
-            max_tokens (PositiveInt | None): The maximum number of tokens to generate in the response.
             n (PositiveInt | None): The number of responses to generate.
-            stream (bool | None): Whether to receive the response in a streaming fashion.
-            timeout (PositiveInt | None): The timeout duration for the request.
-            max_retries (PositiveInt | None): The maximum number of retries in case of failure.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             ModelResponse: An object containing the generated response and other metadata from the model.
@@ -118,15 +111,8 @@ class LLMUsage(Base):
         Args:
             question (str): The question to ask the model.
             system_message (str): The system message to provide context to the model.
-            model (str | None): The name of the model to use. If not provided, the default model will be used.
-            temperature (NonNegativeFloat | None): Controls the randomness of the output. Lower values make the output more deterministic.
-            stop (str | None): A sequence at which to stop the generation of the response.
-            top_p (NonNegativeFloat | None): Controls the diversity of the output through nucleus sampling.
-            max_tokens (PositiveInt | None): The maximum number of tokens to generate in the response.
             n (PositiveInt | None): The number of responses to generate.
-            stream (bool | None): Whether to receive the response in a streaming fashion.
-            timeout (PositiveInt | None): The timeout duration for the request.
-            max_retries (PositiveInt | None): The maximum number of retries in case of failure.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[Choices | StreamingChoices]: A list of choices or streaming choices from the model response.
@@ -150,14 +136,7 @@ class LLMUsage(Base):
         Args:
             question (str): The question to ask the model.
             system_message (str): The system message to provide context to the model.
-            model (str | None): The name of the model to use. If not provided, the default model will be used.
-            temperature (NonNegativeFloat | None): Controls the randomness of the output. Lower values make the output more deterministic.
-            stop (str | None): A sequence at which to stop the generation of the response.
-            top_p (NonNegativeFloat | None): Controls the diversity of the output through nucleus sampling.
-            max_tokens (PositiveInt | None): The maximum number of tokens to generate in the response.
-            stream (bool | None): Whether to receive the response in a streaming fashion.
-            timeout (PositiveInt | None): The timeout duration for the request.
-            max_retries (PositiveInt | None): The maximum number of retries in case of failure.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             str: The content of the model's response message.
@@ -190,14 +169,7 @@ class LLMUsage(Base):
             validator (Callable[[str], T | None]): A function to validate the response.
             max_validations (PositiveInt): Maximum number of validation attempts.
             system_message (str): System message to include in the request.
-            model (str | None): The model to use for the request.
-            temperature (NonNegativeFloat | None): Temperature setting for the request.
-            stop (str | None): Stop sequence for the request.
-            top_p (NonNegativeFloat | None): Top-p sampling parameter.
-            max_tokens (PositiveInt | None): Maximum number of tokens in the response.
-            stream (bool | None): Whether to stream the response.
-            timeout (PositiveInt | None): Timeout for the request.
-            max_retries (PositiveInt | None): Maximum number of retries for the request.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             T: The validated response.
@@ -228,19 +200,12 @@ class LLMUsage(Base):
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
         Args:
-            instruction: The user-provided instruction/question description.
-            choices: A list of candidate options, requiring elements to have `name` and `briefing` fields.
-            k: The number of choices to select, 0 means infinite.
-            max_validations: Maximum number of validation failures, default is 2.
-            system_message: Custom system-level prompt, defaults to an empty string.
-            model: The name of the LLM model to use.
-            temperature: Sampling temperature to control randomness in generation.
-            stop: Stop condition string or list for generation.
-            top_p: Core sampling probability threshold.
-            max_tokens: Maximum token limit for the generated result.
-            stream: Whether to enable streaming response mode.
-            timeout: Request timeout in seconds.
-            max_retries: Maximum number of retries.
+            instruction (str): The user-provided instruction/question description.
+            choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
+            k (NonNegativeInt): The number of choices to select, 0 means infinite.
+            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
+            system_message (str): Custom system-level prompt, defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[T]: The final validated selection result list, with element types matching the input `choices`.
@@ -289,18 +254,11 @@ class LLMUsage(Base):
 
         Args:
             prompt (str): The input prompt to be judged.
-            affirm_case (str, optional): The affirmative case for the AI model. Defaults to "".
-            deny_case (str, optional): The negative case for the AI model. Defaults to "".
-            max_validations (PositiveInt, optional): Maximum number of validation attempts. Defaults to 2.
-            system_message (str, optional): System message for the AI model. Defaults to "".
-            model (str | None, optional): AI model to use. Defaults to None.
-            temperature (NonNegativeFloat | None, optional): Sampling temperature. Defaults to None.
-            stop (str | List[str] | None, optional): Stop sequences. Defaults to None.
-            top_p (NonNegativeFloat | None, optional): Nucleus sampling parameter. Defaults to None.
-            max_tokens (PositiveInt | None, optional): Maximum number of tokens to generate. Defaults to None.
-            stream (bool | None, optional): Whether to stream the response. Defaults to None.
-            timeout (PositiveInt | None, optional): Timeout in seconds. Defaults to None.
-            max_retries (PositiveInt | None, optional): Maximum number of retries. Defaults to None.
+            affirm_case (str): The affirmative case for the AI model.
+            deny_case (str): The negative case for the AI model.
+            max_validations (PositiveInt): Maximum number of validation attempts.
+            system_message (str): System message for the AI model.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
@@ -367,6 +325,11 @@ class ToolBoxUsage(LLMUsage):
     toolboxes: Set[ToolBox] = Field(default_factory=set)
     """A set of toolboxes used by the instance."""
 
+    @property
+    def available_toolbox_names(self) -> List[str]:
+        """Return a list of available toolbox names."""
+        return [toolbox.name for toolbox in self.toolboxes]
+
     async def choose_toolboxes(
         self,
         task: Task,
@@ -375,7 +338,18 @@ class ToolBoxUsage(LLMUsage):
         system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
     ) -> List[ToolBox]:
-        """Asynchronously executes a multi-choice decision-making process to choose toolboxes."""
+        """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
+
+        Args:
+            task (Task): The task for which to choose toolboxes.
+            k (NonNegativeInt): The number of toolboxes to select, 0 means infinite.
+            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
+            system_message (str): Custom system-level prompt, defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            List[ToolBox]: The selected toolboxes.
+        """
         if not self.toolboxes:
             logger.warning("No toolboxes available.")
             return []
@@ -392,16 +366,11 @@ class ToolBoxUsage(LLMUsage):
         # TODO Implement this method
         pass
 
-    @property
-    def available_toolbox_names(self) -> List[str]:
-        """Return a list of available toolbox names."""
-        return [toolbox.name for toolbox in self.toolboxes]
-
     def supply_tools_from(self, others: Union["ToolBoxUsage", Iterable["ToolBoxUsage"]]) -> Self:
         """Supplies tools from other ToolUsage instances to this instance.
 
         Args:
-            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
+            others (ToolBoxUsage | Iterable[ToolBoxUsage]): A single ToolUsage instance or an iterable of ToolUsage instances
                 from which to take tools.
 
         Returns:
@@ -417,7 +386,7 @@ class ToolBoxUsage(LLMUsage):
         """Provides tools from this instance to other ToolUsage instances.
 
         Args:
-            others ("ToolUsage" | Iterable["ToolUsage"]): A single ToolUsage instance or an iterable of ToolUsage instances
+            others (ToolBoxUsage | Iterable[ToolBoxUsage]): A single ToolUsage instance or an iterable of ToolUsage instances
                 to which to provide tools.
 
         Returns:
