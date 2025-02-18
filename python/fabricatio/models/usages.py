@@ -207,7 +207,7 @@ class LLMUsage(Base):
             - Relies on `aask_validate` to implement retry mechanisms with validation.
         """
         prompt = template_manager.render_template(
-            "make_choice",
+            configs.templates.make_choice_template,
             {
                 "instruction": instruction,
                 "options": [m.model_dump(include={"name", "briefing"}) for m in choices],
@@ -267,7 +267,8 @@ class LLMUsage(Base):
 
         return await self.aask_validate(
             question=template_manager.render_template(
-                "make_judgment", {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case}
+                configs.templates.make_judgment_template,
+                {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case},
             ),
             validator=_validate,
             max_validations=max_validations,

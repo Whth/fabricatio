@@ -52,7 +52,7 @@ class ProposeTask(LLMUsage, WithBriefing):
 
         template_data = {"prompt": prompt, "json_example": Task.json_example()}
         return await self.aask_validate(
-            question=template_manager.render_template("propose_task", template_data),
+            question=template_manager.render_template(configs.templates.propose_task_template, template_data),
             validator=_validate_json,
             system_message=f"# your personal briefing: \n{self.briefing}",
             max_validations=max_validations,
@@ -86,7 +86,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
 
         return await self.aask_validate(
             question=template_manager.render_template(
-                "draft_tool_usage_code",
+                configs.templates.draft_tool_usage_code_template,
                 {
                     "tool_module_name": configs.toolbox.tool_module_name,
                     "task": task.briefing,

@@ -128,6 +128,18 @@ class TemplateConfig(BaseModel):
     template_suffix: str = Field(default="hbs", frozen=True)
     """The suffix of the templates."""
 
+    propose_task_template: str = Field(default="propose_task")
+    """The name of the propose task template which will be used to propose a task."""
+
+    draft_tool_usage_code_template: str = Field(default="draft_tool_usage_code")
+    """The name of the draft tool usage code template which will be used to draft tool usage code."""
+
+    make_choice_template: str = Field(default="make_choice")
+    """The name of the make choice template which will be used to make a choice."""
+
+    make_judgment_template: str = Field(default="make_judgment")
+    """The name of the make judgment template which will be used to make a judgment."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
