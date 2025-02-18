@@ -165,7 +165,7 @@ class LLMUsage(Base):
         Raises:
             ValueError: If the response fails to validate after the maximum number of attempts.
         """
-        for _ in range(max_validations):
+        for i in range(max_validations):
             if (
                 response := await self.aask(
                     question=question,
@@ -173,7 +173,10 @@ class LLMUsage(Base):
                     **kwargs,
                 )
             ) and (validated := validator(response)):
+                logger.debug(f"Successfully validated the response at {i}th attempt. response: \n{response}")
                 return validated
+            logger.debug(f"Failed to validate the response at {i}th attempt. response: \n{response}")
+        logger.error(f"Failed to validate the response after {max_validations} attempts.")
         raise ValueError("Failed to validate the response.")
 
     async def achoose[T: WithBriefing](
