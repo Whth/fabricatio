@@ -19,12 +19,12 @@ from pydantic import PositiveInt, ValidationError
 class ProposeTask(LLMUsage, WithBriefing):
     """A class that proposes a task based on a prompt."""
 
-    async def propose(
+    async def propose[T](
         self,
         prompt: str,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Task:
+    ) -> Task[T]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
