@@ -102,13 +102,12 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, ToolBoxUsage):
             task: The task to be served.
         """
         await task.start()
-        await self._init_context()
+        await self._init_context(task)
         current_action = None
         try:
             for step in self._instances:
                 logger.debug(f"Executing step: {step.name}")
-                cxt = await self._context.get()
-                modified_ctx = await step.act(cxt)
+                modified_ctx = await step.act(await self._context.get())
                 await self._context.put(modified_ctx)
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
@@ -118,10 +117,10 @@ class WorkFlow[A: Type[Action] | Action](WithBriefing, ToolBoxUsage):
             logger.error(traceback.format_exc())  # Add this line to log the traceback
             await task.fail()  # Mark the task as failed
 
-    async def _init_context(self) -> None:
+    async def _init_context[T](self, task: Task[T]) -> None:
         """Initialize the context dictionary for workflow execution."""
         logger.debug(f"Initializing context for workflow: {self.name}")
-        await self._context.put({self.task_input_key: None, **dict(self.extra_init_context)})
+        await self._context.put({self.task_input_key: task, **dict(self.extra_init_context)})
 
     def steps_fallback_to_self(self) -> Self:
         """Set the fallback for each step to the workflow itself."""
