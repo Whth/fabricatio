@@ -85,4 +85,5 @@ class Capture(BaseModel):
 
 JsonCapture = Capture.capture_code_block("json")
 PythonCapture = Capture.capture_code_block("python")
-CodeBlockCapture = Capture.capture_code_block("")
+MarkdownCapture = Capture.capture_code_block("markdown")
+CodeBlockCapture = Capture(pattern="```.*?\n(.*?)\n```")
