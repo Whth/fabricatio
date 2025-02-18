@@ -1,11 +1,11 @@
 """The module containing the Event class."""
 
-from typing import List, Self
+from typing import List, Self, Union
 
 from fabricatio.config import configs
 from pydantic import BaseModel, ConfigDict, Field
 
-type EventLike = str | List[str] | Self
+type EventLike = Union[str, List[str], "Event"]
 
 
 class Event(BaseModel):
