@@ -72,13 +72,28 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """Move the task to a new namespace.
 
         Args:
-            new_namespace (List[str]): The new namespace to move the task to.
+            new_namespace (EventLike): The new namespace to move the task to.
 
         Returns:
             Task: The moved instance of the `Task` class.
         """
-        self.namespace = new_namespace
+        logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
         self._namespace.clear().concat(new_namespace)
+        self.namespace = self._namespace.segments
+        return self
+
+    def nested_move_to(self, new_parent_namespace: EventLike) -> Self:
+        """Move the task to a new namespace by nesting it under the new parent namespace.
+
+        Args:
+            new_parent_namespace (EventLike): The new parent namespace to move the task to.
+
+        Returns:
+            Task: The nested moved instance of the `Task` class.
+        """
+        logger.debug(f"Nested moving task `{self.name}` to `{new_parent_namespace}`")
+        self._namespace.clear().concat(new_parent_namespace).concat(self.namespace)
+        self.namespace = self._namespace.segments
         return self
 
     @classmethod
@@ -231,8 +246,8 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             Task: The published instance of the `Task` class
         """
-        logger.info(f"Publishing task {self.name}")
-        await env.emit_async(self.pending_label, self)
+        logger.info(f"Publishing task `{(label := self.pending_label)}`")
+        await env.emit_async(label, self)
         return self
 
     async def delegate(self) -> T:
@@ -241,8 +256,8 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             T: The output of the task
         """
-        logger.info(f"Delegating task {self.name}")
-        await env.emit_async(self.pending_label, self)
+        logger.info(f"Delegating task `{(label := self.pending_label)}`")
+        await env.emit_async(label, self)
         return await self.get_output()
 
     @property
