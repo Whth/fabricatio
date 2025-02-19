@@ -25,7 +25,7 @@ async def main() -> None:
     role = Role(
         name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))}
     )
-    logger.info(Task.json_example())
+    logger.info(f"Task example:\n{Task.json_example()}")
     logger.info(f"proposed task: {await role.propose('write a rust clap cli that can download a html page')}")
 
 
