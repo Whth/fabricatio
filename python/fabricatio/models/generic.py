@@ -109,7 +109,8 @@ class WithDependency(Base):
         return template_manager.render_template(
             configs.templates.dependencies_template,
             {
-                (pth := Path(p)).as_posix(): {
+                (pth := Path(p)).stem: {
+                    "path": pth.as_posix(),
                     "exists": pth.exists(),
                     "description": (identity := magika.identify_path(pth)).output.description,
                     "size": f"{pth.stat().st_size / (1024 * 1024) if pth.exists() and pth.is_file() else 0:.3f} MB",

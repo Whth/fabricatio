@@ -145,6 +145,9 @@ class TemplateConfig(BaseModel):
     dependencies_template: str = Field(default="dependencies")
     """The name of the dependencies template which will be used to manage dependencies."""
 
+    task_briefing_template: str = Field(default="task_briefing")
+    """The name of the task briefing template which will be used to brief a task."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

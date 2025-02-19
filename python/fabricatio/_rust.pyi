@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 class TemplateManager:
     """TemplateManager class for managing handlebars templates."""
@@ -31,12 +31,12 @@ class TemplateManager:
     def discover_templates(self) -> None:
         """Discover templates in the specified directories."""
 
-    def render_template(self, name: str, data: Dict[str, str]) -> str:
+    def render_template(self, name: str, data: Dict[str, Any]) -> str:
         """Render a template with the given name and data.
 
         Args:
             name (str): The name of the template to render.
-            data (Dict[str, str]): The data to pass to the template.
+            data (Dict[str, Any]): The data to pass to the template.
 
         Returns:
             str: The rendered template.

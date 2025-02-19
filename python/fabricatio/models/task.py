@@ -7,6 +7,8 @@ from asyncio import Queue
 from enum import Enum
 from typing import Any, List, Optional, Self
 
+from fabricatio._rust_instances import template_manager
+from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
@@ -267,4 +269,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             str: The briefing of the task.
         """
-        return f"{super().briefing}\n{self.goal}"
+        return template_manager.render_template(
+            configs.templates.task_briefing_template,
+            self.model_dump(include={"name", "description", "dependencies", "goal"}),
+        )
