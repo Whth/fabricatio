@@ -51,3 +51,13 @@ class TemplateManager:
         Returns:
             str: The rendered template.
         """
+
+def blake3_hash(content: bytes) -> str:
+    """Calculate the BLAKE3 hash of the given data.
+
+    Args:
+        content (bytes): The data to hash.
+
+    Returns:
+        str: The BLAKE3 hash of the data.
+    """

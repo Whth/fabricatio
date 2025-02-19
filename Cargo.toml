@@ -6,6 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+blake3 = "1.6.0"
 handlebars = "6.3.1"
 pyo3 = { version = "0.23.4", features = ["extension-module"] }
 walkdir = "2.5.0"
