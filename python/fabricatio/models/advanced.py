@@ -16,7 +16,7 @@ from loguru import logger
 from pydantic import PositiveInt, ValidationError
 
 
-class ProposeTask(LLMUsage, WithBriefing):
+class ProposeTask(WithBriefing, LLMUsage):
     """A class that proposes a task based on a prompt."""
 
     async def propose[T](

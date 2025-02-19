@@ -3,17 +3,17 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue
-from typing import Any, Dict, Self, Tuple, Type, Unpack
+from typing import Any, Dict, Self, Tuple, Type, Union, Unpack
 
 from fabricatio.journal import logger
-from fabricatio.models.advanced import ProposeTask
+from fabricatio.models.advanced import HandleTask, ProposeTask
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(ProposeTask, ToolBoxUsage):
+class Action(HandleTask, ProposeTask):
     """Class that represents an action to be executed in a workflow."""
 
     personality: str = Field(default="")
@@ -52,7 +52,7 @@ class Action(ProposeTask, ToolBoxUsage):
         return f"# The action you are going to perform: \n{super().briefing}"
 
 
-class WorkFlow[A: Type[Action] | Action](WithBriefing, ToolBoxUsage):
+class WorkFlow[A: Union[Type[Action], Action]](WithBriefing, ToolBoxUsage):
     """Class that represents a workflow to be executed in a task."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
