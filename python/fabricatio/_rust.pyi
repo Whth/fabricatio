@@ -2,51 +2,51 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 class TemplateManager:
-    def __init__(self, template_dirs: List[Path], suffix: Optional[str] = None) -> None:
+    """TemplateManager class for managing handlebars templates."""
+    def __init__(self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None) -> None:
         """Initialize the template manager.
 
         Args:
             template_dirs (List[Path]): A list of paths to directories containing templates.
-            suffix (str, optional): The suffix of template files. None means 'hbs' suffix .
+            suffix (str, optional): The suffix of template files. None means 'hbs' suffix.
+            active_loading (bool, optional): Whether to enable active loading of templates.
         """
 
     @property
     def template_count(self) -> int:
         """Get the number of templates discovered."""
 
-    @property
-    def templates(self) -> List[str]:
-        """Get a list of template names."""
 
-    def get_template(self, name: str) -> str:
-        """Get a template by name.
-
-        Args:
-            name (str): The name of the template to retrieve.
-
-        Returns:
-            str: The template content.
-        """
-
-    def get_template_source(self, name: str) -> str:
+    def get_template_source(self, name: str) -> Optional[str]:
         """Get the source path of a template by name.
 
         Args:
             name (str): The name of the template to retrieve.
 
         Returns:
-            str: The source path of the template.
+            Optional[str]: The source path of the template.
         """
 
     def discover_templates(self) -> None:
         """Discover templates in the specified directories."""
 
-    def render_template(self, name: str, data: Dict[str, Any]) -> str:
+    def render_template(self, name: str, data: Dict[str, str]) -> str:
         """Render a template with the given name and data.
 
         Args:
             name (str): The name of the template to render.
-            data (Dict[str, Any]): The data to pass to the template.
+            data (Dict[str, str]): The data to pass to the template.
+
+        Returns:
+            str: The rendered template.
+        """
+
+    def render_template_obj(self, name: str, data: Dict[str, Dict[str, Any]]) -> str:
+        """Render a template with the given name and data.
+
+        Args:
+            name (str): The name of the template to render.
+            data (Dict[str, Dict[str, Any]]): The data to pass to the template.
 
         Returns:
             str: The rendered template.
