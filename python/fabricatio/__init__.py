@@ -11,6 +11,7 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.utils import Message, Messages
 from fabricatio.parser import Capture, CodeBlockCapture, JsonCapture, PythonCapture
+from fabricatio.toolboxes import arithmetic_toolbox, basic_toolboxes, fs_toolbox, task_toolbox
 
 __all__ = [
     "Action",
@@ -25,8 +26,12 @@ __all__ = [
     "Task",
     "ToolBox",
     "WorkFlow",
+    "arithmetic_toolbox",
+    "basic_toolboxes",
     "env",
+    "fs_toolbox",
     "logger",
     "magika",
+    "task_toolbox",
     "template_manager",
 ]
