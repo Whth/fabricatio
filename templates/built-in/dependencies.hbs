@@ -1,0 +1,16 @@
+{{#each this}}
+### {{@key}}
+- **Exists:** {{exists}}
+- **Description:** {{description}}
+- **Size:** {{size}}
+- **Checksum:** {{checksum}}
+{{#if content}}- **Lines:** {{lines}}
+- **Content:**
+
+
+```{{language}}
+{{content}}
+```{{/if}}
+
+
+{{/each}}

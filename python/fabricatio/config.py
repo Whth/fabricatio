@@ -124,6 +124,8 @@ class TemplateConfig(BaseModel):
         default_factory=lambda: [DirectoryPath(r".\templates"), DirectoryPath(rf"{ROAMING_DIR}\templates")]
     )
     """The directory containing the templates."""
+    active_loading: bool = Field(default=False)
+    """Whether to enable active loading of templates."""
 
     template_suffix: str = Field(default="hbs", frozen=True)
     """The suffix of the templates."""
@@ -139,6 +141,9 @@ class TemplateConfig(BaseModel):
 
     make_judgment_template: str = Field(default="make_judgment")
     """The name of the make judgment template which will be used to make a judgment."""
+
+    dependencies_template: str = Field(default="dependencies")
+    """The name of the dependencies template which will be used to manage dependencies."""
 
 
 class MagikaConfig(BaseModel):

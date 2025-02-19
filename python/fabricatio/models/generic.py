@@ -4,7 +4,10 @@ from pathlib import Path
 from typing import List, Self
 
 import orjson
-from fabricatio.fs.readers import magika
+from fabricatio._rust import blake3_hash
+from fabricatio._rust_instances import template_manager
+from fabricatio.config import configs
+from fabricatio.fs.readers import magika, safe_text_read
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -96,15 +99,25 @@ class WithDependency(Base):
             self.dependencies.remove(Path(d).as_posix())
         return self
 
-    def generate_prompt(self) -> str:
+    @property
+    def dependencies_prompt(self) -> str:
         """Generate a prompt for the task based on the file dependencies.
 
         Returns:
             str: The generated prompt for the task.
         """
-        contents = [Path(d).read_text("utf-8") for d in self.dependencies]
-        recognized = [magika.identify_path(c) for c in contents]
-        out = ""
-        for r, p, c in zip(recognized, self.dependencies, contents, strict=False):
-            out += f"---\n\n> {p}\n```{r.dl.ct_label}\n{c}\n```\n\n"
-        return out
+        return template_manager.render_template(
+            configs.templates.dependencies_template,
+            {
+                (pth := Path(p)).as_posix(): {
+                    "exists": pth.exists(),
+                    "description": (identity := magika.identify_path(pth)).output.description,
+                    "size": f"{pth.stat().st_size / (1024 * 1024) if pth.exists() and pth.is_file() else 0:.3f} MB",
+                    "content": (text := safe_text_read(pth)),
+                    "lines": len(text.splitlines()),
+                    "language": identity.output.ct_label,
+                    "checksum": blake3_hash(pth.read_bytes()) if pth.exists() and pth.is_file() else "unknown",
+                }
+                for p in self.dependencies
+            },
+        )

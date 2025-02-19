@@ -3,7 +3,9 @@ from typing import Dict, List, Optional
 
 class TemplateManager:
     """TemplateManager class for managing handlebars templates."""
-    def __init__(self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None) -> None:
+    def __init__(
+        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+    ) -> None:
         """Initialize the template manager.
 
         Args:
@@ -15,7 +17,6 @@ class TemplateManager:
     @property
     def template_count(self) -> int:
         """Get the number of templates discovered."""
-
 
     def get_template_source(self, name: str) -> Optional[str]:
         """Get the source path of a template by name.
@@ -40,7 +41,6 @@ class TemplateManager:
         Returns:
             str: The rendered template.
         """
-
 
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 hash of the given data.

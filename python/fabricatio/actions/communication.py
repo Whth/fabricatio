@@ -12,4 +12,4 @@ class Talk(Action):
 
     async def _execute(self, task_input: Task[str], **_) -> str:
         """Execute the action."""
-        return await self.aask(task_input.briefing, system_message=task_input.generate_prompt())
+        return await self.aask(task_input.briefing, system_message=task_input.dependencies_prompt())
