@@ -5,10 +5,11 @@ import subprocess
 from pathlib import Path
 from typing import Union
 
-from fabricatio.decorators import depend_on_external_cmd
+from fabricatio.decorators import confirm_to_execute, depend_on_external_cmd
 from fabricatio.journal import logger
 
 
+@confirm_to_execute
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Copy a file from source to destination.
 
@@ -28,6 +29,7 @@ def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Move a file from source to destination.
 
@@ -47,6 +49,7 @@ def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def delete_file(file_path: Union[str, Path]) -> None:
     """Delete a file.
 
@@ -65,6 +68,7 @@ def delete_file(file_path: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok: bool = True) -> None:
     """Create a directory.
 
@@ -81,6 +85,7 @@ def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok:
         raise
 
 
+@confirm_to_execute
 @depend_on_external_cmd(
     "erd",
     "Please install `erd` using `cargo install erdtree` or `scoop install erdtree`.",
@@ -92,6 +97,7 @@ def tree(dir_path: Union[str, Path]) -> str:
     return subprocess.check_output(("erd", dir_path.as_posix()), encoding="utf-8")  # noqa: S603
 
 
+@confirm_to_execute
 def delete_directory(dir_path: Union[str, Path]) -> None:
     """Delete a directory and its contents.
 
