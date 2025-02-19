@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 class TemplateManager:
     """TemplateManager class for managing handlebars templates."""
@@ -41,16 +41,6 @@ class TemplateManager:
             str: The rendered template.
         """
 
-    def render_template_obj(self, name: str, data: Dict[str, Dict[str, Any]]) -> str:
-        """Render a template with the given name and data.
-
-        Args:
-            name (str): The name of the template to render.
-            data (Dict[str, Dict[str, Any]]): The data to pass to the template.
-
-        Returns:
-            str: The rendered template.
-        """
 
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 hash of the given data.

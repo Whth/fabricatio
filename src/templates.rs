@@ -1,8 +1,9 @@
-use handlebars::Handlebars;
+use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::collections::HashMap;
+use pythonize::depythonize;
+use serde_json::Value;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
@@ -26,6 +27,7 @@ impl TemplateManager {
             .collect::<PyResult<Vec<PathBuf>>>()?;
         let mut hbs=Handlebars::new();
         hbs.set_dev_mode(active_loading.unwrap_or(false));
+        hbs.register_escape_fn(no_escape);
         let mut manager = TemplateManager {
             templates_dir: template_dirs,
             handlebars: hbs,
@@ -65,17 +67,11 @@ impl TemplateManager {
     }
     /// Render a template with the given data.
     fn render_template(&self, name: &str, data: &Bound<'_, PyDict>) -> PyResult<String> {
-        let data: HashMap<String, String> = data.extract()?;
-        self.handlebars.render(name,&data).map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e)))
+        self.handlebars.render(name,&depythonize::<Value>(data)?)
+            .map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e)))
 
     }
 
-    /// Render a template with the given data.
-    fn render_template_obj(&self, name: &str, data: &Bound<'_, PyDict>) -> PyResult<String> {
-        let data: HashMap<String, HashMap<String,String>> = data.extract()?;
-        self.handlebars.render(name,&data).map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e)))
-
-    }
 }
 
 impl TemplateManager {
