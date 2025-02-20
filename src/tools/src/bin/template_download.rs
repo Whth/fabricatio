@@ -1,24 +1,44 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use flate2::read::GzDecoder;
 use reqwest::blocking::Client;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::PathBuf;
 use tar::Archive;
 
 use dirs::config_dir;
 
-
 fn get_dir() -> String {
     config_dir().unwrap().join("fabricatio").to_string_lossy().to_string()
+}
+fn get_template_dir() -> String {
+    get_dir.join("templates").to_string_lossy().to_string()
 }
 
 /// A command-line interface for downloading templates.
 #[derive(Parser)]
 #[command(name = "fabricatio_template_downloader", author)]
 struct Cli {
-    /// The directory to output the templates to.
-    #[arg(short, long, default_value_t = get_dir())]
-    output_dir: String,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Download the latest templates release.
+    Download {
+        /// The directory to output the templates to.
+        #[arg(short, long, default_value_t = get_dir())]
+        output_dir: String,
+    },
+    /// Copy a specified hbs file to the template directory.
+    Copy {
+        /// The source hbs file to copy.
+        #[arg(short, long)]
+        source: PathBuf,
+        /// The directory to copy the hbs file to.
+        #[arg(short, long, default_value_t = get_dir())]
+        output_dir: String,
+    },
 }
 
 fn retrieve_release(client: &Client) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
@@ -49,30 +69,47 @@ fn extract_release(tar_gz_path: &PathBuf, output_dir: &PathBuf) -> Result<(), Bo
     Ok(())
 }
 
+fn copy_template(source: &PathBuf, output_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    let file_name = source.file_name().unwrap();
+    let destination = output_dir.join(file_name);
+    fs::copy(source, destination)?;
+    println!("Copied {} to {}", source.display(), output_dir.display());
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let client = Client::new();
-    let path = PathBuf::from(cli.output_dir);
-    println!("Starting download...");
 
-    // Retrieve release information
-    let latest_release = retrieve_release(&client)?;
-    let assets = latest_release["assets"].as_array().unwrap();
-    let tar_gz_asset = assets.iter().find(|asset| asset["name"] == "templates.tar.gz");
+    match &cli.command {
+        Commands::Download { output_dir } => {
+            let path = PathBuf::from(output_dir);
+            println!("Starting download...");
 
-    if let Some(asset) = tar_gz_asset {
-        let download_url = asset["browser_download_url"].as_str().unwrap();
-        let tar_gz_path = path.join("templates.tar.gz");
+            // Retrieve release information
+            let latest_release = retrieve_release(&client)?;
+            let assets = latest_release["assets"].as_array().unwrap();
+            let tar_gz_asset = assets.iter().find(|asset| asset["name"] == "templates.tar.gz");
 
-        // Download and extract the release
-        download_release(&client, download_url, &tar_gz_path)?;
-        extract_release(&tar_gz_path, &path)?;
+            if let Some(asset) = tar_gz_asset {
+                let download_url = asset["browser_download_url"].as_str().unwrap();
+                let tar_gz_path = path.join("templates.tar.gz");
 
-        // Delete the compressed file after extraction
-        println!("Deleting compressed file...");
-        std::fs::remove_file(&tar_gz_path)?;
-    } else {
-        println!("templates.tar.gz not found in the latest release.");
+                // Download and extract the release
+                download_release(&client, download_url, &tar_gz_path)?;
+                extract_release(&tar_gz_path, &path)?;
+
+                // Delete the compressed file after extraction
+                println!("Deleting compressed file...");
+                std::fs::remove_file(&tar_gz_path)?;
+            } else {
+                println!("templates.tar.gz not found in the latest release.");
+            }
+        }
+        Commands::Copy { source, output_dir } => {
+            let path = PathBuf::from(output_dir);
+            copy_template(source, &path)?;
+        }
     }
 
     Ok(())
