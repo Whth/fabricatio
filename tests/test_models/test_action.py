@@ -1,53 +1,115 @@
 import pytest
 from fabricatio.models.action import Action, WorkFlow
-from fabricatio.models.task import Task
+from fabricatio.models.task import Task, TaskStatus
 
 
-class TestAction(Action):
+class DemoAction(Action):
     name: str = "TestAction"
 
-    async def _execute(self, task_input: Task[str], **_) -> str:
-        return "Action executed"
+    async def _execute(self, **_) -> str:
+        return "test result"
 
 
-class AnotherTestAction(Action):
-    name: str = "AnotherTestAction"
+class FailingAction(Action):
+    name: str = "FailingAction"
 
-    async def _execute(self, task_input: Task[str], **_) -> str:
-        return "Another Action executed"
-
-
-def test_action_initialization():
-    action = TestAction()
-    assert action.name == "TestAction"
-    assert action.description is not None
+    async def _execute(self, **_) -> str:
+        raise RuntimeError("Test error")
 
 
-def test_workflow_initialization():
-    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
+@pytest.fixture
+def basic_action():
+    return DemoAction()
+
+
+@pytest.fixture
+def basic_workflow():
+    return WorkFlow(name="TestWorkflow", steps=[DemoAction()])
+
+
+# Action Tests
+def test_action_basic_attributes(basic_action):
+    assert basic_action.name == "TestAction"
+    assert basic_action.personality == ""
+    assert basic_action.output_key == ""
+
+
+def test_action_with_personality():
+    action = DemoAction(personality="Helpful Assistant")
+    assert action.personality == "Helpful Assistant"
+
+
+def test_action_with_output_key():
+    action = DemoAction(output_key="test_output")
+    assert action.output_key == "test_output"
+
+
+@pytest.mark.asyncio
+async def test_action_act_without_output_key(basic_action):
+    context = {}
+    result = await basic_action.act(context)
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_action_act_with_output_key():
+    action = DemoAction(output_key="result")
+    context = {}
+    result = await action.act(context)
+    assert result["result"] == "test result"
+
+
+def test_action_briefing_without_personality(basic_action):
+    briefing = basic_action.briefing()
+    assert "personality" not in briefing.lower()
+
+
+def test_action_briefing_with_personality():
+    action = DemoAction(personality="Helper")
+    briefing = action.briefing()
+    assert "personality" in briefing.lower()
+    assert "Helper" in briefing
+
+
+# WorkFlow Tests
+def test_workflow_basic_attributes(basic_workflow):
+    assert basic_workflow.name == "TestWorkflow"
+    assert len(basic_workflow.steps) == 1
+    assert basic_workflow.task_input_key == "task_input"
+    assert basic_workflow.task_output_key == "task_output"
+
+
+def test_workflow_with_multiple_steps():
+    workflow = WorkFlow(name="MultiStep", steps=[DemoAction(), DemoAction()])
     assert len(workflow.steps) == 2
-    assert workflow.name == "TestWorkflow"
+    assert len(workflow._instances) == 2
 
 
-async def test_workflow_execution():
-    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
-    task = Task(name="test task", goal="test", description="test")
-    await workflow.serve(task)  # Use serve method instead of _execute
+def test_workflow_with_custom_keys():
+    workflow = WorkFlow(
+        name="CustomKeys", steps=[DemoAction()], task_input_key="custom_input", task_output_key="custom_output"
+    )
+    assert workflow.task_input_key == "custom_input"
+    assert workflow.task_output_key == "custom_output"
 
 
-def test_workflow_fallback_to_self():
-    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
-    result = workflow.fallback_to(workflow)  # Use fallback_to method instead of fallback_to_self
-    assert result == workflow
+def test_workflow_with_extra_context():
+    extra_context = {"key": "value"}
+    workflow = WorkFlow(name="ExtraContext", steps=[DemoAction()], extra_init_context=extra_context)
+    assert workflow.extra_init_context == extra_context
 
-# New test cases
-def test_workflow_model_post_init():
-    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
-    workflow.model_post_init(None)
-    # Add assertions based on expected behavior
 
-def test_workflow_inject_personality():
-    workflow = WorkFlow(name="TestWorkflow", steps=[TestAction(), AnotherTestAction()])
-    workflow.inject_personality("Test Personality")
-    # Add assertions based on expected behavior
+@pytest.mark.asyncio
+async def test_workflow_serve_success():
+    workflow = WorkFlow(name="TestServe", steps=[DemoAction()])
+    task = Task(name="test", goal="test", description="test")
+    await workflow.serve(task)
+    assert task._status == TaskStatus.Finished
 
+
+@pytest.mark.asyncio
+async def test_workflow_serve_failure():
+    workflow = WorkFlow(name="TestServeFail", steps=[FailingAction()])
+    task = Task(name="test", goal="test", description="test")
+    await workflow.serve(task)
+    assert task

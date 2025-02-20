@@ -137,6 +137,8 @@ addopts = "-ra -q"
 testpaths = [
     "tests",
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.uv.sources]
 code2prompt = { git = "https://github.com/mufeedvh/code2prompt", rev = "d157ee84827458bd6816142e213886487d28bd3d" }
