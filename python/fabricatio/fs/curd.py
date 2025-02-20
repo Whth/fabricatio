@@ -10,6 +10,20 @@ from fabricatio.journal import logger
 
 
 @confirm_to_execute
+def dump_text(path: Union[str, Path], text: str) -> None:
+    """Dump text to a file. you need to make sure the file' parent directory exists.
+
+    Args:
+        path(str, Path): Path to the file
+        text(str): Text to write to the file
+
+    Returns:
+        None
+    """
+    Path(path).write_text(text, encoding="utf-8", errors="ignore")
+
+
+@confirm_to_execute
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Copy a file from source to destination.
 
