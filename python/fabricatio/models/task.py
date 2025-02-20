@@ -51,8 +51,8 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     description: str = Field(default="")
     """The description of the task."""
 
-    goal: str = Field(default="")
-    """The goal of the task."""
+    goal: List[str] = Field(default=[])
+    """The goal of the task, a list of strings."""
 
     namespace: List[str] = Field(default_factory=list)
     """The namespace of the task, a list of namespace segment, as string."""
