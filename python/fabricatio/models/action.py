@@ -111,7 +111,13 @@ class WorkFlow[A: Union[Type[Action], Action]](WithBriefing, ToolBoxUsage):
                 await self._context.put(modified_ctx)
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
-            await task.finish((await self._context.get()).get(self.task_output_key, None))
+            final_ctx = await self._context.get()
+            if self.task_output_key not in final_ctx:
+                logger.warning(
+                    f"Task output key: {self.task_output_key} not found in the context, None will be returned. You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`."
+                )
+
+            await task.finish(final_ctx.get(self.task_output_key, None))
         except RuntimeError as e:
             logger.error(f"Error during task: {current_action} execution: {e}")  # Log the exception
             logger.error(traceback.format_exc())  # Add this line to log the traceback
