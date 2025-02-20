@@ -109,7 +109,7 @@ class WithDependency(Base):
         return template_manager.render_template(
             configs.templates.dependencies_template,
             {
-                (pth := Path(p)).stem: {
+                (pth := Path(p)).name: {
                     "path": pth.as_posix(),
                     "exists": pth.exists(),
                     "description": (identity := magika.identify_path(pth)).output.description,
