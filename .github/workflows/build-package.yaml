@@ -49,7 +49,7 @@ jobs:
           rustup default nightly
       - name: Install deps
         run: |
-          uv sync --no-install-project  --all-extras
+          uv sync --no-install-project  --all-extras --index https://pypi.org/simple
       - name: Build
         run: |
           make

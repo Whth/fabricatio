@@ -22,8 +22,8 @@ jobs:
 
       - name: Install deps
         run: |
-          uv sync
-
+          uv sync --no-install-project  --all-extras --index https://pypi.org/simple
+          make dev
       - name: Build
         run: |
           pytest tests
