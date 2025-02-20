@@ -68,7 +68,7 @@ class WithDependency(Base):
     """Class that manages file dependencies."""
 
     dependencies: List[str] = Field(default_factory=list)
-    """The file dependencies of the task, a list of file paths."""
+    """The file dependencies which is needed to read or write to meet a specific requirement, a list of file paths."""
 
     def add_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
         """Add a file dependency to the task.

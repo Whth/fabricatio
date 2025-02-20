@@ -225,17 +225,20 @@ class LLMUsage(Base):
             configs.templates.make_choice_template,
             {
                 "instruction": instruction,
-                "options": [m.model_dump(include={"name", "briefing"}) for m in choices],
+                "options": [{"name": m.name, "briefing": m.briefing} for m in choices],
                 "k": k,
             },
         )
-        names = [c.name for c in choices]
+        names = {c.name for c in choices}
+        logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
         def _validate(response: str) -> List[T] | None:
             ret = JsonCapture.convert_with(response, orjson.loads)
             if not isinstance(ret, List) or len(ret) != k:
+                logger.error(f"Incorrect Type or length of response: \n{ret}")
                 return None
             if any(n not in names for n in ret):
+                logger.error(f"Invalid choice in response: \n{ret}")
                 return None
             return ret
 

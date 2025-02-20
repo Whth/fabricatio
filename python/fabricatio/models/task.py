@@ -272,5 +272,5 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """
         return template_manager.render_template(
             configs.templates.task_briefing_template,
-            self.model_dump(include={"name", "description", "dependencies", "goal"}),
+            self.model_dump(),
         )
