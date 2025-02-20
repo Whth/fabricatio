@@ -11,7 +11,7 @@ from fabricatio.journal import logger
 
 @confirm_to_execute
 def dump_text(path: Union[str, Path], text: str) -> None:
-    """Dump text to a file. you need to make sure the file' parent directory exists.
+    """Dump text to a file. you need to make sure the file's parent directory exists.
 
     Args:
         path(str, Path): Path to the file
