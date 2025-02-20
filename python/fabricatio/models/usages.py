@@ -247,6 +247,41 @@ class LLMUsage(Base):
             **kwargs,
         )
 
+    async def apick[T: WithBriefing](
+        self,
+        instruction: str,
+        choices: List[T],
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> T:
+        """Asynchronously picks a single choice from a list of options using AI validation.
+
+        This method is a convenience wrapper around `achoose` that always selects exactly one item.
+
+        Args:
+            instruction (str): The user-provided instruction/question description.
+            choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
+            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
+            system_message (str): Custom system-level prompt, defaults to an empty string.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage, such as `model`,
+                `temperature`, `stop`, `top_p`, `max_tokens`, `stream`, `timeout`, and `max_retries`.
+
+        Returns:
+            T: The single selected item from the choices list.
+
+        Raises:
+            ValueError: If validation fails after maximum attempts or if no valid selection is made.
+        """
+        return await self.achoose(
+            instruction=instruction,
+            choices=choices,
+            k=1,
+            max_validations=max_validations,
+            system_message=system_message,
+            **kwargs,
+        )[0]
+
     async def ajudge(
         self,
         prompt: str,
