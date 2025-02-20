@@ -1,13 +1,24 @@
-You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available. 
+**Dependencies:**
+{{deps}}
+
+**Available data:**
+{{#each data }}
+- `{{ @key }}`:
+{{ this }}
+
+{{/each }}
+
+You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available.
 
 **Task Briefing:**
 {{ task }}
 
 **Available Tools:**
 {{#each tools }}
-{{ this }}
+- `{{ this }}`
 
 {{/each }}
+
 
 Please draft the Python code that uses these tools to accomplish the task. Ensure that the code is well-documented and follows best practices. The code should be executable and should include any necessary imports.
 Further, to ensure I can retrieve the execute result, you need to specify variable names that represent the output of your code. These variables should be named with JSON serializable values.
@@ -23,24 +34,30 @@ Further, to ensure I can retrieve the execute result, you need to specify variab
 ----
 
 ```python
-from {{tool_module_name}} import ({{#each tool_class_names }}
+#import data from the data module
+from {{data_module_name}} import ({{#each data }}
+    {{@key}},
+{{/each }})
+# import tools from the tool module
+from {{tool_module_name}} import ({{#each tools }}
     {{this}},
 {{/each }})
 
-# Your code here
+# write code to harness the tools to accomplish the task with the data, you can set the output to the variables below if the task is required to return some values
 
-output1 = # Your output here
-output2 = # Your output here
-another_output = # Your output here
+output1 = # Your output no.1 here, if needed
+another_output = # Your output no.2 here, if needed
+yet_another_output = # Your output no.3,here, if needed
 
 
 ```
 
+# write the output variables here if the task requires some output
 ```json
 [
     "output1",
-    "output2",
     "another_output"
+    "yet_another_output"
 ]
 ```
 

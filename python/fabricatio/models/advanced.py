@@ -1,7 +1,7 @@
 """A module for advanced models and functionalities."""
 
 from types import CodeType
-from typing import List, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -67,6 +67,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         self,
         task: Task,
         tools: List[Tool],
+        data: Dict[str, Any],
         **kwargs: Unpack[LLMKwargs],
     ) -> Tuple[CodeType, List[str]]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
@@ -84,15 +85,20 @@ class HandleTask(WithBriefing, ToolBoxUsage):
                 return source, to_extract
             return None
 
+        q = template_manager.render_template(
+            configs.templates.draft_tool_usage_code_template,
+            {
+                "data_module_name": configs.toolbox.data_module_name,
+                "tool_module_name": configs.toolbox.tool_module_name,
+                "task": task.briefing,
+                "deps": task.dependencies_prompt,
+                "tools": [tool.briefing for tool in tools],
+                "data": data,
+            },
+        )
+        logger.debug(f"Code Drafting Question: \n{q}")
         return await self.aask_validate(
-            question=template_manager.render_template(
-                configs.templates.draft_tool_usage_code_template,
-                {
-                    "tool_module_name": configs.toolbox.tool_module_name,
-                    "task": task.briefing,
-                    "tools": [tool.briefing for tool in tools],
-                },
-            ),
+            question=q,
             validator=_validator,
             system_message=f"# your personal briefing: \n{self.briefing}",
             **kwargs,
@@ -101,6 +107,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
     async def handle_fin_grind(
         self,
         task: Task,
+        data: Dict[str, Any],
         **kwargs: Unpack[LLMKwargs],
     ) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
@@ -110,7 +117,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         logger.info(f"{self.name} have gathered {len(tools)} tools gathered")
 
         if tools:
-            executor = ToolExecutor(execute_sequence=tools)
+            executor = ToolExecutor(candidates=tools, data=data)
             code, to_extract = await self.draft_tool_usage_code(task, tools, **kwargs)
             cxt = await executor.execute(code)
             if to_extract:
