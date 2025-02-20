@@ -21,14 +21,3 @@ class PublishTask(Action):
         logger.info(f"Sending task {send_task.name} to {send_targets}")
         for target in send_targets:
             await send_task.move_to(target).publish()
-
-
-class CycleTask(Action):
-    """An action that cycles a task through a list of targets."""
-
-    name: str = "cycle_task"
-    """The name of the action."""
-    description: str = "Cycle a task through a list of targets"
-
-    async def _execute(self, task_input: Task, **_) -> None:
-        """Execute the action by cycling the task through the specified targets."""

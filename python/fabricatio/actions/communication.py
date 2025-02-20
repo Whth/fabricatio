@@ -4,12 +4,12 @@ from fabricatio.models.action import Action
 from fabricatio.models.task import Task
 
 
-class Talk(Action):
-    """Action that says hello to the world."""
+class Examining(Action):
+    """Action that examines the input data."""
 
     name: str = "talk"
-    output_key: str = "talk_response"
+    output_key: str = "examine_pass"
 
-    async def _execute(self, task_input: Task[str], **_) -> str:
-        """Execute the action."""
-        return await self.aask(task_input.briefing, system_message=task_input.dependencies_prompt())
+    async def _execute(self, exam_target: Task[str], to_examine: str, **_) -> bool:
+        """Examine the input data."""
+        # TODO
