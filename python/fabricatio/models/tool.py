@@ -3,11 +3,11 @@
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
-from sys import modules
 from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, overload
 
 from fabricatio.config import configs
+from fabricatio.decorators import use_temp_module
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from pydantic import BaseModel, ConfigDict, Field
@@ -127,21 +127,34 @@ class ToolExecutor(BaseModel):
     """A class representing a tool executor with a sequence of tools to execute."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    execute_sequence: List[Tool] = Field(default_factory=list, frozen=True)
+    candidates: List[Tool] = Field(default_factory=list, frozen=True)
     """The sequence of tools to execute."""
 
+    data: Dict[str, Any] = Field(default_factory=dict)
+    """The data that could be used when invoking the tools."""
+
     def inject_tools[M: ModuleType](self, module: Optional[M] = None) -> M:
-        """Inject the tools into the provided module."""
+        """Inject the tools into the provided module or default."""
         module = module or module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None))
-        for tool in self.execute_sequence:
+        for tool in self.candidates:
             setattr(module, tool.name, tool.invoke)
+        return module
+
+    def inject_data[M: ModuleType](self, module: Optional[M] = None) -> M:
+        """Inject the data into the provided module or default."""
+        module = module or module_from_spec(spec=ModuleSpec(name=configs.toolbox.data_module_name, loader=None))
+        for key, value in self.data.items():
+            setattr(module, key, value)
         return module
 
     def execute[C: Dict[str, Any]](self, source: CodeType, cxt: Optional[C] = None) -> C:
         """Execute the sequence of tools with the provided context."""
-        modules[configs.toolbox.tool_module_name] = self.inject_tools()
-        exec(source, cxt)  # noqa: S102
-        modules.pop(configs.toolbox.tool_module_name)
+
+        @use_temp_module([self.inject_data(), self.inject_tools()])
+        def _exec() -> None:
+            exec(source, cxt)  # noqa: S102
+
+        _exec()
         return cxt
 
     @overload
@@ -169,4 +182,4 @@ class ToolExecutor(BaseModel):
             for toolbox in toolboxes:
                 tools.append(toolbox[tool_name])
 
-        return cls(execute_sequence=tools)
+        return cls(candidates=tools)
