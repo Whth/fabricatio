@@ -12,7 +12,7 @@ class WriteCode(Action):
     """Action that says hello to the world."""
 
     name: str = "write code"
-    output_key: str = "written_code"
+    output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
         return await self.aask_validate(
