@@ -2,6 +2,7 @@
 
 from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack
 
+import asyncstdlib
 import litellm
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -13,7 +14,13 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
-from litellm.types.utils import Choices, ModelResponse, StreamingChoices
+from litellm import stream_chunk_builder
+from litellm.types.utils import (
+    Choices,
+    ModelResponse,
+    StreamingChoices,
+)
+from litellm.utils import CustomStreamWrapper
 from pydantic import Field, HttpUrl, NonNegativeFloat, NonNegativeInt, PositiveInt, SecretStr
 
 
@@ -58,7 +65,7 @@ class LLMUsage(Base):
         messages: List[Dict[str, str]],
         n: PositiveInt | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ModelResponse:
+    ) -> ModelResponse | CustomStreamWrapper:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
         Args:
@@ -105,13 +112,23 @@ class LLMUsage(Base):
         Returns:
             List[Choices | StreamingChoices]: A list of choices or streaming choices from the model response.
         """
-        return (
-            await self.aquery(
-                messages=Messages().add_system_message(system_message).add_user_message(question),
-                n=n,
-                **kwargs,
-            )
-        ).choices
+        resp = await self.aquery(
+            messages=Messages().add_system_message(system_message).add_user_message(question),
+            n=n,
+            **kwargs,
+        )
+        if isinstance(resp, ModelResponse):
+            return resp.choices
+        if isinstance(resp, CustomStreamWrapper):
+            if configs.debug.streaming_visible:
+                chunks = []
+                async for chunk in resp:
+                    chunks.append(chunk)
+                    print(chunk.choices[0].delta.content or "", end="")  # noqa: T201
+                return stream_chunk_builder(chunks).choices
+            return stream_chunk_builder(await asyncstdlib.list()).choices
+        logger.critical(err := f"Unexpected response type: {type(resp)}")
+        raise ValueError(err)
 
     async def aask(
         self,
@@ -137,10 +154,8 @@ class LLMUsage(Base):
                     system_message=system_message,
                     **kwargs,
                 )
-            )
-            .pop()
-            .message.content
-        )
+            ).pop()
+        ).message.content
 
     async def aask_validate[T](
         self,
