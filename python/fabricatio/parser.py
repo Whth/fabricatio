@@ -49,8 +49,12 @@ class Capture(BaseModel):
             return None
 
         if self.target_groups:
-            return tuple(match.group(g) for g in self.target_groups)
-        return match.group(1)
+            cap = tuple(match.group(g) for g in self.target_groups)
+            logger.debug(f"Captured text: {'\n\n'.join(cap)}")
+            return cap
+        cap = match.group(1)
+        logger.debug(f"Captured text: {cap}")
+        return cap
 
     def convert_with[T](self, text: str, convertor: Callable[[Tuple[str, ...]], T] | Callable[[str], T]) -> T | None:
         """Convert the given text using the pattern.

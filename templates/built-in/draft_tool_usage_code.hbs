@@ -40,7 +40,7 @@ from {{data_module_name}} import ({{#each data }}
 {{/each }})
 # import tools from the tool module
 from {{tool_module_name}} import ({{#each tools }}
-    {{this}},
+    {{@key}},
 {{/each }})
 
 # write code to harness the tools to accomplish the task with the data, you can set the output to the variables below if the task is required to return some values

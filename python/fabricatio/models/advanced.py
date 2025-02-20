@@ -83,6 +83,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
                 to_extract := JsonCapture.convert_with(response, orjson.loads)
             ):
                 return source, to_extract
+
             return None
 
         q = template_manager.render_template(
@@ -92,7 +93,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
                 "tool_module_name": configs.toolbox.tool_module_name,
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,
-                "tools": [tool.briefing for tool in tools],
+                "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
                 "data": data,
             },
         )
@@ -114,11 +115,11 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         logger.info(f"Handling task: \n{task.briefing}")
 
         tools = await self.gather_tools(task)
-        logger.info(f"{self.name} have gathered {len(tools)} tools gathered")
+        logger.info(f"{self.name} have gathered {[t.name for t in tools]}")
 
         if tools:
             executor = ToolExecutor(candidates=tools, data=data)
-            code, to_extract = await self.draft_tool_usage_code(task, tools, **kwargs)
+            code, to_extract = await self.draft_tool_usage_code(task, tools, data, **kwargs)
             cxt = await executor.execute(code)
             if to_extract:
                 return tuple(cxt.get(k) for k in to_extract)

@@ -234,13 +234,15 @@ class LLMUsage(Base):
 
         def _validate(response: str) -> List[T] | None:
             ret = JsonCapture.convert_with(response, orjson.loads)
-            if not isinstance(ret, List) or len(ret) != k:
+
+            if not isinstance(ret, List) or (0 < k != len(ret)):
                 logger.error(f"Incorrect Type or length of response: \n{ret}")
                 return None
             if any(n not in names for n in ret):
                 logger.error(f"Invalid choice in response: \n{ret}")
                 return None
-            return ret
+
+            return [next(toolbox for toolbox in choices if toolbox.name == toolbox_str) for toolbox_str in ret]
 
         return await self.aask_validate(
             question=prompt,
