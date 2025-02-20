@@ -52,7 +52,7 @@ class Action(HandleTask, ProposeTask):
         return f"# The action you are going to perform: \n{super().briefing}"
 
 
-class WorkFlow[A: Union[Type[Action], Action]](WithBriefing, ToolBoxUsage):
+class WorkFlow(WithBriefing, ToolBoxUsage):
     """Class that represents a workflow to be executed in a task."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
@@ -61,7 +61,7 @@ class WorkFlow[A: Union[Type[Action], Action]](WithBriefing, ToolBoxUsage):
     _instances: Tuple[Action, ...] = PrivateAttr(...)
     """ The instances of the workflow steps."""
 
-    steps: Tuple[A, ...] = Field(...)
+    steps: Tuple[Union[Type[Action], Action], ...] = Field(...)
     """ The steps to be executed in the workflow, actions or action classes."""
     task_input_key: str = Field(default="task_input")
     """ The key of the task input data."""
