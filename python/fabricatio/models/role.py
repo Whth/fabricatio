@@ -9,7 +9,6 @@ from fabricatio.models.advanced import ProposeTask
 from fabricatio.models.events import Event
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.usages import ToolBoxUsage
-from fabricatio.toolboxes import basic_toolboxes
 from pydantic import Field
 
 
@@ -19,7 +18,7 @@ class Role(ProposeTask, ToolBoxUsage):
     registry: dict[Event | str, WorkFlow] = Field(...)
     """ The registry of events and workflows."""
 
-    toolboxes: Set[ToolBox] = Field(default=basic_toolboxes)
+    toolboxes: Set[ToolBox] = Field(default_factory=set)
 
     def model_post_init(self, __context: Any) -> None:
         """Register the workflows in the role to the event bus."""
