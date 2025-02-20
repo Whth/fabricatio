@@ -62,12 +62,12 @@ class Capture(BaseModel):
         Returns:
             str | None: The converted text if the pattern is found, otherwise None.
         """
-        if cap := self.capture(text) is None:
+        if (cap := self.capture(text)) is None:
             return None
         try:
             return convertor(cap)
         except (ValueError, SyntaxError) as e:
-            logger.error(f"Failed to convert text using convertor: {convertor.__name__}, error: \n{e}")
+            logger.error(f"Failed to convert text using {convertor.__name__} to convert {cap}, error: \n{e}")
             return None
 
     @classmethod
