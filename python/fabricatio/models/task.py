@@ -216,7 +216,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             Task: The running instance of the `Task` class.
         """
-        logger.info(f"Starting task {self.name}")
+        logger.info(f"Starting task `{self.name}`")
         self._status = TaskStatus.Running
         await env.emit_async(self.running_label, self)
         return self
@@ -227,6 +227,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             Task: The cancelled instance of the `Task` class.
         """
+        logger.info(f"Cancelling task `{self.name}`")
         self._status = TaskStatus.Cancelled
         await env.emit_async(self.cancelled_label, self)
         return self
@@ -237,7 +238,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             Task: The failed instance of the `Task` class.
         """
-        logger.error(f"Task {self.name} failed")
+        logger.info(f"Failing task `{self.name}`")
         self._status = TaskStatus.Failed
         await env.emit_async(self.failed_label, self)
         return self
