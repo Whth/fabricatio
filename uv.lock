@@ -111,6 +111,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asyncstdlib"
+version = "3.13.0"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9b/5e/15e50af11110c3256f8d328f8681dcf404f2803e89a3d1dd3ab1b9be2427/asyncstdlib-3.13.0.tar.gz", hash = "sha256:f2a6ffb44f118233bb99bef50861d6f64c432decbdcc4c2cb93b3fff40d1b533", size = 49688 }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/1e/59/6b16492aef217e0fa1fae0ad49cf65ed4aa56b3691919cceb21a2c901fc1/asyncstdlib-3.13.0-py3-none-any.whl", hash = "sha256:60e097c19e815f3c419a77426cf6c3653aebcb766544d631d5ce6128d0851ae8", size = 43928 },
+]
+
+[[package]]
 name = "attrs"
 version = "25.1.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -264,6 +273,7 @@ source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
     { name = "asyncio" },
+    { name = "asyncstdlib" },
     { name = "code2prompt" },
     { name = "gitpython" },
     { name = "litellm" },
@@ -309,6 +319,7 @@ dev = [
 requires-dist = [
     { name = "appdirs", specifier = ">=1.4.4" },
     { name = "asyncio", specifier = ">=3.4.3" },
+    { name = "asyncstdlib", specifier = ">=3.13.0" },
     { name = "code2prompt", git = "https://github.com/mufeedvh/code2prompt?rev=d157ee84827458bd6816142e213886487d28bd3d" },
     { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },
     { name = "faiss-cpu", marker = "extra == 'rag'", specifier = ">=1.10.0" },
