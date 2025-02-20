@@ -185,6 +185,9 @@ class ToolBoxConfig(BaseModel):
     tool_module_name: str = Field(default="Toolbox")
     """The name of the module containing the toolbox."""
 
+    data_module_name: str = Field(default="Data")
+    """The name of the module containing the data."""
+
 
 class Settings(BaseSettings):
     """Application settings class.
