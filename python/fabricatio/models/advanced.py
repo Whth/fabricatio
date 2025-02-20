@@ -111,7 +111,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         **kwargs: Unpack[LLMKwargs],
     ) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
-        logger.info(f"Handling task: {task.briefing}")
+        logger.info(f"Handling task: \n{task.briefing}")
 
         tools = await self.gather_tools(task)
         logger.info(f"{self.name} have gathered {len(tools)} tools gathered")
