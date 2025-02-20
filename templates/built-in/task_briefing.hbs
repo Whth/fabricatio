@@ -1,8 +1,10 @@
 Task Briefing:
 Name: {{name}}
 Description: {{description}}
-Dependencies:
+Dependency Paths:
 {{#each dependencies}}
 - `{{this}}`
 {{/each}}
-Goal: {{goal}}
+Goal: {{#each goal}}
+- `{{this}}`
+{{/each}}
