@@ -14,7 +14,7 @@ class Talk(Action):
     name: str = "talk"
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task[str], **_) -> Any:
+    async def _execute(self, **_) -> Any:
         ret = "Hello fabricatio!"
         logger.info("executing talk action")
         return ret
