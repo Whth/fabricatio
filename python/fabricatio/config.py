@@ -115,6 +115,15 @@ class DebugConfig(BaseModel):
     log_file: FilePath = Field(default=rf"{ROAMING_DIR}\fabricatio.log")
     """The log file of the application."""
 
+    rotation: int = Field(default=1)
+    """The rotation of the log file. in weeks."""
+
+    retention: int = Field(default=2)
+    """The retention of the log file. in weeks."""
+
+    streaming_visible: bool = Field(default=False)
+    """Whether to print the llm output when streaming."""
+
 
 class TemplateConfig(BaseModel):
     """Template configuration class."""

@@ -3,16 +3,21 @@
 import sys
 
 from loguru import logger
-from rich import traceback
+from rich import pretty, traceback
 
 from fabricatio.config import configs
 
+pretty.install()
 traceback.install()
 logger.remove()
 logger.add(
-    configs.debug.log_file, level=configs.debug.log_level, rotation="1 weeks", retention="1 month", compression="zip"
+    configs.debug.log_file,
+    level=configs.debug.log_level,
+    rotation=f"{configs.debug.rotation} weeks",
+    retention=f"{configs.debug.retention} weeks",
 )
 logger.add(sys.stderr, level=configs.debug.log_level)
+
 
 if __name__ == "__main__":
     logger.debug("This is a trace message.")
