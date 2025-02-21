@@ -173,8 +173,8 @@ class GeneralConfig(BaseModel):
     workspace: DirectoryPath = Field(default=DirectoryPath(r"."))
     """The workspace directory for the application."""
 
-    confirm_on_fs_ops: bool = Field(default=True)
-    """Whether to confirm on file system operations."""
+    confirm_on_ops: bool = Field(default=True)
+    """Whether to confirm on operations."""
 
 
 class ToolBoxConfig(BaseModel):

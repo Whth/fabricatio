@@ -1,47 +1,43 @@
+**Title:** Draft Python code to use specific tools for a given task
+You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available.
+Please draft the Python code that uses these tools to accomplish the task. Ensure that the code is well-documented and follows best practices. The code should be executable and should include any necessary imports.
+Further, to ensure I can retrieve the execute result, you need to specify variable names that represent the output of your code. These variables should be named with JSON serializable values.
+
+
 **Dependencies:**
 {{deps}}
 
 **Available data:**
 {{#each data }}
-- `{{ @key }}`:
+-------- Start of `{{ @key }}` --------
 {{ this }}
-
+-------- End of `{{ @key }}` --------
 {{/each }}
 
-You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available.
 
 **Task Briefing:**
 {{ task }}
 
 **Available Tools:**
 {{#each tools }}
-- `{{ this }}`
+- `{{ name }}`
 
 {{/each }}
-
-
-Please draft the Python code that uses these tools to accomplish the task. Ensure that the code is well-documented and follows best practices. The code should be executable and should include any necessary imports.
-Further, to ensure I can retrieve the execute result, you need to specify variable names that represent the output of your code. These variables should be named with JSON serializable values.
 
 
 **Response Format:**
 1. Provide the Python code as a codeblock.
 2. Ensure the code can be compiled and executed without errors.
 
-
 **Example Response:**
 
-----
+---- Start of Response Example ----
 
 ```python
-#import data from the data module
-from {{data_module_name}} import ({{#each data }}
-    {{@key}},
-{{/each }})
-# import tools from the tool module
-from {{tool_module_name}} import ({{#each tools }}
-    {{@key}},
-{{/each }})
+#import data from the `{{data_module_name}}` module, which contains all the available data talked about above
+from {{data_module_name}} import ({{#each data }}{{@key}},{{/each }})
+# import tools from the `{{tool_module_name}}` module, which contains all the available tools talked about above
+from {{tool_module_name}} import ({{#each tools }}{{name}},{{/each }})
 
 # write code to harness the tools to accomplish the task with the data, you can set the output to the variables below if the task is required to return some values
 
@@ -61,9 +57,10 @@ yet_another_output = # Your output no.3,here, if needed
 ]
 ```
 
-----
+---- End of Response Example ----
 
 **Warning:**
 
 - No extra explanation is needed. Only the python code and the JSON array is required.
 - Do not include any imports that are not necessary for the code to run.
+- You SHALL NOT import any other third-party libraries other than `{{tool_module_name}}` and `{{data_module_name}}`, which is provided above.

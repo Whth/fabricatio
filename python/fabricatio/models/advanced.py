@@ -120,7 +120,8 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         if tools:
             executor = ToolExecutor(candidates=tools, data=data)
             code, to_extract = await self.draft_tool_usage_code(task, tools, data, **kwargs)
-            cxt = await executor.execute(code)
+
+            cxt = executor.execute(code)
             if to_extract:
                 return tuple(cxt.get(k) for k in to_extract)
 

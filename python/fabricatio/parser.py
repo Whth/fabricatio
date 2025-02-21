@@ -53,7 +53,7 @@ class Capture(BaseModel):
             logger.debug(f"Captured text: {'\n\n'.join(cap)}")
             return cap
         cap = match.group(1)
-        logger.debug(f"Captured text: {cap}")
+        logger.debug(f"Captured text: \n{cap}")
         return cap
 
     def convert_with[T](self, text: str, convertor: Callable[[Tuple[str, ...]], T] | Callable[[str], T]) -> T | None:
