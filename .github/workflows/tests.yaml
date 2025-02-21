@@ -10,7 +10,10 @@ on:
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,13 +23,17 @@ jobs:
         with:
           version: "latest"
 
+      - name: Install nightly rust
+        run: |
+          rustup default nightly
+
       - name: Install deps
         run: |
           uv sync --no-install-project  --all-extras --index https://pypi.org/simple
           make dev
-      - name: Build
+      - name: Test
         run: |
-          pytest tests
+          uvx --with-editable . pytest tests
 
 
 
