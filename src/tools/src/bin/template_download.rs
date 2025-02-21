@@ -11,7 +11,9 @@ fn get_dir() -> String {
     config_dir().unwrap().join("fabricatio").to_string_lossy().to_string()
 }
 fn get_template_dir() -> String {
-    get_dir.join("templates").to_string_lossy().to_string()
+    let mut s=get_dir();
+    s.push_str("templates");
+    s
 }
 
 /// A command-line interface for downloading templates.
@@ -33,10 +35,9 @@ enum Commands {
     /// Copy a specified hbs file to the template directory.
     Copy {
         /// The source hbs file to copy.
-        #[arg(short, long)]
         source: PathBuf,
         /// The directory to copy the hbs file to.
-        #[arg(short, long, default_value_t = get_dir())]
+        #[arg( default_value_t = get_template_dir())]
         output_dir: String,
     },
 }
