@@ -1,301 +1,379 @@
+
 # Fabricatio
 
----
+![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
-Fabricatio is a powerful framework designed to facilitate the creation and management of tasks, actions, and workflows. It leverages modern Python features and libraries to provide a robust and flexible environment for building applications that require task automation and orchestration.
+Fabricatio is a Python library designed for building LLM (Large Language Model) applications using an event-based agent structure. It integrates Rust for performance-critical tasks, utilizes Handlebars for templating, and employs PyO3 for Python bindings.
 
-## Table of Contents
+## Features
 
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Defining a Task](#defining-a-task)
-  - [Creating an Action](#creating-an-action)
-  - [Assigning a Role](#assigning-a-role)
-  - [Logging](#logging)
-- [Configuration](#configuration)
-  - [LLM Configuration](#llm-configuration)
-  - [Debug Configuration](#debug-configuration)
-- [Examples](#examples)
-  - [Simple Task Example](#simple-task-example)
-  - [Complex Workflow Example](#complex-workflow-example)
-- [Contributing](#contributing)
-- [License](#license)
+- **Event-Based Architecture**: Utilizes an EventEmitter pattern for robust task management.
+- **LLM Integration**: Supports interactions with large language models for intelligent task processing.
+- **Templating Engine**: Uses Handlebars for dynamic content generation.
+- **Toolboxes**: Provides predefined toolboxes for common operations like file manipulation and arithmetic.
+- **Async Support**: Fully asynchronous for efficient execution.
+- **Extensible**: Easy to extend with custom actions, workflows, and tools.
 
 ## Installation
 
-To install Fabricatio, you can use pip:
+### Using UV (Recommended)
+
+To install Fabricatio using `uv` (a package manager for Python):
 
 ```bash
-pip install fabricatio
-```
+# Install uv if not already installed
+pip install uv
 
-
-Alternatively, you can clone the repository and install it manually:
-
-```bash
-git clone https://github.com/your-repo/fabricatio.git
+# Clone the repository
+git clone https://github.com/Whth/fabricatio.git
 cd fabricatio
-pip install .
+
+# Install the package in development mode with uv
+uv --with-editable . maturin develop --uv -r
 ```
 
+### Building Distribution
+
+For production builds:
+
+```bash
+# Build distribution packages
+make bdist
+```
+
+This will generate distribution files in the `dist` directory.
 
 ## Usage
 
-### Defining a Task
+### Basic Example
 
-A task in Fabricatio is defined using the `Task` class. You can specify the name, goal, and description of the task.
+Below are some basic examples demonstrating how to use Fabricatio for different purposes.
+
+#### Simple Hello World Program
 
 ```python
-from fabricatio.models.task import Task
+import asyncio
+from fabricatio import Action, Role, Task, logger
 
-task = Task(name="say hello", goal="say hello", description="say hello to the world")
+
+class Hello(Action):
+    """Action that says hello."""
+
+    name: str = "hello"
+    output_key: str = "task_output"
+
+    async def _execute(self, task_input: Task[str], **_) -> Any:
+        ret = "Hello fabricatio!"
+        logger.info("executing talk action")
+        return ret
+
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="talker", 
+        description="talker role", 
+        registry={Task.pending_label: WorkFlow(name="talk", steps=(Hello,))}
+    )
+
+    task = Task(name="say hello", goal="say hello", description="say hello to the world")
+    result = await task.delegate()
+    logger.success(f"Result: {result}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-
-### Creating an Action
-
-Actions are the building blocks of workflows. They perform specific tasks and can be asynchronous.
+#### Writing and Dumping Code
 
 ```python
-from fabricatio import Action, logger
-from fabricatio.models.task import Task
+import asyncio
+from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
 
-class Talk(Action):
+
+class WriteCode(Action):
+    """Action that writes code based on a prompt."""
+
+    name: str = "write code"
+    output_key: str = "source_code"
+
     async def _execute(self, task_input: Task[str], **_) -> str:
-        ret = "Hello fabricatio!"
-        logger.info("executing talk action")
-        return ret
-```
+        return await self.aask_validate(
+            task_input.briefing,
+            validator=PythonCapture.capture,
+        )
 
 
-### Assigning a Role
+class DumpCode(Action):
+    """Action that dumps code to the file system."""
 
-Roles in Fabricatio are responsible for executing workflows. You can define a role with a set of actions.
+    name: str = "dump code"
+    description: str = "Dump code to file system"
+    toolboxes: set[ToolBox] = {fs_toolbox}
+    output_key: str = "task_output"
 
-```python
-from fabricatio.models.role import Role
-from fabricatio.models.action import WorkFlow
+    async def _execute(self, task_input: Task, source_code: str, **_) -> Any:
+        path = await self.handle_fin_grind(task_input, {"source_code": source_code})
+        return path[0] if path else None
 
-class TestWorkflow(WorkFlow):
-    pass
-
-role = Role(name="Test Role", actions=[TestWorkflow()])
-```
-
-
-### Logging
-
-Fabricatio uses Loguru for logging. You can configure the log level and file in the `config.py` file.
-
-```python
-from fabricatio.config import DebugConfig
-
-debug_config = DebugConfig(log_level="DEBUG", log_file="fabricatio.log")
-```
-
-
-## Configuration
-
-Fabricatio uses Pydantic for configuration management. You can define your settings in the `config.py` file.
-
-### LLM Configuration
-
-The Large Language Model (LLM) configuration is managed by the `LLMConfig` class.
-
-```python
-from fabricatio.config import LLMConfig
-
-llm_config = LLMConfig(api_endpoint="https://api.example.com")
-```
-
-
-### Debug Configuration
-
-The debug configuration is managed by the `DebugConfig` class.
-
-```python
-from fabricatio.config import DebugConfig
-
-debug_config = DebugConfig(log_level="DEBUG", log_file="fabricatio.log")
-```
-
-
-## Examples
-
-### Simple Task Example
-
-Here is a simple example of a task that prints "Hello fabricatio!".
-
-```python
-import asyncio
-from fabricatio import Action, Role, Task, WorkFlow, logger
-
-task = Task(name="say hello", goal="say hello", description="say hello to the world")
-
-class Talk(Action):
-    async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = "Hello fabricatio!"
-        logger.info("executing talk action")
-        return ret
-
-class TestWorkflow(WorkFlow):
-    pass
-
-role = Role(name="Test Role", actions=[TestWorkflow()])
 
 async def main() -> None:
-    await role.act(task)
+    """Main function."""
+    role = Role(
+        name="Coder",
+        description="A python coder who can write and document code",
+        registry={
+            Event.instantiate_from("coding.*").push("pending"): WorkFlow(
+                name="write code", steps=(WriteCode, DumpCode)
+            ),
+        },
+    )
+
+    prompt = "write a Python CLI app which prints 'hello world' n times with detailed Google-style docstring. Write the source code to `cli.py`."
+
+    proposed_task = await role.propose(prompt)
+    path = await proposed_task.move_to("coding").delegate()
+    logger.success(f"Code Path: {path}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-
-### Complex Workflow Example
-
-Here is a more complex example that demonstrates how to create a workflow with multiple actions.
+#### Proposing Tasks
 
 ```python
 import asyncio
+from typing import Any
+
 from fabricatio import Action, Role, Task, WorkFlow, logger
 
-task = Task(name="complex task", goal="perform complex operations", description="a task with multiple actions")
 
-class ActionOne(Action):
-    async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = "Action One executed"
-        logger.info(ret)
-        return ret
+class WriteDocumentation(Action):
+    """Action that generates documentation for the code in markdown format."""
 
-class ActionTwo(Action):
-    async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = "Action Two executed"
-        logger.info(ret)
-        return ret
+    name: str = "write documentation"
+    description: str = "Write detailed documentation for the provided code."
+    output_key: str = "task_output"
 
-class ComplexWorkflow(WorkFlow):
-    actions = [ActionOne(), ActionTwo()]
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        return await self.aask(task_input.briefing)
 
-role = Role(name="Complex Role", actions=[ComplexWorkflow()])
 
 async def main() -> None:
-    await role.act(task)
+    """Main function."""
+    role = Role(
+        name="Documenter",
+        description="Role responsible for writing documentation.",
+        registry={
+            "doc.*": WorkFlow(name="write documentation", steps=(WriteDocumentation,))
+        }
+    )
+
+    prompt = "write a Rust clap CLI that downloads an HTML page"
+    proposed_task = await role.propose(prompt)
+    documentation = await proposed_task.move_to("doc").delegate()
+    logger.success(f"Documentation:\n{documentation}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-
-## Contributing
-
-Contributions to Fabricatio are welcome! Please submit a pull request with your changes.
-
-## License
-
-Fabricatio is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-
----
-
-### Additional Features and Modules
-
-#### Advanced Models and Functionalities
-
-The `advanced.py` module provides advanced models and functionalities for handling complex tasks and workflows.
+#### Complex Workflow Handling
 
 ```python
-from fabricatio.models.advanced import ProposeTask, HandleTask
+import asyncio
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
-class ProposeTaskExample(ProposeTask):
-    pass
 
-class HandleTaskExample(HandleTask):
-    pass
+class WriteCode(Action):
+    """Action that writes code based on a prompt."""
+
+    name: str = "write code"
+    output_key: str = "source_code"
+
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        return await self.aask_validate(
+            task_input.briefing,
+            validator=PythonCapture.capture,
+        )
+
+
+class WriteDocumentation(Action):
+    """Action that generates documentation for the code in markdown format."""
+
+    name: str = "write documentation"
+    description: str = "Write detailed documentation for the provided code."
+    output_key: str = "task_output"
+
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        return await self.aask(task_input.briefing)
+
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="Developer",
+        description="A developer who can write code and documentation.",
+        registry={
+            Event.instantiate_from("coding.*").push("pending"): WorkFlow(
+                name="write code", steps=(WriteCode,)
+            ),
+            Event.instantiate_from("doc.*").push("pending"): WorkFlow(
+                name="write documentation", steps=(WriteDocumentation,)
+            ),
+        }
+    )
+
+    # Propose a coding task
+    code_task_prompt = "write a Python CLI app which adds numbers from a file."
+    proposed_task = await role.propose(code_task_prompt)
+    code = await proposed_task.move_to("coding").delegate()
+    logger.success(f"Code:\n{code}")
+
+    # Propose a documentation task
+    doc_task_prompt = f"{code}\n\nwrite Readme.md file for the above code."
+    proposed_doc_task = await role.propose(doc_task_prompt)
+    documentation = await proposed_doc_task.move_to("doc").delegate()
+    logger.success(f"Documentation:\n{documentation}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
+### Advanced Examples
 
-#### Toolboxes
-
-Fabricatio includes various toolboxes for different types of operations. For example, the `arithmetic.py` toolbox provides arithmetic operations.
+#### Template Management and Rendering
 
 ```python
-from fabricatio.toolboxes.arithmetic import add, subtract, multiply, divide
+from fabricatio._rust_instances import template_manager
 
-result = add(1, 2)
-print(result)  # Output: 3
+template_name = "claude-xml.hbs"
+data = {
+    "absolute_code_path": "/path/to/project",
+    "source_tree": "source tree content",
+    "files": [{"path": "file1.py", "code": "print('Hello')"}],
+}
+
+rendered_template = template_manager.render_template(template_name, data)
+print(rendered_template)
 ```
 
-
-#### File System Operations
-
-The `fs.py` toolbox offers tools for file system operations such as copying, moving, deleting files, and creating directories.
+#### Handling Security Vulnerabilities
 
 ```python
-from fabricatio.toolboxes.fs import copy_file, move_file, delete_file, create_directory
+from fabricatio.models.usages import ToolBoxUsage
+from fabricatio.models.task import Task
 
-copy_file("source.txt", "destination.txt")
-move_file("old_location.txt", "new_location.txt")
-delete_file("file_to_delete.txt")
-create_directory("new_directory")
+toolbox_usage = ToolBoxUsage()
+
+async def handle_security_vulnerabilities():
+    task = Task(
+        name="Security Check",
+        goal=["Identify security vulnerabilities"],
+        description="Perform a thorough security review on the project.",
+        dependencies=["./src/main.py"]
+    )
+    
+    vulnerabilities = await toolbox_usage.gather_tools_fine_grind(task)
+    for vulnerability in vulnerabilities:
+        print(f"Found vulnerability: {vulnerability.name}")
 ```
 
-
-#### Logging Setup
-
-The logging setup in Fabricatio is handled by the `journal.py` module, which configures Loguru for logging.
+#### Managing CTF Challenges
 
 ```python
-from fabricatio.journal import logger
+import asyncio
 
-logger.debug("This is a debug message.")
-logger.info("This is an info message.")
-logger.success("This is a success message.")
-logger.warning("This is a warning message.")
-logger.error("This is an error message.")
-logger.critical("This is a critical message.")
+from fabricatio.models.usages import ToolBoxUsage
+from fabricatio.models.task import Task
+
+toolbox_usage = ToolBoxUsage()
+
+async def solve_ctf_challenge(challenge_name: str, challenge_description: str, files: list[str]):
+    task = Task(
+        name=challenge_name,
+        goal=[f"Solve {challenge_name} challenge"],
+        description=challenge_description,
+        dependencies=files
+    )
+    
+    solution = await toolbox_usage.gather_tools_fine_grind(task)
+    print(f"Challenge Solved: {solution}")
+
+if __name__ == "__main__":
+    asyncio.run(solve_ctf_challenge("Binary Exploitation", "CTF Binary Exploitation Challenge", ["./challenges/binary_exploit"]))
 ```
 
+### Configuration
 
-#### Configuration Management
+The configuration for Fabricatio is managed via environment variables or TOML files. The default configuration file (`config.toml`) can be overridden by specifying a custom path.
 
-The configuration management in Fabricatio is handled by the `config.py` module, which uses Pydantic for defining and validating configurations.
+Example `config.toml`:
 
-```python
-from fabricatio.config import Settings, LLMConfig, DebugConfig
-
-settings = Settings()
-llm_config = LLMConfig(api_endpoint="https://api.example.com")
-debug_config = DebugConfig(log_level="DEBUG", log_file="fabricatio.log")
+```toml
+[llm]
+api_endpoint = "https://api.openai.com"
+api_key = "your_openai_api_key"
+timeout = 300
+max_retries = 3
+model = "gpt-3.5-turbo"
+temperature = 1.0
+stop_sign = ["\n\n\n", "User:"]
+top_p = 0.35
+generation_count = 1
+stream = false
+max_tokens = 8192
 ```
 
+### Development Setup
 
-#### Testing
+To set up a development environment for Fabricatio:
 
-Fabricatio includes a suite of test cases to ensure the stability and correctness of the codebase. The tests are located in the `tests` directory and cover various modules and functionalities.
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Whth/fabricatio.git
+   cd fabricatio
+   ```
 
-```python
-# Example of a test case for the config module
-import pytest
-from fabricatio.config import DebugConfig
+2. **Install Dependencies**:
+   ```bash
+   uv --with-editable . maturin develop --uv -r
+   ```
 
-def test_debug_config_initialization():
-    temp_log_file = "fabricatio.log"
-    debug_config = DebugConfig(log_level="DEBUG", log_file=temp_log_file)
-    assert debug_config.log_level == "DEBUG"
-    assert str(debug_config.log_file) == temp_log_file
-```
+3. **Run Tests**:
+   ```bash
+   make test
+   ```
 
+4. **Build Documentation**:
+   ```bash
+   make docs
+   ```
 
----
+### Contributing
 
-### Conclusion
+Contributions are welcome! Please follow these guidelines when contributing:
 
-Fabricatio is a versatile and powerful framework for managing tasks, actions, and workflows. It provides a robust set of tools and features to facilitate task automation and orchestration. Whether you're building a simple script or a complex application, Fabricatio has the capabilities to meet your needs.
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/new-feature`).
+3. Commit your changes (`git commit -am 'Add new feature'`).
+4. Push to the branch (`git push origin feature/new-feature`).
+5. Create a new Pull Request.
 
-For more detailed information and examples, please refer to the [official documentation](https://fabricatio.readthedocs.io).
+### License
 
----
+Fabricatio is licensed under the MIT License. See [LICENSE](LICENSE) for more details.
 
-If you have any questions or need further assistance, feel free to reach out to the community or open an issue on the GitHub repository.
+### Acknowledgments
 
-Happy coding!
+Special thanks to the contributors and maintainers of:
+- [PyO3](https://github.com/PyO3/pyo3)
+- [Maturin](https://github.com/PyO3/maturin)
+- [Handlebars.rs](https://github.com/sunng87/handlebars-rust)
 
