@@ -60,7 +60,8 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 
     @wraps(func)
     def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        logger.info(f"Executing function: {func.__name__}{signature(func)}\nArgs: {args}\nKwargs: {kwargs}")
+        logger.info(f"Executing function: {func.__name__}{signature(func)}")
+        logger.debug(f"{func.__name__}{signature(func)}\nArgs: {args}\nKwargs: {kwargs}")
         return func(*args, **kwargs)
 
     return _wrapper

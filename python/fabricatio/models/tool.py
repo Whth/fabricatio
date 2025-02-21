@@ -36,7 +36,7 @@ class Tool[**P, R](WithBriefing):
 
     def invoke(self, *args: P.args, **kwargs: P.kwargs) -> R:
         """Invoke the tool's source function with the provided arguments."""
-        logger.info(f"Invoking tool: {self.name} with args: {args} and kwargs: {kwargs}")
+        logger.info(f"Invoking tool: {self.name}")
         return self.source(*args, **kwargs)
 
     @property
@@ -151,6 +151,7 @@ class ToolExecutor(BaseModel):
 
     def execute[C: Dict[str, Any]](self, source: CodeType, cxt: Optional[C] = None) -> C:
         """Execute the sequence of tools with the provided context."""
+        cxt = cxt or {}
 
         @use_temp_module([self.inject_data(), self.inject_tools()])
         def _exec() -> None:

@@ -99,6 +99,26 @@ class WithDependency(Base):
             self.dependencies.remove(Path(d).as_posix())
         return self
 
+    def clear_dependencies(self) -> Self:
+        """Clear all file dependencies from the task.
+
+        Returns:
+            Self: The current instance of the task.
+        """
+        self.dependencies.clear()
+        return self
+
+    def override_dependencies[P: str | Path](self, dependencies: List[P]) -> Self:
+        """Override the file dependencies of the task.
+
+        Args:
+            dependencies (List[str | Path]): The file dependencies to override the task's dependencies.
+
+        Returns:
+            Self: The current instance of the task.
+        """
+        return self.clear_dependencies().add_dependency(dependencies)
+
     @property
     def dependencies_prompt(self) -> str:
         """Generate a prompt for the task based on the file dependencies.

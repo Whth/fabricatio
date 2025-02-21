@@ -89,7 +89,7 @@ class PymitterConfig(BaseModel):
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    delimiter: str = Field(default=".", frozen=True)
+    delimiter: str = Field(default="::", frozen=True)
     """The delimiter used to separate the event name into segments."""
 
     new_listener_event: bool = Field(default=False, frozen=True)

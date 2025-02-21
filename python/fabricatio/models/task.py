@@ -99,12 +99,12 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         return self
 
     @classmethod
-    def simple_task(cls, name: str, goal: str, description: str) -> Self:
+    def simple_task(cls, name: str, goal: List[str], description: str) -> Self:
         """Create a simple task with a name, goal, and description.
 
         Args:
             name (str): The name of the task.
-            goal (str): The goal of the task.
+            goal (List[str]): The goal of the task.
             description (str): The description of the task.
 
         Returns:
@@ -112,18 +112,18 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """
         return cls(name=name, goal=goal, description=description)
 
-    def update_task(self, goal: Optional[str] = None, description: Optional[str] = None) -> Self:
+    def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
         """Update the goal and description of the task.
 
         Args:
-            goal (str, optional): The new goal of the task.
+            goal (str|List[str], optional): The new goal of the task.
             description (str, optional): The new description of the task.
 
         Returns:
             Task: The updated instance of the `Task` class.
         """
         if goal:
-            self.goal = goal
+            self.goal = goal if isinstance(goal, list) else [goal]
         if description:
             self.description = description
         return self

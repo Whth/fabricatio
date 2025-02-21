@@ -3,6 +3,7 @@
 import asyncio
 from typing import Any, Set, Unpack
 
+import questionary
 from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
 from pydantic import Field
 
@@ -11,7 +12,7 @@ class WriteCode(Action):
     """Action that says hello to the world."""
 
     name: str = "write code"
-    output_key: str = "source_code"
+    output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
         return await self.aask_validate(
@@ -21,19 +22,23 @@ class WriteCode(Action):
         )
 
 
-class DumpCode(Action):
-    """Dump code to file system."""
+class DumpText(Action):
+    """Dump the text to a file."""
 
-    name: str = "dump code"
-    description: str = "dump code to file system"
+    name: str = "dump text"
+    description: str = "dump text to a file"
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task, source_code: str, **_: Unpack) -> Any:
-        task_input.goal.append("return the path where the source_code is written.")
+    async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Any:
+        logger.debug(f"Dumping text: \n{dump_text}")
+        task_input.update_task(
+            ["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
+        )
+
         path = await self.handle_fin_grind(
             task_input,
-            {"source_code": source_code},
+            {"text_to_dump": dump_text},
         )
         if path:
             return path[0]
@@ -46,10 +51,10 @@ class WriteDocumentation(Action):
 
     name: str = "write documentation"
     description: str = "write documentation for the code in markdown format"
-    output_key: str = "task_output"
+    output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        return await self.aask(task_input.briefing)
+        return await self.aask(task_input.briefing, system_message=task_input.dependencies_prompt)
 
 
 async def main() -> None:
@@ -58,25 +63,25 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can ",
         registry={
-            Event.instantiate_from("coding.*").push("pending"): WorkFlow(
-                name="write code", steps=(WriteCode, DumpCode)
+            Event.instantiate_from("coding").push_wildcard().push("pending"): WorkFlow(
+                name="write code", steps=(WriteCode, DumpText)
             ),
-            Event.instantiate_from("doc.*").push("pending"): WorkFlow(
-                name="write documentation", steps=(WriteDocumentation,)
+            Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
+                name="write documentation", steps=(WriteDocumentation, DumpText)
             ),
         },
     )
 
-    prompt = "write a python cli app which can print a 'hello world' with give times, with detailed google style docstring. write the source code to `cli.py`"
+    prompt = await questionary.text("What code do you want to write?").ask_async()
 
     proposed_task = await role.propose(prompt)
     path = await proposed_task.move_to("coding").delegate()
-    logger.info(f"Code Path: {path}")
-    #
-    # proposed_task = await role.propose(f"{code} \n\n write Readme.md file for the code.")
-    # proposed_task.add_dependency()
-    # doc = await proposed_task.move_to("doc").delegate()
-    # logger.success(f"Documentation: \n{doc}")
+    logger.success(f"Code Path: {path}")
+
+    proposed_task = await role.propose(f"write Readme.md file for the code, source file {path},save it in `README.md`")
+    proposed_task.override_dependencies([path])
+    doc = await proposed_task.move_to("doc").delegate()
+    logger.success(f"Documentation: \n{doc}")
 
 
 if __name__ == "__main__":
