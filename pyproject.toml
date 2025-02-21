@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.1"
+version = "0.2.1-dev0"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -25,12 +25,11 @@ keywords = [
 ]
 
 
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",
-    "code2prompt",
     "gitpython>=3.1.44",
     "litellm>=1.60.0",
     "loguru>=0.7.3",
@@ -140,9 +139,6 @@ testpaths = [
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-
-[tool.uv.sources]
-code2prompt = { git = "https://github.com/mufeedvh/code2prompt", rev = "d157ee84827458bd6816142e213886487d28bd3d" }
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

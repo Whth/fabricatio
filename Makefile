@@ -23,4 +23,5 @@ clean:
 
 publish:tools
 	uvx  --with-editable . maturin publish --skip-existing
+	uvx  --with-editable . maturin upload --skip-existing $(DIST)/*
 .PHONY: tools
