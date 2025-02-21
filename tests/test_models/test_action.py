@@ -1,4 +1,5 @@
 import pytest
+
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.task import Task, TaskStatus
 
@@ -24,7 +25,7 @@ def basic_action():
 
 @pytest.fixture
 def basic_workflow():
-    return WorkFlow(name="TestWorkflow", steps=[DemoAction()])
+    return WorkFlow(name="TestWorkflow", steps=(DemoAction(),))
 
 
 # Action Tests
@@ -102,7 +103,7 @@ def test_workflow_with_extra_context():
 @pytest.mark.asyncio
 async def test_workflow_serve_success():
     workflow = WorkFlow(name="TestServe", steps=[DemoAction()])
-    task = Task(name="test", goal="test", description="test")
+    task = Task(name="test", goal=["test"], description="test")
     await workflow.serve(task)
     assert task._status == TaskStatus.Finished
 
@@ -110,6 +111,6 @@ async def test_workflow_serve_success():
 @pytest.mark.asyncio
 async def test_workflow_serve_failure():
     workflow = WorkFlow(name="TestServeFail", steps=[FailingAction()])
-    task = Task(name="test", goal="test", description="test")
+    task = Task(name="test", goal=["test"], description="test")
     await workflow.serve(task)
     assert task

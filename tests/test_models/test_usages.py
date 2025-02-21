@@ -1,11 +1,12 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from litellm.types.utils import ModelResponse
+from pydantic import HttpUrl, SecretStr
+
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
-from litellm.types.utils import ModelResponse
-from pydantic import HttpUrl, SecretStr
 
 
 @pytest.fixture
@@ -20,7 +21,7 @@ def basic_llm_usage():
 
 @pytest.fixture
 def mock_task():
-    return Task(name="test_task", goal="test goal", description="test description")
+    return Task(name="test_task", goal=["test goal"], description="test description")
 
 
 @pytest.fixture
