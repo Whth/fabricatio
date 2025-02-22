@@ -38,8 +38,10 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can write code and documentation",
         registry={
-            Event.instantiate_from("coding.*").push("pending"): WorkFlow(name="write code", steps=(WriteCode,)),
-            Event.instantiate_from("doc.*").push("pending"): WorkFlow(
+            Event.instantiate_from("coding").push_wildcard().push("pending"): WorkFlow(
+                name="write code", steps=(WriteCode,)
+            ),
+            Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
                 name="write documentation", steps=(WriteDocumentation,)
             ),
         },
