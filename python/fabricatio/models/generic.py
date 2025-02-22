@@ -1,7 +1,7 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
 from pathlib import Path
-from typing import List, Self
+from typing import Callable, List, Self
 
 import orjson
 from fabricatio._rust import blake3_hash
@@ -108,16 +108,24 @@ class WithDependency(Base):
         self.dependencies.clear()
         return self
 
-    def override_dependencies[P: str | Path](self, dependencies: List[P]) -> Self:
+    def override_dependencies[P: str | Path](self, dependencies: List[P] | P) -> Self:
         """Override the file dependencies of the task.
 
         Args:
-            dependencies (List[str | Path]): The file dependencies to override the task's dependencies.
+            dependencies (List[str | Path] | str | Path): The file dependencies to override the task's dependencies.
 
         Returns:
             Self: The current instance of the task.
         """
         return self.clear_dependencies().add_dependency(dependencies)
+
+    def pop_dependence[T](self, idx: int = -1, reader: Callable[[str], T] = safe_text_read) -> T:
+        """Pop the file dependencies from the task.
+
+        Returns:
+            str: The popped file dependency
+        """
+        return reader(self.dependencies.pop(idx))
 
     @property
     def dependencies_prompt(self) -> str:
