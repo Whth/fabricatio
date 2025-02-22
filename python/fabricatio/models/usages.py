@@ -1,6 +1,7 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
-from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack
+from asyncio import gather
+from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack, overload
 
 import asyncstdlib
 import litellm
@@ -130,12 +131,42 @@ class LLMUsage(Base):
         logger.critical(err := f"Unexpected response type: {type(resp)}")
         raise ValueError(err)
 
+    @overload
+    async def aask(
+        self,
+        question: List[str],
+        system_message: Optional[List[str]] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[str]: ...
+    @overload
     async def aask(
         self,
         question: str,
-        system_message: str = "",
+        system_message: Optional[List[str]] = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> str:
+    ) -> List[str]: ...
+    @overload
+    async def aask(
+        self,
+        question: List[str],
+        system_message: Optional[str] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[str]: ...
+
+    @overload
+    async def aask(
+        self,
+        question: str,
+        system_message: Optional[str] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str: ...
+
+    async def aask(
+        self,
+        question: str | List[str],
+        system_message: Optional[str | List[str]] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
         Args:
@@ -146,16 +177,39 @@ class LLMUsage(Base):
         Returns:
             str: The content of the model's response message.
         """
-        return (
-            (
-                await self.ainvoke(
-                    n=1,
-                    question=question,
-                    system_message=system_message,
-                    **kwargs,
+        system_message = system_message or ""
+        match (isinstance(question, list), isinstance(system_message, list)):
+            case (True, True):
+                res = await gather(
+                    *[
+                        self.ainvoke(n=1, question=q, system_message=sm, **kwargs)
+                        for q, sm in zip(question, system_message, strict=True)
+                    ]
                 )
-            ).pop()
-        ).message.content
+                return [r.pop().message.content for r in res]
+            case (True, False):
+                res = await gather(
+                    *[self.ainvoke(n=1, question=q, system_message=system_message, **kwargs) for q in question]
+                )
+                return [r.pop().message.content for r in res]
+            case (False, True):
+                res = await gather(
+                    *[self.ainvoke(n=1, question=question, system_message=sm, **kwargs) for sm in system_message]
+                )
+                return [r.pop().message.content for r in res]
+            case (False, False):
+                return (
+                    (
+                        await self.ainvoke(
+                            n=1,
+                            question=question,
+                            system_message=system_message,
+                            **kwargs,
+                        )
+                    ).pop()
+                ).message.content
+            case _:
+                raise RuntimeError("Should not reach here.")
 
     async def aask_validate[T](
         self,
@@ -278,13 +332,15 @@ class LLMUsage(Base):
         Raises:
             ValueError: If validation fails after maximum attempts or if no valid selection is made.
         """
-        return await self.achoose(
-            instruction=instruction,
-            choices=choices,
-            k=1,
-            max_validations=max_validations,
-            system_message=system_message,
-            **kwargs,
+        return (
+            await self.achoose(
+                instruction=instruction,
+                choices=choices,
+                k=1,
+                max_validations=max_validations,
+                system_message=system_message,
+                **kwargs,
+            )
         )[0]
 
     async def ajudge(
