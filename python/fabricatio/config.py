@@ -208,6 +208,7 @@ class Settings(BaseSettings):
         toml_file=["fabricatio.toml", rf"{ROAMING_DIR}\fabricatio.toml"],
         env_file=[".env", ".envrc"],
         use_attribute_docstrings=True,
+        extra="ignore",
     )
 
     llm: LLMConfig = Field(default_factory=LLMConfig)
