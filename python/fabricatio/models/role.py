@@ -5,14 +5,13 @@ from typing import Any, Self, Set
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
-from fabricatio.models.advanced import ProposeTask
+from fabricatio.models.advanced import GiveRating, HandleTask, ProposeTask
 from fabricatio.models.events import Event
 from fabricatio.models.tool import ToolBox
-from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field
 
 
-class Role(ProposeTask, ToolBoxUsage):
+class Role(ProposeTask, HandleTask, GiveRating):
     """Class that represents a role with a registry of events and workflows."""
 
     registry: dict[Event | str, WorkFlow] = Field(...)

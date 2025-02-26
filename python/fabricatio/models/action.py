@@ -6,14 +6,14 @@ from asyncio import Queue
 from typing import Any, Dict, Self, Tuple, Type, Union, Unpack
 
 from fabricatio.journal import logger
-from fabricatio.models.advanced import HandleTask, ProposeTask
+from fabricatio.models.advanced import GiveRating, HandleTask, ProposeTask
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(HandleTask, ProposeTask):
+class Action(HandleTask, ProposeTask, GiveRating):
     """Class that represents an action to be executed in a workflow."""
 
     personality: str = Field(default="")

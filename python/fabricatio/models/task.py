@@ -57,6 +57,9 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     namespace: List[str] = Field(default_factory=list)
     """The namespace of the task, a list of namespace segment, as string."""
 
+    dependencies: List[str] = Field(default_factory=list)
+    """A list of file paths, These file are needed to read or write to meet a specific requirement of this task."""
+
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """The output queue of the task."""
 

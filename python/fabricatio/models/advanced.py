@@ -13,7 +13,7 @@ from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
-from pydantic import ValidationError
+from pydantic import NonNegativeInt, ValidationError
 
 
 class ProposeTask(WithBriefing, LLMUsage):
@@ -235,6 +235,51 @@ class GiveRating(WithBriefing, LLMUsage):
                     {
                         "topic": topic,
                         "dimensions": dimensions,
+                    },
+                )
+            ),
+            validator=_validator,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+            **kwargs,
+        )
+
+    async def draft_rating_dimensions(
+        self,
+        topic: str,
+        dimensions_count: NonNegativeInt = 0,
+        examples: Optional[List[str]] = None,
+        **kwargs: Unpack[ValidateKwargs],
+    ) -> Set[str]:
+        """Drafts rating dimensions based on a topic.
+
+        Args:
+            topic: The topic for the rating dimensions.
+            dimensions_count: The number of dimensions to draft, 0 means no limit.
+            examples: A list of examples which is rated based on the rating dimensions.
+            **kwargs: Additional keyword arguments for the LLM usage.
+
+        Returns:
+            A set of rating dimensions.
+        """
+
+        def _validator(response: str) -> Set[str] | None:
+            if (
+                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
+                and isinstance(json_data, list)
+                and all(isinstance(v, str) for v in json_data)
+                and (dimensions_count == 0 or len(json_data) == dimensions_count)
+            ):
+                return set(json_data)
+            return None
+
+        return await self.aask_validate(
+            question=(
+                template_manager.render_template(
+                    configs.templates.draft_rating_dimensions_template,
+                    {
+                        "topic": topic,
+                        "examples": examples,
+                        "dimensions_count": dimensions_count,
                     },
                 )
             ),

@@ -1,0 +1,24 @@
+# Task
+Please draft rating dimensions for the topic: "{{ topic }}".
+Return the dimensions{{#if dimensions_count}} with length of {{ dimensions_count }}{{/if}} in JSON format as a list of strings within code block.
+
+
+# Example:
+returning dimensions{{#if dimensions_count}} with length of 3{{/if}} for the topic "Nice icecream"
+
+----- Start of response example -----
+```json
+[
+    "outlook",
+    "taste",
+    "texture"
+]
+```
+----- End of response example -----
+
+
+# Warning
+- Please ensure that the dimensions are clear and concise.
+- The response SHALL be returned as a JSON object within the codeblock.
+- No additional Explanation is needed.
+{{#if dimensions_count }}- You must return exactly {{ dimensions_count }} dimensions.{{/if}}
