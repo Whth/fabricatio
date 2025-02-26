@@ -157,6 +157,12 @@ class TemplateConfig(BaseModel):
     task_briefing_template: str = Field(default="task_briefing")
     """The name of the task briefing template which will be used to brief a task."""
 
+    rate_fine_grind_template: str = Field(default="rate_fine_grind")
+    """The name of the rate fine grind template which will be used to rate fine grind."""
+
+    draft_rating_manual_template: str = Field(default="draft_rating_manual")
+    """The name of the draft rating manual template which will be used to draft rating manual."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

@@ -1,0 +1,39 @@
+# Task:
+Please rate the following task based on the provided rating manual and score range.
+
+To rate text below:
+----- Start of text to tate -----
+{{ to_rate }}
+----- End of text to tate -----
+
+Rating Manual:
+{{ rating_manual }}
+
+Score Range:
+- Minimal score: {{ min_score }}
+- Maximum score is {{ max_score }}
+
+
+By referring the rating manual, rate the text based on the provided rating manual and score range.
+
+# Example:
+rate the cherry icecream with ["outlook", "taste", "texture"] dimensions, the score range is 0-5.
+
+----- Start of response example -----
+```json
+{
+  "outlook": 3.56,
+  "taste": 4.55,
+  "texture": 3.01
+}
+```
+----- end of response example -----
+
+
+# Warning
+- Please ensure that the rating is done based on the rating manual and score range provided.
+- The response SHALL be returned as a JSON object within the codeblock.
+- No additional Explanation is needed.
+- The rating for each dimension SHALL be rounded to two decimal places.
+- The score dor each dimension SHALL be within the score range provided, that is, not smaller than {{ min_score }} and not larger than {{ max_score }}.
+- the response SHALL include all the dimensions provided in the [{{#each rating_manual}}"{{@key}}",{{/each}}].

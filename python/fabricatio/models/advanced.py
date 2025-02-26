@@ -1,7 +1,7 @@
 """A module for advanced models and functionalities."""
 
 from types import CodeType
-from typing import Any, Dict, List, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Optional, Set, Tuple, Unpack
 
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -126,3 +126,112 @@ class HandleTask(WithBriefing, ToolBoxUsage):
                 return tuple(cxt.get(k) for k in to_extract)
 
         return None
+
+
+class GiveRating(WithBriefing, LLMUsage):
+    """A class that provides functionality to rate tasks based on a rating manual and score range."""
+
+    async def rate_fine_grind(
+        self, to_rate: str, rating_manual: Dict[str, str], score_range: Tuple[float, float], **kwargs: Unpack[LLMKwargs]
+    ) -> Dict[str, float]:
+        """Rates a given task based on a rating manual and score range.
+
+        Args:
+            to_rate: The task to be rated.
+            rating_manual: A dictionary containing the rating criteria.
+            score_range: A tuple representing the valid score range.
+            **kwargs: Additional keyword arguments for the LLM usage.
+
+        Returns:
+            A dictionary with the ratings for each dimension.
+        """
+
+        def _validator(response: str) -> Dict[str, float] | None:
+            if (
+                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
+                and isinstance(json_data, dict)
+                and json_data.keys() == rating_manual.keys()
+                and all(isinstance(v, float) for v in json_data.values())
+                and all(score_range[0] <= v <= score_range[1] for v in json_data.values())
+            ):
+                return json_data
+            return None
+
+        return await self.aask_validate(
+            question=(
+                template_manager.render_template(
+                    configs.templates.rate_fine_grind_template,
+                    {
+                        "to_rate": to_rate,
+                        "min_score": score_range[0],
+                        "max_score": score_range[1],
+                        "rating_manual": rating_manual,
+                    },
+                )
+            ),
+            validator=_validator,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+            **kwargs,
+        )
+
+    async def rate(
+        self,
+        to_rate: str,
+        topic: str,
+        dimensions: Set[str],
+        score_range: Tuple[float, float] = (0.0, 1.0),
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Dict[str, float]:
+        """Rates a task based on a topic and dimensions.
+
+        Args:
+            to_rate: The task to be rated.
+            topic: The topic related to the task.
+            dimensions: A set of dimensions for rating.
+            score_range: A tuple representing the valid score range
+            **kwargs: Additional keyword arguments for the LLM usage.
+
+        Returns:
+            A dictionary with the ratings for each dimension.
+        """
+        manual = await self.draft_rating_manual(topic, dimensions, **kwargs)
+        return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
+
+    async def draft_rating_manual(
+        self, topic: str, dimensions: Set[str], **kwargs: Unpack[LLMKwargs]
+    ) -> Dict[str, str]:
+        """Drafts a rating manual based on a topic and dimensions.
+
+        Args:
+            topic: The topic for the rating manual.
+            dimensions: A set of dimensions for the rating manual.
+            **kwargs: Additional keyword arguments for the LLM usage.
+
+        Returns:
+            A dictionary representing the drafted rating manual.
+        """
+
+        def _validator(response: str) -> Dict[str, str] | None:
+            if (
+                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
+                and isinstance(json_data, dict)
+                and json_data.keys() == dimensions
+                and all(isinstance(v, str) for v in json_data.values())
+            ):
+                return json_data
+            return None
+
+        return await self.aask_validate(
+            question=(
+                template_manager.render_template(
+                    configs.templates.draft_rating_manual_template,
+                    {
+                        "topic": topic,
+                        "dimensions": dimensions,
+                    },
+                )
+            ),
+            validator=_validator,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+            **kwargs,
+        )
