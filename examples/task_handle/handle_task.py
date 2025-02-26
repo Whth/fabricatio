@@ -3,7 +3,6 @@
 import asyncio
 from typing import Any, Set, Unpack
 
-import questionary
 from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
 from pydantic import Field
 
@@ -36,7 +35,7 @@ class DumpText(Action):
             ["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
         )
 
-        path = await self.handle_fin_grind(
+        path = await self.handle(
             task_input,
             {"text_to_dump": dump_text},
         )
@@ -72,7 +71,7 @@ async def main() -> None:
         },
     )
 
-    prompt = await questionary.text("What code do you want to write?").ask_async()
+    prompt = "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
 
     proposed_task = await role.propose(prompt)
     path = await proposed_task.move_to("coding").delegate()

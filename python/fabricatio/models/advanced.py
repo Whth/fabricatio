@@ -7,13 +7,13 @@ import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.models.generic import WithBriefing
-from fabricatio.models.kwargs_types import LLMKwargs
+from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
-from pydantic import PositiveInt, ValidationError
+from pydantic import ValidationError
 
 
 class ProposeTask(WithBriefing, LLMUsage):
@@ -22,14 +22,12 @@ class ProposeTask(WithBriefing, LLMUsage):
     async def propose[T](
         self,
         prompt: str,
-        max_validations: PositiveInt = 2,
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Task[T]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
             prompt: The prompt text for proposing a task, which is a string that must be provided.
-            max_validations: The maximum number of validations allowed, default is 2.
             **kwargs: The keyword arguments for the LLM (Large Language Model) usage.
 
         Returns:
@@ -55,7 +53,6 @@ class ProposeTask(WithBriefing, LLMUsage):
             question=template_manager.render_template(configs.templates.propose_task_template, template_data),
             validator=_validate_json,
             system_message=f"# your personal briefing: \n{self.briefing}",
-            max_validations=max_validations,
             **kwargs,
         )
 
@@ -68,7 +65,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         task: Task,
         tools: List[Tool],
         data: Dict[str, Any],
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Tuple[CodeType, List[str]]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
         logger.info(f"Drafting tool usage code for task: {task.briefing}")
@@ -109,12 +106,14 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         self,
         task: Task,
         data: Dict[str, Any],
-        **kwargs: Unpack[LLMKwargs],
+        box_choose_kwargs: Optional[ChooseKwargs] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs] = None,
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
         logger.info(f"Handling task: \n{task.briefing}")
 
-        tools = await self.gather_tools(task)
+        tools = await self.gather_tools_fine_grind(task, box_choose_kwargs, tool_choose_kwargs)
         logger.info(f"{self.name} have gathered {[t.name for t in tools]}")
 
         if tools:
@@ -127,12 +126,20 @@ class HandleTask(WithBriefing, ToolBoxUsage):
 
         return None
 
+    async def handle(self, task: Task, data: Dict[str, Any], **kwargs: Unpack[ValidateKwargs]) -> Optional[Tuple]:
+        """Asynchronously handles a task based on a given task object and parameters."""
+        return await self.handle_fin_grind(task, data, **kwargs)
+
 
 class GiveRating(WithBriefing, LLMUsage):
     """A class that provides functionality to rate tasks based on a rating manual and score range."""
 
     async def rate_fine_grind(
-        self, to_rate: str, rating_manual: Dict[str, str], score_range: Tuple[float, float], **kwargs: Unpack[LLMKwargs]
+        self,
+        to_rate: str,
+        rating_manual: Dict[str, str],
+        score_range: Tuple[float, float],
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Dict[str, float]:
         """Rates a given task based on a rating manual and score range.
 
@@ -180,9 +187,9 @@ class GiveRating(WithBriefing, LLMUsage):
         topic: str,
         dimensions: Set[str],
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Dict[str, float]:
-        """Rates a task based on a topic and dimensions.
+        """Rates a task based on a topic and dimensions. this function will automatically draft a rating manual based on the topic and dimensions.
 
         Args:
             to_rate: The task to be rated.
@@ -198,7 +205,7 @@ class GiveRating(WithBriefing, LLMUsage):
         return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
 
     async def draft_rating_manual(
-        self, topic: str, dimensions: Set[str], **kwargs: Unpack[LLMKwargs]
+        self, topic: str, dimensions: Set[str], **kwargs: Unpack[ValidateKwargs]
     ) -> Dict[str, str]:
         """Drafts a rating manual based on a topic and dimensions.
 

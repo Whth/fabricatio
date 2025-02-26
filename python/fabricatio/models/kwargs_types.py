@@ -18,9 +18,14 @@ class LLMKwargs(TypedDict):
     max_retries: NotRequired[PositiveInt]
 
 
-class ChooseKwargs(LLMKwargs):
-    """A type representing the keyword arguments for the choose method."""
+class ValidateKwargs(LLMKwargs):
+    """A type representing the keyword arguments for the validate method."""
 
     max_validations: NotRequired[PositiveInt]
+
+
+class ChooseKwargs(ValidateKwargs):
+    """A type representing the keyword arguments for the choose method."""
+
     system_message: NotRequired[str]
     k: NotRequired[NonNegativeInt]
