@@ -25,13 +25,13 @@ class GiveRating(WithBriefing, LLMUsage):
         """Rate a given string based on a rating manual and score range.
 
         Args:
-            to_rate: The string to be rated.
-            rating_manual: A dictionary containing the rating criteria.
-            score_range: A tuple representing the valid score range.
-            **kwargs: Additional keyword arguments for the LLM usage.
+            to_rate (str): The string to be rated.
+            rating_manual (Dict[str, str]): A dictionary containing the rating criteria.
+            score_range (Tuple[float, float]): A tuple representing the valid score range.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            A dictionary with the ratings for each dimension.
+            Dict[str, float]: A dictionary with the ratings for each dimension.
         """
 
         def _validator(response: str) -> Dict[str, float] | None:
@@ -93,14 +93,14 @@ class GiveRating(WithBriefing, LLMUsage):
         """Rate a given string or a sequence of strings based on a topic, dimensions, and score range.
 
         Args:
-            to_rate: The string or sequence of strings to be rated.
-            topic: The topic related to the task.
-            criteria: A set of dimensions for rating.
-            score_range: A tuple representing the valid score range
-            **kwargs: Additional keyword arguments for the LLM usage.
+            to_rate (Union[str, List[str]]): The string or sequence of strings to be rated.
+            topic (str): The topic related to the task.
+            criteria (Set[str]): A set of dimensions for rating.
+            score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            A dictionary with the ratings for each dimension if a single string is provided,
+            Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each dimension if a single string is provided,
             or a list of dictionaries with the ratings for each dimension if a sequence of strings is provided.
         """
         manual = await self.draft_rating_manual(topic, criteria, **kwargs)
@@ -116,12 +116,12 @@ class GiveRating(WithBriefing, LLMUsage):
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
-            topic: The topic for the rating manual.
-            criteria: A set of dimensions for the rating manual.
-            **kwargs: Additional keyword arguments for the LLM usage.
+            topic (str): The topic for the rating manual.
+            criteria (Set[str]): A set of dimensions for the rating manual.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            A dictionary representing the drafted rating manual.
+            Dict[str, str]: A dictionary representing the drafted rating manual.
         """
 
         def _validator(response: str) -> Dict[str, str] | None:
@@ -159,13 +159,13 @@ class GiveRating(WithBriefing, LLMUsage):
         """Drafts rating dimensions based on a topic.
 
         Args:
-            topic: The topic for the rating dimensions.
-            criteria_count: The number of dimensions to draft, 0 means no limit.
-            examples: A list of examples which is rated based on the rating dimensions.
-            **kwargs: Additional keyword arguments for the LLM usage.
+            topic (str): The topic for the rating dimensions.
+            criteria_count (NonNegativeInt, optional): The number of dimensions to draft, 0 means no limit. Defaults to 0.
+            examples (Optional[List[str]], optional): A list of examples which is rated based on the rating dimensions. Defaults to None.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            A set of rating dimensions.
+            Set[str]: A set of rating dimensions.
         """
 
         def _validator(response: str) -> Set[str] | None:
@@ -185,7 +185,7 @@ class GiveRating(WithBriefing, LLMUsage):
                     {
                         "topic": topic,
                         "examples": examples,
-                        "dimensions_count": criteria_count,
+                        "criteria_count": criteria_count,
                     },
                 )
             ),
