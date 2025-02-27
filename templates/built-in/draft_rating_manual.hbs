@@ -1,15 +1,16 @@
 # Task
-Please draft a rating manual for the following topic and dimensions, which will be used to rate the entity based.
+Please draft a rating manual for the following topic and criteria, which will be used to rate the entity based.
 
 Topic: {{ topic }}
-Dimensions: {{ dimensions }}
+Criteria: {{ criteria }}
 
-Return the rating manual as a JSON object within the codeblock where the keys are the dimensions and the values are the criteria for each dimension.
+Return the rating manual as a JSON object within the codeblock where the keys are the criteria and the values are the criteria for each criterion.
 
 
 # Example:
 
 topic: Nice icecream
+criteria:["outlook","taste","texture"]
 ----- Start of response example -----
 ```json
 {
@@ -21,6 +22,6 @@ topic: Nice icecream
 ----- end of response example -----
 
 # Warning
-- Please ensure that the rating manual is clear and concise, and that the criteria for each dimension are well-defined.
+- Please ensure that the rating manual is clear and concise, and that the criteria for each criterion are well-defined.
 - The response SHALL be returned as a JSON object within the codeblock.
 - No additional Explanation is needed.

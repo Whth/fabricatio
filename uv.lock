@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = "==3.12.*"
 
 [[package]]
@@ -215,7 +216,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.1.dev0"
+version = "0.2.1.dev3"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -236,11 +237,9 @@ dependencies = [
 
 [package.optional-dependencies]
 full = [
-    { name = "faiss-cpu" },
     { name = "pymilvus" },
 ]
 rag = [
-    { name = "faiss-cpu" },
     { name = "pymilvus" },
 ]
 
@@ -267,7 +266,6 @@ requires-dist = [
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "asyncstdlib", specifier = ">=3.13.0" },
     { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },
-    { name = "faiss-cpu", marker = "extra == 'rag'", specifier = ">=1.10.0" },
     { name = "gitpython", specifier = ">=3.1.44" },
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
@@ -281,6 +279,7 @@ requires-dist = [
     { name = "regex", specifier = ">=2024.11.6" },
     { name = "rich", specifier = ">=13.9.4" },
 ]
+provides-extras = ["rag", "full"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -297,23 +296,6 @@ dev = [
     { name = "ruff", specifier = ">=0.9.4" },
     { name = "uv", specifier = ">=0.5.29" },
     { name = "viztracer", specifier = ">=1.0.2" },
-]
-
-[[package]]
-name = "faiss-cpu"
-version = "1.10.0"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "packaging" },
-]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/91/1b/6fe5dbe5be0240cfd82b52bd7c186655c578d935c0ce2e713c100e6f8cce/faiss_cpu-1.10.0.tar.gz", hash = "sha256:5bdca555f24bc036f4d67f8a5a4d6cc91b8d2126d4e78de496ca23ccd46e479d", size = 69159 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/bd/cc/f6aa1288dbb40b2a4f101d16900885e056541f37d8d08ec70462e92cf277/faiss_cpu-1.10.0-cp312-cp312-macosx_10_14_x86_64.whl", hash = "sha256:2aca486fe2d680ea64a18d356206c91ff85db99fd34c19a757298c67c23262b1", size = 7720242 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/be/56/40901306324a17fbc1eee8a6e86ba67bd99a67e768ce9908f271e648e9e0/faiss_cpu-1.10.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:c1108a4059c66c37c403183e566ca1ed0974a6af7557c92d49207639aab661bc", size = 3239223 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2e/34/5b1463c450c9a6de3109caf8f38fbf0c329ef940ed1973fcf8c8ec7fa27e/faiss_cpu-1.10.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:449f3eb778d6d937e01a16a3170de4bb8aabfe87c7cb479b458fb790276310c5", size = 3671461 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/78/d9/0b78c474289f23b31283d8fb64c8e6a522a7fa47b131a3c6c141c8e6639d/faiss_cpu-1.10.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:9899c340f92bd94071d6faf4bef0ccb5362843daea42144d4ba857a2a1f67511", size = 30663859 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/17/f0/194727b9e6e282e2877bc001ba886228f6af52e9a6730bbdb223e38591c3/faiss_cpu-1.10.0-cp312-cp312-win_amd64.whl", hash = "sha256:345a52dbfa980d24b93c94410eadf82d1eef359c6a42e5e0768cca96539f1c3c", size = 13687087 },
 ]
 
 [[package]]

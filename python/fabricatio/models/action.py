@@ -5,8 +5,9 @@ from abc import abstractmethod
 from asyncio import Queue
 from typing import Any, Dict, Self, Tuple, Type, Union, Unpack
 
+from fabricatio.capabilities.rating import GiveRating
+from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.journal import logger
-from fabricatio.models.advanced import GiveRating, HandleTask, ProposeTask
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.usages import ToolBoxUsage

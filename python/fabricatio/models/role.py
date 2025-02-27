@@ -2,10 +2,11 @@
 
 from typing import Any, Self, Set
 
+from fabricatio.capabilities.rating import GiveRating
+from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
-from fabricatio.models.advanced import GiveRating, HandleTask, ProposeTask
 from fabricatio.models.events import Event
 from fabricatio.models.tool import ToolBox
 from pydantic import Field

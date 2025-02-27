@@ -163,8 +163,8 @@ class TemplateConfig(BaseModel):
     draft_rating_manual_template: str = Field(default="draft_rating_manual")
     """The name of the draft rating manual template which will be used to draft rating manual."""
 
-    draft_rating_dimensions_template: str = Field(default="draft_rating_dimensions")
-    """The name of the draft rating dimensions template which will be used to draft rating dimensions."""
+    draft_rating_criteria_template: str = Field(default="draft_rating_criteria")
+    """The name of the draft rating criteria template which will be used to draft rating criteria."""
 
 
 class MagikaConfig(BaseModel):
