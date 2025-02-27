@@ -76,7 +76,6 @@ dev = [
 
 [project.optional-dependencies]
 rag = [
-    "faiss-cpu>=1.10.0",
     "pymilvus>=2.5.4",
 ]
 
