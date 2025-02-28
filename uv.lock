@@ -226,6 +226,7 @@ dependencies = [
     { name = "litellm" },
     { name = "loguru" },
     { name = "magika" },
+    { name = "more-itertools" },
     { name = "orjson" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -270,6 +271,7 @@ requires-dist = [
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "magika", specifier = ">=0.5.1" },
+    { name = "more-itertools", specifier = ">=10.6.0" },
     { name = "orjson", specifier = ">=3.10.15" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
@@ -705,6 +707,15 @@ wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c9/69/eabed32162362ba460d81b5c26c6554c2ffef9427fc5d440aa74fbe675dc/milvus_lite-2.4.11-py3-none-macosx_11_0_arm64.whl", hash = "sha256:d21472bd24eb327542817829ce7cb51878318e6173c4d62353c77421aecf98d6", size = 16872814 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ed/85/feb5ef0d92ab4b62c20a5a91fdfc8515f1038d9947a41f5e8ba357724c28/milvus_lite-2.4.11-py3-none-manylinux2014_aarch64.whl", hash = "sha256:8e6ef27f7f84976f9fd0047b675ede746db2e0cc581c44a916ac9e71e0cef05d", size = 36006762 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8d/c2/b294a7699ef097d7b0ab89f95f34fb0710726f12d7da912734e18c2558eb/milvus_lite-2.4.11-py3-none-manylinux2014_x86_64.whl", hash = "sha256:551f56b49fcfbb330b658b4a3c56ed29ba9b692ec201edd1f2dade7f5e39957d", size = 45177882 },
+]
+
+[[package]]
+name = "more-itertools"
+version = "10.6.0"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/88/3b/7fa1fe835e2e93fd6d7b52b2f95ae810cf5ba133e1845f726f5a992d62c2/more-itertools-10.6.0.tar.gz", hash = "sha256:2cd7fad1009c31cc9fb6a035108509e6547547a7a738374f10bd49a09eb3ee3b", size = 125009 }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/23/62/0fe302c6d1be1c777cab0616e6302478251dfbf9055ad426f5d0def75c89/more_itertools-10.6.0-py3-none-any.whl", hash = "sha256:6eb054cb4b6db1473f6e15fcc676a08e4732548acd47c708f0e179c2c7c01e89", size = 63038 },
 ]
 
 [[package]]

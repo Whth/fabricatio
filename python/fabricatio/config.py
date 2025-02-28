@@ -166,6 +166,12 @@ class TemplateConfig(BaseModel):
     draft_rating_criteria_template: str = Field(default="draft_rating_criteria")
     """The name of the draft rating criteria template which will be used to draft rating criteria."""
 
+    extract_reasons_from_examples_template: str = Field(default="extract_reasons_from_examples")
+    """The name of the extract reasons from examples template which will be used to extract reasons from examples."""
+
+    extract_criteria_from_reasons_template: str = Field(default="extract_criteria_from_reasons")
+    """The name of the extract criteria from reasons template which will be used to extract criteria from reasons."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

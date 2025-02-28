@@ -1,0 +1,24 @@
+# Task Briefing:
+Given the list of reasons related to the topic "{{topic}}", your task is to extract {{criteria_count}} most important criteria that can be used for evaluation or comparison. These criteria should either reflect key features highlighted by the reasons or the frequently mentioned ones.
+
+Reasons list: {{reasons}}
+
+# Response Example:
+topic: "Good icecream"
+Reasons list: ["Vanilla Dream has a rich and authentic vanilla flavor, while Choco Delight has an artificial chocolate flavor.", "Vanilla Dream has a smooth and creamy texture, while Choco Delight has a rough texture with ice crystals.", "Choco Delight is more affordable than Vanilla Dream.", "Choco Delight has a wider variety of flavors compared to Vanilla Dream."]
+Extract 4 criteria from the given reasons list
+
+----- Start of response example -----
+```json
+[
+"Tasty",
+"texture",
+"affordability",
+"variety of flavors"
+]
+```
+----- End of response example -----
+
+# Warning:
+- The output must be formatted as a JSON array with exactly {{criteria_count}} strings, each representing a distinct criterion. Follow the structure shown in the response example closely. Responses not matching this format will fail validation.
+
