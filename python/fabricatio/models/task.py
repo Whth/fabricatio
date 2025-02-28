@@ -46,19 +46,19 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     """
 
     name: str = Field(...)
-    """The name of the task."""
+    """The name of the task, which should be a concise and descriptive name."""
 
     description: str = Field(default="")
-    """The description of the task."""
+    """The description of the task, which should provide every details and noting about the task if provided, obeying the CEFR level rule and 5W1H rule."""
 
     goal: List[str] = Field(default=[])
-    """The goal of the task, a list of strings."""
+    """The goal of the task, a list of strings. The goal should be a concise and clear statement of what the task is intended to achieve, goal SHALL NOT be too broad or too narrow."""
 
     namespace: List[str] = Field(default_factory=list)
-    """The namespace of the task, a list of namespace segment, as string."""
+    """The namespace of the task, a list of namespace segment, as string, if it is not directly given out, it SHALL just be a empty list meaning `NOT ASSIGNED`"""
 
     dependencies: List[str] = Field(default_factory=list)
-    """A list of file paths, These file are needed to read or write to meet a specific requirement of this task."""
+    """A list of file paths, These file are needed to read or write to meet a specific requirement of this task, if it is not directly given out, it SHALL just be a empty list meaning `NOT ASSIGNED`"""
 
     _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """The output queue of the task."""

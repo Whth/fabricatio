@@ -7,6 +7,7 @@ from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
+from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import GenerateKwargs, ValidateKwargs
 from fabricatio.models.usages import LLMUsage
@@ -48,6 +49,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 return json_data
             return None
 
+        logger.info(f"Rating for {to_rate}")
         return await self.aask_validate(
             question=(
                 template_manager.render_template(
@@ -265,7 +267,7 @@ class GiveRating(WithBriefing, LLMUsage):
                     configs.templates.extract_criteria_from_reasons_template,
                     {
                         "topic": topic,
-                        "reasons": reasons,
+                        "reasons": list(reasons),
                         "criteria_count": criteria_count,
                     },
                 )

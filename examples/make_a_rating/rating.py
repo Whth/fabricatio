@@ -15,17 +15,13 @@ class Rate(Action):
     name: str = "rate"
     output_key: str = "task_output"
 
-    async def _execute(self, to_rate: List[str], rate_topic: str, dimensions: Set[str], **_) -> [Dict[str, float]]:
+    async def _execute(self, to_rate: List[str], rate_topic: str, criteria: Set[str], **_) -> List[Dict[str, float]]:
+        logger.info(f"Rating the: \n{to_rate}")
         """Rate the task."""
-        return await asyncio.gather(
-            *[
-                self.rate(
-                    target,
-                    rate_topic,
-                    dimensions,
-                )
-                for target in to_rate
-            ]
+        return await self.rate(
+            to_rate,
+            rate_topic,
+            criteria,
         )
 
 
@@ -56,6 +52,18 @@ class WhatToRate(Action):
         )
 
 
+class MakeCriteria(Action):
+    """Make criteria for rating."""
+
+    name: str = "make criteria"
+    output_key: str = "criteria"
+
+    async def _execute(self, task_input: Task, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> Set[str]:
+        criteria = await self.draft_rating_criteria_from_examples(rate_topic, to_rate)
+        logger.info(f"Criteria: \n{criteria}")
+        return set(criteria)
+
+
 async def main() -> None:
     """Main function."""
     role = Role(
@@ -67,17 +75,28 @@ async def main() -> None:
                 steps=(WhatToRate, Rate),
                 extra_init_context={
                     "rate_topic": "If this food is cheap and delicious",
-                    "dimensions": {"taste", "price", "quality", "safety", "healthiness", "freshness"},
+                    "criteria": {"taste", "price", "quality", "safety", "healthiness"},
+                },
+            ),
+            Event.instantiate_from("make_criteria_for_food").push_wildcard().push("pending"): WorkFlow(
+                name="Make criteria for food",
+                steps=(WhatToRate, MakeCriteria, Rate),
+                extra_init_context={
+                    "rate_topic": "if the food is 'good'",
                 },
             ),
         },
     )
     task = await role.propose(
-        "rate for rotten apple, ripen banana, fresh orange, giga-burger, smelly pizza with flies on it, and a boiling instant coffee",
+        "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",
     )
     rating = await task.move_to("rate_food").delegate()
 
     logger.success(f"Result: \n{rating}")
+
+    generated_criteria = await task.move_to("make_criteria_for_food").delegate()
+
+    logger.success(f"Generated Criteria: \n{generated_criteria}")
 
 
 if __name__ == "__main__":
