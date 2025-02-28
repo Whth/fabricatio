@@ -353,3 +353,32 @@ class GiveRating(WithBriefing, LLMUsage):
             weights.append(weights[-1] * rw)
         total = sum(weights)
         return dict(zip(criteria, [w / total for w in weights], strict=True))
+
+    async def composite_score(
+        self,
+        topic: str,
+        to_rate: List[str],
+        reasons_count: PositiveInt = 2,
+        criteria_count: PositiveInt = 5,
+        **kwargs: Unpack[ValidateKwargs],
+    ) -> List[float]:
+        """Calculates the composite scores for a list of items based on a given topic and criteria.
+
+        Args:
+            topic (str): The topic for the rating.
+            to_rate (List[str]): A list of strings to be rated.
+            reasons_count (PositiveInt, optional): The number of reasons to extract from each pair of examples. Defaults to 2.
+            criteria_count (PositiveInt, optional): The number of criteria to draft. Defaults to 5.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            List[float]: A list of composite scores for the items.
+        """
+        criteria = await self.draft_rating_criteria_from_examples(
+            topic, to_rate, reasons_count, criteria_count, **kwargs
+        )
+        weights = await self.drafting_rating_weights_klee(topic, criteria, **kwargs)
+
+        ratings_seq = await self.rate(to_rate, topic, criteria, **kwargs)
+
+        return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
