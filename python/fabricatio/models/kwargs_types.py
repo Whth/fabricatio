@@ -24,8 +24,13 @@ class ValidateKwargs(LLMKwargs):
     max_validations: NotRequired[PositiveInt]
 
 
-class ChooseKwargs(ValidateKwargs):
-    """A type representing the keyword arguments for the choose method."""
+class GenerateKwargs(ValidateKwargs):
+    """A type representing the keyword arguments for the generate method."""
 
     system_message: NotRequired[str]
+
+
+class ChooseKwargs(GenerateKwargs):
+    """A type representing the keyword arguments for the choose method."""
+
     k: NotRequired[NonNegativeInt]

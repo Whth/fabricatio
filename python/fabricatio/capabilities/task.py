@@ -4,13 +4,14 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
-from fabricatio import JsonCapture, PythonCapture, template_manager
+from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
+from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
 from pydantic import ValidationError
 

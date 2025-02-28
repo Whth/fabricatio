@@ -1,14 +1,15 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
 from asyncio import gather
-from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
+from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 
 import orjson
-from fabricatio import JsonCapture, template_manager
+from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.models.generic import WithBriefing
-from fabricatio.models.kwargs_types import ValidateKwargs
+from fabricatio.models.kwargs_types import GenerateKwargs
 from fabricatio.models.usages import LLMUsage
+from fabricatio.parser import JsonCapture
 from pydantic import NonNegativeInt
 
 
@@ -20,7 +21,7 @@ class GiveRating(WithBriefing, LLMUsage):
         to_rate: str,
         rating_manual: Dict[str, str],
         score_range: Tuple[float, float],
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Dict[str, float]:
         """Rate a given string based on a rating manual and score range.
 
@@ -28,7 +29,7 @@ class GiveRating(WithBriefing, LLMUsage):
             to_rate (str): The string to be rated.
             rating_manual (Dict[str, str]): A dictionary containing the rating criteria.
             score_range (Tuple[float, float]): A tuple representing the valid score range.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Dict[str, float]: A dictionary with the ratings for each dimension.
@@ -69,7 +70,7 @@ class GiveRating(WithBriefing, LLMUsage):
         topic: str,
         criteria: Set[str],
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Dict[str, float]: ...
 
     @overload
@@ -79,7 +80,7 @@ class GiveRating(WithBriefing, LLMUsage):
         topic: str,
         criteria: Set[str],
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> List[Dict[str, float]]: ...
 
     async def rate(
@@ -88,7 +89,7 @@ class GiveRating(WithBriefing, LLMUsage):
         topic: str,
         criteria: Set[str],
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Union[Dict[str, float], List[Dict[str, float]]]:
         """Rate a given string or a sequence of strings based on a topic, dimensions, and score range.
 
@@ -97,7 +98,7 @@ class GiveRating(WithBriefing, LLMUsage):
             topic (str): The topic related to the task.
             criteria (Set[str]): A set of dimensions for rating.
             score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each dimension if a single string is provided,
@@ -111,14 +112,14 @@ class GiveRating(WithBriefing, LLMUsage):
         raise ValueError("to_rate must be a string or a list of strings")
 
     async def draft_rating_manual(
-        self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs]
+        self, topic: str, criteria: Set[str], **kwargs: Unpack[GenerateKwargs]
     ) -> Dict[str, str]:
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
             topic (str): The topic for the rating manual.
             criteria (Set[str]): A set of dimensions for the rating manual.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Dict[str, str]: A dictionary representing the drafted rating manual.
@@ -153,16 +154,14 @@ class GiveRating(WithBriefing, LLMUsage):
         self,
         topic: str,
         criteria_count: NonNegativeInt = 0,
-        examples: Optional[List[str]] = None,
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Set[str]:
         """Drafts rating dimensions based on a topic.
 
         Args:
             topic (str): The topic for the rating dimensions.
             criteria_count (NonNegativeInt, optional): The number of dimensions to draft, 0 means no limit. Defaults to 0.
-            examples (Optional[List[str]], optional): A list of examples which is rated based on the rating dimensions. Defaults to None.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Set[str]: A set of rating dimensions.
@@ -184,7 +183,6 @@ class GiveRating(WithBriefing, LLMUsage):
                     configs.templates.draft_rating_criteria_template,
                     {
                         "topic": topic,
-                        "examples": examples,
                         "criteria_count": criteria_count,
                     },
                 )
