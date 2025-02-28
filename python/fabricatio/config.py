@@ -172,6 +172,9 @@ class TemplateConfig(BaseModel):
     extract_criteria_from_reasons_template: str = Field(default="extract_criteria_from_reasons")
     """The name of the extract criteria from reasons template which will be used to extract criteria from reasons."""
 
+    draft_rating_weights_klee_template: str = Field(default="draft_rating_weights_klee")
+    """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

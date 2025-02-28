@@ -1,0 +1,23 @@
+# Task:
+Please compare the following criteria for the topic "{{topic}}":
+
+First Criterion: {{first}}
+Second Criterion: {{second}}
+
+How much more important is the `{{second}}` compared to the `{{first}}` within the topic of `{{topic}}`? Provide a Positive floating-point number where 1.0 means they are equally important, values greater than 1.0 mean the `{{second}}` is more important, and values less than 1.0 mean the `{{first}}` is more important.
+Your response SHALL be a Positive floating-point number within a JSON codeblock.
+# Examples:
+
+Topic: "Best icecream"
+First Criterion: "Taste"
+Second Criterion: "Texture"
+
+----- Start of response example -----
+```json
+1.5
+```
+----- End of response example -----
+
+# Warning:
+- Your response must be a POSITIVE floating-point number within a JSON codeblock.
+- No explanation or additional information is needed, only the POSITIVE floating-point number.

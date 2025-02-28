@@ -1,8 +1,8 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
 from asyncio import gather
-from itertools import permutations
-from typing import Dict, List, Set, Tuple, Union, Unpack, overload
+from itertools import combinations, permutations
+from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -12,7 +12,7 @@ from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import GenerateKwargs, ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
-from more_itertools import flatten
+from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt
 
 
@@ -275,3 +275,81 @@ class GiveRating(WithBriefing, LLMUsage):
             validator=_criteria_validator,
             **kwargs,
         )
+
+    async def drafting_rating_weights_pairwise(
+        self,
+        topic: str,
+        criteria: Set[str],
+        weight_map: Optional[Dict[str, float]] = None,
+        **kwargs: Unpack[ValidateKwargs],
+    ) -> Dict[str, float]:
+        """Drafts a rating weight based on a topic and criteria.
+
+        Args:
+            topic (str): The topic for the rating weight.
+            criteria (Set[str]): A set of criteria for the rating weight.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            Dict[str, float]: A dictionary representing the drafted rating weight.
+        """
+        weight_map = weight_map or {
+            "significantly superior": 5,
+            "slightly superior": 3,
+            "almost the same": 1,
+            "slightly inferior": -3,
+            "significantly inferior": -5,
+        }
+        comparison_pairs = combinations(criteria, 2)
+        for criterion in criteria:
+            # TODO impl the weight drafting with pairwise comparison
+            pass
+
+    async def drafting_rating_weights_klee(
+        self,
+        topic: str,
+        criteria: Set[str],
+        **kwargs: Unpack[ValidateKwargs],
+    ) -> Dict[str, float]:
+        """Drafts rating weights for a given topic and criteria using the Klee method.
+
+        Args:
+            topic (str): The topic for the rating weights.
+            criteria (Set[str]): A set of criteria for the rating weights.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            Dict[str, float]: A dictionary representing the drafted rating weights for each criterion.
+        """
+        if len(criteria) < 2:  # noqa: PLR2004
+            raise ValueError("At least two criteria are required to draft rating weights")
+
+        def _validator(resp: str) -> float | None:
+            if (cap := JsonCapture.convert_with(resp, orjson.loads)) is not None and isinstance(cap, float):
+                return cap
+            return None
+
+        criteria = list(criteria)  # freeze the order
+        windows = windowed(criteria, 2)
+
+        # get the importance multiplier indicating how important is second criterion compared to the first one
+        relative_weights = await self.aask_validate_batch(
+            questions=[
+                template_manager.render_template(
+                    configs.templates.draft_rating_weights_klee_template,
+                    {
+                        "topic": topic,
+                        "first": pair[0],
+                        "second": pair[1],
+                    },
+                )
+                for pair in windows
+            ],
+            validator=_validator,
+            **GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs),
+        )
+        weights = [1]
+        for rw in relative_weights:
+            weights.append(weights[-1] * rw)
+        total = sum(weights)
+        return dict(zip(criteria, [w / total for w in weights], strict=True))
