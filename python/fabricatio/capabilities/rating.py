@@ -1,8 +1,8 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
 from asyncio import gather
-from itertools import combinations, permutations
-from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
+from itertools import permutations
+from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -276,35 +276,6 @@ class GiveRating(WithBriefing, LLMUsage):
             **kwargs,
         )
 
-    async def drafting_rating_weights_pairwise(
-        self,
-        topic: str,
-        criteria: Set[str],
-        weight_map: Optional[Dict[str, float]] = None,
-        **kwargs: Unpack[ValidateKwargs],
-    ) -> Dict[str, float]:
-        """Drafts a rating weight based on a topic and criteria.
-
-        Args:
-            topic (str): The topic for the rating weight.
-            criteria (Set[str]): A set of criteria for the rating weight.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
-
-        Returns:
-            Dict[str, float]: A dictionary representing the drafted rating weight.
-        """
-        weight_map = weight_map or {
-            "significantly superior": 5,
-            "slightly superior": 3,
-            "almost the same": 1,
-            "slightly inferior": -3,
-            "significantly inferior": -5,
-        }
-        comparison_pairs = combinations(criteria, 2)
-        for criterion in criteria:
-            # TODO impl the weight drafting with pairwise comparison
-            pass
-
     async def drafting_rating_weights_klee(
         self,
         topic: str,
@@ -378,7 +349,7 @@ class GiveRating(WithBriefing, LLMUsage):
             topic, to_rate, reasons_count, criteria_count, **kwargs
         )
         weights = await self.drafting_rating_weights_klee(topic, criteria, **kwargs)
-
+        logger.info(f"Criteria: {criteria}\nWeights: {weights}")
         ratings_seq = await self.rate(to_rate, topic, criteria, **kwargs)
 
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]

@@ -58,10 +58,24 @@ class MakeCriteria(Action):
     name: str = "make criteria"
     output_key: str = "criteria"
 
-    async def _execute(self, task_input: Task, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> Set[str]:
+    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> Set[str]:
         criteria = await self.draft_rating_criteria_from_examples(rate_topic, to_rate)
         logger.info(f"Criteria: \n{criteria}")
         return set(criteria)
+
+
+class MakeCompositeScore(Action):
+    """Make a composite score."""
+
+    name: str = "make composite score"
+
+    output_key: str = "task_output"
+
+    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> List[float]:
+        return await self.composite_score(
+            rate_topic,
+            to_rate,
+        )
 
 
 async def main() -> None:
@@ -85,6 +99,13 @@ async def main() -> None:
                     "rate_topic": "if the food is 'good'",
                 },
             ),
+            Event.instantiate_from("make_composite_score").push_wildcard().push("pending"): WorkFlow(
+                name="Make composite score",
+                steps=(WhatToRate, MakeCompositeScore),
+                extra_init_context={
+                    "rate_topic": "if the food is 'good'",
+                },
+            ),
         },
     )
     task = await role.propose(
@@ -97,6 +118,10 @@ async def main() -> None:
     generated_criteria = await task.move_to("make_criteria_for_food").delegate()
 
     logger.success(f"Generated Criteria: \n{generated_criteria}")
+
+    composite_score = await task.move_to("make_composite_score").delegate()
+
+    logger.success(f"Composite Score: \n{composite_score}")
 
 
 if __name__ == "__main__":
