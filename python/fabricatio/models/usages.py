@@ -248,6 +248,27 @@ class LLMUsage(Base):
         logger.error(f"Failed to validate the response after {max_validations} attempts.")
         raise ValueError("Failed to validate the response.")
 
+    async def aask_validate_batch[T](
+        self,
+        questions: List[str],
+        validator: Callable[[str], T | None],
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> List[T]:
+        """Asynchronously asks a batch of questions and validates the responses using a given validator.
+
+        Args:
+            questions (List[str]): The list of questions to ask.
+            validator (Callable[[str], T | None]): A function to validate the response.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            T: The validated response.
+
+        Raises:
+            ValueError: If the response fails to validate after the maximum number of attempts.
+        """
+        return await gather(*[self.aask_validate(question, validator, **kwargs) for question in questions])
+
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
