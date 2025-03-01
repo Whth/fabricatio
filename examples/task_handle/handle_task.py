@@ -71,6 +71,8 @@ class TestCancel(Action):
 
 
 class WriteToOutput(Action):
+    """Action that says hello to the world."""
+
     name: str = "write to output"
     output_key: str = "task_output"
 
