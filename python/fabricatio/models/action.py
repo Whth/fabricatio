@@ -2,7 +2,7 @@
 
 import traceback
 from abc import abstractmethod
-from asyncio import Queue
+from asyncio import Queue, create_task
 from typing import Any, Dict, Self, Tuple, Type, Union, Unpack
 
 from fabricatio.capabilities.rating import GiveRating
@@ -108,7 +108,11 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         try:
             for step in self._instances:
                 logger.debug(f"Executing step: {step.name}")
-                modified_ctx = await step.act(await self._context.get())
+                act_task = create_task(step.act(await self._context.get()))
+                if task.is_cancelled():
+                    act_task.cancel(f"Cancelled by task: {task.name}")
+                    break
+                modified_ctx = await act_task
                 await self._context.put(modified_ctx)
                 current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")

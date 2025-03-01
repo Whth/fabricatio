@@ -38,11 +38,11 @@ class Env(BaseModel):
 
     @overload
     def on[**P, R](
-            self,
-            event: str | Event,
-            func: Optional[Callable[P, R]] = None,
-            /,
-            ttl: int = -1,
+        self,
+        event: str | Event,
+        func: Optional[Callable[P, R]] = None,
+        /,
+        ttl: int = -1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """
         Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
@@ -58,11 +58,11 @@ class Env(BaseModel):
         ...
 
     def on[**P, R](
-            self,
-            event: str | Event,
-            func: Optional[Callable[P, R]] = None,
-            /,
-            ttl=-1,
+        self,
+        event: str | Event,
+        func: Optional[Callable[P, R]] = None,
+        /,
+        ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
         """Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
 
@@ -78,14 +78,13 @@ class Env(BaseModel):
             event = event.collapse()
         if func is None:
             return self._ee.on(event, ttl=ttl)
-
         self._ee.on(event, func, ttl=ttl)
         return self
 
     @overload
     def once[**P, R](
-            self,
-            event: str | Event,
+        self,
+        event: str | Event,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """
         Registers an event listener that listens only once.
@@ -100,9 +99,9 @@ class Env(BaseModel):
 
     @overload
     def once[**P, R](
-            self,
-            event: str | Event,
-            func: Callable[[Callable[P, R]], Callable[P, R]],
+        self,
+        event: str | Event,
+        func: Callable[[Callable[P, R]], Callable[P, R]],
     ) -> Self:
         """
         Registers an event listener with a specific function that listens only once.
@@ -117,9 +116,9 @@ class Env(BaseModel):
         ...
 
     def once[**P, R](
-            self,
-            event: str | Event,
-            func: Optional[Callable[P, R]] = None,
+        self,
+        event: str | Event,
+        func: Optional[Callable[P, R]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
         """Registers an event listener with a specific function that listens only once.
 
@@ -162,6 +161,21 @@ class Env(BaseModel):
         if isinstance(event, Event):
             event = event.collapse()
         return await self._ee.emit_async(event, *args, **kwargs)
+
+    def emit_future[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
+        """Emits an event to all registered listeners and returns a future object.
+
+        Args:
+            event (str | Event): The event to emit.
+            *args: Positional arguments to pass to the listeners.
+            **kwargs: Keyword arguments to pass to the listeners.
+
+        Returns:
+            None: The future object.
+        """
+        if isinstance(event, Event):
+            event = event.collapse()
+        return self._ee.emit_future(event, *args, **kwargs)
 
 
 env = Env()

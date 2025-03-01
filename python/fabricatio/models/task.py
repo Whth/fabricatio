@@ -60,7 +60,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     dependencies: List[str] = Field(default_factory=list)
     """A list of file paths, These file are needed to read or write to meet a specific requirement of this task, if it is not directly given out, it SHALL just be a empty list meaning `NOT ASSIGNED`"""
 
-    _output: Queue = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
+    _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""
 
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
@@ -131,7 +131,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
             self.description = description
         return self
 
-    async def get_output(self) -> T:
+    async def get_output(self) -> T | None:
         """Get the output of the task.
 
         Returns:
@@ -232,6 +232,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """
         logger.info(f"Cancelling task `{self.name}`")
         self._status = TaskStatus.Cancelled
+        await self._output.put(None)
         await env.emit_async(self.cancelled_label, self)
         return self
 
@@ -243,27 +244,38 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         """
         logger.info(f"Failing task `{self.name}`")
         self._status = TaskStatus.Failed
+        await self._output.put(None)
         await env.emit_async(self.failed_label, self)
         return self
 
-    async def publish(self) -> Self:
+    def publish(self, new_namespace: Optional[EventLike] = None) -> Self:
         """Publish the task to the event bus.
 
+        Args:
+            new_namespace(EventLike, optional): The new namespace to move the task to.
+
         Returns:
-            Task: The published instance of the `Task` class
+            Task: The published instance of the `Task` class.
         """
+        if new_namespace:
+            self.move_to(new_namespace)
         logger.info(f"Publishing task `{(label := self.pending_label)}`")
-        await env.emit_async(label, self)
+        env.emit_future(label, self)
         return self
 
-    async def delegate(self) -> T:
-        """Delegate the task to the event bus and wait for the output.
+    async def delegate(self, new_namespace: Optional[EventLike] = None) -> T | None:
+        """Delegate the task to the event.
+
+        Args:
+            new_namespace(EventLike, optional): The new namespace to move the task to.
 
         Returns:
-            T: The output of the task
+            T|None: The output of the task.
         """
+        if new_namespace:
+            self.move_to(new_namespace)
         logger.info(f"Delegating task `{(label := self.pending_label)}`")
-        await env.emit_async(label, self)
+        env.emit_future(label, self)
         return await self.get_output()
 
     @property
@@ -277,3 +289,43 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
             configs.templates.task_briefing_template,
             self.model_dump(),
         )
+
+    def is_running(self) -> bool:
+        """Check if the task is running.
+
+        Returns:
+            bool: True if the task is running, False otherwise.
+        """
+        return self._status == TaskStatus.Running
+
+    def is_finished(self) -> bool:
+        """Check if the task is finished.
+
+        Returns:
+            bool: True if the task is finished, False otherwise.
+        """
+        return self._status == TaskStatus.Finished
+
+    def is_failed(self) -> bool:
+        """Check if the task is failed.
+
+        Returns:
+            bool: True if the task is failed, False otherwise.
+        """
+        return self._status == TaskStatus.Failed
+
+    def is_cancelled(self) -> bool:
+        """Check if the task is cancelled.
+
+        Returns:
+            bool: True if the task is cancelled, False otherwise.
+        """
+        return self._status == TaskStatus.Cancelled
+
+    def is_pending(self) -> bool:
+        """Check if the task is pending.
+
+        Returns:
+            bool: True if the task is pending, False otherwise.
+        """
+        return self._status == TaskStatus.Pending

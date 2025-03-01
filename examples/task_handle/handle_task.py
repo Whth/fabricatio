@@ -56,6 +56,28 @@ class WriteDocumentation(Action):
         return await self.aask(task_input.briefing, system_message=task_input.dependencies_prompt)
 
 
+class TestCancel(Action):
+    """Action that says hello to the world."""
+
+    name: str = "cancel"
+    description: str = "cancel the task"
+    output_key: str = "counter"
+
+    async def _execute(self, counter: int, **_) -> int:
+        logger.info(f"Counter: {counter}")
+        await asyncio.sleep(5)
+        counter += 1
+        return counter
+
+
+class WriteToOutput(Action):
+    name: str = "write to output"
+    output_key: str = "task_output"
+
+    async def _execute(self, **_) -> str:
+        return "hi, this is the output"
+
+
 async def main() -> None:
     """Main function."""
     role = Role(
@@ -68,19 +90,31 @@ async def main() -> None:
             Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
                 name="write documentation", steps=(WriteDocumentation, DumpText)
             ),
+            Event.instantiate_from("cancel_test").push_wildcard().push("pending"): WorkFlow(
+                name="cancel_test",
+                steps=(TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, WriteToOutput),
+                extra_init_context={"counter": 0},
+            ),
         },
     )
 
-    prompt = "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
-
-    proposed_task = await role.propose(prompt)
-    path = await proposed_task.move_to("coding").delegate()
+    proposed_task = await role.propose(
+        "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
+    )
+    path = await proposed_task.delegate("coding")
     logger.success(f"Code Path: {path}")
 
-    proposed_task = await role.propose(f"write Readme.md file for the code, source file {path},save it in `README.md`")
-    proposed_task.override_dependencies([path])
-    doc = await proposed_task.move_to("doc").delegate()
+    proposed_task = await role.propose(
+        f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too."
+    )
+    proposed_task.override_dependencies(path)
+    doc = await proposed_task.delegate("doc")
     logger.success(f"Documentation: \n{doc}")
+
+    proposed_task.publish("cancel_test")
+    await proposed_task.cancel()
+    out = await proposed_task.get_output()
+    logger.info(f"Canceled Task Output: {out}")
 
 
 if __name__ == "__main__":
