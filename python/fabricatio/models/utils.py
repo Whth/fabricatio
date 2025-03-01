@@ -1,6 +1,6 @@
 """A module containing utility classes for the models."""
 
-from typing import Dict, List, Literal, Self
+from typing import Any, Dict, List, Literal, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -76,3 +76,52 @@ class Messages(list):
             list[dict]: A list of dictionaries representing the messages.
         """
         return [message.model_dump() for message in self]
+
+
+class MilvusData(BaseModel):
+    """A class representing data stored in Milvus."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    id: Optional[int] = Field(default=None)
+    """The identifier of the data."""
+
+    vector: List[float]
+    """The vector representation of the data."""
+
+    text: str
+    """The text representation of the data."""
+
+    subject: Optional[str] = Field(default=None)
+    """A subject label that we use to demo metadata filtering later."""
+
+    def prepare_insertion(self) -> Dict[str, Any]:
+        """Prepares the data for insertion into Milvus.
+
+        Returns:
+            dict: A dictionary containing the data to be inserted into Milvus.
+        """
+        return self.model_dump(exclude_none=True)
+
+    def update_subject(self, new_subject: str) -> Self:
+        """Updates the subject label of the data.
+
+        Args:
+            new_subject (str): The new subject label.
+
+        Returns:
+            Self: The updated instance of MilvusData.
+        """
+        self.subject = new_subject
+        return self
+
+    def update_id(self, new_id: int) -> Self:
+        """Updates the identifier of the data.
+
+        Args:
+            new_id (int): The new identifier.
+
+        Returns:
+            Self: The updated instance of MilvusData.
+        """
+        self.id = new_id
+        return self

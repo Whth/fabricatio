@@ -10,14 +10,15 @@ from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
-from fabricatio.models.kwargs_types import ChooseKwargs, GenerateKwargs, LLMKwargs
+from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.models.utils import Messages
+from fabricatio.models.utils import Messages, MilvusData
 from fabricatio.parser import JsonCapture
 from litellm import stream_chunk_builder
 from litellm.types.utils import (
     Choices,
+    EmbeddingResponse,
     ModelResponse,
     StreamingChoices,
 )
@@ -60,6 +61,97 @@ class LLMUsage(Base):
 
     llm_max_tokens: Optional[PositiveInt] = None
     """The maximum number of tokens to generate."""
+
+    async def aembedding(
+        self,
+        input_text: List[str],
+        model: Optional[str] = None,
+        dimensions: Optional[int] = None,
+        timeout: Optional[PositiveInt] = None,
+        caching: Optional[bool] = False,
+    ) -> EmbeddingResponse:
+        """Asynchronously generates embeddings for the given input text.
+
+        Args:
+            input_text (List[str]): A list of strings to generate embeddings for.
+            model (Optional[str]): The model to use for embedding. Defaults to the instance's `llm_model` or the global configuration.
+            dimensions (Optional[int]): The dimensions of the embedding. Defaults to None.
+            timeout (Optional[PositiveInt]): The timeout for the embedding request. Defaults to the instance's `llm_timeout` or the global configuration.
+            caching (Optional[bool]): Whether to cache the embedding result. Defaults to False.
+
+
+        Returns:
+            EmbeddingResponse: The response containing the embeddings.
+        """
+        return await litellm.aembedding(
+            input=input_text,
+            caching=caching,
+            dimensions=dimensions,
+            model=model or self.llm_model or configs.llm.model,
+            timeout=timeout or self.llm_timeout or configs.llm.timeout,
+            api_key=self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value(),
+            api_base=self.llm_api_endpoint.unicode_string().rstrip(
+                "/"
+            )  # seems embedding function takes no base_url end with a slash
+            if self.llm_api_endpoint
+            else configs.llm.api_endpoint.unicode_string().rstrip("/"),
+        )
+
+    @overload
+    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
+    @overload
+    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
+
+    async def vectorize(
+        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[List[float]] | List[float]:
+        """Asynchronously generates vector embeddings for the given input text.
+
+        Args:
+            input_text (List[str] | str): A string or list of strings to generate embeddings for.
+            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
+
+        Returns:
+            List[List[float]] | List[float]: The generated embeddings.
+        """
+        if isinstance(input_text, str):
+            return (await self.aembedding([input_text], **kwargs)).data[0].get("embedding")
+
+        return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
+
+    @overload
+    async def pack(
+        self, input_text: List[str], subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[MilvusData]: ...
+    @overload
+    async def pack(
+        self, input_text: str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> MilvusData: ...
+
+    async def pack(
+        self, input_text: List[str] | str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[MilvusData] | MilvusData:
+        """Asynchronously generates MilvusData objects for the given input text.
+
+        Args:
+            input_text (List[str] | str): A string or list of strings to generate embeddings for.
+            subject (Optional[str]): The subject of the input text. Defaults to None.
+            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
+
+        Returns:
+            List[MilvusData] | MilvusData: The generated MilvusData objects.
+        """
+        if isinstance(input_text, str):
+            return MilvusData(vector=await self.vectorize(input_text, **kwargs), text=input_text, subject=subject)
+        vecs = await self.vectorize(input_text, **kwargs)
+        return [
+            MilvusData(
+                vector=vec,
+                text=text,
+                subject=subject,
+            )
+            for text, vec in zip(input_text, vecs, strict=True)
+        ]
 
     async def aquery(
         self,

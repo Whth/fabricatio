@@ -5,6 +5,15 @@ from typing import List, NotRequired, TypedDict
 from pydantic import NonNegativeFloat, NonNegativeInt, PositiveInt
 
 
+class EmbeddingKwargs(TypedDict):
+    """A type representing the keyword arguments for the embedding method."""
+
+    model: NotRequired[str]
+    dimensions: NotRequired[int]
+    timeout: NotRequired[PositiveInt]
+    caching: NotRequired[bool]
+
+
 class LLMKwargs(TypedDict):
     """A type representing the keyword arguments for the LLM (Large Language Model) usage."""
 

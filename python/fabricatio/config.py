@@ -11,6 +11,7 @@ from pydantic import (
     FilePath,
     HttpUrl,
     NonNegativeFloat,
+    PositiveFloat,
     PositiveInt,
     SecretStr,
 )
@@ -207,6 +208,19 @@ class ToolBoxConfig(BaseModel):
     """The name of the module containing the data."""
 
 
+class RagConfig(BaseModel):
+    """RAG configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    milvus_uri: HttpUrl = Field(default=HttpUrl("http://localhost:19530"))
+    """The URI of the Milvus server."""
+    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
+    """The timeout of the Milvus server."""
+    milvus_token: Optional[SecretStr] = Field(default=None)
+    """The token of the Milvus server."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -249,6 +263,9 @@ class Settings(BaseSettings):
 
     toolbox: ToolBoxConfig = Field(default_factory=ToolBoxConfig)
     """Toolbox Configuration"""
+
+    rag: RagConfig = Field(default_factory=RagConfig)
+    """RAG Configuration"""
 
     @classmethod
     def settings_customise_sources(
