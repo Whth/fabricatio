@@ -1,5 +1,7 @@
 """Fabricatio is a Python library for building llm app using event-based agent structure."""
 
+from importlib.util import find_spec
+
 from fabricatio._rust_instances import template_manager
 from fabricatio.core import env
 from fabricatio.fs import magika
@@ -35,3 +37,9 @@ __all__ = [
     "task_toolbox",
     "template_manager",
 ]
+
+
+if find_spec("pymilvus"):
+    from fabricatio.capabilities.rag import Rag
+
+    __all__ += ["Rag"]

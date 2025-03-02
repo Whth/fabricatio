@@ -1,5 +1,6 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
+from functools import lru_cache
 from operator import itemgetter
 from os import PathLike
 from pathlib import Path
@@ -14,47 +15,61 @@ try:
     from pymilvus import MilvusClient
 except ImportError as e:
     raise RuntimeError("pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`") from e
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
+
+
+@lru_cache(maxsize=None)
+def create_client(
+    uri: Optional[str] = None, token: Optional[str] = None, timeout: Optional[float] = None
+) -> MilvusClient:
+    """Create a Milvus client."""
+    return MilvusClient(
+        uri=uri or configs.rag.milvus_uri.unicode_string(),
+        token=token or configs.rag.milvus_token.get_secret_value() if configs.rag.milvus_token else "",
+        timeout=timeout or configs.rag.milvus_timeout,
+    )
 
 
 class Rag(LLMUsage):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
-    _client: MilvusClient = PrivateAttr(
-        default=MilvusClient(
-            uri=configs.rag.milvus_uri.unicode_string(),
-            token=configs.rag.milvus_token.get_secret_value(),
-            timeout=configs.rag.milvus_timeout,
-        ),
-    )
-    _target_collection: Optional[str] = PrivateAttr(default=None)
+    milvus_uri: Optional[str] = Field(default=None, frozen=True)
+    """The URI of the Milvus server."""
+    milvus_token: Optional[str] = Field(default=None, frozen=True)
+    """The token for the Milvus server."""
+    milvus_timeout: Optional[float] = Field(default=None, frozen=True)
+    """The timeout for the Milvus server."""
+    target_collection: Optional[str] = Field(default=None)
+    """The name of the collection being viewed."""
 
-    @property
-    def client(self) -> MilvusClient:
-        """The Milvus client."""
-        return self._client
+    _client: MilvusClient = PrivateAttr(None)
+    """The Milvus client used for the RAG model."""
 
-    def view(self, collection_name: str, create: bool = False) -> Self:
+    def model_post_init(self, __context: Any) -> None:
+        """Initialize the RAG model by creating the collection if it does not exist."""
+        self.view(self.safe_viewing_collection, create=True)
+        self._client = create_client(self.milvus_uri, self.milvus_token, self.milvus_timeout)
+
+    def view(self, collection_name: Optional[str], create: bool = False) -> Self:
         """View the specified collection.
 
         Args:
             collection_name (str): The name of the collection.
             create (bool): Whether to create the collection if it does not exist.
         """
-        if create and self._client.has_collection(collection_name):
+        if create and collection_name and not self._client.has_collection(collection_name):
             self._client.create_collection(collection_name)
 
-        self._target_collection = collection_name
+        self.target_collection = collection_name
         return self
 
-    def quit_view(self) -> Self:
+    def quit_viewing(self) -> Self:
         """Quit the current view.
 
         Returns:
             Self: The current instance, allowing for method chaining.
         """
-        self._target_collection = None
-        return self
+        return self.view(None)
 
     @property
     def viewing_collection(self) -> Optional[str]:
@@ -63,7 +78,7 @@ class Rag(LLMUsage):
         Returns:
             Optional[str]: The name of the collection being viewed.
         """
-        return self._target_collection
+        return self.target_collection
 
     @property
     def safe_viewing_collection(self) -> str:
@@ -72,9 +87,9 @@ class Rag(LLMUsage):
         Returns:
             str: The name of the collection being viewed.
         """
-        if self._target_collection is None:
+        if self.target_collection is None:
             raise RuntimeError("No collection is being viewed. Have you called `self.view()`?")
-        return self._target_collection
+        return self.target_collection
 
     def add_document[D: Union[Dict[str, Any], MilvusData]](
         self, data: D | List[D], collection_name: Optional[str] = None
