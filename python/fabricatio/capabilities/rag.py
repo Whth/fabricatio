@@ -47,8 +47,8 @@ class Rag(LLMUsage):
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the RAG model by creating the collection if it does not exist."""
-        self.view(self.safe_viewing_collection, create=True)
         self._client = create_client(self.milvus_uri, self.milvus_token, self.milvus_timeout)
+        self.view(self.target_collection, create=True)
 
     def view(self, collection_name: Optional[str], create: bool = False) -> Self:
         """View the specified collection.
@@ -72,16 +72,7 @@ class Rag(LLMUsage):
         return self.view(None)
 
     @property
-    def viewing_collection(self) -> Optional[str]:
-        """Get the name of the collection being viewed.
-
-        Returns:
-            Optional[str]: The name of the collection being viewed.
-        """
-        return self.target_collection
-
-    @property
-    def safe_viewing_collection(self) -> str:
+    def safe_target_collection(self) -> str:
         """Get the name of the collection being viewed, raise an error if not viewing any collection.
 
         Returns:
@@ -107,7 +98,7 @@ class Rag(LLMUsage):
             data = data.prepare_insertion()
         if isinstance(data, list):
             data = [d.prepare_insertion() if isinstance(d, MilvusData) else d for d in data]
-        self._client.insert(collection_name or self.safe_viewing_collection, data)
+        self._client.insert(collection_name or self.safe_target_collection, data)
         return self
 
     def consume(
@@ -124,7 +115,7 @@ class Rag(LLMUsage):
             Self: The current instance, allowing for method chaining.
         """
         data = reader(Path(source))
-        self.add_document(data, collection_name or self.safe_viewing_collection)
+        self.add_document(data, collection_name or self.safe_target_collection)
         return self
 
     async def afetch_document(
@@ -147,7 +138,7 @@ class Rag(LLMUsage):
         """
         # Step 1: Search for vectors
         search_results = self._client.search(
-            collection_name or self.safe_viewing_collection,
+            collection_name or self.safe_target_collection,
             vecs,
             output_fields=desired_fields if isinstance(desired_fields, list) else [desired_fields],
             limit=result_per_query,
