@@ -5,7 +5,7 @@ from typing import Any
 
 from fabricatio import Action, Role, Task, WorkFlow, logger
 
-task = Task(name="say hello", goal=["say hello"], description="say hello to the world")
+task = Task(name="say hello", goals=["say hello"], description="say hello to the world")
 
 
 class Hello(Action):

@@ -1,16 +1,15 @@
 import pytest
-
 from fabricatio.models.task import Task, TaskStatus
 
 
 @pytest.fixture
 def basic_task():
-    return Task(name="test task", goal=["test goal"], description="test description")
+    return Task(name="test task", goals=["test goal"], description="test description")
 
 
 @pytest.fixture
 def task_with_namespace():
-    return Task(name="test task", goal=["test goal"], description="test description", namespace=["test", "namespace"])
+    return Task(name="test task", goals=["test goal"], description="test description", namespace=["test", "namespace"])
 
 
 @pytest.mark.asyncio
@@ -54,7 +53,7 @@ async def test_task_status_progression(basic_task):
 
 
 def test_task_with_complex_namespace():
-    task = Task(name="test task", goal=["test goal"], description="test description", namespace=["a", "b", "c"])
+    task = Task(name="test task", goals=["test goal"], description="test description", namespace=["a", "b", "c"])
     assert len(task.namespace) == 3
     assert task.namespace == ["a", "b", "c"]
 
@@ -83,12 +82,12 @@ async def test_task_state_transitions(basic_task):
 
 def test_task_dependency_management():
     deps = ["dep1.py", "dep2.py"]
-    task = Task(name="test", goal=["test"], description="test", dependencies=deps)
+    task = Task(name="test", goals=["test"], description="test", dependencies=deps)
     assert task.dependencies == deps
 
 
 def test_task_empty_init():
-    task = Task(name="test", goal=["test"], description="test")
+    task = Task(name="test", goals=["test"], description="test")
     assert task.namespace == []
     assert not task.dependencies
 

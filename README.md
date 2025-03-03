@@ -59,32 +59,32 @@ from fabricatio import Action, Role, Task, logger
 
 
 class Hello(Action):
-    """Action that says hello."""
+   """Action that says hello."""
 
-    name: str = "hello"
-    output_key: str = "task_output"
+   name: str = "hello"
+   output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = "Hello fabricatio!"
-        logger.info("executing talk action")
-        return ret
+   async def _execute(self, task_input: Task[str], **_) -> Any:
+      ret = "Hello fabricatio!"
+      logger.info("executing talk action")
+      return ret
 
 
 async def main() -> None:
-    """Main function."""
-    role = Role(
-        name="talker", 
-        description="talker role", 
-        registry={Task.pending_label: WorkFlow(name="talk", steps=(Hello,))}
-    )
+   """Main function."""
+   role = Role(
+      name="talker",
+      description="talker role",
+      registry={Task.pending_label: WorkFlow(name="talk", steps=(Hello,))}
+   )
 
-    task = Task(name="say hello", goal="say hello", description="say hello to the world")
-    result = await task.delegate()
-    logger.success(f"Result: {result}")
+   task = Task(name="say hello", goals="say hello", description="say hello to the world")
+   result = await task.delegate()
+   logger.success(f"Result: {result}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+   asyncio.run(main())
 ```
 
 #### Writing and Dumping Code
@@ -272,17 +272,18 @@ from fabricatio.models.task import Task
 
 toolbox_usage = ToolBoxUsage()
 
+
 async def handle_security_vulnerabilities():
-    task = Task(
-        name="Security Check",
-        goal=["Identify security vulnerabilities"],
-        description="Perform a thorough security review on the project.",
-        dependencies=["./src/main.py"]
-    )
-    
-    vulnerabilities = await toolbox_usage.gather_tools_fine_grind(task)
-    for vulnerability in vulnerabilities:
-        print(f"Found vulnerability: {vulnerability.name}")
+   task = Task(
+      name="Security Check",
+      goals=["Identify security vulnerabilities"],
+      description="Perform a thorough security review on the project.",
+      dependencies=["./src/main.py"]
+   )
+
+   vulnerabilities = await toolbox_usage.gather_tools_fine_grind(task)
+   for vulnerability in vulnerabilities:
+      print(f"Found vulnerability: {vulnerability.name}")
 ```
 
 #### Managing CTF Challenges
@@ -295,19 +296,22 @@ from fabricatio.models.task import Task
 
 toolbox_usage = ToolBoxUsage()
 
+
 async def solve_ctf_challenge(challenge_name: str, challenge_description: str, files: list[str]):
-    task = Task(
-        name=challenge_name,
-        goal=[f"Solve {challenge_name} challenge"],
-        description=challenge_description,
-        dependencies=files
-    )
-    
-    solution = await toolbox_usage.gather_tools_fine_grind(task)
-    print(f"Challenge Solved: {solution}")
+   task = Task(
+      name=challenge_name,
+      goals=[f"Solve {challenge_name} challenge"],
+      description=challenge_description,
+      dependencies=files
+   )
+
+   solution = await toolbox_usage.gather_tools_fine_grind(task)
+   print(f"Challenge Solved: {solution}")
+
 
 if __name__ == "__main__":
-    asyncio.run(solve_ctf_challenge("Binary Exploitation", "CTF Binary Exploitation Challenge", ["./challenges/binary_exploit"]))
+   asyncio.run(
+      solve_ctf_challenge("Binary Exploitation", "CTF Binary Exploitation Challenge", ["./challenges/binary_exploit"]))
 ```
 
 ### Configuration

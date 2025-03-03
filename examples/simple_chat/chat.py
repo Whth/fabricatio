@@ -1,11 +1,10 @@
 """Simple chat example."""
 
 import asyncio
-from typing import Any
 
 from fabricatio import Action, Role, Task, WorkFlow, logger
-
-task = Task(name="say hello", goal=["say hello"], description="say hello to the world")
+from fabricatio.models.events import Event
+from questionary import text
 
 
 class Talk(Action):
@@ -14,19 +13,34 @@ class Talk(Action):
     name: str = "talk"
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task[str], **_) -> Any:
-        ret = "Hello fabricatio!"
-        logger.info("executing talk action")
-        return ret
+    async def _execute(self, task_input: Task[str], **_) -> int:
+        counter = 0
+        try:
+            while True:
+                user_say = await text("User: ").ask_async()
+                gpt_say = await self.aask(
+                    user_say,
+                    system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                )
+                print(f"GPT: {gpt_say}")  # noqa: T201
+                counter += 1
+        except KeyboardInterrupt:
+            logger.info(f"executed talk action {counter} times")
+        return counter
 
 
 async def main() -> None:
     """Main function."""
     role = Role(
-        name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))}
+        name="talker",
+        description="talker role",
+        registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
     )
-    logger.info(Task.json_example())
-    logger.info(f"proposed task: {await role.propose('say hello to Jhon')}")
+
+    task = await role.propose(
+        "you have to act as a helpful assistant, answer to all user questions properly and patiently"
+    )
+    _ = await task.delegate("talk")
 
 
 if __name__ == "__main__":

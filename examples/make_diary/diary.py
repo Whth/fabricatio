@@ -18,8 +18,8 @@ class WriteDiary(Action):
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        task_input.goal.clear()
-        task_input.goal.extend(
+        task_input.goals.clear()
+        task_input.goals.extend(
             [
                 "write a Internship Diary according to the given commit messages",
                 "the diary should include the main dev target of the day, and the exact content"

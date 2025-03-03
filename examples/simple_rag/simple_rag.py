@@ -1,4 +1,4 @@
-"""Example of proposing a task to a role."""
+"""Simple chat example."""
 
 import asyncio
 from typing import Any
@@ -14,7 +14,7 @@ class Talk(Action):
     name: str = "talk"
     output_key: str = "task_output"
 
-    async def _execute(self, **_) -> Any:
+    async def _execute(self, task_input: Task[str], **_) -> Any:
         ret = "Hello fabricatio!"
         logger.info("executing talk action")
         return ret
@@ -25,8 +25,8 @@ async def main() -> None:
     role = Role(
         name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))}
     )
-    logger.info(f"Task example:\n{Task.json_example()}")
-    logger.info(f"proposed task: {await role.propose('write a rust clap cli that can download a html page')}")
+    logger.info(Task.json_example())
+    logger.info(f"proposed task: {await role.propose('say hello to Jhon')}")
 
 
 if __name__ == "__main__":

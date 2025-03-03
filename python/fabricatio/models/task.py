@@ -46,19 +46,19 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     """
 
     name: str = Field(...)
-    """The name of the task, which should be a concise and descriptive name."""
+    """The name of the task, which should be concise and descriptive."""
 
     description: str = Field(default="")
-    """The description of the task, which should provide every details and noting about the task if provided, obeying the CEFR level rule and 5W1H rule."""
+    """A detailed explanation of the task that includes all necessary information. Should be clear and answer what, why, when, where, who, and how questions."""
 
-    goal: List[str] = Field(default=[])
-    """The goal of the task, a list of strings. The goal should be a concise and clear statement of what the task is intended to achieve, goal SHALL NOT be too broad or too narrow."""
+    goals: List[str] = Field(default=[])
+    """A list of objectives that the task aims to accomplish. Each goal should be clear and specific. Complex tasks should be broken into multiple smaller goals."""
 
     namespace: List[str] = Field(default_factory=list)
-    """The namespace of the task, a list of namespace segment, as string, if it is not directly given out, it SHALL just be a empty list meaning `NOT ASSIGNED`"""
+    """A list of string segments that identify the task's location in the system. If not specified, defaults to an empty list."""
 
     dependencies: List[str] = Field(default_factory=list)
-    """A list of file paths, These file are needed to read or write to meet a specific requirement of this task, if it is not directly given out, it SHALL just be a empty list meaning `NOT ASSIGNED`"""
+    """A list of file paths that are needed (either reading or writing) to complete this task. If not specified, defaults to an empty list."""
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""
@@ -113,7 +113,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
         Returns:
             Task: A new instance of the `Task` class.
         """
-        return cls(name=name, goal=goal, description=description)
+        return cls(name=name, goals=goal, description=description)
 
     def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
         """Update the goal and description of the task.
@@ -126,7 +126,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
             Task: The updated instance of the `Task` class.
         """
         if goal:
-            self.goal = goal if isinstance(goal, list) else [goal]
+            self.goals = goal if isinstance(goal, list) else [goal]
         if description:
             self.description = description
         return self
