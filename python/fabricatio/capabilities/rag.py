@@ -4,9 +4,11 @@ from functools import lru_cache
 from operator import itemgetter
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Self, Union
+from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack
 
+from fabricatio import template_manager
 from fabricatio.config import configs
+from fabricatio.models.kwargs_types import LLMKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.models.utils import MilvusData
 from more_itertools.recipes import flatten
@@ -44,6 +46,11 @@ class Rag(LLMUsage):
 
     _client: MilvusClient = PrivateAttr(None)
     """The Milvus client used for the RAG model."""
+
+    @property
+    def client(self) -> MilvusClient:
+        """Return the Milvus client."""
+        return self._client
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the RAG model by creating the collection if it does not exist."""
@@ -183,3 +190,36 @@ class Rag(LLMUsage):
             collection_name=collection_name,
             result_per_query=result_per_query,
         )[:final_limit]
+
+    async def aask_retrieved(
+        self,
+        question: str | List[str],
+        query: List[str] | str,
+        collection_name: Optional[str] = None,
+        result_per_query: int = 10,
+        final_limit: int = 20,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str:
+        """Asks a question by retrieving relevant documents based on the provided query.
+
+        This method performs document retrieval using the given query, then asks the
+        specified question using the retrieved documents as context.
+
+        Args:
+            question (str | List[str]): The question or list of questions to be asked.
+            query (List[str] | str): The query or list of queries used for document retrieval.
+            collection_name (Optional[str]): The name of the collection to retrieve documents from.
+                                              If not provided, the currently viewed collection is used.
+            result_per_query (int): The number of results to return per query. Default is 10.
+            final_limit (int): The maximum number of retrieved documents to consider. Default is 20.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments passed to the underlying `aask` method.
+
+        Returns:
+            str: A string response generated after asking with the context of retrieved documents.
+        """
+        docs = await self.aretrieve(query, collection_name, result_per_query, final_limit)
+        return await self.aask(
+            question,
+            template_manager.render_template(configs.templates.retrieved_display_template, {"docs": docs}),
+            **kwargs,
+        )

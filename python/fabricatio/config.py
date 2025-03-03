@@ -176,6 +176,9 @@ class TemplateConfig(BaseModel):
     draft_rating_weights_klee_template: str = Field(default="draft_rating_weights_klee")
     """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
 
+    retrieved_display_template: str = Field(default="retrieved_display")
+    """The name of the retrieved display template which will be used to display retrieved documents."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
