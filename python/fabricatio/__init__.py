@@ -40,6 +40,6 @@ __all__ = [
 
 
 if find_spec("pymilvus"):
-    from fabricatio.capabilities.rag import Rag
+    from fabricatio.capabilities.rag import RAG
 
-    __all__ += ["Rag"]
+    __all__ += ["RAG"]
