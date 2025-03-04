@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, ove
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.kwargs_types import CollectionSimpleConfigKwargs, EmbeddingKwargs, LLMKwargs
+from fabricatio.models.kwargs_types import CollectionSimpleConfigKwargs, EmbeddingKwargs, FetchKwargs, LLMKwargs
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.models.utils import MilvusData
 from more_itertools.recipes import flatten
@@ -195,6 +195,7 @@ class RAG(EmbeddingUsage):
         vecs: List[List[float]],
         desired_fields: List[str] | str,
         collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
         result_per_query: int = 10,
     ) -> List[Dict[str, Any]] | List[Any]:
         """Fetch data from the collection.
@@ -203,6 +204,7 @@ class RAG(EmbeddingUsage):
             vecs (List[List[float]]): The vectors to search for.
             desired_fields (List[str] | str): The fields to retrieve.
             collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
+            similarity_threshold (float): The threshold for similarity, only results above this threshold will be returned.
             result_per_query (int): The number of results to return per query.
 
         Returns:
@@ -212,6 +214,7 @@ class RAG(EmbeddingUsage):
         search_results = self._client.search(
             collection_name or self.safe_target_collection,
             vecs,
+            search_params={"radius": similarity_threshold},
             output_fields=desired_fields if isinstance(desired_fields, list) else [desired_fields],
             limit=result_per_query,
         )
@@ -222,6 +225,7 @@ class RAG(EmbeddingUsage):
         # Step 3: Sort by distance (descending)
         sorted_results = sorted(flattened_results, key=itemgetter("distance"), reverse=True)
 
+        logger.debug(f"Searched similarities: {[t['distance'] for t in sorted_results]}")
         # Step 4: Extract the entities
         resp = [result["entity"] for result in sorted_results]
 
@@ -233,16 +237,16 @@ class RAG(EmbeddingUsage):
         self,
         query: List[str] | str,
         collection_name: Optional[str] = None,
-        result_per_query: int = 10,
         final_limit: int = 20,
+        **kwargs: Unpack[FetchKwargs],
     ) -> List[str]:
         """Retrieve data from the collection.
 
         Args:
             query (List[str] | str): The query to be used for retrieval.
             collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
-            result_per_query (int): The number of results to be returned per query.
             final_limit (int): The final limit on the number of results to return.
+            **kwargs (Unpack[FetchKwargs]): Additional keyword arguments for retrieval.
 
         Returns:
             List[str]: A list of strings containing the retrieved data.
@@ -254,7 +258,7 @@ class RAG(EmbeddingUsage):
                 vecs=(await self.vectorize(query)),
                 desired_fields="text",
                 collection_name=collection_name,
-                result_per_query=result_per_query,
+                **kwargs,
             )
         )[:final_limit]
 
@@ -266,6 +270,7 @@ class RAG(EmbeddingUsage):
         extra_system_message: str = "",
         result_per_query: int = 10,
         final_limit: int = 20,
+        similarity_threshold: float = 0.37,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Asks a question by retrieving relevant documents based on the provided query.
@@ -281,12 +286,19 @@ class RAG(EmbeddingUsage):
             extra_system_message (str): An additional system message to be included in the prompt.
             result_per_query (int): The number of results to return per query. Default is 10.
             final_limit (int): The maximum number of retrieved documents to consider. Default is 20.
+            similarity_threshold (float): The threshold for similarity, only results above this threshold will be returned.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments passed to the underlying `aask` method.
 
         Returns:
             str: A string response generated after asking with the context of retrieved documents.
         """
-        docs = await self.aretrieve(query, collection_name, result_per_query, final_limit)
+        docs = await self.aretrieve(
+            query,
+            collection_name,
+            final_limit,
+            result_per_query=result_per_query,
+            similarity_threshold=similarity_threshold,
+        )
 
         rendered = template_manager.render_template(configs.templates.retrieved_display_template, {"docs": docs[::-1]})
 

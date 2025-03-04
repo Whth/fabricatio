@@ -16,7 +16,7 @@ class Talk(Action, RAG):
     async def _execute(self, task_input: Task[str], **_) -> int:
         counter = 0
 
-        self.init_client().view("fal", create=True).view("test_collection", create=True)
+        self.init_client().view("test_collection", create=True)
         await self.consume_string(
             [
                 "Company policy clearly stipulates that all employees must arrive at the headquarters building located at 88 Jianguo Road, Chaoyang District, Beijing before 9 AM daily.",

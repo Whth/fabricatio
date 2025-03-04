@@ -12,6 +12,13 @@ class CollectionSimpleConfigKwargs(TypedDict):
     timeout: NotRequired[float]
 
 
+class FetchKwargs(TypedDict):
+    """A type representing the keyword arguments for the fetch method."""
+
+    similarity_threshold: NotRequired[float]
+    result_per_query: NotRequired[int]
+
+
 class EmbeddingKwargs(TypedDict):
     """A type representing the keyword arguments for the embedding method."""
 
