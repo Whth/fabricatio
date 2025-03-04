@@ -1,23 +1,23 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
-from functools import lru_cache
-from operator import itemgetter
-from os import PathLike
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack
-
-from fabricatio import template_manager
-from fabricatio.config import configs
-from fabricatio.models.kwargs_types import LLMKwargs
-from fabricatio.models.usages import LLMUsage
-from fabricatio.models.utils import MilvusData
-from more_itertools.recipes import flatten
+from fabricatio.models.usages import EmbeddingUsage
 
 try:
     from pymilvus import MilvusClient
 except ImportError as e:
     raise RuntimeError("pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`") from e
-from pydantic import Field, PrivateAttr
+from functools import lru_cache
+from operator import itemgetter
+from os import PathLike
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, overload
+
+from fabricatio._rust_instances import template_manager
+from fabricatio.config import configs
+from fabricatio.models.kwargs_types import EmbeddingKwargs, LLMKwargs
+from fabricatio.models.utils import MilvusData
+from more_itertools.recipes import flatten
+from pydantic import PrivateAttr
 
 
 @lru_cache(maxsize=None)
@@ -32,30 +32,57 @@ def create_client(
     )
 
 
-class Rag(LLMUsage):
+class RAG(EmbeddingUsage):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
-    milvus_uri: Optional[str] = Field(default=None, frozen=True)
-    """The URI of the Milvus server."""
-    milvus_token: Optional[str] = Field(default=None, frozen=True)
-    """The token for the Milvus server."""
-    milvus_timeout: Optional[float] = Field(default=None, frozen=True)
-    """The timeout for the Milvus server."""
-    target_collection: Optional[str] = Field(default=None)
-    """The name of the collection being viewed."""
-
-    _client: MilvusClient = PrivateAttr(None)
+    _client: Optional[MilvusClient] = PrivateAttr(None)
     """The Milvus client used for the RAG model."""
 
     @property
     def client(self) -> MilvusClient:
         """Return the Milvus client."""
+        if self._client is None:
+            raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
         return self._client
 
-    def model_post_init(self, __context: Any) -> None:
-        """Initialize the RAG model by creating the collection if it does not exist."""
+    def init_client(self) -> Self:
+        """Initialize the Milvus client."""
         self._client = create_client(self.milvus_uri, self.milvus_token, self.milvus_timeout)
-        self.view(self.target_collection, create=True)
+        return self
+
+    @overload
+    async def pack(
+        self, input_text: List[str], subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[MilvusData]: ...
+    @overload
+    async def pack(
+        self, input_text: str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> MilvusData: ...
+
+    async def pack(
+        self, input_text: List[str] | str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[MilvusData] | MilvusData:
+        """Asynchronously generates MilvusData objects for the given input text.
+
+        Args:
+            input_text (List[str] | str): A string or list of strings to generate embeddings for.
+            subject (Optional[str]): The subject of the input text. Defaults to None.
+            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
+
+        Returns:
+            List[MilvusData] | MilvusData: The generated MilvusData objects.
+        """
+        if isinstance(input_text, str):
+            return MilvusData(vector=await self.vectorize(input_text, **kwargs), text=input_text, subject=subject)
+        vecs = await self.vectorize(input_text, **kwargs)
+        return [
+            MilvusData(
+                vector=vec,
+                text=text,
+                subject=subject,
+            )
+            for text, vec in zip(input_text, vecs, strict=True)
+        ]
 
     def view(self, collection_name: Optional[str], create: bool = False) -> Self:
         """View the specified collection.
@@ -196,6 +223,7 @@ class Rag(LLMUsage):
         question: str | List[str],
         query: List[str] | str,
         collection_name: Optional[str] = None,
+        extra_system_message: str = "",
         result_per_query: int = 10,
         final_limit: int = 20,
         **kwargs: Unpack[LLMKwargs],
@@ -210,6 +238,7 @@ class Rag(LLMUsage):
             query (List[str] | str): The query or list of queries used for document retrieval.
             collection_name (Optional[str]): The name of the collection to retrieve documents from.
                                               If not provided, the currently viewed collection is used.
+            extra_system_message (str): An additional system message to be included in the prompt.
             result_per_query (int): The number of results to return per query. Default is 10.
             final_limit (int): The maximum number of retrieved documents to consider. Default is 20.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments passed to the underlying `aask` method.
@@ -220,6 +249,6 @@ class Rag(LLMUsage):
         docs = await self.aretrieve(query, collection_name, result_per_query, final_limit)
         return await self.aask(
             question,
-            template_manager.render_template(configs.templates.retrieved_display_template, {"docs": docs}),
+            f"{template_manager.render_template(configs.templates.retrieved_display_template, {'docs': docs})}\n\n{extra_system_message}",
             **kwargs,
         )
