@@ -1,7 +1,7 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
 from asyncio import gather
-from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack, overload
+from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Type, Union, Unpack, overload
 
 import asyncstdlib
 import litellm
@@ -9,11 +9,11 @@ import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.generic import Base, WithBriefing
+from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.models.utils import Messages, MilvusData
+from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
 from litellm import stream_chunk_builder
 from litellm.types.utils import (
@@ -23,135 +23,15 @@ from litellm.types.utils import (
     StreamingChoices,
 )
 from litellm.utils import CustomStreamWrapper
-from pydantic import Field, HttpUrl, NonNegativeFloat, NonNegativeInt, PositiveInt, SecretStr
+from pydantic import Field, NonNegativeInt, PositiveInt
 
 
-class LLMUsage(Base):
+class LLMUsage(ScopedConfig):
     """Class that manages LLM (Large Language Model) usage parameters and methods."""
 
-    llm_api_endpoint: Optional[HttpUrl] = None
-    """The OpenAI API endpoint."""
-
-    llm_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
-
-    llm_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    llm_max_retries: Optional[PositiveInt] = None
-    """The maximum number of retries."""
-
-    llm_model: Optional[str] = None
-    """The LLM model name."""
-
-    llm_temperature: Optional[NonNegativeFloat] = None
-    """The temperature of the LLM model."""
-
-    llm_stop_sign: Optional[str | List[str]] = None
-    """The stop sign of the LLM model."""
-
-    llm_top_p: Optional[NonNegativeFloat] = None
-    """The top p of the LLM model."""
-
-    llm_generation_count: Optional[PositiveInt] = None
-    """The number of generations to generate."""
-
-    llm_stream: Optional[bool] = None
-    """Whether to stream the LLM model's response."""
-
-    llm_max_tokens: Optional[PositiveInt] = None
-    """The maximum number of tokens to generate."""
-
-    async def aembedding(
-        self,
-        input_text: List[str],
-        model: Optional[str] = None,
-        dimensions: Optional[int] = None,
-        timeout: Optional[PositiveInt] = None,
-        caching: Optional[bool] = False,
-    ) -> EmbeddingResponse:
-        """Asynchronously generates embeddings for the given input text.
-
-        Args:
-            input_text (List[str]): A list of strings to generate embeddings for.
-            model (Optional[str]): The model to use for embedding. Defaults to the instance's `llm_model` or the global configuration.
-            dimensions (Optional[int]): The dimensions of the embedding. Defaults to None.
-            timeout (Optional[PositiveInt]): The timeout for the embedding request. Defaults to the instance's `llm_timeout` or the global configuration.
-            caching (Optional[bool]): Whether to cache the embedding result. Defaults to False.
-
-
-        Returns:
-            EmbeddingResponse: The response containing the embeddings.
-        """
-        return await litellm.aembedding(
-            input=input_text,
-            caching=caching,
-            dimensions=dimensions,
-            model=model or self.llm_model or configs.llm.model,
-            timeout=timeout or self.llm_timeout or configs.llm.timeout,
-            api_key=self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value(),
-            api_base=self.llm_api_endpoint.unicode_string().rstrip(
-                "/"
-            )  # seems embedding function takes no base_url end with a slash
-            if self.llm_api_endpoint
-            else configs.llm.api_endpoint.unicode_string().rstrip("/"),
-        )
-
-    @overload
-    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
-    @overload
-    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
-
-    async def vectorize(
-        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> List[List[float]] | List[float]:
-        """Asynchronously generates vector embeddings for the given input text.
-
-        Args:
-            input_text (List[str] | str): A string or list of strings to generate embeddings for.
-            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
-
-        Returns:
-            List[List[float]] | List[float]: The generated embeddings.
-        """
-        if isinstance(input_text, str):
-            return (await self.aembedding([input_text], **kwargs)).data[0].get("embedding")
-
-        return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
-
-    @overload
-    async def pack(
-        self, input_text: List[str], subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> List[MilvusData]: ...
-    @overload
-    async def pack(
-        self, input_text: str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> MilvusData: ...
-
-    async def pack(
-        self, input_text: List[str] | str, subject: Optional[str] = None, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> List[MilvusData] | MilvusData:
-        """Asynchronously generates MilvusData objects for the given input text.
-
-        Args:
-            input_text (List[str] | str): A string or list of strings to generate embeddings for.
-            subject (Optional[str]): The subject of the input text. Defaults to None.
-            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
-
-        Returns:
-            List[MilvusData] | MilvusData: The generated MilvusData objects.
-        """
-        if isinstance(input_text, str):
-            return MilvusData(vector=await self.vectorize(input_text, **kwargs), text=input_text, subject=subject)
-        vecs = await self.vectorize(input_text, **kwargs)
-        return [
-            MilvusData(
-                vector=vec,
-                text=text,
-                subject=subject,
-            )
-            for text, vec in zip(input_text, vecs, strict=True)
-        ]
+    @classmethod
+    def _scoped_model(cls) -> Type["LLMUsage"]:
+        return LLMUsage
 
     async def aquery(
         self,
@@ -213,13 +93,13 @@ class LLMUsage(Base):
         if isinstance(resp, ModelResponse):
             return resp.choices
         if isinstance(resp, CustomStreamWrapper):
-            if configs.debug.streaming_visible:
-                chunks = []
-                async for chunk in resp:
-                    chunks.append(chunk)
-                    print(chunk.choices[0].delta.content or "", end="")  # noqa: T201
-                return stream_chunk_builder(chunks).choices
-            return stream_chunk_builder(await asyncstdlib.list()).choices
+            if not configs.debug.streaming_visible:
+                return stream_chunk_builder(await asyncstdlib.list()).choices
+            chunks = []
+            async for chunk in resp:
+                chunks.append(chunk)
+                print(chunk.choices[0].delta.content or "", end="")  # noqa: T201
+            return stream_chunk_builder(chunks).choices
         logger.critical(err := f"Unexpected response type: {type(resp)}")
         raise ValueError(err)
 
@@ -475,39 +355,76 @@ class LLMUsage(Base):
             **kwargs,
         )
 
-    def fallback_to(self, other: "LLMUsage") -> Self:
-        """Fallback to another instance's attribute values if the current instance's attributes are None.
+
+class EmbeddingUsage(LLMUsage):
+    """A class representing the embedding model."""
+
+    async def aembedding(
+        self,
+        input_text: List[str],
+        model: Optional[str] = None,
+        dimensions: Optional[int] = None,
+        timeout: Optional[PositiveInt] = None,
+        caching: Optional[bool] = False,
+    ) -> EmbeddingResponse:
+        """Asynchronously generates embeddings for the given input text.
 
         Args:
-            other (LLMUsage): Another instance from which to copy attribute values.
+            input_text (List[str]): A list of strings to generate embeddings for.
+            model (Optional[str]): The model to use for embedding. Defaults to the instance's `llm_model` or the global configuration.
+            dimensions (Optional[int]): The dimensions of the embedding output should have, which is used to validate the result. Defaults to None.
+            timeout (Optional[PositiveInt]): The timeout for the embedding request. Defaults to the instance's `llm_timeout` or the global configuration.
+            caching (Optional[bool]): Whether to cache the embedding result. Defaults to False.
+
 
         Returns:
-            Self: The current instance, allowing for method chaining.
+            EmbeddingResponse: The response containing the embeddings.
         """
-        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
-        # noinspection PydanticTypeChecker,PyTypeChecker
-        for attr_name in LLMUsage.model_fields:
-            # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
-            if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
-                setattr(self, attr_name, attr)
+        return await litellm.aembedding(
+            input=input_text,
+            caching=caching or self.embedding_caching or configs.embedding.caching,
+            dimensions=dimensions or self.embedding_dimensions or configs.embedding.dimensions,
+            model=model or self.embedding_model or configs.embedding.model or self.llm_model or configs.llm.model,
+            timeout=timeout
+            or self.embedding_timeout
+            or configs.embedding.timeout
+            or self.llm_timeout
+            or configs.llm.timeout,
+            api_key=(self.embedding_api_key.get_secret_value() if self.embedding_api_key else configs.embedding.api_key)
+            or (self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value()),
+            api_base=(  # seems embedding function takes no base_url end with a slash
+                self.embedding_api_endpoint.unicode_string().rstrip("/")
+                if self.embedding_api_endpoint
+                else configs.embedding.api_endpoint.unicode_string().rstrip("/")
+            )
+            or (
+                self.llm_api_endpoint.unicode_string().rstrip("/")
+                if self.llm_api_endpoint
+                else configs.llm.api_endpoint.unicode_string().rstrip("/")
+            ),
+        )
 
-        # Return the current instance to allow for method chaining
-        return self
+    @overload
+    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
+    @overload
+    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
 
-    def hold_to(self, others: Union["LLMUsage", Iterable["LLMUsage"]]) -> Self:
-        """Hold to another instance's attribute values if the current instance's attributes are None.
+    async def vectorize(
+        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> List[List[float]] | List[float]:
+        """Asynchronously generates vector embeddings for the given input text.
 
         Args:
-            others (LLMUsage | Iterable[LLMUsage]): Another instance or iterable of instances from which to copy attribute values.
+            input_text (List[str] | str): A string or list of strings to generate embeddings for.
+            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
 
         Returns:
-            Self: The current instance, allowing for method chaining.
+            List[List[float]] | List[float]: The generated embeddings.
         """
-        for other in others:
-            # noinspection PyTypeChecker,PydanticTypeChecker
-            for attr_name in LLMUsage.model_fields:
-                if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
-                    setattr(other, attr_name, attr)
+        if isinstance(input_text, str):
+            return (await self.aembedding([input_text], **kwargs)).data[0].get("embedding")
+
+        return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
 
 
 class ToolBoxUsage(LLMUsage):
