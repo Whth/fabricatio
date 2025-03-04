@@ -246,6 +246,8 @@ class RagConfig(BaseModel):
     """The timeout of the Milvus server."""
     milvus_token: Optional[SecretStr] = Field(default=None)
     """The token of the Milvus server."""
+    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
+    """The dimensions of the Milvus server."""
 
 
 class Settings(BaseSettings):

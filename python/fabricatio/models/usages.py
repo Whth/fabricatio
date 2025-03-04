@@ -61,10 +61,8 @@ class LLMUsage(ScopedConfig):
             stream=kwargs.get("stream") or self.llm_stream or configs.llm.stream,
             timeout=kwargs.get("timeout") or self.llm_timeout or configs.llm.timeout,
             max_retries=kwargs.get("max_retries") or self.llm_max_retries or configs.llm.max_retries,
-            api_key=self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value(),
-            base_url=self.llm_api_endpoint.unicode_string()
-            if self.llm_api_endpoint
-            else configs.llm.api_endpoint.unicode_string(),
+            api_key=(self.llm_api_key or configs.llm.api_key).get_secret_value(),
+            base_url=(self.llm_api_endpoint or configs.llm.api_endpoint).unicode_string(),
         )
 
     async def ainvoke(
@@ -390,18 +388,18 @@ class EmbeddingUsage(LLMUsage):
             or configs.embedding.timeout
             or self.llm_timeout
             or configs.llm.timeout,
-            api_key=(self.embedding_api_key.get_secret_value() if self.embedding_api_key else configs.embedding.api_key)
-            or (self.llm_api_key.get_secret_value() if self.llm_api_key else configs.llm.api_key.get_secret_value()),
-            api_base=(  # seems embedding function takes no base_url end with a slash
-                self.embedding_api_endpoint.unicode_string().rstrip("/")
-                if self.embedding_api_endpoint
-                else configs.embedding.api_endpoint.unicode_string().rstrip("/")
+            api_key=(
+                self.embedding_api_key or configs.embedding.api_key or self.llm_api_key or configs.llm.api_key
+            ).get_secret_value(),
+            api_base=(
+                self.embedding_api_endpoint
+                or configs.embedding.api_endpoint
+                or self.llm_api_endpoint
+                or configs.llm.api_endpoint
             )
-            or (
-                self.llm_api_endpoint.unicode_string().rstrip("/")
-                if self.llm_api_endpoint
-                else configs.llm.api_endpoint.unicode_string().rstrip("/")
-            ),
+            .unicode_string()
+            .rstrip("/"),
+            # seems embedding function takes no base_url end with a slash
         )
 
     @overload

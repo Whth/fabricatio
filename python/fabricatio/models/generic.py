@@ -14,6 +14,7 @@ from pydantic import (
     Field,
     HttpUrl,
     NonNegativeFloat,
+    PositiveFloat,
     PositiveInt,
     SecretStr,
 )
@@ -209,14 +210,14 @@ class ScopedConfig(Base):
     embedding_caching: Optional[bool] = False
     """Whether to cache the embedding result."""
 
-    milvus_uri: Optional[str] = Field(default=None)
+    milvus_uri: Optional[HttpUrl] = Field(default=None)
     """The URI of the Milvus server."""
-    milvus_token: Optional[str] = Field(default=None)
+    milvus_token: Optional[SecretStr] = Field(default=None)
     """The token for the Milvus server."""
-    milvus_timeout: Optional[float] = Field(default=None)
+    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
     """The timeout for the Milvus server."""
-    target_collection: Optional[str] = Field(default=None)
-    """The name of the collection being viewed."""
+    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
+    """The dimensions of the Milvus server."""
 
     @final
     def fallback_to(self, other: "ScopedConfig") -> Self:

@@ -5,6 +5,13 @@ from typing import List, NotRequired, TypedDict
 from pydantic import NonNegativeFloat, NonNegativeInt, PositiveInt
 
 
+class CollectionSimpleConfigKwargs(TypedDict):
+    """A type representing the configuration for a collection."""
+
+    dimension: NotRequired[int]
+    timeout: NotRequired[float]
+
+
 class EmbeddingKwargs(TypedDict):
     """A type representing the keyword arguments for the embedding method."""
 

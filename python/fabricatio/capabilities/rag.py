@@ -1,7 +1,5 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
-from fabricatio.models.usages import EmbeddingUsage
-
 try:
     from pymilvus import MilvusClient
 except ImportError as e:
@@ -14,26 +12,29 @@ from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, ove
 
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
-from fabricatio.models.kwargs_types import EmbeddingKwargs, LLMKwargs
+from fabricatio.journal import logger
+from fabricatio.models.kwargs_types import CollectionSimpleConfigKwargs, EmbeddingKwargs, LLMKwargs
+from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.models.utils import MilvusData
 from more_itertools.recipes import flatten
-from pydantic import PrivateAttr
+from pydantic import Field, PrivateAttr
 
 
 @lru_cache(maxsize=None)
-def create_client(
-    uri: Optional[str] = None, token: Optional[str] = None, timeout: Optional[float] = None
-) -> MilvusClient:
+def create_client(uri: str, token: str = "", timeout: Optional[float] = None) -> MilvusClient:
     """Create a Milvus client."""
     return MilvusClient(
-        uri=uri or configs.rag.milvus_uri.unicode_string(),
-        token=token or configs.rag.milvus_token.get_secret_value() if configs.rag.milvus_token else "",
-        timeout=timeout or configs.rag.milvus_timeout,
+        uri=uri,
+        token=token,
+        timeout=timeout,
     )
 
 
 class RAG(EmbeddingUsage):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
+
+    target_collection: Optional[str] = Field(default=None)
+    """The name of the collection being viewed."""
 
     _client: Optional[MilvusClient] = PrivateAttr(None)
     """The Milvus client used for the RAG model."""
@@ -45,9 +46,19 @@ class RAG(EmbeddingUsage):
             raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
         return self._client
 
-    def init_client(self) -> Self:
+    def init_client(
+        self,
+        milvus_uri: Optional[str] = None,
+        milvus_token: Optional[str] = None,
+        milvus_timeout: Optional[float] = None,
+    ) -> Self:
         """Initialize the Milvus client."""
-        self._client = create_client(self.milvus_uri, self.milvus_token, self.milvus_timeout)
+        self._client = create_client(
+            uri=milvus_uri or (self.milvus_uri or configs.rag.milvus_uri).unicode_string(),
+            token=milvus_token
+            or (token.get_secret_value() if (token := (self.milvus_token or configs.rag.milvus_token)) else ""),
+            timeout=milvus_timeout or self.milvus_timeout,
+        )
         return self
 
     @overload
@@ -84,15 +95,20 @@ class RAG(EmbeddingUsage):
             for text, vec in zip(input_text, vecs, strict=True)
         ]
 
-    def view(self, collection_name: Optional[str], create: bool = False) -> Self:
+    def view(
+        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionSimpleConfigKwargs]
+    ) -> Self:
         """View the specified collection.
 
         Args:
             collection_name (str): The name of the collection.
             create (bool): Whether to create the collection if it does not exist.
+            **kwargs (Unpack[CollectionSimpleConfigKwargs]): Additional keyword arguments for collection configuration.
         """
         if create and collection_name and not self._client.has_collection(collection_name):
-            self._client.create_collection(collection_name)
+            kwargs["dimension"] = kwargs.get("dimension") or self.milvus_dimensions or configs.rag.milvus_dimensions
+            self._client.create_collection(collection_name, auto_id=True, **kwargs)
+            logger.info(f"Creating collection {collection_name}")
 
         self.target_collection = collection_name
         return self
@@ -117,13 +133,14 @@ class RAG(EmbeddingUsage):
         return self.target_collection
 
     def add_document[D: Union[Dict[str, Any], MilvusData]](
-        self, data: D | List[D], collection_name: Optional[str] = None
+        self, data: D | List[D], collection_name: Optional[str] = None, flush: bool = False
     ) -> Self:
         """Adds a document to the specified collection.
 
         Args:
             data (Union[Dict[str, Any], MilvusData] | List[Union[Dict[str, Any], MilvusData]]): The data to be added to the collection.
             collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
+            flush (bool): Whether to flush the collection after insertion.
 
         Returns:
             Self: The current instance, allowing for method chaining.
@@ -132,11 +149,19 @@ class RAG(EmbeddingUsage):
             data = data.prepare_insertion()
         if isinstance(data, list):
             data = [d.prepare_insertion() if isinstance(d, MilvusData) else d for d in data]
-        self._client.insert(collection_name or self.safe_target_collection, data)
+        c_name = collection_name or self.safe_target_collection
+        self._client.insert(c_name, data)
+
+        if flush:
+            logger.debug(f"Flushing collection {c_name}")
+            self._client.flush(c_name)
         return self
 
-    def consume(
-        self, source: PathLike, reader: Callable[[PathLike], MilvusData], collection_name: Optional[str] = None
+    async def consume_file(
+        self,
+        source: List[PathLike] | PathLike,
+        reader: Callable[[PathLike], str] = lambda path: Path(path).read_text(encoding="utf-8"),
+        collection_name: Optional[str] = None,
     ) -> Self:
         """Consume a file and add its content to the collection.
 
@@ -148,8 +173,21 @@ class RAG(EmbeddingUsage):
         Returns:
             Self: The current instance, allowing for method chaining.
         """
-        data = reader(Path(source))
-        self.add_document(data, collection_name or self.safe_target_collection)
+        if not isinstance(source, list):
+            source = [source]
+        return await self.consume_string([reader(s) for s in source], collection_name)
+
+    async def consume_string(self, text: List[str] | str, collection_name: Optional[str] = None) -> Self:
+        """Consume a string and add it to the collection.
+
+        Args:
+            text (List[str] | str): The text to be added to the collection.
+            collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
+
+        Returns:
+            Self: The current instance, allowing for method chaining.
+        """
+        self.add_document(await self.pack(text), collection_name or self.safe_target_collection, flush=True)
         return self
 
     async def afetch_document(
@@ -211,11 +249,13 @@ class RAG(EmbeddingUsage):
         """
         if isinstance(query, str):
             query = [query]
-        return await self.afetch_document(
-            vecs=(await self.vectorize(query)),
-            desired_fields="text",
-            collection_name=collection_name,
-            result_per_query=result_per_query,
+        return (
+            await self.afetch_document(
+                vecs=(await self.vectorize(query)),
+                desired_fields="text",
+                collection_name=collection_name,
+                result_per_query=result_per_query,
+            )
         )[:final_limit]
 
     async def aask_retrieved(
@@ -247,8 +287,12 @@ class RAG(EmbeddingUsage):
             str: A string response generated after asking with the context of retrieved documents.
         """
         docs = await self.aretrieve(query, collection_name, result_per_query, final_limit)
+
+        rendered = template_manager.render_template(configs.templates.retrieved_display_template, {"docs": docs[::-1]})
+
+        logger.debug(f"Retrieved Documents: \n{rendered}")
         return await self.aask(
             question,
-            f"{template_manager.render_template(configs.templates.retrieved_display_template, {'docs': docs})}\n\n{extra_system_message}",
+            f"{rendered}\n\n{extra_system_message}",
             **kwargs,
         )
