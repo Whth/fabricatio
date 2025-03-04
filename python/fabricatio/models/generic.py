@@ -1,7 +1,7 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
 from pathlib import Path
-from typing import Callable, List, Self
+from typing import Callable, Iterable, List, Optional, Self, Union, final
 
 import orjson
 from fabricatio._rust import blake3_hash
@@ -12,6 +12,10 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    HttpUrl,
+    NonNegativeFloat,
+    PositiveInt,
+    SecretStr,
 )
 
 
@@ -150,3 +154,104 @@ class WithDependency(Base):
                 for p in self.dependencies
             },
         )
+
+
+class ScopedConfig(Base):
+    """Class that manages a scoped configuration."""
+
+    llm_api_endpoint: Optional[HttpUrl] = None
+    """The OpenAI API endpoint."""
+
+    llm_api_key: Optional[SecretStr] = None
+    """The OpenAI API key."""
+
+    llm_timeout: Optional[PositiveInt] = None
+    """The timeout of the LLM model."""
+
+    llm_max_retries: Optional[PositiveInt] = None
+    """The maximum number of retries."""
+
+    llm_model: Optional[str] = None
+    """The LLM model name."""
+
+    llm_temperature: Optional[NonNegativeFloat] = None
+    """The temperature of the LLM model."""
+
+    llm_stop_sign: Optional[str | List[str]] = None
+    """The stop sign of the LLM model."""
+
+    llm_top_p: Optional[NonNegativeFloat] = None
+    """The top p of the LLM model."""
+
+    llm_generation_count: Optional[PositiveInt] = None
+    """The number of generations to generate."""
+
+    llm_stream: Optional[bool] = None
+    """Whether to stream the LLM model's response."""
+
+    llm_max_tokens: Optional[PositiveInt] = None
+    """The maximum number of tokens to generate."""
+
+    embedding_api_endpoint: Optional[HttpUrl] = None
+    """The OpenAI API endpoint."""
+
+    embedding_api_key: Optional[SecretStr] = None
+    """The OpenAI API key."""
+
+    embedding_timeout: Optional[PositiveInt] = None
+    """The timeout of the LLM model."""
+
+    embedding_model: Optional[str] = None
+    """The LLM model name."""
+
+    embedding_dimensions: Optional[PositiveInt] = None
+    """The dimensions of the embedding."""
+    embedding_caching: Optional[bool] = False
+    """Whether to cache the embedding result."""
+
+    milvus_uri: Optional[str] = Field(default=None)
+    """The URI of the Milvus server."""
+    milvus_token: Optional[str] = Field(default=None)
+    """The token for the Milvus server."""
+    milvus_timeout: Optional[float] = Field(default=None)
+    """The timeout for the Milvus server."""
+    target_collection: Optional[str] = Field(default=None)
+    """The name of the collection being viewed."""
+
+    @final
+    def fallback_to(self, other: "ScopedConfig") -> Self:
+        """Fallback to another instance's attribute values if the current instance's attributes are None.
+
+        Args:
+            other (LLMUsage): Another instance from which to copy attribute values.
+
+        Returns:
+            Self: The current instance, allowing for method chaining.
+        """
+        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
+        # noinspection PydanticTypeChecker,PyTypeChecker
+        for attr_name in ScopedConfig.model_fields:
+            # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
+            if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
+                setattr(self, attr_name, attr)
+
+        # Return the current instance to allow for method chaining
+        return self
+
+    @final
+    def hold_to(self, others: Union["ScopedConfig", Iterable["ScopedConfig"]]) -> Self:
+        """Hold to another instance's attribute values if the current instance's attributes are None.
+
+        Args:
+            others (LLMUsage | Iterable[LLMUsage]): Another instance or iterable of instances from which to copy attribute values.
+
+        Returns:
+            Self: The current instance, allowing for method chaining.
+        """
+        if not isinstance(others, Iterable):
+            others = [others]
+        for other in others:
+            # noinspection PyTypeChecker,PydanticTypeChecker
+            for attr_name in ScopedConfig.model_fields:
+                if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
+                    setattr(other, attr_name, attr)
