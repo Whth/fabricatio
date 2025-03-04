@@ -216,7 +216,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.3.dev2"
+version = "0.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
