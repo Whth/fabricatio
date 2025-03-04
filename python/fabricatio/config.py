@@ -80,6 +80,30 @@ class LLMConfig(BaseModel):
     """The maximum number of tokens to generate. Set to 8192 as per request."""
 
 
+class EmbeddingConfig(BaseModel):
+    """Embedding configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    model: str = Field(default="text-embedding-ada-002")
+    """The embedding model name. """
+
+    dimensions: Optional[PositiveInt] = Field(default=None)
+    """The dimensions of the embedding. Default is None."""
+
+    timeout: Optional[PositiveInt] = Field(default=None)
+    """The timeout of the embedding model in seconds. Default is 300 seconds as per request."""
+
+    caching: bool = Field(default=False)
+    """Whether to cache the embedding. Default is True."""
+
+    api_endpoint: Optional[HttpUrl] = None
+    """The OpenAI API endpoint."""
+
+    api_key: Optional[SecretStr] = None
+    """The OpenAI API key."""
+
+
 class PymitterConfig(BaseModel):
     """Pymitter configuration class.
 
@@ -248,6 +272,9 @@ class Settings(BaseSettings):
 
     llm: LLMConfig = Field(default_factory=LLMConfig)
     """LLM Configuration"""
+
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    """Embedding Configuration"""
 
     debug: DebugConfig = Field(default_factory=DebugConfig)
     """Debug Configuration"""
