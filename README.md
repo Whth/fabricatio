@@ -1,5 +1,3 @@
-Understanding your question: doing
-Gathering relevant information: doing
 # Fabricatio
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
