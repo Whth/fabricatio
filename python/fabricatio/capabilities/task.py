@@ -13,7 +13,6 @@ from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
-from pydantic import ValidationError
 
 
 class ProposeTask(WithBriefing, LLMUsage):
@@ -34,24 +33,12 @@ class ProposeTask(WithBriefing, LLMUsage):
             A Task object based on the proposal result.
         """
         if not prompt:
-            err = f"{self.name}: Prompt must be provided."
-            logger.error(err)
+            logger.error(err := f"{self.name}: Prompt must be provided.")
             raise ValueError(err)
 
-        def _validate_json(response: str) -> None | Task:
-            try:
-                cap = JsonCapture.capture(response)
-                logger.debug(f"Response: \n{response}")
-                logger.info(f"Captured JSON: \n{cap}")
-                return Task.model_validate_json(cap)
-            except ValidationError as e:
-                logger.error(f"Failed to parse task from JSON: {e}")
-                return None
-
-        template_data = {"prompt": prompt, "json_example": Task.json_example()}
         return await self.aask_validate(
-            question=template_manager.render_template(configs.templates.propose_task_template, template_data),
-            validator=_validate_json,
+            question=Task.create_for_(prompt),
+            validator=Task.instantiate_from_string,
             system_message=f"# your personal briefing: \n{self.briefing}",
             **kwargs,
         )

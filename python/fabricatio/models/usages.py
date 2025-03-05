@@ -378,6 +378,12 @@ class EmbeddingUsage(LLMUsage):
         Returns:
             EmbeddingResponse: The response containing the embeddings.
         """
+        # check seq length
+        max_len = self.embedding_max_sequence_length or configs.embedding.max_sequence_length
+        if any(len(t) > max_len for t in input_text):
+            logger.error(err := f"Input text exceeds maximum sequence length {max_len}.")
+            raise ValueError(err)
+
         return await litellm.aembedding(
             input=input_text,
             caching=caching or self.embedding_caching or configs.embedding.caching,

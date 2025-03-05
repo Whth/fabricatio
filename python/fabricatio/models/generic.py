@@ -8,6 +8,7 @@ from fabricatio._rust import blake3_hash
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.fs.readers import magika, safe_text_read
+from fabricatio.parser import JsonCapture
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -53,20 +54,55 @@ class WithBriefing(Named, Described):
         return f"{self.name}: {self.description}" if self.description else self.name
 
 
-class WithJsonExample(Base):
-    """Class that provides a JSON schema for the model."""
+class WithFormatedJsonSchema(Base):
+    """Class that provides a formatted JSON schema of the model."""
 
     @classmethod
-    def json_example(cls) -> str:
-        """Return a JSON example for the model.
+    def formated_json_schema(cls) -> str:
+        """Get the JSON schema of the model in a formatted string.
 
         Returns:
-            str: A JSON example for the model.
+            str: The JSON schema of the model in a formatted string.
         """
         return orjson.dumps(
-            {field_name: field_info.description for field_name, field_info in cls.model_fields.items()},
+            cls.model_json_schema(),
             option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS,
         ).decode()
+
+
+class CreateJsonObjPrompt(WithFormatedJsonSchema):
+    """Class that provides a prompt for creating a JSON object."""
+
+    @classmethod
+    def create_for_(cls, requirement: str) -> str:
+        """Create the prompt for creating a JSON object with given requirement.
+
+        Args:
+            requirement (str): The requirement for the JSON object.
+
+        Returns:
+            str: The prompt for creating a JSON object with given requirement.
+        """
+        return template_manager.render_template(
+            configs.templates.create_json_obj_template,
+            {"requirement": requirement, "json_schema": cls.formated_json_schema()},
+        )
+
+
+class InstantiateFromString(Base):
+    """Class that provides a method to instantiate the class from a string."""
+
+    @classmethod
+    def instantiate_from_string(cls, string: str) -> Self | None:
+        """Instantiate the class from a string.
+
+        Args:
+            string (str): The string to instantiate the class from.
+
+        Returns:
+            Self | None: The instance of the class or None if the string is not valid.
+        """
+        return JsonCapture.convert_with(string, cls.model_validate_json)
 
 
 class WithDependency(Base):
@@ -204,6 +240,9 @@ class ScopedConfig(Base):
 
     embedding_model: Optional[str] = None
     """The LLM model name."""
+
+    embedding_max_sequence_length: Optional[PositiveInt] = None
+    """The maximum sequence length."""
 
     embedding_dimensions: Optional[PositiveInt] = None
     """The dimensions of the embedding."""

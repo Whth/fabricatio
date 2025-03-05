@@ -89,13 +89,16 @@ class EmbeddingConfig(BaseModel):
     """The embedding model name. """
 
     dimensions: Optional[PositiveInt] = Field(default=None)
-    """The dimensions of the embedding. Default is None."""
+    """The dimensions of the embedding. None means not checked."""
 
     timeout: Optional[PositiveInt] = Field(default=None)
-    """The timeout of the embedding model in seconds. Default is 300 seconds as per request."""
+    """The timeout of the embedding model in seconds."""
+
+    max_sequence_length: PositiveInt = Field(default=8192)
+    """The maximum sequence length of the embedding model. Default is 8192 as per request."""
 
     caching: bool = Field(default=False)
-    """Whether to cache the embedding. Default is True."""
+    """Whether to cache the embedding. Default is False."""
 
     api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""
@@ -164,8 +167,8 @@ class TemplateConfig(BaseModel):
     template_suffix: str = Field(default="hbs", frozen=True)
     """The suffix of the templates."""
 
-    propose_task_template: str = Field(default="propose_task")
-    """The name of the propose task template which will be used to propose a task."""
+    create_json_obj_template: str = Field(default="create_json_obj")
+    """The name of the create json object template which will be used to create a json object."""
 
     draft_tool_usage_code_template: str = Field(default="draft_tool_usage_code")
     """The name of the draft tool usage code template which will be used to draft tool usage code."""

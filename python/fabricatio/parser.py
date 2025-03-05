@@ -3,7 +3,7 @@
 from typing import Any, Callable, Self, Tuple
 
 import regex
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
 from regex import Pattern, compile
 
 from fabricatio.journal import logger
@@ -69,8 +69,9 @@ class Capture(BaseModel):
         if (cap := self.capture(text)) is None:
             return None
         try:
+            logger.debug(f"Trying to convert: \n{cap}")
             return convertor(cap)
-        except (ValueError, SyntaxError) as e:
+        except (ValueError, SyntaxError, ValidationError) as e:
             logger.error(f"Failed to convert text using {convertor.__name__} to convert.\nerror: {e}\n {cap}")
             return None
 

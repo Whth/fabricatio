@@ -1,0 +1,68 @@
+# Requirement:
+{{requirement}}
+
+# Task:
+To satisfy the given requirements, Generate a JSON object that strictly adheres to the following schema specification. The output must be a concrete instance satisfying all defined constraints.
+
+# JSON Schema:
+```json
+{{json_schema}}
+```
+
+# Response Requirements:
+1. **Structural Compliance**:
+- Include all required properties from the `required` array
+- Maintain exact property names (case-sensitive)
+- Respect specified data types and formats (date-time, UUID, etc.)
+- Enforce numerical constraints (min/max, exclusive boundaries)
+- Validate enum values and pattern matches
+
+2. **Data Quality**:
+- Generate realistic values matching property descriptions
+- Use domain-appropriate examples (e.g., actual emails for "format": "email")
+- Avoid placeholder values (e.g., "string", 0, null)
+
+3. **Output Format**:
+- Strict JSON syntax with proper escaping
+- No additional properties beyond schema definition
+- No comments or explanatory text
+- Maintain property order as defined in schema
+
+# Example Interaction:
+**Schema**:
+```json
+{
+"properties": {
+"x": {
+"description": "x coordinate",
+"exclusiveMinimum": 0,
+"type": "integer"
+},
+"y": {
+"description": "y coordinate",
+"exclusiveMinimum": 0,
+"type": "integer"
+}
+},
+"required": ["x", "y"]
+}
+```
+
+**Valid Response**:
+----- BEGIN of RESPONSE -----
+```json
+{
+"x": 5,
+"y": 12
+}
+```
+----- END of RESPONSE -----
+
+# Critical Constraints:
+‼️ Output MUST contain ONLY the JSON object within the code block
+‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.)
+‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
+‼️ Handle optional parameters context-appropriately
+
+# Validation:
+The generated JSON within the code block MUST pass JSON Schema validation. Any non-compliant response will be rejected by the system.
