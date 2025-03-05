@@ -3,6 +3,7 @@
 from importlib.util import find_spec
 
 from fabricatio._rust_instances import template_manager
+from fabricatio.actions import ExtractArticleEssence
 from fabricatio.core import env
 from fabricatio.fs import magika
 from fabricatio.journal import logger
@@ -20,6 +21,7 @@ __all__ = [
     "Capture",
     "CodeBlockCapture",
     "Event",
+    "ExtractArticleEssence",
     "JsonCapture",
     "Message",
     "Messages",
