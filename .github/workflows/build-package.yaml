@@ -40,6 +40,16 @@ jobs:
           fi
         shell: bash
 
+      - name: check if is prerelease
+        id: check_prerelease
+        run: |
+          if [[ "${{ steps.get_version.outputs.CURRENT_VERSION }}" == *"-"* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -69,6 +79,8 @@ jobs:
           files: |
             dist/*
             templates.tar.gz
+          prerelease: ${{ steps.check_prerelease.outputs.IS_PRERELEASE }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
