@@ -3,6 +3,7 @@
 from typing import List, Self, Union
 
 from fabricatio.config import configs
+from fabricatio.models.utils import TaskStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 type EventLike = Union[str, List[str], "Event"]
@@ -33,6 +34,21 @@ class Event(BaseModel):
 
         return cls(segments=event)
 
+    @classmethod
+    def quick_instantiate(cls, event: EventLike) -> Self:
+        """Create an Event instance from a string or list of strings or an Event instance and push a wildcard and pending segment.
+
+        Args:
+            event (EventLike): The event to instantiate from.
+
+        Returns:
+            Event: The Event instance.
+
+        Notes:
+            This method is used to create an Event instance from a string or list of strings or an Event instance and push a wildcard and pending segment.
+        """
+        return cls.instantiate_from(event).push_wildcard().push_pending()
+
     def derive(self, event: EventLike) -> Self:
         """Derive a new event from this event and another event or a string."""
         return self.clone().concat(event)
@@ -58,6 +74,26 @@ class Event(BaseModel):
     def push_wildcard(self) -> Self:
         """Push a wildcard segment to the event."""
         return self.push("*")
+
+    def push_pending(self) -> Self:
+        """Push a pending segment to the event."""
+        return self.push(TaskStatus.Pending.value)
+
+    def push_running(self) -> Self:
+        """Push a running segment to the event."""
+        return self.push(TaskStatus.Running.value)
+
+    def push_finished(self) -> Self:
+        """Push a finished segment to the event."""
+        return self.push(TaskStatus.Finished.value)
+
+    def push_failed(self) -> Self:
+        """Push a failed segment to the event."""
+        return self.push(TaskStatus.Failed.value)
+
+    def push_cancelled(self) -> Self:
+        """Push a cancelled segment to the event."""
+        return self.push(TaskStatus.Cancelled.value)
 
     def pop(self) -> str:
         """Pop a segment from the event."""

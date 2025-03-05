@@ -1,5 +1,6 @@
 """A module containing utility classes for the models."""
 
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -125,3 +126,21 @@ class MilvusData(BaseModel):
         """
         self.id = new_id
         return self
+
+
+class TaskStatus(Enum):
+    """An enumeration representing the status of a task.
+
+    Attributes:
+        Pending: The task is pending.
+        Running: The task is currently running.
+        Finished: The task has been successfully completed.
+        Failed: The task has failed.
+        Cancelled: The task has been cancelled.
+    """
+
+    Pending = "pending"
+    Running = "running"
+    Finished = "finished"
+    Failed = "failed"
+    Cancelled = "cancelled"

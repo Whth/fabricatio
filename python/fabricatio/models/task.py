@@ -4,7 +4,6 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 """
 
 from asyncio import Queue
-from enum import Enum
 from typing import Any, List, Optional, Self
 
 from fabricatio._rust_instances import template_manager
@@ -13,25 +12,8 @@ from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import WithBriefing, WithDependency, WithJsonExample
+from fabricatio.models.utils import TaskStatus
 from pydantic import Field, PrivateAttr
-
-
-class TaskStatus(Enum):
-    """An enumeration representing the status of a task.
-
-    Attributes:
-        Pending: The task is pending.
-        Running: The task is currently running.
-        Finished: The task has been successfully completed.
-        Failed: The task has failed.
-        Cancelled: The task has been cancelled.
-    """
-
-    Pending = "pending"
-    Running = "running"
-    Finished = "finished"
-    Failed = "failed"
-    Cancelled = "cancelled"
 
 
 class Task[T](WithBriefing, WithJsonExample, WithDependency):
@@ -40,7 +22,7 @@ class Task[T](WithBriefing, WithJsonExample, WithDependency):
     Attributes:
         name (str): The name of the task.
         description (str): The description of the task.
-        goal (str): The goal of the task.
+        goals (str): The goal of the task.
         dependencies (List[str]): The file dependencies of the task, a list of file paths.
         namespace (List[str]): The namespace of the task, a list of namespace segment, as string.
     """

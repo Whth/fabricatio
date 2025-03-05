@@ -1,6 +1,7 @@
 import pytest
 from fabricatio.models.action import Action, WorkFlow
-from fabricatio.models.task import Task, TaskStatus
+from fabricatio.models.task import Task
+from fabricatio.models.utils import TaskStatus
 
 
 class DemoAction(Action):
