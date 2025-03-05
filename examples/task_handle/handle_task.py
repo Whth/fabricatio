@@ -100,13 +100,13 @@ async def main() -> None:
         },
     )
 
-    proposed_task = await role.propose(
+    proposed_task = await role.propose_task(
         "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
     )
     path = await proposed_task.delegate("coding")
     logger.success(f"Code Path: {path}")
 
-    proposed_task = await role.propose(
+    proposed_task = await role.propose_task(
         f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too."
     )
     proposed_task.override_dependencies(path)

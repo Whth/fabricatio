@@ -56,7 +56,7 @@ async def main() -> None:
         registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
     )
 
-    task = await role.propose(
+    task = await role.propose_task(
         "you have to act as a helpful assistant, answer to all user questions properly and patiently"
     )
     _ = await task.delegate("talk")

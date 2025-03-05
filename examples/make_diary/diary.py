@@ -83,7 +83,7 @@ async def main() -> None:
         },
     )
 
-    task = await role.propose(
+    task = await role.propose_task(
         "Write a diary according to the given commit messages in json format. and dump to `diary.md` at `output` dir,"
         "In the json the key is the day in which the commit messages in value was committed,"
         "you need to separately write diary for each day.",

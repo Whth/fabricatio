@@ -92,12 +92,14 @@ if __name__ == "__main__":
 import asyncio
 from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
 
+
 class WriteCode(Action):
     name: str = "write code"
     output_key: str = "source_code"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
         return await self.aask_validate(task_input.briefing, validator=PythonCapture.capture)
+
 
 class DumpCode(Action):
     name: str = "dump code"
@@ -108,6 +110,7 @@ class DumpCode(Action):
     async def _execute(self, task_input: Task, source_code: str, **_) -> Any:
         path = await self.handle_fin_grind(task_input, {"source_code": source_code})
         return path[0] if path else None
+
 
 async def main() -> None:
     role = Role(
@@ -121,9 +124,10 @@ async def main() -> None:
     )
 
     prompt = "write a Python CLI app which prints 'hello world' n times with detailed Google-style docstring. Write the source code to `cli.py`."
-    proposed_task = await role.propose(prompt)
+    proposed_task = await role.propose_task(prompt)
     path = await proposed_task.move_to("coding").delegate()
     logger.success(f"Code Path: {path}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

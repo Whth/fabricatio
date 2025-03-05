@@ -49,11 +49,11 @@ async def main() -> None:
 
     prompt = "write a python cli app which can add a list of numbers writen in a file together,with detailed google style documentation."
 
-    proposed_task = await role.propose(prompt)
+    proposed_task = await role.propose_task(prompt)
     code = await proposed_task.move_to("coding").delegate()
     logger.success(f"Code: \n{code}")
 
-    proposed_task = await role.propose(f"{code} \n\n write Readme.md file for the code.")
+    proposed_task = await role.propose_task(f"{code} \n\n write Readme.md file for the code.")
     doc = await proposed_task.move_to("doc").delegate()
     logger.success(f"Documentation: \n{doc}")
 

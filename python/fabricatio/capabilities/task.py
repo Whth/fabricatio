@@ -5,20 +5,21 @@ from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
 from fabricatio._rust_instances import template_manager
+from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
-from fabricatio.models.usages import LLMUsage, ToolBoxUsage
+from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
 from loguru import logger
 
 
-class ProposeTask(WithBriefing, LLMUsage):
+class ProposeTask(WithBriefing, Propose):
     """A class that proposes a task based on a prompt."""
 
-    async def propose[T](
+    async def propose_task[T](
         self,
         prompt: str,
         **kwargs: Unpack[ValidateKwargs],
@@ -36,12 +37,7 @@ class ProposeTask(WithBriefing, LLMUsage):
             logger.error(err := f"{self.name}: Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.aask_validate(
-            question=Task.create_for_(prompt),
-            validator=Task.instantiate_from_string,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-            **kwargs,
-        )
+        return await self.propose(Task, prompt, system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
 
 
 class HandleTask(WithBriefing, ToolBoxUsage):

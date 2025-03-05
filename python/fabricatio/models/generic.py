@@ -74,7 +74,7 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
     """Class that provides a prompt for creating a JSON object."""
 
     @classmethod
-    def create_for_(cls, requirement: str) -> str:
+    def create_json_prompt(cls, requirement: str) -> str:
         """Create the prompt for creating a JSON object with given requirement.
 
         Args:
@@ -103,6 +103,12 @@ class InstantiateFromString(Base):
             Self | None: The instance of the class or None if the string is not valid.
         """
         return JsonCapture.convert_with(string, cls.model_validate_json)
+
+
+class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
+    """Class that provides methods for proposing a task."""
+
+    pass
 
 
 class WithDependency(Base):

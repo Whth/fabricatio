@@ -11,12 +11,12 @@ from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
-from fabricatio.models.generic import CreateJsonObjPrompt, InstantiateFromString, WithBriefing, WithDependency
+from fabricatio.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio.models.utils import TaskStatus
 from pydantic import Field, PrivateAttr
 
 
-class Task[T](WithBriefing, CreateJsonObjPrompt, WithDependency, InstantiateFromString):
+class Task[T](WithBriefing, ProposedAble, WithDependency):
     """A class representing a task with a status and output.
 
     Attributes:

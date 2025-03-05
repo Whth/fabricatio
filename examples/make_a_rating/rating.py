@@ -108,7 +108,7 @@ async def main() -> None:
             ),
         },
     )
-    task = await role.propose(
+    task = await role.propose_task(
         "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",
     )
     rating = await task.move_to("rate_food").delegate()
