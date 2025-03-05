@@ -1,5 +1,5 @@
 """module for actions."""
 
-from fabricatio.actions.transmission import PublishTask
+from fabricatio.actions.article import ExtractArticleEssence
 
-__all__ = ["PublishTask"]
+__all__ = ["ExtractArticleEssence"]
