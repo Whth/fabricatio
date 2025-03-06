@@ -239,6 +239,26 @@ class LLMUsage(ScopedConfig):
         """
         return await gather(*[self.aask_validate(question, validator, **kwargs) for question in questions])
 
+    async def aliststr(self, question: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs]) -> List[str]:
+        """Asynchronously asks a question and validates the response as a list of strings.
+
+        Args:
+            question (str): The question to ask.
+            k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            List[str]: The validated response as a list of strings.
+        """
+        return await self.aask_validate(
+            template_manager.render_template(
+                configs.templates.liststr_template,
+                {"question": question, "k": k},
+            ),
+            lambda resp: JsonCapture.validate_with(resp, orjson.loads, list, str, k),
+            **kwargs,
+        )
+
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
@@ -266,7 +286,7 @@ class LLMUsage(ScopedConfig):
             configs.templates.make_choice_template,
             {
                 "instruction": instruction,
-                "options": [{"name": m.name, "briefing": m.briefing} for m in choices],
+                "options": [m.model_dump(include={"name", "briefing"}) for m in choices],
                 "k": k,
             },
         )
