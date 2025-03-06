@@ -239,11 +239,11 @@ class LLMUsage(ScopedConfig):
         """
         return await gather(*[self.aask_validate(question, validator, **kwargs) for question in questions])
 
-    async def aliststr(self, question: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs]) -> List[str]:
-        """Asynchronously asks a question and validates the response as a list of strings.
+    async def aliststr(self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs]) -> List[str]:
+        """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
-            question (str): The question to ask.
+            requirement (str): The requirement for the list of strings.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
             **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
@@ -253,7 +253,7 @@ class LLMUsage(ScopedConfig):
         return await self.aask_validate(
             template_manager.render_template(
                 configs.templates.liststr_template,
-                {"question": question, "k": k},
+                {"requirement": requirement, "k": k},
             ),
             lambda resp: JsonCapture.validate_with(resp, orjson.loads, list, str, k),
             **kwargs,
