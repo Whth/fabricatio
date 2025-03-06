@@ -206,6 +206,9 @@ class TemplateConfig(BaseModel):
     retrieved_display_template: str = Field(default="retrieved_display")
     """The name of the retrieved display template which will be used to display retrieved documents."""
 
+    liststr_template: str = Field(default="liststr")
+    """The name of the liststr template which will be used to display a list of strings."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
