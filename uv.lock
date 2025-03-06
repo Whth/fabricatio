@@ -216,13 +216,12 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.3"
+version = "0.2.4.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
     { name = "asyncio" },
     { name = "asyncstdlib" },
-    { name = "gitpython" },
     { name = "litellm" },
     { name = "loguru" },
     { name = "magika" },
@@ -258,7 +257,6 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
     { name = "uv" },
-    { name = "viztracer" },
 ]
 
 [package.metadata]
@@ -267,7 +265,6 @@ requires-dist = [
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "asyncstdlib", specifier = ">=3.13.0" },
     { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },
-    { name = "gitpython", specifier = ">=3.1.44" },
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "magika", specifier = ">=0.5.1" },
@@ -297,7 +294,6 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.6.1" },
     { name = "ruff", specifier = ">=0.9.4" },
     { name = "uv", specifier = ">=0.5.29" },
-    { name = "viztracer", specifier = ">=1.0.2" },
 ]
 
 [[package]]
@@ -363,30 +359,6 @@ source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/b5/79/68612ed99700e6413de42895aa725463e821a6b3be75c87fcce1b4af4c70/fsspec-2025.2.0.tar.gz", hash = "sha256:1c24b16eaa0a1798afa0337aa0db9b256718ab2a89c425371f5628d22c3b6afd", size = 292283 }
 wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e2/94/758680531a00d06e471ef649e4ec2ed6bf185356a7f9fbfbb7368a40bd49/fsspec-2025.2.0-py3-none-any.whl", hash = "sha256:9de2ad9ce1f85e1931858535bc882543171d197001a0a5eb2ddc04f1781ab95b", size = 184484 },
-]
-
-[[package]]
-name = "gitdb"
-version = "4.0.12"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-dependencies = [
-    { name = "smmap" },
-]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/72/94/63b0fc47eb32792c7ba1fe1b694daec9a63620db1e313033d18140c2320a/gitdb-4.0.12.tar.gz", hash = "sha256:5ef71f855d191a3326fcfbc0d5da835f26b13fbcba60c32c21091c349ffdb571", size = 394684 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/a0/61/5c78b91c3143ed5c14207f463aecfc8f9dbb5092fb2869baf37c273b2705/gitdb-4.0.12-py3-none-any.whl", hash = "sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf", size = 62794 },
-]
-
-[[package]]
-name = "gitpython"
-version = "3.1.44"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-dependencies = [
-    { name = "gitdb" },
-]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c0/89/37df0b71473153574a5cdef8f242de422a0f5d26d7a9e231e6f169b4ad14/gitpython-3.1.44.tar.gz", hash = "sha256:c87e30b26253bf5418b01b0660f818967f3c503193838337fe5e573331249269", size = 214196 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/1d/9a/4114a9057db2f1462d5c8f8390ab7383925fe1ac012eaa42402ad65c2963/GitPython-3.1.44-py3-none-any.whl", hash = "sha256:9e0e10cda9bed1ee64bc9a6de50e7e38a9c9943241cd7f585f6df3ed28011110", size = 207599 },
 ]
 
 [[package]]
@@ -765,15 +737,6 @@ wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/76/8c/2ba3902e1a0fc1c74962ea9bb33a534bb05984ad7ff9515bf8d07527cadd/numpy-1.26.4-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:1dda2e7b4ec9dd512f84935c5f126c8bd8b9f2fc001e9f54af255e8c5f16b0e0", size = 17786643 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/28/4a/46d9e65106879492374999e76eb85f87b15328e06bd1550668f79f7b18c6/numpy-1.26.4-cp312-cp312-win32.whl", hash = "sha256:50193e430acfc1346175fcbdaa28ffec49947a06918b7b92130744e81e640110", size = 5677803 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/16/2e/86f24451c2d530c88daf997cb8d6ac622c1d40d19f5a031ed68a4b73a374/numpy-1.26.4-cp312-cp312-win_amd64.whl", hash = "sha256:08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818", size = 15517754 },
-]
-
-[[package]]
-name = "objprint"
-version = "0.3.0"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/81/b8/c10e96120f1585824a1992655334b49da3924edfb364e84a26cc0ecdb89b/objprint-0.3.0.tar.gz", hash = "sha256:b5d83f9d62db5b95353bb42959106e1cd43010dcaa3eed1ad8d7d0b2df9b2d5a", size = 47481 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ec/af/572825252f16f36eeecbc8e3b721913d2640d69b984fdb8907aa8b4b0975/objprint-0.3.0-py3-none-any.whl", hash = "sha256:489083bfc8baf0526f8fd6af74673799511532636f0ce4141133255ded773405", size = 41619 },
 ]
 
 [[package]]
@@ -1333,15 +1296,6 @@ wheels = [
 ]
 
 [[package]]
-name = "smmap"
-version = "5.0.2"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/44/cd/a040c4b3119bbe532e5b0732286f805445375489fceaec1f48306068ee3b/smmap-5.0.2.tar.gz", hash = "sha256:26ea65a03958fa0c8a1c7e8c7a58fdc77221b8910f6be2131affade476898ad5", size = 22329 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/04/be/d09147ad1ec7934636ad912901c5fd7667e1c858e19d355237db0d0cd5e4/smmap-5.0.2-py3-none-any.whl", hash = "sha256:b30115f0def7d7531d22a0fb6502488d879e75b260a9db4d0819cfb25403af5e", size = 24303 },
-]
-
-[[package]]
 name = "sniffio"
 version = "1.3.1"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -1495,24 +1449,6 @@ wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/56/83/49ef68d21f9924b6efadbd68bece223d238a32aef939d382a3bde9fdb3b4/uv-0.5.29-py3-none-win32.whl", hash = "sha256:25e7f1850a71846b52aa8ed58640aa2082e16bc84995e8ff438e4bb916968159", size = 15571908 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/a1/25/304b5b400e612c9262fb5d06568ec0c813f40afe10908faeb9bafbf7d0f6/uv-0.5.29-py3-none-win_amd64.whl", hash = "sha256:d19ecc416fc069fbf767b2fd022789b2d93832b8d45702e34daf714dea1e5851", size = 16923471 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/94/5e/0132a00365066b058d096c008f8ef7dc36bb00a5676efae97dc919669c78/uv-0.5.29-py3-none-win_arm64.whl", hash = "sha256:e8a5e18487c33a0c29867da123ef0f035ee1ba880640fcbf8743ca80d7158ed0", size = 15693104 },
-]
-
-[[package]]
-name = "viztracer"
-version = "1.0.2"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-dependencies = [
-    { name = "objprint" },
-]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ab/20/c699e4c355fc63fa9a3516c000e6e0ea1fc12a8ac1fef3ccceeb4b4acc04/viztracer-1.0.2.tar.gz", hash = "sha256:83f3fbc9530808ac048942acaa684ffca3a850de0b098783f67de059bf460764", size = 14270242 }
-wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/76/fc/5d32541bc6b758fccf59642103e29b9f039dd34c53b1c213eecba86bfbe1/viztracer-1.0.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:37f9bcc2bd42cde5c4b4fb1ee4c65b795a1c4ed2636876abb49cc6e67721d72e", size = 14437011 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/68/ed/63d051ffb12db1cf659e5ca5a0373b9d471c7d5525f763e0f59e9689db6f/viztracer-1.0.2-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:01feb66558942c6ac21d07400c95a6254709d5e050bb2cd9ace6bee989da413f", size = 14436844 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c4/e3/7de2b047e27f4d98e04504654b63c24b878ede178e6631d5c81248336668/viztracer-1.0.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5d7964ae404427c6feea6460a1bccd88fd9898b36bf256fd0a3b20c3ec556e92", size = 14556048 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/7e/cb/37863d6efdc65e89ab89e92a559c6c2736a7a5fe60d094175d17d407c4bf/viztracer-1.0.2-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d2680b2bda7b8c42a1a32b391034d58e7ace81a4c601c727a333598bf70df794", size = 14552601 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f3/e3/25f5ade889c92440cf279bd66e32965523513642a0e5f8ed58eb087e17ce/viztracer-1.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8d5c412c2f3bf6d05a0bc5f50e4bce3642a863a001f0d3b290c6bd7085f045ca", size = 14564496 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8d/b1/60ef00a773c631a068f3ef53a7d598408cce4bd60f19e8ef355a9012e77d/viztracer-1.0.2-cp312-cp312-win32.whl", hash = "sha256:f0ba07dff91cdb7a489376f35206594c90b211367abfcb109c7c59f5b6691c18", size = 14600798 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/5d/45/a53c0fe058780c8262c09a3c8279974e31cc54bc9aaa7d026c4a2f0289d2/viztracer-1.0.2-cp312-cp312-win_amd64.whl", hash = "sha256:0c114f56839e78113f3721e013a6742aca74acfef987eae2ba7c670533950c82", size = 14603623 },
 ]
 
 [[package]]

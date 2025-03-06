@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.3"
+version = "0.2.4-dev0"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -30,7 +30,6 @@ dependencies = [
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",
-    "gitpython>=3.1.44",
     "litellm>=1.60.0",
     "loguru>=0.7.3",
     "magika>=0.5.1",
@@ -64,7 +63,6 @@ dev = [
     "maturin-import-hook>=0.2.0",
     "ruff>=0.9.4",
     "uv>=0.5.29",
-    "viztracer>=1.0.2",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
@@ -130,7 +128,7 @@ ignore = [
 convention = "google"
 ignore-decorators = ["typing.overload"]
 [tool.ruff.lint.pylint]
-max-args = 15
+max-args = 8
 
 [tool.pytest.ini_options]
 addopts = "-ra -q"
