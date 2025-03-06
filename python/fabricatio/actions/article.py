@@ -108,13 +108,13 @@ class ExtractArticleEssence(Action):
         reader: Callable[[P], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
     ) -> List[ArticleEssence] | ArticleEssence:
-        if not isinstance(article_paths, list):
+        if is_not_list := not isinstance(article_paths, list):
             article_paths = [article_paths]
         contents = [reader(p) for p in article_paths]
         # trim the references
         contents = ["References".join(c.split("References")[:-1]) for c in contents]
-        if len(contents) == 1:
-            contents = contents.pop()
         return await self.propose(
-            ArticleEssence, contents, system_message=f"# your personal briefing: \n{self.briefing}"
+            ArticleEssence,
+            contents.pop() if is_not_list else contents,
+            system_message=f"# your personal briefing: \n{self.briefing}",
         )
