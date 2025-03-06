@@ -1,6 +1,6 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Callable, Self, Tuple
+from typing import Any, Callable, Optional, Self, Tuple, Type
 
 import regex
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
@@ -74,6 +74,36 @@ class Capture(BaseModel):
         except (ValueError, SyntaxError, ValidationError) as e:
             logger.error(f"Failed to convert text using {convertor.__name__} to convert.\nerror: {e}\n {cap}")
             return None
+
+    def validate_with[K, T, E](
+        self,
+        text: str,
+        deserializer: Callable[[Tuple[str, ...]], K] | Callable[[str], K],
+        target_type: Type[T],
+        elements_type: Optional[Type[E]] = None,
+        length: Optional[int] = None,
+    ) -> T | None:
+        """Validate the given text using the pattern.
+
+        Args:
+            text (str): The text to search the pattern in.
+            deserializer (Callable[[Tuple[str, ...]], K] | Callable[[str], K]): The function to deserialize the captured text.
+            target_type (Type[T]): The expected type of the output.
+            elements_type (Optional[Type[E]]): The expected type of the elements in the output.
+            length (Optional[int]): The expected length of the output, bool(length)==False means no length validation.
+
+        Returns:
+            T | None: The validated text if the pattern is found and the output is of the expected type, otherwise None.
+        """
+        judges = [lambda output_obj: isinstance(output_obj, target_type)]
+        if elements_type:
+            judges.append(lambda output_obj: all(isinstance(e, elements_type) for e in output_obj))
+        if length:
+            judges.append(lambda output_obj: len(output_obj) == length)
+
+        if (out := self.convert_with(text, deserializer)) and all(j(out) for j in judges):
+            return out
+        return None
 
     @classmethod
     def capture_code_block(cls, language: str) -> Self:
