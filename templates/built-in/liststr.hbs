@@ -1,0 +1,26 @@
+# Requirement
+{{requirement}}
+
+You SHALL give out a JSON array within the codeblock, which perfectly satisfies the requirements of the question mentioned above.
+
+
+# Example
+
+extract the fruit mentioned in the text:
+"The apple is red, the banana is yellow, the orange is orange"
+
+----- Start of response example -----
+```json
+[
+    "apple",
+    "banana",
+    "orange"
+]
+----- End of response example -----
+
+
+# Warning
+- The response SHALL be returned as a **JSON array** within the codeblock.
+- No additional Explanation is needed.
+- All elements in the JSON array MUST be of type String.
+{{#if k}}- The JSON array responded MUST have exact {{k}} String {{/if}}
