@@ -3,9 +3,7 @@
 import asyncio
 from typing import Any
 
-from fabricatio import Action, Role, Task, WorkFlow, logger
-
-task = Task(name="say hello", goals=["say hello"], description="say hello to the world")
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
 
 class Talk(Action):
@@ -23,7 +21,9 @@ class Talk(Action):
 async def main() -> None:
     """Main function."""
     role = Role(
-        name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Talk,))}
+        name="talker",
+        description="talker role",
+        registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Talk,))},
     )
     logger.info(f"Task example:\n{Task.formated_json_schema()}")
     logger.info(f"proposed task: {await role.propose_task('write a rust clap cli that can download a html page')}")
