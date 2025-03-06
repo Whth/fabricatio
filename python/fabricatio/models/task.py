@@ -40,7 +40,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     """A list of string segments that identify the task's location in the system. If not specified, defaults to an empty list."""
 
     dependencies: List[str] = Field(default_factory=list)
-    """A list of file paths that are needed (either reading or writing) to complete this task. If not specified, defaults to an empty list."""
+    """A list of file paths that are needed or mentioned in the task's description (either reading or writing) to complete this task. If not specified, defaults to an empty list."""
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""

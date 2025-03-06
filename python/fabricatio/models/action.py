@@ -46,6 +46,7 @@ class Action(HandleTask, ProposeTask, GiveRating):
             cxt[self.output_key] = ret
         return cxt
 
+    @property
     def briefing(self) -> str:
         """Return a brief description of the action."""
         if self.personality:

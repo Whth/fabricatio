@@ -7,8 +7,10 @@ from typing import Callable, List
 from pydantic import BaseModel, Field
 from pydantic.config import ConfigDict
 
+from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import ProposedAble
+from fabricatio.models.task import Task
 
 
 class Equation(BaseModel):
@@ -104,17 +106,22 @@ class ExtractArticleEssence(Action):
 
     async def _execute[P: PathLike | str](
         self,
-        article_paths: List[P] | P,
+        task_input: Task,
         reader: Callable[[P], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
-    ) -> List[ArticleEssence] | ArticleEssence:
-        if is_not_list := not isinstance(article_paths, list):
-            article_paths = [article_paths]
-        contents = [reader(p) for p in article_paths]
+    ) -> List[ArticleEssence]:
+        if not await self.ajudge(
+            f"= Task\n{task_input.briefing}\n\n\n= Role\n{self.briefing}",
+            affirm_case="The task does not violate the role, and could be approved since the file dependencies are specified.",
+            deny_case="The task does violate the role, and could not be approved.",
+        ):
+            logger.info(err := "Task not approved.")
+            raise RuntimeError(err)
+
         # trim the references
-        contents = ["References".join(c.split("References")[:-1]) for c in contents]
+        contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
         return await self.propose(
             ArticleEssence,
-            contents.pop() if is_not_list else contents,
+            contents,
             system_message=f"# your personal briefing: \n{self.briefing}",
         )
