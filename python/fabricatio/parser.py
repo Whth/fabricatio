@@ -2,6 +2,7 @@
 
 from typing import Any, Callable, Optional, Self, Tuple, Type
 
+import orjson
 import regex
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
 from regex import Pattern, compile
@@ -73,19 +74,19 @@ class Capture(BaseModel):
     def validate_with[K, T, E](
         self,
         text: str,
-        deserializer: Callable[[Tuple[str, ...]], K] | Callable[[str], K],
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
+        deserializer: Callable[[Tuple[str, ...]], K] | Callable[[str], K] = orjson.loads,
     ) -> T | None:
         """Validate the given text using the pattern.
 
         Args:
             text (str): The text to search the pattern in.
-            deserializer (Callable[[Tuple[str, ...]], K] | Callable[[str], K]): The function to deserialize the captured text.
-            target_type (Type[T]): The expected type of the output.
-            elements_type (Optional[Type[E]]): The expected type of the elements in the output.
+            target_type (Type[T]): The expected type of the output, dict or list.
+            elements_type (Optional[Type[E]]): The expected type of the elements in the output dict keys or list elements.
             length (Optional[int]): The expected length of the output, bool(length)==False means no length validation.
+            deserializer (Callable[[Tuple[str, ...]], K] | Callable[[str], K]): The function to deserialize the captured text.
 
         Returns:
             T | None: The validated text if the pattern is found and the output is of the expected type, otherwise None.

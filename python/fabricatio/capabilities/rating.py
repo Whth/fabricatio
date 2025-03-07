@@ -131,8 +131,7 @@ class GiveRating(WithBriefing, LLMUsage):
 
         def _validator(response: str) -> Dict[str, str] | None:
             if (
-                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
-                and isinstance(json_data, dict)
+                (json_data := JsonCapture.validate_with(response, target_type=dict, elements_type=str)) is not None
                 and json_data.keys() == criteria
                 and all(isinstance(v, str) for v in json_data.values())
             ):
@@ -173,11 +172,10 @@ class GiveRating(WithBriefing, LLMUsage):
 
         def _validator(response: str) -> Set[str] | None:
             if (
-                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
-                and isinstance(json_data, list)
-                and all(isinstance(v, str) for v in json_data)
-                and (criteria_count == 0 or len(json_data) == criteria_count)
-            ):
+                json_data := JsonCapture.validate_with(
+                    response, target_type=list, elements_type=str, length=criteria_count
+                )
+            ) is not None:
                 return set(json_data)
             return None
 
@@ -219,27 +217,6 @@ class GiveRating(WithBriefing, LLMUsage):
         Returns:
             Set[str]: A set of drafted rating criteria.
         """
-
-        def _reasons_validator(response: str) -> List[str] | None:
-            if (
-                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
-                and isinstance(json_data, list)
-                and all(isinstance(v, str) for v in json_data)
-                and len(json_data) == reasons_count
-            ):
-                return json_data
-            return None
-
-        def _criteria_validator(response: str) -> Set[str] | None:
-            if (
-                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
-                and isinstance(json_data, list)
-                and all(isinstance(v, str) for v in json_data)
-                and len(json_data) == criteria_count
-            ):
-                return set(json_data)
-            return None
-
         kwargs = GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
@@ -256,7 +233,9 @@ class GiveRating(WithBriefing, LLMUsage):
                     )
                     for pair in (permutations(examples, 2))
                 ],
-                validator=_reasons_validator,
+                validator=lambda resp: JsonCapture.validate_with(
+                    resp, target_type=list, elements_type=str, length=reasons_count
+                ),
                 **kwargs,
             )
         )
@@ -272,7 +251,9 @@ class GiveRating(WithBriefing, LLMUsage):
                     },
                 )
             ),
-            validator=_criteria_validator,
+            validator=lambda resp: set(out)
+            if (out := JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=criteria_count))
+            else None,
             **kwargs,
         )
 
@@ -295,11 +276,6 @@ class GiveRating(WithBriefing, LLMUsage):
         if len(criteria) < 2:  # noqa: PLR2004
             raise ValueError("At least two criteria are required to draft rating weights")
 
-        def _validator(resp: str) -> float | None:
-            if (cap := JsonCapture.convert_with(resp, orjson.loads)) is not None and isinstance(cap, float):
-                return cap
-            return None
-
         criteria = list(criteria)  # freeze the order
         windows = windowed(criteria, 2)
 
@@ -316,7 +292,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 )
                 for pair in windows
             ],
-            validator=_validator,
+            validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
             **GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs),
         )
         weights = [1]

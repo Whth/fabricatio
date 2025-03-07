@@ -5,7 +5,6 @@ from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Type, Un
 
 import asyncstdlib
 import litellm
-import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -23,6 +22,7 @@ from litellm.types.utils import (
     StreamingChoices,
 )
 from litellm.utils import CustomStreamWrapper
+from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
 
@@ -254,7 +254,7 @@ class LLMUsage(ScopedConfig):
                 configs.templates.liststr_template,
                 {"requirement": requirement, "k": k},
             ),
-            lambda resp: JsonCapture.validate_with(resp, orjson.loads, list, str, k),
+            lambda resp: JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=k),
             **kwargs,
         )
 
@@ -281,6 +281,9 @@ class LLMUsage(ScopedConfig):
             - Ensures response compliance through JSON parsing and format validation.
             - Relies on `aask_validate` to implement retry mechanisms with validation.
         """
+        if dup := duplicates_everseen(choices, key=lambda x: x.name):
+            logger.error(err := f"Redundant choices: {dup}")
+            raise ValueError(err)
         prompt = template_manager.render_template(
             configs.templates.make_choice_template,
             {
@@ -290,19 +293,16 @@ class LLMUsage(ScopedConfig):
             },
         )
         names = {c.name for c in choices}
+
         logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
         def _validate(response: str) -> List[T] | None:
-            ret = JsonCapture.convert_with(response, orjson.loads)
-
-            if not isinstance(ret, List) or (0 < k != len(ret)):
-                logger.error(f"Incorrect Type or length of response: \n{ret}")
+            ret = JsonCapture.validate_with(response, target_type=List, elements_type=str, length=k)
+            if ret is None or set(ret) - names:
                 return None
-            if any(n not in names for n in ret):
-                logger.error(f"Invalid choice in response: \n{ret}")
-                return None
-
-            return [next(toolbox for toolbox in choices if toolbox.name == toolbox_str) for toolbox_str in ret]
+            return [
+                next(candidate for candidate in choices if candidate.name == candidate_name) for candidate_name in ret
+            ]
 
         return await self.aask_validate(
             question=prompt,
@@ -356,19 +356,12 @@ class LLMUsage(ScopedConfig):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
-
-        def _validate(response: str) -> bool | None:
-            ret = JsonCapture.convert_with(response, orjson.loads)
-            if not isinstance(ret, bool):
-                return None
-            return ret
-
         return await self.aask_validate(
             question=template_manager.render_template(
                 configs.templates.make_judgment_template,
                 {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case},
             ),
-            validator=_validate,
+            validator=lambda resp: JsonCapture.validate_with(resp, target_type=bool),
             **kwargs,
         )
 
