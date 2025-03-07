@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fabricatio.models.generic import Display, ProposedAble
+from fabricatio.models.generic import Display, PrepareVectorization, ProposedAble
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -33,7 +33,24 @@ class Figure(BaseModel):
     """The file path to the figure"""
 
 
-class ArticleEssence(ProposedAble, Display):
+class Highlightings(BaseModel):
+    """Structured representation of highlighted elements in an academic paper (including equations, algorithms, figures, and tables)."""
+
+    # Academic Achievements Showcase
+    highlighted_equations: List[Equation] = Field(default_factory=list)
+    """Core mathematical equations that represent breakthroughs in the field, accompanied by explanations of their physical or conceptual significance."""
+
+    highlighted_algorithms: List[str] = Field(default_factory=list)
+    """Pseudocode for key algorithms, annotated to highlight innovative components."""
+
+    highlighted_figures: List[Figure] = Field(default_factory=list)
+    """Critical diagrams or illustrations, each accompanied by a caption explaining their academic importance."""
+
+    highlighted_tables: List[str] = Field(default_factory=list)
+    """Important data tables, annotated to indicate statistical significance or other notable findings."""
+
+
+class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     """Structured representation of the core elements of an academic paper(providing a comprehensive digital profile of the paper's essential information)."""
 
     # Basic Metadata
@@ -62,19 +79,6 @@ class ArticleEssence(ProposedAble, Display):
     technical_novelty: List[str] = Field(default_factory=list)
     """Specific technical innovations introduced by the research, listed as individual points."""
 
-    # Academic Achievements Showcase
-    highlighted_equations: List[Equation] = Field(default_factory=list)
-    """Core mathematical equations that represent breakthroughs in the field, accompanied by explanations of their physical or conceptual significance."""
-
-    highlighted_algorithms: List[str] = Field(default_factory=list)
-    """Pseudocode for key algorithms, annotated to highlight innovative components."""
-
-    highlighted_figures: List[Figure] = Field(default_factory=list)
-    """Critical diagrams or illustrations, each accompanied by a caption explaining their academic importance."""
-
-    highlighted_tables: List[str] = Field(default_factory=list)
-    """Important data tables, annotated to indicate statistical significance or other notable findings."""
-
     # Academic Discussion Dimensions
     research_problem: str = Field("")
     """A clearly defined research question or problem addressed by the study."""
@@ -87,3 +91,6 @@ class ArticleEssence(ProposedAble, Display):
 
     impact_analysis: str = Field("")
     """An assessment of the paper's potential influence on the development of the field."""
+
+    def _prepare_vectorization_inner(self) -> str:
+        return self.model_dump_json()

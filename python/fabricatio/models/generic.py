@@ -1,5 +1,6 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
+from abc import abstractmethod
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Self, Union, final
 
@@ -8,6 +9,7 @@ from fabricatio._rust import blake3_hash
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.fs.readers import magika, safe_text_read
+from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
 from pydantic import (
     BaseModel,
@@ -209,6 +211,28 @@ class WithDependency(Base):
                 for p in self.dependencies
             },
         )
+
+
+class PrepareVectorization(Base):
+    """Class that prepares the vectorization of the model."""
+
+    @abstractmethod
+    def _prepare_vectorization_inner(self) -> str:
+        """Prepare the vectorization of the model."""
+
+    def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
+        """Prepare the vectorization of the model.
+
+        Returns:
+            str: The prepared vectorization of the model.
+        """
+        max_length = max_length or configs.embedding.max_sequence_length
+        chunk = self._prepare_vectorization_inner()
+        if len(chunk) > max_length:
+            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}.")
+            raise ValueError(err)
+
+        return chunk
 
 
 class ScopedConfig(Base):
