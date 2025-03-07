@@ -1,5 +1,6 @@
 mod templates;
 mod hash;
+mod hbs_helpers;
 
 use pyo3::prelude::*;
 

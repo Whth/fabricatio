@@ -1,3 +1,4 @@
+use crate::hbs_helpers::len;
 use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -34,6 +35,7 @@ impl TemplateManager {
             suffix:suffix.unwrap_or("hbs".to_string()) 
         };
         manager.discover_templates();
+        manager.register_builtin_helper();
         Ok(manager)
     }
 
@@ -90,6 +92,11 @@ impl TemplateManager {
             })
             .collect()
     }
+
+    fn register_builtin_helper(&mut self){
+        self.handlebars.register_helper("len",Box::new(len))
+    }
+
 }
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
