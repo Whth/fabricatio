@@ -1,10 +1,35 @@
-# Task Briefing:
-Your task is to analyze the given pair of examples related to the topic "{{topic}}" and provide {{reasons_count}} reasons that differentiate or compare these examples. Make sure each reason is clear, concise, and directly relevant to the topic.
+# Task: Generate Comparative Reasons Between Examples
 
-Within the topic of "{{topic}}", why {{first}} is "better" than {{second}}, give {{reasons_count}} reasons.
+Within the topic of "{{topic}}", analyze why "{{first}}" is better than "{{second}}" by providing {{reasons_count}} clear, substantiated reasons.
 
-# Response Example:
-Within the topic of "Good icecream", why "Vanilla Dream" is "better" than "Choco Delight", give 2 reasons.
+## CFER Framework
+When formulating your comparative reasons:
+- **Comparative**: Each reason should directly contrast specific aspects of both examples
+- **Factual**: Base reasons on observable qualities rather than subjective opinions
+- **Explicit**: Clearly articulate the advantage that "{{first}}" has over "{{second}}"
+- **Relevant**: Focus on aspects that matter most within the context of "{{topic}}"
+
+## Reasoning Guidelines
+When developing your reasons:
+1. Identify specific features, attributes or characteristics where "{{first}}" excels
+2. For each feature, explain how it manifests in both examples with clear contrast
+3. Articulate why the difference matters in the context of "{{topic}}"
+4. Use concrete details rather than vague generalizations
+5. Ensure each reason addresses a distinct aspect (avoid overlap)
+6. Consider both qualitative and quantitative advantages where applicable
+
+## Response Format
+Provide exactly {{reasons_count}} reasons in a JSON array of strings. Each reason should:
+- Be a complete, self-contained statement
+- Include specific information about both "{{first}}" and "{{second}}"
+- Clearly explain the comparative advantage
+
+# Example:
+Topic: "Good icecream"
+First: "Vanilla Dream"
+Second: "Choco Delight"
+Reasons count: 2
+
 ----- Start of response example -----
 ```json
 [
@@ -14,5 +39,10 @@ Within the topic of "Good icecream", why "Vanilla Dream" is "better" than "Choco
 ```
 ----- End of response example -----
 
-# Warning:
-- Ensure your response strictly follows the JSON format provided in the example above. Your response must contain exactly {{reasons_count}} reasons. Each reason should be a string value within the array. The output will be validated against these criteria.
+## Format Requirements
+- Provide EXACTLY {{reasons_count}} reasons, no more and no less
+- Format as a valid JSON array of strings
+- Each reason should be a complete sentence with proper punctuation
+- Each reason must mention both "{{first}}" and "{{second}}" by name
+- Each reason should highlight a specific advantage of "{{first}}" over "{{second}}"
+- No explanations, justifications, or additional text outside the JSON array

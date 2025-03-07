@@ -1,27 +1,35 @@
-# Prompt:
+# Task: Make Boolean Judgment
 
 {{ prompt }}
 
-# Task:
+## CFER Framework
+When making your judgment, follow these principles:
+- **Clear**: Assess the prompt against definitive criteria
+- **Focused**: Evaluate only what's directly requested, avoiding scope creep
+- **Evidence-based**: Base your judgment solely on the information provided
+- **Responsive**: Provide precisely the boolean value that answers the prompt
 
-Please provide a boolean response (true or false) based on the prompt given above.:
+## Judgment Guidelines
+When determining your response:
+1. Carefully analyze the exact wording of the prompt
+2. Identify the specific criteria that determine a true/false answer
+3. Apply logical reasoning without introducing external assumptions
+4. Make a definitive decision based on the available information
+{{#if affirm_case}}5. If {{affirm_case}}, respond `true`{{/if}}
+{{#if deny_case}}6. If {{deny_case}}, respond `false`{{/if}}
+
+## Response Format
+Return your judgment as a single boolean value (true or false) in a JSON code block.
 
 # Example:
-
-e.g. 1
+----- Start of response example -----
 ```json
 true
 ```
+----- End of response example -----
 
-e.g. 2
-```json
-false
-```
-
-# Warnings:
-
-- Your response shall not have any explanation, only the boolean response.
-- Your response shall be either `true` or `false`.
-{{#if affirm_case}}- If {{affirm_case}}, respond `true`.{{/if}}
-{{#if deny_case}}- If {{deny_case}}, respond `false`.{{/if}}
-
+## Format Requirements
+- Response MUST be EXACTLY `true` or `false` within a JSON code block
+- No explanations, qualifications, or additional text outside the code block
+- No "maybe," "it depends," or other non-boolean responses
+- No quotation marks around the boolean value in the JSON

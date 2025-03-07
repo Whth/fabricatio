@@ -1,24 +1,40 @@
 # Task
-Please draft rating dimensions for the topic: "{{ topic }}".
-Return the dimensions{{#if criteria_count}} with length of {{ criteria_count }}{{/if}} in JSON format as a list of strings within code block.
+Please draft rating criteria for the topic: "{{ topic }}".
 
+## CFER Framework
+Create criteria that are:
+- **Comprehensive**: Cover all important aspects of the topic
+- **Fair**: Measurable and objective across different instances
+- **Evidence-based**: Can be evaluated based on observable evidence
+- **Relevant**: Directly related to the quality or performance of the topic
+
+Return the criteria{{#if criteria_count}} with exactly {{ criteria_count }} items{{/if}} in JSON format as a list of strings within code block.
 
 # Example:
-returning dimensions{{#if criteria_count}} with length of 3{{/if}} for the topic "Nice icecream"
+Rating criteria for the topic "Nice icecream"
 
 ----- Start of response example -----
 ```json
 [
-    "outlook",
-    "taste",
-    "texture"
+"Visual appeal (color, presentation, garnish)",
+"Flavor complexity and authenticity",
+"Texture consistency and mouthfeel",
+"Ingredient quality and freshness",
+"Value for price point"
 ]
 ```
 ----- End of response example -----
 
+## Aspect Introduction
+Each criterion should:
+- Be concise yet descriptive (5-10 words)
+- Represent a distinct aspect of evaluation
+- Be applicable across different instances of the topic
+- Avoid overlapping with other criteria
+- Use terminology relevant to the domain
 
 # Warning
-- Please ensure that the dimensions are clear and concise.
-- The response SHALL be returned as a JSON object within the codeblock.
-- No additional Explanation is needed.
-{{#if criteria_count }}- You must return exactly {{ criteria_count }} dimensions.{{/if}}
+- Please ensure that the criteria are clear, concise, and independently measurable.
+- The response SHALL be returned as a JSON array within the codeblock.
+- No additional explanation is needed.
+{{#if criteria_count }}- You must return exactly {{ criteria_count }} criteria.{{/if}}

@@ -1,39 +1,51 @@
-# Task:
-Please rate the following task based on the provided rating manual and score range.
+# Task: Rate Content on Multiple Dimensions
 
-To rate content below:
------ Start of content to tate -----
+Rate the following content based on the provided rating manual and score range:
+
+----- Start of content to rate -----
 {{ to_rate }}
------ End of content to tate -----
+----- End of content to rate -----
 
-Rating Manual:
+## CFER Framework
+When rating the content, follow these principles:
+- **Consistent**: Apply the same standards across all dimensions
+- **Factual**: Base ratings on observable qualities rather than subjective preferences
+- **Explicit**: Consider each dimension independently based on its defined criteria
+- **Refined**: Provide precise scores rounded to two decimal places
+
+## Rating Manual
 {{ rating_manual }}
 
-Score Range:
-- Minimal score: {{ min_score }}
-- Maximum score is {{ max_score }}
+## Score Range
+- Minimum score: {{ min_score }}
+- Maximum score: {{ max_score }}
 
+## Rating Guidelines
+When determining your ratings:
+1. Analyze the content thoroughly against each dimension in the rating manual
+2. Consider only what's present in the content being rated
+3. Evaluate each dimension independently based on its specific criteria
+4. Assign precise scores within the specified range for each dimension
+5. Round all scores to exactly two decimal places
+6. Ensure no dimension is scored outside the range [{{ min_score }}, {{ max_score }}]
 
-By referring the rating manual, rate the content based on the provided rating manual and score range.
+## Response Format
+Return your ratings as a JSON object with dimension names as keys and scores as values.
 
 # Example:
-rate the cherry icecream with ["outlook", "taste", "texture"] dimensions, the score range is 0-5.
-
 ----- Start of response example -----
 ```json
 {
-  "outlook": 3.56,
-  "taste": 4.55,
-  "texture": 3.01
+"outlook": 3.56,
+"taste": 4.55,
+"texture": 3.01
 }
 ```
------ end of response example -----
+----- End of response example -----
 
-
-# Warning
-- Please ensure that the rating is done based on the rating manual and score range provided.
-- The response SHALL be returned as a JSON object within the codeblock.
-- No additional Explanation is needed.
-- The rating for each dimension SHALL be rounded to two decimal places.
-- The score dor each dimension SHALL be within the score range provided, that is, not smaller than {{ min_score }} and not larger than {{ max_score }}.
-- the response SHALL include all the dimensions provided in the [{{#each rating_manual}}"{{@key}}",{{/each}}].
+## Format Requirements
+- Response MUST be a valid JSON object within a code block
+- Keys MUST match ALL dimensions from the rating manual: [{{#each rating_manual}}"{{@key}}",{{/each}}]
+- Values MUST be numeric, rounded to exactly two decimal places
+- All scores MUST be within the range [{{ min_score }}, {{ max_score }}]
+- No explanations or additional text outside the JSON code block

@@ -1,16 +1,22 @@
 # Task
-Please draft a rating manual for the following topic and criteria, which will be used to rate the entity based.
+Please draft a rating manual for the following topic and criteria. This manual will guide evaluators in applying consistent standards.
 
 Topic: {{ topic }}
 Criteria: {{ criteria }}
 
-Return the rating manual as a JSON object within the codeblock where the keys are the criteria and the values are the criteria for each criterion.
+## CFER Framework
+Ensure your rating manual follows these principles:
+- **Comprehensive**: Cover all important aspects of each criterion
+- **Fair**: Describe measurable and objective evaluation standards
+- **Evidence-based**: Focus on observable evidence for each rating level
+- **Relevant**: Connect directly to quality or performance within the topic
 
+Return the rating manual as a JSON object within a codeblock where the keys are the criteria and the values are the detailed descriptions for each criterion.
 
 # Example:
 
-topic: Nice icecream
-criteria:["outlook","taste","texture"]
+Topic: Nice icecream
+Criteria: ["outlook","taste","texture"]
 ----- Start of response example -----
 ```json
 {
@@ -19,9 +25,17 @@ criteria:["outlook","taste","texture"]
 "texture": "How the icecream feels. High score for smooth texture without icy bits, melts smoothly in the mouth providing a creamy experience; low score for rough texture containing many ice crystals, feeling like it has been frozen for too long lacking softness."
 }
 ```
------ end of response example -----
+----- End of response example -----
+
+## Aspect Introduction
+For each criterion in your manual:
+- Provide a clear definition of what the criterion measures
+- Include specific examples of high-quality and low-quality manifestations
+- Define observable characteristics evaluators should look for
+- Use domain-appropriate terminology
+- Ensure the description enables consistent application across different instances
 
 # Warning
 - Please ensure that the rating manual is clear and concise, and that the criteria for each criterion are well-defined.
 - The response SHALL be returned as a JSON object within the codeblock.
-- No additional Explanation is needed.
+- No additional explanation is needed.

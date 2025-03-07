@@ -1,25 +1,40 @@
-# Instruction:
+# Task: Make Selection from Available Options
+
 {{instruction}}
 
-# Options:
-{{#each options}}
-- {{briefing}}
+## CFER Framework
+When selecting the most appropriate option(s), follow these principles:
+- **Considered**: Evaluate each option thoroughly against the requirements
+- **Focused**: Select only options that directly address the core needs
+- **Evidence-based**: Base your selection on concrete merits rather than assumptions
+- **Reasoned**: Prioritize options that best satisfy all critical requirements
 
+## Available Options
+{{#each options}}
+- **{{name}}**: {{briefing}}
 {{/each}}
 
-# Task:
+## Selection Guidelines
+When making your selection:
+1. Identify the key requirements in the instruction
+2. Evaluate how well each option satisfies these requirements
+3. Consider both primary functionality and secondary benefits
+4. Eliminate options that fail to meet essential criteria
+5. Prioritize options that offer the best overall solution
+{{#if k}}6. Select EXACTLY {{k}} options as specified{{/if}}
 
-Please choose the most appropriate option(s) from the list above. Return your choice as a JSON array of the selected option names.
+## Response Format
+Return your selection as a JSON array of option names within a code block.
 
-Example:
+# Example:
 ----- Start of response example -----
 ```json
 ["option1", "option2"]
 ```
 ----- End of response example -----
 
-# Warnings:
-
-- Note that All items in list you returned **MUST** be contained in [{{#each options}}"{{name}}", {{/each}}], No extra items are allowed.
-- Your response shall not have any explanation, only the JSON array of selected option names.
-{{#if k}}- The array returned MUST have a length of **{{k}}**.{{/if}}
+## Format Requirements
+- Response MUST be a valid JSON array containing only option names
+- Each selected option MUST be from the provided list: [{{#each options}}"{{name}}", {{/each}}]
+- No explanations or additional text outside the JSON code block
+{{#if k}}- The array MUST contain EXACTLY {{k}} options{{/if}}

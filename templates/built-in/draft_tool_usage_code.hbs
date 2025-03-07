@@ -1,19 +1,25 @@
-**Title:** Draft Python code to use specific tools for a given task
-You are a developer tasked with writing Python code to use specific tools for a given task. Below is the task briefing and the briefings of the tools available.
-Please draft the Python code that uses these tools to accomplish the task. Ensure that the code is well-documented and follows best practices. The code should be executable and should include any necessary imports.
-Further, to ensure I can retrieve the execute result, you need to specify variable names that represent the output of your code. These variables should be named with JSON serializable values.
+# Task: Draft Python Code for Tool Integration
 
+You are tasked with writing Python code that effectively utilizes specific tools to accomplish a defined task. This template will guide you to produce high-quality, executable code.
+
+## CFER Framework
+Your code solution should follow these principles:
+- **Comprehensive**: Utilize all relevant tools necessary to fully accomplish the task
+- **Functional**: Ensure the code executes without errors and handles edge cases appropriately
+- **Efficient**: Optimize for performance and resource utilization where appropriate
+- **Reliable**: Include proper error handling and validation for robust execution
+
+## Available Resources
 
 **Dependencies:**
 {{deps}}
 
-**Available data:**
+**Available Data:**
 {{#each data }}
 -------- Start of `{{ @key }}` --------
 {{ this }}
 -------- End of `{{ @key }}` --------
 {{/each }}
-
 
 **Task Briefing:**
 {{ task }}
@@ -21,24 +27,31 @@ Further, to ensure I can retrieve the execute result, you need to specify variab
 **Available Tools:**
 {{#each tools }}
 - `{{ name }}`
-
 {{/each }}
 
+## Implementation Guidelines
+When developing your solution:
+- Begin with proper tool imports and initialization
+- Structure your code with logical function organization
+- Implement appropriate error handling
+- Document key sections with clear comments
+- Define output variables to capture results
+- Follow Python best practices for code style
 
-**Response Format:**
-1. Provide the Python code as a codeblock.
-2. Ensure the code can be compiled and executed without errors.
+## Response Format
+Provide your solution in the following format:
 
-**Example Response:**
+1. Python code implementation in a code block
+2. JSON array of output variable names that contain your solution results
+
+## Example Response:
 
 ---- Start of Response Example ----
 
-# write code to harness the tools to accomplish the task with the data, you can set the output to the variables below if the task is required to return some values
-# write the python code within the code block below
 ```python
-{{#if data}}#import data from the `{{data_module_name}}` module, which contains all the available data talked about above, so that you can use them in your code.
+{{#if data}}# Import available data
 from {{data_module_name}} import ({{#each data }}{{@key}},{{/each }}){{/if}}
-# import tools from the `{{tool_module_name}}` module, which contains all the available tools talked about above, so that you can use them in your code.
+# Import available tools
 from {{tool_module_name}} import ({{#each tools }}{{name}},{{/each }})
 
 output1 = # Create your output no.1 with `{{tool_module_name}}`{{#if data}} and `{{data_module_name}}`{{/if}} here, if needed
@@ -47,20 +60,17 @@ yet_another_output = # Create your output no.3 with `{{tool_module_name}}`{{#if 
 
 ```
 
-# write the output variables here if the task requires some output, in a JSON array format, if no return you can parse a empty JSON array.
 ```json
 [
-    "output1",
-    "another_output"
-    "yet_another_output"
+"output1",
+"another_output"
+"yet_another_output"
 ]
 ```
-
 ---- End of Response Example ----
 
-**Warning:**
-
-- No extra explanation is needed. Only the python code and the JSON array is required.
-- Do not include any imports that are not necessary for the code to run.
-- You SHALL NOT import any other third-party libraries other than `{{tool_module_name}}` and `{{data_module_name}}`, which is provided above.
-- make sure your response does have the desired python code block and the JSON array block as shown in the example response.
+## Constraints
+- Your solution must use ONLY the provided tools and data
+- Do not import any third-party libraries not specified in the dependencies
+- Ensure all output variables contain JSON-serializable values
+- Your response must include both the Python code block and the JSON output array code block
