@@ -28,13 +28,15 @@ class Base(BaseModel):
 
 
 class Display(Base):
+    """Class that provides a method to display the model in a formatted JSON string."""
+
     def display(self) -> str:
         """Display the model in a formatted JSON string.
 
         Returns:
             str: The formatted JSON string of the model.
         """
-        return orjson.dumps(self.model_dump(), option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS).decode()
+        return self.model_dump_json(indent=1)
 
 
 class Named(Base):

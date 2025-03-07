@@ -1,7 +1,6 @@
 """Example of proposing a task to a role."""
 
 import asyncio
-from typing import List
 
 from fabricatio import ArticleEssence, Event, ExtractArticleEssence, Role, WorkFlow, logger
 
@@ -19,8 +18,8 @@ async def main() -> None:
         },
     )
     task = await role.propose_task("Extract the essence of the article from the file at './7.md'")
-    ess: List[ArticleEssence] = await task.delegate("article")
-    logger.success(f"Essence:\n{ess.pop().display()}")
+    ess: ArticleEssence = (await task.delegate("article")).pop()
+    logger.success(f"Essence:\n{ess.display()}")
 
 
 if __name__ == "__main__":

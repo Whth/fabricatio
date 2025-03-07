@@ -27,11 +27,7 @@ class Capture(BaseModel):
     _compiled: Pattern = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
-        """Initialize the compiled regular expression pattern after the model is initialized.
-
-        Args:
-            __context (Any): The context in which the model is initialized.
-        """
+        """Initialize the compiled pattern."""
         self._compiled = compile(self.pattern, self.flags)
 
     def capture(self, text: str) -> Tuple[str, ...] | str | None:
@@ -69,7 +65,6 @@ class Capture(BaseModel):
         if (cap := self.capture(text)) is None:
             return None
         try:
-            logger.debug(f"Trying to convert: \n{cap}")
             return convertor(cap)
         except (ValueError, SyntaxError, ValidationError) as e:
             logger.error(f"Failed to convert text using {convertor.__name__} to convert.\nerror: {e}\n {cap}")
