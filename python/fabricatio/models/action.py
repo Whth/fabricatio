@@ -17,10 +17,21 @@ from pydantic import Field, PrivateAttr
 class Action(HandleTask, ProposeTask, GiveRating):
     """Class that represents an action to be executed in a workflow."""
 
+    name: str = Field(default="")
+    """The name of the action."""
     personality: str = Field(default="")
     """The personality of whom the action belongs to."""
     output_key: str = Field(default="")
     """The key of the output data."""
+
+    def model_post_init(self, __context: Any) -> None:
+        """Initialize the action by setting the name if not provided.
+
+        Args:
+            __context: The context to be used for initialization.
+        """
+        if not self.name:
+            self.name = self.__class__.__name__
 
     @abstractmethod
     async def _execute(self, **cxt: Unpack) -> Any:
