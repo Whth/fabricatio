@@ -13,10 +13,16 @@ from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, ove
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.kwargs_types import CollectionSimpleConfigKwargs, EmbeddingKwargs, FetchKwargs, LLMKwargs
+from fabricatio.models.kwargs_types import (
+    ChooseKwargs,
+    CollectionSimpleConfigKwargs,
+    EmbeddingKwargs,
+    FetchKwargs,
+    LLMKwargs,
+)
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.models.utils import MilvusData
-from more_itertools.recipes import flatten
+from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
 
 
@@ -221,9 +227,9 @@ class RAG(EmbeddingUsage):
 
         # Step 2: Flatten the search results
         flattened_results = flatten(search_results)
-
+        unique_results = unique(flattened_results, key=itemgetter("id"))
         # Step 3: Sort by distance (descending)
-        sorted_results = sorted(flattened_results, key=itemgetter("distance"), reverse=True)
+        sorted_results = sorted(unique_results, key=itemgetter("distance"), reverse=True)
 
         logger.debug(f"Searched similarities: {[t['distance'] for t in sorted_results]}")
         # Step 4: Extract the entities
@@ -306,5 +312,23 @@ class RAG(EmbeddingUsage):
         return await self.aask(
             question,
             f"{rendered}\n\n{extra_system_message}",
+            **kwargs,
+        )
+
+    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs]) -> List[str]:
+        """Refines the given question using a template.
+
+        Args:
+            question (List[str] | str): The question to be refined.
+            **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the refinement process.
+
+        Returns:
+            List[str]: A list of refined questions.
+        """
+        return await self.aliststr(
+            template_manager.render_template(
+                configs.templates.refined_query_template,
+                {"question": [question] if isinstance(question, str) else question},
+            ),
             **kwargs,
         )

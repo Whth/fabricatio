@@ -209,6 +209,9 @@ class TemplateConfig(BaseModel):
     liststr_template: str = Field(default="liststr")
     """The name of the liststr template which will be used to display a list of strings."""
 
+    refined_query_template: str = Field(default="refined_query")
+    """The name of the refined query template which will be used to refine a query."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
