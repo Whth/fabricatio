@@ -13,8 +13,6 @@ from pydantic import Field
 class WriteDiary(Action):
     """Write a diary according to the given commit messages in json format."""
 
-    name: str = "write diary"
-    description: str = "write a diary according to the given commit messages in json format"
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
@@ -50,8 +48,6 @@ class WriteDiary(Action):
 class DumpText(Action):
     """Dump the text to a file."""
 
-    name: str = "dump text"
-    description: str = "dump text to a file"
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
     output_key: str = "task_output"
 
@@ -77,9 +73,7 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can ",
         registry={
-            Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
-                name="write documentation", steps=(WriteDiary, DumpText)
-            ),
+            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDiary, DumpText)),
         },
     )
 

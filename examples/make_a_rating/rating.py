@@ -12,7 +12,6 @@ from fabricatio.models.task import Task
 class Rate(Action):
     """Rate the task."""
 
-    name: str = "rate"
     output_key: str = "task_output"
 
     async def _execute(self, to_rate: List[str], rate_topic: str, criteria: Set[str], **_) -> List[Dict[str, float]]:
@@ -27,8 +26,6 @@ class Rate(Action):
 
 class WhatToRate(Action):
     """Figure out what to rate."""
-
-    name: str = "figure out what to rate"
 
     output_key: str = "to_rate"
 
@@ -55,7 +52,6 @@ class WhatToRate(Action):
 class MakeCriteria(Action):
     """Make criteria for rating."""
 
-    name: str = "make criteria"
     output_key: str = "criteria"
 
     async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> Set[str]:
@@ -66,8 +62,6 @@ class MakeCriteria(Action):
 
 class MakeCompositeScore(Action):
     """Make a composite score."""
-
-    name: str = "make composite score"
 
     output_key: str = "task_output"
 
@@ -84,7 +78,7 @@ async def main() -> None:
         name="TaskRater",
         description="A role that can rate tasks.",
         registry={
-            Event.instantiate_from("rate_food").push_wildcard().push("pending"): WorkFlow(
+            Event.quick_instantiate("rate_food"): WorkFlow(
                 name="Rate food",
                 steps=(WhatToRate, Rate),
                 extra_init_context={
@@ -92,14 +86,14 @@ async def main() -> None:
                     "criteria": {"taste", "price", "quality", "safety", "healthiness"},
                 },
             ),
-            Event.instantiate_from("make_criteria_for_food").push_wildcard().push("pending"): WorkFlow(
+            Event.quick_instantiate("make_criteria_for_food"): WorkFlow(
                 name="Make criteria for food",
                 steps=(WhatToRate, MakeCriteria, Rate),
                 extra_init_context={
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.instantiate_from("make_composite_score").push_wildcard().push("pending"): WorkFlow(
+            Event.quick_instantiate("make_composite_score"): WorkFlow(
                 name="Make composite score",
                 steps=(WhatToRate, MakeCompositeScore),
                 extra_init_context={

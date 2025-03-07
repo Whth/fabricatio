@@ -3,7 +3,7 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, Dict, Self, Tuple, Type, Union, Unpack
+from typing import Any, Dict, Self, Tuple, Type, Union, Unpack, final
 
 from fabricatio.capabilities.rating import GiveRating
 from fabricatio.capabilities.task import HandleTask, ProposeTask
@@ -19,19 +19,23 @@ class Action(HandleTask, ProposeTask, GiveRating):
 
     name: str = Field(default="")
     """The name of the action."""
+    description: str = Field(default="")
+    """The description of the action."""
     personality: str = Field(default="")
     """The personality of whom the action belongs to."""
     output_key: str = Field(default="")
     """The key of the output data."""
 
+    @final
     def model_post_init(self, __context: Any) -> None:
         """Initialize the action by setting the name if not provided.
 
         Args:
             __context: The context to be used for initialization.
         """
-        if not self.name:
-            self.name = self.__class__.__name__
+        self.name = self.name or self.__class__.__name__
+
+        self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
     async def _execute(self, **cxt: Unpack) -> Any:
@@ -45,6 +49,7 @@ class Action(HandleTask, ProposeTask, GiveRating):
         """
         pass
 
+    @final
     async def act(self, cxt: Dict[str, Any]) -> Dict[str, Any]:
         """Perform the action by executing it and setting the output data.
 

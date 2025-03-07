@@ -9,7 +9,6 @@ from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 class Talk(Action):
     """Action that says hello to the world."""
 
-    name: str = "talk"
     output_key: str = "task_output"
 
     async def _execute(self, **_) -> Any:

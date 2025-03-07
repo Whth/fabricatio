@@ -11,7 +11,6 @@ task = Task(name="say hello", goals=["say hello"], description="say hello to the
 class Hello(Action):
     """Action that says hello."""
 
-    name: str = "hello"
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> Any:

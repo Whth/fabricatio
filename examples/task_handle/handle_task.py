@@ -10,7 +10,6 @@ from pydantic import Field
 class WriteCode(Action):
     """Action that says hello to the world."""
 
-    name: str = "write code"
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
@@ -24,8 +23,6 @@ class WriteCode(Action):
 class DumpText(Action):
     """Dump the text to a file."""
 
-    name: str = "dump text"
-    description: str = "dump text to a file"
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
     output_key: str = "task_output"
 
@@ -48,8 +45,6 @@ class DumpText(Action):
 class WriteDocumentation(Action):
     """Action that says hello to the world."""
 
-    name: str = "write documentation"
-    description: str = "write documentation for the code in markdown format"
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
@@ -59,8 +54,6 @@ class WriteDocumentation(Action):
 class TestCancel(Action):
     """Action that says hello to the world."""
 
-    name: str = "cancel"
-    description: str = "cancel the task"
     output_key: str = "counter"
 
     async def _execute(self, counter: int, **_) -> int:
@@ -73,7 +66,6 @@ class TestCancel(Action):
 class WriteToOutput(Action):
     """Action that says hello to the world."""
 
-    name: str = "write to output"
     output_key: str = "task_output"
 
     async def _execute(self, **_) -> str:
@@ -86,13 +78,9 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can ",
         registry={
-            Event.instantiate_from("coding").push_wildcard().push("pending"): WorkFlow(
-                name="write code", steps=(WriteCode, DumpText)
-            ),
-            Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
-                name="write documentation", steps=(WriteDocumentation, DumpText)
-            ),
-            Event.instantiate_from("cancel_test").push_wildcard().push("pending"): WorkFlow(
+            Event.quick_instantiate("coding"): WorkFlow(name="write code", steps=(WriteCode, DumpText)),
+            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDocumentation, DumpText)),
+            Event.quick_instantiate("cancel_test"): WorkFlow(
                 name="cancel_test",
                 steps=(TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, WriteToOutput),
                 extra_init_context={"counter": 0},

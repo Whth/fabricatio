@@ -11,7 +11,6 @@ from fabricatio.parser import PythonCapture
 class WriteCode(Action):
     """Action that says hello to the world."""
 
-    name: str = "write code"
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
@@ -22,10 +21,8 @@ class WriteCode(Action):
 
 
 class WriteDocumentation(Action):
-    """Action that says hello to the world."""
+    """write documentation for the code in markdown format."""
 
-    name: str = "write documentation"
-    description: str = "write documentation for the code in markdown format"
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
@@ -38,12 +35,8 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can write code and documentation",
         registry={
-            Event.instantiate_from("coding").push_wildcard().push("pending"): WorkFlow(
-                name="write code", steps=(WriteCode,)
-            ),
-            Event.instantiate_from("doc").push_wildcard().push("pending"): WorkFlow(
-                name="write documentation", steps=(WriteDocumentation,)
-            ),
+            Event.quick_instantiate("coding"): WorkFlow(name="write code", steps=(WriteCode,)),
+            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDocumentation,)),
         },
     )
 

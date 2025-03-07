@@ -10,7 +10,6 @@ from questionary import text
 class Talk(Action):
     """Action that says hello to the world."""
 
-    name: str = "talk"
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> int:
