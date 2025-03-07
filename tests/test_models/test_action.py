@@ -61,13 +61,13 @@ async def test_action_act_with_output_key():
 
 
 def test_action_briefing_without_personality(basic_action):
-    briefing = basic_action.briefing()
+    briefing = basic_action.briefing
     assert "personality" not in briefing.lower()
 
 
 def test_action_briefing_with_personality():
     action = DemoAction(personality="Helper")
-    briefing = action.briefing()
+    briefing = action.briefing
     assert "personality" in briefing.lower()
     assert "Helper" in briefing
 

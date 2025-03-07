@@ -27,8 +27,8 @@ async def test_task_status_changes(basic_task):
 
 @pytest.mark.asyncio
 async def test_task_publishing(basic_task):
-    await basic_task.publish()
-    assert basic_task._status == TaskStatus.Pending
+    basic_task.publish()
+    assert basic_task.is_pending()
 
 
 @pytest.mark.asyncio
