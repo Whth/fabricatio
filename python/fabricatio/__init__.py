@@ -3,7 +3,7 @@
 from importlib.util import find_spec
 
 from fabricatio._rust_instances import template_manager
-from fabricatio.actions import ExtractArticleEssence
+from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.core import env
 from fabricatio.fs import magika
 from fabricatio.journal import logger
@@ -44,6 +44,8 @@ __all__ = [
 
 
 if find_spec("pymilvus"):
+    from fabricatio.actions.rag import InjectToDB
     from fabricatio.capabilities.rag import RAG
+    from fabricatio.workflows.articles import StoreArticle
 
-    __all__ += ["RAG"]
+    __all__ += ["RAG", "InjectToDB", "StoreArticle"]
