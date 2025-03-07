@@ -92,9 +92,8 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         Returns:
             Self: The instance of the workflow with the injected personality.
         """
-        for a in self._instances:
-            if not a.personality:
-                a.personality = personality
+        for a in filter(lambda action: not action.personality, self._instances):
+            a.personality = personality
         return self
 
     async def serve(self, task: Task) -> None:
