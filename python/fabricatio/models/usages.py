@@ -212,11 +212,10 @@ class LLMUsage(ScopedConfig):
                     **kwargs,
                 )
             ) and (validated := validator(response)):
-                logger.debug(f"Successfully validated the response at {i}th attempt. response: \n{response}")
+                logger.debug(f"Successfully validated the response at {i}th attempt.")
                 return validated
-            logger.debug(f"Failed to validate the response at {i}th attempt. response: \n{response}")
-        logger.error(f"Failed to validate the response after {max_validations} attempts.")
-        raise ValueError("Failed to validate the response.")
+        logger.error(err := f"Failed to validate the response after {max_validations} attempts.")
+        raise ValueError(err)
 
     async def aask_validate_batch[T](
         self,

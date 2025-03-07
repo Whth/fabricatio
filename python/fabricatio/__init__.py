@@ -9,6 +9,7 @@ from fabricatio.fs import magika
 from fabricatio.journal import logger
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.events import Event
+from fabricatio.models.extra import ArticleEssence
 from fabricatio.models.role import Role
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
@@ -18,6 +19,7 @@ from fabricatio.toolboxes import arithmetic_toolbox, basic_toolboxes, fs_toolbox
 
 __all__ = [
     "Action",
+    "ArticleEssence",
     "Capture",
     "CodeBlockCapture",
     "Event",

@@ -27,6 +27,16 @@ class Base(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
+class Display(Base):
+    def display(self) -> str:
+        """Display the model in a formatted JSON string.
+
+        Returns:
+            str: The formatted JSON string of the model.
+        """
+        return orjson.dumps(self.model_dump(), option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS).decode()
+
+
 class Named(Base):
     """Class that includes a name attribute."""
 
