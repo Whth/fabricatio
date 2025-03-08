@@ -4,7 +4,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Callable, List
 
-from fabricatio import safe_text_read
+from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra import ArticleEssence, ArticleOutline, ArticleProposal
