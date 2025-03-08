@@ -258,6 +258,42 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
+    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs]) -> List[str]:
+        """Asynchronously generates a list of strings based on a given requirement.
+
+        Args:
+            requirement (str): The requirement for the list of strings.
+            **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            List[str]: The validated response as a list of strings.
+        """
+        return await self.aliststr(
+            template_manager.render_template(
+                configs.templates.pathstr_template,
+                {"requirement": requirement},
+            ),
+            **kwargs,
+        )
+
+    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[GenerateKwargs]) -> str:
+        """Asynchronously generates a single path string based on a given requirement.
+
+        Args:
+            requirement (str): The requirement for the list of strings.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            str: The validated response as a single string.
+        """
+        return (
+            await self.apathstr(
+                requirement,
+                k=1,
+                **kwargs,
+            )
+        ).pop()
+
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
