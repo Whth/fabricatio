@@ -83,20 +83,6 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.namespace = self._namespace.segments
         return self
 
-    @classmethod
-    def simple_task(cls, name: str, goal: List[str], description: str) -> Self:
-        """Create a simple task with a name, goal, and description.
-
-        Args:
-            name (str): The name of the task.
-            goal (List[str]): The goal of the task.
-            description (str): The description of the task.
-
-        Returns:
-            Task: A new instance of the `Task` class.
-        """
-        return cls(name=name, goals=goal, description=description)
-
     def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
         """Update the goal and description of the task.
 
