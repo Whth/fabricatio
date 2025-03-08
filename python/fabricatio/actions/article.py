@@ -18,11 +18,6 @@ class ExtractArticleEssence(Action):
         which is converted from pdf files using `magic-pdf` from the `MinerU` project, see https://github.com/opendatalab/MinerU
     """
 
-    name: str = "extract article essence"
-    """The name of the action."""
-    description: str = "Extract the essence of article(s) from the paths specified in the task dependencies."
-    """The description of the action."""
-
     output_key: str = "article_essence"
     """The key of the output data."""
 

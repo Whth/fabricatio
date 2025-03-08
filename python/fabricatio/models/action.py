@@ -34,7 +34,6 @@ class Action(HandleTask, ProposeTask, GiveRating):
             __context: The context to be used for initialization.
         """
         self.name = self.name or self.__class__.__name__
-
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
