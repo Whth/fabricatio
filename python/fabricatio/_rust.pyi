@@ -51,3 +51,11 @@ def blake3_hash(content: bytes) -> str:
     Returns:
         str: The BLAKE3 hash of the data.
     """
+
+class BibManager:
+    """BibManager class for managing BibTeX files."""
+    def __init__(self, path: str) -> None:
+        """Initialize the BibManager with the given path."""
+
+    def get_cite_key(self, title: str) -> str:
+        """Get the cite key for the given title."""

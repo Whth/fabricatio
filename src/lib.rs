@@ -1,6 +1,7 @@
 mod templates;
 mod hash;
 mod hbs_helpers;
+mod bib_tools;
 
 use pyo3::prelude::*;
 
@@ -14,7 +15,7 @@ fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the TemplateManager class to the Python module
     templates::register(python, m)?;
     hash::register(python, m)?;
-
+    bib_tools::register(python, m)?;
     Ok(())
 }
 

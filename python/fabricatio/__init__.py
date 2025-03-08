@@ -2,6 +2,7 @@
 
 from importlib.util import find_spec
 
+from fabricatio._rust import BibManager
 from fabricatio._rust_instances import template_manager
 from fabricatio.actions.article import ExtractArticleEssence, GenerateArticleProposal, GenerateOutline
 from fabricatio.actions.output import DumpFinalizedOutput
@@ -22,6 +23,7 @@ from fabricatio.workflows.articles import WriteOutlineWorkFlow
 __all__ = [
     "Action",
     "ArticleEssence",
+    "BibManager",
     "Capture",
     "CodeBlockCapture",
     "DumpFinalizedOutput",

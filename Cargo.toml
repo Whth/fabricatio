@@ -6,10 +6,12 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+biblatex = "0.10.0"
 blake3 = "1.6.0"
 handlebars = "6.3.1"
 pyo3 = { version = "0.23.4", features = ["extension-module"] }
 pythonize = "0.23.0"
+rayon = "1.10.0"
 serde_json = "1.0.138"
 walkdir = "2.5.0"
 
