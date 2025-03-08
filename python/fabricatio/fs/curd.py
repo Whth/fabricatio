@@ -2,14 +2,14 @@
 
 import shutil
 import subprocess
+from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from fabricatio.decorators import depend_on_external_cmd, logging_execution_info
+from fabricatio.decorators import depend_on_external_cmd
 from fabricatio.journal import logger
 
 
-@logging_execution_info
 def dump_text(path: Union[str, Path], text: str) -> None:
     """Dump text to a file. you need to make sure the file's parent directory exists.
 
@@ -23,7 +23,6 @@ def dump_text(path: Union[str, Path], text: str) -> None:
     Path(path).write_text(text, encoding="utf-8", errors="ignore")
 
 
-@logging_execution_info
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Copy a file from source to destination.
 
@@ -43,7 +42,6 @@ def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
-@logging_execution_info
 def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Move a file from source to destination.
 
@@ -63,7 +61,6 @@ def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
-@logging_execution_info
 def delete_file(file_path: Union[str, Path]) -> None:
     """Delete a file.
 
@@ -82,7 +79,6 @@ def delete_file(file_path: Union[str, Path]) -> None:
         raise
 
 
-@logging_execution_info
 def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok: bool = True) -> None:
     """Create a directory.
 
@@ -99,7 +95,6 @@ def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok:
         raise
 
 
-@logging_execution_info
 @depend_on_external_cmd(
     "erd",
     "Please install `erd` using `cargo install erdtree` or `scoop install erdtree`.",
@@ -111,7 +106,6 @@ def tree(dir_path: Union[str, Path]) -> str:
     return subprocess.check_output(("erd", dir_path.as_posix()), encoding="utf-8")  # noqa: S603
 
 
-@logging_execution_info
 def delete_directory(dir_path: Union[str, Path]) -> None:
     """Delete a directory and its contents.
 
@@ -128,3 +122,15 @@ def delete_directory(dir_path: Union[str, Path]) -> None:
     except OSError as e:
         logger.error(f"Failed to delete directory {dir_path}: {e!s}")
         raise
+
+
+def absolute_path(path: str | Path | PathLike) -> str:
+    """Get the absolute path of a file or directory.
+
+    Args:
+        path (str, Path, PathLike): The path to the file or directory.
+
+    Returns:
+        str: The absolute path of the file or directory.
+    """
+    return Path(path).expanduser().resolve().as_posix()
