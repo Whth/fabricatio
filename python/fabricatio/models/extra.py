@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fabricatio.models.generic import Base, Display, PrepareVectorization, ProposedAble
+from fabricatio.models.generic import Base, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
 from pydantic import Field
 
 
@@ -138,7 +138,7 @@ class ArticleChapterOutline(Base):
     """The sections of the chapter, outlining their content and significance."""
 
 
-class ArticleOutline(ProposedAble, Display):
+class ArticleOutline(ProposedAble, Display, FinalizedDumpAble):
     """Structured representation of the outline for an academic paper."""
 
     title: str = Field(...)
@@ -150,11 +150,11 @@ class ArticleOutline(ProposedAble, Display):
     chapters: List[ArticleChapterOutline] = Field(default_factory=list)
     """The chapters of the paper, outlining their content and significance."""
 
-    def dump_typst_code(self) -> str:
-        """Generate Typst code for the article outline.
+    def finalized_dump(self) -> str:
+        """Finalized dump of the article outline.
 
         Returns:
-            str: The generated Typst code representing the outline.
+            str: The finalized dump of the article outline.
         """
         lines: List[str] = []
 

@@ -125,6 +125,30 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
     pass
 
 
+class FinalizedDumpAble(Base):
+    """Class that provides a method to finalize the dump of the object."""
+
+    @abstractmethod
+    def finalized_dump(self) -> str:
+        """Finalize the dump of the object.
+
+        Returns:
+            str: The finalized dump of the object.
+        """
+
+    def finalized_dump_to(self, path: str | Path) -> Self:
+        """Finalize the dump of the object to a file.
+
+        Args:
+            path (str | Path): The path to save the finalized dump.
+
+        Returns:
+            Self: The current instance of the object.
+        """
+        Path(path).write_text(self.finalized_dump(), encoding="utf-8")
+        return self
+
+
 class WithDependency(Base):
     """Class that manages file dependencies."""
 

@@ -1,11 +1,15 @@
 """Store article essence in the database."""
 
-from fabricatio.actions.article import ExtractArticleEssence
-from fabricatio.actions.rag import InjectToDB
+from fabricatio.actions.article import GenerateArticleProposal, GenerateOutline
+from fabricatio.actions.output import DumpFinalizedOutput
 from fabricatio.models.action import WorkFlow
 
-StoreArticle = WorkFlow(
-    name="Extract Article Essence",
-    description="Extract the essence of an article in the given path, and store it in the database.",
-    steps=(ExtractArticleEssence(output_key="to_inject"), InjectToDB(output_key="task_output")),
+WriteOutlineWorkFlow = WorkFlow(
+    name="Generate Article Outline",
+    description="Generate an outline for an article. dump the outline to the given path. in typst format.",
+    steps=(
+        GenerateArticleProposal,
+        GenerateOutline(output_key="to_dump"),
+        DumpFinalizedOutput(output_key="task_output"),
+    ),
 )

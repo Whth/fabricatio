@@ -6,7 +6,7 @@ from typing import Callable, List
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra import ArticleEssence
+from fabricatio.models.extra import ArticleEssence, ArticleOutline, ArticleProposal
 from fabricatio.models.task import Task
 
 
@@ -27,12 +27,8 @@ class ExtractArticleEssence(Action):
         reader: Callable[[P], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
     ) -> List[ArticleEssence]:
-        if not await self.ajudge(
-            f"= Task\n{task_input.briefing}\n\n\n= Role\n{self.briefing}",
-            affirm_case="The task does not violate the role, and could be approved since the file dependencies are specified.",
-            deny_case="The task does violate the role, and could not be approved.",
-        ):
-            logger.info(err := "Task not approved.")
+        if not task_input.dependencies:
+            logger.info(err := "Task not approved, since no dependencies are provided.")
             raise RuntimeError(err)
 
         # trim the references
@@ -40,5 +36,41 @@ class ExtractArticleEssence(Action):
         return await self.propose(
             ArticleEssence,
             contents,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+        )
+
+
+class GenerateArticleProposal(Action):
+    """Generate an outline for the article based on the extracted essence."""
+
+    output_key: str = "article_proposal"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_briefing: str,
+        **_,
+    ) -> ArticleProposal:
+        return await self.propose(
+            ArticleProposal,
+            article_briefing,
+            system_message=f"# your personal briefing: \n{self.briefing}",
+        )
+
+
+class GenerateOutline(Action):
+    """Generate the article based on the outline."""
+
+    output_key: str = "article"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_proposal: ArticleProposal,
+        **_,
+    ) -> ArticleOutline:
+        return await self.propose(
+            ArticleOutline,
+            article_proposal.display(),
             system_message=f"# your personal briefing: \n{self.briefing}",
         )
