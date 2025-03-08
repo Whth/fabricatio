@@ -215,6 +215,9 @@ class TemplateConfig(BaseModel):
     pathstr_template: str = Field(default="pathstr")
     """The name of the pathstr template which will be used to acquire a path of strings."""
 
+    review_string_template: str = Field(default="review_string")
+    """The name of the review string template which will be used to review a string."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

@@ -4,7 +4,7 @@ from asyncio import gather
 from itertools import permutations
 from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 
-import orjson
+from cache import AsyncLRU
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -40,10 +40,8 @@ class GiveRating(WithBriefing, LLMUsage):
 
         def _validator(response: str) -> Dict[str, float] | None:
             if (
-                (json_data := JsonCapture.convert_with(response, orjson.loads)) is not None
-                and isinstance(json_data, dict)
+                (json_data := JsonCapture.validate_with(response, dict, str))
                 and json_data.keys() == rating_manual.keys()
-                and all(isinstance(v, float) for v in json_data.values())
                 and all(score_range[0] <= v <= score_range[1] for v in json_data.values())
             ):
                 return json_data
@@ -115,6 +113,7 @@ class GiveRating(WithBriefing, LLMUsage):
             return await gather(*[self.rate_fine_grind(item, manual, score_range, **kwargs) for item in to_rate])
         raise ValueError("to_rate must be a string or a list of strings")
 
+    @AsyncLRU(maxsize=32)
     async def draft_rating_manual(
         self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs]
     ) -> Dict[str, str]:
@@ -169,16 +168,6 @@ class GiveRating(WithBriefing, LLMUsage):
         Returns:
             Set[str]: A set of rating dimensions.
         """
-
-        def _validator(response: str) -> Set[str] | None:
-            if (
-                json_data := JsonCapture.validate_with(
-                    response, target_type=list, elements_type=str, length=criteria_count
-                )
-            ) is not None:
-                return set(json_data)
-            return None
-
         return await self.aask_validate(
             question=(
                 template_manager.render_template(
@@ -189,7 +178,9 @@ class GiveRating(WithBriefing, LLMUsage):
                     },
                 )
             ),
-            validator=_validator,
+            validator=lambda resp: set(out)
+            if (out := JsonCapture.validate_with(resp, list, str, criteria_count))
+            else out,
             system_message=f"# your personal briefing: \n{self.briefing}",
             **kwargs,
         )

@@ -28,6 +28,7 @@ keywords = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "appdirs>=1.4.4",
+    "async-cache>=1.1.1",
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",
     "litellm>=1.60.0",
@@ -139,6 +140,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
+
+[[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [[tool.uv.index]]
@@ -146,8 +151,4 @@ url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
-
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
 

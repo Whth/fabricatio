@@ -120,7 +120,7 @@ class InstantiateFromString(Base):
 
 
 class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
-    """Class that provides methods for proposing a task."""
+    """Class that provides a method to propose a JSON object based on the requirement."""
 
     pass
 

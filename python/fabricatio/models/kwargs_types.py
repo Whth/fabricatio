@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import List, NotRequired, TypedDict
+from typing import List, NotRequired, Set, TypedDict
 
 from pydantic import NonNegativeFloat, NonNegativeInt, PositiveInt
 
@@ -52,6 +52,13 @@ class GenerateKwargs(ValidateKwargs):
     """A type representing the keyword arguments for the generate method."""
 
     system_message: NotRequired[str]
+
+
+class ReviewKwargs(GenerateKwargs):
+    """A type representing the keyword arguments for the review method."""
+
+    topic: str
+    criteria: NotRequired[Set[str]]
 
 
 class ChooseKwargs(GenerateKwargs):
