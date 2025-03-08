@@ -1,6 +1,6 @@
 """File system tool box."""
 
-from fabricatio.fs.curd import (
+from fabricatio.fs import (
     absolute_path,
     copy_file,
     create_directory,
@@ -8,6 +8,8 @@ from fabricatio.fs.curd import (
     delete_file,
     dump_text,
     move_file,
+    safe_json_read,
+    safe_text_read,
     tree,
 )
 from fabricatio.models.tool import ToolBox
@@ -22,4 +24,6 @@ fs_toolbox = (
     .add_tool(delete_directory)
     .add_tool(create_directory)
     .add_tool(absolute_path)
+    .add_tool(safe_text_read)
+    .add_tool(safe_json_read)
 )
