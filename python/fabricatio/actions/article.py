@@ -4,6 +4,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Callable, List
 
+from fabricatio import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra import ArticleEssence, ArticleOutline, ArticleProposal
@@ -48,12 +49,16 @@ class GenerateArticleProposal(Action):
 
     async def _execute(
         self,
-        article_briefing: str,
+        task_input: Task,
         **_,
     ) -> ArticleProposal:
+        input_path = await self.awhich_pathstr(
+            f"{task_input.briefing}\nExtract the path of file, which contains the article briefing that I need to read."
+        )
+
         return await self.propose(
             ArticleProposal,
-            article_briefing,
+            safe_text_read(input_path),
             system_message=f"# your personal briefing: \n{self.briefing}",
         )
 

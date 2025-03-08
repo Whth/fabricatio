@@ -212,6 +212,9 @@ class TemplateConfig(BaseModel):
     refined_query_template: str = Field(default="refined_query")
     """The name of the refined query template which will be used to refine a query."""
 
+    pathstr_template: str = Field(default="pathstr")
+    """The name of the pathstr template which will be used to acquire a path of strings."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
