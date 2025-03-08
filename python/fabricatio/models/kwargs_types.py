@@ -15,6 +15,7 @@ class CollectionSimpleConfigKwargs(TypedDict):
 class FetchKwargs(TypedDict):
     """A type representing the keyword arguments for the fetch method."""
 
+    collection_name: NotRequired[str]
     similarity_threshold: NotRequired[float]
     result_per_query: NotRequired[int]
 

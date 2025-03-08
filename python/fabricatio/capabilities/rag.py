@@ -242,7 +242,6 @@ class RAG(EmbeddingUsage):
     async def aretrieve(
         self,
         query: List[str] | str,
-        collection_name: Optional[str] = None,
         final_limit: int = 20,
         **kwargs: Unpack[FetchKwargs],
     ) -> List[str]:
@@ -250,7 +249,6 @@ class RAG(EmbeddingUsage):
 
         Args:
             query (List[str] | str): The query to be used for retrieval.
-            collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
             final_limit (int): The final limit on the number of results to return.
             **kwargs (Unpack[FetchKwargs]): Additional keyword arguments for retrieval.
 
@@ -263,15 +261,14 @@ class RAG(EmbeddingUsage):
             await self.afetch_document(
                 vecs=(await self.vectorize(query)),
                 desired_fields="text",
-                collection_name=collection_name,
                 **kwargs,
             )
         )[:final_limit]
 
     async def aask_retrieved(
         self,
-        question: str | List[str],
-        query: List[str] | str,
+        question: str,
+        query: Optional[List[str] | str] = None,
         collection_name: Optional[str] = None,
         extra_system_message: str = "",
         result_per_query: int = 10,
@@ -285,7 +282,7 @@ class RAG(EmbeddingUsage):
         specified question using the retrieved documents as context.
 
         Args:
-            question (str | List[str]): The question or list of questions to be asked.
+            question (str): The question to be asked.
             query (List[str] | str): The query or list of queries used for document retrieval.
             collection_name (Optional[str]): The name of the collection to retrieve documents from.
                                               If not provided, the currently viewed collection is used.
@@ -299,9 +296,9 @@ class RAG(EmbeddingUsage):
             str: A string response generated after asking with the context of retrieved documents.
         """
         docs = await self.aretrieve(
-            query,
-            collection_name,
+            query or question,
             final_limit,
+            collection_name=collection_name,
             result_per_query=result_per_query,
             similarity_threshold=similarity_threshold,
         )
@@ -330,5 +327,40 @@ class RAG(EmbeddingUsage):
                 configs.templates.refined_query_template,
                 {"question": [question] if isinstance(question, str) else question},
             ),
+            **kwargs,
+        )
+
+    async def aask_refined(
+        self,
+        question: str,
+        collection_name: Optional[str] = None,
+        extra_system_message: str = "",
+        result_per_query: int = 10,
+        final_limit: int = 20,
+        similarity_threshold: float = 0.37,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str:
+        """Asks a question using a refined query based on the provided question.
+
+        Args:
+            question (str): The question to be asked.
+            collection_name (Optional[str]): The name of the collection to retrieve documents from.
+            extra_system_message (str): An additional system message to be included in the prompt.
+            result_per_query (int): The number of results to return per query. Default is 10.
+            final_limit (int): The maximum number of retrieved documents to consider. Default is 20.
+            similarity_threshold (float): The threshold for similarity, only results above this threshold will be returned.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments passed to the underlying `aask` method.
+
+        Returns:
+            str: A string response generated after asking with the refined question.
+        """
+        return await self.aask_retrieved(
+            question,
+            await self.arefined_query(question, **kwargs),
+            collection_name=collection_name,
+            extra_system_message=extra_system_message,
+            result_per_query=result_per_query,
+            final_limit=final_limit,
+            similarity_threshold=similarity_threshold,
             **kwargs,
         )
