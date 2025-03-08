@@ -7,7 +7,7 @@ from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, overload
 
 from fabricatio.config import configs
-from fabricatio.decorators import use_temp_module
+from fabricatio.decorators import logging_execution_info, use_temp_module
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from pydantic import BaseModel, ConfigDict, Field
@@ -31,6 +31,7 @@ class Tool[**P, R](WithBriefing):
 
         if not self.name:
             raise RuntimeError("The tool must have a source function.")
+
         self.description = self.description or self.source.__doc__ or ""
         self.description = self.description.strip()
 
@@ -84,7 +85,7 @@ class ToolBox(WithBriefing):
         Returns:
             Self: The current instance of the toolbox.
         """
-        self.tools.append(Tool(source=func))
+        self.collect_tool(logging_execution_info(func))
         return self
 
     @property
