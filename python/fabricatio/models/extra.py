@@ -2,14 +2,12 @@
 
 from typing import List
 
-from fabricatio.models.generic import Display, PrepareVectorization, ProposedAble
-from pydantic import BaseModel, ConfigDict, Field
+from fabricatio.models.generic import Base, Display, PrepareVectorization, ProposedAble
+from pydantic import Field
 
 
-class Equation(BaseModel):
+class Equation(Base):
     """Structured representation of mathematical equations (including their physical or conceptual meanings)."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
 
     description: str = Field(...)
     """A concise explanation of the equation's meaning, purpose, and relevance in the context of the research."""
@@ -18,10 +16,8 @@ class Equation(BaseModel):
     """The LaTeX code used to represent the equation in a publication-ready format."""
 
 
-class Figure(BaseModel):
+class Figure(Base):
     """Structured representation of figures (including their academic significance and explanatory captions)."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
 
     description: str = Field(...)
     """A detailed explanation of the figure's content and its role in conveying key insights."""
@@ -33,7 +29,7 @@ class Figure(BaseModel):
     """The file path to the figure"""
 
 
-class Highlightings(BaseModel):
+class Highlightings(Base):
     """Structured representation of highlighted elements in an academic paper (including equations, algorithms, figures, and tables)."""
 
     # Academic Achievements Showcase
@@ -94,3 +90,79 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
 
     def _prepare_vectorization_inner(self) -> str:
         return self.model_dump_json()
+
+
+class ArticleProposal(ProposedAble, Display):
+    """Structured representation of the proposal for an academic paper."""
+
+    title: str = Field(...)
+    """The proposed title of the paper."""
+
+    focused_problem: List[str] = Field(default_factory=list)
+    """The specific research problem or question that the paper aims to address."""
+    research_aim: List[str] = Field(default_factory=list)
+    """The main objective or goal of the research, outlining what the study aims to achieve."""
+    research_methods: List[str] = Field(default_factory=list)
+    """The methods used in the research, including the approach, techniques, and tools employed."""
+
+
+class ArticleSubsectionOutline(Base):
+    """Structured representation of the subsections of an academic paper."""
+
+    title: str = Field(...)
+    """The title of the subsection."""
+
+    description: str = Field(...)
+    """A brief description of the subsection's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+
+
+class ArticleSectionOutline(Base):
+    """Structured representation of the sections of an academic paper."""
+
+    title: str = Field(...)
+    """The title of the section."""
+    description: str = Field(...)
+    """A brief description of the section's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+    subsections: List[ArticleSubsectionOutline] = Field(default_factory=list)
+    """The subsections of the section, outlining their content and significance."""
+
+
+class ArticleChapterOutline(Base):
+    """Structured representation of the chapters of an academic paper."""
+
+    title: str = Field(...)
+    """The title of the chapter."""
+    description: str = Field(...)
+    """A brief description of the chapter's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+    sections: List[ArticleSectionOutline] = Field(default_factory=list)
+    """The sections of the chapter, outlining their content and significance."""
+
+
+class ArticleOutline(ProposedAble, Display):
+    """Structured representation of the outline for an academic paper."""
+
+    title: str = Field(...)
+    """The proposed title of the paper."""
+
+    prospect: str = Field(...)
+    """A brief description of the research problem or question that the paper aims to address manipulating methods or techniques"""
+
+    chapters: List[ArticleChapterOutline] = Field(default_factory=list)
+    """The chapters of the paper, outlining their content and significance."""
+
+    def dump_typst_code(self) -> str:
+        """Generate Typst code for the article outline.
+
+        Returns:
+            str: The generated Typst code representing the outline.
+        """
+        lines: List[str] = []
+
+        for chapter in self.chapters:
+            lines.append(f"= {chapter.title}")
+            for section in chapter.sections:
+                lines.append(f"== {section.title}")
+                for subsection in section.subsections:
+                    lines.append(f"=== {subsection.title}")
+
+        return "\n\n".join(lines)
