@@ -134,3 +134,16 @@ def absolute_path(path: str | Path | PathLike) -> str:
         str: The absolute path of the file or directory.
     """
     return Path(path).expanduser().resolve().as_posix()
+
+
+def gather_files(directory: str | Path | PathLike, extension: str) -> list[str]:
+    """Gather all files with a specific extension in a directory.
+
+    Args:
+        directory (str, Path, PathLike): The directory to search in.
+        extension (str): The file extension to look for.
+
+    Returns:
+        list[str]: A list of file paths with the specified extension.
+    """
+    return [file.as_posix() for file in Path(directory).rglob(f"*.{extension}")]
