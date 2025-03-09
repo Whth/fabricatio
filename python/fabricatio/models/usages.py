@@ -178,19 +178,32 @@ class LLMUsage(ScopedConfig):
             case _:
                 raise RuntimeError("Should not reach here.")
 
+    @overload
     async def aask_validate[T](
         self,
         question: str,
         validator: Callable[[str], T | None],
+        default: T,
         max_validations: PositiveInt = 2,
         system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
-    ) -> T:
+    ) -> T: ...
+
+    async def aask_validate[T](
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        default: Optional[T] = None,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Optional[T]:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
             question (str): The question to ask.
             validator (Callable[[str], T | None]): A function to validate the response.
+            default (T | None): Default value to return if validation fails. Defaults to None.
             max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
             system_message (str): System message to include in the request. Defaults to an empty string.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
@@ -198,8 +211,6 @@ class LLMUsage(ScopedConfig):
         Returns:
             T: The validated response.
 
-        Raises:
-            ValueError: If the response fails to validate after the maximum number of attempts.
         """
         for i in range(max_validations):
             if (
@@ -211,14 +222,17 @@ class LLMUsage(ScopedConfig):
             ) and (validated := validator(response)):
                 logger.debug(f"Successfully validated the response at {i}th attempt.")
                 return validated
-        logger.error(err := f"Failed to validate the response after {max_validations} attempts.")
-        raise ValueError(err)
+            kwargs["no_cache"] = True
+            logger.debug("Closed the cache for the next attempt")
+        if default is None:
+            logger.error(f"Failed to validate the response after {max_validations} attempts.")
+        return default
 
     async def aask_validate_batch[T](
         self,
         questions: List[str],
         validator: Callable[[str], T | None],
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[GenerateKwargs[T]],
     ) -> List[T]:
         """Asynchronously asks a batch of questions and validates the responses using a given validator.
 
@@ -235,7 +249,9 @@ class LLMUsage(ScopedConfig):
         """
         return await gather(*[self.aask_validate(question, validator, **kwargs) for question in questions])
 
-    async def aliststr(self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs]) -> List[str]:
+    async def aliststr(
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs[List[str]]]
+    ) -> List[str]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -255,7 +271,7 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
-    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs]) -> List[str]:
+    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> List[str]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -273,7 +289,7 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
-    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[GenerateKwargs]) -> str:
+    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[GenerateKwargs[List[str]]]) -> str:
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
@@ -296,7 +312,7 @@ class LLMUsage(ScopedConfig):
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[GenerateKwargs[List[T]]],
     ) -> List[T]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -347,7 +363,7 @@ class LLMUsage(ScopedConfig):
         self,
         instruction: str,
         choices: List[T],
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[GenerateKwargs[List[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
@@ -376,7 +392,7 @@ class LLMUsage(ScopedConfig):
         prompt: str,
         affirm_case: str = "",
         deny_case: str = "",
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[GenerateKwargs[bool]],
     ) -> bool:
         """Asynchronously judges a prompt using AI validation.
 
@@ -491,17 +507,13 @@ class ToolBoxUsage(LLMUsage):
         self,
         task: Task,
         system_message: str = "",
-        k: NonNegativeInt = 0,
-        max_validations: PositiveInt = 2,
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
     ) -> List[ToolBox]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
         Args:
             task (Task): The task for which to choose toolboxes.
             system_message (str): Custom system-level prompt, defaults to an empty string.
-            k (NonNegativeInt): The number of toolboxes to select, 0 means infinite. Defaults to 0.
-            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -513,8 +525,6 @@ class ToolBoxUsage(LLMUsage):
         return await self.achoose(
             instruction=task.briefing,
             choices=list(self.toolboxes),
-            k=k,
-            max_validations=max_validations,
             system_message=system_message,
             **kwargs,
         )
@@ -523,19 +533,13 @@ class ToolBoxUsage(LLMUsage):
         self,
         task: Task,
         toolbox: ToolBox,
-        system_message: str = "",
-        k: NonNegativeInt = 0,
-        max_validations: PositiveInt = 2,
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[ChooseKwargs[List[Tool]]],
     ) -> List[Tool]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
         Args:
             task (Task): The task for which to choose tools.
             toolbox (ToolBox): The toolbox from which to choose tools.
-            system_message (str): Custom system-level prompt, defaults to an empty string.
-            k (NonNegativeInt): The number of tools to select, 0 means infinite. Defaults to 0.
-            max_validations (PositiveInt): Maximum number of validation failures, default is 2.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -547,9 +551,6 @@ class ToolBoxUsage(LLMUsage):
         return await self.achoose(
             instruction=task.briefing,
             choices=toolbox.tools,
-            k=k,
-            max_validations=max_validations,
-            system_message=system_message,
             **kwargs,
         )
 

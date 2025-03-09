@@ -181,7 +181,11 @@ class Review(GiveRating, Propose):
         return await self.review_obj(task, **kwargs)
 
     async def review_string(
-        self, text: str, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[GenerateKwargs]
+        self,
+        text: str,
+        topic: str,
+        criteria: Optional[Set[str]] = None,
+        **kwargs: Unpack[GenerateKwargs[ReviewResult[str]]],
     ) -> ReviewResult[str]:
         """Review a string based on specified topic and criteria.
 
