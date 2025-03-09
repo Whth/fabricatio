@@ -2,6 +2,7 @@
 
 import sys
 
+import litellm
 from loguru import logger
 from rich import pretty, traceback
 
@@ -17,7 +18,8 @@ logger.add(
     retention=f"{configs.debug.retention} weeks",
 )
 logger.add(sys.stderr, level=configs.debug.log_level)
-
+if configs.debug.log_level == "DEBUG":
+    litellm._turn_on_debug()
 
 if __name__ == "__main__":
     logger.debug("This is a trace message.")
