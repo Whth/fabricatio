@@ -63,13 +63,14 @@ class LLMKwargs(TypedDict):
     s_maxage: NotRequired[int]  # max accepted age of cached response, in seconds
 
 
-class ValidateKwargs(LLMKwargs):
+class ValidateKwargs[T](LLMKwargs):
     """Arguments for content validation operations.
 
     Extends LLMKwargs with additional parameters specific to validation tasks,
     such as limiting the number of validation attempts.
     """
 
+    default: NotRequired[T]
     max_validations: NotRequired[PositiveInt]
 
 
