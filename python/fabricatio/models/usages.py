@@ -148,36 +148,23 @@ class LLMUsage(ScopedConfig):
             str | List[str]: The content of the model's response message.
         """
         system_message = system_message or ""
-        match (isinstance(question, list), isinstance(system_message, list)):
-            case (True, True):
+        match (question, system_message):
+            case (list(q_seq), list(sm_seq)):
                 res = await gather(
                     *[
                         self.ainvoke(n=1, question=q, system_message=sm, **kwargs)
-                        for q, sm in zip(question, system_message, strict=True)
+                        for q, sm in zip(q_seq, sm_seq, strict=True)
                     ]
                 )
                 return [r.pop().message.content for r in res]
-            case (True, False):
-                res = await gather(
-                    *[self.ainvoke(n=1, question=q, system_message=system_message, **kwargs) for q in question]
-                )
+            case (list(q_seq), str(sm)):
+                res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for q in q_seq])
                 return [r.pop().message.content for r in res]
-            case (False, True):
-                res = await gather(
-                    *[self.ainvoke(n=1, question=question, system_message=sm, **kwargs) for sm in system_message]
-                )
+            case (str(q), list(sm_seq)):
+                res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
                 return [r.pop().message.content for r in res]
-            case (False, False):
-                return (
-                    (
-                        await self.ainvoke(
-                            n=1,
-                            question=question,
-                            system_message=system_message,
-                            **kwargs,
-                        )
-                    ).pop()
-                ).message.content
+            case (str(q), str(sm)):
+                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs)).pop()).message.content
             case _:
                 raise RuntimeError("Should not reach here.")
 
