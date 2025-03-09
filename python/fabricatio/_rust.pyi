@@ -2,60 +2,101 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 class TemplateManager:
-    """TemplateManager class for managing handlebars templates."""
+    """Template rendering engine using Handlebars templates.
+
+    This manager handles template discovery, loading, and rendering
+    through a wrapper around the handlebars-rust engine.
+
+    See: https://crates.io/crates/handlebars
+    """
     def __init__(
         self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
         Args:
-            template_dirs (List[Path]): A list of paths to directories containing templates.
-            suffix (str, optional): The suffix of template files. None means 'hbs' suffix.
-            active_loading (bool, optional): Whether to enable active loading of templates.
+            template_dirs: List of directories containing template files
+            suffix: File extension for templates (defaults to 'hbs')
+            active_loading: Whether to enable dev mode for reloading templates on change
         """
 
     @property
     def template_count(self) -> int:
-        """Get the number of templates discovered."""
+        """Returns the number of currently loaded templates."""
 
     def get_template_source(self, name: str) -> Optional[str]:
-        """Get the source path of a template by name.
+        """Get the filesystem path for a template.
 
         Args:
-            name (str): The name of the template to retrieve.
+            name: Template name (without extension)
 
         Returns:
-            Optional[str]: The source path of the template.
+            Path to the template file if found, None otherwise
         """
 
     def discover_templates(self) -> None:
-        """Discover templates in the specified directories."""
+        """Scan template directories and load available templates.
+
+        This refreshes the template cache, finding any new or modified templates.
+        """
 
     def render_template(self, name: str, data: Dict[str, Any]) -> str:
-        """Render a template with the given name and data.
+        """Render a template with context data.
 
         Args:
-            name (str): The name of the template to render.
-            data (Dict[str, Any]): The data to pass to the template.
+            name: Template name (without extension)
+            data: Context dictionary to provide variables to the template
 
         Returns:
-            str: The rendered template.
+            Rendered template content as string
+
+        Raises:
+            RuntimeError: If template rendering fails
         """
 
 def blake3_hash(content: bytes) -> str:
-    """Calculate the BLAKE3 hash of the given data.
+    """Calculate the BLAKE3 cryptographic hash of data.
 
     Args:
-        content (bytes): The data to hash.
+        content: Bytes to be hashed
 
     Returns:
-        str: The BLAKE3 hash of the data.
+        Hex-encoded BLAKE3 hash string
     """
 
 class BibManager:
-    """BibManager class for managing BibTeX files."""
-    def __init__(self, path: str) -> None:
-        """Initialize the BibManager with the given path."""
+    """BibTeX bibliography manager for parsing and querying citation data."""
 
-    def get_cite_key(self, title: str) -> str:
-        """Get the cite key for the given title."""
+    def __init__(self, path: str) -> None:
+        """Initialize the bibliography manager.
+
+        Args:
+            path: Path to BibTeX (.bib) file to load
+
+        Raises:
+            RuntimeError: If file cannot be read or parsed
+        """
+
+    def get_cite_key(self, title: str) -> Optional[str]:
+        """Find citation key by exact title match.
+
+        Args:
+            title: Full title to search for (case-insensitive)
+
+        Returns:
+            Citation key if exact match found, None otherwise
+        """
+
+    def get_cite_key_fuzzy(self, query: str) -> Optional[str]:
+        """Find best matching citation using fuzzy text search.
+
+        Args:
+            query: Search term to find in bibliography entries
+
+        Returns:
+            Citation key of best matching entry, or None if no good match
+
+        Notes:
+            Uses nucleo_matcher for high-quality fuzzy text searching
+            See: https://crates.io/crates/nucleo-matcher
+        """
