@@ -8,14 +8,21 @@ from pydantic import NonNegativeFloat, NonNegativeInt, PositiveInt
 
 
 class CollectionSimpleConfigKwargs(TypedDict):
-    """A type representing the configuration for a collection."""
+    """Configuration parameters for a vector collection.
+
+    These arguments are typically used when configuring connections to vector databases.
+    """
 
     dimension: NotRequired[int]
     timeout: NotRequired[float]
 
 
 class FetchKwargs(TypedDict):
-    """A type representing the keyword arguments for the fetch method."""
+    """Arguments for fetching data from vector collections.
+
+    Controls how data is retrieved from vector databases, including filtering
+    and result limiting parameters.
+    """
 
     collection_name: NotRequired[str]
     similarity_threshold: NotRequired[float]
@@ -23,7 +30,11 @@ class FetchKwargs(TypedDict):
 
 
 class EmbeddingKwargs(TypedDict):
-    """A type representing the keyword arguments for the embedding method."""
+    """Configuration parameters for text embedding operations.
+
+    These settings control the behavior of embedding models that convert text
+    to vector representations.
+    """
 
     model: NotRequired[str]
     dimensions: NotRequired[int]
@@ -32,7 +43,11 @@ class EmbeddingKwargs(TypedDict):
 
 
 class LLMKwargs(TypedDict):
-    """A type representing the keyword arguments for the LLM (Large Language Model) usage."""
+    """Configuration parameters for language model inference.
+
+    These arguments control the behavior of large language model calls,
+    including generation parameters and caching options.
+    """
 
     model: NotRequired[str]
     temperature: NotRequired[NonNegativeFloat]
@@ -42,35 +57,59 @@ class LLMKwargs(TypedDict):
     stream: NotRequired[bool]
     timeout: NotRequired[PositiveInt]
     max_retries: NotRequired[PositiveInt]
+    no_cache: NotRequired[bool]  # If use cache in this call
+    no_store: NotRequired[bool]  # If store the response of this call to cache
+    cache_ttl: NotRequired[int]  # how long the stored cache is alive, in seconds
+    s_maxage: NotRequired[int]  # max accepted age of cached response, in seconds
 
 
 class ValidateKwargs(LLMKwargs):
-    """A type representing the keyword arguments for the validate method."""
+    """Arguments for content validation operations.
+
+    Extends LLMKwargs with additional parameters specific to validation tasks,
+    such as limiting the number of validation attempts.
+    """
 
     max_validations: NotRequired[PositiveInt]
 
 
 class GenerateKwargs(ValidateKwargs):
-    """A type representing the keyword arguments for the generate method."""
+    """Arguments for content generation operations.
+
+    Extends ValidateKwargs with parameters specific to text generation,
+    including system prompt configuration.
+    """
 
     system_message: NotRequired[str]
 
 
 class ReviewKwargs(GenerateKwargs):
-    """A type representing the keyword arguments for the review method."""
+    """Arguments for content review operations.
+
+    Extends GenerateKwargs with parameters for evaluating content against
+    specific topics and review criteria.
+    """
 
     topic: str
     criteria: NotRequired[Set[str]]
 
 
 class ChooseKwargs(GenerateKwargs):
-    """A type representing the keyword arguments for the choose method."""
+    """Arguments for selection operations.
+
+    Extends GenerateKwargs with parameters for selecting among options,
+    such as the number of items to choose.
+    """
 
     k: NotRequired[NonNegativeInt]
 
 
 class CacheKwargs(TypedDict, total=False):
-    """A type representing the keyword arguments for the cache method."""
+    """Configuration parameters for the caching system.
+
+    These arguments control the behavior of various caching backends,
+    including in-memory, Redis, S3, and vector database caching options.
+    """
 
     mode: NotRequired[CacheMode]  # when default_on cache is always on, when default_off cache is opt in
     host: NotRequired[str]

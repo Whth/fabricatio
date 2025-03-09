@@ -11,6 +11,7 @@ from fabricatio.models.kwargs_types import GenerateKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 from pydantic import PrivateAttr
 from questionary import Choice, checkbox
+from rich import print
 
 
 class ProblemSolutions(Base):
@@ -78,6 +79,18 @@ class ReviewResult[T](ProposedAble, Display):
     _ref: T = PrivateAttr(None)
     """Reference to the original object that was reviewed."""
 
+    def update_topic(self, topic: str) -> Self:
+        """Update the review topic.
+
+        Args:
+            topic (str): The new topic to be associated with this review.
+
+        Returns:
+            Self: The current instance with updated review topic.
+        """
+        self.review_topic = topic
+        return self
+
     def update_ref[K](self, ref: K) -> "ReviewResult[K]":
         """Update the reference to the reviewed object.
 
@@ -111,9 +124,18 @@ class ReviewResult[T](ProposedAble, Display):
         Returns:
             Self: The current instance with filtered problems and solutions.
         """
+        if isinstance(self._ref, str):
+            display = self._ref
+        elif isinstance(self._ref, WithBriefing):
+            display = self._ref.briefing
+        elif isinstance(self._ref, Display):
+            display = self._ref.display()
+        else:
+            raise TypeError(f"Unsupported type for review: {type(self._ref)}")
         # Choose the problems to retain
+        print(display)
         chosen_ones: List[ProblemSolutions] = await checkbox(
-            f"Please choose the problems you want to retain, under the topic of `{self.review_topic}`.(Default: retain all)",
+            f"Please choose the problems you want to retain.(Default: retain all)\n\t`{self.review_topic}`",
             choices=[Choice(p.problem, p, checked=True) for p in self.problem_solutions],
         ).ask_async()
         if not check_solutions:
@@ -124,7 +146,7 @@ class ReviewResult[T](ProposedAble, Display):
         for to_exam in chosen_ones:
             to_exam.update_solutions(
                 await checkbox(
-                    f"Please choose the solutions you want to retain, under the problem of `{to_exam.problem}`.(Default: retain all)",
+                    f"Please choose the solutions you want to retain.(Default: retain all)\n\t`{to_exam.problem}`",
                     choices=[Choice(s, s, checked=True) for s in to_exam.solutions],
                 ).ask_async()
             )
@@ -186,7 +208,7 @@ class Review(GiveRating, Propose):
             ),
             **kwargs,
         )
-        return res.update_ref(text)
+        return res.update_ref(text).update_topic(topic)
 
     async def review_obj[M: (Display, WithBriefing)](self, obj: M, **kwargs: Unpack[ReviewKwargs]) -> ReviewResult[M]:
         """Review an object that implements Display or WithBriefing interface.

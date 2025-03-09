@@ -26,12 +26,8 @@ from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
 if configs.cache.enabled:
-    from litellm.caching import Cache
-
-    if configs.cache.type is None:
-        Cache(**configs.cache.params)
-    else:
-        Cache(type=configs.cache.type, **configs.cache.params)
+    litellm.enable_cache(type=configs.cache.type, **configs.cache.params)
+    logger.success(f"{configs.cache.type.name} Cache enabled")
 
 
 class LLMUsage(ScopedConfig):
@@ -71,6 +67,12 @@ class LLMUsage(ScopedConfig):
             max_retries=kwargs.get("max_retries") or self.llm_max_retries or configs.llm.max_retries,
             api_key=(self.llm_api_key or configs.llm.api_key).get_secret_value(),
             base_url=(self.llm_api_endpoint or configs.llm.api_endpoint).unicode_string(),
+            cache={
+                "no-cache": kwargs.get("no_cache"),
+                "no-store": kwargs.get("no_store"),
+                "cache-ttl": kwargs.get("cache_ttl"),
+                "s-maxage": kwargs.get("s_maxage"),
+            },
         )
 
     async def ainvoke(
