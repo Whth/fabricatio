@@ -1,9 +1,9 @@
 use biblatex::{Bibliography, ChunksExt};
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+use nucleo_matcher::{Config, Matcher, Utf32Str};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
-use std::fs::File;
-use std::io::Read;
 
 #[pyclass]
 pub struct BibManager {
@@ -15,27 +15,55 @@ pub struct BibManager {
 impl BibManager {
     /// Create a new BibManager instance.
     #[new]
-    fn new(path:String) -> PyResult<Self> {
-        let mut bib=String::new();
+    fn new(path: String) -> PyResult<Self> {
+        let bib = std::fs::read_to_string(path)
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
 
-        File::open(path)?.read_to_string(&mut bib).map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e)))?;
-        Ok(BibManager {
-            source: Bibliography::parse(bib.as_str()).map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e)))?,
-        })
+        let source = Bibliography::parse(&bib)
+            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+
+        Ok(BibManager { source })
     }
-
-
 
     /// find the cite key of an article with given title
-    fn get_cite_key(&self,title:String)->Option<String>{
-        self.source.iter().par_bridge()
-            .find_map_any(|entry|{
-                if entry.title().map_err(|e| PyErr::new::<PyRuntimeError,_>(format!("{}", e))).ok()?.to_biblatex_string(false).to_lowercase()==title.to_lowercase(){
-                    return Some(entry.key.clone())
-                }
-                None
-            })
-    }
+fn get_cite_key(&self, title: String) -> Option<String> {
+    let title_lower = title.to_lowercase();
+
+    self.source.iter().par_bridge()
+        .find_map_any(|entry| {
+            let entry_title = entry.title()
+                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
+                .ok()?
+                .to_biblatex_string(false)
+                .to_lowercase();
+
+            (entry_title == title_lower).then(|| entry.key.clone())
+        })
+}
+
+    /// Find the corresponding cite key of an article with given query string using fuzzy matcher
+fn get_cite_key_fuzzy(&self, query: String) -> Option<String> {
+    let mut matcher = Matcher::new(Config::DEFAULT);
+    let pattern = Pattern::new(
+        query.as_str(),
+        CaseMatching::Ignore,
+        Normalization::Smart,
+        AtomKind::Substring,
+    );
+
+    self.source.iter()
+        .map(|entry| {
+            let mut buf = vec![];
+            let text = entry.to_biblatex_string();
+            (pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher), entry)
+        })
+        .par_bridge()
+        // Use filter_map's more concise form with pattern matching
+        .filter_map(|(maybe_score, entry)| maybe_score.map(|score| (score, entry)))
+        .max_by_key(|(score, _)| *score)
+        .map(|(_, entry)| entry.key.clone())
+}
+
 }
 
 
