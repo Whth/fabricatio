@@ -88,12 +88,6 @@ wheels = [
 ]
 
 [[package]]
-name = "async-cache"
-version = "1.1.1"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/73/6e/908402652bf7d8ab02fa204399d9517d247fb3a0926045a8c8a28708cd40/async-cache-1.1.1.tar.gz", hash = "sha256:81aa9ccd19fb06784aaf30bd5f2043dc0a23fc3e998b93d0c2c17d1af9803393", size = 3848 }
-
-[[package]]
 name = "asyncio"
 version = "3.4.3"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -222,11 +216,10 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.5.dev1"
+version = "0.2.5.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
-    { name = "async-cache" },
     { name = "asyncio" },
     { name = "asyncstdlib" },
     { name = "litellm" },
@@ -269,7 +262,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "appdirs", specifier = ">=1.4.4" },
-    { name = "async-cache", specifier = ">=1.1.1" },
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "asyncstdlib", specifier = ">=3.13.0" },
     { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },

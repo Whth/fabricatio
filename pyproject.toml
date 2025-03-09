@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.5-dev1"
+version = "0.2.5-dev2"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -28,7 +28,6 @@ keywords = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "appdirs>=1.4.4",
-    "async-cache>=1.1.1",
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",
     "litellm>=1.60.0",
