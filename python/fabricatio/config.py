@@ -3,6 +3,7 @@
 from typing import List, Literal, Optional
 
 from appdirs import user_config_dir
+from litellm.types.caching import LiteLLMCacheType
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -24,6 +25,8 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
+
+from fabricatio.models.kwargs_types import CacheKwargs
 
 ROAMING_DIR = user_config_dir("fabricatio", "", roaming=True)
 
@@ -265,6 +268,19 @@ class RagConfig(BaseModel):
     """The dimensions of the Milvus server."""
 
 
+class CacheConfig(BaseModel):
+    """cache configuration class, uses litellm as cache backend. more info see https://docs.litellm.ai/docs/caching/all_caches."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    type: Optional[LiteLLMCacheType] = None
+    """The type of cache to use. If None, the default cache type will be used."""
+    params: CacheKwargs = Field(default_factory=CacheKwargs)
+    """The parameters for the cache. If type is None, the default parameters will be used."""
+    enabled: bool = Field(default=False)
+    """Whether to enable cache."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -313,6 +329,9 @@ class Settings(BaseSettings):
 
     rag: RagConfig = Field(default_factory=RagConfig)
     """RAG Configuration"""
+
+    cache: CacheConfig = Field(default_factory=CacheConfig)
+    """Cache Configuration"""
 
     @classmethod
     def settings_customise_sources(

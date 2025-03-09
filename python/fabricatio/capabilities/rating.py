@@ -4,7 +4,6 @@ from asyncio import gather
 from itertools import permutations
 from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 
-from cache import AsyncLRU
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -113,7 +112,6 @@ class GiveRating(WithBriefing, LLMUsage):
             return await gather(*[self.rate_fine_grind(item, manual, score_range, **kwargs) for item in to_rate])
         raise ValueError("to_rate must be a string or a list of strings")
 
-    @AsyncLRU(maxsize=32)
     async def draft_rating_manual(
         self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs]
     ) -> Dict[str, str]:

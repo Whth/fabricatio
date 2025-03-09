@@ -10,7 +10,7 @@ from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
 from fabricatio.models.kwargs_types import GenerateKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 from pydantic import PrivateAttr
-from questionary import checkbox
+from questionary import Choice, checkbox
 
 
 class ProblemSolutions(Base):
@@ -114,8 +114,7 @@ class ReviewResult[T](ProposedAble, Display):
         # Choose the problems to retain
         chosen_ones: List[ProblemSolutions] = await checkbox(
             f"Please choose the problems you want to retain, under the topic of `{self.review_topic}`.(Default: retain all)",
-            choices=(c := {p.problem: p for p in self.problem_solutions}),
-            initial_choice=c,
+            choices=[Choice(p.problem, p, checked=True) for p in self.problem_solutions],
         ).ask_async()
         if not check_solutions:
             self.problem_solutions = chosen_ones
@@ -126,8 +125,7 @@ class ReviewResult[T](ProposedAble, Display):
             to_exam.update_solutions(
                 await checkbox(
                     f"Please choose the solutions you want to retain, under the problem of `{to_exam.problem}`.(Default: retain all)",
-                    choices=(a := {s: s for s in to_exam.solutions}),
-                    initial_choice=a,
+                    choices=[Choice(s, s, checked=True) for s in to_exam.solutions],
                 ).ask_async()
             )
         return self

@@ -25,6 +25,14 @@ from litellm.utils import CustomStreamWrapper
 from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
+if configs.cache.enabled:
+    from litellm.caching import Cache
+
+    if configs.cache.type is None:
+        Cache(**configs.cache.params)
+    else:
+        Cache(type=configs.cache.type, **configs.cache.params)
+
 
 class LLMUsage(ScopedConfig):
     """Class that manages LLM (Large Language Model) usage parameters and methods."""
