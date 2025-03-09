@@ -15,7 +15,7 @@ from pydantic import Field
 class Role(ProposeTask, HandleTask, Review):
     """Class that represents a role with a registry of events and workflows."""
 
-    registry: dict[Event | str, WorkFlow] = Field(...)
+    registry: dict[Event | str, WorkFlow] = Field(default_factory=dict)
     """ The registry of events and workflows."""
 
     toolboxes: Set[ToolBox] = Field(default_factory=set)
