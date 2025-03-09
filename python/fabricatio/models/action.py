@@ -122,17 +122,16 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         current_action = None
         try:
             for step in self._instances:
-                logger.debug(f"Executing step: {step.name}")
+                logger.debug(f"Executing step: {(current_action := step.name)}")
                 act_task = create_task(step.act(await self._context.get()))
                 if task.is_cancelled():
                     act_task.cancel(f"Cancelled by task: {task.name}")
                     break
                 modified_ctx = await act_task
                 await self._context.put(modified_ctx)
-                current_action = step.name
             logger.info(f"Finished executing workflow: {self.name}")
-            final_ctx = await self._context.get()
-            if self.task_output_key not in final_ctx:
+
+            if self.task_output_key not in (final_ctx := await self._context.get()):
                 logger.warning(
                     f"Task output key: {self.task_output_key} not found in the context, None will be returned. You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`."
                 )
