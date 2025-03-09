@@ -1,59 +1,136 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
-from typing import List, Optional, Set, Unpack
+from typing import List, Optional, Self, Set, Unpack
 
 from fabricatio import template_manager
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import GiveRating
 from fabricatio.config import configs
-from fabricatio.models.generic import Display, ProposedAble, WithBriefing
+from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
 from fabricatio.models.kwargs_types import GenerateKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 from pydantic import PrivateAttr
+from questionary import checkbox
+
+
+class ProblemSolutions(Base):
+    """Represents a problem-solution pair identified during a review process.
+
+    This class encapsulates a single problem with its corresponding potential solutions,
+    providing a structured way to manage review findings.
+
+    Attributes:
+        problem (str): The problem statement identified during review.
+        solutions (List[str]): A collection of potential solutions to address the problem.
+    """
+
+    problem: str
+    """The problem identified in the review."""
+    solutions: List[str]
+    """A collection of potential solutions to address the problem."""
+
+    def update_problem(self, problem: str) -> Self:
+        """Update the problem description.
+
+        Args:
+            problem (str): The new problem description to replace the current one.
+
+        Returns:
+            Self: The current instance with updated problem description.
+        """
+        self.problem = problem
+        return self
+
+    def update_solutions(self, solutions: List[str]) -> Self:
+        """Update the list of potential solutions.
+
+        Args:
+            solutions (List[str]): The new collection of solutions to replace the current ones.
+
+        Returns:
+            Self: The current instance with updated solutions.
+        """
+        self.solutions = solutions
+        return self
 
 
 class ReviewResult[T](ProposedAble, Display):
-    """Class that represents the result of a review.
+    """Represents the outcome of a review process with identified problems and solutions.
 
-    This class holds the problems identified in a review and their proposed solutions,
-    along with a reference to the reviewed object.
+    This class maintains a structured collection of problems found during a review,
+    their proposed solutions, and a reference to the original reviewed object.
 
     Attributes:
-        existing_problems (List[str]): List of problems identified in the review.
-        proposed_solutions (List[str]): List of proposed solutions to the problems identified in the review.
+        review_topic (str): The subject or focus area of the review.
+        problem_solutions (List[ProblemSolutions]): Collection of problems identified
+            during review along with their potential solutions.
 
     Type Parameters:
         T: The type of the object being reviewed.
     """
 
-    existing_problems: List[str]
-    """List of problems identified in the review."""
+    review_topic: str
+    """The subject or focus area of the review."""
 
-    proposed_solutions: List[str]
-    """List of proposed solutions to the problems identified in the review."""
+    problem_solutions: List[ProblemSolutions]
+    """Collection of problems identified during review along with their potential solutions."""
 
     _ref: T = PrivateAttr(None)
-    """Reference to the object being reviewed."""
+    """Reference to the original object that was reviewed."""
 
     def update_ref[K](self, ref: K) -> "ReviewResult[K]":
-        """Update the reference to the object being reviewed.
+        """Update the reference to the reviewed object.
 
         Args:
-            ref (K): The new reference to the object being reviewed.
+            ref (K): The new reference object to be associated with this review.
 
         Returns:
-            ReviewResult[K]: The updated instance of the ReviewResult class with the new reference type.
+            ReviewResult[K]: The current instance with updated reference type.
         """
         self._ref = ref
         return self
 
     def deref(self) -> T:
-        """Dereference the object being reviewed.
+        """Retrieve the referenced object that was reviewed.
 
         Returns:
-            T: The object being reviewed.
+            T: The original object that was reviewed.
         """
         return self._ref
+
+    async def supervisor_check(self, check_solutions: bool = False) -> Self:
+        """Perform an interactive review session to filter problems and solutions.
+
+        Presents an interactive prompt allowing a supervisor to select which
+        problems (and optionally solutions) should be retained in the final review.
+
+        Args:
+            check_solutions (bool, optional): When True, also prompts for filtering
+                individual solutions for each retained problem. Defaults to False.
+
+        Returns:
+            Self: The current instance with filtered problems and solutions.
+        """
+        # Choose the problems to retain
+        chosen_ones: List[ProblemSolutions] = await checkbox(
+            f"Please choose the problems you want to retain, under the topic of `{self.review_topic}`.(Default: retain all)",
+            choices=(c := {p.problem: p for p in self.problem_solutions}),
+            initial_choice=c,
+        ).ask_async()
+        if not check_solutions:
+            self.problem_solutions = chosen_ones
+            return self
+
+        # Choose the solutions to retain
+        for to_exam in chosen_ones:
+            to_exam.update_solutions(
+                await checkbox(
+                    f"Please choose the solutions you want to retain, under the problem of `{to_exam.problem}`.(Default: retain all)",
+                    choices=(a := {s: s for s in to_exam.solutions}),
+                    initial_choice=a,
+                ).ask_async()
+            )
+        return self
 
 
 class Review(GiveRating, Propose):
