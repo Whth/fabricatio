@@ -28,6 +28,14 @@ To satisfy the given requirements, Generate a JSON object that strictly adheres 
 - No comments or explanatory text
 - Maintain property order as defined in schema
 
+4. **Character Escaping**:
+- Properly escape double quotes in strings using backslash: `\"`
+- Use appropriate escape sequences for special characters:
+- Newlines: `\n`
+- Tabs: `\t`
+- Backslashes: `\\`
+- Forward slash (optional): `/`
+
 # Example Interaction:
 **Schema**:
 ```json
@@ -42,6 +50,10 @@ To satisfy the given requirements, Generate a JSON object that strictly adheres 
 "description": "y coordinate",
 "exclusiveMinimum": 0,
 "type": "integer"
+},
+"note": {
+"description": "Additional notes",
+"type": "string"
 }
 },
 "required": ["x", "y"]
@@ -53,7 +65,8 @@ To satisfy the given requirements, Generate a JSON object that strictly adheres 
 ```json
 {
 "x": 5,
-"y": 12
+"y": 12,
+"note": "Point is \"critical\" in the system.\nRequires attention."
 }
 ```
 ----- END of RESPONSE -----
@@ -61,6 +74,7 @@ To satisfy the given requirements, Generate a JSON object that strictly adheres 
 # Critical Constraints:
 ‼️ Output MUST contain ONLY the JSON object within the code block
 ‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.)
+‼️ PROPERLY ESCAPE special characters in strings (quotes, newlines, etc.)
 ‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
 ‼️ Handle optional parameters context-appropriately
 
