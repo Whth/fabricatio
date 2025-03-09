@@ -105,14 +105,14 @@ class LLMUsage(ScopedConfig):
     async def aask(
         self,
         question: List[str],
-        system_message: Optional[List[str]] = None,
+        system_message: List[str],
         **kwargs: Unpack[LLMKwargs],
     ) -> List[str]: ...
     @overload
     async def aask(
         self,
         question: str,
-        system_message: Optional[List[str]] = None,
+        system_message: List[str],
         **kwargs: Unpack[LLMKwargs],
     ) -> List[str]: ...
     @overload
