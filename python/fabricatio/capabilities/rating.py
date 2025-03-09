@@ -2,6 +2,7 @@
 
 from asyncio import gather
 from itertools import permutations
+from random import sample
 from typing import Dict, List, Set, Tuple, Union, Unpack, overload
 
 from fabricatio._rust_instances import template_manager
@@ -16,7 +17,11 @@ from pydantic import NonNegativeInt, PositiveInt
 
 
 class GiveRating(WithBriefing, LLMUsage):
-    """A class that provides functionality to rate tasks based on a rating manual and score range."""
+    """A class that provides functionality to rate tasks based on a rating manual and score range.
+
+    References:
+        Lu X, Li J, Takeuchi K, et al. AHP-powered LLM reasoning for multi-criteria evaluation of open-ended responses[A/OL]. arXiv, 2024. DOI: 10.48550/arXiv.2410.01246.
+    """
 
     async def rate_fine_grind(
         self,
@@ -187,6 +192,7 @@ class GiveRating(WithBriefing, LLMUsage):
         self,
         topic: str,
         examples: List[str],
+        m: NonNegativeInt = 0,
         reasons_count: PositiveInt = 2,
         criteria_count: PositiveInt = 5,
         **kwargs: Unpack[ValidateKwargs],
@@ -199,13 +205,21 @@ class GiveRating(WithBriefing, LLMUsage):
         Parameters:
             topic (str): The subject topic for the rating criteria.
             examples (List[str]): A list of example texts to analyze.
+            m (NonNegativeInt, optional): The number of examples to sample from the provided list. Defaults to 0 (no sampling).
             reasons_count (PositiveInt, optional): The number of reasons to extract from each pair of examples. Defaults to 2.
             criteria_count (PositiveInt, optional): The final number of rating criteria to draft. Defaults to 5.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for validation.
 
         Returns:
             Set[str]: A set of drafted rating criteria.
+
+        Warnings:
+            Since this function uses pairwise comparisons, it may not be suitable for large lists of examples.
+            For that reason, consider using a smaller list of examples or setting `m` to a non-zero value smaller than the length of the examples.
         """
+        if m:
+            examples = sample(examples, m)
+
         kwargs = GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
