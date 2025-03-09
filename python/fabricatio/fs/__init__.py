@@ -7,6 +7,7 @@ from fabricatio.fs.curd import (
     delete_directory,
     delete_file,
     dump_text,
+    gather_files,
     move_file,
     tree,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "delete_directory",
     "delete_file",
     "dump_text",
+    "gather_files",
     "magika",
     "move_file",
     "safe_json_read",

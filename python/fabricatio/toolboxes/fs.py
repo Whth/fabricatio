@@ -7,6 +7,7 @@ from fabricatio.fs import (
     delete_directory,
     delete_file,
     dump_text,
+    gather_files,
     move_file,
     safe_json_read,
     safe_text_read,
@@ -26,4 +27,5 @@ fs_toolbox = (
     .add_tool(absolute_path)
     .add_tool(safe_text_read)
     .add_tool(safe_json_read)
+    .add_tool(gather_files)
 )
