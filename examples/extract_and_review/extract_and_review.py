@@ -25,8 +25,11 @@ async def main() -> None:
         "Extract the essence of the article from the files in './bpdf_out'",
     )
 
-    ess = await task.override_dependencies(gather_files("bpdf_out", "md")).delegate("article")
-    logger.success(f"Essence Count:{len(ess)}")
+    unchecked_ess = await task.override_dependencies(gather_files("bpdf_out", "md")).delegate("article")
+
+    ess = list(filter(lambda x: x is not None, unchecked_ess))
+
+    logger.success(f"Essence Count:{len(ess)}, invalid count: {len(unchecked_ess) - len(ess)}")
 
     Path("output").mkdir(exist_ok=True)
     for i, e in enumerate(ess):
