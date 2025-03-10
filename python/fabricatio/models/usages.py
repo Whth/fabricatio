@@ -1,7 +1,7 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
 from asyncio import gather
-from typing import Callable, Dict, Iterable, List, Optional, Self, Set, Type, Union, Unpack, overload
+from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set, Type, Union, Unpack, overload
 
 import asyncstdlib
 import litellm
@@ -20,12 +20,13 @@ from litellm.types.utils import (
     EmbeddingResponse,
     ModelResponse,
     StreamingChoices,
+    TextChoices,
 )
 from litellm.utils import CustomStreamWrapper
 from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
-if configs.cache.enabled:
+if configs.cache.enabled and configs.cache.type:
     litellm.enable_cache(type=configs.cache.type, **configs.cache.params)
     logger.success(f"{configs.cache.type.name} Cache enabled")
 
@@ -42,7 +43,7 @@ class LLMUsage(ScopedConfig):
         messages: List[Dict[str, str]],
         n: PositiveInt | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ModelResponse | CustomStreamWrapper:
+    ) -> ModelResponse:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
         Args:
@@ -81,7 +82,7 @@ class LLMUsage(ScopedConfig):
         system_message: str = "",
         n: PositiveInt | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[Choices | StreamingChoices]:
+    ) -> Sequence[TextChoices | Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
 
         Args:
@@ -101,13 +102,14 @@ class LLMUsage(ScopedConfig):
         if isinstance(resp, ModelResponse):
             return resp.choices
         if isinstance(resp, CustomStreamWrapper):
-            if not configs.debug.streaming_visible:
-                return stream_chunk_builder(await asyncstdlib.list()).choices
+            if not configs.debug.streaming_visible and (pack := stream_chunk_builder(await asyncstdlib.list())):
+                return pack.choices
             chunks = []
             async for chunk in resp:
                 chunks.append(chunk)
                 print(chunk.choices[0].delta.content or "", end="")  # noqa: T201
-            return stream_chunk_builder(chunks).choices
+            if pack := stream_chunk_builder(chunks):
+                return pack.choices
         logger.critical(err := f"Unexpected response type: {type(resp)}")
         raise ValueError(err)
 
@@ -166,15 +168,15 @@ class LLMUsage(ScopedConfig):
                         for q, sm in zip(q_seq, sm_seq, strict=True)
                     ]
                 )
-                return [r.pop().message.content for r in res]
+                return [r[0].message.content for r in res]
             case (list(q_seq), str(sm)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for q in q_seq])
-                return [r.pop().message.content for r in res]
+                return [r[0].message.content for r in res]
             case (str(q), list(sm_seq)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
-                return [r.pop().message.content for r in res]
+                return [r[0].message.content for r in res]
             case (str(q), str(sm)):
-                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs)).pop()).message.content
+                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content
             case _:
                 raise RuntimeError("Should not reach here.")
 
@@ -185,8 +187,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: T,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> T: ...
     @overload
     async def aask_validate[T](
@@ -195,8 +196,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T]: ...
 
     @overload
@@ -206,8 +206,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> List[Optional[T]]: ...
     @overload
     async def aask_validate[T](
@@ -216,8 +215,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: T,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> List[T]: ...
 
     async def aask_validate[T](
@@ -227,7 +225,7 @@ class LLMUsage(ScopedConfig):
         default: Optional[T] = None,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
-    ) -> Optional[T] | List[Optional[T]]:
+    ) -> Optional[T] | List[Optional[T]] | List[T] | T:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
@@ -519,7 +517,6 @@ class ToolBoxUsage(LLMUsage):
     async def choose_toolboxes(
         self,
         task: Task,
-        system_message: str = "",
         **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
     ) -> List[ToolBox]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
@@ -538,7 +535,6 @@ class ToolBoxUsage(LLMUsage):
         return await self.achoose(
             instruction=task.briefing,
             choices=list(self.toolboxes),
-            system_message=system_message,
             **kwargs,
         )
 
