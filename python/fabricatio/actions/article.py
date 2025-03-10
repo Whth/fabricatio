@@ -2,7 +2,7 @@
 
 from os import PathLike
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
@@ -27,7 +27,7 @@ class ExtractArticleEssence(Action):
         task_input: Task,
         reader: Callable[[P], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
-    ) -> List[ArticleEssence]:
+    ) -> Optional[List[ArticleEssence]]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
             raise RuntimeError(err)
@@ -51,7 +51,7 @@ class GenerateArticleProposal(Action):
         self,
         task_input: Task,
         **_,
-    ) -> ArticleProposal:
+    ) -> Optional[ArticleProposal]:
         input_path = await self.awhich_pathstr(
             f"{task_input.briefing}\nExtract the path of file, which contains the article briefing that I need to read."
         )
@@ -73,7 +73,7 @@ class GenerateOutline(Action):
         self,
         article_proposal: ArticleProposal,
         **_,
-    ) -> ArticleOutline:
+    ) -> Optional[ArticleOutline]:
         return await self.propose(
             ArticleOutline,
             article_proposal.display(),
