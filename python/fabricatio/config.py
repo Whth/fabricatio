@@ -1,5 +1,6 @@
 """Configuration module for the Fabricatio application."""
 
+from pathlib import Path
 from typing import List, Literal, Optional
 
 from appdirs import user_config_dir
@@ -67,7 +68,7 @@ class LLMConfig(BaseModel):
     temperature: NonNegativeFloat = Field(default=1.0)
     """The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request."""
 
-    stop_sign: str | List[str] = Field(default=("\n\n\n", "User:"))
+    stop_sign: str | List[str] = Field(default_factory=lambda :["\n\n\n", "User:"])
     """The stop sign of the LLM model. No default stop sign specified."""
 
     top_p: NonNegativeFloat = Field(default=0.35)
@@ -143,7 +144,7 @@ class DebugConfig(BaseModel):
     log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     """The log level of the application."""
 
-    log_file: FilePath = Field(default=rf"{ROAMING_DIR}\fabricatio.log")
+    log_file: FilePath = Field(default=Path(rf"{ROAMING_DIR}\fabricatio.log"))
     """The log file of the application."""
 
     rotation: int = Field(default=1)
@@ -161,7 +162,7 @@ class TemplateConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
     template_dir: List[DirectoryPath] = Field(
-        default_factory=lambda: [DirectoryPath(r".\templates"), DirectoryPath(rf"{ROAMING_DIR}\templates")]
+        default_factory=lambda: [Path(r".\templates"), Path(rf"{ROAMING_DIR}\templates")]
     )
     """The directory containing the templates."""
     active_loading: bool = Field(default=False)
@@ -234,7 +235,7 @@ class GeneralConfig(BaseModel):
     """Global configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    workspace: DirectoryPath = Field(default=DirectoryPath(r"."))
+    workspace: DirectoryPath = Field(default=Path(r"."))
     """The workspace directory for the application."""
 
     confirm_on_ops: bool = Field(default=True)
