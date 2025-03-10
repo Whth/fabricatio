@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
 import orjson
 from fabricatio._rust import blake3_hash
@@ -99,8 +99,15 @@ class WithFormatedJsonSchema(Base):
 class CreateJsonObjPrompt(WithFormatedJsonSchema):
     """Class that provides a prompt for creating a JSON object."""
 
+
     @classmethod
-    def create_json_prompt(cls, requirement: str) -> str:
+    @overload
+    def create_json_prompt(cls, requirement: List[str]) -> List[str]:...
+    @classmethod
+    @overload
+    def create_json_prompt(cls, requirement: str) -> str:...
+    @classmethod
+    def create_json_prompt(cls, requirement: str|List[str]) -> str|List[str]:
         """Create the prompt for creating a JSON object with given requirement.
 
         Args:
@@ -109,10 +116,18 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
         Returns:
             str: The prompt for creating a JSON object with given requirement.
         """
-        return template_manager.render_template(
+        if isinstance(requirement, str):
+            return template_manager.render_template(
             configs.templates.create_json_obj_template,
             {"requirement": requirement, "json_schema": cls.formated_json_schema()},
         )
+        return [
+            template_manager.render_template(
+                configs.templates.create_json_obj_template,
+                {"requirement": r, "json_schema": cls.formated_json_schema()},
+            )
+            for r in requirement
+        ]
 
 
 class InstantiateFromString(Base):
