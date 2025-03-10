@@ -67,7 +67,7 @@ class WithBriefing(Named, Described):
         """
         return f"{self.name}: {self.description}" if self.description else self.name
 
-    def prepend(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def prepend[D: Dict[str, Any]](self, kwargs: D) -> D:
         """Prepend the briefing to the system message in the kwargs.
 
         Args:
@@ -373,3 +373,4 @@ class ScopedConfig(Base):
             for attr_name in ScopedConfig.model_fields:
                 if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
                     setattr(other, attr_name, attr)
+        return self
