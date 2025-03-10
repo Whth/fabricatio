@@ -199,15 +199,36 @@ class LLMUsage(ScopedConfig):
         **kwargs: Unpack[LLMKwargs],
     ) -> Optional[T]: ...
 
+    @overload
     async def aask_validate[T](
         self,
-        question: str,
+        question: List[str],
+        validator: Callable[[str], T | None],
+        default: None = None,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[Optional[T]]: ...
+    @overload
+    async def aask_validate[T](
+        self,
+        question: List[str],
+        validator: Callable[[str], T | None],
+        default: T,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[T]: ...
+
+    async def aask_validate[T](
+        self,
+        question: str | List[str],
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 2,
         system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
-    ) -> Optional[T]:
+    ) -> Optional[T] | List[Optional[T]]:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
@@ -222,56 +243,28 @@ class LLMUsage(ScopedConfig):
             T: The validated response.
 
         """
-        for i in range(max_validations):
-            if (
-                response := await self.aask(
-                    question=question,
-                    system_message=system_message,
-                    **kwargs,
-                )
-            ) and (validated := validator(response)):
-                logger.debug(f"Successfully validated the response at {i}th attempt.")
-                return validated
-            kwargs["no_cache"] = True
-            logger.debug("Closed the cache for the next attempt")
-        if default is None:
-            logger.error(f"Failed to validate the response after {max_validations} attempts.")
-        return default
 
-    @overload
-    async def aask_validate_batch[T](
-        self,
-        questions: List[str],
-        validator: Callable[[str], T | None],
-        **kwargs: Unpack[GenerateKwargs[T]],
-    ) -> List[T]: ...
-    @overload
-    async def aask_validate_batch[T](
-        self,
-        questions: List[str],
-        validator: Callable[[str], T | None],
-        **kwargs: Unpack[GenerateKwargs[None]],
-    ) -> List[Optional[T]]: ...
-    async def aask_validate_batch[T](
-        self,
-        questions: List[str],
-        validator: Callable[[str], T | None],
-        **kwargs: Unpack[GenerateKwargs[Optional[T]]],
-    ) -> List[Optional[T]]:
-        """Asynchronously asks a batch of questions and validates the responses using a given validator.
+        async def _inner(q: str) -> Optional[T]:
+            for lap in range(max_validations):
+                try:
+                    if (response := await self.aask(question=q, system_message=system_message, **kwargs)) and (
+                        validated := validator(response)
+                    ):
+                        logger.debug(f"Successfully validated the response at {lap}th attempt.")
+                        return validated
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"Error during validation: \n{e}")
+                    break
+                kwargs["no_cache"] = True
+                logger.debug("Closed the cache for the next attempt")
+            if default is None:
+                logger.error(f"Failed to validate the response after {max_validations} attempts.")
+            return default
 
-        Args:
-            questions (List[str]): The list of questions to ask.
-            validator (Callable[[str], T | None]): A function to validate the response.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+        if isinstance(question, str):
+            return await _inner(question)
 
-        Returns:
-            T: The validated response.
-
-        Raises:
-            ValueError: If the response fails to validate after the maximum number of attempts.
-        """
-        return await gather(*[self.aask_validate(question, validator, **kwargs) for question in questions])
+        return await gather(*[_inner(q) for q in question])
 
     async def aliststr(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs[List[str]]]
