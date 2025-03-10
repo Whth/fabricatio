@@ -8,7 +8,7 @@ from functools import lru_cache
 from operator import itemgetter
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, overload
+from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, cast, overload
 
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
@@ -111,9 +111,9 @@ class RAG(EmbeddingUsage):
             create (bool): Whether to create the collection if it does not exist.
             **kwargs (Unpack[CollectionSimpleConfigKwargs]): Additional keyword arguments for collection configuration.
         """
-        if create and collection_name and not self._client.has_collection(collection_name):
+        if create and collection_name and self.client.has_collection(collection_name):
             kwargs["dimension"] = kwargs.get("dimension") or self.milvus_dimensions or configs.rag.milvus_dimensions
-            self._client.create_collection(collection_name, auto_id=True, **kwargs)
+            self.client.create_collection(collection_name, auto_id=True, **kwargs)
             logger.info(f"Creating collection {collection_name}")
 
         self.target_collection = collection_name
@@ -152,15 +152,17 @@ class RAG(EmbeddingUsage):
             Self: The current instance, allowing for method chaining.
         """
         if isinstance(data, MilvusData):
-            data = data.prepare_insertion()
-        if isinstance(data, list):
-            data = [d.prepare_insertion() if isinstance(d, MilvusData) else d for d in data]
+            prepared_data = data.prepare_insertion()
+        elif isinstance(data, list):
+            prepared_data = [d.prepare_insertion() if isinstance(d, MilvusData) else d for d in data]
+        else:
+            raise TypeError(f"Expected MilvusData or list of MilvusData, got {type(data)}")
         c_name = collection_name or self.safe_target_collection
-        self._client.insert(c_name, data)
+        self.client.insert(c_name, prepared_data)
 
         if flush:
             logger.debug(f"Flushing collection {c_name}")
-            self._client.flush(c_name)
+            self.client.flush(c_name)
         return self
 
     async def consume_file(
@@ -196,14 +198,14 @@ class RAG(EmbeddingUsage):
         self.add_document(await self.pack(text), collection_name or self.safe_target_collection, flush=True)
         return self
 
-    async def afetch_document(
+    async def afetch_document[V: (int, str, float, bytes)](
         self,
         vecs: List[List[float]],
         desired_fields: List[str] | str,
         collection_name: Optional[str] = None,
         similarity_threshold: float = 0.37,
         result_per_query: int = 10,
-    ) -> List[Dict[str, Any]] | List[Any]:
+    ) -> List[Dict[str, Any]] | List[V]:
         """Fetch data from the collection.
 
         Args:
@@ -217,7 +219,7 @@ class RAG(EmbeddingUsage):
             List[Dict[str, Any]] | List[Any]: The retrieved data.
         """
         # Step 1: Search for vectors
-        search_results = self._client.search(
+        search_results = self.client.search(
             collection_name or self.safe_target_collection,
             vecs,
             search_params={"radius": similarity_threshold},
@@ -237,7 +239,7 @@ class RAG(EmbeddingUsage):
 
         if isinstance(desired_fields, list):
             return resp
-        return [r.get(desired_fields) for r in resp]
+        return [r.get(desired_fields) for r in resp]  # extract the single field as list
 
     async def aretrieve(
         self,
@@ -257,12 +259,13 @@ class RAG(EmbeddingUsage):
         """
         if isinstance(query, str):
             query = [query]
-        return (
+        return cast(
+            List[str],
             await self.afetch_document(
                 vecs=(await self.vectorize(query)),
                 desired_fields="text",
                 **kwargs,
-            )
+            ),
         )[:final_limit]
 
     async def aask_retrieved(
