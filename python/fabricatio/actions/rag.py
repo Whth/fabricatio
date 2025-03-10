@@ -14,7 +14,7 @@ class InjectToDB(Action, RAG):
 
     async def _execute[T: PrepareVectorization](
         self, to_inject: T | List[T], collection_name: Optional[str] = "my_collection", **cxt: Unpack
-    ) -> str:
+    ) -> Optional[str]:
         if not isinstance(to_inject, list):
             to_inject = [to_inject]
 
