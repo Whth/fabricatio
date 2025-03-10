@@ -223,8 +223,8 @@ class GiveRating(WithBriefing, LLMUsage):
         kwargs = GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
-            await self.aask_validate_batch(
-                questions=[
+            await self.aask_validate(
+                question=[
                     template_manager.render_template(
                         configs.templates.extract_reasons_from_examples_template,
                         {
@@ -283,8 +283,8 @@ class GiveRating(WithBriefing, LLMUsage):
         windows = windowed(criteria, 2)
 
         # get the importance multiplier indicating how important is second criterion compared to the first one
-        relative_weights = await self.aask_validate_batch(
-            questions=[
+        relative_weights = await self.aask_validate(
+            question=[
                 template_manager.render_template(
                     configs.templates.draft_rating_weights_klee_template,
                     {
