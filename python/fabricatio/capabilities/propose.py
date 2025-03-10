@@ -42,14 +42,8 @@ class Propose[M: ProposedAble](LLMUsage):
         Returns:
             A Task object based on the proposal result.
         """
-        if isinstance(prompt, str):
-            return await self.aask_validate(
-                question=cls.create_json_prompt(prompt),
-                validator=cls.instantiate_from_string,
-                **kwargs,
-            )
-        return await self.aask_validate_batch(
-            questions=[cls.create_json_prompt(p) for p in prompt],
+        return await self.aask_validate(
+            question=cls.create_json_prompt(prompt),
             validator=cls.instantiate_from_string,
             **kwargs,
         )
