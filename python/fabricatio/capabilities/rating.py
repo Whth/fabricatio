@@ -1,9 +1,8 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
-from asyncio import gather
 from itertools import permutations
 from random import sample
-from typing import Dict, List, Set, Tuple, Union, Unpack, overload
+from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
 from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
@@ -25,11 +24,11 @@ class GiveRating(WithBriefing, LLMUsage):
 
     async def rate_fine_grind(
         self,
-        to_rate: str,
+        to_rate: str | List[str],
         rating_manual: Dict[str, str],
         score_range: Tuple[float, float],
-        **kwargs: Unpack[ValidateKwargs],
-    ) -> Dict[str, float]:
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
+    ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
         """Rate a given string based on a rating manual and score range.
 
         Args:
@@ -63,7 +62,20 @@ class GiveRating(WithBriefing, LLMUsage):
                         "rating_manual": rating_manual,
                     },
                 )
-            ),
+            )
+            if isinstance(to_rate, str)
+            else [
+                template_manager.render_template(
+                    configs.templates.rate_fine_grind_template,
+                    {
+                        "to_rate": item,
+                        "min_score": score_range[0],
+                        "max_score": score_range[1],
+                        "rating_manual": rating_manual,
+                    },
+                )
+                for item in to_rate
+            ],
             validator=_validator,
             **kwargs,
         )
@@ -95,7 +107,7 @@ class GiveRating(WithBriefing, LLMUsage):
         criteria: Set[str],
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
-    ) -> Union[Dict[str, float], List[Dict[str, float]]]:
+    ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
 
         Args:
@@ -109,16 +121,13 @@ class GiveRating(WithBriefing, LLMUsage):
             Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each criterion if a single string is provided,
             or a list of dictionaries with the ratings for each criterion if a sequence of strings is provided.
         """
-        manual = await self.draft_rating_manual(topic, criteria, **kwargs)
-        if isinstance(to_rate, str):
-            return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
-        if isinstance(to_rate, list):
-            return await gather(*[self.rate_fine_grind(item, manual, score_range, **kwargs) for item in to_rate])
-        raise ValueError("to_rate must be a string or a list of strings")
+        manual = await self.draft_rating_manual(topic, criteria, **kwargs) or dict(zip(criteria, criteria, strict=True))
+
+        return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
 
     async def draft_rating_manual(
-        self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs]
-    ) -> Dict[str, str]:
+        self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    ) -> Optional[Dict[str, str]]:
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
@@ -157,8 +166,8 @@ class GiveRating(WithBriefing, LLMUsage):
         self,
         topic: str,
         criteria_count: NonNegativeInt = 0,
-        **kwargs: Unpack[ValidateKwargs],
-    ) -> Set[str]:
+        **kwargs: Unpack[ValidateKwargs[Set[str]]],
+    ) -> Optional[Set[str]]:
         """Drafts rating dimensions based on a topic.
 
         Args:
@@ -180,7 +189,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 )
             ),
             validator=lambda resp: set(out)
-            if (out := JsonCapture.validate_with(resp, list, str, criteria_count))
+            if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None
             else out,
             **self.prepend(kwargs),
         )
@@ -193,7 +202,7 @@ class GiveRating(WithBriefing, LLMUsage):
         reasons_count: PositiveInt = 2,
         criteria_count: PositiveInt = 5,
         **kwargs: Unpack[ValidateKwargs],
-    ) -> Set[str]:
+    ) -> Optional[Set[str]]:
         """Asynchronously drafts a set of rating criteria based on provided examples.
 
         This function generates rating criteria by analyzing examples and extracting reasons for comparison,
@@ -260,7 +269,7 @@ class GiveRating(WithBriefing, LLMUsage):
         self,
         topic: str,
         criteria: Set[str],
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[float]],
     ) -> Dict[str, float]:
         """Drafts rating weights for a given topic and criteria using the Klee method.
 
@@ -275,8 +284,8 @@ class GiveRating(WithBriefing, LLMUsage):
         if len(criteria) < 2:  # noqa: PLR2004
             raise ValueError("At least two criteria are required to draft rating weights")
 
-        criteria = list(criteria)  # freeze the order
-        windows = windowed(criteria, 2)
+        criteria_seq = list(criteria)  # freeze the order
+        windows = windowed(criteria_seq, 2)
 
         # get the importance multiplier indicating how important is second criterion compared to the first one
         relative_weights = await self.aask_validate(
@@ -298,7 +307,7 @@ class GiveRating(WithBriefing, LLMUsage):
         for rw in relative_weights:
             weights.append(weights[-1] * rw)
         total = sum(weights)
-        return dict(zip(criteria, [w / total for w in weights], strict=True))
+        return dict(zip(criteria_seq, [w / total for w in weights], strict=True))
 
     async def composite_score(
         self,
