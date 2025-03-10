@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Dict
 
+import orjson
 from magika import Magika
-from orjson import orjson
 
 from fabricatio.config import configs
 from fabricatio.journal import logger
