@@ -1,6 +1,6 @@
 """A module for the task capabilities of the Fabricatio library."""
 
-from typing import List, Type, Unpack, overload
+from typing import List, Optional, Type, Unpack, overload
 
 from fabricatio.models.generic import ProposedAble
 from fabricatio.models.kwargs_types import ValidateKwargs
@@ -16,7 +16,7 @@ class Propose(LLMUsage):
         cls: Type[M],
         prompt: List[str],
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> List[M]: ...
+    ) -> Optional[List[M]]: ...
 
     @overload
     async def propose[M: ProposedAble](
@@ -24,14 +24,14 @@ class Propose(LLMUsage):
         cls: Type[M],
         prompt: str,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> M: ...
+    ) -> Optional[M]: ...
 
     async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: List[str] | str,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> List[M] | M:
+    ) -> Optional[List[M] | M]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
