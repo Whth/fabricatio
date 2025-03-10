@@ -34,7 +34,7 @@ class Highlightings(Base):
 
     # Academic Achievements Showcase
     highlighted_equations: List[Equation] = Field(default_factory=list)
-    """Core mathematical equations that represent breakthroughs in the field, accompanied by explanations of their physical or conceptual significance."""
+    """Core mathematical equations that represent breakthroughs in the field, accompanied by explanations of their physical or conceptual significance,Should always be in LaTeX format wrapped in $ or $$ signs."""
 
     highlighted_algorithms: List[str] = Field(default_factory=list)
     """Pseudocode for key algorithms, annotated to highlight innovative components."""
@@ -63,6 +63,9 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     """The year in which the paper was published."""
 
     # Core Content Elements
+    highlightings: Highlightings = Field(default_factory=Highlightings)
+    """A collection of highlighted elements in the paper, including equations, algorithms, figures, and tables."""
+
     domain: List[str] = Field(default_factory=list)
     """The research domains or fields addressed by the paper (e.g., ['Natural Language Processing', 'Computer Vision'])."""
 
