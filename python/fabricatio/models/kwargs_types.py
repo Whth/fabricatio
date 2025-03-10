@@ -56,7 +56,7 @@ class LLMKwargs(TypedDict, total=False):
     stream: bool
     timeout: int
     max_retries: int
-    no_cache: bool  # If use cache in this call
+    no_cache: bool  # if the req uses cache in this call
     no_store: bool  # If store the response of this call to cache
     cache_ttl: int  # how long the stored cache is alive, in seconds
     s_maxage: int  # max accepted age of cached response, in seconds
