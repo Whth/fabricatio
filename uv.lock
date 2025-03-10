@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = "==3.12.*"
 
 [[package]]
@@ -216,12 +215,13 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.5.dev3"
+version = "0.2.5.dev4"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
     { name = "asyncio" },
     { name = "asyncstdlib" },
+    { name = "json-repair" },
     { name = "litellm" },
     { name = "loguru" },
     { name = "magika" },
@@ -265,6 +265,7 @@ requires-dist = [
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "asyncstdlib", specifier = ">=3.13.0" },
     { name = "fabricatio", extras = ["rag"], marker = "extra == 'full'" },
+    { name = "json-repair", specifier = ">=0.39.1" },
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "magika", specifier = ">=0.5.1" },
@@ -278,7 +279,6 @@ requires-dist = [
     { name = "regex", specifier = ">=2024.11.6" },
     { name = "rich", specifier = ">=13.9.4" },
 ]
-provides-extras = ["rag", "full"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -506,6 +506,15 @@ wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/5c/37/3394bb47bac1ad2cb0465601f86828a0518d07828a650722e55268cdb7e6/jiter-0.8.2-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:bf55846c7b7a680eebaf9c3c48d630e1bf51bdf76c68a5f654b8524335b0ad29", size = 503730 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f9/e2/253fc1fa59103bb4e3aa0665d6ceb1818df1cd7bf3eb492c4dad229b1cd4/jiter-0.8.2-cp312-cp312-win32.whl", hash = "sha256:7efe4853ecd3d6110301665a5178b9856be7e2a9485f49d91aa4d737ad2ae49e", size = 203375 },
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/41/69/6d4bbe66b3b3b4507e47aa1dd5d075919ad242b4b1115b3f80eecd443687/jiter-0.8.2-cp312-cp312-win_amd64.whl", hash = "sha256:83c0efd80b29695058d0fd2fa8a556490dbce9804eac3e281f373bbc99045f6c", size = 204740 },
+]
+
+[[package]]
+name = "json-repair"
+version = "0.39.1"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/95/60/6d1599bc01070d9fe3840d245ae80fd24b981c732d962842825ce7a9fde6/json_repair-0.39.1.tar.gz", hash = "sha256:e90a489f247e1a8fc86612a5c719872a3dbf9cbaffd6d55f238ec571a77740fa", size = 30040 }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ff/b9/2e445481555422b907dab468b53574bc1e995099ca1a1201d0d876ca05e9/json_repair-0.39.1-py3-none-any.whl", hash = "sha256:3001409a2f319249f13e13d6c622117a5b70ea7e0c6f43864a0233cdffc3a599", size = 20686 },
 ]
 
 [[package]]

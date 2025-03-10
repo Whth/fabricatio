@@ -30,6 +30,7 @@ dependencies = [
     "appdirs>=1.4.4",
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",
+    "json-repair>=0.39.1",
     "litellm>=1.60.0",
     "loguru>=0.7.3",
     "magika>=0.5.1",
@@ -139,10 +140,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
-
-[[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [[tool.uv.index]]
@@ -150,4 +147,8 @@ url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
+
+[[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
 

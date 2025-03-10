@@ -240,6 +240,9 @@ class GeneralConfig(BaseModel):
     confirm_on_ops: bool = Field(default=True)
     """Whether to confirm on operations."""
 
+    use_json_repair: bool = Field(default=True)
+    """Whether to use JSON repair."""
+
 
 class ToolBoxConfig(BaseModel):
     """Toolbox configuration class."""
