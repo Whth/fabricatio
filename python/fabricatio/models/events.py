@@ -18,7 +18,7 @@ class Event(BaseModel):
     """ The segments of the namespaces."""
 
     @classmethod
-    def instantiate_from(cls, event: EventLike) -> Self:
+    def instantiate_from(cls, event: EventLike) -> "Event":
         """Create an Event instance from a string or list of strings or an Event instance.
 
         Args:
@@ -35,7 +35,7 @@ class Event(BaseModel):
         return cls(segments=event)
 
     @classmethod
-    def quick_instantiate(cls, event: EventLike) -> Self:
+    def quick_instantiate(cls, event: EventLike) -> "Event":
         """Create an Event instance from a string or list of strings or an Event instance and push a wildcard and pending segment.
 
         Args:
@@ -59,7 +59,7 @@ class Event(BaseModel):
 
     def clone(self) -> Self:
         """Clone the event."""
-        return Event(segments=list(self.segments))
+        return self.__class__(segments=list(self.segments))
 
     def push(self, segment: str) -> Self:
         """Push a segment to the event."""
@@ -113,6 +113,8 @@ class Event(BaseModel):
         """Return the hash of the event, using the collapsed string."""
         return hash(self.collapse())
 
-    def __eq__(self, other: str | List[str] | Self) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if the event is equal to another event or a string."""
+        if not isinstance(other, (str , list , Event)):
+            return False
         return self.collapse() == Event.instantiate_from(other).collapse()
