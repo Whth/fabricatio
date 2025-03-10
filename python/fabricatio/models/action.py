@@ -75,7 +75,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """ The context dictionary to be used for workflow execution."""
 
-    _instances: Tuple[Action, ...] = PrivateAttr(...)
+    _instances: Tuple[Action, ...] = PrivateAttr(default_factory=tuple)
     """ The instances of the workflow steps."""
 
     steps: Tuple[Union[Type[Action], Action], ...] = Field(...)
