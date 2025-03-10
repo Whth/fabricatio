@@ -238,12 +238,26 @@ class LLMUsage(ScopedConfig):
             logger.error(f"Failed to validate the response after {max_validations} attempts.")
         return default
 
+    @overload
     async def aask_validate_batch[T](
         self,
         questions: List[str],
         validator: Callable[[str], T | None],
         **kwargs: Unpack[GenerateKwargs[T]],
-    ) -> List[T]:
+    ) -> List[T]: ...
+    @overload
+    async def aask_validate_batch[T](
+        self,
+        questions: List[str],
+        validator: Callable[[str], T | None],
+        **kwargs: Unpack[GenerateKwargs[None]],
+    ) -> List[Optional[T]]: ...
+    async def aask_validate_batch[T](
+        self,
+        questions: List[str],
+        validator: Callable[[str], T | None],
+        **kwargs: Unpack[GenerateKwargs[Optional[T]]],
+    ) -> List[Optional[T]]:
         """Asynchronously asks a batch of questions and validates the responses using a given validator.
 
         Args:
