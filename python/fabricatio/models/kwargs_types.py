@@ -74,7 +74,8 @@ class ValidateKwargs[T](LLMKwargs):
     max_validations: NotRequired[PositiveInt]
 
 
-class GenerateKwargs(ValidateKwargs):
+# noinspection PyTypedDict
+class GenerateKwargs[T](ValidateKwargs[T]):
     """Arguments for content generation operations.
 
     Extends ValidateKwargs with parameters specific to text generation,
@@ -84,7 +85,8 @@ class GenerateKwargs(ValidateKwargs):
     system_message: NotRequired[str]
 
 
-class ReviewKwargs(GenerateKwargs):
+# noinspection PyTypedDict
+class ReviewKwargs[T](GenerateKwargs[T]):
     """Arguments for content review operations.
 
     Extends GenerateKwargs with parameters for evaluating content against
@@ -95,7 +97,8 @@ class ReviewKwargs(GenerateKwargs):
     criteria: NotRequired[Set[str]]
 
 
-class ChooseKwargs(GenerateKwargs):
+# noinspection PyTypedDict
+class ChooseKwargs[T](GenerateKwargs[T]):
     """Arguments for selection operations.
 
     Extends GenerateKwargs with parameters for selecting among options,

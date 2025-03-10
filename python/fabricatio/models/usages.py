@@ -188,6 +188,16 @@ class LLMUsage(ScopedConfig):
         system_message: str = "",
         **kwargs: Unpack[LLMKwargs],
     ) -> T: ...
+    @overload
+    async def aask_validate[T](
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        default: None = None,
+        max_validations: PositiveInt = 2,
+        system_message: str = "",
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Optional[T]: ...
 
     async def aask_validate[T](
         self,
