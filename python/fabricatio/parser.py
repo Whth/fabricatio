@@ -1,12 +1,14 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Callable, Optional, Self, Tuple, Type
+from typing import Any, Callable, Iterable, List, Literal, Optional, Self, Tuple, Type
 
 import orjson
 import regex
+from json_repair import repair_json
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
 from regex import Pattern, compile
 
+from fabricatio.config import configs
 from fabricatio.journal import logger
 
 
@@ -25,11 +27,30 @@ class Capture(BaseModel):
     """The regular expression pattern to search for."""
     flags: PositiveInt = Field(default=regex.DOTALL | regex.MULTILINE | regex.IGNORECASE, frozen=True)
     """The flags to use when compiling the regular expression pattern."""
+    capture_type: Optional[Literal["json"]] = Field(None)
+    """The type of capture to perform, e.g., 'json', which is used to dispatch the fixer accordingly."""
     _compiled: Pattern = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the compiled pattern."""
         self._compiled = compile(self.pattern, self.flags)
+
+    def fix(self, text: str | Iterable[str]) -> str | List[str]:
+        """Fix the text using the pattern.
+
+        Args:
+            text (str | List[str]): The text to fix.
+
+        Returns:
+            str | List[str]: The fixed text with the same type as input.
+        """
+        match self.capture_type:
+            case "json":
+                if isinstance(text, str):
+                    return repair_json(text)
+                return [repair_json(item) for item in text]
+            case _:
+                return text
 
     def capture(self, text: str) -> Tuple[str, ...] | str | None:
         """Capture the first occurrence of the pattern in the given text.
@@ -44,12 +65,12 @@ class Capture(BaseModel):
         match = self._compiled.search(text)
         if match is None:
             return None
-
+        groups = self.fix(match.groups()) if configs.general.use_json_repair else match.groups()
         if self.target_groups:
-            cap = tuple(match.group(g) for g in self.target_groups)
+            cap = tuple(groups[g] for g in self.target_groups)
             logger.debug(f"Captured text: {'\n\n'.join(cap)}")
             return cap
-        cap = match.group(1)
+        cap = groups[1]
         logger.debug(f"Captured text: \n{cap}")
         return cap
 
