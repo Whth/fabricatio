@@ -18,6 +18,7 @@ logger.add(
 )
 logger.add(sys.stderr, level=configs.debug.log_level)
 
+__all__ = ["logger"]
 if __name__ == "__main__":
     logger.debug("This is a trace message.")
     logger.info("This is an information message.")
