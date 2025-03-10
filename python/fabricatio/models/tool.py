@@ -4,7 +4,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
 from types import CodeType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Self, overload
+from typing import Any, Callable, Dict, List, Optional, Self, overload,cast
 
 from fabricatio.config import configs
 from fabricatio.decorators import logging_execution_info, use_temp_module
@@ -136,7 +136,7 @@ class ToolExecutor(BaseModel):
 
     def inject_tools[M: ModuleType](self, module: Optional[M] = None) -> M:
         """Inject the tools into the provided module or default."""
-        module = module or module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None))
+        module = module or cast(M, module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None)))
         for tool in self.candidates:
             logger.debug(f"Injecting tool: {tool.name}")
             setattr(module, tool.name, tool.invoke)
@@ -144,7 +144,7 @@ class ToolExecutor(BaseModel):
 
     def inject_data[M: ModuleType](self, module: Optional[M] = None) -> M:
         """Inject the data into the provided module or default."""
-        module = module or module_from_spec(spec=ModuleSpec(name=configs.toolbox.data_module_name, loader=None))
+        module = module or cast(M,module_from_spec(spec=ModuleSpec(name=configs.toolbox.data_module_name, loader=None)))
         for key, value in self.data.items():
             logger.debug(f"Injecting data: {key}")
             setattr(module, key, value)
@@ -184,6 +184,6 @@ class ToolExecutor(BaseModel):
         tools = []
         while tool_name := recipe.pop(0):
             for toolbox in toolboxes:
-                tools.append(toolbox[tool_name])
+                tools.append(toolbox.get(tool_name))
 
         return cls(candidates=tools)
