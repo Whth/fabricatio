@@ -235,7 +235,7 @@ class GeneralConfig(BaseModel):
     """Global configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    workspace: DirectoryPath = Field(default=Path(r"."))
+    workspace: DirectoryPath = Field(default=Path())
     """The workspace directory for the application."""
 
     confirm_on_ops: bool = Field(default=True)

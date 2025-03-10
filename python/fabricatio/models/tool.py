@@ -4,7 +4,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
 from types import CodeType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Self, overload,cast
+from typing import Any, Callable, Dict, List, Optional, Self, cast, overload
 
 from fabricatio.config import configs
 from fabricatio.decorators import logging_execution_info, use_temp_module

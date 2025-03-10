@@ -9,23 +9,23 @@ from pydantic import Field
 class Equation(Base):
     """Structured representation of mathematical equations (including their physical or conceptual meanings)."""
 
-    description: str 
+    description: str
     """A concise explanation of the equation's meaning, purpose, and relevance in the context of the research."""
 
-    latex_code: str 
+    latex_code: str
     """The LaTeX code used to represent the equation in a publication-ready format."""
 
 
 class Figure(Base):
     """Structured representation of figures (including their academic significance and explanatory captions)."""
 
-    description: str 
+    description: str
     """A detailed explanation of the figure's content and its role in conveying key insights."""
 
-    figure_caption: str 
+    figure_caption: str
     """The caption accompanying the figure, summarizing its main points and academic value."""
 
-    figure_path: str 
+    figure_path: str
     """The file path to the figure"""
 
 
@@ -53,42 +53,42 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     title: str = Field(...)
     """The full title of the paper, including any subtitles if applicable."""
 
-    authors: List[str] 
+    authors: List[str]
     """A list of the paper's authors, typically in the order of contribution."""
 
-    keywords: List[str] 
+    keywords: List[str]
     """A list of keywords that summarize the paper's focus and facilitate indexing."""
 
-    publication_year: int 
+    publication_year: int
     """The year in which the paper was published."""
 
     # Core Content Elements
     highlightings: Highlightings = Field(default_factory=Highlightings)
     """A collection of highlighted elements in the paper, including equations, algorithms, figures, and tables."""
 
-    domain: List[str] 
+    domain: List[str]
     """The research domains or fields addressed by the paper (e.g., ['Natural Language Processing', 'Computer Vision'])."""
 
     abstract: str = Field(...)
     """A structured abstract that outlines the research problem, methodology, and conclusions in three distinct sections."""
 
-    core_contributions: List[str] 
+    core_contributions: List[str]
     """Key academic contributions that distinguish the paper from prior work in the field."""
 
-    technical_novelty: List[str] 
+    technical_novelty: List[str]
     """Specific technical innovations introduced by the research, listed as individual points."""
 
     # Academic Discussion Dimensions
-    research_problems: List[str] 
+    research_problems: List[str]
     """A clearly defined research question or problem addressed by the study."""
 
-    limitations: List[str] 
+    limitations: List[str]
     """An analysis of the methodological or experimental limitations of the research."""
 
-    future_work: List[str] 
+    future_work: List[str]
     """Suggestions for potential directions or topics for follow-up studies."""
 
-    impact_analysis: List[str] 
+    impact_analysis: List[str]
     """An assessment of the paper's potential influence on the development of the field."""
 
     def _prepare_vectorization_inner(self) -> str:

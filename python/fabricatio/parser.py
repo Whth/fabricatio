@@ -1,6 +1,6 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Callable, Iterable, List, Literal, Optional, Self, Tuple, Type
+from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
 
 import orjson
 import regex
@@ -27,7 +27,7 @@ class Capture(BaseModel):
     """The regular expression pattern to search for."""
     flags: PositiveInt = Field(default=regex.DOTALL | regex.MULTILINE | regex.IGNORECASE, frozen=True)
     """The flags to use when compiling the regular expression pattern."""
-    capture_type: Optional[Literal["json"]|str] = None
+    capture_type: Optional[str] = None
     """The type of capture to perform, e.g., 'json', which is used to dispatch the fixer accordingly."""
     _compiled: Pattern = PrivateAttr()
 
