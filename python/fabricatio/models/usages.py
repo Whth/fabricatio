@@ -22,7 +22,7 @@ from litellm.types.utils import (
     StreamingChoices,
     TextChoices,
 )
-from litellm.utils import CustomStreamWrapper
+from litellm.utils import CustomStreamWrapper  # pyright: ignore [reportPrivateImportUsage]
 from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
@@ -43,7 +43,7 @@ class LLMUsage(ScopedConfig):
         messages: List[Dict[str, str]],
         n: PositiveInt | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ModelResponse:
+    ) -> ModelResponse | CustomStreamWrapper:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
         Args:
@@ -192,9 +192,18 @@ class LLMUsage(ScopedConfig):
     @overload
     async def aask_validate[T](
         self,
+        question: List[str],
+        validator: Callable[[str], T | None],
+        default: T,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> List[T]: ...
+    @overload
+    async def aask_validate[T](
+        self,
         question: str,
         validator: Callable[[str], T | None],
-        default: None = None,
+        default: None=None,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T]: ...
@@ -204,19 +213,10 @@ class LLMUsage(ScopedConfig):
         self,
         question: List[str],
         validator: Callable[[str], T | None],
-        default: None = None,
+        default: None=None,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> List[Optional[T]]: ...
-    @overload
-    async def aask_validate[T](
-        self,
-        question: List[str],
-        validator: Callable[[str], T | None],
-        default: T,
-        max_validations: PositiveInt = 2,
-        **kwargs: Unpack[GenerateKwargs],
-    ) -> List[T]: ...
 
     async def aask_validate[T](
         self,
