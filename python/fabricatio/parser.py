@@ -27,7 +27,7 @@ class Capture(BaseModel):
     """The regular expression pattern to search for."""
     flags: PositiveInt = Field(default=regex.DOTALL | regex.MULTILINE | regex.IGNORECASE, frozen=True)
     """The flags to use when compiling the regular expression pattern."""
-    capture_type: Optional[Literal["json"]] = Field(None)
+    capture_type: Optional[Literal["json"]|str] = None
     """The type of capture to perform, e.g., 'json', which is used to dispatch the fixer accordingly."""
     _compiled: Pattern = PrivateAttr()
 
@@ -35,7 +35,7 @@ class Capture(BaseModel):
         """Initialize the compiled pattern."""
         self._compiled = compile(self.pattern, self.flags)
 
-    def fix(self, text: str | Iterable[str]) -> str | List[str]:
+    def fix[T](self, text: str | Iterable[str]|T) -> str | List[str]|T:
         """Fix the text using the pattern.
 
         Args:
@@ -47,7 +47,7 @@ class Capture(BaseModel):
         match self.capture_type:
             case "json":
                 if isinstance(text, str):
-                    return repair_json(text)
+                    return repair_json(text,ensure_ascii=False)
                 return [repair_json(item) for item in text]
             case _:
                 return text
@@ -132,7 +132,7 @@ class Capture(BaseModel):
         Returns:
             Self: The instance of the class with the captured code block.
         """
-        return cls(pattern=f"```{language}\n(.*?)\n```")
+        return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
 
 
 JsonCapture = Capture.capture_code_block("json")
