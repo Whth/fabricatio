@@ -9,7 +9,7 @@ from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
-from fabricatio.models.kwargs_types import GenerateKwargs, ValidateKwargs
+from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
 from more_itertools import flatten, windowed
@@ -65,7 +65,6 @@ class GiveRating(WithBriefing, LLMUsage):
                 )
             ),
             validator=_validator,
-            system_message=f"# your personal briefing: \n{self.briefing}",
             **kwargs,
         )
 
@@ -151,8 +150,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 )
             ),
             validator=_validator,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-            **kwargs,
+            **self.prepend(kwargs),
         )
 
     async def draft_rating_criteria(
@@ -184,8 +182,7 @@ class GiveRating(WithBriefing, LLMUsage):
             validator=lambda resp: set(out)
             if (out := JsonCapture.validate_with(resp, list, str, criteria_count))
             else out,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-            **kwargs,
+            **self.prepend(kwargs),
         )
 
     async def draft_rating_criteria_from_examples(
@@ -220,7 +217,6 @@ class GiveRating(WithBriefing, LLMUsage):
         if m:
             examples = sample(examples, m)
 
-        kwargs = GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
             await self.aask_validate(
@@ -239,7 +235,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 validator=lambda resp: JsonCapture.validate_with(
                     resp, target_type=list, elements_type=str, length=reasons_count
                 ),
-                **kwargs,
+                **self.prepend(kwargs),
             )
         )
         # extract certain mount of criteria from reasons according to their importance and frequency
@@ -296,7 +292,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 for pair in windows
             ],
             validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
-            **GenerateKwargs(system_message=f"# your personal briefing: \n{self.briefing}", **kwargs),
+            **self.prepend(kwargs),
         )
         weights = [1]
         for rw in relative_weights:

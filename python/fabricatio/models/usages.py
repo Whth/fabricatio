@@ -9,7 +9,7 @@ from fabricatio._rust_instances import template_manager
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import ScopedConfig, WithBriefing
-from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs
+from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
@@ -226,8 +226,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 2,
-        system_message: str = "",
-        **kwargs: Unpack[LLMKwargs],
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T] | List[Optional[T]]:
         """Asynchronously asks a question and validates the response using a given validator.
 
@@ -236,7 +235,6 @@ class LLMUsage(ScopedConfig):
             validator (Callable[[str], T | None]): A function to validate the response.
             default (T | None): Default value to return if validation fails. Defaults to None.
             max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
-            system_message (str): System message to include in the request. Defaults to an empty string.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -247,9 +245,7 @@ class LLMUsage(ScopedConfig):
         async def _inner(q: str) -> Optional[T]:
             for lap in range(max_validations):
                 try:
-                    if (response := await self.aask(question=q, system_message=system_message, **kwargs)) and (
-                        validated := validator(response)
-                    ):
+                    if (response := await self.aask(question=q, **kwargs)) and (validated := validator(response)):
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
                 except Exception as e:  # noqa: BLE001
@@ -267,14 +263,14 @@ class LLMUsage(ScopedConfig):
         return await gather(*[_inner(q) for q in question])
 
     async def aliststr(
-        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[GenerateKwargs[List[str]]]
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> List[str]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
             requirement (str): The requirement for the list of strings.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[str]: The validated response as a list of strings.
@@ -306,12 +302,12 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
-    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[GenerateKwargs[List[str]]]) -> str:
+    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[ValidateKwargs[List[str]]]) -> str:
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
             requirement (str): The requirement for the list of strings.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             str: The validated response as a single string.
@@ -329,7 +325,7 @@ class LLMUsage(ScopedConfig):
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[GenerateKwargs[List[T]]],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> List[T]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -337,7 +333,7 @@ class LLMUsage(ScopedConfig):
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[T]: The final validated selection result list, with element types matching the input `choices`.
@@ -380,14 +376,14 @@ class LLMUsage(ScopedConfig):
         self,
         instruction: str,
         choices: List[T],
-        **kwargs: Unpack[GenerateKwargs[List[T]]],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
         Args:
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             T: The single selected item from the choices list.
@@ -409,7 +405,7 @@ class LLMUsage(ScopedConfig):
         prompt: str,
         affirm_case: str = "",
         deny_case: str = "",
-        **kwargs: Unpack[GenerateKwargs[bool]],
+        **kwargs: Unpack[ValidateKwargs[bool]],
     ) -> bool:
         """Asynchronously judges a prompt using AI validation.
 
@@ -417,7 +413,7 @@ class LLMUsage(ScopedConfig):
             prompt (str): The input prompt to be judged.
             affirm_case (str): The affirmative case for the AI model. Defaults to an empty string.
             deny_case (str): The negative case for the AI model. Defaults to an empty string.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             bool: The judgment result (True or False) based on the AI's response.

@@ -7,7 +7,7 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import GiveRating
 from fabricatio.config import configs
 from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
-from fabricatio.models.kwargs_types import GenerateKwargs, ReviewKwargs
+from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from pydantic import PrivateAttr
 from questionary import Choice, checkbox
@@ -185,7 +185,7 @@ class Review(GiveRating, Propose):
         text: str,
         topic: str,
         criteria: Optional[Set[str]] = None,
-        **kwargs: Unpack[GenerateKwargs[ReviewResult[str]]],
+        **kwargs: Unpack[ValidateKwargs[ReviewResult[str]]],
     ) -> ReviewResult[str]:
         """Review a string based on specified topic and criteria.
 
@@ -197,7 +197,7 @@ class Review(GiveRating, Propose):
             topic (str): The subject topic for the review criteria.
             criteria (Optional[Set[str]], optional): A set of criteria for the review.
                 If not provided, criteria will be drafted automatically. Defaults to None.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             ReviewResult[str]: A review result containing identified problems and proposed solutions,

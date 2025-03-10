@@ -3,34 +3,34 @@
 from typing import List, Type, Unpack, overload
 
 from fabricatio.models.generic import ProposedAble
-from fabricatio.models.kwargs_types import GenerateKwargs
+from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 
 
-class Propose[M: ProposedAble](LLMUsage):
+class Propose(LLMUsage):
     """A class that proposes an Obj based on a prompt."""
 
     @overload
-    async def propose(
+    async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: List[str],
-        **kwargs: Unpack[GenerateKwargs[M]],
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> List[M]: ...
 
     @overload
-    async def propose(
+    async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: str,
-        **kwargs: Unpack[GenerateKwargs[M]],
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
 
-    async def propose(
+    async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: List[str] | str,
-        **kwargs: Unpack[GenerateKwargs[M]],
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> List[M] | M:
         """Asynchronously proposes a task based on a given prompt and parameters.
 

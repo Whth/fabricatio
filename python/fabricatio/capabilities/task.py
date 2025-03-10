@@ -37,7 +37,7 @@ class ProposeTask(WithBriefing, Propose):
             logger.error(err := f"{self.name}: Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.propose(Task, prompt, system_message=f"# your personal briefing: \n{self.briefing}", **kwargs)
+        return await self.propose(Task, prompt, **self.prepend(kwargs))
 
 
 class HandleTask(WithBriefing, ToolBoxUsage):
@@ -81,8 +81,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         return await self.aask_validate(
             question=q,
             validator=_validator,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-            **kwargs,
+            **self.prepend(kwargs),
         )
 
     async def handle_fin_grind(
