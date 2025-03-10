@@ -1,7 +1,7 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from types import CodeType
-from typing import Any, Dict, List, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Optional, Tuple, Unpack, cast
 
 import orjson
 from fabricatio._rust_instances import template_manager
@@ -22,7 +22,7 @@ class ProposeTask(WithBriefing, Propose):
     async def propose_task[T](
         self,
         prompt: str,
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[Task[T]]],
     ) -> Task[T]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
@@ -37,7 +37,7 @@ class ProposeTask(WithBriefing, Propose):
             logger.error(err := f"{self.name}: Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.propose(Task, prompt, **self.prepend(kwargs))
+        return await self.propose(Task, prompt, **self.prepend(cast(Dict[str, Any], kwargs)))
 
 
 class HandleTask(WithBriefing, ToolBoxUsage):
@@ -49,7 +49,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         tools: List[Tool],
         data: Dict[str, Any],
         **kwargs: Unpack[ValidateKwargs],
-    ) -> Tuple[CodeType, List[str]]:
+    ) -> Optional[Tuple[CodeType, List[str]]]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
         logger.info(f"Drafting tool usage code for task: {task.briefing}")
 
@@ -81,7 +81,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         return await self.aask_validate(
             question=q,
             validator=_validator,
-            **self.prepend(kwargs),
+            **self.prepend(cast(Dict[str, Any], kwargs)),
         )
 
     async def handle_fin_grind(
@@ -98,10 +98,10 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         tools = await self.gather_tools_fine_grind(task, box_choose_kwargs, tool_choose_kwargs)
         logger.info(f"{self.name} have gathered {[t.name for t in tools]}")
 
-        if tools:
+        if tools and (pack := await self.draft_tool_usage_code(task, tools, data, **kwargs)):
             executor = ToolExecutor(candidates=tools, data=data)
-            code, to_extract = await self.draft_tool_usage_code(task, tools, data, **kwargs)
 
+            code, to_extract = pack
             cxt = executor.execute(code)
             if to_extract:
                 return tuple(cxt.get(k) for k in to_extract)
