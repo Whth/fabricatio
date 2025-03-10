@@ -187,8 +187,8 @@ async def test_llmusage_aask_validate_failure(basic_llm_usage, monkeypatch):
         return mock_completion(*args, **kwargs)
 
     monkeypatch.setattr("litellm.acompletion", mock_comp)
-    with pytest.raises(ValueError):
-        await basic_llm_usage.aask_validate("test", validator=lambda x: int(x) if x.isdigit() else None)
+    assert await basic_llm_usage.aask_validate("test", validator=lambda x: None) is None
+    assert await basic_llm_usage.aask_validate("test", validator=lambda x: None, default="fallback") == "fallback"
 
 
 def test_toolboxusage_inheritance():
