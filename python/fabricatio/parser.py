@@ -67,10 +67,10 @@ class Capture(BaseModel):
             return None
         groups = self.fix(match.groups()) if configs.general.use_json_repair else match.groups()
         if self.target_groups:
-            cap = tuple(groups[g] for g in self.target_groups)
+            cap = tuple(groups[g - 1] for g in self.target_groups)
             logger.debug(f"Captured text: {'\n\n'.join(cap)}")
             return cap
-        cap = groups[1]
+        cap = groups[0]
         logger.debug(f"Captured text: \n{cap}")
         return cap
 
