@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Self, Union, final
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final
 
 import orjson
 from fabricatio._rust import blake3_hash
@@ -66,6 +66,18 @@ class WithBriefing(Named, Described):
             str: The briefing of the object.
         """
         return f"{self.name}: {self.description}" if self.description else self.name
+
+    def prepend(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepend the briefing to the system message in the kwargs.
+
+        Args:
+            kwargs (Dict[str, Any]): The keyword arguments to modify.
+
+        Returns:
+            Dict[str, Any]: The modified keyword arguments.
+        """
+        kwargs["system_message"] = f"# your personal briefing: \n{self.briefing}\n" + kwargs.get("system_message", "")
+        return kwargs
 
 
 class WithFormatedJsonSchema(Base):
