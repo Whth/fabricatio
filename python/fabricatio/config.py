@@ -19,8 +19,6 @@ from pydantic import (
 )
 from pydantic_settings import (
     BaseSettings,
-    DotEnvSettingsSource,
-    EnvSettingsSource,
     PydanticBaseSettingsSource,
     PyprojectTomlConfigSettingsSource,
     SettingsConfigDict,
@@ -370,6 +368,9 @@ class Settings(BaseSettings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Customize settings sources.
 
+        This method customizes the settings sources used by the application. It returns a tuple of settings sources, including
+        the dotenv settings source, environment settings source, a custom TomlConfigSettingsSource, and a custom
+
         Args:
             settings_cls (type[BaseSettings]): The settings class.
             init_settings (PydanticBaseSettingsSource): Initial settings source.
@@ -381,10 +382,12 @@ class Settings(BaseSettings):
             tuple[PydanticBaseSettingsSource, ...]: A tuple of settings sources.
         """
         return (
-            DotEnvSettingsSource(settings_cls),
-            EnvSettingsSource(settings_cls),
-            TomlConfigSettingsSource(settings_cls),
+            init_settings,
+            dotenv_settings,
+            env_settings,
+            file_secret_settings,
             PyprojectTomlConfigSettingsSource(settings_cls),
+            TomlConfigSettingsSource(settings_cls),
         )
 
 
