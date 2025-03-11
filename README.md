@@ -35,7 +35,6 @@ cd fabricatio
 uv --with-editable . maturin develop --uv -r
 ```
 
-
 ### Building Distribution
 
 For production builds:
@@ -44,7 +43,6 @@ For production builds:
 # Build distribution packages
 make bdist
 ```
-
 
 This will generate distribution files in the `dist` directory.
 
@@ -83,122 +81,249 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-
 ### Advanced Examples
 
-#### Writing and Dumping Code
+#### Simple Chat
+
+Demonstrates a basic chat application.
 
 ```python
+"""Simple chat example."""
 import asyncio
-from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
+from fabricatio import Action, Role, Task, WorkFlow, logger
+from fabricatio.models.events import Event
+from questionary import text
 
+class Talk(Action):
+    """Action that says hello to the world."""
 
-class WriteCode(Action):
-    name: str = "write code"
-    output_key: str = "source_code"
-
-    async def _execute(self, task_input: Task[str], **_) -> str:
-        return await self.aask_validate(task_input.briefing, validator=PythonCapture.capture)
-
-
-class DumpCode(Action):
-    name: str = "dump code"
-    description: str = "Dump code to file system"
-    toolboxes: set[ToolBox] = {fs_toolbox}
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task, source_code: str, **_) -> Any:
-        path = await self.handle_fin_grind(task_input, {"source_code": source_code})
-        return path[0] if path else None
-
+    async def _execute(self, task_input: Task[str], **_) -> int:
+        counter = 0
+        try:
+            while True:
+                user_say = await text("User: ").ask_async()
+                gpt_say = await self.aask(
+                    user_say,
+                    system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                )
+                print(f"GPT: {gpt_say}")  # noqa: T201
+                counter += 1
+        except KeyboardInterrupt:
+            logger.info(f"executed talk action {counter} times")
+        return counter
 
 async def main() -> None:
+    """Main function."""
     role = Role(
-        name="Coder",
-        description="A python coder who can write and document code",
-        registry={
-            Event.instantiate_from("coding.*").push("pending"): WorkFlow(
-                name="write code", steps=(WriteCode, DumpCode)
-            )
-        }
+        name="talker",
+        description="talker role",
+        registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
     )
 
-    prompt = "write a Python CLI app which prints 'hello world' n times with detailed Google-style docstring. Write the source code to `cli.py`."
-    proposed_task = await role.propose_task(prompt)
-    path = await proposed_task.move_to("coding").delegate()
-    logger.success(f"Code Path: {path}")
-
+    task = await role.propose_task(
+        "you have to act as a helpful assistant, answer to all user questions properly and patiently"
+    )
+    _ = await task.delegate("talk")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+#### Simple RAG
 
-### Template Management and Rendering
-
-```python
-from fabricatio._rust_instances import TEMPLATE_MANAGER
-
-template_name = "claude-xml.hbs"
-data = {
-    "absolute_code_path": "/path/to/project",
-    "source_tree": "source tree content",
-    "files": [{"path": "file1.py", "code": "print('Hello')"}],
-}
-
-rendered_template = TEMPLATE_MANAGER.render_template(template_name, data)
-print(rendered_template)
-```
-
-
-### Handling Security Vulnerabilities
+Demonstrates Retrieval-Augmented Generation (RAG).
 
 ```python
-from fabricatio.models.usages import ToolBoxUsage
-from fabricatio.models.task import Task
-
-toolbox_usage = ToolBoxUsage()
-
-async def handle_security_vulnerabilities():
-    task = Task(
-        name="Security Check",
-        goals=["Identify security vulnerabilities"],
-        description="Perform a thorough security review on the project.",
-        dependencies=["./src/main.py"]
-    )
-
-    vulnerabilities = await toolbox_usage.gather_tools_fine_grind(task)
-    for vulnerability in vulnerabilities:
-        print(f"Found vulnerability: {vulnerability.name}")
-```
-
-
-### Managing CTF Challenges
-
-```python
+"""Simple chat example."""
 import asyncio
+from fabricatio import RAG, Action, Role, Task, WorkFlow, logger
+from fabricatio.models.events import Event
+from questionary import text
 
-from fabricatio.models.usages import ToolBoxUsage
-from fabricatio.models.task import Task
+class Talk(Action, RAG):
+    """Action that says hello to the world."""
 
-toolbox_usage = ToolBoxUsage()
+    output_key: str = "task_output"
 
-async def solve_ctf_challenge(challenge_name: str, challenge_description: str, files: list[str]):
-    task = Task(
-        name=challenge_name,
-        goals=[f"Solve {challenge_name} challenge"],
-        description=challenge_description,
-        dependencies=files
+    async def _execute(self, task_input: Task[str], **_) -> int:
+        counter = 0
+
+        self.init_client().view("test_collection", create=True)
+        await self.consume_string(
+            [
+                "Company policy clearly stipulates that all employees must arrive at the headquarters building located at 88 Jianguo Road, Chaoyang District, Beijing before 9 AM daily.",
+                "According to the latest revised health and safety guidelines, employees must wear company-provided athletic gear when using the company gym facilities.",
+                "Section 3.2.1 of the employee handbook states that pets are not allowed in the office area under any circumstances.",
+                "To promote work efficiency, the company has quiet workspaces at 100 Century Avenue, Pudong New District, Shanghai, for employees who need high concentration for their work.",
+                "According to the company's remote work policy, employees can apply for a maximum of 5 days of working from home per month, but must submit the application one week in advance.",
+                "The company has strict regulations on overtime. Unless approved by direct supervisors, no form of work is allowed after 9 PM.",
+                "Regarding the new regulations for business travel reimbursement, all traveling personnel must submit detailed expense reports within five working days after returning.",
+                "Company address: 123 East Sports Road, Tianhe District, Guangzhou, Postal Code: 510620.",
+                "Annual team building activities will be held in the second quarter of each year, usually at a resort within a two-hour drive from the Guangzhou headquarters.",
+                "Employees who are late more than three times will receive a formal warning, which may affect their year-end performance evaluation.",
+            ]
+        )
+        try:
+            while True:
+                user_say = await text("User: ").ask_async()
+                if user_say is None:
+                    break
+                gpt_say = await self.aask_retrieved(
+                    user_say,
+                    user_say,
+                    extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                )
+                print(f"GPT: {gpt_say}")  # noqa: T201
+                counter += 1
+        except KeyboardInterrupt:
+            logger.info(f"executed talk action {counter} times")
+        return counter
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="talker",
+        description="talker role but with rag",
+        registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
     )
 
-    solution = await toolbox_usage.gather_tools_fine_grind(task)
-    print(f"Challenge Solved: {solution}")
+    task = await role.propose_task(
+        "you have to act as a helpful assistant, answer to all user questions properly and patiently"
+    )
+    _ = await task.delegate("talk")
 
 if __name__ == "__main__":
-    asyncio.run(
-        solve_ctf_challenge("Binary Exploitation", "CTF Binary Exploitation Challenge", ["./challenges/binary_exploit"]))
+    asyncio.run(main())
 ```
 
+#### Extract Article
+
+Demonstrates extracting the essence of an article from a file.
+
+```python
+"""Example of proposing a task to a role."""
+import asyncio
+from typing import List
+
+from fabricatio import ArticleEssence, Event, ExtractArticleEssence, Role, Task, WorkFlow, logger
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="Researcher",
+        description="Extract article essence",
+        registry={
+            Event.quick_instantiate("article"): WorkFlow(
+                name="extract",
+                steps=(ExtractArticleEssence(output_key="task_output"),),
+            )
+        },
+    )
+    task: Task[List[ArticleEssence]] = await role.propose_task(
+        "Extract the essence of the article from the file at './7.md'"
+    )
+    ess = (await task.delegate("article")).pop()
+    logger.success(f"Essence:\n{ess.display()}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Propose Task
+
+Demonstrates proposing a task to a role.
+
+```python
+"""Example of proposing a task to a role."""
+import asyncio
+from typing import Any
+
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+
+class Talk(Action):
+    """Action that says hello to the world."""
+
+    output_key: str = "task_output"
+
+    async def _execute(self, **_) -> Any:
+        ret = "Hello fabricatio!"
+        logger.info("executing talk action")
+        return ret
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="talker",
+        description="talker role",
+        registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Talk,))},
+    )
+    logger.info(f"Task example:\n{Task.formated_json_schema()}")
+    logger.info(f"proposed task: {await role.propose_task('write a rust clap cli that can download a html page')}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Review
+
+Demonstrates reviewing code.
+
+```python
+"""Example of review usage."""
+import asyncio
+
+from fabricatio import Role, logger
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="Reviewer",
+        description="A role that reviews the code.",
+    )
+
+    code = await role.aask(
+        "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation"
+    )
+
+    logger.success(f"Code: \n{code}")
+    res = await role.review_string(code, "If the cli app is of good design")
+    logger.success(f"Review: \n{res.display()}")
+    await res.supervisor_check()
+    logger.success(f"Review: \n{res.display()}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Write Outline
+
+Demonstrates writing an outline for an article in Typst format.
+
+```python
+"""Example of using the library."""
+import asyncio
+
+from fabricatio import Event, Role, WriteOutlineWorkFlow, logger
+
+async def main() -> None:
+    """Main function."""
+    role = Role(
+        name="Undergraduate Researcher",
+        description="Write an outline for an article in typst format.",
+        registry={Event.quick_instantiate(ns := "article"): WriteOutlineWorkFlow},
+    )
+
+    proposed_task = await role.propose_task(
+        "You need to read the `./article_briefing.txt` file and write an outline for the article in typst format. The outline should be saved in the `./out.typ` file.",
+    )
+    path = await proposed_task.delegate(ns)
+    logger.success(f"The outline is saved in:\n{path}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
 ## Configuration
 
@@ -221,35 +346,30 @@ stream = false
 max_tokens = 8192
 ```
 
-
 ## Development Setup
 
 To set up a development environment for Fabricatio:
 
 1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Whth/fabricatio.git
-   cd fabricatio
-   ```
-
+    ```bash
+    git clone https://github.com/Whth/fabricatio.git
+    cd fabricatio
+    ```
 
 2. **Install Dependencies**:
-   ```bash
-   uv --with-editable . maturin develop --uv -r
-   ```
-
+    ```bash
+    uv --with-editable . maturin develop --uv -r
+    ```
 
 3. **Run Tests**:
-   ```bash
-   make test
-   ```
-
+    ```bash
+    make test
+    ```
 
 4. **Build Documentation**:
-   ```bash
-   make docs
-   ```
-
+    ```bash
+    make docs
+    ```
 
 ## Contributing
 
