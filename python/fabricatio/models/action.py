@@ -3,7 +3,7 @@
 import traceback
 from abc import abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, Dict, Self, Tuple, Type, Union, Unpack, final
+from typing import Any, Dict, Self, Tuple, Type, Union, final
 
 from fabricatio.capabilities.review import Review
 from fabricatio.capabilities.task import HandleTask, ProposeTask
@@ -37,7 +37,7 @@ class Action(HandleTask, ProposeTask, Review):
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
-    async def _execute(self, **cxt: Unpack) -> Any:
+    async def _execute(self, **cxt) -> Any:
         """Execute the action with the provided arguments.
 
         Args:
