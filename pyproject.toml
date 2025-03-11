@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.5"
+version = "0.2.6-dev0"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -72,6 +72,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
+    "viztracer>=1.0.2",
 ]
 
 [project.optional-dependencies]
@@ -140,6 +141,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
+
+[[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [[tool.uv.index]]
@@ -147,8 +152,4 @@ url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
-
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
 
