@@ -1,6 +1,6 @@
 """Inject data into the database."""
 
-from typing import List, Optional, Unpack
+from typing import List, Optional
 
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
@@ -13,7 +13,7 @@ class InjectToDB(Action, RAG):
     output_key: str = "collection_name"
 
     async def _execute[T: PrepareVectorization](
-        self, to_inject: T | List[T], collection_name: Optional[str] = "my_collection", **cxt: Unpack
+        self, to_inject: T | List[T], collection_name: Optional[str] = "my_collection", **_
     ) -> Optional[str]:
         if not isinstance(to_inject, list):
             to_inject = [to_inject]

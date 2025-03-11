@@ -27,8 +27,10 @@ async def main() -> None:
 
     unchecked_ess = await task.override_dependencies(gather_files("bpdf_out", "md")).delegate("article")
 
+    if unchecked_ess is None:
+        logger.error("No essence found")
+        return
     ess = list(filter(lambda x: x is not None, unchecked_ess))
-
     logger.success(f"Essence Count:{len(ess)}, invalid count: {len(unchecked_ess) - len(ess)}")
 
     Path("output").mkdir(exist_ok=True)
