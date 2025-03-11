@@ -16,7 +16,7 @@ from fabricatio.models.role import Role
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.utils import Message, Messages
-from fabricatio.parser import Capture, CodeBlockCapture, JsonCapture, PythonCapture
+from fabricatio.parser import Capture, GenericCapture, JsonCapture, PythonCapture
 from fabricatio.toolboxes import arithmetic_toolbox, basic_toolboxes, fs_toolbox
 from fabricatio.workflows.articles import WriteOutlineWorkFlow
 
@@ -27,12 +27,12 @@ __all__ = [
     "ArticleEssence",
     "BibManager",
     "Capture",
-    "CodeBlockCapture",
     "DumpFinalizedOutput",
     "Event",
     "ExtractArticleEssence",
     "GenerateArticleProposal",
     "GenerateOutline",
+    "GenericCapture",
     "JsonCapture",
     "Message",
     "Messages",

@@ -134,8 +134,16 @@ class Capture(BaseModel):
         """
         return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
 
+    @classmethod
+    def capture_generic_block(cls, language: str) -> Self:
+        """Capture the first occurrence of a generic code block in the given text.
+
+        Returns:
+            Self: The instance of the class with the captured code block.
+        """
+        return cls(pattern=f"--- Start of {language} ---\n(.*?)\n--- end of {language} ---", capture_type=language)
+
 
 JsonCapture = Capture.capture_code_block("json")
 PythonCapture = Capture.capture_code_block("python")
-MarkdownCapture = Capture.capture_code_block("markdown")
-CodeBlockCapture = Capture(pattern="```.*?\n(.*?)\n```")
+GenericCapture = Capture.capture_generic_block("String")
