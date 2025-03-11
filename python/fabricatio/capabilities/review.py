@@ -202,10 +202,13 @@ class Review(GiveRating, Propose):
             ReviewResult[str]: A review result containing identified problems and proposed solutions,
                 with a reference to the original text.
         """
-        criteria = criteria or (await self.draft_rating_criteria(topic))
+        default = kwargs.pop("default")
+        criteria = criteria or (await self.draft_rating_criteria(topic, **kwargs))
         if not criteria:
             raise ValueError("No criteria provided for review.")
-        manual = await self.draft_rating_manual(topic, criteria)
+        manual = await self.draft_rating_manual(topic, criteria, **kwargs)
+
+        kwargs["default"] = default
         res = await self.propose(
             ReviewResult,
             TEMPLATE_MANAGER.render_template(
