@@ -12,7 +12,7 @@ class CollectionSimpleConfigKwargs(TypedDict, total=False):
     These arguments are typically used when configuring connections to vector databases.
     """
 
-    dimension: int|None
+    dimension: int | None
     timeout: float
 
 
@@ -23,7 +23,7 @@ class FetchKwargs(TypedDict, total=False):
     and result limiting parameters.
     """
 
-    collection_name: str|None
+    collection_name: str | None
     similarity_threshold: float
     result_per_query: int
 
