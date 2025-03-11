@@ -9,7 +9,8 @@ from fabricatio.config import configs
 from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
-from questionary import Choice, checkbox
+from fabricatio.models.utils import ask_edit
+from questionary import Choice, checkbox, text
 from rich import print
 
 
@@ -51,6 +52,24 @@ class ProblemSolutions(Base):
             Self: The current instance with updated solutions.
         """
         self.solutions = solutions
+        return self
+
+    async def edit_problem(self) -> Self:
+        """Interactively edit the problem description using a prompt.
+
+        Returns:
+            Self: The current instance with updated problem description.
+        """
+        self.problem = await text("Please edit the problem below:", default=self.problem).ask_async()
+        return self
+
+    async def edit_solutions(self) -> Self:
+        """Interactively edit the list of potential solutions using a prompt.
+
+        Returns:
+            Self: The current instance with updated solutions.
+        """
+        self.solutions = await ask_edit(self.solutions)
         return self
 
 
@@ -100,7 +119,7 @@ class ReviewResult[T](ProposedAble, Display):
             ReviewResult[K]: The current instance with updated reference type.
         """
         self._ref = ref  # pyright: ignore [reportAttributeAccessIssue]
-        return cast(ReviewResult, self)
+        return cast(ReviewResult[K], self)
 
     def deref(self) -> T:
         """Retrieve the referenced object that was reviewed.
@@ -110,7 +129,7 @@ class ReviewResult[T](ProposedAble, Display):
         """
         return self._ref
 
-    async def supervisor_check(self, check_solutions: bool = False) -> Self:
+    async def supervisor_check(self, check_solutions: bool = True) -> Self:
         """Perform an interactive review session to filter problems and solutions.
 
         Presents an interactive prompt allowing a supervisor to select which
@@ -137,18 +156,20 @@ class ReviewResult[T](ProposedAble, Display):
             f"Please choose the problems you want to retain.(Default: retain all)\n\t`{self.review_topic}`",
             choices=[Choice(p.problem, p, checked=True) for p in self.problem_solutions],
         ).ask_async()
+        self.problem_solutions = [await p.edit_problem() for p in chosen_ones]
         if not check_solutions:
-            self.problem_solutions = chosen_ones
             return self
 
         # Choose the solutions to retain
-        for to_exam in chosen_ones:
+        for to_exam in self.problem_solutions:
             to_exam.update_solutions(
                 await checkbox(
                     f"Please choose the solutions you want to retain.(Default: retain all)\n\t`{to_exam.problem}`",
                     choices=[Choice(s, s, checked=True) for s in to_exam.solutions],
                 ).ask_async()
             )
+            await to_exam.edit_solutions()
+
         return self
 
 

@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, Field
+from questionary import text
 
 
 class Message(BaseModel):
@@ -144,3 +145,23 @@ class TaskStatus(Enum):
     Finished = "finished"
     Failed = "failed"
     Cancelled = "cancelled"
+
+
+async def ask_edit(
+    text_seq: List[str],
+) -> List[str]:
+    """Asks the user to edit a list of texts.
+
+    Args:
+        text_seq (List[str]): A list of texts to be edited.
+
+    Returns:
+        List[str]: A list of edited texts.
+        If the user does not edit a text, it will not be included in the returned list.
+    """
+    res = []
+    for t in text_seq:
+        edited = await text("Please edit the text below:", default=t).ask_async()
+        if edited:
+            res.append(edited)
+    return res
