@@ -226,6 +226,9 @@ class TemplateConfig(BaseModel):
     review_string_template: str = Field(default="review_string")
     """The name of the review string template which will be used to review a string."""
 
+    generic_string_template: str = Field(default="generic_string")
+    """The name of the generic string template which will be used to review a string."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

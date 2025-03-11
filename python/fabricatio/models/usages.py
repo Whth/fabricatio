@@ -13,7 +13,7 @@ from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, Genera
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
-from fabricatio.parser import JsonCapture
+from fabricatio.parser import GenericCapture, JsonCapture
 from litellm import Router, stream_chunk_builder
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
@@ -345,6 +345,25 @@ class LLMUsage(ScopedConfig):
                 **kwargs,
             )
         ).pop()
+
+    async def ageneric_string(self, requirement: str, **kwargs: Unpack[ValidateKwargs[str]]) -> str:
+        """Asynchronously generates a generic string based on a given requirement.
+
+        Args:
+            requirement (str): The requirement for the string.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            str: The generated string.
+        """
+        return await self.aask_validate(
+            TEMPLATE_MANAGER.render_template(
+                configs.templates.generic_string_template,
+                {"requirement": requirement, "language": GenericCapture.capture_type},
+            ),
+            validator=lambda resp: GenericCapture.capture(resp),
+            **kwargs,
+        )
 
     async def achoose[T: WithBriefing](
         self,
