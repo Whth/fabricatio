@@ -160,8 +160,8 @@ async def ask_edit(
         If the user does not edit a text, it will not be included in the returned list.
     """
     res = []
-    for t in text_seq:
-        edited = await text("Please edit the text below:", default=t).ask_async()
+    for i, t in enumerate(text_seq):
+        edited = await text(f"[{i}] ", default=t).ask_async()
         if edited:
             res.append(edited)
     return res

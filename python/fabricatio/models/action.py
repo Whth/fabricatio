@@ -5,7 +5,7 @@ from abc import abstractmethod
 from asyncio import Queue, create_task
 from typing import Any, Dict, Self, Tuple, Type, Union, final
 
-from fabricatio.capabilities.review import Review
+from fabricatio.capabilities.correct import Correct
 from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
@@ -14,7 +14,7 @@ from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(HandleTask, ProposeTask, Review):
+class Action(HandleTask, ProposeTask, Correct):
     """Class that represents an action to be executed in a workflow."""
 
     name: str = Field(default="")

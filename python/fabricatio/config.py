@@ -229,6 +229,9 @@ class TemplateConfig(BaseModel):
     generic_string_template: str = Field(default="generic_string")
     """The name of the generic string template which will be used to review a string."""
 
+    correct_template: str = Field(default="correct")
+    """The name of the correct template which will be used to correct a string."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""

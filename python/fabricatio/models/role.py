@@ -2,7 +2,7 @@
 
 from typing import Any, Self, Set
 
-from fabricatio.capabilities.review import Review
+from fabricatio.capabilities.correct import Correct
 from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.core import env
 from fabricatio.journal import logger
@@ -12,7 +12,7 @@ from fabricatio.models.tool import ToolBox
 from pydantic import Field
 
 
-class Role(ProposeTask, HandleTask, Review):
+class Role(ProposeTask, HandleTask, Correct):
     """Class that represents a role with a registry of events and workflows."""
 
     registry: dict[Event | str, WorkFlow] = Field(default_factory=dict)

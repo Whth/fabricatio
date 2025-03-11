@@ -11,7 +11,8 @@ from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.utils import ask_edit
 from questionary import Choice, checkbox, text
-from rich import print
+from questionary import print as q_print
+from rich import print as r_print
 
 
 class ProblemSolutions(Base):
@@ -69,6 +70,7 @@ class ProblemSolutions(Base):
         Returns:
             Self: The current instance with updated solutions.
         """
+        q_print(self.problem, style="bold cyan")
         self.solutions = await ask_edit(self.solutions)
         return self
 
@@ -151,7 +153,7 @@ class ReviewResult[T](ProposedAble, Display):
         else:
             raise TypeError(f"Unsupported type for review: {type(self._ref)}")
         # Choose the problems to retain
-        print(display)
+        r_print(display)
         chosen_ones: List[ProblemSolutions] = await checkbox(
             f"Please choose the problems you want to retain.(Default: retain all)\n\t`{self.review_topic}`",
             choices=[Choice(p.problem, p, checked=True) for p in self.problem_solutions],
@@ -202,7 +204,7 @@ class Review(GiveRating, Propose):
 
     async def review_string(
         self,
-        text: str,
+        input_text: str,
         topic: str,
         criteria: Optional[Set[str]] = None,
         **kwargs: Unpack[ValidateKwargs[ReviewResult[str]]],
@@ -213,7 +215,7 @@ class Review(GiveRating, Propose):
         based on the given topic and criteria.
 
         Args:
-            text (str): The text content to be reviewed.
+            input_text (str): The text content to be reviewed.
             topic (str): The subject topic for the review criteria.
             criteria (Optional[Set[str]], optional): A set of criteria for the review.
                 If not provided, criteria will be drafted automatically. Defaults to None.
@@ -223,25 +225,32 @@ class Review(GiveRating, Propose):
             ReviewResult[str]: A review result containing identified problems and proposed solutions,
                 with a reference to the original text.
         """
-        default = kwargs.pop("default")
+        default = None
+        if "default" in kwargs:
+            default = kwargs.pop("default")
+
         criteria = criteria or (await self.draft_rating_criteria(topic, **kwargs))
         if not criteria:
             raise ValueError("No criteria provided for review.")
         manual = await self.draft_rating_manual(topic, criteria, **kwargs)
 
-        kwargs["default"] = default
+        if default is not None:
+            kwargs["default"] = default
         res = await self.propose(
             ReviewResult,
             TEMPLATE_MANAGER.render_template(
-                configs.templates.review_string_template, {"text": text, "topic": topic, "criteria_manual": manual}
+                configs.templates.review_string_template,
+                {"text": input_text, "topic": topic, "criteria_manual": manual},
             ),
             **kwargs,
         )
         if not res:
             raise ValueError("Failed to generate review result.")
-        return res.update_ref(text).update_topic(topic)
+        return res.update_ref(input_text).update_topic(topic)
 
-    async def review_obj[M: (Display, WithBriefing)](self, obj: M, **kwargs: Unpack[ReviewKwargs]) -> ReviewResult[M]:
+    async def review_obj[M: (Display, WithBriefing)](
+        self, obj: M, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
+    ) -> ReviewResult[M]:
         """Review an object that implements Display or WithBriefing interface.
 
         This method extracts displayable text from the object and performs a review
