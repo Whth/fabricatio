@@ -99,15 +99,16 @@ class WithFormatedJsonSchema(Base):
 class CreateJsonObjPrompt(WithFormatedJsonSchema):
     """Class that provides a prompt for creating a JSON object."""
 
+    @classmethod
+    @overload
+    def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
 
     @classmethod
     @overload
-    def create_json_prompt(cls, requirement: List[str]) -> List[str]:...
+    def create_json_prompt(cls, requirement: str) -> str: ...
+
     @classmethod
-    @overload
-    def create_json_prompt(cls, requirement: str) -> str:...
-    @classmethod
-    def create_json_prompt(cls, requirement: str|List[str]) -> str|List[str]:
+    def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
         """Create the prompt for creating a JSON object with given requirement.
 
         Args:
@@ -118,9 +119,9 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
         """
         if isinstance(requirement, str):
             return template_manager.render_template(
-            configs.templates.create_json_obj_template,
-            {"requirement": requirement, "json_schema": cls.formated_json_schema()},
-        )
+                configs.templates.create_json_obj_template,
+                {"requirement": requirement, "json_schema": cls.formated_json_schema()},
+            )
         return [
             template_manager.render_template(
                 configs.templates.create_json_obj_template,
@@ -321,6 +322,12 @@ class ScopedConfig(Base):
 
     llm_max_tokens: Optional[PositiveInt] = None
     """The maximum number of tokens to generate."""
+
+    llm_tpm: Optional[PositiveInt] = None
+    """The tokens per minute of the LLM model."""
+
+    llm_rpm: Optional[PositiveInt] = None
+    """The requests per minute of the LLM model."""
 
     embedding_api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""

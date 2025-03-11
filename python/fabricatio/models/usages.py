@@ -14,7 +14,8 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
 from fabricatio.parser import JsonCapture
-from litellm import stream_chunk_builder
+from litellm import Router, stream_chunk_builder
+from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
     Choices,
     EmbeddingResponse,
@@ -29,15 +30,27 @@ from pydantic import Field, NonNegativeInt, PositiveInt
 if configs.cache.enabled and configs.cache.type:
     litellm.enable_cache(type=configs.cache.type, **configs.cache.params)
     logger.success(f"{configs.cache.type.name} Cache enabled")
+ROUTER = Router(
+    routing_strategy="usage-based-routing-v2",
+    allowed_fails=configs.routing.allowed_fails,
+    retry_after=configs.routing.retry_after,
+    cooldown_time=configs.routing.cooldown_time,
+)
 
 
 class LLMUsage(ScopedConfig):
     """Class that manages LLM (Large Language Model) usage parameters and methods."""
 
+    def _deploy(self, deployment: Deployment) -> Router:
+        """Add a deployment to the router."""
+        self._added_deployment = ROUTER.upsert_deployment(deployment)
+        return ROUTER
+
     @classmethod
     def _scoped_model(cls) -> Type["LLMUsage"]:
         return LLMUsage
 
+    # noinspection PyTypeChecker,PydanticTypeChecker
     async def aquery(
         self,
         messages: List[Dict[str, str]],
@@ -55,19 +68,33 @@ class LLMUsage(ScopedConfig):
             ModelResponse | CustomStreamWrapper: An object containing the generated response and other metadata from the model.
         """
         # Call the underlying asynchronous completion function with the provided and default parameters
-        return await litellm.acompletion(
+        # noinspection PyTypeChecker,PydanticTypeChecker
+
+        return await self._deploy(
+            Deployment(
+                model_name=(m_name := kwargs.get("model") or self.llm_model or configs.llm.model),
+                litellm_params=(
+                    p := LiteLLM_Params(
+                        api_key=(self.llm_api_key or configs.llm.api_key).get_secret_value(),
+                        api_base=(self.llm_api_endpoint or configs.llm.api_endpoint).unicode_string(),
+                        model=m_name,
+                        tpm=self.llm_tpm or configs.llm.tpm,
+                        rpm=self.llm_rpm or configs.llm.rpm,
+                        max_retries=kwargs.get("max_retries") or self.llm_max_retries or configs.llm.max_retries,
+                        timeout=kwargs.get("timeout") or self.llm_timeout or configs.llm.timeout,
+                    )
+                ),
+                model_info=ModelInfo(id=hash(m_name + p.model_dump_json(exclude_none=True))),
+            )
+        ).acompletion(
             messages=messages,
             n=n or self.llm_generation_count or configs.llm.generation_count,
-            model=kwargs.get("model") or self.llm_model or configs.llm.model,
+            model=m_name,
             temperature=kwargs.get("temperature") or self.llm_temperature or configs.llm.temperature,
             stop=kwargs.get("stop") or self.llm_stop_sign or configs.llm.stop_sign,
             top_p=kwargs.get("top_p") or self.llm_top_p or configs.llm.top_p,
             max_tokens=kwargs.get("max_tokens") or self.llm_max_tokens or configs.llm.max_tokens,
             stream=kwargs.get("stream") or self.llm_stream or configs.llm.stream,
-            timeout=kwargs.get("timeout") or self.llm_timeout or configs.llm.timeout,
-            max_retries=kwargs.get("max_retries") or self.llm_max_retries or configs.llm.max_retries,
-            api_key=(self.llm_api_key or configs.llm.api_key).get_secret_value(),
-            base_url=(self.llm_api_endpoint or configs.llm.api_endpoint).unicode_string(),
             cache={
                 "no-cache": kwargs.get("no_cache"),
                 "no-store": kwargs.get("no_store"),
@@ -203,7 +230,7 @@ class LLMUsage(ScopedConfig):
         self,
         question: str,
         validator: Callable[[str], T | None],
-        default: None=None,
+        default: None = None,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T]: ...
@@ -213,7 +240,7 @@ class LLMUsage(ScopedConfig):
         self,
         question: List[str],
         validator: Callable[[str], T | None],
-        default: None=None,
+        default: None = None,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> List[Optional[T]]: ...

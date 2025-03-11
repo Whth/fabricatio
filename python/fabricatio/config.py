@@ -68,7 +68,7 @@ class LLMConfig(BaseModel):
     temperature: NonNegativeFloat = Field(default=1.0)
     """The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request."""
 
-    stop_sign: str | List[str] = Field(default_factory=lambda :["\n\n\n", "User:"])
+    stop_sign: str | List[str] = Field(default_factory=lambda: ["\n\n\n", "User:"])
     """The stop sign of the LLM model. No default stop sign specified."""
 
     top_p: NonNegativeFloat = Field(default=0.35)
@@ -82,6 +82,12 @@ class LLMConfig(BaseModel):
 
     max_tokens: PositiveInt = Field(default=8192)
     """The maximum number of tokens to generate. Set to 8192 as per request."""
+
+    rpm: Optional[PositiveInt] = Field(default=100)
+    """The rate limit of the LLM model in requests per minute. None means not checked."""
+
+    tpm: Optional[PositiveInt] = Field(default=1000000)
+    """The rate limit of the LLM model in tokens per minute. None means not checked."""
 
 
 class EmbeddingConfig(BaseModel):
@@ -285,6 +291,19 @@ class CacheConfig(BaseModel):
     """Whether to enable cache."""
 
 
+class RoutingConfig(BaseModel):
+    """Routing configuration class."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    allowed_fails: Optional[int] = 1
+    """The number of allowed fails before the routing is considered failed."""
+    retry_after: int = 15
+    """The time in seconds to wait before retrying the routing after a fail."""
+    cooldown_time: Optional[int] = 120
+    """The time in seconds to wait before retrying the routing after a cooldown."""
+
+
 class Settings(BaseSettings):
     """Application settings class.
 
@@ -309,6 +328,9 @@ class Settings(BaseSettings):
 
     llm: LLMConfig = Field(default_factory=LLMConfig)
     """LLM Configuration"""
+
+    routing: RoutingConfig = Field(default_factory=RoutingConfig)
+    """Routing Configuration"""
 
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     """Embedding Configuration"""
