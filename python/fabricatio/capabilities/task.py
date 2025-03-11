@@ -7,13 +7,13 @@ import orjson
 from fabricatio._rust_instances import template_manager
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
+from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
-from loguru import logger
 
 
 class ProposeTask(WithBriefing, Propose):
