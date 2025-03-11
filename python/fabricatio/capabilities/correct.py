@@ -5,13 +5,13 @@ to provide mechanisms for reviewing, validating, and correcting various objects 
 based on predefined criteria and templates.
 """
 
-from typing import Optional, Unpack
+from typing import Optional, Unpack, cast
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.review import Review, ReviewResult
 from fabricatio.config import configs
 from fabricatio.models.generic import Display, ProposedAble, WithBriefing
-from fabricatio.models.kwargs_types import ReviewKwargs
+from fabricatio.models.kwargs_types import CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 
 
@@ -25,7 +25,11 @@ class Correct(Review):
     """
 
     async def correct_obj[M: ProposedAble](
-        self, obj: M, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
+        self,
+        obj: M,
+        reference: str = "",
+        supervisor_check: bool = True,
+        **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]],
     ) -> Optional[M]:
         """Review and correct an object based on defined criteria and templates.
 
@@ -34,6 +38,8 @@ class Correct(Review):
 
         Args:
             obj (M): The object to be reviewed and corrected. Must implement ProposedAble.
+            reference (str): A reference or contextual information for the object.
+            supervisor_check (bool, optional): Whether to perform a supervisor check on the review results. Defaults to True.
             **kwargs: Review configuration parameters including criteria and review options.
 
         Returns:
@@ -44,23 +50,27 @@ class Correct(Review):
         """
         if not isinstance(obj, (Display, WithBriefing)):
             raise TypeError(f"Expected Display or WithBriefing, got {type(obj)}")
+
         review_res = await self.review_obj(obj, **kwargs)
-        await review_res.supervisor_check()
+        if supervisor_check:
+            await review_res.supervisor_check()
         if "default" in kwargs:
-            kwargs["default"] = None
+            cast(ReviewKwargs[None], kwargs)["default"] = None
         return await self.propose(
             obj.__class__,
             TEMPLATE_MANAGER.render_template(
                 configs.templates.correct_template,
                 {
-                    "content": obj.display() if isinstance(obj, Display) else obj.briefing,
+                    "content": f"{(reference + '\n\nAbove is referencing material') if reference else ''}{obj.display() if isinstance(obj, Display) else obj.briefing}",
                     "review": review_res.display(),
                 },
             ),
             **kwargs,
         )
 
-    async def correct_string(self, input_text: str, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]) -> Optional[str]:
+    async def correct_string(
+        self, input_text: str, supervisor_check: bool = True, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
+    ) -> Optional[str]:
         """Review and correct a string based on defined criteria and templates.
 
         This method applies the review process to the input text and generates
@@ -68,16 +78,18 @@ class Correct(Review):
 
         Args:
             input_text (str): The text content to be reviewed and corrected.
+            supervisor_check (bool, optional): Whether to perform a supervisor check on the review results. Defaults to True.
             **kwargs: Review configuration parameters including criteria and review options.
 
         Returns:
             Optional[str]: The corrected text content, or None if correction fails.
         """
         review_res = await self.review_string(input_text, **kwargs)
-        await review_res.supervisor_check()
+        if supervisor_check:
+            await review_res.supervisor_check()
 
         if "default" in kwargs:
-            kwargs["default"] = None
+            cast(ReviewKwargs[None], kwargs)["default"] = None
         return await self.ageneric_string(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.correct_template, {"content": input_text, "review": review_res.display()}
@@ -86,7 +98,7 @@ class Correct(Review):
         )
 
     async def correct_task[T](
-        self, task: Task[T], **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
+        self, task: Task[T], **kwargs: Unpack[CorrectKwargs[ReviewResult[str]]]
     ) -> Optional[Task[T]]:
         """Review and correct a task object based on defined criteria.
 
