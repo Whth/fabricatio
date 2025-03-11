@@ -95,6 +95,17 @@ class ReviewKwargs[T](ValidateKwargs[T], total=False):
     criteria: set[str]
 
 
+class CorrectKwargs[T](ReviewKwargs[T], total=False):
+    """Arguments for content correction operations.
+
+    Extends GenerateKwargs with parameters for correcting content based on
+    specific criteria and templates.
+    """
+
+    reference: str
+    supervisor_check: bool
+
+
 # noinspection PyTypedDict
 class ChooseKwargs[T](ValidateKwargs[T], total=False):
     """Arguments for selection operations.
