@@ -5,7 +5,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set
 
 import asyncstdlib
 import litellm
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import ScopedConfig, WithBriefing
@@ -301,7 +301,7 @@ class LLMUsage(ScopedConfig):
             List[str]: The validated response as a list of strings.
         """
         return await self.aask_validate(
-            template_manager.render_template(
+            TEMPLATE_MANAGER.render_template(
                 configs.templates.liststr_template,
                 {"requirement": requirement, "k": k},
             ),
@@ -320,7 +320,7 @@ class LLMUsage(ScopedConfig):
             List[str]: The validated response as a list of strings.
         """
         return await self.aliststr(
-            template_manager.render_template(
+            TEMPLATE_MANAGER.render_template(
                 configs.templates.pathstr_template,
                 {"requirement": requirement},
             ),
@@ -371,7 +371,7 @@ class LLMUsage(ScopedConfig):
         if dup := duplicates_everseen(choices, key=lambda x: x.name):
             logger.error(err := f"Redundant choices: {dup}")
             raise ValueError(err)
-        prompt = template_manager.render_template(
+        prompt = TEMPLATE_MANAGER.render_template(
             configs.templates.make_choice_template,
             {
                 "instruction": instruction,
@@ -444,7 +444,7 @@ class LLMUsage(ScopedConfig):
             bool: The judgment result (True or False) based on the AI's response.
         """
         return await self.aask_validate(
-            question=template_manager.render_template(
+            question=TEMPLATE_MANAGER.render_template(
                 configs.templates.make_judgment_template,
                 {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case},
             ),

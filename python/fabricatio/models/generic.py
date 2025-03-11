@@ -6,9 +6,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, f
 
 import orjson
 from fabricatio._rust import blake3_hash
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
-from fabricatio.fs.readers import magika, safe_text_read
+from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
 from pydantic import (
@@ -39,6 +39,14 @@ class Display(Base):
             str: The formatted JSON string of the model.
         """
         return self.model_dump_json(indent=1)
+
+    def compact(self) -> str:
+        """Display the model in a compact JSON string.
+
+        Returns:
+            str: The compact JSON string of the model.
+        """
+        return self.model_dump_json()
 
 
 class Named(Base):
@@ -118,12 +126,12 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
             str: The prompt for creating a JSON object with given requirement.
         """
         if isinstance(requirement, str):
-            return template_manager.render_template(
+            return TEMPLATE_MANAGER.render_template(
                 configs.templates.create_json_obj_template,
                 {"requirement": requirement, "json_schema": cls.formated_json_schema()},
             )
         return [
-            template_manager.render_template(
+            TEMPLATE_MANAGER.render_template(
                 configs.templates.create_json_obj_template,
                 {"requirement": r, "json_schema": cls.formated_json_schema()},
             )
@@ -247,13 +255,13 @@ class WithDependency(Base):
         Returns:
             str: The generated prompt for the task.
         """
-        return template_manager.render_template(
+        return TEMPLATE_MANAGER.render_template(
             configs.templates.dependencies_template,
             {
                 (pth := Path(p)).name: {
                     "path": pth.as_posix(),
                     "exists": pth.exists(),
-                    "description": (identity := magika.identify_path(pth)).output.description,
+                    "description": (identity := MAGIKA.identify_path(pth)).output.description,
                     "size": f"{pth.stat().st_size / (1024 * 1024) if pth.exists() and pth.is_file() else 0:.3f} MB",
                     "content": (text := safe_text_read(pth)),
                     "lines": len(text.splitlines()),

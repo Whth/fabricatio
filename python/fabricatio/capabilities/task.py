@@ -4,7 +4,7 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack, cast
 
 import orjson
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -66,7 +66,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
 
             return None
 
-        q = template_manager.render_template(
+        q = TEMPLATE_MANAGER.render_template(
             configs.templates.draft_tool_usage_code_template,
             {
                 "data_module_name": configs.toolbox.data_module_name,

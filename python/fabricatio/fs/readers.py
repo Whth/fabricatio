@@ -9,7 +9,7 @@ from magika import Magika
 from fabricatio.config import configs
 from fabricatio.journal import logger
 
-magika = Magika(model_dir=configs.magika.model_dir)
+MAGIKA = Magika(model_dir=configs.magika.model_dir)
 
 
 def safe_text_read(path: Path | str) -> str:

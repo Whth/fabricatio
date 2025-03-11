@@ -10,7 +10,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, cast, overload
 
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import (
@@ -306,7 +306,7 @@ class RAG(EmbeddingUsage):
             similarity_threshold=similarity_threshold,
         )
 
-        rendered = template_manager.render_template(configs.templates.retrieved_display_template, {"docs": docs[::-1]})
+        rendered = TEMPLATE_MANAGER.render_template(configs.templates.retrieved_display_template, {"docs": docs[::-1]})
 
         logger.debug(f"Retrieved Documents: \n{rendered}")
         return await self.aask(
@@ -326,7 +326,7 @@ class RAG(EmbeddingUsage):
             List[str]: A list of refined questions.
         """
         return await self.aliststr(
-            template_manager.render_template(
+            TEMPLATE_MANAGER.render_template(
                 configs.templates.refined_query_template,
                 {"question": [question] if isinstance(question, str) else question},
             ),

@@ -11,9 +11,10 @@ from fabricatio.fs.curd import (
     move_file,
     tree,
 )
-from fabricatio.fs.readers import magika, safe_json_read, safe_text_read
+from fabricatio.fs.readers import MAGIKA, safe_json_read, safe_text_read
 
 __all__ = [
+    "MAGIKA",
     "absolute_path",
     "copy_file",
     "create_directory",
@@ -21,7 +22,6 @@ __all__ = [
     "delete_file",
     "dump_text",
     "gather_files",
-    "magika",
     "move_file",
     "safe_json_read",
     "safe_text_read",

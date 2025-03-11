@@ -137,7 +137,7 @@ if __name__ == "__main__":
 ### Template Management and Rendering
 
 ```python
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 
 template_name = "claude-xml.hbs"
 data = {
@@ -146,7 +146,7 @@ data = {
     "files": [{"path": "file1.py", "code": "print('Hello')"}],
 }
 
-rendered_template = template_manager.render_template(template_name, data)
+rendered_template = TEMPLATE_MANAGER.render_template(template_name, data)
 print(rendered_template)
 ```
 

@@ -4,7 +4,7 @@ from itertools import permutations
 from random import sample
 from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
@@ -53,7 +53,7 @@ class GiveRating(WithBriefing, LLMUsage):
         logger.info(f"Rating for {to_rate}")
         return await self.aask_validate(
             question=(
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.rate_fine_grind_template,
                     {
                         "to_rate": to_rate,
@@ -65,7 +65,7 @@ class GiveRating(WithBriefing, LLMUsage):
             )
             if isinstance(to_rate, str)
             else [
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.rate_fine_grind_template,
                     {
                         "to_rate": item,
@@ -150,7 +150,7 @@ class GiveRating(WithBriefing, LLMUsage):
 
         return await self.aask_validate(
             question=(
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.draft_rating_manual_template,
                     {
                         "topic": topic,
@@ -180,7 +180,7 @@ class GiveRating(WithBriefing, LLMUsage):
         """
         return await self.aask_validate(
             question=(
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.draft_rating_criteria_template,
                     {
                         "topic": topic,
@@ -230,7 +230,7 @@ class GiveRating(WithBriefing, LLMUsage):
         reasons = flatten(
             await self.aask_validate(
                 question=[
-                    template_manager.render_template(
+                    TEMPLATE_MANAGER.render_template(
                         configs.templates.extract_reasons_from_examples_template,
                         {
                             "topic": topic,
@@ -250,7 +250,7 @@ class GiveRating(WithBriefing, LLMUsage):
         # extract certain mount of criteria from reasons according to their importance and frequency
         return await self.aask_validate(
             question=(
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.extract_criteria_from_reasons_template,
                     {
                         "topic": topic,
@@ -290,7 +290,7 @@ class GiveRating(WithBriefing, LLMUsage):
         # get the importance multiplier indicating how important is second criterion compared to the first one
         relative_weights = await self.aask_validate(
             question=[
-                template_manager.render_template(
+                TEMPLATE_MANAGER.render_template(
                     configs.templates.draft_rating_weights_klee_template,
                     {
                         "topic": topic,

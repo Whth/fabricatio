@@ -6,7 +6,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 from asyncio import Queue
 from typing import Any, List, Optional, Self
 
-from fabricatio._rust_instances import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
@@ -253,7 +253,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The briefing of the task.
         """
-        return template_manager.render_template(
+        return TEMPLATE_MANAGER.render_template(
             configs.templates.task_briefing_template,
             self.model_dump(),
         )

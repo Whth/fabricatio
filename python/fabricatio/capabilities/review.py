@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Self, Set, Unpack, cast
 
-from fabricatio import template_manager
+from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import GiveRating
 from fabricatio.config import configs
@@ -100,7 +100,7 @@ class ReviewResult[T](ProposedAble, Display):
             ReviewResult[K]: The current instance with updated reference type.
         """
         self._ref = ref  # pyright: ignore [reportAttributeAccessIssue]
-        return cast(ReviewResult[K], self)
+        return cast(ReviewResult, self)
 
     def deref(self) -> T:
         """Retrieve the referenced object that was reviewed.
@@ -203,14 +203,18 @@ class Review(GiveRating, Propose):
                 with a reference to the original text.
         """
         criteria = criteria or (await self.draft_rating_criteria(topic))
+        if not criteria:
+            raise ValueError("No criteria provided for review.")
         manual = await self.draft_rating_manual(topic, criteria)
-        res: ReviewResult[str] = await self.propose(
+        res = await self.propose(
             ReviewResult,
-            template_manager.render_template(
+            TEMPLATE_MANAGER.render_template(
                 configs.templates.review_string_template, {"text": text, "topic": topic, "criteria_manual": manual}
             ),
             **kwargs,
         )
+        if not res:
+            raise ValueError("Failed to generate review result.")
         return res.update_ref(text).update_topic(topic)
 
     async def review_obj[M: (Display, WithBriefing)](self, obj: M, **kwargs: Unpack[ReviewKwargs]) -> ReviewResult[M]:

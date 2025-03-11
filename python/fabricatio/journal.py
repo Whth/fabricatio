@@ -19,10 +19,3 @@ logger.add(
 logger.add(sys.stderr, level=configs.debug.log_level)
 
 __all__ = ["logger"]
-if __name__ == "__main__":
-    logger.debug("This is a trace message.")
-    logger.info("This is an information message.")
-    logger.success("This is a success message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
