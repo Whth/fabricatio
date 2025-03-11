@@ -35,7 +35,7 @@ class Capture(BaseModel):
         """Initialize the compiled pattern."""
         self._compiled = compile(self.pattern, self.flags)
 
-    def fix[T](self, text: str | Iterable[str]|T) -> str | List[str]|T:
+    def fix[T](self, text: str | Iterable[str] | T) -> str | List[str] | T:
         """Fix the text using the pattern.
 
         Args:
@@ -47,8 +47,8 @@ class Capture(BaseModel):
         match self.capture_type:
             case "json":
                 if isinstance(text, str):
-                    return repair_json(text,ensure_ascii=False)
-                return [repair_json(item) for item in text]
+                    return repair_json(text, ensure_ascii=False)
+                return [repair_json(item, ensure_ascii=False) for item in text]
             case _:
                 return text
 
