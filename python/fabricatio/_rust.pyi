@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -9,8 +10,9 @@ class TemplateManager:
 
     See: https://crates.io/crates/handlebars
     """
+
     def __init__(
-        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
@@ -54,6 +56,7 @@ class TemplateManager:
             RuntimeError: If template rendering fails
         """
 
+
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
 
@@ -63,6 +66,7 @@ def blake3_hash(content: bytes) -> str:
     Returns:
         Hex-encoded BLAKE3 hash string
     """
+
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
@@ -99,4 +103,14 @@ class BibManager:
         Notes:
             Uses nucleo_matcher for high-quality fuzzy text searching
             See: https://crates.io/crates/nucleo-matcher
+        """
+
+    def list_titles(self, is_verbatim: Optional[bool] = False) -> List[str]:
+        """List all titles in the bibliography.
+
+        Args:
+            is_verbatim: Whether to return verbatim titles (without formatting)
+
+        Returns:
+            List of all titles in the bibliography
         """
