@@ -12,16 +12,16 @@ tools:
 	rm $(DATA)/scripts/*.dwarf || true
 
 dev: tools
-	uvx  --with-editable . maturin develop --uv -r
+	uvx --project . maturin develop --uv -r
 
 bdist:clean tools
-	uvx  --with-editable . maturin sdist -o $(DIST)
-	uvx  --with-editable . maturin build  -r -o $(DIST)
+	uvx --project . maturin sdist -o $(DIST)
+	uvx --project . maturin build  -r -o $(DIST)
 
 clean:
 	rm -rf $(DIST) $(DATA)
 
 publish:tools
-	uvx  --with-editable . maturin publish --skip-existing
-	uvx  --with-editable . maturin upload --skip-existing $(DIST)/*
+	uvx --project . maturin publish --skip-existing
+	uvx --project . maturin upload --skip-existing $(DIST)/*
 .PHONY: tools
