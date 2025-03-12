@@ -1,12 +1,11 @@
-from fabricatio import BibManager
+"""Example of using BibManager."""
+from fabricatio import BibManager, logger
 
 b = BibManager("Exported Items.bib")
-print(b.get_cite_key("Fault Diagnosis of Wind Turbines"))
-print(
+logger.success(
+    b.get_cite_key("A Negative Selection Immune System Inspired Methodology for Fault Diagnosis of Wind Turbines"))
+logger.success(
     b.get_cite_key_fuzzy(
-        "Fault Diagnosis of Wind Turbines"
+        "System Inspired Methodology for Fault"
     )
 )
-
-print(b.list_titles())
-print(b.list_titles(True))
