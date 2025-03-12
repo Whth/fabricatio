@@ -26,7 +26,7 @@ class Figure(Base):
     """The caption accompanying the figure, summarizing its main points and academic value."""
 
     figure_path: str
-    """The file path to the figure"""
+    """The exact path to the figure file, must exist in the file system, SHALL never be a PLACEHOLDER."""
 
 
 class Highlightings(Base):
