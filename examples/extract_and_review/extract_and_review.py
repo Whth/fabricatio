@@ -4,7 +4,8 @@ import asyncio
 from pathlib import Path
 from typing import List
 
-from fabricatio import ArticleEssence, Event, ExtractArticleEssence, Role, Task, WorkFlow, logger
+from fabricatio import ArticleEssence, Event, Role, Task, WorkFlow, logger
+from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.fs.curd import dump_text, gather_files
 
 

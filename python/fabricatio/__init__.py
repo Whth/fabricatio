@@ -2,10 +2,9 @@
 
 from importlib.util import find_spec
 
+from fabricatio import actions, workflows
 from fabricatio._rust import BibManager
 from fabricatio._rust_instances import TEMPLATE_MANAGER
-from fabricatio.actions.article import ExtractArticleEssence, GenerateArticleProposal, GenerateOutline
-from fabricatio.actions.output import DumpFinalizedOutput
 from fabricatio.core import env
 from fabricatio.fs import MAGIKA, safe_json_read, safe_text_read
 from fabricatio.journal import logger
@@ -18,7 +17,6 @@ from fabricatio.models.tool import ToolBox
 from fabricatio.models.utils import Message, Messages
 from fabricatio.parser import Capture, GenericCapture, JsonCapture, PythonCapture
 from fabricatio.toolboxes import arithmetic_toolbox, basic_toolboxes, fs_toolbox
-from fabricatio.workflows.articles import WriteOutlineWorkFlow
 
 __all__ = [
     "MAGIKA",
@@ -27,11 +25,7 @@ __all__ = [
     "ArticleEssence",
     "BibManager",
     "Capture",
-    "DumpFinalizedOutput",
     "Event",
-    "ExtractArticleEssence",
-    "GenerateArticleProposal",
-    "GenerateOutline",
     "GenericCapture",
     "JsonCapture",
     "Message",
@@ -41,7 +35,7 @@ __all__ = [
     "Task",
     "ToolBox",
     "WorkFlow",
-    "WriteOutlineWorkFlow",
+    "actions",
     "arithmetic_toolbox",
     "basic_toolboxes",
     "env",
@@ -49,6 +43,7 @@ __all__ = [
     "logger",
     "safe_json_read",
     "safe_text_read",
+    "workflows",
 ]
 
 

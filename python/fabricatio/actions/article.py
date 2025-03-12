@@ -2,13 +2,15 @@
 
 from os import PathLike
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra import ArticleEssence, ArticleOutline, ArticleProposal
 from fabricatio.models.task import Task
+from questionary import confirm, text
+from rich import print as rprint
 
 
 class ExtractArticleEssence(Action):
@@ -66,7 +68,7 @@ class GenerateArticleProposal(Action):
 class GenerateOutline(Action):
     """Generate the article based on the outline."""
 
-    output_key: str = "article"
+    output_key: str = "article_outline"
     """The key of the output data."""
 
     async def _execute(
@@ -79,3 +81,44 @@ class GenerateOutline(Action):
             article_proposal.display(),
             system_message=f"# your personal briefing: \n{self.briefing}",
         )
+
+
+class CorrectProposal(Action):
+    """Correct the proposal of the article."""
+
+    output_key: str = "corrected_proposal"
+
+    async def _execute(self, task_input: Task, article_proposal: ArticleProposal, **_) -> Any:
+        input_path = await self.awhich_pathstr(
+            f"{task_input.briefing}\nExtract the path of file, which contains the article briefing that I need to read."
+        )
+
+        ret = None
+        while await confirm("Do you want to correct the outline?").ask_async():
+            topic = await text("What is the topic of the outline?").ask_async()
+            ret = await self.correct_obj(
+                article_proposal,
+                safe_text_read(input_path),
+                topic=topic,
+            )
+        return ret or article_proposal
+
+
+class CorrectOutline(Action):
+    """Correct the outline of the article."""
+
+    output_key: str = "corrected_outline"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_outline: ArticleOutline,
+        article_proposal: ArticleProposal,
+        **_,
+    ) -> Optional[str]:
+        rprint(article_outline.finalized_dump())
+        ret = None
+        while await confirm("Do you want to correct the outline?").ask_async():
+            topic = await text("What is the topic of the outline?").ask_async()
+            ret = await self.correct_obj(article_outline, article_proposal.display(), topic=topic)
+        return ret or article_outline

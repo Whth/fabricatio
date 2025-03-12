@@ -3,7 +3,8 @@
 import asyncio
 from typing import List
 
-from fabricatio import ArticleEssence, Event, ExtractArticleEssence, Role, Task, WorkFlow, logger
+from fabricatio import ArticleEssence, Event, Role, Task, WorkFlow, logger
+from fabricatio.actions.article import ExtractArticleEssence
 
 
 async def main() -> None:
