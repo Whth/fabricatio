@@ -93,9 +93,10 @@ class CorrectProposal(Action):
             f"{task_input.briefing}\nExtract the path of file, which contains the article briefing that I need to read."
         )
 
+        rprint(article_proposal.display())
         ret = None
-        while await confirm("Do you want to correct the outline?").ask_async():
-            topic = await text("What is the topic of the outline?").ask_async()
+        while await confirm("Do you want to correct the Proposal?").ask_async():
+            topic = await text("What is the topic of the proposal?").ask_async()
             ret = await self.correct_obj(
                 article_proposal,
                 safe_text_read(input_path),

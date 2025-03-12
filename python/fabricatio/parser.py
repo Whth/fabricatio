@@ -64,6 +64,7 @@ class Capture(BaseModel):
         """
         match = self._compiled.search(text)
         if match is None:
+            logger.debug(f"Capture Failed: \n{text}")
             return None
         groups = self.fix(match.groups()) if configs.general.use_json_repair else match.groups()
         if self.target_groups:

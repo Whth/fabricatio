@@ -126,7 +126,7 @@ class ArticleSectionOutline(Base):
     """The title of the section."""
     description: str = Field(...)
     """A brief description of the section's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
-    subsections: List[ArticleSubsectionOutline] = Field(default_factory=list)
+    subsections: List[ArticleSubsectionOutline]
     """The subsections of the section, outlining their content and significance."""
 
 
@@ -137,7 +137,7 @@ class ArticleChapterOutline(Base):
     """The title of the chapter."""
     description: str = Field(...)
     """A brief description of the chapter's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
-    sections: List[ArticleSectionOutline] = Field(default_factory=list)
+    sections: List[ArticleSectionOutline]
     """The sections of the chapter, outlining their content and significance."""
 
 
@@ -150,7 +150,7 @@ class ArticleOutline(ProposedAble, Display, FinalizedDumpAble):
     prospect: str = Field(...)
     """A brief description of the research problem or question that the paper aims to address manipulating methods or techniques"""
 
-    chapters: List[ArticleChapterOutline] = Field(default_factory=list)
+    chapters: List[ArticleChapterOutline]
     """The chapters of the paper, outlining their content and significance."""
 
     def finalized_dump(self) -> str:

@@ -2,8 +2,9 @@
 
 import asyncio
 
-from fabricatio import Event, Role, logger
-from fabricatio.workflows.articles import WriteOutlineCorrectedWorkFlow
+from fabricatio import Event, Role, WorkFlow, logger
+from fabricatio.actions.article import CorrectOutline, CorrectProposal, GenerateArticleProposal, GenerateOutline
+from fabricatio.actions.output import DumpFinalizedOutput
 
 
 async def main() -> None:
@@ -11,7 +12,25 @@ async def main() -> None:
     role = Role(
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",
-        registry={Event.quick_instantiate(ns := "article"): WriteOutlineCorrectedWorkFlow},
+        llm_top_p=0.8,
+        llm_temperature=1.15,
+        registry={
+            Event.quick_instantiate(ns := "article"): WorkFlow(
+                name="Generate Article Outline",
+                description="Generate an outline for an article. dump the outline to the given path. in typst format.",
+                steps=(
+                    GenerateArticleProposal(llm_model="deepseek/deepseek-reasoner", llm_temperature=1.3),
+                    CorrectProposal(
+                        output_key="article_proposal",
+                        llm_model="deepseek/deepseek-reasoner",
+                        llm_temperature=1.3,
+                    ),
+                    GenerateOutline(llm_model="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
+                    CorrectOutline(output_key="to_dump", llm_temperature=1.4, llm_top_p=0.45),
+                    DumpFinalizedOutput(output_key="task_output"),
+                ),
+            )
+        },
     )
 
     proposed_task = await role.propose_task(
