@@ -66,7 +66,7 @@ class LLMConfig(BaseModel):
     temperature: Optional[NonNegativeFloat] = Field(default=1.0)
     """The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request."""
 
-    stop_sign: Optional[str | List[str]] = Field(default="")
+    stop_sign: Optional[str | List[str]] = Field(default=None)
     """The stop sign of the LLM model. No default stop sign specified."""
 
     top_p: Optional[NonNegativeFloat] = Field(default=0.35)
