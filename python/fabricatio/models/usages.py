@@ -213,7 +213,7 @@ class LLMUsage(ScopedConfig):
         self,
         question: str,
         validator: Callable[[str], T | None],
-        default: T,
+        default: T = ...,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> T: ...
@@ -222,7 +222,7 @@ class LLMUsage(ScopedConfig):
         self,
         question: List[str],
         validator: Callable[[str], T | None],
-        default: T,
+        default: T = ...,
         max_validations: PositiveInt = 2,
         **kwargs: Unpack[GenerateKwargs],
     ) -> List[T]: ...
