@@ -1,10 +1,13 @@
 """Example of proposing a task to a role."""
 
 import asyncio
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from fabricatio import ArticleEssence, Event, Role, Task, WorkFlow, logger
+from fabricatio import Event, Role, Task, WorkFlow, logger
 from fabricatio.actions.article import ExtractArticleEssence
+
+if TYPE_CHECKING:
+    from fabricatio.models.extra import ArticleEssence
 
 
 async def main() -> None:

@@ -21,7 +21,7 @@ from fabricatio.models.kwargs_types import (
     LLMKwargs,
 )
 from fabricatio.models.usages import EmbeddingUsage
-from fabricatio.models.utils import MilvusData
+from fabricatio.models.utils import MilvusData, ok
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
 
@@ -60,7 +60,7 @@ class RAG(EmbeddingUsage):
     ) -> Self:
         """Initialize the Milvus client."""
         self._client = create_client(
-            uri=milvus_uri or (self.milvus_uri or configs.rag.milvus_uri).unicode_string(),
+            uri=milvus_uri or ok(self.milvus_uri or configs.rag.milvus_uri).unicode_string(),
             token=milvus_token
             or (token.get_secret_value() if (token := (self.milvus_token or configs.rag.milvus_token)) else ""),
             timeout=milvus_timeout or self.milvus_timeout,
@@ -315,7 +315,7 @@ class RAG(EmbeddingUsage):
             **kwargs,
         )
 
-    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs]) -> List[str]:
+    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs]) -> Optional[List[str]]:
         """Refines the given question using a template.
 
         Args:
