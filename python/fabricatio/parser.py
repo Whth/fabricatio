@@ -1,6 +1,6 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type, overload
+from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
 
 import orjson
 import regex

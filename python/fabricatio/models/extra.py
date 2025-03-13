@@ -7,157 +7,325 @@ from pydantic import Field
 
 
 class Equation(Base):
-    """Structured representation of mathematical equations (including their physical or conceptual meanings)."""
+    """Mathematical formalism specification for research contributions.
+
+    Encodes equations with dual representation: semantic meaning and typeset-ready notation.
+    """
 
     description: str
-    """A concise explanation of the equation's meaning, purpose, and relevance in the context of the research."""
+    """Equation significance structured in three elements:
+    1. Physical/conceptual meaning
+    2. Role in technical workflow
+    3. Relationship to paper's core contribution
+    Example: 'Defines constrained search space dimensionality reduction. Used in architecture optimization phase (Section 3.2). Enables 40% parameter reduction.'"""
 
     latex_code: str
-    """The LaTeX code used to represent the equation in a publication-ready format."""
+    """LaTeX representation following academic typesetting standards:
+    - Must use equation environment
+    - Multiline equations aligned at '='
+    - Unit annotations where applicable
+    Example: r'\begin{equation} \\mathcal{L}_{NAS} = \alpha \\|\theta\\|_2 + \beta H(p) \\end{equation}'"""
 
 
 class Figure(Base):
-    """Structured representation of figures (including their academic significance and explanatory captions)."""
+    """Visual component specification for technical communication.
+
+    Combines graphical assets with structured academic captioning.
+    """
 
     description: str
-    """A detailed explanation of the figure's content and its role in conveying key insights."""
+    """Figure interpretation guide containing:
+    1. Key visual elements mapping
+    2. Data representation methodology
+    3. Connection to research findings
+    Example: 'Architecture search space topology (left) vs. convergence curves (right). Demonstrates NAS efficiency gains through constrained search.'"""
 
     figure_caption: str
-    """The caption accompanying the figure, summarizing its main points and academic value."""
+    """Complete caption following Nature-style guidelines:
+    1. Brief overview statement (首句总结)
+    2. Technical detail layer
+    3. Result implication
+    Example: 'Figure 3: Differentiable NAS framework. (a) Search space topology with constrained dimensions. (b) Training convergence across language pairs. Dashed lines indicate baseline methods.'"""
 
     figure_path: str
-    """The exact path to the figure file, must exist in the file system, SHALL never be a PLACEHOLDER."""
+    """Filesystem path to high-resolution vector graphic (PDF/EPS/SVG).
+    Strict validation requirements:
+    - Absolute path under /assets/figures/
+    - Naming convention: fig[chapter]-[section]_[description].pdf
+    Example: '/assets/figures/fig3-2_nas_convergence.pdf'"""
 
 
 class Highlightings(Base):
-    """Structured representation of highlighted elements in an academic paper (including equations, algorithms, figures, and tables)."""
+    """Technical showcase aggregator for research artifacts.
 
-    # Academic Achievements Showcase
+    Curates core scientific components with machine-parseable annotations.
+    """
+
     highlighted_equations: List[Equation] = Field(default_factory=list)
-    """Core mathematical equations that represent breakthroughs in the field, accompanied by explanations of their physical or conceptual significance,Should always be in LaTeX format wrapped in $ or $$ signs."""
+    """3-5 pivotal equations representing theoretical contributions.
+    Each must:
+    - Use $$ wrapping for display math
+    - Contain at least one novel operator/symbol
+    - Reference in Methods/Results sections
+    Example: Equation describing proposed loss function"""
 
     highlighted_algorithms: List[str] = Field(default_factory=list)
-    """Pseudocode for key algorithms, annotated to highlight innovative components."""
+    """Algorithm pseudocode following ACM style:
+    1. Numbered steps with bold keywords
+    2. Complexity analysis subsection
+    3. Novel components marked with ※
+    Example:
+    'Algorithm 1: Constrained NAS
+    1. Initialize search space with §3.1 constraints ※
+    2. While not converged:
+        a. Compute gradient ▽θ
+        b. Update architecture parameters...'"""
 
     highlighted_figures: List[Figure] = Field(default_factory=list)
-    """Critical diagrams or illustrations, each accompanied by a caption explaining their academic importance."""
+    """4-6 key figures demonstrating:
+    1. Framework overview (1 required)
+    2. Quantitative results (2-3 required)
+    3. Ablation studies (1 optional)
+    Each must appear in Results/Discussion chapters."""
 
     highlighted_tables: List[str] = Field(default_factory=list)
-    """Important data tables, annotated to indicate statistical significance or other notable findings."""
+    """Critical data presentations using booktabs format:
+    - Minimum 3 comparison baselines
+    - Statistical significance markers (*/†/‡)
+    - Standard deviation in parentheses
+    Example:
+    \begin{tabular}{lcc}
+    \toprule
+    Method & BLEU & Δ Params \\
+    \\midrule
+    Ours & 32.4 & -41\\%† \\
+    \bottomrule
+    \\end{tabular}"""
 
 
 class ArticleEssence(ProposedAble, Display, PrepareVectorization):
-    """Structured representation of the core elements of an academic paper(providing a comprehensive digital profile of the paper's essential information)."""
+    """Semantic fingerprint of academic paper for structured analysis.
 
-    # Basic Metadata
+    Encodes research artifacts with dual human-machine interpretability.
+    """
+
     title: str = Field(...)
-    """The full title of the paper, including any subtitles if applicable."""
+    """Complete title with technical specificity (12-18 words).
+    Must contain:
+    1. Methodology focus
+    2. Application domain
+    3. Performance metric
+    Example: 'EfficientViT: Multi-Scale Linear Attention for High-Resolution Dense Prediction'"""
 
     authors: List[str]
-    """A list of the paper's authors, typically in the order of contribution."""
+    """Author list with institutional annotations.
+    Format: [First Last¹, First Last²]
+    Superscripts mapping to affiliations.
+    Example: ['Yuanhao Zhou¹', 'Lei Chen²']"""
 
     keywords: List[str]
-    """A list of keywords that summarize the paper's focus and facilitate indexing."""
+    """5-8 ACM CCS concepts in camel case.
+    Example: ['Computing methodologies~Neural networks', 'Hardware~Emerging technologies']"""
 
     publication_year: int
-    """The year in which the paper was published."""
+    """Publication timestamp in ISO 8601 (YYYY format).
+    Constraint: 2017 ≤ year ≤ current_year"""
 
-    # Core Content Elements
     highlightings: Highlightings = Field(default_factory=Highlightings)
-    """A collection of highlighted elements in the paper, including equations, algorithms, figures, and tables."""
+    """Technical highlight reel containing:
+    - Core equations (Theory)
+    - Key algorithms (Implementation)
+    - Critical figures (Results)
+    - Benchmark tables (Evaluation)"""
 
     domain: List[str]
-    """The research domains or fields addressed by the paper (e.g., ['Natural Language Processing', 'Computer Vision'])."""
+    """Primary research domains from ACM CCS 2023 taxonomy.
+    Exactly 2-3 categories required.
+    Example: ['Computing methodologies → Machine learning']"""
 
     abstract: str = Field(...)
-    """A structured abstract that outlines the research problem, methodology, and conclusions in three distinct sections."""
+    """Three-paragraph structured abstract:
+    Paragraph 1: Problem & Motivation (2-3 sentences)
+    Paragraph 2: Methodology & Innovations (3-4 sentences)
+    Paragraph 3: Results & Impact (2-3 sentences)
+    Total length: 150-250 words"""
 
     core_contributions: List[str]
-    """Key academic contributions that distinguish the paper from prior work in the field."""
+    """3-5 technical contributions using CRediT taxonomy verbs.
+    Each item starts with action verb.
+    Example:
+    - 'Developed constrained NAS framework'
+    - 'Established cross-lingual transfer metrics'"""
 
     technical_novelty: List[str]
-    """Specific technical innovations introduced by the research, listed as individual points."""
+    """Patent-style claims with technical specificity.
+    Format: 'A [system/method] comprising [novel components]...'
+    Example:
+    'A neural architecture search system comprising:
+     a differentiable constrained search space;
+     multi-lingual transferability predictors...'"""
 
-    # Academic Discussion Dimensions
     research_problems: List[str]
-    """A clearly defined research question or problem addressed by the study."""
+    """Problem statements as how/why questions.
+    Example:
+    - 'How to reduce NAS computational overhead while maintaining search diversity?'
+    - 'Why do existing architectures fail in low-resource cross-lingual transfer?'"""
 
     limitations: List[str]
-    """An analysis of the methodological or experimental limitations of the research."""
+    """Technical limitations analysis containing:
+    1. Constraint source (data/method/theory)
+    2. Impact quantification
+    3. Mitigation pathway
+    Example:
+    'Methodology constraint: Single-objective optimization (affects 5% edge cases),
+    mitigated through future multi-task extension'"""
 
     future_work: List[str]
-    """Suggestions for potential directions or topics for follow-up studies."""
+    """Research roadmap items with 3 horizons:
+    1. Immediate extensions (1 year)
+    2. Mid-term directions (2-3 years)
+    3. Long-term vision (5+ years)
+    Example:
+    'Short-term: Adapt framework for vision transformers (ongoing with CVPR submission)'"""
 
     impact_analysis: List[str]
-    """An assessment of the paper's potential influence on the development of the field."""
+    """Bibliometric impact projections:
+    - Expected citation counts (next 3 years)
+    - Target application domains
+    - Standard adoption potential
+    Example:
+    'Predicted 150+ citations via integration into MMEngine (Alibaba OpenMMLab)'"""
 
     def _prepare_vectorization_inner(self) -> str:
         return self.model_dump_json()
 
 
 class ArticleProposal(ProposedAble, Display):
-    """Structured representation of the proposal for an academic paper."""
+    """Structured proposal for academic paper development with core research elements.
+
+    Guides LLM in generating comprehensive research proposals with clearly defined components.
+    """
 
     title: str = Field(...)
-    """The proposed title of the paper."""
+    """Paper title in academic style (Title Case, 8-15 words). Example: 'Exploring Neural Architecture Search for Low-Resource Machine Translation'"""
 
     focused_problem: List[str] = Field(default_factory=list)
-    """The specific research problem or question that the paper aims to address."""
+    """Specific research problem(s) or question(s) addressed (list of 1-3 concise statements).
+    Example: ['NAS computational overhead in low-resource settings', 'Architecture transferability across language pairs']"""
+
     research_aim: List[str] = Field(default_factory=list)
-    """The main objective or goal of the research, outlining what the study aims to achieve."""
+    """Primary research objectives (list of 2-4 measurable goals).
+    Example: ['Develop parameter-efficient NAS framework', 'Establish cross-lingual architecture transfer metrics']"""
+
     research_methods: List[str] = Field(default_factory=list)
-    """The methods used in the research, including the approach, techniques, and tools employed."""
+    """Methodological components (list of techniques/tools).
+    Example: ['Differentiable architecture search', 'Transformer-based search space', 'Multi-lingual perplexity evaluation']"""
 
 
 class ArticleSubsectionOutline(Base):
-    """Structured representation of the subsections of an academic paper."""
+    """Atomic content unit within academic paper sections.
+
+    Provides structured content specification for LLM-generated subsections.
+    """
 
     title: str = Field(...)
-    """The title of the subsection."""
+    """Subsection title reflecting specific content focus (Title Case, 3-8 words).
+    Example: 'Differentiable Search Space Design'"""
 
     description: str = Field(...)
-    """A brief description of the subsection's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+    """Content specification with three required elements:
+    1. Core technical content
+    2. Structural purpose in section
+    3. Research significance
+    Example: 'Introduces continuous relaxation method for search space, enabling gradient-based optimization. Forms technical foundation for Section 3. Critical for reducing search complexity.'"""
 
 
 class ArticleSectionOutline(Base):
-    """Structured representation of the sections of an academic paper."""
+    """Primary organizational unit within paper chapters.
+
+    Defines section-level structure with nested subsections for hierarchical content organization.
+    """
 
     title: str = Field(...)
-    """The title of the section."""
+    """Section title indicating methodological phase or conceptual component (Title Case).
+    Example: 'Architecture Search Methodology'"""
+
     description: str = Field(...)
-    """A brief description of the section's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+    """Functional description covering:
+    1. Section's research stage
+    2. Key contributions
+    3. Flow relationship with adjacent sections
+    Example: 'Presents core NAS framework building on literature from Section 2. Introduces novel constrained search space. Leads to implementation details in Section 4.'"""
+
     subsections: List[ArticleSubsectionOutline]
-    """The subsections of the section, outlining their content and significance."""
+    """Ordered sequence of 3-5 subsections implementing IMRaD structure within section. Maintains logical flow from problem statement to technical solution."""
 
 
 class ArticleChapterOutline(Base):
-    """Structured representation of the chapters of an academic paper."""
+    """Macro-level paper organization unit.
+
+    Represents major paper divisions (Introduction, Methodology, etc.) with hierarchical section structure.
+    """
 
     title: str = Field(...)
-    """The title of the chapter."""
+    """Chapter title reflecting standard academic sections (Title Case).
+    Example: 'Experimental Evaluation', 'Theoretical Framework'"""
+
     description: str = Field(...)
-    """A brief description of the chapter's content should be, how it fits into the overall structure of the paper, and its significance in the context of the research."""
+    """Chapter role specification containing:
+    1. Research phase covered
+    2. Chapter-specific objectives
+    3. Relationship to overall paper thesis
+    Example: 'Validates NAS framework through multilingual experiments. Demonstrates method effectiveness across 10 language pairs. Supports core thesis of parameter-efficient architecture search.'"""
+
     sections: List[ArticleSectionOutline]
-    """The sections of the chapter, outlining their content and significance."""
+    """3-5 sections implementing chapter's main function. Ordered to maintain academic paper logic:
+    Introduction → Related Work → Methods → Experiments → Analysis"""
 
 
 class ArticleOutline(ProposedAble, Display, FinalizedDumpAble):
-    """Structured representation of the outline for an academic paper."""
+    """Complete hierarchical structure for academic paper generation.
+
+    Provides multi-level outline specification for LLM-based paper drafting with strict academic conventions.
+    """
 
     title: str = Field(...)
-    """The proposed title of the paper."""
+    """Full paper title with technical specificity (Title Case, 12-18 words).
+    Example: 'Parameter-Efficient Neural Architecture Search for Low-Resource Machine Translation: A Cross-Lingual Transfer Approach'"""
 
     prospect: str = Field(...)
-    """A brief description of the research problem or question that the paper aims to address manipulating methods or techniques"""
+    """Unified problem-solution statement combining:
+    1. Core research gap
+    2. Proposed methodology
+    3. Expected contribution
+    Example: 'Addressing NAS computational barriers in low-resource NLP through differentiable constrained search spaces and cross-lingual transfer metrics, enabling efficient architecture discovery for 50+ languages.'"""
 
     chapters: List[ArticleChapterOutline]
-    """The chapters of the paper, outlining their content and significance."""
+    """Standard academic structure (5-8 chapters):
+    1. Introduction
+    2. Related Work
+    3. Methodology
+    4. Experiments
+    5. Results
+    6. Discussion
+    7. Conclusion
+    Maintains IMRaD logical flow with clear inter-chapter transitions."""
 
     def finalized_dump(self) -> str:
-        """Finalized dump of the article outline.
+        """Generates standardized hierarchical markup for paper drafting systems.
 
         Returns:
-            str: The finalized dump of the article outline.
+            str: Multi-level outline using academic markup conventions:
+            = Chapter Title
+            == Section Title
+            === Subsection Title
+            ==== Subsubsection Title (if needed)
+
+        Example:
+            = Methodology
+            == Neural Architecture Search Framework
+            === Differentiable Search Space
+            === Constrained Optimization Approach
         """
         lines: List[str] = []
 

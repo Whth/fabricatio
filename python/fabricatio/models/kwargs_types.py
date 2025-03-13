@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Any, Optional, Required, TypedDict
+from typing import Any, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
