@@ -3,7 +3,6 @@
 from typing import Any, Self, Set
 
 from fabricatio.capabilities.correct import Correct
-from fabricatio.capabilities.covalidate import CoValidate
 from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.core import env
 from fabricatio.journal import logger
@@ -13,7 +12,7 @@ from fabricatio.models.tool import ToolBox
 from pydantic import Field
 
 
-class Role(ProposeTask, HandleTask, Correct, CoValidate):
+class Role(ProposeTask, HandleTask, Correct):
     """Class that represents a role with a registry of events and workflows.
 
     A Role serves as a container for workflows, managing their registration to events

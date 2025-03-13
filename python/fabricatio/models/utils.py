@@ -165,3 +165,9 @@ async def ask_edit(
         if edited:
             res.append(edited)
     return res
+
+
+def override_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
+    """Override the values in kwargs with the provided overrides."""
+    kwargs.update({k: v for k, v in overrides.items() if v is not None})
+    return kwargs

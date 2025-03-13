@@ -215,6 +215,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 2,
+        co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> T: ...
     @overload
@@ -224,6 +225,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 2,
+        co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> List[T]: ...
     @overload
@@ -233,6 +235,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
+        co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T]: ...
 
@@ -243,6 +246,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
+        co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> List[Optional[T]]: ...
 
@@ -252,6 +256,7 @@ class LLMUsage(ScopedConfig):
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 2,
+        co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T] | List[Optional[T]] | List[T] | T:
         """Asynchronously asks a question and validates the response using a given validator.
@@ -261,6 +266,7 @@ class LLMUsage(ScopedConfig):
             validator (Callable[[str], T | None]): A function to validate the response.
             default (T | None): Default value to return if validation fails. Defaults to None.
             max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
+            co_extractor (Optional[GenerateKwargs]): Keyword arguments for the co-extractor, if provided will enable co-extraction.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -273,6 +279,23 @@ class LLMUsage(ScopedConfig):
                 try:
                     if (response := await self.aask(question=q, **kwargs)) and (validated := validator(response)):
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
+                        return validated
+
+                    if co_extractor and (
+                        (
+                            co_response := await self.aask(
+                                question=(
+                                    TEMPLATE_MANAGER.render_template(
+                                        configs.templates.co_validation_template,
+                                        {"original_q": q, "original_a": response},
+                                    )
+                                ),
+                                **co_extractor,
+                            )
+                        )
+                        and (validated := validator(co_response))
+                    ):
+                        logger.debug(f"Successfully validated the co-response at {lap}th attempt.")
                         return validated
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation: \n{e}")

@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Any, Required, TypedDict
+from typing import Any, Optional, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
@@ -48,18 +48,18 @@ class LLMKwargs(TypedDict, total=False):
     including generation parameters and caching options.
     """
 
-    model: str
-    temperature: float
-    stop: str | list[str]
-    top_p: float
-    max_tokens: int
-    stream: bool
-    timeout: int
-    max_retries: int
-    no_cache: bool  # if the req uses cache in this call
-    no_store: bool  # If store the response of this call to cache
-    cache_ttl: int  # how long the stored cache is alive, in seconds
-    s_maxage: int  # max accepted age of cached response, in seconds
+    model: Optional[str]
+    temperature: Optional[float]
+    stop: Optional[str | list[str]]
+    top_p: Optional[float]
+    max_tokens: Optional[int]
+    stream: Optional[bool]
+    timeout: Optional[int]
+    max_retries: Optional[int]
+    no_cache: Optional[bool]  # if the req uses cache in this call
+    no_store: Optional[bool]  # If store the response of this call to cache
+    cache_ttl: Optional[int]  # how long the stored cache is alive, in seconds
+    s_maxage: Optional[int]  # max accepted age of cached response, in seconds
 
 
 class GenerateKwargs(LLMKwargs, total=False):
@@ -69,7 +69,7 @@ class GenerateKwargs(LLMKwargs, total=False):
     such as the number of generated items and the system message.
     """
 
-    system_message: str
+    system_message: Optional[str]
 
 
 class ValidateKwargs[T](GenerateKwargs, total=False):
@@ -79,8 +79,9 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     such as limiting the number of validation attempts.
     """
 
-    default: T
-    max_validations: int
+    default: Optional[T]
+    max_validations: Optional[int]
+    co_extractor: Optional[GenerateKwargs]
 
 
 # noinspection PyTypedDict

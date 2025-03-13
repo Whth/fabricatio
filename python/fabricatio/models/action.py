@@ -10,7 +10,6 @@ from asyncio import Queue, create_task
 from typing import Any, Dict, Self, Tuple, Type, Union, final
 
 from fabricatio.capabilities.correct import Correct
-from fabricatio.capabilities.covalidate import CoValidate
 from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
@@ -19,7 +18,7 @@ from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(HandleTask, ProposeTask, Correct, CoValidate):
+class Action(HandleTask, ProposeTask, Correct):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
