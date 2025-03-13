@@ -48,18 +48,18 @@ class LLMKwargs(TypedDict, total=False):
     including generation parameters and caching options.
     """
 
-    model: Optional[str]
-    temperature: Optional[float]
-    stop: Optional[str | list[str]]
-    top_p: Optional[float]
-    max_tokens: Optional[int]
-    stream: Optional[bool]
-    timeout: Optional[int]
-    max_retries: Optional[int]
-    no_cache: Optional[bool]  # if the req uses cache in this call
-    no_store: Optional[bool]  # If store the response of this call to cache
-    cache_ttl: Optional[int]  # how long the stored cache is alive, in seconds
-    s_maxage: Optional[int]  # max accepted age of cached response, in seconds
+    model: str
+    temperature: float
+    stop: str | list[str]
+    top_p: float
+    max_tokens: int
+    stream: bool
+    timeout: int
+    max_retries: int
+    no_cache: bool  # if the req uses cache in this call
+    no_store: bool  # If store the response of this call to cache
+    cache_ttl: int  # how long the stored cache is alive, in seconds
+    s_maxage: int  # max accepted age of cached response, in seconds
 
 
 class GenerateKwargs(LLMKwargs, total=False):
@@ -69,7 +69,7 @@ class GenerateKwargs(LLMKwargs, total=False):
     such as the number of generated items and the system message.
     """
 
-    system_message: Optional[str]
+    system_message: str
 
 
 class ValidateKwargs[T](GenerateKwargs, total=False):
@@ -79,9 +79,9 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     such as limiting the number of validation attempts.
     """
 
-    default: Optional[T]
-    max_validations: Optional[int]
-    co_extractor: Optional[GenerateKwargs]
+    default: T
+    max_validations: int
+    co_extractor: GenerateKwargs
 
 
 # noinspection PyTypedDict

@@ -171,3 +171,18 @@ def override_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
     """Override the values in kwargs with the provided overrides."""
     kwargs.update({k: v for k, v in overrides.items() if v is not None})
     return kwargs
+
+
+def ok[T](val: Optional[T], msg:str="Value is None") -> T:
+    """Check if a value is None and raise a ValueError with the provided message if it is.
+
+    Args:
+        val: The value to check.
+        msg: The message to include in the ValueError if val is None.
+
+    Returns:
+        T: The value if it is not None.
+    """
+    if val is None:
+        raise ValueError(msg)
+    return val

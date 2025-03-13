@@ -1,6 +1,6 @@
 """A module to parse text using regular expressions."""
 
-from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
+from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type, overload
 
 import orjson
 import regex
@@ -51,6 +51,7 @@ class Capture(BaseModel):
                 return [repair_json(item, ensure_ascii=False) for item in text]
             case _:
                 return text
+
 
     def capture(self, text: str) -> Tuple[str, ...] | str | None:
         """Capture the first occurrence of the pattern in the given text.

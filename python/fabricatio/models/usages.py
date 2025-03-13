@@ -12,9 +12,9 @@ from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.models.utils import Messages
+from fabricatio.models.utils import Messages, ok
 from fabricatio.parser import GenericCapture, JsonCapture
-from litellm import Router, stream_chunk_builder
+from litellm import Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
     Choices,
@@ -70,14 +70,22 @@ class LLMUsage(ScopedConfig):
         """
         # Call the underlying asynchronous completion function with the provided and default parameters
         # noinspection PyTypeChecker,PydanticTypeChecker
-
         return await self._deploy(
             Deployment(
-                model_name=(m_name := kwargs.get("model") or self.llm_model or configs.llm.model),
+                model_name=(
+                    m_name := ok(
+                        kwargs.get("model") or self.llm_model or configs.llm.model, "model name is not set at any place"
+                    )
+                ),  # pyright: ignore [reportCallIssue]
                 litellm_params=(
                     p := LiteLLM_Params(
-                        api_key=(self.llm_api_key or configs.llm.api_key).get_secret_value(),
-                        api_base=(self.llm_api_endpoint or configs.llm.api_endpoint).unicode_string(),
+                        api_key=ok(
+                            self.llm_api_key or configs.llm.api_key, "llm api key is not set at any place"
+                        ).get_secret_value(),
+                        api_base=ok(
+                            self.llm_api_endpoint or configs.llm.api_endpoint,
+                            "llm api endpoint is not set at any place",
+                        ).unicode_string(),
                         model=m_name,
                         tpm=self.llm_tpm or configs.llm.tpm,
                         rpm=self.llm_rpm or configs.llm.rpm,
@@ -88,14 +96,14 @@ class LLMUsage(ScopedConfig):
                 model_info=ModelInfo(id=hash(m_name + p.model_dump_json(exclude_none=True))),
             )
         ).acompletion(
-            messages=messages,
+            messages=messages,  # pyright: ignore [reportArgumentType]
             n=n or self.llm_generation_count or configs.llm.generation_count,
             model=m_name,
             temperature=kwargs.get("temperature") or self.llm_temperature or configs.llm.temperature,
             stop=kwargs.get("stop") or self.llm_stop_sign or configs.llm.stop_sign,
             top_p=kwargs.get("top_p") or self.llm_top_p or configs.llm.top_p,
             max_tokens=kwargs.get("max_tokens") or self.llm_max_tokens or configs.llm.max_tokens,
-            stream=kwargs.get("stream") or self.llm_stream or configs.llm.stream,
+            stream=ok(kwargs.get("stream") or self.llm_stream or configs.llm.stream, "stream is not set at any place"),
             cache={
                 "no-cache": kwargs.get("no_cache"),
                 "no-store": kwargs.get("no_store"),
@@ -196,15 +204,15 @@ class LLMUsage(ScopedConfig):
                         for q, sm in zip(q_seq, sm_seq, strict=True)
                     ]
                 )
-                return [r[0].message.content for r in res]
+                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
             case (list(q_seq), str(sm)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for q in q_seq])
-                return [r[0].message.content for r in res]
+                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
             case (str(q), list(sm_seq)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
-                return [r[0].message.content for r in res]
+                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
             case (str(q), str(sm)):
-                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content
+                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
             case _:
                 raise RuntimeError("Should not reach here.")
 
@@ -314,7 +322,7 @@ class LLMUsage(ScopedConfig):
 
     async def aliststr(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[str]:
+    ) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -334,7 +342,7 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
-    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> List[str]:
+    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -362,7 +370,7 @@ class LLMUsage(ScopedConfig):
         Returns:
             str: The validated response as a single string.
         """
-        return (
+        return ok(
             await self.apathstr(
                 requirement,
                 k=1,
@@ -370,7 +378,7 @@ class LLMUsage(ScopedConfig):
             )
         ).pop()
 
-    async def ageneric_string(self, requirement: str, **kwargs: Unpack[ValidateKwargs[str]]) -> str:
+    async def ageneric_string(self, requirement: str, **kwargs: Unpack[ValidateKwargs[str]]) -> Optional[str]:
         """Asynchronously generates a generic string based on a given requirement.
 
         Args:
@@ -380,7 +388,7 @@ class LLMUsage(ScopedConfig):
         Returns:
             str: The generated string.
         """
-        return await self.aask_validate(
+        return await self.aask_validate(  # pyright: ignore [reportReturnType]
             TEMPLATE_MANAGER.render_template(
                 configs.templates.generic_string_template,
                 {"requirement": requirement, "language": GenericCapture.capture_type},
@@ -395,7 +403,7 @@ class LLMUsage(ScopedConfig):
         choices: List[T],
         k: NonNegativeInt = 0,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> List[T]:
+    ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
         Args:
@@ -460,13 +468,13 @@ class LLMUsage(ScopedConfig):
         Raises:
             ValueError: If validation fails after maximum attempts or if no valid selection is made.
         """
-        return (
+        return ok(
             await self.achoose(
                 instruction=instruction,
                 choices=choices,
                 k=1,
                 **kwargs,
-            )
+            ),
         )[0]
 
     async def ajudge(
@@ -523,7 +531,7 @@ class EmbeddingUsage(LLMUsage):
         """
         # check seq length
         max_len = self.embedding_max_sequence_length or configs.embedding.max_sequence_length
-        if any(len(t) > max_len for t in input_text):
+        if max_len and any(len(t) > max_len for t in input_text):
             logger.error(err := f"Input text exceeds maximum sequence length {max_len}.")
             raise ValueError(err)
 
@@ -537,10 +545,10 @@ class EmbeddingUsage(LLMUsage):
             or configs.embedding.timeout
             or self.llm_timeout
             or configs.llm.timeout,
-            api_key=(
+            api_key=ok(
                 self.embedding_api_key or configs.embedding.api_key or self.llm_api_key or configs.llm.api_key
             ).get_secret_value(),
-            api_base=(
+            api_base=ok(
                 self.embedding_api_endpoint
                 or configs.embedding.api_endpoint
                 or self.llm_api_endpoint
@@ -589,7 +597,7 @@ class ToolBoxUsage(LLMUsage):
         self,
         task: Task,
         **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
-    ) -> List[ToolBox]:
+    ) -> Optional[List[ToolBox]]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
         Args:
@@ -614,7 +622,7 @@ class ToolBoxUsage(LLMUsage):
         task: Task,
         toolbox: ToolBox,
         **kwargs: Unpack[ChooseKwargs[List[Tool]]],
-    ) -> List[Tool]:
+    ) -> Optional[List[Tool]]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
         Args:
@@ -654,11 +662,11 @@ class ToolBoxUsage(LLMUsage):
         tool_choose_kwargs = tool_choose_kwargs or {}
 
         # Choose the toolboxes
-        chosen_toolboxes = await self.choose_toolboxes(task, **box_choose_kwargs)
+        chosen_toolboxes = ok(await self.choose_toolboxes(task, **box_choose_kwargs))
         # Choose the tools
         chosen_tools = []
         for toolbox in chosen_toolboxes:
-            chosen_tools.extend(await self.choose_tools(task, toolbox, **tool_choose_kwargs))
+            chosen_tools.extend(ok(await self.choose_tools(task, toolbox, **tool_choose_kwargs)))
         return chosen_tools
 
     async def gather_tools(self, task: Task, **kwargs: Unpack[ChooseKwargs]) -> List[Tool]:

@@ -78,7 +78,7 @@ class LLMConfig(BaseModel):
     stream: Optional[bool] = Field(default=False)
     """Whether to stream the LLM model's response. Default is False."""
 
-    max_tokens: Optional[PositiveInt] = Field(default=8192)
+    max_tokens: Optional[PositiveInt] = Field(default=None)
     """The maximum number of tokens to generate. Set to 8192 as per request."""
 
     rpm: Optional[PositiveInt] = Field(default=100)
@@ -148,13 +148,13 @@ class DebugConfig(BaseModel):
     log_level: Literal["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     """The log level of the application."""
 
-    log_file: FilePath = Field(default=Path(rf"{ROAMING_DIR}\fabricatio.log"))
+    log_file: FilePath = Field(default=Path(rf"{ROAMING_DIR}\fabricatio.log"), frozen=True)
     """The log file of the application."""
 
-    rotation: int = Field(default=1)
+    rotation: int = Field(default=1, frozen=True)
     """The rotation of the log file. in weeks."""
 
-    retention: int = Field(default=2)
+    retention: int = Field(default=2, frozen=True)
     """The retention of the log file. in weeks."""
 
     streaming_visible: bool = Field(default=False)
