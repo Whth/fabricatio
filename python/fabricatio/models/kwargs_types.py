@@ -1,19 +1,30 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
+from importlib.util import find_spec
 from typing import Any, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
 
+if find_spec("pymilvus"):
+    from pymilvus import CollectionSchema
+    from pymilvus.milvus_client import IndexParams
 
-class CollectionSimpleConfigKwargs(TypedDict, total=False):
-    """Configuration parameters for a vector collection.
+    class CollectionConfigKwargs(TypedDict, total=False):
+        """Configuration parameters for a vector collection.
 
-    These arguments are typically used when configuring connections to vector databases.
-    """
+        These arguments are typically used when configuring connections to vector databases.
+        """
 
-    dimension: int | None
-    timeout: float
+        dimension: int | None
+        primary_field_name: str
+        id_type: str
+        vector_field_name: str
+        metric_type: str
+        auto_id: bool
+        timeout: float | None
+        schema: CollectionSchema | None
+        index_params: IndexParams | None
 
 
 class FetchKwargs(TypedDict, total=False):
