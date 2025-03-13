@@ -21,7 +21,6 @@ if find_spec("pymilvus"):
         id_type: str
         vector_field_name: str
         metric_type: str
-        auto_id: bool
         timeout: float | None
         schema: CollectionSchema | None
         index_params: IndexParams | None

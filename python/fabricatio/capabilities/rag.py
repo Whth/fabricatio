@@ -15,7 +15,7 @@ from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import (
     ChooseKwargs,
-    CollectionSimpleConfigKwargs,
+    CollectionConfigKwargs,
     EmbeddingKwargs,
     FetchKwargs,
     LLMKwargs,
@@ -102,14 +102,14 @@ class RAG(EmbeddingUsage):
         ]
 
     def view(
-        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionSimpleConfigKwargs]
+        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
     ) -> Self:
         """View the specified collection.
 
         Args:
             collection_name (str): The name of the collection.
             create (bool): Whether to create the collection if it does not exist.
-            **kwargs (Unpack[CollectionSimpleConfigKwargs]): Additional keyword arguments for collection configuration.
+            **kwargs (Unpack[CollectionConfigKwargs]): Additional keyword arguments for collection configuration.
         """
         if create and collection_name and self.client.has_collection(collection_name):
             kwargs["dimension"] = kwargs.get("dimension") or self.milvus_dimensions or configs.rag.milvus_dimensions
