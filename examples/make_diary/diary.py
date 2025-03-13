@@ -57,7 +57,7 @@ class DumpText(Action):
             ["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
         )
 
-        path = await self.handle_fin_grind(
+        path = await self.handle_fine_grind(
             task_input,
             {"text_to_dump": dump_text},
         )

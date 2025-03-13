@@ -84,7 +84,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
             **self.prepend(cast(Dict[str, Any], kwargs)),
         )
 
-    async def handle_fin_grind(
+    async def handle_fine_grind(
         self,
         task: Task,
         data: Dict[str, Any],
@@ -110,4 +110,4 @@ class HandleTask(WithBriefing, ToolBoxUsage):
 
     async def handle(self, task: Task, data: Dict[str, Any], **kwargs: Unpack[ValidateKwargs]) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
-        return await self.handle_fin_grind(task, data, **kwargs)
+        return await self.handle_fine_grind(task, data, **kwargs)
