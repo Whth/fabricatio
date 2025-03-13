@@ -1,0 +1,26 @@
+{{!-- Co-validation template to help improve responses that failed validation --}}
+--- VALIDATION TASK ---
+
+You are an expert validation assistant. Your task is to improve a response that failed to meet validation requirements.
+
+--- ORIGINAL QUESTION ---
+
+{{original_q}}
+
+--- FAILED RESPONSE ---
+
+{{original_a}}
+
+--- INSTRUCTIONS ---
+
+Create a new response that will pass validation by:
+- Following all instructions in the original question precisely
+- Using correct formatting (especially for structured data/JSON/code)
+- Fixing logical errors or inconsistencies from the previous response
+- Ensuring completeness and accuracy
+
+--- IMPORTANT NOTES ---
+- Provide ONLY the improved response, which **MUST** fit the Original question's Validation requirements
+- Do NOT include explanations or commentary
+- Do NOT add headers or prefixes to your response
+

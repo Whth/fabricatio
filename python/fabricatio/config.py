@@ -48,37 +48,37 @@ class LLMConfig(BaseModel):
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    api_endpoint: HttpUrl = Field(default=HttpUrl("https://api.openai.com"))
+    api_endpoint: Optional[HttpUrl] = Field(default=HttpUrl("https://api.openai.com"))
     """OpenAI API Endpoint."""
 
-    api_key: SecretStr = Field(default=SecretStr(""))
+    api_key: Optional[SecretStr] = Field(default=SecretStr("sk-setyourkey"))
     """OpenAI API key. Empty by default for security reasons, should be set before use."""
 
-    timeout: PositiveInt = Field(default=300)
+    timeout: Optional[PositiveInt] = Field(default=300)
     """The timeout of the LLM model in seconds. Default is 300 seconds as per request."""
 
-    max_retries: PositiveInt = Field(default=3)
+    max_retries: Optional[PositiveInt] = Field(default=3)
     """The maximum number of retries. Default is 3 retries."""
 
-    model: str = Field(default="gpt-3.5-turbo")
+    model: Optional[str] = Field(default="gpt-3.5-turbo")
     """The LLM model name. Set to 'gpt-3.5-turbo' as per request."""
 
-    temperature: NonNegativeFloat = Field(default=1.0)
+    temperature: Optional[NonNegativeFloat] = Field(default=1.0)
     """The temperature of the LLM model. Controls randomness in generation. Set to 1.0 as per request."""
 
-    stop_sign: str | List[str] = Field(default_factory=lambda: ["\n\n\n", "User:"])
+    stop_sign: Optional[str | List[str]] = Field(default="")
     """The stop sign of the LLM model. No default stop sign specified."""
 
-    top_p: NonNegativeFloat = Field(default=0.35)
+    top_p: Optional[NonNegativeFloat] = Field(default=0.35)
     """The top p of the LLM model. Controls diversity via nucleus sampling. Set to 0.35 as per request."""
 
-    generation_count: PositiveInt = Field(default=1)
+    generation_count: Optional[PositiveInt] = Field(default=1)
     """The number of generations to generate. Default is 1."""
 
-    stream: bool = Field(default=False)
+    stream: Optional[bool] = Field(default=False)
     """Whether to stream the LLM model's response. Default is False."""
 
-    max_tokens: PositiveInt = Field(default=8192)
+    max_tokens: Optional[PositiveInt] = Field(default=8192)
     """The maximum number of tokens to generate. Set to 8192 as per request."""
 
     rpm: Optional[PositiveInt] = Field(default=100)
@@ -93,7 +93,7 @@ class EmbeddingConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    model: str = Field(default="text-embedding-ada-002")
+    model: Optional[str] = Field(default="text-embedding-ada-002")
     """The embedding model name. """
 
     dimensions: Optional[PositiveInt] = Field(default=None)
@@ -102,10 +102,10 @@ class EmbeddingConfig(BaseModel):
     timeout: Optional[PositiveInt] = Field(default=None)
     """The timeout of the embedding model in seconds."""
 
-    max_sequence_length: PositiveInt = Field(default=8192)
+    max_sequence_length: Optional[PositiveInt] = Field(default=8192)
     """The maximum sequence length of the embedding model. Default is 8192 as per request."""
 
-    caching: bool = Field(default=False)
+    caching: Optional[bool] = Field(default=False)
     """Whether to cache the embedding. Default is False."""
 
     api_endpoint: Optional[HttpUrl] = None
@@ -232,6 +232,9 @@ class TemplateConfig(BaseModel):
     correct_template: str = Field(default="correct")
     """The name of the correct template which will be used to correct a string."""
 
+    co_validation_template: str = Field(default="co_validation")
+    """The name of the co-validation template which will be used to co-validate a string."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
@@ -272,7 +275,7 @@ class RagConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    milvus_uri: HttpUrl = Field(default=HttpUrl("http://localhost:19530"))
+    milvus_uri: Optional[HttpUrl] = Field(default=HttpUrl("http://localhost:19530"))
     """The URI of the Milvus server."""
     milvus_timeout: Optional[PositiveFloat] = Field(default=None)
     """The timeout of the Milvus server."""

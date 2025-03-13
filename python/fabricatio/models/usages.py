@@ -277,8 +277,9 @@ class LLMUsage(ScopedConfig):
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation: \n{e}")
                     break
-                kwargs["no_cache"] = True
-                logger.debug("Closed the cache for the next attempt")
+                if not kwargs.get("no_cache"):
+                    kwargs["no_cache"] = True
+                    logger.debug("Closed the cache for the next attempt")
             if default is None:
                 logger.error(f"Failed to validate the response after {max_validations} attempts.")
             return default
