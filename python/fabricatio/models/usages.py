@@ -14,7 +14,7 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages, ok
 from fabricatio.parser import GenericCapture, JsonCapture
-from litellm import Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
+from litellm import RateLimitError, Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
     Choices,
@@ -33,6 +33,7 @@ if configs.cache.enabled and configs.cache.type:
 
 ROUTER = Router(
     routing_strategy="usage-based-routing-v2",
+    default_max_parallel_requests=configs.routing.max_parallel_requests,
     allowed_fails=configs.routing.allowed_fails,
     retry_after=configs.routing.retry_after,
     cooldown_time=configs.routing.cooldown_time,
@@ -305,6 +306,9 @@ class LLMUsage(ScopedConfig):
                     ):
                         logger.debug(f"Successfully validated the co-response at {lap}th attempt.")
                         return validated
+                except RateLimitError as e:
+                    logger.warning(f"Rate limit error: {e}")
+                    continue
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation: \n{e}")
                     break

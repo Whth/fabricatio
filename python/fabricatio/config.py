@@ -277,7 +277,7 @@ class RagConfig(BaseModel):
 
     milvus_uri: Optional[HttpUrl] = Field(default=HttpUrl("http://localhost:19530"))
     """The URI of the Milvus server."""
-    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
+    milvus_timeout: Optional[PositiveFloat] = Field(default=30.0)
     """The timeout of the Milvus server."""
     milvus_token: Optional[SecretStr] = Field(default=None)
     """The token of the Milvus server."""
@@ -303,11 +303,13 @@ class RoutingConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    allowed_fails: Optional[int] = 1
+    max_parallel_requests: Optional[int] = 60
+    """The maximum number of parallel requests. None means not checked."""
+    allowed_fails: Optional[int] = 3
     """The number of allowed fails before the routing is considered failed."""
     retry_after: int = 15
     """The time in seconds to wait before retrying the routing after a fail."""
-    cooldown_time: Optional[int] = 120
+    cooldown_time: Optional[int] = 30
     """The time in seconds to wait before retrying the routing after a cooldown."""
 
 
