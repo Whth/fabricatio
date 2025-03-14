@@ -63,8 +63,16 @@ class RAG(EmbeddingUsage):
             uri=milvus_uri or ok(self.milvus_uri or configs.rag.milvus_uri).unicode_string(),
             token=milvus_token
             or (token.get_secret_value() if (token := (self.milvus_token or configs.rag.milvus_token)) else ""),
-            timeout=milvus_timeout or self.milvus_timeout,
+            timeout=milvus_timeout or self.milvus_timeout or configs.rag.milvus_timeout,
         )
+        return self
+
+    def check_client(self, init: bool = True) -> Self:
+        """Check if the client is initialized, and if not, initialize it."""
+        if self._client is None and init:
+            return self.init_client()
+        if self._client is None and not init:
+            raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
         return self
 
     @overload
@@ -111,8 +119,15 @@ class RAG(EmbeddingUsage):
             create (bool): Whether to create the collection if it does not exist.
             **kwargs (Unpack[CollectionConfigKwargs]): Additional keyword arguments for collection configuration.
         """
-        if create and collection_name and self.client.has_collection(collection_name):
-            kwargs["dimension"] = kwargs.get("dimension") or self.milvus_dimensions or configs.rag.milvus_dimensions
+        if create and collection_name and not self.check_client().client.has_collection(collection_name):
+            kwargs["dimension"] = ok(
+                kwargs.get("dimension")
+                or self.milvus_dimensions
+                or configs.rag.milvus_dimensions
+                or self.embedding_dimensions
+                or configs.embedding.dimensions,
+                "`dimension` is not set at any level.",
+            )
             self.client.create_collection(collection_name, auto_id=True, **kwargs)
             logger.info(f"Creating collection {collection_name}")
 
@@ -158,7 +173,7 @@ class RAG(EmbeddingUsage):
         else:
             raise TypeError(f"Expected MilvusData or list of MilvusData, got {type(data)}")
         c_name = collection_name or self.safe_target_collection
-        self.client.insert(c_name, prepared_data)
+        self.check_client().client.insert(c_name, prepared_data)
 
         if flush:
             logger.debug(f"Flushing collection {c_name}")
@@ -219,7 +234,7 @@ class RAG(EmbeddingUsage):
             List[Dict[str, Any]] | List[Any]: The retrieved data.
         """
         # Step 1: Search for vectors
-        search_results = self.client.search(
+        search_results = self.check_client().client.search(
             collection_name or self.safe_target_collection,
             vecs,
             search_params={"radius": similarity_threshold},
