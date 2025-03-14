@@ -275,7 +275,7 @@ class RAG(EmbeddingUsage):
         if isinstance(query, str):
             query = [query]
         return cast(
-            List[str],
+            'List[str]',
             await self.afetch_document(
                 vecs=(await self.vectorize(query)),
                 desired_fields="text",

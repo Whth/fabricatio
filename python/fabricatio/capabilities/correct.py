@@ -55,7 +55,7 @@ class Correct(Review):
         if supervisor_check:
             await review_res.supervisor_check()
         if "default" in kwargs:
-            cast(ReviewKwargs[None], kwargs)["default"] = None
+            cast('ReviewKwargs[None]', kwargs)["default"] = None
         return await self.propose(
             obj.__class__,
             TEMPLATE_MANAGER.render_template(
@@ -89,7 +89,7 @@ class Correct(Review):
             await review_res.supervisor_check()
 
         if "default" in kwargs:
-            cast(ReviewKwargs[None], kwargs)["default"] = None
+            cast('ReviewKwargs[None]', kwargs)["default"] = None
         return await self.ageneric_string(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.correct_template, {"content": input_text, "review": review_res.display()}

@@ -136,7 +136,9 @@ class ToolExecutor(BaseModel):
 
     def inject_tools[M: ModuleType](self, module: Optional[M] = None) -> M:
         """Inject the tools into the provided module or default."""
-        module = module or cast(M, module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None)))
+        module = module or cast(
+            "M", module_from_spec(spec=ModuleSpec(name=configs.toolbox.tool_module_name, loader=None))
+        )
         for tool in self.candidates:
             logger.debug(f"Injecting tool: {tool.name}")
             setattr(module, tool.name, tool.invoke)
@@ -144,7 +146,9 @@ class ToolExecutor(BaseModel):
 
     def inject_data[M: ModuleType](self, module: Optional[M] = None) -> M:
         """Inject the data into the provided module or default."""
-        module = module or cast(M,module_from_spec(spec=ModuleSpec(name=configs.toolbox.data_module_name, loader=None)))
+        module = module or cast(
+            'M', module_from_spec(spec=ModuleSpec(name=configs.toolbox.data_module_name, loader=None))
+        )
         for key, value in self.data.items():
             logger.debug(f"Injecting data: {key}")
             setattr(module, key, value)

@@ -121,7 +121,7 @@ class ReviewResult[T](ProposedAble, Display):
             ReviewResult[K]: The current instance with updated reference type.
         """
         self._ref = ref  # pyright: ignore [reportAttributeAccessIssue]
-        return cast(ReviewResult[K], self)
+        return cast("ReviewResult[K]", self)
 
     def deref(self) -> T:
         """Retrieve the referenced object that was reviewed.
@@ -200,7 +200,7 @@ class Review(GiveRating, Propose):
             ReviewResult[Task[T]]: A review result containing identified problems and proposed solutions,
                 with a reference to the original task.
         """
-        return cast(ReviewResult[Task[T]], await self.review_obj(task, **kwargs))
+        return cast('ReviewResult[Task[T]]', await self.review_obj(task, **kwargs))
 
     async def review_string(
         self,
