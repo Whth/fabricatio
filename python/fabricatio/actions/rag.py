@@ -5,7 +5,7 @@ from typing import List, Optional
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
 from fabricatio.models.generic import PrepareVectorization
-
+from fabricatio.journal import logger
 
 class InjectToDB(Action, RAG):
     """Inject data into the database."""
@@ -13,13 +13,13 @@ class InjectToDB(Action, RAG):
     output_key: str = "collection_name"
 
     async def _execute[T: PrepareVectorization](
-        self, to_inject: T | List[T], collection_name: Optional[str] = "my_collection", **_
+        self, to_inject: Optional[T] | List[Optional[T]], collection_name: Optional[str] = "my_collection", **_
     ) -> Optional[str]:
         if not isinstance(to_inject, list):
             to_inject = [to_inject]
-
+        logger.info(f"Injecting {len(to_inject)} items into the collection '{collection_name}'")
         await self.view(collection_name, create=True).consume_string(
-            [t.prepare_vectorization(self.embedding_max_sequence_length) for t in to_inject],
+            [t.prepare_vectorization(self.embedding_max_sequence_length) for t in to_inject if isinstance(t,PrepareVectorization)],
         )
 
         return collection_name
