@@ -24,10 +24,10 @@ class ExtractArticleEssence(Action):
     output_key: str = "article_essence"
     """The key of the output data."""
 
-    async def _execute[P: PathLike | str](
+    async def _execute(
         self,
         task_input: Task,
-        reader: Callable[[P], str] = lambda p: Path(p).read_text(encoding="utf-8"),
+        reader: Callable[[str], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
     ) -> Optional[List[ArticleEssence]]:
         if not task_input.dependencies:
@@ -118,7 +118,7 @@ class CorrectOutline(Action):
         article_proposal: ArticleProposal,
 
         **_,
-    ) -> Optional[str]:
+    ) -> ArticleOutline:
         ret = None
         while await confirm("Do you want to correct the outline?").ask_async():
             rprint(article_outline.finalized_dump())
@@ -126,3 +126,6 @@ class CorrectOutline(Action):
                 ...
             ret = await self.correct_obj(article_outline, article_proposal.display(), topic=topic)
         return ret or article_outline
+
+
+
