@@ -34,7 +34,7 @@ class Equation(BaseModel):
 class Figure(BaseModel):
     """Visual component specification for technical communication.
 
-    Combines graphical assets with structured academic captioning.
+    Combines graphical assets with structured academic captioning.Extracted from the article provided
     """
 
     description: str
@@ -53,8 +53,8 @@ class Figure(BaseModel):
     Example: "Figure 3: Differentiable NAS framework. (a) Search space topology with constrained dimensions. (b) Training convergence across language pairs. Dashed lines indicate baseline methods."
     """
 
-    figure_path: str
-    """The path to the figure file, which points to the image embedded in the Markdown. MUST be exactly the same as the one in the original article."""
+    figure_serial_number: int
+    """The Image serial number extracted from the Markdown article provided, the path usually in the form of `![](images/1.jpg)`, in this case the serial number is `1`"""
 
 
 class Algorithm(BaseModel):

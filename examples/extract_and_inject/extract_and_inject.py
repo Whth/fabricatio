@@ -4,6 +4,8 @@ import asyncio
 from pathlib import Path
 from typing import List, Optional
 
+from pydantic import HttpUrl
+
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.rag import InjectToDB
@@ -32,20 +34,26 @@ async def main() -> None:
     role = Role(
         name="Researcher",
         description="Extract article essence",
-        llm_model="openai/qwen-max-latest",
+        llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+        llm_model="openai/qwq-plus",
+        llm_stream=True,
         llm_rpm=500,
-        llm_tpm=1000000,
+        llm_tpm=5000000,
         registry={
             Event.quick_instantiate("article"): WorkFlow(
                 name="extract",
                 steps=(ExtractArticleEssence(output_key="to_inject"), SaveToFS, InjectToDB(output_key="task_output")),
-            ).update_init_context(override_inject=True,collection_name="article_essence_max", output_dir=Path("output"))
+            ).update_init_context(
+                override_inject=True, collection_name="article_essence_max", output_dir=Path("output")
+            )
         },
     )
 
-    task: Task[str] = ok(await role.propose_task(
-        "Extract the essence of the article from the files in './bpdf_out'",
-    ))
+    task: Task[str] = ok(
+        await role.propose_task(
+            "Extract the essence of the article from the files in './bpdf_out'",
+        )
+    )
 
     col_name = await task.override_dependencies(gather_files("bpdf_out", "md")).delegate("article")
 
