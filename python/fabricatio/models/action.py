@@ -48,7 +48,7 @@ class Action(HandleTask, ProposeTask, Correct):
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
-    async def _execute(self, **cxt) -> Any:
+    async def _execute(self,*_, **cxt) -> Any:  # noqa: ANN002
         """Execute the action logic with the provided context arguments.
 
         This method must be implemented by subclasses to define the actual behavior.
