@@ -9,6 +9,7 @@ from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.rag import InjectToDB
 from fabricatio.fs.curd import dump_text, gather_files
 from fabricatio.models.extra import ArticleEssence
+from fabricatio.models.utils import ok
 
 
 class SaveToFS(Action):
@@ -31,21 +32,20 @@ async def main() -> None:
     role = Role(
         name="Researcher",
         description="Extract article essence",
-        llm_model="openai/deepseek-r1-distill-llama-70b",
-        llm_rpm=50,
-        llm_tpm=100000,
+        llm_model="openai/qwen-max-latest",
+        llm_rpm=500,
+        llm_tpm=1000000,
         registry={
             Event.quick_instantiate("article"): WorkFlow(
                 name="extract",
                 steps=(ExtractArticleEssence(output_key="to_inject"), SaveToFS, InjectToDB(output_key="task_output")),
-                extra_init_context={"collection_name": "article_essence", "output_dir": Path("output")},
-            )
+            ).update_init_context(override_inject=True,collection_name="article_essence_max", output_dir=Path("output"))
         },
     )
 
-    task: Task[str] = await role.propose_task(
+    task: Task[str] = ok(await role.propose_task(
         "Extract the essence of the article from the files in './bpdf_out'",
-    )
+    ))
 
     col_name = await task.override_dependencies(gather_files("bpdf_out", "md")).delegate("article")
 

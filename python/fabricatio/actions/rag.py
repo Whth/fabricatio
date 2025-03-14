@@ -16,11 +16,13 @@ class InjectToDB(Action, RAG):
     output_key: str = "collection_name"
 
     async def _execute[T: PrepareVectorization](
-        self, to_inject: Optional[T] | List[Optional[T]], collection_name: Optional[str] = "my_collection", **_
+        self, to_inject: Optional[T] | List[Optional[T]], collection_name: str = "my_collection",override_inject:bool=False, **_
     ) -> Optional[str]:
         if not isinstance(to_inject, list):
             to_inject = [to_inject]
         logger.info(f"Injecting {len(to_inject)} items into the collection '{collection_name}'")
+        if override_inject:
+            self.check_client().client.drop_collection(collection_name)
         await self.view(collection_name, create=True).consume_string(
             [
                 t.prepare_vectorization(self.embedding_max_sequence_length)

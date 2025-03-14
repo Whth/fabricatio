@@ -3,11 +3,12 @@
 from typing import List, Self
 
 from fabricatio.models.generic import Base, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
-from pydantic import Field
-
 
 # <editor-fold desc="ArticleEssence">
-class Equation(Base):
+from pydantic import BaseModel, Field
+
+
+class Equation(BaseModel):
     """Mathematical formalism specification for research contributions.
 
     Encodes equations with dual representation: semantic meaning and typeset-ready notation.
@@ -15,20 +16,22 @@ class Equation(Base):
 
     description: str
     """Equation significance structured in three elements:
-    1. Physical/conceptual meaning
-    2. Role in technical workflow
-    3. Relationship to paper's core contribution
-    Example: 'Defines constrained search space dimensionality reduction. Used in architecture optimization phase (Section 3.2). Enables 40% parameter reduction.'"""
+    1. Physical/conceptual meaning of the equation.
+    2. Role in technical workflow (e.g., derivation, optimization, or analysis).
+    3. Relationship to the paper's core contribution (e.g., theoretical foundation, empirical validation).
+    Example: "Defines constrained search space dimensionality reduction. Used in architecture optimization phase (Section 3.2). Enables 40% parameter reduction."
+    """
 
     latex_code: str
     """LaTeX representation following academic typesetting standards:
-    - Must use equation environment
-    - Multiline equations aligned at '='
-    - Unit annotations where applicable
-    Example: r'\begin{equation} \\mathcal{L}_{NAS} = \alpha \\|\theta\\|_2 + \beta H(p) \\end{equation}'"""
+    - Must use equation environment (e.g., `equation`, `align`).
+    - Multiline equations must align at '=' using `&`.
+    - Include unit annotations where applicable.
+    Example: "\\begin{equation} \\mathcal{L}_{NAS} = \\alpha \\|\\theta\\|_2 + \\beta H(p) \\end{equation}"
+    """
 
 
-class Figure(Base):
+class Figure(BaseModel):
     """Visual component specification for technical communication.
 
     Combines graphical assets with structured academic captioning.
@@ -36,72 +39,100 @@ class Figure(Base):
 
     description: str
     """Figure interpretation guide containing:
-    1. Key visual elements mapping
-    2. Data representation methodology
-    3. Connection to research findings
-    Example: 'Architecture search space topology (left) vs. convergence curves (right). Demonstrates NAS efficiency gains through constrained search.'"""
+    1. Key visual elements mapping (e.g., axes, legends, annotations).
+    2. Data representation methodology (e.g., visualization type, statistical measures).
+    3. Connection to research findings (e.g., supports hypothesis, demonstrates performance).
+    Example: "Architecture search space topology (left) vs. convergence curves (right). Demonstrates NAS efficiency gains through constrained search."
+    """
 
     figure_caption: str
     """Complete caption following Nature-style guidelines:
-    1. Brief overview statement (首句总结)
-    2. Technical detail layer
-    3. Result implication
-    Example: 'Figure 3: Differentiable NAS framework. (a) Search space topology with constrained dimensions. (b) Training convergence across language pairs. Dashed lines indicate baseline methods.'"""
+    1. Brief overview statement (首句总结).
+    2. Technical detail layer (e.g., data sources, experimental conditions).
+    3. Result implication (e.g., key insights, implications for future work).
+    Example: "Figure 3: Differentiable NAS framework. (a) Search space topology with constrained dimensions. (b) Training convergence across language pairs. Dashed lines indicate baseline methods."
+    """
 
     figure_path: str
-    """Filesystem path to high-resolution vector graphic (PDF/EPS/SVG).
-    Strict validation requirements:
-    - Absolute path under /assets/figures/
-    - Naming convention: fig[chapter]-[section]_[description].pdf
-    Example: '/assets/figures/fig3-2_nas_convergence.pdf'"""
+    """The path to the figure file, which points to the image embedded in the Markdown. MUST be exactly the same as the one in the original article."""
 
 
-class Highlightings(Base):
+class Algorithm(BaseModel):
+    """Algorithm specification for research contributions."""
+
+    title: str
+    """Algorithm title with technical focus descriptor (e.g., 'Gradient Descent Optimization').
+
+    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """
+
+    description: str
+    """Algorithm description with technical focus descriptor:
+    - Includes input/output specifications.
+    - Describes key steps and their purpose.
+    - Explains its role in the research workflow.
+    Example: "Proposed algorithm for neural architecture search. Inputs include search space constraints and training data. Outputs optimized architecture."
+    """
+
+
+class Table(BaseModel):
+    """Table specification for research contributions."""
+
+    title: str
+    """Table title with technical focus descriptor (e.g., 'Comparison of Model Performance Metrics').
+
+    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """
+
+    description: str
+    """Table description with technical focus descriptor:
+    - Includes data source and structure.
+    - Explains key columns/rows and their significance.
+    - Connects to research findings or hypotheses.
+    Example: "Performance metrics for different architectures. Columns represent accuracy, F1-score, and inference time. Highlights efficiency gains of proposed method."
+    """
+
+
+class Highlightings(BaseModel):
     """Technical showcase aggregator for research artifacts.
 
     Curates core scientific components with machine-parseable annotations.
     """
 
-    highlighted_equations: List[Equation] = Field(default_factory=list)
-    """3-5 pivotal equations representing theoretical contributions.
-    Each must:
-    - Use $$ wrapping for display math
-    - Contain at least one novel operator/symbol
-    - Reference in Methods/Results sections
-    Example: Equation describing proposed loss function"""
+    highlighted_equations: List[Equation]
+    """3-5 pivotal equations representing theoretical contributions:
+    - Each equation must be wrapped in $$ for display math.
+    - Contain at least one novel operator/symbol.
+    - Be referenced in Methods/Results sections.
+    Example: Equation describing proposed loss function.
+    """
 
-    highlighted_algorithms: List[str] = Field(default_factory=list)
-    """Algorithm pseudocode following ACM style:
-    1. Numbered steps with bold keywords
-    2. Complexity analysis subsection
-    3. Novel components marked with ※
-    Example:
-    'Algorithm 1: Constrained NAS
-    1. Initialize search space with §3.1 constraints ※
-    2. While not converged:
-        a. Compute gradient ▽θ
-        b. Update architecture parameters...'"""
+    highlighted_algorithms: List[Algorithm]
+    """1-2 key algorithms demonstrating methodological contributions:
+    - Include pseudocode or step-by-step descriptions.
+    - Highlight innovation in computational approach.
+    Example: Algorithm for constrained search space exploration.
 
-    highlighted_figures: List[Figure] = Field(default_factory=list)
+    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """
+
+    highlighted_figures: List[Figure]
     """4-6 key figures demonstrating:
-    1. Framework overview (1 required)
-    2. Quantitative results (2-3 required)
-    3. Ablation studies (1 optional)
-    Each must appear in Results/Discussion chapters."""
+    1. Framework overview (1 required).
+    2. Quantitative results (2-3 required).
+    3. Ablation studies (1 optional).
+    Each must appear in Results/Discussion chapters.
+    Example: Figure showing architecture topology and convergence curves.
+    """
 
-    highlighted_tables: List[str] = Field(default_factory=list)
-    """Critical data presentations using booktabs format:
-    - Minimum 3 comparison baselines
-    - Statistical significance markers (*/†/‡)
-    - Standard deviation in parentheses
-    Example:
-    \begin{tabular}{lcc}
-    \toprule
-    Method & BLEU & Δ Params \\
-    \\midrule
-    Ours & 32.4 & -41\\%† \\
-    \bottomrule
-    \\end{tabular}"""
+    highlighted_tables: List[Table]
+    """2-3 key tables summarizing:
+    - Comparative analysis of methods.
+    - Empirical results supporting claims.
+    Example: Table comparing model performance across datasets.
+
+    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """
 
 
 class ArticleEssence(ProposedAble, Display, PrepareVectorization):
@@ -109,6 +140,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
 
     Encodes research artifacts with dual human-machine interpretability.
     """
+
     title: str = Field(...)
     """Exact title of the original article without any modification.
     Must be preserved precisely from the source material without:
@@ -116,7 +148,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     - Paraphrasing
     - Adding/removing words
     - Altering style or formatting
-    Example: The exact published title as it appears in the original document"""
+    """
 
     authors: List[str]
     """Original author names exactly as they appear in the source document. No translation or paraphrasing.
@@ -129,7 +161,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     publication_year: int
     """Publication timestamp in ISO 8601 (YYYY format)."""
 
-    highlightings: Highlightings = Field(default_factory=Highlightings)
+    highlightings: Highlightings
     """Technical highlight reel containing:
     - Core equations (Theory)
     - Key algorithms (Implementation)
@@ -137,9 +169,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     - Benchmark tables (Evaluation)"""
 
     domain: List[str]
-    """Primary research domains from ACM CCS 2023 taxonomy.
-    Exactly 2-3 categories required.
-    Example: ['Computing methodologies → Machine learning']"""
+    """Domain tags for research focus."""
 
     abstract: str = Field(...)
     """Three-paragraph structured abstract:
