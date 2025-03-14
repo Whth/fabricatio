@@ -109,28 +109,25 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
 
     Encodes research artifacts with dual human-machine interpretability.
     """
-
     title: str = Field(...)
-    """Complete title with technical specificity (12-18 words).
-    Must contain:
-    1. Methodology focus
-    2. Application domain
-    3. Performance metric
-    Example: 'EfficientViT: Multi-Scale Linear Attention for High-Resolution Dense Prediction'"""
+    """Exact title of the original article without any modification.
+    Must be preserved precisely from the source material without:
+    - Translation
+    - Paraphrasing
+    - Adding/removing words
+    - Altering style or formatting
+    Example: The exact published title as it appears in the original document"""
 
     authors: List[str]
-    """Author list with institutional annotations.
-    Format: [First Last¹, First Last²]
-    Superscripts mapping to affiliations.
-    Example: ['Yuanhao Zhou¹', 'Lei Chen²']"""
+    """Original author names exactly as they appear in the source document. No translation or paraphrasing.
+    Extract complete list without any modifications or formatting changes."""
 
     keywords: List[str]
-    """5-8 ACM CCS concepts in camel case.
-    Example: ['Computing methodologies~Neural networks', 'Hardware~Emerging technologies']"""
+    """Original keywords exactly as they appear in the source document. No translation or paraphrasing.
+    Extract the complete set without modifying format or terminology."""
 
     publication_year: int
-    """Publication timestamp in ISO 8601 (YYYY format).
-    Constraint: 2017 ≤ year ≤ current_year"""
+    """Publication timestamp in ISO 8601 (YYYY format)."""
 
     highlightings: Highlightings = Field(default_factory=Highlightings)
     """Technical highlight reel containing:
