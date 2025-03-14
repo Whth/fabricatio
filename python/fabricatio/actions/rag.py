@@ -3,9 +3,10 @@
 from typing import List, Optional
 
 from fabricatio.capabilities.rag import RAG
+from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import PrepareVectorization
-from fabricatio.journal import logger
+
 
 class InjectToDB(Action, RAG):
     """Inject data into the database."""
