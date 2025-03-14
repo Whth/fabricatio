@@ -4,14 +4,13 @@ import asyncio
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import HttpUrl
-
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.rag import InjectToDB
 from fabricatio.fs.curd import dump_text, gather_files
 from fabricatio.models.extra import ArticleEssence
 from fabricatio.models.utils import ok
+from pydantic import HttpUrl
 
 
 class SaveToFS(Action):

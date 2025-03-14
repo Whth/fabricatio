@@ -1,6 +1,5 @@
 """Actions for transmitting tasks to targets."""
 
-from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
