@@ -64,11 +64,11 @@ To satisfy the given requirements, Generate a JSON object that strictly adheres 
 ----- END of RESPONSE -----
 
 # Critical Constraints:
-‼️ Output MUST contain ONLY the JSON object within the code block
+‼️ Output MUST contain ONLY the JSON object within the Markdown format codeblock
 ‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.)
 ‼️ PROPERLY ESCAPE special characters in strings (quotes, newlines, etc.)
 ‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
 ‼️ Handle optional parameters context-appropriately
-
+‼️ Your response MUST be a valid JSON object wrapped in a Markdown codeblock, not `--- BEGIN of RESPONSE ---` and `--- END of RESPONSE ---` or any other format.
 # Validation:
 The generated JSON within the code block MUST pass JSON Schema validation. Any non-compliant response will be rejected by the system.
