@@ -38,6 +38,12 @@ class FetchKwargs(TypedDict, total=False):
     result_per_query: int
 
 
+class RetrievalKwargs(FetchKwargs, total=False):
+    """Arguments for retrieval operations."""
+
+    final_limit: int
+
+
 class EmbeddingKwargs(TypedDict, total=False):
     """Configuration parameters for text embedding operations.
 

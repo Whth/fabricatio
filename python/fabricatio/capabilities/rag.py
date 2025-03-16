@@ -19,6 +19,7 @@ from fabricatio.models.kwargs_types import (
     EmbeddingKwargs,
     FetchKwargs,
     LLMKwargs,
+    RetrievalKwargs,
 )
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.models.utils import MilvusData, ok
@@ -213,6 +214,25 @@ class RAG(EmbeddingUsage):
         self.add_document(await self.pack(text), collection_name or self.safe_target_collection, flush=True)
         return self
 
+    @overload
+    async def afetch_document[V: (int, str, float, bytes)](
+        self,
+        vecs: List[List[float]],
+        desired_fields: List[str],
+        collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
+        result_per_query: int = 10,
+    ) -> List[Dict[str, V]]: ...
+
+    @overload
+    async def afetch_document[V: (int, str, float, bytes)](
+        self,
+        vecs: List[List[float]],
+        desired_fields: str,
+        collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
+        result_per_query: int = 10,
+    ) -> List[V]: ...
     async def afetch_document[V: (int, str, float, bytes)](
         self,
         vecs: List[List[float]],
@@ -275,13 +295,31 @@ class RAG(EmbeddingUsage):
         if isinstance(query, str):
             query = [query]
         return cast(
-            'List[str]',
+            "List[str]",
             await self.afetch_document(
                 vecs=(await self.vectorize(query)),
                 desired_fields="text",
                 **kwargs,
             ),
         )[:final_limit]
+
+    async def aretrieve_compact(
+        self,
+        query: List[str] | str,
+        **kwargs: Unpack[RetrievalKwargs],
+    ) -> str:
+        """Retrieve data from the collection and format it for display.
+
+        Args:
+            query (List[str] | str): The query to be used for retrieval.
+            **kwargs (Unpack[RetrievalKwargs]): Additional keyword arguments for retrieval.
+
+        Returns:
+            str: A formatted string containing the retrieved data.
+        """
+        return TEMPLATE_MANAGER.render_template(
+            configs.templates.retrieved_display_template, {"docs": (await self.aretrieve(query, **kwargs))}
+        )
 
     async def aask_retrieved(
         self,
@@ -313,15 +351,13 @@ class RAG(EmbeddingUsage):
         Returns:
             str: A string response generated after asking with the context of retrieved documents.
         """
-        docs = await self.aretrieve(
+        rendered = await self.aretrieve_compact(
             query or question,
-            final_limit,
+            final_limit=final_limit,
             collection_name=collection_name,
             result_per_query=result_per_query,
             similarity_threshold=similarity_threshold,
         )
-
-        rendered = TEMPLATE_MANAGER.render_template(configs.templates.retrieved_display_template, {"docs": docs[::-1]})
 
         logger.debug(f"Retrieved Documents: \n{rendered}")
         return await self.aask(
