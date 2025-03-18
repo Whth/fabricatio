@@ -100,8 +100,14 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     co_extractor: GenerateKwargs
 
 
+class ReviewInnerKwargs[T](ValidateKwargs[T], total=False):
+    """Arguments for content review operations."""
+
+    criteria: set[str]
+
+
 # noinspection PyTypedDict
-class ReviewKwargs[T](ValidateKwargs[T], total=False):
+class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
     """Arguments for content review operations.
 
     Extends GenerateKwargs with parameters for evaluating content against
@@ -109,7 +115,6 @@ class ReviewKwargs[T](ValidateKwargs[T], total=False):
     """
 
     topic: Required[str]
-    criteria: set[str]
 
 
 class CorrectKwargs[T](ReviewKwargs[T], total=False):
@@ -118,6 +123,13 @@ class CorrectKwargs[T](ReviewKwargs[T], total=False):
     Extends GenerateKwargs with parameters for correcting content based on
     specific criteria and templates.
     """
+
+    reference: str
+    supervisor_check: bool
+
+
+class CensoredCorrectKwargs[T](ReviewInnerKwargs[T], total=False):
+    """Arguments for content censorship operations."""
 
     reference: str
     supervisor_check: bool
