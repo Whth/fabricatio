@@ -1,6 +1,6 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
@@ -75,17 +75,26 @@ class WithBriefing(Named, Described):
         """
         return f"{self.name}: {self.description}" if self.description else self.name
 
-    def prepend[D: Dict[str, Any]](self, kwargs: D) -> D:
-        """Prepend the briefing to the system message in the kwargs.
+    def _prepend_inner(self, input_text: str) -> str:
+        return f"# your personal briefing: \n{self.briefing}\n{input_text}"
+
+    def prepend_sys_msg[D: (Dict[str, Any], str)](self, system_msg_like: D = "") -> Dict[str, Any]:
+        """Prepend the system message with the briefing.
 
         Args:
-            kwargs (Dict[str, Any]): The keyword arguments to modify.
+            system_msg_like (str | dict): The system message or a dictionary containing the system message.
 
         Returns:
-            Dict[str, Any]: The modified keyword arguments.
+            dict: The system message with the briefing prepended.
         """
-        kwargs["system_message"] = f"# your personal briefing: \n{self.briefing}\n" + kwargs.get("system_message", "")
-        return kwargs
+        match system_msg_like:
+            case dict(d):
+                d["system_message"] = self._prepend_inner(d.get("system_message", ""))
+                return d
+            case str(s):
+                return {"system_message": self._prepend_inner(s)}
+            case _:
+                raise TypeError(f"{system_msg_like} is not a dict or str")
 
 
 class WithFormatedJsonSchema(Base):
@@ -158,8 +167,6 @@ class InstantiateFromString(Base):
 class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
     """Class that provides a method to propose a JSON object based on the requirement."""
 
-    pass
-
 
 class FinalizedDumpAble(Base):
     """Class that provides a method to finalize the dump of the object."""
@@ -183,6 +190,10 @@ class FinalizedDumpAble(Base):
         """
         Path(path).write_text(self.finalized_dump(), encoding="utf-8")
         return self
+
+
+class CensoredCorrectable(ProposedAble, FinalizedDumpAble, ABC):
+    """Class that provides a method to correct the object based on the proposal."""
 
 
 class WithDependency(Base):
