@@ -37,7 +37,7 @@ class ProposeTask(WithBriefing, Propose):
             logger.error(err := f"{self.name}: Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.propose(Task, prompt, **self.prepend(cast('Dict[str, Any]', kwargs)))
+        return await self.propose(Task, prompt, **self.prepend_sys_msg(cast("Dict[str, Any]", kwargs)))
 
 
 class HandleTask(WithBriefing, ToolBoxUsage):
@@ -81,7 +81,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         return await self.aask_validate(
             question=q,
             validator=_validator,
-            **self.prepend(cast('Dict[str, Any]', kwargs)),
+            **self.prepend_sys_msg(cast("Dict[str, Any]", kwargs)),
         )
 
     async def handle_fine_grind(

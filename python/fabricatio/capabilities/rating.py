@@ -159,7 +159,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 )
             ),
             validator=_validator,
-            **self.prepend(kwargs),
+            **self.prepend_sys_msg(kwargs),
         )
 
     async def draft_rating_criteria(
@@ -191,7 +191,7 @@ class GiveRating(WithBriefing, LLMUsage):
             validator=lambda resp: set(out)
             if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None
             else out,
-            **self.prepend(kwargs),
+            **self.prepend_sys_msg(kwargs),
         )
 
     async def draft_rating_criteria_from_examples(
@@ -244,7 +244,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 validator=lambda resp: JsonCapture.validate_with(
                     resp, target_type=list, elements_type=str, length=reasons_count
                 ),
-                **self.prepend(kwargs),
+                **self.prepend_sys_msg(kwargs),
             )
         )
         # extract certain mount of criteria from reasons according to their importance and frequency
@@ -301,7 +301,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 for pair in windows
             ],
             validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
-            **self.prepend(kwargs),
+            **self.prepend_sys_msg(kwargs),
         )
         weights = [1]
         for rw in relative_weights:

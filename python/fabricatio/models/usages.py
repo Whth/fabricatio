@@ -364,7 +364,7 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
-    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[ValidateKwargs[List[str]]]) -> str:
+    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[ValidateKwargs[List[str]]]) -> Optional[str]:
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
@@ -374,13 +374,14 @@ class LLMUsage(ScopedConfig):
         Returns:
             str: The validated response as a single string.
         """
-        return ok(
-            await self.apathstr(
-                requirement,
-                k=1,
-                **kwargs,
-            )
-        ).pop()
+        if paths := await self.apathstr(
+            requirement,
+            k=1,
+            **kwargs,
+        ):
+            return paths.pop()
+
+        return None
 
     async def ageneric_string(self, requirement: str, **kwargs: Unpack[ValidateKwargs[str]]) -> Optional[str]:
         """Asynchronously generates a generic string based on a given requirement.
