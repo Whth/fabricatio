@@ -10,7 +10,7 @@ from typing import Optional, Unpack, cast
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.review import Review, ReviewResult
 from fabricatio.config import configs
-from fabricatio.models.generic import CensoredCorrectable, Display, ProposedAble, WithBriefing
+from fabricatio.models.generic import CensoredAble, Display, ProposedAble, WithBriefing
 from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 from questionary import confirm, text
@@ -116,7 +116,7 @@ class Correct(Review):
         """
         return await self.correct_obj(task, **kwargs)
 
-    async def censor_obj[M: CensoredCorrectable](
+    async def censor_obj[M: CensoredAble](
         self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[ReviewResult[str]]]
     ) -> M:
         """Censor and correct an object based on defined criteria and templates.

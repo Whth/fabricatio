@@ -2,7 +2,7 @@
 
 from typing import Generator, List, Optional, Self
 
-from fabricatio.models.generic import Base, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
+from fabricatio.models.generic import Base, CensoredAble, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
 
 # <editor-fold desc="ArticleEssence">
 from pydantic import BaseModel, Field
@@ -231,7 +231,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
 # </editor-fold>
 
 
-class ArticleProposal(ProposedAble, Display):
+class ArticleProposal(CensoredAble, Display):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
@@ -240,19 +240,20 @@ class ArticleProposal(ProposedAble, Display):
     title: str = Field(...)
     """Paper title in academic style (Title Case, 8-15 words). Example: 'Exploring Neural Architecture Search for Low-Resource Machine Translation'"""
 
-    focused_problem: List[str] = Field(default_factory=list)
+    focused_problem: List[str]
     """Specific research problem(s) or question(s) addressed (list of 1-3 concise statements).
     Example: ['NAS computational overhead in low-resource settings', 'Architecture transferability across language pairs']"""
 
-    research_aim: List[str] = Field(default_factory=list)
+    research_aim: List[str]
     """Primary research objectives (list of 2-4 measurable goals).
     Example: ['Develop parameter-efficient NAS framework', 'Establish cross-lingual architecture transfer metrics']"""
 
-    research_methods: List[str] = Field(default_factory=list)
+    research_methods: List[str]
     """Methodological components (list of techniques/tools).
     Example: ['Differentiable architecture search', 'Transformer-based search space', 'Multi-lingual perplexity evaluation']"""
 
-    technical_approaches: List[str] = Field(default_factory=list)
+    technical_approaches: List[str]
+    """Technical approaches"""
 
 
 # <editor-fold desc="ArticleOutline">
@@ -356,7 +357,7 @@ class ArticleChapterOutline(Base):
     ]"""
 
 
-class ArticleOutline(ProposedAble, Display, FinalizedDumpAble):
+class ArticleOutline(ProposedAble, Display, CensoredAble):
     """Complete academic paper blueprint with hierarchical validation."""
 
     title: str = Field(...)
@@ -588,7 +589,7 @@ class ArticleChapter(ArticleBase):
     ]"""
 
 
-class Article(ProposedAble, Display, FinalizedDumpAble):
+class Article(ProposedAble, Display, CensoredAble):
     """Complete academic paper specification with validation constraints."""
 
     title: str = Field(...)

@@ -171,14 +171,13 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
 class FinalizedDumpAble(Base):
     """Class that provides a method to finalize the dump of the object."""
 
-    @abstractmethod
     def finalized_dump(self) -> str:
         """Finalize the dump of the object.
 
         Returns:
             str: The finalized dump of the object.
         """
-
+        return self.model_dump_json()
     def finalized_dump_to(self, path: str | Path) -> Self:
         """Finalize the dump of the object to a file.
 
@@ -192,8 +191,8 @@ class FinalizedDumpAble(Base):
         return self
 
 
-class CensoredCorrectable(ProposedAble, FinalizedDumpAble, ABC):
-    """Class that provides a method to correct the object based on the proposal."""
+class CensoredAble(ProposedAble, FinalizedDumpAble):
+    """Class that provides a method to censor the object."""
 
 
 class WithDependency(Base):
