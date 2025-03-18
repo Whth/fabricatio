@@ -1,6 +1,6 @@
 """Extra models for built-in actions."""
 
-from typing import List, Self
+from typing import Generator, List, Optional, Self
 
 from fabricatio.models.generic import Base, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
 
@@ -296,7 +296,9 @@ class ArticleSectionOutline(Base):
     theoretical foundations. Introduces dynamic resource allocation mechanism.
     Directly supports Results section through ablation study parameters.'"""
 
-    subsections: List[ArticleSubsectionOutline] = Field(..., min_length=3, max_length=5)
+    subsections: List[ArticleSubsectionOutline] = Field(
+        ...,
+    )
     """IMRaD-compliant substructure with technical progression:
     1. Conceptual Framework
     2. Methodological Details
@@ -334,7 +336,9 @@ class ArticleChapterOutline(Base):
     Validates efficiency claims from Introduction. Provides empirical basis
     for Discussion chapter. Contrasts with single-language baselines.'"""
 
-    sections: List[ArticleSectionOutline] = Field(..., min_length=3, max_length=5)
+    sections: List[ArticleSectionOutline] = Field(
+        ...,
+    )
     """Standard academic progression implementing chapter goals:
     1. Context Establishment
     2. Technical Presentation
@@ -374,7 +378,9 @@ class ArticleOutline(ProposedAble, Display, FinalizedDumpAble):
     across 50+ languages, enabling efficient architecture discovery with
     60% reduced search costs.'"""
 
-    chapters: List[ArticleChapterOutline] = Field(..., min_length=5, max_length=8)
+    chapters: List[ArticleChapterOutline] = Field(
+        ...,
+    )
     """IMRaD structure with enhanced academic validation:
     1. Introduction: Problem Space & Contributions
     2. Background: Theoretical Foundations
@@ -465,11 +471,20 @@ class ArticleBase(ProposedAble, Display):
     description: str
     """Functional purpose statement for this component's role in the paper.
     Example: 'Defines evaluation metrics for cross-lingual transfer experiments'"""
-
     writing_aim: List[str]
     """Author intentions mapped to rhetorical moves:
     Example: ['Establish metric validity', 'Compare with baseline approaches',
              'Justify threshold selection']"""
+
+    support_to: List[SectionRef]
+    """Upstream dependencies requiring this component's validation.
+    Format: List of hierarchical references to supported claims/sections
+    """
+
+    depend_on: List[SectionRef]
+    """Downstream prerequisites for content validity.
+    Format: List of references to foundational components
+    """
 
     title: str = Field(...)
     """Standardized academic header following ACL style guidelines:
@@ -477,15 +492,19 @@ class ArticleBase(ProposedAble, Display):
     - No abbreviations without prior definition
     Example: 'Multilingual Benchmark Construction'"""
 
-    support_to: List[SectionRef]
-    """Upstream dependencies requiring this component's validation.
-    Format: List of hierarchical references to supported claims/sections
-    Example: [SectionRef(chapter='Results', section='4.1', subsection='4.1.2')]"""
+    def get_dependencies(self, article: "Article") -> List["ArticleSubsection"]:
+        """Retrieves all upstream dependencies for this component, including those that support it and those it depends on.
 
-    depend_on: List[SectionRef]
-    """Downstream prerequisites for content validity.
-    Format: List of references to foundational components
-    Example: [SectionRef(chapter='Methods', section='2.3', subsection='2.3.4')]"""
+        Args:
+            article (Article): The overall academic document for reference.
+
+        Returns:
+            List[ArticleSubsection]: List of all upstream dependencies for this component.
+        """
+        return [
+            article.get_subsection(ref.ref_chapter_title, ref.ref_section_title, ref.ref_subsection_title)
+            for ref in self.support_to
+        ] + [article.get_subsection(ref.ref_chapter_title, ref.ref_section_title) for ref in self.depend_on]
 
 
 class ArticleSubsection(ArticleBase):
@@ -496,15 +515,9 @@ class ArticleSubsection(ArticleBase):
     Format: [Method]-[Domain]-[Innovation]
     Example: 'Transformer-Based Architecture Search Space'"""
 
-    support_to: List[SectionRef]
-    """Immediate parent components and supported hypotheses.
-    Example: [SectionRef(chapter='Methods', section='3', subsection='3.1')]"""
-
-    depend_on: List[SectionRef]
-    """Technical dependencies including equations, algorithms, and datasets.
-    Example: [SectionRef(chapter='Background', section='2.2', subsection='2.2.3')]"""
-
-    paragraphs: List[Paragraph] = Field(..., min_length=3, max_length=5)
+    paragraphs: List[Paragraph] = Field(
+        ...,
+    )
     """Technical exposition following ACM writing guidelines:
     1. Contextualization: Position in research design
     2. Technical Detail: Equations/algorithms/code
@@ -528,15 +541,9 @@ class ArticleSection(ArticleBase):
     """Process-oriented header indicating methodological scope.
     Example: 'Cross-Lingual Transfer Evaluation Protocol'"""
 
-    support_to: List[SectionRef]
-    """Supported research questions and paper-level claims.
-    Example: [SectionRef(chapter='Introduction', section='1', subsection='1.2')]"""
-
-    depend_on: List[SectionRef]
-    """Required methodological components and theoretical frameworks.
-    Example: [SectionRef(chapter='Background', section='2', subsection='2.4')]"""
-
-    subsections: List[ArticleSubsection] = Field(..., min_length=3, max_length=5)
+    subsections: List[ArticleSubsection] = Field(
+        ...,
+    )
     """Thematic progression implementing section's research function:
     1. Conceptual Framework
     2. Technical Implementation
@@ -561,22 +568,16 @@ class ArticleChapter(ArticleBase):
     """Standard IMRaD chapter title with domain specification.
     Example: 'Neural Architecture Search for Low-Resource Languages'"""
 
-    support_to: List[SectionRef]
-    """Supported thesis statements and paper-level contributions.
-    Example: [SectionRef(chapter='Abstract', section='', subsection='')]"""
-
-    depend_on: List[SectionRef]
-    """Foundational chapters and external knowledge prerequisites.
-    Example: [SectionRef(chapter='Related Work', section='2', subsection='2.3')]"""
-
-    sections: List[ArticleSection] = Field(..., min_length=3, max_length=5)
+    sections: List[ArticleSection] = Field(
+        ...,
+    )
     """Complete research narrative implementing chapter objectives:
     1. Context Establishment
     2. Methodology Exposition
     3. Results Presentation
     4. Critical Analysis
     5. Synthesis
-
+    
     Example Section Hierarchy:
     [
         'Theoretical Framework',
@@ -587,7 +588,7 @@ class ArticleChapter(ArticleBase):
     ]"""
 
 
-class Article(ProposedAble, Display):
+class Article(ProposedAble, Display, FinalizedDumpAble):
     """Complete academic paper specification with validation constraints."""
 
     title: str = Field(...)
@@ -605,7 +606,9 @@ class Article(ProposedAble, Display):
 
     Example: 'Neural architecture search (NAS) faces prohibitive... [150 words]'"""
 
-    chapters: List[ArticleChapter] = Field(..., min_length=5, max_length=8)
+    chapters: List[ArticleChapter] = Field(
+        ...,
+    )
     """IMRaD-compliant document structure with enhanced validation:
     1. Introduction: Motivation & Contributions
     2. Background: Literature & Theory
@@ -616,6 +619,26 @@ class Article(ProposedAble, Display):
     7. Conclusion: Summary & Future Work
 
     Additional: Appendices, Ethics Review, Reproducibility Statements"""
+
+    def finalized_dump(self) -> str:
+        """Exports the article in `typst` format.
+
+        Returns:
+                str: Strictly formatted outline with typst formatting.
+        """
+        lines = []
+        for sec in self.dfs_iter():
+            match sec:
+                case cha if isinstance(cha, ArticleChapter):
+                    lines.append(f"= {cha.title}")
+                case sec if isinstance(sec, ArticleSection):
+                    lines.append(f"== {sec.title}")
+                case subsec if isinstance(subsec, ArticleSubsection):
+                    lines.append(f"=== {subsec.title}")
+                    lines.append(" \\".join("".join(p.lines) for p in subsec.paragraphs))
+
+                case _:
+                    raise TypeError(f"Unknown type: {type(sec)}")
 
     def init_from_outline(self, outline: ArticleOutline) -> Self:
         """Initialize the article from a given outline.
@@ -680,6 +703,95 @@ class Article(ProposedAble, Display):
         self.abstract = f"Abstract: {outline.prospect}"
 
         return self
+
+    def get_subsection(
+        self, chapter_title: str, section_title: str, subsection_title: str
+    ) -> Optional[ArticleSubsection]:
+        """Retrieves a specific subsection based on chapter and section titles.
+
+        Args:
+            chapter_title (str): Title of the chapter.
+            section_title (str): Title of the section.
+            subsection_title (str): Title of the subsection.
+
+        Returns:
+            ArticleSubsection: The requested subsection.
+        """
+        return next(
+            (
+                subsection
+                for chapter in self.chapters
+                for section in chapter.sections
+                for subsection in section.subsections
+                if chapter.title == chapter_title
+                and section.title == section_title
+                and subsection.title == subsection_title
+            ),
+            None,
+        )
+
+    def gather_dependencies(self, article: ArticleBase) -> List[ArticleSubsection]:
+        """Collects all dependencies for the article, including supported and dependent components.
+
+        Args:
+            article (ArticleBase): The article to gather dependencies from.
+
+        Returns:
+            List[ArticleSubsection]: List of all dependencies for the article.
+        """
+        return [
+            self.get_subsection(d.ref_chapter_title, d.ref_section_title, d.ref_subsection_title)
+            for d in article.depend_on
+        ]
+
+    def gather_reverse_dependencies(self, article: ArticleBase) -> List[ArticleSubsection]:
+        """Collects all reverse dependencies for the article, including supported and dependent components.
+
+        Args:
+            article (ArticleBase): The article to gather dependencies from.
+
+        Returns:
+            List[ArticleSubsection]: List of all dependencies for the article.
+        """
+
+    def chap_iter(self) -> Generator[ArticleChapter, None, None]:
+        """Iterates over all chapters in the article.
+
+        Yields:
+            ArticleChapter: Each chapter in the article.
+        """
+        yield from self.chapters
+
+    def section_iter(self) -> Generator[ArticleSection, None, None]:
+        """Iterates over all sections in the article.
+
+        Yields:
+            ArticleSection: Each section in the article.
+        """
+        for chap in self.chapters:
+            yield from chap.sections
+
+    def subsection_iter(self) -> Generator[ArticleSubsection, None, None]:
+        """Iterates over all subsections in the article.
+
+        Yields:
+            ArticleSubsection: Each subsection in the article.
+        """
+        for sec in self.section_iter():
+            yield from sec.subsections
+
+    def dfs_iter(self) -> Generator[ArticleBase, None, None]:
+        """Performs a depth-first search (DFS) through the article structure.
+
+        Returns:
+            Generator[ArticleBase]: Each component in the article structure.
+        """
+        for chap in self.chap_iter():
+            yield chap
+            for sec in chap.sections:
+                yield sec
+                for subsec in sec.subsections:
+                    yield subsec
 
 
 # </editor-fold>
