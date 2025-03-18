@@ -10,9 +10,11 @@ from typing import Optional, Unpack, cast
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.review import Review, ReviewResult
 from fabricatio.config import configs
-from fabricatio.models.generic import Display, ProposedAble, WithBriefing
-from fabricatio.models.kwargs_types import CorrectKwargs, ReviewKwargs
+from fabricatio.models.generic import CensoredCorrectable, Display, ProposedAble, WithBriefing
+from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
+from questionary import confirm, text
+from rich import print as rprint
 
 
 class Correct(Review):
@@ -55,7 +57,7 @@ class Correct(Review):
         if supervisor_check:
             await review_res.supervisor_check()
         if "default" in kwargs:
-            cast('ReviewKwargs[None]', kwargs)["default"] = None
+            cast("ReviewKwargs[None]", kwargs)["default"] = None
         return await self.propose(
             obj.__class__,
             TEMPLATE_MANAGER.render_template(
@@ -89,7 +91,7 @@ class Correct(Review):
             await review_res.supervisor_check()
 
         if "default" in kwargs:
-            cast('ReviewKwargs[None]', kwargs)["default"] = None
+            cast("ReviewKwargs[None]", kwargs)["default"] = None
         return await self.ageneric_string(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.correct_template, {"content": input_text, "review": review_res.display()}
@@ -113,3 +115,31 @@ class Correct(Review):
             Optional[Task[T]]: The corrected task, or None if correction fails.
         """
         return await self.correct_obj(task, **kwargs)
+
+    async def censor_obj[M: CensoredCorrectable](
+        self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[ReviewResult[str]]]
+    ) -> M:
+        """Censor and correct an object based on defined criteria and templates.
+
+        Args:
+            obj (M): The object to be reviewed and corrected.
+            **kwargs (Unpack[CensoredCorrectKwargs]): Additional keyword
+
+        Returns:
+            M: The censored and corrected object.
+        """
+        last_modified_obj = obj
+        modified_obj = None
+        rprint(obj.finalized_dump())
+        while await confirm("Begin to correct obj above with human censorship?").ask_async():
+            while (topic := await text("What is the topic of the obj reviewing?").ask_async()) is not None and topic:
+                ...
+            if (modified_obj := await self.correct_obj(
+                last_modified_obj,
+                topic=topic,
+                **kwargs,
+            )) is None:
+                break
+            last_modified_obj = modified_obj
+            rprint(last_modified_obj.finalized_dump())
+        return modified_obj or last_modified_obj
