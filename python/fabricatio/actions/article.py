@@ -9,8 +9,6 @@ from fabricatio.models.action import Action
 from fabricatio.models.extra import Article, ArticleEssence, ArticleOutline, ArticleProposal
 from fabricatio.models.task import Task
 from fabricatio.models.utils import ok
-from questionary import confirm, text
-from rich import print as rprint
 
 
 class ExtractArticleEssence(Action):
@@ -64,11 +62,16 @@ class GenerateArticleProposal(Action):
                 f"{task_input.briefing}\nExtract the path of file which contains the article briefing."
             )
 
-        return await self.propose(
-            ArticleProposal,
-            article_briefing or safe_text_read(ok(article_briefing_path,"Could not find the path of file to read.")),
-            **self.prepend_sys_msg(),
-        )
+        return (
+            await self.propose(
+                ArticleProposal,
+                briefing := (
+                    article_briefing
+                    or safe_text_read(ok(article_briefing_path, "Could not find the path of file to read."))
+                ),
+                **self.prepend_sys_msg(),
+            )
+        ).update_ref(briefing)
 
 
 class GenerateOutline(Action):
@@ -82,11 +85,13 @@ class GenerateOutline(Action):
         article_proposal: ArticleProposal,
         **_,
     ) -> Optional[ArticleOutline]:
-        return await self.propose(
-            ArticleOutline,
-            article_proposal.display(),
-            system_message=f"# your personal briefing: \n{self.briefing}",
-        )
+        return (
+            await self.propose(
+                ArticleOutline,
+                article_proposal.as_prompt(),
+                **self.prepend_sys_msg(),
+            )
+        ).update_ref(article_proposal)
 
 
 class CorrectProposal(Action):
@@ -94,9 +99,10 @@ class CorrectProposal(Action):
 
     output_key: str = "corrected_proposal"
 
-    async def _execute(self, article_proposal: ArticleProposal,proposal_reference:str="", **_) -> Any:
-
-        return await self.censor_obj(article_proposal,reference=proposal_reference)
+    async def _execute(self, article_proposal: ArticleProposal, **_) -> Any:
+        return (await self.censor_obj(article_proposal, reference=article_proposal.referenced)).update_ref(
+            article_proposal
+        )
 
 
 class CorrectOutline(Action):
@@ -108,10 +114,11 @@ class CorrectOutline(Action):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        article_proposal: ArticleProposal,
         **_,
     ) -> ArticleOutline:
-        return await self.censor_obj(article_outline,reference=article_proposal.display())
+        return (await self.censor_obj(article_outline, reference=article_outline.referenced.as_prompt())).update_ref(
+            article_outline
+        )
 
 
 class GenerateArticle(Action):
@@ -125,7 +132,15 @@ class GenerateArticle(Action):
         article_outline: ArticleOutline,
         **_,
     ) -> Optional[Article]:
-        return await self.propose(Article, article_outline.display(), **self.prepend_sys_msg())
+        article: Article = Article.from_outline(article_outline).update_ref(article_outline)
+
+        for c, deps in article.iter_dfs_with_deps():
+            out = await self.correct_obj(
+                c, reference=f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
+            )
+
+            c.update_from(out)
+        return article
 
 
 class CorrectArticle(Action):
@@ -140,4 +155,4 @@ class CorrectArticle(Action):
         article_outline: ArticleOutline,
         **_,
     ) -> Article:
-        return await self.censor_obj(article,reference=article_outline.display())
+        return await self.censor_obj(article, reference=article_outline.referenced.as_prompt())
