@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.2.7-dev0"
+version = "0.2.7-dev1"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -81,7 +81,13 @@ rag = [
 ]
 
 full = [
-    "fabricatio[rag]",
+    "fabricatio[calc,plot,rag]",
+]
+calc = [
+    "sympy>=1.13.3",
+]
+plot = [
+    "matplotlib>=3.10.1",
 ]
 
 [tool.ruff]
@@ -139,6 +145,9 @@ testpaths = [
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.uv.sources]
+fabricatio = { workspace = true }
 
 [[tool.uv.index]]
 url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
