@@ -23,7 +23,7 @@ from litellm.types.utils import (
     StreamingChoices,
     TextChoices,
 )
-from litellm.utils import CustomStreamWrapper  # pyright: ignore [reportPrivateImportUsage]
+from litellm.utils import CustomStreamWrapper, token_counter  # pyright: ignore [reportPrivateImportUsage]
 from more_itertools import duplicates_everseen
 from pydantic import Field, NonNegativeInt, PositiveInt
 
@@ -118,6 +118,7 @@ class LLMUsage(ScopedConfig):
         question: str,
         system_message: str = "",
         n: PositiveInt | None = None,
+        stream_buffer_size: int = 50,
         **kwargs: Unpack[LLMKwargs],
     ) -> Sequence[TextChoices | Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
@@ -126,6 +127,7 @@ class LLMUsage(ScopedConfig):
             question (str): The question to ask the model.
             system_message (str): The system message to provide context to the model. Defaults to an empty string.
             n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
+            stream_buffer_size (int): The buffer size for streaming responses. Defaults to 50.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -142,9 +144,13 @@ class LLMUsage(ScopedConfig):
             if not configs.debug.streaming_visible and (pack := stream_chunk_builder(await asyncstdlib.list())):
                 return pack.choices
             chunks = []
+            buffer = ""
             async for chunk in resp:
                 chunks.append(chunk)
-                print(chunk.choices[0].delta.content or "", end="")  # noqa: T201
+                buffer += chunk.choices[0].delta.content or ""
+                if len(buffer) % stream_buffer_size == 0:
+                    print(buffer, end="")  # noqa: T201
+                    buffer = ""
             if pack := stream_chunk_builder(chunks):
                 return pack.choices
         logger.critical(err := f"Unexpected response type: {type(resp)}")
@@ -196,8 +202,7 @@ class LLMUsage(ScopedConfig):
         Returns:
             str | List[str]: The content of the model's response message.
         """
-        system_message = system_message or ""
-        match (question, system_message):
+        match (question, system_message or ""):
             case (list(q_seq), list(sm_seq)):
                 res = await gather(
                     *[
@@ -205,17 +210,22 @@ class LLMUsage(ScopedConfig):
                         for q, sm in zip(q_seq, sm_seq, strict=True)
                     ]
                 )
-                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
+                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
             case (list(q_seq), str(sm)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for q in q_seq])
-                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
+                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
             case (str(q), list(sm_seq)):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
-                return [r[0].message.content for r in res]  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
+                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
             case (str(q), str(sm)):
-                return ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportReturnType, reportAttributeAccessIssue]
+                out = ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportAttributeAccessIssue]
             case _:
                 raise RuntimeError("Should not reach here.")
+
+        logger.debug(
+            f"Response Token Count: {token_counter(text=out) if isinstance(out, str) else sum(token_counter(text=o) for o in out)}"  # pyright: ignore [reportOptionalIterable]
+        )
+        return out  # pyright: ignore [reportReturnType]
 
     @overload
     async def aask_validate[T](
@@ -286,26 +296,26 @@ class LLMUsage(ScopedConfig):
         async def _inner(q: str) -> Optional[T]:
             for lap in range(max_validations):
                 try:
-                    if (response := await self.aask(question=q, **kwargs)) and (validated := validator(response)):
+                    if (
+                        (response := await self.aask(question=q, **kwargs))
+                        or (
+                            co_extractor
+                            and (
+                                response := await self.aask(
+                                    question=(
+                                        TEMPLATE_MANAGER.render_template(
+                                            configs.templates.co_validation_template,
+                                            {"original_q": q, "original_a": response},
+                                        )
+                                    ),
+                                    **co_extractor,
+                                )
+                            )
+                        )
+                    ) and (validated := validator(response)):
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
 
-                    if co_extractor and (
-                        (
-                            co_response := await self.aask(
-                                question=(
-                                    TEMPLATE_MANAGER.render_template(
-                                        configs.templates.co_validation_template,
-                                        {"original_q": q, "original_a": response},
-                                    )
-                                ),
-                                **co_extractor,
-                            )
-                        )
-                        and (validated := validator(co_response))
-                    ):
-                        logger.debug(f"Successfully validated the co-response at {lap}th attempt.")
-                        return validated
                 except RateLimitError as e:
                     logger.warning(f"Rate limit error: {e}")
                     continue
@@ -319,10 +329,7 @@ class LLMUsage(ScopedConfig):
                 logger.error(f"Failed to validate the response after {max_validations} attempts.")
             return default
 
-        if isinstance(question, str):
-            return await _inner(question)
-
-        return await gather(*[_inner(q) for q in question])
+        return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
     async def aliststr(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
