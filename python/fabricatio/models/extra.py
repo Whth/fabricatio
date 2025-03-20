@@ -1,11 +1,15 @@
 """Extra models for built-in actions."""
 
-from typing import Generator, List, Optional, Self
+from abc import abstractmethod
+from itertools import chain
+from typing import Generator, List, Optional, Self, Tuple
 
-from fabricatio.models.generic import Base, CensoredAble, Display, FinalizedDumpAble, PrepareVectorization, ProposedAble
+from fabricatio.journal import logger
+from fabricatio.models.generic import Base, CensoredAble, Display, PrepareVectorization, ProposedAble
+from fabricatio.models.utils import ok
+from pydantic import BaseModel, Field
 
 # <editor-fold desc="ArticleEssence">
-from pydantic import BaseModel, Field
 
 
 class Equation(BaseModel):
@@ -357,7 +361,7 @@ class ArticleChapterOutline(Base):
     ]"""
 
 
-class ArticleOutline(ProposedAble, Display, CensoredAble):
+class ArticleOutline(Display, CensoredAble):
     """Complete academic paper blueprint with hierarchical validation."""
 
     title: str = Field(...)
@@ -426,7 +430,7 @@ class ArticleOutline(ProposedAble, Display, CensoredAble):
 
 
 # <editor-fold desc="Article">
-class Paragraph(ProposedAble):
+class Paragraph(CensoredAble):
     """Structured academic paragraph blueprint for controlled content generation."""
 
     description: str
@@ -438,113 +442,125 @@ class Paragraph(ProposedAble):
     Example: ['Introduce gradient-based NAS', 'Compare computational costs',
              'Link efficiency to practical applications']"""
 
-    lines: List[str]
-    """Hierarchically structured content with enforced rhetorical elements:
-    1. Topic Sentence: Principal claim/position (1 sentence)
-    2. Development: Evidence chain with citations (2-4 sentences)
-    3. Synthesis: Interpretation & significance (1 sentence)
-    4. Transition: Logical bridge to next paragraph (optional)
-
-    Example: [
-        'Differentiable NAS revolutionized architecture search efficiency.',
-        'DARTS reduced search costs from 2000+ to 4 GPU days (Liu et al., 2019) while maintaining competitive ImageNet accuracy.',
-        'This order-of-magnitude improvement enables NAS deployment in resource-constrained research contexts.',
-        'These efficiency gains directly impact our framework's design choices as detailed in Section 3.'
-    ]"""
+    sentences: List[str]
+    """List of sentences forming the paragraph's content."""
 
 
-class SectionRef(ProposedAble):
-    """Cross-component reference system for maintaining document consistency."""
+class ArticleRef(CensoredAble):
+    """Reference to a specific section or subsection within an article.
 
-    ref_chapter_title: str
-    """Title of referenced chapter (e.g., 'Methodology')"""
+    Always instantiated with a fine-grind reference to a specific subsection if possible.
+    """
 
-    ref_section_title: str
-    """Exact section header text (e.g., '3.2 Gradient Optimization')"""
+    referred_chapter_title: str
+    """Full title of the chapter that contains the referenced section."""
 
-    ref_subsection_title: str
-    """Specific subsection identifier (e.g., '3.2.1 Learning Rate Scheduling')"""
+    referred_section_title: Optional[str] = None
+    """Full title of the section that contains the referenced subsection. Defaults to None if not applicable, which means the reference is to the entire chapter."""
+
+    referred_subsection_title: Optional[str] = None
+    """Full title of the subsection that contains the referenced paragraph. Defaults to None if not applicable, which means the reference is to the entire section."""
+
+    def __hash__(self) -> int:
+        """Overrides the default hash function to ensure consistent hashing across instances."""
+        return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
 
 
-class ArticleBase(ProposedAble, Display):
+class ArticleBase(CensoredAble, Display):
     """Foundation for hierarchical document components with dependency tracking."""
 
     description: str
-    """Functional purpose statement for this component's role in the paper.
+    """Required: Functional purpose statement for this component's role in the paper.
+    Format: Single paragraph (2-3 sentences) describing specific contribution to overall paper structure.
     Example: 'Defines evaluation metrics for cross-lingual transfer experiments'"""
+
     writing_aim: List[str]
-    """Author intentions mapped to rhetorical moves:
+    """Required: List of specific rhetorical objectives (3-5 items).
+    Format: Each item must be an actionable phrase starting with a verb.
     Example: ['Establish metric validity', 'Compare with baseline approaches',
              'Justify threshold selection']"""
 
-    support_to: List[SectionRef]
-    """Upstream dependencies requiring this component's validation.
-    Format: List of hierarchical references to supported claims/sections
-    """
+    support_to: List[ArticleRef]
+    """Required: List of ArticleRef objects identifying components this section provides evidence for.
+    Format: Each reference must point to a specific chapter, section, or subsection.
+    Note: References form a directed acyclic graph in the document structure."""
 
-    depend_on: List[SectionRef]
-    """Downstream prerequisites for content validity.
-    Format: List of references to foundational components
-    """
+    depend_on: List[ArticleRef]
+    """Required: List of ArticleRef objects identifying components this section builds upon.
+    Format: Each reference must point to a previously defined chapter, section, or subsection.
+    Note: Circular dependencies are not permitted."""
 
-    title: str = Field(...)
-    """Standardized academic header following ACL style guidelines:
-    - Title Case with maximal 12-word length
-    - No abbreviations without prior definition
+    title: str
+    """Required: Standardized academic header
+    Requirements:
+    - Must use Title Case formatting
+    - Maximum length: 12 words
+    - No abbreviations without prior definition in document
     Example: 'Multilingual Benchmark Construction'"""
 
-    def get_dependencies(self, article: "Article") -> List["ArticleSubsection"]:
-        """Retrieves all upstream dependencies for this component, including those that support it and those it depends on.
+    @abstractmethod
+    def to_typst_code(self) -> str:
+        """Converts the component into a Typst code snippet for rendering."""
 
-        Args:
-            article (Article): The overall academic document for reference.
+    @abstractmethod
+    def update_from(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
 
-        Returns:
-            List[ArticleSubsection]: List of all upstream dependencies for this component.
-        """
-        return [
-            article.get_subsection(ref.ref_chapter_title, ref.ref_section_title, ref.ref_subsection_title)
-            for ref in self.support_to
-        ] + [article.get_subsection(ref.ref_chapter_title, ref.ref_section_title) for ref in self.depend_on]
+    def __eq__(self, other: "ArticleBase") -> bool:
+        """Compares two ArticleBase objects based on their model_dump_json representation."""
+        return self.model_dump_json() == other.model_dump_json()
+
+    def __hash__(self) -> int:
+        """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
+        return hash(self.model_dump_json())
 
 
 class ArticleSubsection(ArticleBase):
     """Atomic argumentative unit with technical specificity."""
 
-    title: str = Field(...)
+    title: str
     """Technical descriptor with maximal information density:
     Format: [Method]-[Domain]-[Innovation]
     Example: 'Transformer-Based Architecture Search Space'"""
 
-    paragraphs: List[Paragraph] = Field(
-        ...,
-    )
-    """Technical exposition following ACM writing guidelines:
-    1. Contextualization: Position in research design
-    2. Technical Detail: Equations/algorithms/code
-    3. Validation: Citations/experimental confirmation
-    4. Interpretation: Scholarly significance
-    5. Transition: Logical connection to subsequent content
+    paragraphs: List[Paragraph]
+    """List of Paragraph objects forming the content of the subsection.
 
-    Example Paragraph Chain:
-    [
-        'Our search space builds on standard CNN architectures...',
-        'Formally, we define architecture parameters $\\alpha \\in R^d$ where...',
-        'This parameterization reduces search complexity by 42% compared to...',
-        'The efficiency gains validate our approach to...'
-    ]"""
+    Each Paragraph describes a specific part of the academic narrative with:
+    - A brief description of its purpose,
+    - A list of sentences that collectively convey the ideas,
+    - Writing aims that outline the intended rhetorical moves.
+
+    This field aggregates multiple Paragraph instances to build a coherent and structured component of the subsection.
+    """
+
+    def update_from(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        if not isinstance(other, ArticleSubsection):
+            raise TypeError("Cannot update from a non-ArticleSubsection instance.")
+        if self.title != other.title:
+            raise ValueError("Cannot update from a different title.")
+        logger.debug(f"Updating SubSection {self.title}")
+        self.paragraphs = other.paragraphs
+        return self
+
+    def to_typst_code(self) -> str:
+        """Converts the component into a Typst code snippet for rendering.
+
+        Returns:
+            str: Typst code snippet for rendering.
+        """
+        return f"=== {self.title}\n" + "\n\n".join("".join(p.sentences) for p in self.paragraphs)
 
 
 class ArticleSection(ArticleBase):
     """Methodological complete unit presenting cohesive research phase."""
 
-    title: str = Field(...)
+    title: str
     """Process-oriented header indicating methodological scope.
     Example: 'Cross-Lingual Transfer Evaluation Protocol'"""
 
-    subsections: List[ArticleSubsection] = Field(
-        ...,
-    )
+    subsections: List[ArticleSubsection]
     """Thematic progression implementing section's research function:
     1. Conceptual Framework
     2. Technical Implementation
@@ -561,24 +577,44 @@ class ArticleSection(ArticleBase):
         'Interpretation Framework'
     ]"""
 
+    def update_from(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        if not isinstance(other, ArticleSection):
+            raise TypeError("Cannot update from a non-ArticleSection instance.")
+        if self.title != other.title:
+            raise ValueError("Cannot update from a different title.")
+        if any(True for sel, oth in zip(self.subsections, other.subsections, strict=True) if sel.title != oth.title):
+            raise ValueError(
+                "Cannot update from a different number of subsections or the title of the subsections is not the same."
+            )
+        for self_subsec, other_subsec in zip(self.subsections, other.subsections, strict=True):
+            self_subsec.update_from(other_subsec)
+        return self
+
+    def to_typst_code(self) -> str:
+        """Converts the section into a Typst formatted code snippet.
+
+        Returns:
+            str: The formatted Typst code snippet.
+        """
+        return f"== {self.title}\n" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
+
 
 class ArticleChapter(ArticleBase):
     """Macro-structural unit implementing IMRaD document architecture."""
 
-    title: str = Field(...)
+    title: str
     """Standard IMRaD chapter title with domain specification.
     Example: 'Neural Architecture Search for Low-Resource Languages'"""
 
-    sections: List[ArticleSection] = Field(
-        ...,
-    )
+    sections: List[ArticleSection]
     """Complete research narrative implementing chapter objectives:
     1. Context Establishment
     2. Methodology Exposition
     3. Results Presentation
     4. Critical Analysis
     5. Synthesis
-    
+
     Example Section Hierarchy:
     [
         'Theoretical Framework',
@@ -588,8 +624,26 @@ class ArticleChapter(ArticleBase):
         'Comparative Discussion'
     ]"""
 
+    def update_from(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        if not isinstance(other, ArticleChapter):
+            raise TypeError("Cannot update from a non-ArticleChapter instance.")
+        if self.title != other.title:
+            raise ValueError("Cannot update from a different title.")
+        if any(True for sel, oth in zip(self.sections, other.sections, strict=True) if sel.title != oth.title):
+            raise ValueError(
+                "Cannot update from a different number of sections or the title of the sections is not the same."
+            )
+        for self_sec, other_sec in zip(self.sections, other.sections, strict=True):
+            self_sec.update_from(other_sec)
+        return self
 
-class Article(ProposedAble, Display, CensoredAble):
+    def to_typst_code(self) -> str:
+        """Converts the chapter into a Typst formatted code snippet for rendering."""
+        return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
+
+
+class Article(Display, CensoredAble):
     """Complete academic paper specification with validation constraints."""
 
     title: str = Field(...)
@@ -627,133 +681,55 @@ class Article(ProposedAble, Display, CensoredAble):
         Returns:
                 str: Strictly formatted outline with typst formatting.
         """
-        lines = []
-        for sec in self.dfs_iter():
-            match sec:
-                case cha if isinstance(cha, ArticleChapter):
-                    lines.append(f"= {cha.title}")
-                case sec if isinstance(sec, ArticleSection):
-                    lines.append(f"== {sec.title}")
-                case subsec if isinstance(subsec, ArticleSubsection):
-                    lines.append(f"=== {subsec.title}")
-                    lines.append(" \\".join("".join(p.lines) for p in subsec.paragraphs))
+        return "\n\n".join(c.to_typst_code() for c in self.chapters)
 
-                case _:
-                    raise TypeError(f"Unknown type: {type(sec)}")
-
-    def init_from_outline(self, outline: ArticleOutline) -> Self:
-        """Initialize the article from a given outline.
+    @classmethod
+    def from_outline(cls, outline: ArticleOutline) -> "Article":
+        """Generates an article from the given outline.
 
         Args:
-            outline (ArticleOutline): The outline to initialize from.
+            outline (ArticleOutline): The outline to generate the article from.
 
         Returns:
-            Self: The current instance of the article.
+            Article: The generated article.
         """
         # Set the title from the outline
-        self.title = outline.title
+        article = Article(title=outline.title, abstract="", chapters=[])
 
-        # Initialize chapters based on outline's chapters
-        self.chapters = []
-
-        for chapter_outline in outline.chapters:
+        for chapter in outline.chapters:
             # Create a new chapter
-            chapter = ArticleChapter(
-                title=chapter_outline.title,
-                description=chapter_outline.description,
-                writing_aim=["Implement " + chapter_outline.description],
+            article_chapter = ArticleChapter(
+                title=chapter.title,
+                description=chapter.description,
+                writing_aim=[],
                 support_to=[],
                 depend_on=[],
                 sections=[],
             )
-
-            # Create sections for each chapter
-            for section_outline in chapter_outline.sections:
-                section = ArticleSection(
-                    title=section_outline.title,
-                    description=section_outline.description,
-                    writing_aim=["Address " + section_outline.description],
+            for section in chapter.sections:
+                # Create a new section
+                article_section = ArticleSection(
+                    title=section.title,
+                    description=section.description,
+                    writing_aim=[],
                     support_to=[],
                     depend_on=[],
                     subsections=[],
                 )
-
-                # Create subsections for each section
-                for subsection_outline in section_outline.subsections:
-                    subsection = ArticleSubsection(
-                        title=subsection_outline.title,
-                        description=subsection_outline.description,
-                        writing_aim=["Explain " + subsection_outline.description],
+                for subsection in section.subsections:
+                    # Create a new subsection
+                    article_subsection = ArticleSubsection(
+                        title=subsection.title,
+                        description=subsection.description,
+                        writing_aim=[],
                         support_to=[],
                         depend_on=[],
-                        paragraphs=[
-                            Paragraph(
-                                description=f"Implementation of {subsection_outline.title}",
-                                writing_aim=["Present key concepts", "Support main arguments"],
-                                lines=[],
-                            )
-                        ],
+                        paragraphs=[],
                     )
-                    section.subsections.append(subsection)
-
-                chapter.sections.append(section)
-
-            self.chapters.append(chapter)
-
-        # Generate a placeholder abstract from the outline's prospect
-        self.abstract = f"Abstract: {outline.prospect}"
-
-        return self
-
-    def get_subsection(
-        self, chapter_title: str, section_title: str, subsection_title: str
-    ) -> Optional[ArticleSubsection]:
-        """Retrieves a specific subsection based on chapter and section titles.
-
-        Args:
-            chapter_title (str): Title of the chapter.
-            section_title (str): Title of the section.
-            subsection_title (str): Title of the subsection.
-
-        Returns:
-            ArticleSubsection: The requested subsection.
-        """
-        return next(
-            (
-                subsection
-                for chapter in self.chapters
-                for section in chapter.sections
-                for subsection in section.subsections
-                if chapter.title == chapter_title
-                and section.title == section_title
-                and subsection.title == subsection_title
-            ),
-            None,
-        )
-
-    def gather_dependencies(self, article: ArticleBase) -> List[ArticleSubsection]:
-        """Collects all dependencies for the article, including supported and dependent components.
-
-        Args:
-            article (ArticleBase): The article to gather dependencies from.
-
-        Returns:
-            List[ArticleSubsection]: List of all dependencies for the article.
-        """
-        return [
-            self.get_subsection(d.ref_chapter_title, d.ref_section_title, d.ref_subsection_title)
-            for d in article.depend_on
-        ]
-
-    def gather_reverse_dependencies(self, article: ArticleBase) -> List[ArticleSubsection]:
-        """Collects all reverse dependencies for the article, including supported and dependent components.
-
-        Args:
-            article (ArticleBase): The article to gather dependencies from.
-
-        Returns:
-            List[ArticleSubsection]: List of all dependencies for the article.
-        """
+                    article_section.subsections.append(article_subsection)
+                article_chapter.sections.append(article_section)
+            article.chapters.append(article_chapter)
+        return article
 
     def chap_iter(self) -> Generator[ArticleChapter, None, None]:
         """Iterates over all chapters in the article.
@@ -781,18 +757,98 @@ class Article(ProposedAble, Display, CensoredAble):
         for sec in self.section_iter():
             yield from sec.subsections
 
-    def dfs_iter(self) -> Generator[ArticleBase, None, None]:
+    def iter_dfs(self) -> Generator[ArticleBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure.
 
         Returns:
             Generator[ArticleBase]: Each component in the article structure.
         """
         for chap in self.chap_iter():
-            yield chap
             for sec in chap.sections:
+                yield from sec.subsections
                 yield sec
-                for subsec in sec.subsections:
-                    yield subsec
+            yield chap
+
+    def deref(self, ref: ArticleRef) -> ArticleBase:
+        """Resolves a reference to the corresponding section or subsection in the article.
+
+        Args:
+            ref (ArticleRef): The reference to resolve.
+
+        Returns:
+            ArticleBase: The corresponding section or subsection.
+        """
+        chap = ok(
+            next(chap for chap in self.chap_iter() if chap.title == ref.referred_chapter_title), "Chapter not found"
+        )
+        if ref.referred_section_title is None:
+            return chap
+        sec = ok(next(sec for sec in chap.sections if sec.title == ref.referred_section_title))
+        if ref.referred_subsection_title is None:
+            return sec
+        return ok(next(subsec for subsec in sec.subsections if subsec.title == ref.referred_subsection_title))
+
+    def gather_dependencies(self, article: ArticleBase) -> List[ArticleBase]:
+        """Gathers dependencies for all sections and subsections in the article.
+
+        This method should be called after the article is fully constructed.
+        """
+        depends = [self.deref(a) for a in article.depend_on]
+
+        supports = []
+        for a in self.iter_dfs():
+            if article in {self.deref(b) for b in a.support_to}:
+                supports.append(a)
+
+        return list(set(depends + supports))
+
+    def gather_dependencies_recursive(self, article: ArticleBase) -> List[ArticleBase]:
+        """Gathers all dependencies recursively for the given article.
+
+        Args:
+            article (ArticleBase): The article to gather dependencies for.
+
+        Returns:
+            List[ArticleBase]: A list of all dependencies for the given article.
+        """
+        q = self.gather_dependencies(article)
+
+        deps = []
+        while a := q.pop():
+            deps.extend(self.gather_dependencies(a))
+
+        deps = list(
+            chain(
+                filter(lambda x: isinstance(x, ArticleChapter), deps),
+                filter(lambda x: isinstance(x, ArticleSection), deps),
+                filter(lambda x: isinstance(x, ArticleSubsection), deps),
+            )
+        )
+
+        # Initialize result containers
+        formatted_code = ""
+        processed_components = []
+
+        # Process all dependencies
+        while component := deps.pop():
+            # Skip duplicates
+            if (component_code := component.to_typst_code()) in formatted_code:
+                continue
+
+            # Add this component
+            formatted_code += component_code
+            processed_components.append(component)
+
+        return processed_components
+
+    def iter_dfs_with_deps(self) -> Generator[Tuple[ArticleBase, List[ArticleBase]], None, None]:
+        """Iterates through the article in a depth-first manner, yielding each component and its dependencies.
+
+        Yields:
+            Tuple[ArticleBase, List[ArticleBase]]: Each component and its dependencies.
+        """
+        for component in self.iter_dfs():
+            yield component, (self.gather_dependencies_recursive(component))
 
 
 # </editor-fold>
