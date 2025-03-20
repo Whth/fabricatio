@@ -19,17 +19,28 @@ For each query:
 # Examples
 Original: "How do I implement authentication?"
 Refined:
-- "What are best practices for implementing user authentication in web applications?"
-- "How to securely store authentication credentials in a database?"
+```json
+[
+"What are best practices for implementing user authentication in web applications?",
+"How to securely store authentication credentials in a database?"
+]
+```
+
 
 Original: "Explain vector databases"
-Refined: "Technical explanation of vector database architecture and similarity search mechanisms for embedding storage"
+Refined:
+```json
+[
+"Explain the architecture and similarity search mechanisms of vector databases for efficient storage of embedding vectors."
+]
+```
+
 
 # Response
 Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{/if}}:
 
 {{#each question}}
-- "{{this}}"
+    - "{{this}}"
 {{/each}}
 
 Output ONLY the refined queries as a numbered list without explanations.
