@@ -235,6 +235,9 @@ class TemplateConfig(BaseModel):
     co_validation_template: str = Field(default="co_validation")
     """The name of the co-validation template which will be used to co-validate a string."""
 
+    as_prompt_template: str = Field(default="as_prompt")
+    """The name of the as prompt template which will be used to convert a string to a prompt."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
