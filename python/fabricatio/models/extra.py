@@ -2,10 +2,10 @@
 
 from abc import abstractmethod
 from itertools import chain
-from typing import Generator, List, Optional, Self, Tuple
+from typing import Dict, Generator, List, Optional, Self, Tuple, final
 
 from fabricatio.journal import logger
-from fabricatio.models.generic import Base, CensoredAble, Display, PrepareVectorization, ProposedAble
+from fabricatio.models.generic import AsPrompt, Base, CensoredAble, Display, PrepareVectorization, ProposedAble, WithRef
 from fabricatio.models.utils import ok
 from pydantic import BaseModel, Field
 
@@ -235,7 +235,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
 # </editor-fold>
 
 
-class ArticleProposal(CensoredAble, Display):
+class ArticleProposal(CensoredAble, Display, WithRef[str], AsPrompt):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
@@ -259,47 +259,61 @@ class ArticleProposal(CensoredAble, Display):
     technical_approaches: List[str]
     """Technical approaches"""
 
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        return {"ArticleBriefing": self.referenced, "ArticleProposal": self.display()}
+
+
+class ArticleRef(CensoredAble):
+    """Reference to a specific section or subsection within an article.
+
+    Always instantiated with a fine-grind reference to a specific subsection if possible.
+    """
+
+    referred_chapter_title: str
+    """Full title of the chapter that contains the referenced section."""
+
+    referred_section_title: Optional[str] = None
+    """Full title of the section that contains the referenced subsection. Defaults to None if not applicable, which means the reference is to the entire chapter."""
+
+    referred_subsection_title: Optional[str] = None
+    """Full title of the subsection that contains the referenced paragraph. Defaults to None if not applicable, which means the reference is to the entire section."""
+
+    def __hash__(self) -> int:
+        """Overrides the default hash function to ensure consistent hashing across instances."""
+        return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
+
 
 # <editor-fold desc="ArticleOutline">
-class ArticleSubsectionOutline(Base):
+class ArticleOutlineBase(Base):
     """Atomic research component specification for academic paper generation."""
 
-    title: str = Field(...)
-    """Technical focus descriptor following ACL title conventions:
-    - Title Case with 4-8 word limit
-    - Contains method and domain components
-    Example: 'Differentiable Search Space Optimization'"""
+    writing_aim: List[str]
+    """Required: List of specific rhetorical objectives (3-5 items).
+    Format: Each item must be an actionable phrase starting with a verb.
+    Example: ['Establish metric validity', 'Compare with baseline approaches',
+             'Justify threshold selection']"""
+    support_to: List[ArticleRef]
+    """Required: List of ArticleRef objects identifying components this section provides evidence for.
+    Format: Each reference must point to a specific chapter, section, or subsection.
+    Note: References form a directed acyclic graph in the document structure."""
+
+    depend_on: List[ArticleRef]
+    """Required: List of ArticleRef objects identifying components this section builds upon.
+    Format: Each reference must point to a previously defined chapter, section, or subsection.
+    Note: Circular dependencies are not permitted."""
 
     description: str = Field(...)
-    """Tripartite content specification with strict structure:
-    1. Technical Core: Method/algorithm/formalism (1 sentence)
-    2. Structural Role: Placement rationale in section (1 clause)
-    3. Research Value: Contribution to paper's thesis (1 clause)
-
-    Example: 'Introduces entropy-constrained architecture parameters enabling
-    gradient-based NAS. Serves as foundation for Section 3.2. Critical for
-    maintaining search space diversity while ensuring convergence.'"""
+    """Description of the research component in academic style."""
+    title: str = Field(...)
+    """Title of the research component in academic style."""
 
 
-class ArticleSectionOutline(Base):
+class ArticleSubsectionOutline(ArticleOutlineBase):
+    """Atomic research component specification for academic paper generation."""
+
+
+class ArticleSectionOutline(ArticleOutlineBase):
     """Methodological unit organizing related technical components."""
-
-    title: str = Field(...)
-    """Process-oriented header with phase identification:
-    - Title Case with 5-10 word limit
-    - Indicates research stage/methodological focus
-    Example: 'Cross-Lingual Evaluation Protocol'"""
-
-    description: str = Field(...)
-    """Functional specification with four required elements:
-    1. Research Stage: Paper progression position
-    2. Technical Innovations: Novel components
-    3. Scholarly Context: Relationship to prior work
-    4. Forward Flow: Connection to subsequent sections
-
-    Example: 'Implements constrained NAS framework building on Section 2's
-    theoretical foundations. Introduces dynamic resource allocation mechanism.
-    Directly supports Results section through ablation study parameters.'"""
 
     subsections: List[ArticleSubsectionOutline] = Field(
         ...,
@@ -321,25 +335,8 @@ class ArticleSectionOutline(Base):
     ]"""
 
 
-class ArticleChapterOutline(Base):
+class ArticleChapterOutline(ArticleOutlineBase):
     """Macro-structural unit implementing standard academic paper organization."""
-
-    title: str = Field(...)
-    """IMRaD-compliant chapter title with domain specification:
-    - Title Case with 2-4 word limit
-    - Matches standard paper sections
-    Example: 'Multilingual Evaluation Results'"""
-
-    description: str = Field(...)
-    """Strategic chapter definition containing:
-    1. Research Phase: Introduction/Methods/Results/etc.
-    2. Chapter Objectives: 3-5 specific goals
-    3. Thesis Alignment: Supported claims/contributions
-    4. Structural Flow: Adjacent chapter relationships
-
-    Example: 'Presents cross-lingual NAS results across 10 language pairs.
-    Validates efficiency claims from Introduction. Provides empirical basis
-    for Discussion chapter. Contrasts with single-language baselines.'"""
 
     sections: List[ArticleSectionOutline] = Field(
         ...,
@@ -361,7 +358,7 @@ class ArticleChapterOutline(Base):
     ]"""
 
 
-class ArticleOutline(Display, CensoredAble):
+class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal]):
     """Complete academic paper blueprint with hierarchical validation."""
 
     title: str = Field(...)
@@ -383,9 +380,7 @@ class ArticleOutline(Display, CensoredAble):
     across 50+ languages, enabling efficient architecture discovery with
     60% reduced search costs.'"""
 
-    chapters: List[ArticleChapterOutline] = Field(
-        ...,
-    )
+    chapters: List[ArticleChapterOutline]
     """IMRaD structure with enhanced academic validation:
     1. Introduction: Problem Space & Contributions
     2. Background: Theoretical Foundations
@@ -395,6 +390,9 @@ class ArticleOutline(Display, CensoredAble):
     6. Discussion: Interpretation & Limitations
     7. Conclusion: Synthesis & Future Work
     8. Appendices: Supplementary Materials"""
+
+    abstract: str = Field(...)
+    """The abstract is a concise summary of the academic paper's main findings."""
 
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.
@@ -446,65 +444,27 @@ class Paragraph(CensoredAble):
     """List of sentences forming the paragraph's content."""
 
 
-class ArticleRef(CensoredAble):
-    """Reference to a specific section or subsection within an article.
-
-    Always instantiated with a fine-grind reference to a specific subsection if possible.
-    """
-
-    referred_chapter_title: str
-    """Full title of the chapter that contains the referenced section."""
-
-    referred_section_title: Optional[str] = None
-    """Full title of the section that contains the referenced subsection. Defaults to None if not applicable, which means the reference is to the entire chapter."""
-
-    referred_subsection_title: Optional[str] = None
-    """Full title of the subsection that contains the referenced paragraph. Defaults to None if not applicable, which means the reference is to the entire section."""
-
-    def __hash__(self) -> int:
-        """Overrides the default hash function to ensure consistent hashing across instances."""
-        return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
-
-
-class ArticleBase(CensoredAble, Display):
+class ArticleBase(CensoredAble, Display, ArticleOutlineBase):
     """Foundation for hierarchical document components with dependency tracking."""
-
-    description: str
-    """Required: Functional purpose statement for this component's role in the paper.
-    Format: Single paragraph (2-3 sentences) describing specific contribution to overall paper structure.
-    Example: 'Defines evaluation metrics for cross-lingual transfer experiments'"""
-
-    writing_aim: List[str]
-    """Required: List of specific rhetorical objectives (3-5 items).
-    Format: Each item must be an actionable phrase starting with a verb.
-    Example: ['Establish metric validity', 'Compare with baseline approaches',
-             'Justify threshold selection']"""
-
-    support_to: List[ArticleRef]
-    """Required: List of ArticleRef objects identifying components this section provides evidence for.
-    Format: Each reference must point to a specific chapter, section, or subsection.
-    Note: References form a directed acyclic graph in the document structure."""
-
-    depend_on: List[ArticleRef]
-    """Required: List of ArticleRef objects identifying components this section builds upon.
-    Format: Each reference must point to a previously defined chapter, section, or subsection.
-    Note: Circular dependencies are not permitted."""
-
-    title: str
-    """Required: Standardized academic header
-    Requirements:
-    - Must use Title Case formatting
-    - Maximum length: 12 words
-    - No abbreviations without prior definition in document
-    Example: 'Multilingual Benchmark Construction'"""
 
     @abstractmethod
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
 
+    def _update_pre_check(self, other: Self) -> Self:
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Cannot update from a non-{self.__class__} instance.")
+        if self.title != other.title:
+            raise ValueError("Cannot update from a different title.")
+
     @abstractmethod
+    def _update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+
+    @final
     def update_from(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
+        return self._update_pre_check(other)._update_from_inner(other)
 
     def __eq__(self, other: "ArticleBase") -> bool:
         """Compares two ArticleBase objects based on their model_dump_json representation."""
@@ -518,28 +478,11 @@ class ArticleBase(CensoredAble, Display):
 class ArticleSubsection(ArticleBase):
     """Atomic argumentative unit with technical specificity."""
 
-    title: str
-    """Technical descriptor with maximal information density:
-    Format: [Method]-[Domain]-[Innovation]
-    Example: 'Transformer-Based Architecture Search Space'"""
-
     paragraphs: List[Paragraph]
-    """List of Paragraph objects forming the content of the subsection.
+    """List of Paragraph objects containing the content of the subsection."""
 
-    Each Paragraph describes a specific part of the academic narrative with:
-    - A brief description of its purpose,
-    - A list of sentences that collectively convey the ideas,
-    - Writing aims that outline the intended rhetorical moves.
-
-    This field aggregates multiple Paragraph instances to build a coherent and structured component of the subsection.
-    """
-
-    def update_from(self, other: Self) -> Self:
+    def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
-        if not isinstance(other, ArticleSubsection):
-            raise TypeError("Cannot update from a non-ArticleSubsection instance.")
-        if self.title != other.title:
-            raise ValueError("Cannot update from a different title.")
         logger.debug(f"Updating SubSection {self.title}")
         self.paragraphs = other.paragraphs
         return self
@@ -554,39 +497,12 @@ class ArticleSubsection(ArticleBase):
 
 
 class ArticleSection(ArticleBase):
-    """Methodological complete unit presenting cohesive research phase."""
-
-    title: str
-    """Process-oriented header indicating methodological scope.
-    Example: 'Cross-Lingual Transfer Evaluation Protocol'"""
+    """Atomic argumentative unit with high-level specificity."""
 
     subsections: List[ArticleSubsection]
-    """Thematic progression implementing section's research function:
-    1. Conceptual Framework
-    2. Technical Implementation
-    3. Experimental Validation
-    4. Comparative Analysis
-    5. Synthesis
 
-    Example Subsection Flow:
-    [
-        'Evaluation Metrics',
-        'Dataset Preparation',
-        'Baseline Comparisons',
-        'Ablation Studies',
-        'Interpretation Framework'
-    ]"""
-
-    def update_from(self, other: Self) -> Self:
+    def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
-        if not isinstance(other, ArticleSection):
-            raise TypeError("Cannot update from a non-ArticleSection instance.")
-        if self.title != other.title:
-            raise ValueError("Cannot update from a different title.")
-        if any(True for sel, oth in zip(self.subsections, other.subsections, strict=True) if sel.title != oth.title):
-            raise ValueError(
-                "Cannot update from a different number of subsections or the title of the subsections is not the same."
-            )
         for self_subsec, other_subsec in zip(self.subsections, other.subsections, strict=True):
             self_subsec.update_from(other_subsec)
         return self
@@ -601,39 +517,13 @@ class ArticleSection(ArticleBase):
 
 
 class ArticleChapter(ArticleBase):
-    """Macro-structural unit implementing IMRaD document architecture."""
-
-    title: str
-    """Standard IMRaD chapter title with domain specification.
-    Example: 'Neural Architecture Search for Low-Resource Languages'"""
+    """Thematic progression implementing research function."""
 
     sections: List[ArticleSection]
-    """Complete research narrative implementing chapter objectives:
-    1. Context Establishment
-    2. Methodology Exposition
-    3. Results Presentation
-    4. Critical Analysis
-    5. Synthesis
+    """Thematic progression implementing chapter's research function."""
 
-    Example Section Hierarchy:
-    [
-        'Theoretical Framework',
-        'Experimental Design',
-        'Results Analysis',
-        'Threats to Validity',
-        'Comparative Discussion'
-    ]"""
-
-    def update_from(self, other: Self) -> Self:
+    def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
-        if not isinstance(other, ArticleChapter):
-            raise TypeError("Cannot update from a non-ArticleChapter instance.")
-        if self.title != other.title:
-            raise ValueError("Cannot update from a different title.")
-        if any(True for sel, oth in zip(self.sections, other.sections, strict=True) if sel.title != oth.title):
-            raise ValueError(
-                "Cannot update from a different number of sections or the title of the sections is not the same."
-            )
         for self_sec, other_sec in zip(self.sections, other.sections, strict=True):
             self_sec.update_from(other_sec)
         return self
@@ -643,37 +533,17 @@ class ArticleChapter(ArticleBase):
         return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
 
-class Article(Display, CensoredAble):
+class Article(Display, CensoredAble, WithRef[ArticleOutline]):
     """Complete academic paper specification with validation constraints."""
 
     title: str = Field(...)
-    """Full technical descriptor following ACL 2024 guidelines:
-    Structure: [Method] for [Task] in [Domain]: [Subtitle with Technical Focus]
-    Example: 'Efficient Differentiable NAS for Low-Resource MT:
-             A Parameter-Sharing Approach to Cross-Lingual Transfer'"""
+    """The academic title"""
 
     abstract: str = Field(...)
-    """Structured summary with controlled natural language:
-    1. Context: 2 clauses (problem + gap)
-    2. Methods: 3 clauses (approach + innovation + implementation)
-    3. Results: 3 clauses (metrics + comparisons + significance)
-    4. Impact: 2 clauses (theoretical + practical)
+    """Abstract of the academic paper."""
 
-    Example: 'Neural architecture search (NAS) faces prohibitive... [150 words]'"""
-
-    chapters: List[ArticleChapter] = Field(
-        ...,
-    )
-    """IMRaD-compliant document structure with enhanced validation:
-    1. Introduction: Motivation & Contributions
-    2. Background: Literature & Theory
-    3. Methods: Technical Implementation
-    4. Experiments: Protocols & Setup
-    5. Results: Empirical Findings
-    6. Discussion: Interpretation & Limitations
-    7. Conclusion: Summary & Future Work
-
-    Additional: Appendices, Ethics Review, Reproducibility Statements"""
+    chapters: List[ArticleChapter]
+    """List of ArticleChapter objects representing the academic paper's structure."""
 
     def finalized_dump(self) -> str:
         """Exports the article in `typst` format.
@@ -694,37 +564,25 @@ class Article(Display, CensoredAble):
             Article: The generated article.
         """
         # Set the title from the outline
-        article = Article(title=outline.title, abstract="", chapters=[])
+        article = Article(**outline.model_dump(include={"title", "abstract"}), chapters=[])
 
         for chapter in outline.chapters:
             # Create a new chapter
             article_chapter = ArticleChapter(
-                title=chapter.title,
-                description=chapter.description,
-                writing_aim=[],
-                support_to=[],
-                depend_on=[],
                 sections=[],
+                **chapter.model_dump(exclude={"sections"}),
             )
             for section in chapter.sections:
                 # Create a new section
                 article_section = ArticleSection(
-                    title=section.title,
-                    description=section.description,
-                    writing_aim=[],
-                    support_to=[],
-                    depend_on=[],
                     subsections=[],
+                    **section.model_dump(exclude={"subsections"}),
                 )
                 for subsection in section.subsections:
                     # Create a new subsection
                     article_subsection = ArticleSubsection(
-                        title=subsection.title,
-                        description=subsection.description,
-                        writing_aim=[],
-                        support_to=[],
-                        depend_on=[],
                         paragraphs=[],
+                        **subsection.model_dump(),
                     )
                     article_section.subsections.append(article_subsection)
                 article_chapter.sections.append(article_section)
