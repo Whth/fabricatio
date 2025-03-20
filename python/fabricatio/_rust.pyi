@@ -11,7 +11,7 @@ class TemplateManager:
     """
 
     def __init__(
-            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
@@ -55,6 +55,16 @@ class TemplateManager:
             RuntimeError: If template rendering fails
         """
 
+    def render_template_raw(self, template: str, data: Dict[str, Any]) -> str:
+        """Render a template with context data.
+
+        Args:
+            template: The template string
+            data: Context dictionary to provide variables to the template
+
+        Returns:
+            Rendered template content as string
+        """
 
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
@@ -65,7 +75,6 @@ def blake3_hash(content: bytes) -> str:
     Returns:
         Hex-encoded BLAKE3 hash string
     """
-
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
