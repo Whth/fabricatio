@@ -1,6 +1,6 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
@@ -10,6 +10,7 @@ from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
+from fabricatio.models.utils import ok
 from fabricatio.parser import JsonCapture
 from pydantic import (
     BaseModel,
@@ -19,6 +20,7 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
+    PrivateAttr,
     SecretStr,
 )
 
@@ -61,6 +63,44 @@ class Described(Base):
 
     description: str = Field(default="", frozen=True)
     """The description of the object."""
+
+
+class AsPrompt(Base):
+    """Class that provides a method to generate a prompt from the model."""
+
+    @final
+    def as_prompt(self) -> str:
+        """Generate a prompt from the model.
+
+        Returns:
+            str: The generated prompt.
+        """
+        return TEMPLATE_MANAGER.render_template(
+            configs.templates.as_prompt_template,
+            self._as_prompt_inner(),
+        )
+
+    @abstractmethod
+    def _as_prompt_inner(self) -> Dict[str, str]: ...
+
+
+class WithRef[T](Base):
+    """Class that provides a reference to another object."""
+
+    _reference: Optional[T] = PrivateAttr(None)
+
+    @property
+    def referenced(self) -> T:
+        """Get the referenced object."""
+        return ok(self._reference, "_reference is None")
+
+    def update_ref(self, reference: T | Self) -> Self:
+        """Update the reference of the object."""
+        if isinstance(reference, self.__class__):
+            self._reference = reference.referenced
+        else:
+            self._reference = reference
+        return self
 
 
 class WithBriefing(Named, Described):
@@ -178,6 +218,7 @@ class FinalizedDumpAble(Base):
             str: The finalized dump of the object.
         """
         return self.model_dump_json()
+
     def finalized_dump_to(self, path: str | Path) -> Self:
         """Finalize the dump of the object to a file.
 
