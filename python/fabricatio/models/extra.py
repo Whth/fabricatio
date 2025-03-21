@@ -557,7 +557,7 @@ class ArticleSection(ArticleBase):
 
     def resolve_update_error(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
-        if s_len := len(self.subsections) == 0:
+        if (s_len := len(self.subsections)) == 0:
             return ""
 
         if s_len != len(other.subsections):
@@ -598,7 +598,10 @@ class ArticleChapter(ArticleBase):
 
     def resolve_update_error(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
-        if len(self.sections) != len(other.sections):
+        if (s_len := len(self.sections)) == 0:
+            return ""
+
+        if s_len != len(other.sections):
             return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
         sec_err_seq = [
             out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_error(o))
