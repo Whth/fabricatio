@@ -24,4 +24,4 @@ clean:
 publish:tools
 	uvx -p $(PY) --project . maturin publish --skip-existing
 	uvx -p $(PY) --project . maturin upload --skip-existing $(DIST)/*
-.PHONY: tools``pw
+.PHONY: tools dev bdist clean publish
