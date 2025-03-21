@@ -121,7 +121,8 @@ class PersistentAble(Base):
             p.joinpath(f"{self.__class__.__name__}_{blake3_hash(out.encode())[:6]}.json").write_text(
                 out, encoding="utf-8"
             )
-
+            return self
+        p.mkdir(exist_ok=True, parents=True)
         p.write_text(out, encoding="utf-8")
         return self
 
