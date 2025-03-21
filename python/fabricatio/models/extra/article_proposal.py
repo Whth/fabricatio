@@ -12,6 +12,9 @@ class ArticleProposal(CensoredAble, Display, WithRef[str], AsPrompt, PersistentA
     Guides LLM in generating comprehensive research proposals with clearly defined components.
     """
 
+    article_language: str
+    """Written language of the article. SHALL be aligned to the language of the article briefing provided."""
+
     title: str = Field(...)
     """Paper title in academic style (Title Case, 8-15 words). Example: 'Exploring Neural Architecture Search for Low-Resource Machine Translation'"""
 

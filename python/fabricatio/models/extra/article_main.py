@@ -173,6 +173,9 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble):
     aiming to provide a comprehensive model for academic papers.
     """
 
+    article_language: str
+    """Written language of the article. SHALL be aligned to the language of the article outline provided."""
+
     title: str
     """Represents the title of the academic paper."""
 

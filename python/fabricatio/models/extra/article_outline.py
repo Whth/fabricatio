@@ -1,10 +1,12 @@
 """A module containing the ArticleOutline class, which represents the outline of an academic paper."""
 
 from enum import Enum
-from typing import TYPE_CHECKING, Generator, List, Optional, Union, overload
+from typing import TYPE_CHECKING, Generator, List, Optional, Tuple, Union, overload
 
+import regex
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.generic import Base, CensoredAble, Display, PersistentAble, WithRef
+from fabricatio.models.utils import ok
 from pydantic import Field
 
 if TYPE_CHECKING:
@@ -87,9 +89,9 @@ class ArticleOutlineBase(Base):
     Format: Each reference must point to a specific chapter, section, or subsection.
     Note: References form a directed acyclic graph in the document structure."""
 
-    description: str = Field(...)
+    description: str
     """Description of the research component in academic style."""
-    title: str = Field(...)
+    title: str
     """Title of the research component in academic style."""
 
 
@@ -122,10 +124,13 @@ class ArticleChapterOutline(ArticleOutlineBase):
 class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal], PersistentAble):
     """Complete academic paper blueprint with hierarchical validation."""
 
-    title: str = Field(...)
+    article_language: str
+    """Written language of the article. SHALL be aligned to the language of the article proposal provided."""
+
+    title: str
     """Title of the academic paper."""
 
-    prospect: str = Field(...)
+    prospect: str
     """Consolidated research statement with four pillars:
     1. Problem Identification: Current limitations
     2. Methodological Response: Technical approach
@@ -140,7 +145,7 @@ class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal], Persistent
     chapters: List[ArticleChapterOutline]
     """List of ArticleChapterOutline objects representing the academic paper's structure."""
 
-    abstract: str = Field(...)
+    abstract: str
     """The abstract is a concise summary of the academic paper's main findings."""
 
     def finalized_dump(self) -> str:
@@ -203,3 +208,69 @@ class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal], Persistent
                     summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `support_to` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
 
         return summary
+
+    @classmethod
+    def from_typst_code(
+        cls, typst_code: str, title: str = "", article_language: str = "en", prospect: str = "", abstract: str = ""
+    ) -> "ArticleOutline":
+        """Parses a Typst code string and creates an ArticleOutline instance."""
+        self = cls(article_language=article_language, prospect=prospect, abstract=abstract, chapters=[], title=title)
+        stack = [self]  # 根节点为ArticleOutline实例
+
+        for line in typst_code.splitlines():
+            parsed = cls._parse_line(line)
+            if not parsed:
+                continue
+            level, title = parsed
+            cls._adjust_stack(stack, level)
+            parent = stack[-1]
+            component = cls._create_component(level, title)
+            cls._add_to_parent(parent, component, level)
+            stack.append(component)
+
+        return self
+
+    @classmethod
+    def _parse_line(cls, line: str) -> Optional[Tuple[int, str]]:
+        stripped = line.strip()
+        if not stripped.startswith("="):
+            return None
+        match = regex.match(r"^(\=+)(.*)", stripped)
+        if not match:
+            return None
+        eqs, title_part = match.groups()
+        return len(eqs), title_part.strip()
+
+    @classmethod
+    def _adjust_stack(cls, stack: List[object], target_level: int) -> None:
+        while len(stack) > target_level:
+            stack.pop()
+
+    @classmethod
+    def _create_component(cls, level: int, title: str) -> ArticleOutlineBase:
+        default_kwargs = {
+            "writing_aim": [],
+            "depend_on": [],
+            "support_to": [],
+            "description": [],
+        }
+        component_map = {
+            1: lambda: ArticleChapterOutline(title=title, sections=[], **default_kwargs),
+            2: lambda: ArticleSectionOutline(title=title, subsections=[], **default_kwargs),
+            3: lambda: ArticleSubsectionOutline(title=title, **default_kwargs),
+        }
+        return ok(component_map.get(level, lambda: None)(), "Invalid level")
+
+    @classmethod
+    def _add_to_parent(
+        cls,
+        parent: Union["ArticleOutline", ArticleChapterOutline, ArticleSectionOutline],
+        component: ArticleOutlineBase,
+        level: int,
+    ) -> None:
+        if level == 1 and isinstance(component, ArticleChapterOutline):
+            parent.chapters.append(component)
+        elif level == 2 and isinstance(component, ArticleSectionOutline):  # noqa: PLR2004
+            parent.sections.append(component)
+        elif level == 3 and isinstance(component, ArticleSubsectionOutline):  # noqa: PLR2004
+            parent.subsections.append(component)
