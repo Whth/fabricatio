@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from itertools import chain
-from typing import Dict, Generator, List, Optional, Self, Tuple, final
+from typing import Dict, Generator, List, Optional, Self, Tuple, Union, final, overload
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import AsPrompt, Base, CensoredAble, Display, PrepareVectorization, ProposedAble, WithRef
@@ -270,17 +270,42 @@ class ArticleRef(CensoredAble):
     """
 
     referred_chapter_title: str
-    """Full title of the chapter that contains the referenced section."""
+    """Full title of the referenced chapter"""
 
     referred_section_title: Optional[str] = None
-    """Full title of the section that contains the referenced subsection. Defaults to None if not applicable, which means the reference is to the entire chapter."""
+    """Full title of the referenced section. Defaults to None if not applicable, which means the reference is pointing to the entire chapter."""
 
     referred_subsection_title: Optional[str] = None
-    """Full title of the subsection that contains the referenced paragraph. Defaults to None if not applicable, which means the reference is to the entire section."""
+    """Full title of the referenced subsection. Defaults to None if not applicable, which means the reference is pointing to the entire section."""
 
     def __hash__(self) -> int:
         """Overrides the default hash function to ensure consistent hashing across instances."""
         return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
+
+    @overload
+    def deref(self, article: "Article") -> Optional["ArticleBase"]:
+        """Dereference the reference to the actual section or subsection within the provided article."""
+
+    @overload
+    def deref(self, article: "ArticleOutline") -> Optional["ArticleOutlineBase"]:
+        """Dereference the reference to the actual section or subsection within the provided article."""
+
+    def deref(self, article: Union["ArticleOutline", "Article"]) -> Union["ArticleOutlineBase", "ArticleBase", None]:
+        """Dereference the reference to the actual section or subsection within the provided article.
+
+        Args:
+            article (ArticleOutline | Article): The article to dereference the reference from.
+
+        Returns:
+            ArticleBase | ArticleOutline | None: The dereferenced section or subsection, or None if not found.
+        """
+        chap = next((chap for chap in article.chapters if chap.title == self.referred_chapter_title), None)
+        if self.referred_section_title is None:
+            return chap
+        sec = next((sec for sec in chap.sections if sec.title == self.referred_section_title), None)
+        if self.referred_subsection_title is None:
+            return sec
+        return next((subsec for subsec in sec.subsections if subsec.title == self.referred_subsection_title), None)
 
 
 # <editor-fold desc="ArticleOutline">
@@ -423,6 +448,38 @@ class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal]):
                     lines.append(f"=== {i}.{j}.{k} {subsection.title}")
         return "\n".join(lines)
 
+    def iter_dfs(self) -> Generator[ArticleOutlineBase, None, None]:
+        """Iterates through the article outline in a depth-first manner.
+
+        Returns:
+            ArticleOutlineBase: Each component in the article outline.
+        """
+        for chapter in self.chapters:
+            for section in chapter.sections:
+                yield from section.subsections
+                yield section
+            yield chapter
+
+    def resolve_ref_error(self) -> str:
+        """Resolve reference errors in the article outline.
+
+        Returns:
+            str: Error message indicating reference errors in the article outline.
+
+        Notes:
+            This function is designed to find all invalid `ArticleRef` objs in `depend_on` and `support_to` fields, which will be added to the final error summary.
+        """
+        summary = ""
+        for component in self.iter_dfs():
+            for ref in component.depend_on:
+                if not ref.deref(self):
+                    summary += f"Invalid reference in {component.title} depend_on: {ref}\n"
+            for ref in component.support_to:
+                if not ref.deref(self):
+                    summary += f"Invalid reference in {component.title} support_to: {ref}\n"
+
+        return summary
+
 
 # </editor-fold>
 
@@ -456,6 +513,7 @@ class ArticleBase(CensoredAble, Display, ArticleOutlineBase):
             raise TypeError(f"Cannot update from a non-{self.__class__} instance.")
         if self.title != other.title:
             raise ValueError("Cannot update from a different title.")
+        return self
 
     @abstractmethod
     def _update_from_inner(self, other: Self) -> Self:
@@ -636,15 +694,7 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline]):
         Returns:
             ArticleBase: The corresponding section or subsection.
         """
-        chap = ok(
-            next(chap for chap in self.chap_iter() if chap.title == ref.referred_chapter_title), "Chapter not found"
-        )
-        if ref.referred_section_title is None:
-            return chap
-        sec = ok(next(sec for sec in chap.sections if sec.title == ref.referred_section_title))
-        if ref.referred_subsection_title is None:
-            return sec
-        return ok(next(subsec for subsec in sec.subsections if subsec.title == ref.referred_subsection_title))
+        return ok(ref.deref(self), f"{ref} not found in {self.title}")
 
     def gather_dependencies(self, article: ArticleBase) -> List[ArticleBase]:
         """Gathers dependencies for all sections and subsections in the article.
@@ -672,7 +722,8 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline]):
         q = self.gather_dependencies(article)
 
         deps = []
-        while a := q.pop():
+        while q:
+            a = q.pop()
             deps.extend(self.gather_dependencies(a))
 
         deps = list(
@@ -688,7 +739,8 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline]):
         processed_components = []
 
         # Process all dependencies
-        while component := deps.pop():
+        while deps:
+            component = deps.pop()
             # Skip duplicates
             if (component_code := component.to_typst_code()) in formatted_code:
                 continue
