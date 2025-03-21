@@ -1,6 +1,7 @@
 """Extra models for built-in actions."""
 
 from abc import abstractmethod
+from enum import Enum
 from itertools import chain
 from typing import Dict, Generator, List, Optional, Self, Tuple, Union, final, overload
 
@@ -263,20 +264,25 @@ class ArticleProposal(CensoredAble, Display, WithRef[str], AsPrompt):
         return {"ArticleBriefing": self.referenced, "ArticleProposal": self.display()}
 
 
-class ArticleRef(CensoredAble):
-    """Reference to a specific section or subsection within an article.
+class ReferringType(str, Enum):
+    """Enumeration of different types of references that can be made in an article."""
 
-    Always instantiated with a fine-grind reference to a specific subsection if possible.
-    """
+    CHAPTER: str = "chapter"
+    SECTION: str = "section"
+    SUBSECTION: str = "subsection"
+
+
+class ArticleRef(CensoredAble):
+    """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article."""
 
     referred_chapter_title: str
-    """Full title of the referenced chapter"""
+    """`title` Field of the referenced chapter"""
 
     referred_section_title: Optional[str] = None
-    """Full title of the referenced section. Defaults to None if not applicable, which means the reference is pointing to the entire chapter."""
+    """`title` Field of the referenced section. Defaults to None if not applicable, which means the reference is pointing to the entire chapter."""
 
     referred_subsection_title: Optional[str] = None
-    """Full title of the referenced subsection. Defaults to None if not applicable, which means the reference is pointing to the entire section."""
+    """`title` Field of the referenced subsection. Defaults to None if not applicable, which means the reference is pointing to the entire section."""
 
     def __hash__(self) -> int:
         """Overrides the default hash function to ensure consistent hashing across instances."""
@@ -300,6 +306,8 @@ class ArticleRef(CensoredAble):
             ArticleBase | ArticleOutline | None: The dereferenced section or subsection, or None if not found.
         """
         chap = next((chap for chap in article.chapters if chap.title == self.referred_chapter_title), None)
+        if chap is None:
+            return None
         if self.referred_section_title is None:
             return chap
         sec = next((sec for sec in chap.sections if sec.title == self.referred_section_title), None)
@@ -307,10 +315,19 @@ class ArticleRef(CensoredAble):
             return sec
         return next((subsec for subsec in sec.subsections if subsec.title == self.referred_subsection_title), None)
 
+    @property
+    def referring_type(self) -> ReferringType:
+        """Determine the type of reference based on the presence of specific attributes."""
+        if self.referred_subsection_title is not None:
+            return ReferringType.SUBSECTION
+        if self.referred_section_title is not None:
+            return ReferringType.SECTION
+        return ReferringType.CHAPTER
+
 
 # <editor-fold desc="ArticleOutline">
 class ArticleOutlineBase(Base):
-    """Atomic research component specification for academic paper generation."""
+    """Base class for article outlines."""
 
     writing_aim: List[str]
     """Required: List of specific rhetorical objectives (3-5 items).
@@ -338,34 +355,16 @@ class ArticleSubsectionOutline(ArticleOutlineBase):
 
 
 class ArticleSectionOutline(ArticleOutlineBase):
-    """Methodological unit organizing related technical components."""
+    """A slightly more detailed research component specification for academic paper generation."""
 
-    subsections: List[ArticleSubsectionOutline] = Field(
-        ...,
-    )
-    """IMRaD-compliant substructure with technical progression:
-    1. Conceptual Framework
-    2. Methodological Details
-    3. Implementation Strategy
-    4. Validation Approach
-    5. Transition Logic
-
-    Example Flow:
-    [
-        'Search Space Constraints',
-        'Gradient Optimization Protocol',
-        'Multi-GPU Implementation',
-        'Convergence Validation',
-        'Cross-Lingual Extension'
-    ]"""
+    subsections: List[ArticleSubsectionOutline] = Field(min_length=1)
+    """List of subsections, each containing a specific research component. Must contains at least 1 subsection, But do remember you should always add more subsection as required."""
 
 
 class ArticleChapterOutline(ArticleOutlineBase):
     """Macro-structural unit implementing standard academic paper organization."""
 
-    sections: List[ArticleSectionOutline] = Field(
-        ...,
-    )
+    sections: List[ArticleSectionOutline] = Field(min_length=1)
     """Standard academic progression implementing chapter goals:
     1. Context Establishment
     2. Technical Presentation
@@ -373,25 +372,15 @@ class ArticleChapterOutline(ArticleOutlineBase):
     4. Comparative Analysis
     5. Synthesis
 
-    Example Structure:
-    [
-        'Experimental Setup',
-        'Monolingual Baselines',
-        'Cross-Lingual Transfer',
-        'Low-Resource Scaling',
-        'Error Analysis'
-    ]"""
+    Must contains at least 1 sections, But do remember you should always add more section as required. 
+    """
 
 
 class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal]):
     """Complete academic paper blueprint with hierarchical validation."""
 
     title: str = Field(...)
-    """Full technical title following ACL 2024 guidelines:
-    - Title Case with 12-18 word limit
-    - Structure: [Method] for [Task] via [Approach] in [Domain]
-    Example: 'Efficient Differentiable NAS for Low-Resource MT Through
-    Parameter-Sharing: A Cross-Lingual Study'"""
+    """Title of the academic paper."""
 
     prospect: str = Field(...)
     """Consolidated research statement with four pillars:
@@ -406,15 +395,7 @@ class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal]):
     60% reduced search costs.'"""
 
     chapters: List[ArticleChapterOutline]
-    """IMRaD structure with enhanced academic validation:
-    1. Introduction: Problem Space & Contributions
-    2. Background: Theoretical Foundations
-    3. Methods: Technical Innovations
-    4. Experiments: Protocol Design
-    5. Results: Empirical Findings
-    6. Discussion: Interpretation & Limitations
-    7. Conclusion: Synthesis & Future Work
-    8. Appendices: Supplementary Materials"""
+    """List of ArticleChapterOutline objects representing the academic paper's structure."""
 
     abstract: str = Field(...)
     """The abstract is a concise summary of the academic paper's main findings."""
@@ -473,10 +454,10 @@ class ArticleOutline(Display, CensoredAble, WithRef[ArticleProposal]):
         for component in self.iter_dfs():
             for ref in component.depend_on:
                 if not ref.deref(self):
-                    summary += f"Invalid reference in {component.title} depend_on: {ref}\n"
+                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `depend_on` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
             for ref in component.support_to:
                 if not ref.deref(self):
-                    summary += f"Invalid reference in {component.title} support_to: {ref}\n"
+                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `support_to` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
 
         return summary
 
@@ -516,6 +497,14 @@ class ArticleBase(CensoredAble, Display, ArticleOutlineBase):
         return self
 
     @abstractmethod
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline.
+
+        Returns:
+            str: Error message indicating update errors in the article outline.
+        """
+
+    @abstractmethod
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
 
@@ -539,6 +528,12 @@ class ArticleSubsection(ArticleBase):
     paragraphs: List[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if self.title != other.title:
+            return f"Title `{other.title}` mismatched, expected `{self.title}`. "
+        return ""
+
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         logger.debug(f"Updating SubSection {self.title}")
@@ -558,9 +553,30 @@ class ArticleSection(ArticleBase):
     """Atomic argumentative unit with high-level specificity."""
 
     subsections: List[ArticleSubsection]
+    """List of ArticleSubsection objects containing the content of the section."""
+
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if s_len := len(self.subsections) == 0:
+            return ""
+
+        if s_len != len(other.subsections):
+            return f"Subsections length mismatched, expected {len(self.subsections)}, got {len(other.subsections)}"
+
+        sub_sec_err_seq = [
+            out for s, o in zip(self.subsections, other.subsections, strict=True) if (out := s.resolve_update_error(o))
+        ]
+
+        if sub_sec_err_seq:
+            return "\n".join(sub_sec_err_seq)
+        return ""
 
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
+        if len(self.subsections) == 0:
+            self.subsections = other.subsections
+            return self
+
         for self_subsec, other_subsec in zip(self.subsections, other.subsections, strict=True):
             self_subsec.update_from(other_subsec)
         return self
@@ -580,8 +596,23 @@ class ArticleChapter(ArticleBase):
     sections: List[ArticleSection]
     """Thematic progression implementing chapter's research function."""
 
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if len(self.sections) != len(other.sections):
+            return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
+        sec_err_seq = [
+            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_error(o))
+        ]
+        if sec_err_seq:
+            return "\n".join(sec_err_seq)
+        return ""
+
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
+        if len(self.sections) == 0:
+            self.sections = other.sections
+            return self
+
         for self_sec, other_sec in zip(self.sections, other.sections, strict=True):
             self_sec.update_from(other_sec)
         return self
