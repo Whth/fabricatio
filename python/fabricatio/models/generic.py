@@ -94,7 +94,7 @@ class WithRef[T](Base):
         """Get the referenced object."""
         return ok(self._reference, "_reference is None")
 
-    def update_ref(self, reference: T | Self) -> Self:
+    def update_ref[S](self: S, reference: T | S) -> S:  # noqa: PYI019
         """Update the reference of the object."""
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
