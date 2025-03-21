@@ -55,19 +55,23 @@ class GenerateArticleProposal(Action):
         **_,
     ) -> Optional[ArticleProposal]:
         if article_briefing is None and article_briefing_path is None and task_input is None:
-            logger.info("Task not approved, since ")
+            logger.error("Task not approved, since all inputs are None.")
             return None
-        if article_briefing_path is None and task_input:
-            article_briefing_path = await self.awhich_pathstr(
-                f"{task_input.briefing}\nExtract the path of file which contains the article briefing."
-            )
 
         return (
             await self.propose(
                 ArticleProposal,
                 briefing := (
                     article_briefing
-                    or safe_text_read(ok(article_briefing_path, "Could not find the path of file to read."))
+                    or safe_text_read(
+                        ok(
+                            article_briefing_path
+                            or await self.awhich_pathstr(
+                                f"{task_input.briefing}\nExtract the path of file which contains the article briefing."
+                            ),
+                            "Could not find the path of file to read.",
+                        )
+                    )
                 ),
                 **self.prepend_sys_msg(),
             )
@@ -95,8 +99,8 @@ class GenerateOutline(Action):
             logger.warning(f"Found error in the outline: \n{err}")
             out = await self.correct_obj(
                 out,
-                reference=err,
-                topic="This `ArticleOutline` has some references that is not valid.",
+                reference=f"# Referring Error\n{err}",
+                topic="Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component.",
                 supervisor_check=False,
             )
         return out.update_ref(article_proposal)
@@ -148,12 +152,25 @@ class GenerateArticle(Action):
             out = ok(
                 await self.correct_obj(
                     c,
-                    reference=f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps),
-                    topic="If this academic article component is good",
+                    reference=(
+                        ref := f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
+                    ),
+                    topic="improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection.",
                     supervisor_check=False,
                 ),
                 "Could not correct the article component.",
             )
+            while err := c.resolve_update_error(out):
+                logger.warning(f"Found error in the article component: \n{err}")
+                out = ok(
+                    await self.correct_obj(
+                        out,
+                        reference=f"{ref}\n\n# Violated Error\n{err}",
+                        topic="this article component has violated the constrain, please correct it.",
+                        supervisor_check=False,
+                    ),
+                    "Could not correct the article component.",
+                )
 
             c.update_from(out)
         return article
