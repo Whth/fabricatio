@@ -146,7 +146,13 @@ class GenerateArticle(Action):
     ) -> Optional[Article]:
         article: Article = Article.from_outline(article_outline).update_ref(article_outline)
 
-        for c, deps in article.iter_dfs_with_deps():
+        writing_manual = await self.draft_rating_manual(
+            topic="improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection.",
+        )
+        err_resolve_manual = await self.draft_rating_manual(
+            topic="this article component has violated the constrain, please correct it."
+        )
+        for c, deps in article.iter_dfs_with_deps(chapter=False):
             logger.info(f"Updating the article component: \n{c.display()}")
 
             out = ok(
@@ -155,7 +161,7 @@ class GenerateArticle(Action):
                     reference=(
                         ref := f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
                     ),
-                    topic="improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection.",
+                    rating_manual=writing_manual,
                     supervisor_check=False,
                 ),
                 "Could not correct the article component.",
@@ -166,7 +172,7 @@ class GenerateArticle(Action):
                     await self.correct_obj(
                         out,
                         reference=f"{ref}\n\n# Violated Error\n{err}",
-                        topic="this article component has violated the constrain, please correct it.",
+                        rating_manual=err_resolve_manual,
                         supervisor_check=False,
                     ),
                     "Could not correct the article component.",
