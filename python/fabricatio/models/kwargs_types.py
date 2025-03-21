@@ -1,7 +1,7 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
 from importlib.util import find_spec
-from typing import Any, Required, TypedDict
+from typing import Any, Dict, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
@@ -114,6 +114,7 @@ class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
     specific topics and review criteria.
     """
 
+    rating_manual: Dict[str, str]
     topic: Required[str]
 
 
