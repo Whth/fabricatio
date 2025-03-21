@@ -11,11 +11,11 @@ class Message(BaseModel):
     """A class representing a message."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    role: Literal["user", "system", "assistant"] = Field(default="user")
+    role: Literal["user", "system", "assistant"]
     """
     Who is sending the message.
     """
-    content: str = Field(default="")
+    content: str
     """
     The content of the message.
     """
@@ -172,12 +172,14 @@ def override_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
     kwargs.update({k: v for k, v in overrides.items() if v is not None})
     return kwargs
 
+
 def fallback_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
     """Fallback the values in kwargs with the provided overrides."""
-    kwargs.update({k: v for k, v in overrides.items() if  k not in kwargs})
+    kwargs.update({k: v for k, v in overrides.items() if k not in kwargs})
     return kwargs
 
-def ok[T](val: Optional[T], msg:str="Value is None") -> T:
+
+def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     """Check if a value is None and raise a ValueError with the provided message if it is.
 
     Args:
