@@ -6,7 +6,10 @@ from typing import Any, Callable, List, Optional
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra import Article, ArticleEssence, ArticleOutline, ArticleProposal
+from fabricatio.models.extra.article_essence import ArticleEssence
+from fabricatio.models.extra.article_main import Article
+from fabricatio.models.extra.article_outline import ArticleOutline
+from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.task import Task
 from fabricatio.models.utils import ok
 

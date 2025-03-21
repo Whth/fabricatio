@@ -103,6 +103,40 @@ class WithRef[T](Base):
         return self
 
 
+class PersistentAble(Base):
+    """Class that provides a method to persist the object."""
+
+    def persist(self, path: str | Path) -> Self:
+        """Persist the object to a file.
+
+        Args:
+            path (str | Path): The path to save the object.
+
+        Returns:
+            Self: The current instance of the object.
+        """
+        p = Path(path)
+        out = self.model_dump_json()
+        if p.is_dir():
+            p.joinpath(f"{self.__class__.__name__}_{blake3_hash(out.encode())[:6]}.json").write_text(
+                out, encoding="utf-8"
+            )
+
+        p.write_text(out, encoding="utf-8")
+        return self
+
+    def from_persistent(self, path: str | Path) -> Self:
+        """Load the object from a file.
+
+        Args:
+            path (str | Path): The path to load the object from.
+
+        Returns:
+            Self: The current instance of the object.
+        """
+        return self.model_validate_json(Path(path).read_text(encoding="utf-8"))
+
+
 class WithBriefing(Named, Described):
     """Class that provides a briefing based on the name and description."""
 
