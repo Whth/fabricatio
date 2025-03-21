@@ -85,13 +85,21 @@ class GenerateOutline(Action):
         article_proposal: ArticleProposal,
         **_,
     ) -> Optional[ArticleOutline]:
-        return (
-            await self.propose(
-                ArticleOutline,
-                article_proposal.as_prompt(),
-                **self.prepend_sys_msg(),
+        out = await self.propose(
+            ArticleOutline,
+            article_proposal.as_prompt(),
+            **self.prepend_sys_msg(),
+        )
+
+        while err := out.resolve_ref_error():
+            logger.warning(f"Found error in the outline: \n{err}")
+            out = await self.correct_obj(
+                out,
+                reference=err,
+                topic="This `ArticleOutline` has some references that is not valid.",
+                supervisor_check=False,
             )
-        ).update_ref(article_proposal)
+        return out.update_ref(article_proposal)
 
 
 class CorrectProposal(Action):
@@ -135,8 +143,16 @@ class GenerateArticle(Action):
         article: Article = Article.from_outline(article_outline).update_ref(article_outline)
 
         for c, deps in article.iter_dfs_with_deps():
-            out = await self.correct_obj(
-                c, reference=f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
+            logger.info(f"Updating the article component: \n{c.display()}")
+
+            out = ok(
+                await self.correct_obj(
+                    c,
+                    reference=f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps),
+                    topic="If this academic article component is good",
+                    supervisor_check=False,
+                ),
+                "Could not correct the article component.",
             )
 
             c.update_from(out)
