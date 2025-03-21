@@ -1,6 +1,6 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
-from typing import List, Optional, Self, Set, Unpack, cast
+from typing import Dict, List, Optional, Self, Set, Unpack, cast
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
@@ -200,13 +200,14 @@ class Review(GiveRating, Propose):
             ReviewResult[Task[T]]: A review result containing identified problems and proposed solutions,
                 with a reference to the original task.
         """
-        return cast('ReviewResult[Task[T]]', await self.review_obj(task, **kwargs))
+        return cast("ReviewResult[Task[T]]", await self.review_obj(task, **kwargs))
 
     async def review_string(
         self,
         input_text: str,
         topic: str,
         criteria: Optional[Set[str]] = None,
+        rating_manual: Optional[Dict[str, str]] = None,
         **kwargs: Unpack[ValidateKwargs[ReviewResult[str]]],
     ) -> ReviewResult[str]:
         """Review a string based on specified topic and criteria.
@@ -219,6 +220,7 @@ class Review(GiveRating, Propose):
             topic (str): The subject topic for the review criteria.
             criteria (Optional[Set[str]], optional): A set of criteria for the review.
                 If not provided, criteria will be drafted automatically. Defaults to None.
+            rating_manual (Optional[Dict[str,str]], optional): A dictionary of rating criteria and their corresponding scores.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -227,12 +229,13 @@ class Review(GiveRating, Propose):
         """
         default = None
         if "default" in kwargs:
+            # this `default` is the default for the `propose` method
             default = kwargs.pop("default")
 
         criteria = criteria or (await self.draft_rating_criteria(topic, **kwargs))
         if not criteria:
             raise ValueError("No criteria provided for review.")
-        manual = await self.draft_rating_manual(topic, criteria, **kwargs)
+        manual = rating_manual or await self.draft_rating_manual(topic, criteria, **kwargs)
 
         if default is not None:
             kwargs["default"] = default
