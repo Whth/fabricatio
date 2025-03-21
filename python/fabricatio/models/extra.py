@@ -332,15 +332,14 @@ class ArticleOutlineBase(Base):
     Format: Each item must be an actionable phrase starting with a verb.
     Example: ['Establish metric validity', 'Compare with baseline approaches',
              'Justify threshold selection']"""
-    support_to: List[ArticleRef]
-    """Required: List of ArticleRef objects identifying components this section provides evidence for.
-    Format: Each reference must point to a specific chapter, section, or subsection.
-    Note: References form a directed acyclic graph in the document structure."""
-
     depend_on: List[ArticleRef]
-    """Required: List of ArticleRef objects identifying components this section builds upon.
+    """Required: List of all essential ArticleRef objects identifying components this section builds upon.
     Format: Each reference must point to a previously defined chapter, section, or subsection.
     Note: Circular dependencies are not permitted."""
+    support_to: List[ArticleRef]
+    """Required: List of all essential ArticleRef objects identifying components this section provides evidence for.
+    Format: Each reference must point to a specific chapter, section, or subsection.
+    Note: References form a directed acyclic graph in the document structure."""
 
     description: str = Field(...)
     """Description of the research component in academic style."""
