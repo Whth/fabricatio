@@ -48,7 +48,7 @@ class Action(HandleTask, ProposeTask, Correct):
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
-    async def _execute(self,*_, **cxt) -> Any:  # noqa: ANN002
+    async def _execute(self, *_, **cxt) -> Any:  # noqa: ANN002
         """Execute the action logic with the provided context arguments.
 
         This method must be implemented by subclasses to define the actual behavior.
@@ -147,6 +147,8 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         Args:
             task: The task to be processed.
         """
+        logger.info(f"Start execute workflow: {self.name}")
+
         await task.start()
         await self._init_context(task)
 
@@ -155,7 +157,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             # Process each action in sequence
             for step in self._instances:
                 current_action = step.name
-                logger.debug(f"Executing step: {current_action}")
+                logger.info(f"Executing step: {current_action}")
 
                 # Get current context and execute action
                 context = await self._context.get()
