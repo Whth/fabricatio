@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = "==3.12.*"
 
 [[package]]
@@ -246,7 +245,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.7.dev0"
+version = "0.2.7.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -321,7 +320,6 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sympy", marker = "extra == 'calc'", specifier = ">=1.13.3" },
 ]
-provides-extras = ["rag", "full", "calc", "plot"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1540,9 +1538,9 @@ wheels = [
 name = "typing-extensions"
 version = "4.12.2"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8", size = 85321 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d", size = 37438 },
 ]
 
 [[package]]
