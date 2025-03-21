@@ -1,6 +1,6 @@
 DIST:=dist
 DATA:=extra
-
+PY:=3.12
 
 
 all:bdist
@@ -12,16 +12,16 @@ tools:
 	rm $(DATA)/scripts/*.dwarf || true
 
 dev: tools
-	uvx --project . maturin develop --uv -r
+	uvx -p $(PY) --project . maturin develop --uv -r
 
 bdist:clean tools
-	uvx --project . maturin sdist -o $(DIST)
-	uvx --project . maturin build  -r -o $(DIST)
+	uvx -p $(PY) --project . maturin sdist -o $(DIST)
+	uvx -p $(PY) --project . maturin build  -r -o $(DIST)
 
 clean:
 	rm -rf $(DIST) $(DATA)
 
 publish:tools
-	uvx --project . maturin publish --skip-existing
-	uvx --project . maturin upload --skip-existing $(DIST)/*
-.PHONY: tools
+	uvx -p $(PY) --project . maturin publish --skip-existing
+	uvx -p $(PY) --project . maturin upload --skip-existing $(DIST)/*
+.PHONY: tools``pw
