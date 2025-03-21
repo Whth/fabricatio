@@ -785,13 +785,29 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline]):
 
         return processed_components
 
-    def iter_dfs_with_deps(self) -> Generator[Tuple[ArticleBase, List[ArticleBase]], None, None]:
+    def iter_dfs_with_deps(
+        self, chapter: bool = True, section: bool = True, subsection: bool = True
+    ) -> Generator[Tuple[ArticleBase, List[ArticleBase]], None, None]:
         """Iterates through the article in a depth-first manner, yielding each component and its dependencies.
+
+        Args:
+            chapter (bool, optional): Whether to include chapter components. Defaults to True.
+            section (bool, optional): Whether to include section components. Defaults to True.
+            subsection (bool, optional): Whether to include subsection components. Defaults to True.
 
         Yields:
             Tuple[ArticleBase, List[ArticleBase]]: Each component and its dependencies.
         """
+        if all((not chapter, not section, not subsection)):
+            raise ValueError("At least one of chapter, section, or subsection must be True.")
+
         for component in self.iter_dfs():
+            if not chapter and isinstance(component, ArticleChapter):
+                continue
+            if not section and isinstance(component, ArticleSection):
+                continue
+            if not subsection and isinstance(component, ArticleSubsection):
+                continue
             yield component, (self.gather_dependencies_recursive(component))
 
 
