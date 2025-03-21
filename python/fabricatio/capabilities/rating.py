@@ -149,7 +149,7 @@ class GiveRating(WithBriefing, LLMUsage):
                 return json_data
             return None
 
-        criteria = criteria or self.draft_rating_criteria(
+        criteria = criteria or await self.draft_rating_criteria(
             topic, **self.prepend_sys_msg(override_kwargs(dict(kwargs), default=None))
         )
 
