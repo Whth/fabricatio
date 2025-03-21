@@ -177,3 +177,35 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
         return _wrapper
 
     return _decorator
+
+
+def logging_exec_time[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    """Decorator to log the execution time of a function.
+
+    Args:
+        func (Callable): The function to be executed
+
+    Returns:
+        Callable: A decorator that wraps the function to log the execution time.
+    """
+    from time import time
+
+    if iscoroutinefunction(func):
+
+        @wraps(func)
+        async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            start_time = time()
+            result = await func(*args, **kwargs)
+            logger.debug(f"Execution time of `{func.__name__}`: {time() - start_time:.2f} s")
+            return result
+
+        return _async_wrapper
+
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        start_time = time()
+        result = func(*args, **kwargs)
+        logger.debug(f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms")
+        return result
+
+    return _wrapper

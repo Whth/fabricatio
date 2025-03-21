@@ -7,6 +7,7 @@ import asyncstdlib
 import litellm
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
+from fabricatio.decorators import logging_exec_time
 from fabricatio.journal import logger
 from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
@@ -187,6 +188,7 @@ class LLMUsage(ScopedConfig):
         **kwargs: Unpack[LLMKwargs],
     ) -> str: ...
 
+    @logging_exec_time
     async def aask(
         self,
         question: str | List[str],
