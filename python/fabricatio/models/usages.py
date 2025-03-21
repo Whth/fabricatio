@@ -151,6 +151,7 @@ class LLMUsage(ScopedConfig):
                 if len(buffer) % stream_buffer_size == 0:
                     print(buffer, end="")  # noqa: T201
                     buffer = ""
+            print(buffer, end="")  # noqa: T201
             if pack := stream_chunk_builder(chunks):
                 return pack.choices
         logger.critical(err := f"Unexpected response type: {type(resp)}")
