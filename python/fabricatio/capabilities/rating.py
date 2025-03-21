@@ -10,6 +10,7 @@ from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
+from fabricatio.models.utils import override_kwargs
 from fabricatio.parser import JsonCapture
 from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt
@@ -126,13 +127,13 @@ class GiveRating(WithBriefing, LLMUsage):
         return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
 
     async def draft_rating_manual(
-        self, topic: str, criteria: Set[str], **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+        self, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
     ) -> Optional[Dict[str, str]]:
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
             topic (str): The topic for the rating manual.
-            criteria (Set[str]): A set of dimensions for the rating manual.
+            criteria (Optional[Set[str]], optional): A set of criteria for the rating manual. If not specified, then this method will draft the criteria automatically.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -146,6 +147,14 @@ class GiveRating(WithBriefing, LLMUsage):
                 and all(isinstance(v, str) for v in json_data.values())
             ):
                 return json_data
+            return None
+
+        criteria = criteria or self.draft_rating_criteria(
+            topic, **self.prepend_sys_msg(override_kwargs(dict(kwargs), default=None))
+        )
+
+        if criteria is None:
+            logger.error(f"Failed to draft rating criteria for topic {topic}")
             return None
 
         return await self.aask_validate(
