@@ -306,12 +306,10 @@ class ArticleRef(CensoredAble):
             ArticleBase | ArticleOutline | None: The dereferenced section or subsection, or None if not found.
         """
         chap = next((chap for chap in article.chapters if chap.title == self.referred_chapter_title), None)
-        if chap is None:
-            return None
-        if self.referred_section_title is None:
+        if self.referred_section_title is None or chap is None:
             return chap
         sec = next((sec for sec in chap.sections if sec.title == self.referred_section_title), None)
-        if self.referred_subsection_title is None:
+        if self.referred_subsection_title is None or sec is None:
             return sec
         return next((subsec for subsec in sec.subsections if subsec.title == self.referred_subsection_title), None)
 
@@ -372,7 +370,7 @@ class ArticleChapterOutline(ArticleOutlineBase):
     4. Comparative Analysis
     5. Synthesis
 
-    Must contains at least 1 sections, But do remember you should always add more section as required. 
+    Must contains at least 1 sections, But do remember you should always add more section as required.
     """
 
 

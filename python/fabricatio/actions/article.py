@@ -95,12 +95,19 @@ class GenerateOutline(Action):
             **self.prepend_sys_msg(),
         )
 
+        manual = await self.draft_rating_manual(
+            topic=(
+                topic
+                := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component."
+            ),
+        )
         while err := out.resolve_ref_error():
             logger.warning(f"Found error in the outline: \n{err}")
             out = await self.correct_obj(
                 out,
                 reference=f"# Referring Error\n{err}",
-                topic="Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component.",
+                topic=topic,
+                rating_manual=manual,
                 supervisor_check=False,
             )
         return out.update_ref(article_proposal)
@@ -147,10 +154,13 @@ class GenerateArticle(Action):
         article: Article = Article.from_outline(article_outline).update_ref(article_outline)
 
         writing_manual = await self.draft_rating_manual(
-            topic="improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection.",
+            topic=(
+                topic_1
+                := "improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection."
+            ),
         )
         err_resolve_manual = await self.draft_rating_manual(
-            topic="this article component has violated the constrain, please correct it."
+            topic=(topic_2 := "this article component has violated the constrain, please correct it.")
         )
         for c, deps in article.iter_dfs_with_deps(chapter=False):
             logger.info(f"Updating the article component: \n{c.display()}")
@@ -161,6 +171,7 @@ class GenerateArticle(Action):
                     reference=(
                         ref := f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
                     ),
+                    topic=topic_1,
                     rating_manual=writing_manual,
                     supervisor_check=False,
                 ),
@@ -172,6 +183,7 @@ class GenerateArticle(Action):
                     await self.correct_obj(
                         out,
                         reference=f"{ref}\n\n# Violated Error\n{err}",
+                        topic=topic_2,
                         rating_manual=err_resolve_manual,
                         supervisor_check=False,
                     ),

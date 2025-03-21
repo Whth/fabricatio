@@ -162,7 +162,6 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
                 # Get current context and execute action
                 context = await self._context.get()
                 act_task = create_task(step.act(context))
-
                 # Handle task cancellation
                 if task.is_cancelled():
                     act_task.cancel(f"Cancelled by task: {task.name}")
@@ -187,9 +186,9 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
 
             await task.finish(result)
 
-        except RuntimeError as e:
-            logger.error(f"Error during task: {current_action} execution: {e}")
-            logger.error(traceback.format_exc())
+        except Exception as e:  # noqa: BLE001
+            logger.critical(f"Error during task: {current_action} execution: {e}")
+            logger.critical(traceback.format_exc())
             await task.fail()
 
     async def _init_context[T](self, task: Task[T]) -> None:
