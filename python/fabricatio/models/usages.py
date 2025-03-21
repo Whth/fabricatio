@@ -148,7 +148,7 @@ class LLMUsage(ScopedConfig):
             async for chunk in resp:
                 chunks.append(chunk)
                 buffer += chunk.choices[0].delta.content or ""
-                if len(buffer) % stream_buffer_size == 0:
+                if len(buffer) > stream_buffer_size:
                     print(buffer, end="")  # noqa: T201
                     buffer = ""
             print(buffer, end="")  # noqa: T201
