@@ -38,7 +38,7 @@ class ArticleSubsection(ArticleMainBase, SubSectionBase):
     paragraphs: List[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
-    def resolve_update_error(self, other: Self) -> str:
+    def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
         if self.title != other.title:
             return f"Title `{other.title}` mismatched, expected `{self.title}`. "

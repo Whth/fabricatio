@@ -1,10 +1,18 @@
 """A foundation for hierarchical document components with dependency tracking."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from enum import StrEnum
 from typing import TYPE_CHECKING, Generator, List, Optional, Self, Union, overload
 
-from fabricatio.models.generic import Base, CensoredAble, Display, ModelHash, PersistentAble, UpdateAble
+from fabricatio.models.generic import (
+    Base,
+    CensoredAble,
+    Display,
+    ModelHash,
+    PersistentAble,
+    ResolveUpdateConflict,
+    UpdateFrom,
+)
 from pydantic import Field
 
 if TYPE_CHECKING:
@@ -103,11 +111,18 @@ class ArticleRef(CensoredAble):
         return ReferringType.CHAPTER
 
 
-class SubSectionBase(UpdateAble, ABC):
+class SubSectionBase(ResolveUpdateConflict, UpdateFrom):
     """Base class for article sections and subsections."""
 
+    def _update_from_inner(self, other: Self) -> Self:
+        return self
 
-class SectionBase[T: SubSectionBase](UpdateAble):
+    def resolve_update_conflict(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        return ""
+
+
+class SectionBase[T: SubSectionBase](ResolveUpdateConflict, UpdateFrom):
     """Base class for article sections and subsections."""
 
     subsections: List[T] = Field(min_length=1)
@@ -123,7 +138,7 @@ class SectionBase[T: SubSectionBase](UpdateAble):
             self_subsec.update_from(other_subsec)
         return self
 
-    def resolve_update_error(self, other: Self) -> str:
+    def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
         if (s_len := len(self.subsections)) == 0:
             return ""
@@ -132,7 +147,9 @@ class SectionBase[T: SubSectionBase](UpdateAble):
             return f"Subsections length mismatched, expected {len(self.subsections)}, got {len(other.subsections)}"
 
         sub_sec_err_seq = [
-            out for s, o in zip(self.subsections, other.subsections, strict=True) if (out := s.resolve_update_error(o))
+            out
+            for s, o in zip(self.subsections, other.subsections, strict=True)
+            if (out := s.resolve_update_conflict(o))
         ]
 
         if sub_sec_err_seq:
@@ -140,13 +157,13 @@ class SectionBase[T: SubSectionBase](UpdateAble):
         return ""
 
 
-class ChapterBase[T: SectionBase](UpdateAble):
+class ChapterBase[T: SectionBase](ResolveUpdateConflict, UpdateFrom):
     """Base class for article chapters."""
 
     sections: List[T] = Field(min_length=1)
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
 
-    def resolve_update_error(self, other: Self) -> str:
+    def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
         if (s_len := len(self.sections)) == 0:
             return ""
@@ -154,7 +171,7 @@ class ChapterBase[T: SectionBase](UpdateAble):
         if s_len != len(other.sections):
             return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
         sec_err_seq = [
-            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_error(o))
+            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_conflict(o))
         ]
         if sec_err_seq:
             return "\n".join(sec_err_seq)
@@ -190,7 +207,7 @@ class ArticleBase[T: ChapterBase, A: "ArticleOutlineBase"](Base):
             yield chap
 
 
-class ArticleOutlineBase(Base):
+class ArticleOutlineBase(UpdateFrom):
     """Base class for article outlines."""
 
     title: str
@@ -206,13 +223,22 @@ class ArticleOutlineBase(Base):
     writing_aim: List[str]
     """List of writing aims of the research component in academic style."""
 
+    def _update_from_inner(self, other: Self) -> Self:
+        self.support_to.clear()
+        self.support_to.extend(other.support_to)
+        self.depend_on.clear()
+        self.depend_on.extend(other.depend_on)
+        self.writing_aim.clear()
+        self.writing_aim.extend(other.writing_aim)
+        self.description = other.description
+        return self
+
 
 class ArticleMainBase(
     CensoredAble,
     Display,
     ArticleOutlineBase,
     PersistentAble,
-    UpdateAble,
     ModelHash,
 ):
     """Foundation for hierarchical document components with dependency tracking."""

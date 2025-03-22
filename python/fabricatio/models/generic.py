@@ -148,7 +148,7 @@ class ModelHash(Base):
         return hash(self.model_dump_json())
 
 
-class UpdateAble(Base):
+class UpdateFrom(Base):
     """Class that provides a method to update the object from another object."""
 
     def _update_pre_check(self, other: Self) -> Self:
@@ -159,14 +159,6 @@ class UpdateAble(Base):
         return self
 
     @abstractmethod
-    def resolve_update_error(self, other: Self) -> str:
-        """Resolve update errors in the article outline.
-
-        Returns:
-            str: Error message indicating update errors in the article outline.
-        """
-
-    @abstractmethod
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
 
@@ -174,6 +166,21 @@ class UpdateAble(Base):
     def update_from(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         return self._update_pre_check(other)._update_from_inner(other)
+
+
+class ResolveUpdateConflict(Base):
+    """Class that provides a method to update the object from another object."""
+
+    @abstractmethod
+    def resolve_update_conflict(self, other: Self) -> str:
+        """Resolve the update conflict between two objects.
+
+        Args:
+            other (Self): The other object to resolve the update conflict with.
+
+        Returns:
+            str: The resolved update conflict.
+        """
 
 
 class WithBriefing(Named, Described):

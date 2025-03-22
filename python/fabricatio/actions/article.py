@@ -183,7 +183,7 @@ class GenerateArticle(Action):
                 ),
                 "Could not correct the article component.",
             )
-            while err := c.resolve_update_error(out):
+            while err := c.resolve_update_conflict(out):
                 logger.warning(f"Found error in the article component: \n{err}")
                 out = ok(
                     await self.correct_obj(

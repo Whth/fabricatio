@@ -18,19 +18,29 @@ from fabricatio.models.utils import ok
 class ArticleSubsectionOutline(ArticleOutlineBase, SubSectionBase):
     """Atomic research component specification for academic paper generation."""
 
-    def resolve_update_error(self, other: Self) -> str:
+    def resolve_update_conflict(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if self.title != other.title:
+            return f"Title mismatched, expected `{self.title}`, got `{other.title}`"
         return ""
-
-    def _update_from_inner(self, other: Self) -> Self:
-        return self
 
 
 class ArticleSectionOutline(ArticleOutlineBase, SectionBase[ArticleSubsectionOutline]):
     """A slightly more detailed research component specification for academic paper generation, Must contain subsections."""
 
+    def _update_from_inner(self, other: Self) -> Self:
+        ArticleOutlineBase.update_from(self, other)
+        SectionBase.update_from(self, other)
+        return self
+
 
 class ArticleChapterOutline(ArticleOutlineBase, ChapterBase[ArticleSectionOutline]):
     """Macro-structural unit implementing standard academic paper organization. Must contain sections."""
+
+    def _update_from_inner(self, other: Self) -> Self:
+        ArticleOutlineBase.update_from(self, other)
+        SectionBase.update_from(self, other)
+        return self
 
 
 class ArticleOutline(
