@@ -13,7 +13,6 @@ from fabricatio.models.generic import (
     ResolveUpdateConflict,
     UpdateFrom,
 )
-from pydantic import Field
 
 if TYPE_CHECKING:
     from fabricatio.models.extra.article_main import Article
@@ -125,7 +124,7 @@ class SubSectionBase(ResolveUpdateConflict, UpdateFrom):
 class SectionBase[T: SubSectionBase](ResolveUpdateConflict, UpdateFrom):
     """Base class for article sections and subsections."""
 
-    subsections: List[T] = Field(min_length=1)
+    subsections: List[T]
     """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
 
     def _update_from_inner(self, other: Self) -> Self:
@@ -160,7 +159,7 @@ class SectionBase[T: SubSectionBase](ResolveUpdateConflict, UpdateFrom):
 class ChapterBase[T: SectionBase](ResolveUpdateConflict, UpdateFrom):
     """Base class for article chapters."""
 
-    sections: List[T] = Field(min_length=1)
+    sections: List[T]
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -191,7 +190,7 @@ class ChapterBase[T: SectionBase](ResolveUpdateConflict, UpdateFrom):
 class ArticleBase[T: ChapterBase, A: "ArticleOutlineBase"](Base):
     """Base class for article outlines."""
 
-    chapters: List[T] = Field(min_length=1)
+    chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
 
     def iter_dfs(self) -> Generator[A, None, None]:

@@ -81,7 +81,11 @@ class ArticleChapter(ArticleMainBase, ChapterBase[ArticleSection]):
 
 
 class Article(
-    Display, CensoredAble, WithRef[ArticleOutline], PersistentAble, ArticleBase[ArticleChapter, ArticleMainBase]
+    Display,
+    CensoredAble,
+    WithRef[ArticleOutline],
+    PersistentAble,
+    ArticleBase[ArticleChapter, ArticleMainBase],
 ):
     """Represents a complete academic paper specification, incorporating validation constraints.
 
