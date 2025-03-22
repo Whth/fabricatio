@@ -1,10 +1,10 @@
 """A foundation for hierarchical document components with dependency tracking."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import TYPE_CHECKING, List, Optional, Self, Union, final, overload
+from typing import TYPE_CHECKING, Generator, List, Optional, Self, Union, overload
 
-from fabricatio.models.generic import Base, CensoredAble, Display, PersistentAble
+from fabricatio.models.generic import Base, CensoredAble, Display, ModelHash, PersistentAble, UpdateAble
 from pydantic import Field
 
 if TYPE_CHECKING:
@@ -103,90 +103,120 @@ class ArticleRef(CensoredAble):
         return ReferringType.CHAPTER
 
 
-class SubSectionBase(Base):
+class SubSectionBase(UpdateAble, ABC):
     """Base class for article sections and subsections."""
 
 
-class SectionBase[T: SubSectionBase](Base):
+class SectionBase[T: SubSectionBase](UpdateAble):
     """Base class for article sections and subsections."""
 
     subsections: List[T] = Field(min_length=1)
-    """List of subsections, each containing a specific research component. Must contains at least 1 subsection, But do remember you should always add more subsection as required."""
+    """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
+
+    def _update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        if len(self.subsections) == 0:
+            self.subsections = other.subsections
+            return self
+
+        for self_subsec, other_subsec in zip(self.subsections, other.subsections, strict=True):
+            self_subsec.update_from(other_subsec)
+        return self
+
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if (s_len := len(self.subsections)) == 0:
+            return ""
+
+        if s_len != len(other.subsections):
+            return f"Subsections length mismatched, expected {len(self.subsections)}, got {len(other.subsections)}"
+
+        sub_sec_err_seq = [
+            out for s, o in zip(self.subsections, other.subsections, strict=True) if (out := s.resolve_update_error(o))
+        ]
+
+        if sub_sec_err_seq:
+            return "\n".join(sub_sec_err_seq)
+        return ""
 
 
-class ChapterBase[T: SectionBase](Base):
+class ChapterBase[T: SectionBase](UpdateAble):
     """Base class for article chapters."""
 
     sections: List[T] = Field(min_length=1)
-    """List of sections, each containing a specific research component. Must contains at least 1 section, But do remember you should always add more section as required."""
+    """Sections of the chapter. Contains at least one section. You can also add more as needed."""
+
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        if (s_len := len(self.sections)) == 0:
+            return ""
+
+        if s_len != len(other.sections):
+            return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
+        sec_err_seq = [
+            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_error(o))
+        ]
+        if sec_err_seq:
+            return "\n".join(sec_err_seq)
+        return ""
+
+    def _update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        if len(self.sections) == 0:
+            self.sections = other.sections
+            return self
+
+        for self_sec, other_sec in zip(self.sections, other.sections, strict=True):
+            self_sec.update_from(other_sec)
+        return self
 
 
-class ArticleBase[T: ChapterBase](Base):
+class ArticleBase[T: ChapterBase, A: "ArticleOutlineBase"](Base):
     """Base class for article outlines."""
 
-    chapters: List[T] = Field(min_length=5)
-    """List of chapters, each containing a specific research component. Must contains at least 5 chapters, But do remember you should always add more chapter as required."""
+    chapters: List[T] = Field(min_length=1)
+    """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
+
+    def iter_dfs(self) -> Generator[A, None, None]:
+        """Performs a depth-first search (DFS) through the article structure.
+
+        Returns:
+            Generator[ArticleMainBase]: Each component in the article structure.
+        """
+        for chap in self.chapters:
+            for sec in chap.sections:
+                yield from sec.subsections
+                yield sec
+            yield chap
 
 
 class ArticleOutlineBase(Base):
     """Base class for article outlines."""
 
     title: str
-    """Title of the research component in academic style."""
+    """Title of the article outline, do not add any prefix or suffix to the title. should not contain special characters."""
     description: str
     """Description of the research component in academic style."""
 
     support_to: List[ArticleRef]
-    """Required: List of all essential ArticleRef objects identifying components this section provides evidence for.
-    Format: Each reference must point to a specific chapter, section, or subsection.
-    Note: References form a directed acyclic graph in the document structure."""
+    """List of references to other component of this articles that this component supports."""
     depend_on: List[ArticleRef]
-    """Required: List of all essential ArticleRef objects identifying components this section builds upon.
-    Format: Each reference must point to a previously defined chapter, section, or subsection.
-    Note: Circular dependencies are not permitted."""
+    """List of references to other component of this articles that this component depends on."""
 
     writing_aim: List[str]
-    """Required: List of specific rhetorical objectives (3-5 items).
-    Format: Each item must be an actionable phrase starting with a verb.
-    Example: ['Establish metric validity', 'Compare with baseline approaches',
-             'Justify threshold selection']"""
+    """List of writing aims of the research component in academic style."""
 
 
-class ArticleMainBase(CensoredAble, Display, ArticleOutlineBase, PersistentAble):
+class ArticleMainBase(
+    CensoredAble,
+    Display,
+    ArticleOutlineBase,
+    PersistentAble,
+    UpdateAble,
+    ModelHash,
+):
     """Foundation for hierarchical document components with dependency tracking."""
 
     @abstractmethod
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-
-    def _update_pre_check(self, other: Self) -> Self:
-        if not isinstance(other, self.__class__):
-            raise TypeError(f"Cannot update from a non-{self.__class__} instance.")
-        if self.title != other.title:
-            raise ValueError("Cannot update from a different title.")
-        return self
-
-    @abstractmethod
-    def resolve_update_error(self, other: Self) -> str:
-        """Resolve update errors in the article outline.
-
-        Returns:
-            str: Error message indicating update errors in the article outline.
-        """
-
-    @abstractmethod
-    def _update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-
-    @final
-    def update_from(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        return self._update_pre_check(other)._update_from_inner(other)
-
-    def __eq__(self, other: "ArticleMainBase") -> bool:
-        """Compares two ArticleBase objects based on their model_dump_json representation."""
-        return self.model_dump_json() == other.model_dump_json()
-
-    def __hash__(self) -> int:
-        """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
-        return hash(self.model_dump_json())
