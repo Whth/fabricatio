@@ -23,6 +23,7 @@ from pydantic import (
     PrivateAttr,
     SecretStr,
 )
+from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 
 class Base(BaseModel):
@@ -172,6 +173,23 @@ class WithBriefing(Named, Described):
                 raise TypeError(f"{system_msg_like} is not a dict or str")
 
 
+class ReverseGenerate(GenerateJsonSchema):
+    """Class that provides a reverse JSON schema of the model."""
+
+    def _sort_recursive(self, value: Any, parent_key: str | None = None) -> Any:
+        if isinstance(value, dict):
+            sorted_dict: dict[str, JsonSchemaValue] = {}
+            # Reverse all keys regardless of parent_key
+            keys = reversed(value.keys())
+            for key in keys:
+                sorted_dict[key] = self._sort_recursive(value[key], parent_key=key)
+            return sorted_dict
+        if isinstance(value, list):
+            # Reverse list order and process each item
+            return [self._sort_recursive(item, parent_key) for item in reversed(value)]
+        return value
+
+
 class WithFormatedJsonSchema(Base):
     """Class that provides a formatted JSON schema of the model."""
 
@@ -183,8 +201,8 @@ class WithFormatedJsonSchema(Base):
             str: The JSON schema of the model in a formatted string.
         """
         return orjson.dumps(
-            cls.model_json_schema(),
-            option=orjson.OPT_INDENT_2 | orjson.OPT_SORT_KEYS,
+            cls.model_json_schema(schema_generator=ReverseGenerate),
+            option=orjson.OPT_INDENT_2,
         ).decode()
 
 

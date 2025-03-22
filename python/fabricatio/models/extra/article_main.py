@@ -1,13 +1,22 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
-from abc import abstractmethod
 from itertools import chain
-from typing import Generator, List, Self, Tuple, final
+from typing import Generator, List, Self, Tuple
 
-from fabricatio.models.extra.article_outline import ArticleOutline, ArticleOutlineBase, ArticleRef
+from fabricatio.journal import logger
+from fabricatio.models.extra.article_base import (
+    ArticleBase,
+    ArticleMainBase,
+    ArticleRef,
+    ChapterBase,
+    SectionBase,
+    SubSectionBase,
+)
+from fabricatio.models.extra.article_outline import (
+    ArticleOutline,
+)
 from fabricatio.models.generic import CensoredAble, Display, PersistentAble, WithRef
 from fabricatio.models.utils import ok
-from loguru import logger
 
 
 class Paragraph(CensoredAble):
@@ -23,47 +32,7 @@ class Paragraph(CensoredAble):
     """List of sentences forming the paragraph's content."""
 
 
-class ArticleBase(CensoredAble, Display, ArticleOutlineBase, PersistentAble):
-    """Foundation for hierarchical document components with dependency tracking."""
-
-    @abstractmethod
-    def to_typst_code(self) -> str:
-        """Converts the component into a Typst code snippet for rendering."""
-
-    def _update_pre_check(self, other: Self) -> Self:
-        if not isinstance(other, self.__class__):
-            raise TypeError(f"Cannot update from a non-{self.__class__} instance.")
-        if self.title != other.title:
-            raise ValueError("Cannot update from a different title.")
-        return self
-
-    @abstractmethod
-    def resolve_update_error(self, other: Self) -> str:
-        """Resolve update errors in the article outline.
-
-        Returns:
-            str: Error message indicating update errors in the article outline.
-        """
-
-    @abstractmethod
-    def _update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-
-    @final
-    def update_from(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        return self._update_pre_check(other)._update_from_inner(other)
-
-    def __eq__(self, other: "ArticleBase") -> bool:
-        """Compares two ArticleBase objects based on their model_dump_json representation."""
-        return self.model_dump_json() == other.model_dump_json()
-
-    def __hash__(self) -> int:
-        """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
-        return hash(self.model_dump_json())
-
-
-class ArticleSubsection(ArticleBase):
+class ArticleSubsection(ArticleMainBase, SubSectionBase):
     """Atomic argumentative unit with technical specificity."""
 
     paragraphs: List[Paragraph]
@@ -90,11 +59,8 @@ class ArticleSubsection(ArticleBase):
         return f"=== {self.title}\n" + "\n\n".join("".join(p.sentences) for p in self.paragraphs)
 
 
-class ArticleSection(ArticleBase):
+class ArticleSection(ArticleMainBase, SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
-
-    subsections: List[ArticleSubsection]
-    """List of ArticleSubsection objects containing the content of the section."""
 
     def resolve_update_error(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -131,11 +97,8 @@ class ArticleSection(ArticleBase):
         return f"== {self.title}\n" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
 
 
-class ArticleChapter(ArticleBase):
+class ArticleChapter(ArticleMainBase, ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
-
-    sections: List[ArticleSection]
-    """List of ArticleSection objects containing the content of the chapter."""
 
     def resolve_update_error(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -166,24 +129,21 @@ class ArticleChapter(ArticleBase):
         return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
 
-class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble):
+class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble, ArticleBase[ArticleChapter]):
     """Represents a complete academic paper specification, incorporating validation constraints.
 
     This class integrates display, censorship processing, article structure referencing, and persistence capabilities,
     aiming to provide a comprehensive model for academic papers.
     """
 
-    article_language: str
-    """Written language of the article. SHALL be aligned to the language of the article outline provided."""
+    abstract: str
+    """Contains a summary of the academic paper."""
 
     title: str
     """Represents the title of the academic paper."""
 
-    abstract: str
-    """Contains a summary of the academic paper."""
-
-    chapters: List[ArticleChapter]
-    """Contains a list of chapters in the academic paper, each chapter is an ArticleChapter object."""
+    language: str
+    """Written language of the article. SHALL be aligned to the language of the article outline provided."""
 
     def finalized_dump(self) -> str:
         """Exports the article in `typst` format.
@@ -229,56 +189,30 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble):
             article.chapters.append(article_chapter)
         return article
 
-    def chap_iter(self) -> Generator[ArticleChapter, None, None]:
-        """Iterates over all chapters in the article.
-
-        Yields:
-            ArticleChapter: Each chapter in the article.
-        """
-        yield from self.chapters
-
-    def section_iter(self) -> Generator[ArticleSection, None, None]:
-        """Iterates over all sections in the article.
-
-        Yields:
-            ArticleSection: Each section in the article.
-        """
-        for chap in self.chapters:
-            yield from chap.sections
-
-    def subsection_iter(self) -> Generator[ArticleSubsection, None, None]:
-        """Iterates over all subsections in the article.
-
-        Yields:
-            ArticleSubsection: Each subsection in the article.
-        """
-        for sec in self.section_iter():
-            yield from sec.subsections
-
-    def iter_dfs(self) -> Generator[ArticleBase, None, None]:
+    def iter_dfs(self) -> Generator[ArticleMainBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure.
 
         Returns:
-            Generator[ArticleBase]: Each component in the article structure.
+            Generator[ArticleMainBase]: Each component in the article structure.
         """
-        for chap in self.chap_iter():
+        for chap in self.chapters:
             for sec in chap.sections:
                 yield from sec.subsections
                 yield sec
             yield chap
 
-    def deref(self, ref: ArticleRef) -> ArticleBase:
+    def deref(self, ref: ArticleRef) -> ArticleMainBase:
         """Resolves a reference to the corresponding section or subsection in the article.
 
         Args:
             ref (ArticleRef): The reference to resolve.
 
         Returns:
-            ArticleBase: The corresponding section or subsection.
+            ArticleMainBase: The corresponding section or subsection.
         """
         return ok(ref.deref(self), f"{ref} not found in {self.title}")
 
-    def gather_dependencies(self, article: ArticleBase) -> List[ArticleBase]:
+    def gather_dependencies(self, article: ArticleMainBase) -> List[ArticleMainBase]:
         """Gathers dependencies for all sections and subsections in the article.
 
         This method should be called after the article is fully constructed.
@@ -292,11 +226,11 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble):
 
         return list(set(depends + supports))
 
-    def gather_dependencies_recursive(self, article: ArticleBase) -> List[ArticleBase]:
+    def gather_dependencies_recursive(self, article: ArticleMainBase) -> List[ArticleMainBase]:
         """Gathers all dependencies recursively for the given article.
 
         Args:
-            article (ArticleBase): The article to gather dependencies for.
+            article (ArticleMainBase): The article to gather dependencies for.
 
         Returns:
             List[ArticleBase]: A list of all dependencies for the given article.
@@ -335,7 +269,7 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble):
 
     def iter_dfs_with_deps(
         self, chapter: bool = True, section: bool = True, subsection: bool = True
-    ) -> Generator[Tuple[ArticleBase, List[ArticleBase]], None, None]:
+    ) -> Generator[Tuple[ArticleMainBase, List[ArticleMainBase]], None, None]:
         """Iterates through the article in a depth-first manner, yielding each component and its dependencies.
 
         Args:
