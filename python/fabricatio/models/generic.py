@@ -139,6 +139,43 @@ class PersistentAble(Base):
         return self.model_validate_json(Path(path).read_text(encoding="utf-8"))
 
 
+class ModelHash(Base):
+    """Class that provides a hash value for the object."""
+
+    @final
+    def __hash__(self) -> int:
+        """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
+        return hash(self.model_dump_json())
+
+
+class UpdateAble(Base):
+    """Class that provides a method to update the object from another object."""
+
+    def _update_pre_check(self, other: Self) -> Self:
+        """Pre-check for updating the object from another object."""
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Cannot update from a non-{self.__class__.__name__} instance.")
+
+        return self
+
+    @abstractmethod
+    def resolve_update_error(self, other: Self) -> str:
+        """Resolve update errors in the article outline.
+
+        Returns:
+            str: Error message indicating update errors in the article outline.
+        """
+
+    @abstractmethod
+    def _update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+
+    @final
+    def update_from(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        return self._update_pre_check(other)._update_from_inner(other)
+
+
 class WithBriefing(Named, Described):
     """Class that provides a briefing based on the name and description."""
 
@@ -475,7 +512,7 @@ class ScopedConfig(Base):
         """Fallback to another instance's attribute values if the current instance's attributes are None.
 
         Args:
-            other (LLMUsage): Another instance from which to copy attribute values.
+            other (ScopedConfig): Another instance from which to copy attribute values.
 
         Returns:
             Self: The current instance, allowing for method chaining.
@@ -495,7 +532,7 @@ class ScopedConfig(Base):
         """Hold to another instance's attribute values if the current instance's attributes are None.
 
         Args:
-            others (LLMUsage | Iterable[LLMUsage]): Another instance or iterable of instances from which to copy attribute values.
+            others (Union[ScopedConfig, Iterable[ScopedConfig]]): Another instance or iterable of instances from which to copy attribute values.
 
         Returns:
             Self: The current instance, allowing for method chaining.
