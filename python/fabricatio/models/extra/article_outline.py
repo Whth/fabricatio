@@ -1,6 +1,6 @@
 """A module containing the ArticleOutline class, which represents the outline of an academic paper."""
 
-from typing import Generator, List, Optional, Tuple, Union
+from typing import List, Optional, Self, Tuple, Union
 
 import regex
 from fabricatio.models.extra.article_base import (
@@ -18,13 +18,19 @@ from fabricatio.models.utils import ok
 class ArticleSubsectionOutline(ArticleOutlineBase, SubSectionBase):
     """Atomic research component specification for academic paper generation."""
 
+    def resolve_update_error(self, other: Self) -> str:
+        return ""
+
+    def _update_from_inner(self, other: Self) -> Self:
+        return self
+
 
 class ArticleSectionOutline(ArticleOutlineBase, SectionBase[ArticleSubsectionOutline]):
-    """A slightly more detailed research component specification for academic paper generation."""
+    """A slightly more detailed research component specification for academic paper generation, Must contain subsections."""
 
 
 class ArticleChapterOutline(ArticleOutlineBase, ChapterBase[ArticleSectionOutline]):
-    """Macro-structural unit implementing standard academic paper organization."""
+    """Macro-structural unit implementing standard academic paper organization. Must contain sections."""
 
 
 class ArticleOutline(
@@ -32,9 +38,9 @@ class ArticleOutline(
     CensoredAble,
     WithRef[ArticleProposal],
     PersistentAble,
-    ArticleBase[ArticleChapterOutline],
+    ArticleBase[ArticleChapterOutline, ArticleOutlineBase],
 ):
-    """Complete academic paper blueprint with hierarchical validation."""
+    """A class representing the outline of an academic paper."""
 
     abstract: str
     """The abstract is a concise summary of the academic paper's main findings."""
@@ -81,18 +87,6 @@ class ArticleOutline(
                 for k, subsection in enumerate(section.subsections, 1):
                     lines.append(f"=== {i}.{j}.{k} {subsection.title}")
         return "\n".join(lines)
-
-    def iter_dfs(self) -> Generator[ArticleOutlineBase, None, None]:
-        """Iterates through the article outline in a depth-first manner.
-
-        Returns:
-            ArticleOutlineBase: Each component in the article outline.
-        """
-        for chapter in self.chapters:
-            for section in chapter.sections:
-                yield from section.subsections
-                yield section
-            yield chapter
 
     def resolve_ref_error(self) -> str:
         """Resolve reference errors in the article outline.
