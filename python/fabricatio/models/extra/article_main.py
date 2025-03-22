@@ -47,7 +47,8 @@ class ArticleSubsection(ArticleMainBase, SubSectionBase):
     def _update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         logger.debug(f"Updating SubSection {self.title}")
-        self.paragraphs = other.paragraphs
+        self.paragraphs.clear()
+        self.paragraphs.extend(other.paragraphs)
         return self
 
     def to_typst_code(self) -> str:
@@ -62,32 +63,6 @@ class ArticleSubsection(ArticleMainBase, SubSectionBase):
 class ArticleSection(ArticleMainBase, SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
-    def resolve_update_error(self, other: Self) -> str:
-        """Resolve update errors in the article outline."""
-        if (s_len := len(self.subsections)) == 0:
-            return ""
-
-        if s_len != len(other.subsections):
-            return f"Subsections length mismatched, expected {len(self.subsections)}, got {len(other.subsections)}"
-
-        sub_sec_err_seq = [
-            out for s, o in zip(self.subsections, other.subsections, strict=True) if (out := s.resolve_update_error(o))
-        ]
-
-        if sub_sec_err_seq:
-            return "\n".join(sub_sec_err_seq)
-        return ""
-
-    def _update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        if len(self.subsections) == 0:
-            self.subsections = other.subsections
-            return self
-
-        for self_subsec, other_subsec in zip(self.subsections, other.subsections, strict=True):
-            self_subsec.update_from(other_subsec)
-        return self
-
     def to_typst_code(self) -> str:
         """Converts the section into a Typst formatted code snippet.
 
@@ -100,36 +75,14 @@ class ArticleSection(ArticleMainBase, SectionBase[ArticleSubsection]):
 class ArticleChapter(ArticleMainBase, ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
-    def resolve_update_error(self, other: Self) -> str:
-        """Resolve update errors in the article outline."""
-        if (s_len := len(self.sections)) == 0:
-            return ""
-
-        if s_len != len(other.sections):
-            return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
-        sec_err_seq = [
-            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_error(o))
-        ]
-        if sec_err_seq:
-            return "\n".join(sec_err_seq)
-        return ""
-
-    def _update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        if len(self.sections) == 0:
-            self.sections = other.sections
-            return self
-
-        for self_sec, other_sec in zip(self.sections, other.sections, strict=True):
-            self_sec.update_from(other_sec)
-        return self
-
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
         return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
 
-class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble, ArticleBase[ArticleChapter]):
+class Article(
+    Display, CensoredAble, WithRef[ArticleOutline], PersistentAble, ArticleBase[ArticleChapter, ArticleMainBase]
+):
     """Represents a complete academic paper specification, incorporating validation constraints.
 
     This class integrates display, censorship processing, article structure referencing, and persistence capabilities,
@@ -188,18 +141,6 @@ class Article(Display, CensoredAble, WithRef[ArticleOutline], PersistentAble, Ar
                 article_chapter.sections.append(article_section)
             article.chapters.append(article_chapter)
         return article
-
-    def iter_dfs(self) -> Generator[ArticleMainBase, None, None]:
-        """Performs a depth-first search (DFS) through the article structure.
-
-        Returns:
-            Generator[ArticleMainBase]: Each component in the article structure.
-        """
-        for chap in self.chapters:
-            for sec in chap.sections:
-                yield from sec.subsections
-                yield sec
-            yield chap
 
     def deref(self, ref: ArticleRef) -> ArticleMainBase:
         """Resolves a reference to the corresponding section or subsection in the article.
