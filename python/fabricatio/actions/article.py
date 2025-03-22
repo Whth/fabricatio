@@ -92,10 +92,13 @@ class GenerateOutline(Action):
         article_proposal: ArticleProposal,
         **_,
     ) -> Optional[ArticleOutline]:
-        out = await self.propose(
-            ArticleOutline,
-            article_proposal.as_prompt(),
-            **self.prepend_sys_msg(),
+        out = ok(
+            await self.propose(
+                ArticleOutline,
+                article_proposal.as_prompt(),
+                **self.prepend_sys_msg(),
+            ),
+            "Could not generate the outline.",
         )
 
         manual = await self.draft_rating_manual(
