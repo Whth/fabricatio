@@ -7,7 +7,6 @@ from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
     ArticleBase,
     ArticleOutlineBase,
-    ArticleRef,
     ChapterBase,
     SectionBase,
     SubSectionBase,
@@ -28,11 +27,11 @@ class Paragraph(CensoredAble):
     writing_aim: List[str]
     """Specific communicative objectives for this paragraph's content."""
 
-    sentences: List[str]
-    """List of sentences forming the paragraph's content."""
+    content: str
+    """The actual content of the paragraph, represented as a string."""
 
 
-class ArticleSubsection(ArticleOutlineBase, SubSectionBase):
+class ArticleSubsection(SubSectionBase):
     """Atomic argumentative unit with technical specificity."""
 
     paragraphs: List[Paragraph]
@@ -41,8 +40,7 @@ class ArticleSubsection(ArticleOutlineBase, SubSectionBase):
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         logger.debug(f"Updating SubSection {self.title}")
-        SubSectionBase.update_from(self, other)
-        ArticleOutlineBase.update_from(self, other)
+        super().update_from_inner(other)
         self.paragraphs.clear()
         self.paragraphs.extend(other.paragraphs)
         return self
@@ -53,17 +51,15 @@ class ArticleSubsection(ArticleOutlineBase, SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return f"=== {self.title}\n" + "\n\n".join("".join(p.sentences) for p in self.paragraphs)
+        return f"=== {self.title}\n" + "\n\n".join(p.content for p in self.paragraphs)
 
 
-class ArticleSection(ArticleOutlineBase, SectionBase[ArticleSubsection]):
+class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
 
-
-class ArticleChapter(ArticleOutlineBase, ChapterBase[ArticleSection]):
+class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
-
 
 
 class Article(
@@ -79,22 +75,9 @@ class Article(
     aiming to provide a comprehensive model for academic papers.
     """
 
-    abstract: str
-    """Contains a summary of the academic paper."""
-
-    title: str
-    """Represents the title of the academic paper."""
-
-    language: str
-    """Written language of the article. SHALL be aligned to the language of the article outline provided."""
-
-    def finalized_dump(self) -> str:
-        """Exports the article in `typst` format.
-
-        Returns:
-                str: Strictly formatted outline with typst formatting.
-        """
-        return "\n\n".join(c.to_typst_code() for c in self.chapters)
+    @override
+    def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
+        return super().iter_subsections()
 
     @classmethod
     def from_outline(cls, outline: ArticleOutline) -> "Article":
@@ -107,7 +90,7 @@ class Article(
             Article: The generated article.
         """
         # Set the title from the outline
-        article = Article(**outline.model_dump(include={"title", "abstract"}), chapters=[])
+        article = Article(**outline.model_dump(exclude={"chapters"}), chapters=[])
 
         for chapter in outline.chapters:
             # Create a new chapter
@@ -132,33 +115,16 @@ class Article(
             article.chapters.append(article_chapter)
         return article
 
-    @override
-    def iter_dfs(
-        self,
-    ) -> Generator[ArticleChapter | ArticleSection | ArticleSubsection, None, None]:
-        return super().iter_dfs()
-        
-    def deref(self, ref: ArticleRef) -> ArticleOutlineBase:
-        """Resolves a reference to the corresponding section or subsection in the article.
-
-        Args:
-            ref (ArticleRef): The reference to resolve.
-
-        Returns:
-            ArticleOutlineBase: The corresponding section or subsection.
-        """
-        return ok(ref.deref(self), f"{ref} not found in {self.title}")
-
     def gather_dependencies(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
         """Gathers dependencies for all sections and subsections in the article.
 
         This method should be called after the article is fully constructed.
         """
-        depends = [self.deref(a) for a in article.depend_on]
+        depends = [ok(a.deref(self)) for a in article.depend_on]
 
         supports = []
-        for a in self.iter_dfs():
-            if article in {self.deref(b) for b in a.support_to}:
+        for a in self.iter_dfs_rev():
+            if article in {ok(b.deref(self)) for b in a.support_to}:
                 supports.append(a)
 
         return list(set(depends + supports))
@@ -220,7 +186,7 @@ class Article(
         if all((not chapter, not section, not subsection)):
             raise ValueError("At least one of chapter, section, or subsection must be True.")
 
-        for component in self.iter_dfs():
+        for component in self.iter_dfs_rev():
             if not chapter and isinstance(component, ArticleChapter):
                 continue
             if not section and isinstance(component, ArticleSection):

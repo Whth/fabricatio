@@ -78,7 +78,7 @@ class GenerateArticleProposal(Action):
                 ),
                 **self.prepend_sys_msg(),
             ),
-            "Could not generate the proposal."
+            "Could not generate the proposal.",
         ).update_ref(briefing)
 
 
@@ -102,25 +102,90 @@ class GenerateOutline(Action):
             "Could not generate the outline.",
         )
 
-        manual = ok(await self.draft_rating_manual(
-            topic=(
-                topic
-                := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component."
+        introspect_manual = ok(
+            await self.draft_rating_manual(
+                topic=(
+                    intro_topic
+                    := "Fix the error in the article outline, make sure there is no more error in the article outline."
+                ),
             ),
-        ),"Could not generate the rating manual.")
+            "Could not generate the rating manual.",
+        )
 
-        while pack := out.find_illegal():
+        while pack := out.find_introspected():
             component, err = ok(pack)
-            logger.warning(f"Found error in the outline: \n{err}")
-            corrected = ok(await self.correct_obj(
-                component,
-                reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}",
-                topic=topic,
-                rating_manual=manual,
-                supervisor_check=False,
-            ),"Could not correct the component.")
+            logger.warning(f"Found introspected error: {err}")
+            corrected = ok(
+                await self.correct_obj(
+                    component,
+                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}",
+                    topic=intro_topic,
+                    rating_manual=introspect_manual,
+                    supervisor_check=False,
+                ),
+                "Could not correct the component.",
+            )
             component.update_from(corrected)
+
+        ref_manual = ok(
+            await self.draft_rating_manual(
+                topic=(
+                    ref_topic
+                    := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component."
+                ),
+            ),
+            "Could not generate the rating manual.",
+        )
+
+        while pack := out.find_illegal_ref():
+            component, err = ok(pack)
+            logger.warning(f"Found illegal referring error: {err}")
+            corrected_metadata = ok(
+                await self.correct_obj(
+                    component.metadata,
+                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}\n\n# Create a new metadata to handle the error.",
+                    topic=ref_topic,
+                    rating_manual=ref_manual,
+                    supervisor_check=False,
+                )
+            )
+            component.update_metadata(corrected_metadata)
         return out.update_ref(article_proposal)
+
+
+class GenerateArticle(Action):
+    """Generate the article based on the outline."""
+
+    output_key: str = "article"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_outline: ArticleOutline,
+        **_,
+    ) -> Optional[Article]:
+        article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
+            article_outline
+        )
+
+        write_para_manual = ok(
+            await self.draft_rating_manual(w_topic := "write the following paragraph in the subsection.")
+        )
+
+        for *_, subsec in article.iter_subsections():
+            corrected_subsec = await self.correct_obj(
+                subsec,
+                reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{subsec.introspect()}",
+                topic=w_topic,
+                rating_manual=write_para_manual,
+                supervisor_check=False,
+            )
+            subsec.paragraphs.clear()
+            subsec.paragraphs.extend(corrected_subsec.paragraphs)
+
+        logger.success(f"Finished: {article.display()}")
+        logger.success(f"Dump: {article.finalized_dump()}")
+        return article
 
 
 class CorrectProposal(Action):
@@ -148,60 +213,6 @@ class CorrectOutline(Action):
         return (await self.censor_obj(article_outline, reference=article_outline.referenced.as_prompt())).update_ref(
             article_outline
         )
-
-
-class GenerateArticle(Action):
-    """Generate the article based on the outline."""
-
-    output_key: str = "article"
-    """The key of the output data."""
-
-    async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        **_,
-    ) -> Optional[Article]:
-        article: Article = Article.from_outline(article_outline).update_ref(article_outline)
-
-        writing_manual = ok(await self.draft_rating_manual(
-            topic=(
-                topic_1
-                := "improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection."
-            ),
-        ))
-        err_resolve_manual = ok(await self.draft_rating_manual(
-            topic=(topic_2 := "this article component has violated the constrain, please correct it.")
-        ))
-        for c, deps in article.iter_dfs_with_deps(chapter=False):
-            logger.info(f"Updating the article component: \n{c.display()}")
-
-            out = ok(
-                await self.correct_obj(
-                    c,
-                    reference=(
-                        ref := f"{article_outline.referenced.as_prompt()}\n" + "\n".join(d.display() for d in deps)
-                    ),
-                    topic=topic_1,
-                    rating_manual=writing_manual,
-                    supervisor_check=False,
-                ),
-                "Could not correct the article component.",
-            )
-            while err := c.resolve_update_conflict(out):
-                logger.warning(f"Found error in the article component: \n{err}")
-                out = ok(
-                    await self.correct_obj(
-                        out,
-                        reference=f"{ref}\n\n# Violated Error\n{err}",
-                        topic=topic_2,
-                        rating_manual=err_resolve_manual,
-                        supervisor_check=False,
-                    ),
-                    "Could not correct the article component.",
-                )
-
-            c.update_from(out)
-        return article
 
 
 class CorrectArticle(Action):

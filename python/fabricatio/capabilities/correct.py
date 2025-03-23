@@ -134,11 +134,13 @@ class Correct(Review):
         while await confirm("Begin to correct obj above with human censorship?").ask_async():
             while (topic := await text("What is the topic of the obj reviewing?").ask_async()) is not None and topic:
                 ...
-            if (modified_obj := await self.correct_obj(
-                last_modified_obj,
-                topic=topic,
-                **kwargs,
-            )) is None:
+            if (
+                modified_obj := await self.correct_obj(
+                    last_modified_obj,
+                    topic=topic,
+                    **kwargs,
+                )
+            ) is None:
                 break
             last_modified_obj = modified_obj
             rprint(last_modified_obj.finalized_dump())

@@ -1,12 +1,13 @@
 """A foundation for hierarchical document components with dependency tracking."""
-from abc import ABC
+
+from abc import abstractmethod
 from enum import StrEnum
-from typing import TYPE_CHECKING, Generator, List, Optional, Self, Union, overload
+from typing import Generator, List, Optional, Self, Tuple
 
 from fabricatio.models.generic import (
-    Base,
     CensoredAble,
     Display,
+    FinalizedDumpAble,
     Introspect,
     ModelHash,
     PersistentAble,
@@ -14,10 +15,6 @@ from fabricatio.models.generic import (
     ResolveUpdateConflict,
     UpdateFrom,
 )
-
-if TYPE_CHECKING:
-    from fabricatio.models.extra.article_main import Article
-    from fabricatio.models.extra.article_outline import ArticleOutline
 
 
 class ReferringType(StrEnum):
@@ -28,7 +25,7 @@ class ReferringType(StrEnum):
     SUBSECTION = "subsection"
 
 
-class ArticleRef(CensoredAble):
+class ArticleRef(CensoredAble, Display):
     """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
 
     Examples:
@@ -61,30 +58,18 @@ class ArticleRef(CensoredAble):
             ```
     """
 
-    referred_subsection_title: Optional[str] = None
-    """`title` Field of the referenced subsection."""
-
-    referred_section_title: Optional[str] = None
-    """`title` Field of the referenced section."""
-
     referred_chapter_title: str
     """`title` Field of the referenced chapter"""
+    referred_section_title: Optional[str] = None
+    """`title` Field of the referenced section."""
+    referred_subsection_title: Optional[str] = None
+    """`title` Field of the referenced subsection."""
 
     def __hash__(self) -> int:
         """Overrides the default hash function to ensure consistent hashing across instances."""
         return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
 
-    @overload
-    def deref(self, article: "Article") -> Optional["ArticleMainBase"]:
-        """Dereference the reference to the actual section or subsection within the provided article."""
-
-    @overload
-    def deref(self, article: "ArticleOutline") -> Optional["ArticleOutlineBase"]:
-        """Dereference the reference to the actual section or subsection within the provided article."""
-
-    def deref(
-        self, article: Union["ArticleOutline", "Article"]
-    ) -> Union["ArticleOutlineBase", "ArticleMainBase", None]:
+    def deref(self, article: "ArticleBase") -> Optional["ArticleOutlineBase"]:
         """Dereference the reference to the actual section or subsection within the provided article.
 
         Args:
@@ -111,21 +96,71 @@ class ArticleRef(CensoredAble):
         return ReferringType.CHAPTER
 
 
-class SubSectionBase(
+class ArticleMetaData(CensoredAble, Display):
+    """Metadata for an article component."""
+
+    description: str
+    """Description of the research component in academic style."""
+
+    support_to: List[ArticleRef]
+    """List of references to other component of this articles that this component supports."""
+    depend_on: List[ArticleRef]
+    """List of references to other component of this articles that this component depends on."""
+
+    writing_aim: List[str]
+    """List of writing aims of the research component in academic style."""
+    title: str
+    """Do not add any prefix or suffix to the title. should not contain special characters."""
+
+
+class ArticleOutlineBase(
+    ArticleMetaData,
     UpdateFrom,
+    ResolveUpdateConflict,
+    ProposedAble,
+    PersistentAble,
+    ModelHash,
     Introspect,
 ):
-    """Base class for article sections and subsections."""
+    """Base class for article outlines."""
 
-    title: str
-    """Title of the subsection, do not add any prefix or suffix to the title. should not contain special characters."""
+    @property
+    def metadata(self) -> ArticleMetaData:
+        """Returns the metadata of the article component."""
+        return ArticleMetaData.model_validate(self, from_attributes=True)
+
+    def update_metadata(self, other: ArticleMetaData) -> Self:
+        """Updates the metadata of the current instance with the attributes of another instance."""
+        self.support_to.clear()
+        self.support_to.extend(other.support_to)
+        self.depend_on.clear()
+        self.depend_on.extend(other.depend_on)
+        self.writing_aim.clear()
+        self.writing_aim.extend(other.writing_aim)
+        self.description = other.description
+        return self
+
+    def display_metadata(self) -> str:
+        """Displays the metadata of the current instance."""
+        return self.model_dump_json(
+            indent=1, include={"title", "writing_aim", "description", "support_to", "depend_on"}
+        )
+
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        return self.update_metadata(other)
+
+    @abstractmethod
+    def to_typst_code(self) -> str:
+        """Converts the component into a Typst code snippet for rendering."""
+
+
+class SubSectionBase(ArticleOutlineBase):
+    """Base class for article sections and subsections."""
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
         return f"=== {self.title}\n"
-
-    def update_from_inner(self, other: Self) -> Self:
-        return self
 
     def introspect(self) -> str:
         """Introspects the article subsection outline."""
@@ -138,16 +173,11 @@ class SubSectionBase(
         return ""
 
 
-class SectionBase[T: SubSectionBase](
-    UpdateFrom,
-    Introspect,
-):
+class SectionBase[T: SubSectionBase](ArticleOutlineBase):
     """Base class for article sections and subsections."""
 
     subsections: List[T]
     """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
-    title: str
-    """Title of the section, do not add any prefix or suffix to the title. should not contain special characters."""
 
     def to_typst_code(self) -> str:
         """Converts the section into a Typst formatted code snippet.
@@ -174,6 +204,7 @@ class SectionBase[T: SubSectionBase](
 
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
+        super().update_from_inner(other)
         if len(self.subsections) == 0:
             self.subsections = other.subsections
             return self
@@ -189,16 +220,12 @@ class SectionBase[T: SubSectionBase](
         return ""
 
 
-class ChapterBase[T: SectionBase](
-    UpdateFrom,
-    Introspect,
-):
+class ChapterBase[T: SectionBase](ArticleOutlineBase):
     """Base class for article chapters."""
 
     sections: List[T]
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
-    title: str
-    """Title of the chapter, do not add any prefix or suffix to the title. should not contain special characters."""
+
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
         return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
@@ -233,21 +260,35 @@ class ChapterBase[T: SectionBase](
         return ""
 
 
-class ArticleBase[T: ChapterBase](Base):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble):
     """Base class for article outlines."""
 
+    language: str
+    """Written language of the article. SHALL be aligned to the language of the article proposal provided."""
+
+    title: str
+    """Title of the academic paper."""
+
+    prospect: str
+    """Consolidated research statement with four pillars:
+    1. Problem Identification: Current limitations
+    2. Methodological Response: Technical approach
+    3. Empirical Validation: Evaluation strategy
+    4. Scholarly Impact: Field contributions
+    """
+
+    abstract: str
+    """The abstract is a concise summary of the academic paper's main findings."""
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
-    title: str
-    """Title of the article outline, do not add any prefix or suffix to the title. should not contain special characters."""
 
-    def iter_dfs(
+    def iter_dfs_rev(
         self,
-    ) -> Generator[ChapterBase | SectionBase | SubSectionBase, None, None]:
-        """Performs a depth-first search (DFS) through the article structure.
+    ) -> Generator[ArticleOutlineBase, None, None]:
+        """Performs a depth-first search (DFS) through the article structure in reverse order.
 
         Returns:
-            Generator[ArticleMainBase]: Each component in the article structure.
+            Generator[ArticleMainBase]: Each component in the article structure in reverse order.
         """
         for chap in self.chapters:
             for sec in chap.sections:
@@ -255,37 +296,83 @@ class ArticleBase[T: ChapterBase](Base):
                 yield sec
             yield chap
 
+    def iter_dfs(self) -> Generator[ArticleOutlineBase, None, None]:
+        """Performs a depth-first search (DFS) through the article structure.
 
-class ArticleOutlineBase(
-    CensoredAble,
-    UpdateFrom,
-    ResolveUpdateConflict,
-    ProposedAble,
-    PersistentAble,
-    Display,
-    ModelHash,
-    ABC,
-):
-    """Base class for article outlines."""
+        Returns:
+            Generator[ArticleMainBase]: Each component in the article structure.
+        """
+        for chap in self.chapters:
+            yield chap
+            for sec in chap.sections:
+                yield sec
+                yield from sec.subsections
 
-    description: str
-    """Description of the research component in academic style."""
+    def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
+        """Iterates through all sections in the article.
 
-    support_to: List[ArticleRef]
-    """List of references to other component of this articles that this component supports."""
-    depend_on: List[ArticleRef]
-    """List of references to other component of this articles that this component depends on."""
+        Returns:
+            Generator[ArticleOutlineBase]: Each section in the article.
+        """
+        for chap in self.chapters:
+            for sec in chap.sections:
+                yield chap, sec
 
-    writing_aim: List[str]
-    """List of writing aims of the research component in academic style."""
+    def iter_subsections(self) -> Generator[Tuple[ChapterBase, SectionBase, SubSectionBase], None, None]:
+        """Iterates through all subsections in the article.
 
-    def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        self.support_to.clear()
-        self.support_to.extend(other.support_to)
-        self.depend_on.clear()
-        self.depend_on.extend(other.depend_on)
-        self.writing_aim.clear()
-        self.writing_aim.extend(other.writing_aim)
-        self.description = other.description
-        return self
+        Returns:
+            Generator[ArticleOutlineBase]: Each subsection in the article.
+        """
+        for chap, sec in self.iter_sections():
+            for subsec in sec.subsections:
+                yield chap, sec, subsec
+
+    def find_introspected(self) -> Optional[Tuple[ArticleOutlineBase, str]]:
+        """Finds the first introspected component in the article structure."""
+        summary = ""
+        for component in self.iter_dfs_rev():
+            summary += component.introspect()
+            if summary:
+                return component, summary
+        return None
+
+    def find_illegal_ref(self) -> Optional[Tuple[ArticleOutlineBase, str]]:
+        """Finds the first illegal component in the outline.
+
+        Returns:
+            Tuple[ArticleOutlineBase, str]: A tuple containing the illegal component and an error message.
+        """
+        summary = ""
+        for component in self.iter_dfs_rev():
+            for ref in component.depend_on:
+                if not ref.deref(self):
+                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `depend_on` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
+            for ref in component.support_to:
+                if not ref.deref(self):
+                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `support_to` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
+            if summary:
+                return component, summary
+        return None
+
+    def finalized_dump(self) -> str:
+        """Generates standardized hierarchical markup for academic publishing systems.
+
+        Implements ACL 2024 outline conventions with four-level structure:
+        = Chapter Title (Level 1)
+        == Section Title (Level 2)
+        === Subsection Title (Level 3)
+        ==== Subsubsection Title (Level 4)
+
+        Returns:
+            str: Strictly formatted outline with academic sectioning
+
+        Example:
+            = Methodology
+            == Neural Architecture Search Framework
+            === Differentiable Search Space
+            ==== Constrained Optimization Parameters
+            === Implementation Details
+            == Evaluation Protocol
+        """
+        return "\n\n".join(a.to_typst_code() for a in self.chapters)
