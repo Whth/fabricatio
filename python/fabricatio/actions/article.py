@@ -61,7 +61,7 @@ class GenerateArticleProposal(Action):
             logger.error("Task not approved, since all inputs are None.")
             return None
 
-        return (
+        return ok(
             await self.propose(
                 ArticleProposal,
                 briefing := (
@@ -70,14 +70,15 @@ class GenerateArticleProposal(Action):
                         ok(
                             article_briefing_path
                             or await self.awhich_pathstr(
-                                f"{task_input.briefing}\nExtract the path of file which contains the article briefing."
+                                f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing."
                             ),
                             "Could not find the path of file to read.",
                         )
                     )
                 ),
                 **self.prepend_sys_msg(),
-            )
+            ),
+            "Could not generate the proposal."
         ).update_ref(briefing)
 
 
@@ -101,21 +102,24 @@ class GenerateOutline(Action):
             "Could not generate the outline.",
         )
 
-        manual = await self.draft_rating_manual(
+        manual = ok(await self.draft_rating_manual(
             topic=(
                 topic
                 := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component."
             ),
-        )
-        while err := out.resolve_ref_error():
+        ),"Could not generate the rating manual.")
+
+        while pack := out.find_illegal():
+            component, err = ok(pack)
             logger.warning(f"Found error in the outline: \n{err}")
-            out = await self.correct_obj(
-                out,
-                reference=f"# Referring Error\n{err}",
+            corrected = ok(await self.correct_obj(
+                component,
+                reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}",
                 topic=topic,
                 rating_manual=manual,
                 supervisor_check=False,
-            )
+            ),"Could not correct the component.")
+            component.update_from(corrected)
         return out.update_ref(article_proposal)
 
 
@@ -159,15 +163,15 @@ class GenerateArticle(Action):
     ) -> Optional[Article]:
         article: Article = Article.from_outline(article_outline).update_ref(article_outline)
 
-        writing_manual = await self.draft_rating_manual(
+        writing_manual = ok(await self.draft_rating_manual(
             topic=(
                 topic_1
                 := "improve the content of the subsection to fit the outline. SHALL never add or remove any section or subsection, you can only add or delete paragraphs within the subsection."
             ),
-        )
-        err_resolve_manual = await self.draft_rating_manual(
+        ))
+        err_resolve_manual = ok(await self.draft_rating_manual(
             topic=(topic_2 := "this article component has violated the constrain, please correct it.")
-        )
+        ))
         for c, deps in article.iter_dfs_with_deps(chapter=False):
             logger.info(f"Updating the article component: \n{c.display()}")
 
