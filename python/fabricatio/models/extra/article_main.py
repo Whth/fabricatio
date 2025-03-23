@@ -1,12 +1,12 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
 from itertools import chain
-from typing import Generator, List, Self, Tuple
+from typing import Generator, List, Self, Tuple, override
 
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
     ArticleBase,
-    ArticleMainBase,
+    ArticleOutlineBase,
     ArticleRef,
     ChapterBase,
     SectionBase,
@@ -32,21 +32,17 @@ class Paragraph(CensoredAble):
     """List of sentences forming the paragraph's content."""
 
 
-class ArticleSubsection(ArticleMainBase, SubSectionBase):
+class ArticleSubsection(ArticleOutlineBase, SubSectionBase):
     """Atomic argumentative unit with technical specificity."""
 
     paragraphs: List[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
-    def resolve_update_conflict(self, other: Self) -> str:
-        """Resolve update errors in the article outline."""
-        if self.title != other.title:
-            return f"Title `{other.title}` mismatched, expected `{self.title}`. "
-        return ""
-
-    def _update_from_inner(self, other: Self) -> Self:
+    def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         logger.debug(f"Updating SubSection {self.title}")
+        SubSectionBase.update_from(self, other)
+        ArticleOutlineBase.update_from(self, other)
         self.paragraphs.clear()
         self.paragraphs.extend(other.paragraphs)
         return self
@@ -60,24 +56,14 @@ class ArticleSubsection(ArticleMainBase, SubSectionBase):
         return f"=== {self.title}\n" + "\n\n".join("".join(p.sentences) for p in self.paragraphs)
 
 
-class ArticleSection(ArticleMainBase, SectionBase[ArticleSubsection]):
+class ArticleSection(ArticleOutlineBase, SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
-    def to_typst_code(self) -> str:
-        """Converts the section into a Typst formatted code snippet.
-
-        Returns:
-            str: The formatted Typst code snippet.
-        """
-        return f"== {self.title}\n" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
 
 
-class ArticleChapter(ArticleMainBase, ChapterBase[ArticleSection]):
+class ArticleChapter(ArticleOutlineBase, ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
-    def to_typst_code(self) -> str:
-        """Converts the chapter into a Typst formatted code snippet for rendering."""
-        return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
 
 class Article(
@@ -85,7 +71,7 @@ class Article(
     CensoredAble,
     WithRef[ArticleOutline],
     PersistentAble,
-    ArticleBase[ArticleChapter, ArticleMainBase],
+    ArticleBase[ArticleChapter],
 ):
     """Represents a complete academic paper specification, incorporating validation constraints.
 
@@ -146,18 +132,24 @@ class Article(
             article.chapters.append(article_chapter)
         return article
 
-    def deref(self, ref: ArticleRef) -> ArticleMainBase:
+    @override
+    def iter_dfs(
+        self,
+    ) -> Generator[ArticleChapter | ArticleSection | ArticleSubsection, None, None]:
+        return super().iter_dfs()
+        
+    def deref(self, ref: ArticleRef) -> ArticleOutlineBase:
         """Resolves a reference to the corresponding section or subsection in the article.
 
         Args:
             ref (ArticleRef): The reference to resolve.
 
         Returns:
-            ArticleMainBase: The corresponding section or subsection.
+            ArticleOutlineBase: The corresponding section or subsection.
         """
         return ok(ref.deref(self), f"{ref} not found in {self.title}")
 
-    def gather_dependencies(self, article: ArticleMainBase) -> List[ArticleMainBase]:
+    def gather_dependencies(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
         """Gathers dependencies for all sections and subsections in the article.
 
         This method should be called after the article is fully constructed.
@@ -171,11 +163,11 @@ class Article(
 
         return list(set(depends + supports))
 
-    def gather_dependencies_recursive(self, article: ArticleMainBase) -> List[ArticleMainBase]:
+    def gather_dependencies_recursive(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
         """Gathers all dependencies recursively for the given article.
 
         Args:
-            article (ArticleMainBase): The article to gather dependencies for.
+            article (ArticleOutlineBase): The article to gather dependencies for.
 
         Returns:
             List[ArticleBase]: A list of all dependencies for the given article.
@@ -214,7 +206,7 @@ class Article(
 
     def iter_dfs_with_deps(
         self, chapter: bool = True, section: bool = True, subsection: bool = True
-    ) -> Generator[Tuple[ArticleMainBase, List[ArticleMainBase]], None, None]:
+    ) -> Generator[Tuple[ArticleOutlineBase, List[ArticleOutlineBase]], None, None]:
         """Iterates through the article in a depth-first manner, yielding each component and its dependencies.
 
         Args:

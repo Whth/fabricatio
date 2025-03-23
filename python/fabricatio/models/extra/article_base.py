@@ -1,6 +1,5 @@
 """A foundation for hierarchical document components with dependency tracking."""
-
-from abc import abstractmethod
+from abc import ABC
 from enum import StrEnum
 from typing import TYPE_CHECKING, Generator, List, Optional, Self, Union, overload
 
@@ -8,8 +7,10 @@ from fabricatio.models.generic import (
     Base,
     CensoredAble,
     Display,
+    Introspect,
     ModelHash,
     PersistentAble,
+    ProposedAble,
     ResolveUpdateConflict,
     UpdateFrom,
 )
@@ -22,9 +23,9 @@ if TYPE_CHECKING:
 class ReferringType(StrEnum):
     """Enumeration of different types of references that can be made in an article."""
 
-    CHAPTER: str = "chapter"
-    SECTION: str = "section"
-    SUBSECTION: str = "subsection"
+    CHAPTER = "chapter"
+    SECTION = "section"
+    SUBSECTION = "subsection"
 
 
 class ArticleRef(CensoredAble):
@@ -110,24 +111,68 @@ class ArticleRef(CensoredAble):
         return ReferringType.CHAPTER
 
 
-class SubSectionBase(ResolveUpdateConflict, UpdateFrom):
+class SubSectionBase(
+    UpdateFrom,
+    Introspect,
+):
     """Base class for article sections and subsections."""
 
-    def _update_from_inner(self, other: Self) -> Self:
+    title: str
+    """Title of the subsection, do not add any prefix or suffix to the title. should not contain special characters."""
+
+    def to_typst_code(self) -> str:
+        """Converts the component into a Typst code snippet for rendering."""
+        return f"=== {self.title}\n"
+
+    def update_from_inner(self, other: Self) -> Self:
         return self
+
+    def introspect(self) -> str:
+        """Introspects the article subsection outline."""
+        return ""
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
+        if self.title != other.title:
+            return f"Title mismatched, expected `{self.title}`, got `{other.title}`"
         return ""
 
 
-class SectionBase[T: SubSectionBase](ResolveUpdateConflict, UpdateFrom):
+class SectionBase[T: SubSectionBase](
+    UpdateFrom,
+    Introspect,
+):
     """Base class for article sections and subsections."""
 
     subsections: List[T]
     """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
+    title: str
+    """Title of the section, do not add any prefix or suffix to the title. should not contain special characters."""
 
-    def _update_from_inner(self, other: Self) -> Self:
+    def to_typst_code(self) -> str:
+        """Converts the section into a Typst formatted code snippet.
+
+        Returns:
+            str: The formatted Typst code snippet.
+        """
+        return f"== {self.title}\n" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
+
+    def resolve_update_conflict(self, other: Self) -> str:
+        """Resolve update errors in the article outline."""
+        out = ""
+        if self.title != other.title:
+            out += f"Title mismatched, expected `{self.title}`, got `{other.title}`"
+        if len(self.subsections) != len(other.subsections):
+            out += f"Section count mismatched, expected `{len(self.subsections)}`, got `{len(other.subsections)}`"
+        return out or "\n".join(
+            [
+                conf
+                for s, o in zip(self.subsections, other.subsections, strict=True)
+                if (conf := s.resolve_update_conflict(o))
+            ]
+        )
+
+    def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         if len(self.subsections) == 0:
             self.subsections = other.subsections
@@ -137,46 +182,41 @@ class SectionBase[T: SubSectionBase](ResolveUpdateConflict, UpdateFrom):
             self_subsec.update_from(other_subsec)
         return self
 
-    def resolve_update_conflict(self, other: Self) -> str:
-        """Resolve update errors in the article outline."""
-        if (s_len := len(self.subsections)) == 0:
-            return ""
-
-        if s_len != len(other.subsections):
-            return f"Subsections length mismatched, expected {len(self.subsections)}, got {len(other.subsections)}"
-
-        sub_sec_err_seq = [
-            out
-            for s, o in zip(self.subsections, other.subsections, strict=True)
-            if (out := s.resolve_update_conflict(o))
-        ]
-
-        if sub_sec_err_seq:
-            return "\n".join(sub_sec_err_seq)
+    def introspect(self) -> str:
+        """Introspects the article section outline."""
+        if len(self.subsections) == 0:
+            return f"Section `{self.title}` contains no subsections, expected at least one, but got 0, you can add one or more as needed."
         return ""
 
 
-class ChapterBase[T: SectionBase](ResolveUpdateConflict, UpdateFrom):
+class ChapterBase[T: SectionBase](
+    UpdateFrom,
+    Introspect,
+):
     """Base class for article chapters."""
 
     sections: List[T]
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
+    title: str
+    """Title of the chapter, do not add any prefix or suffix to the title. should not contain special characters."""
+    def to_typst_code(self) -> str:
+        """Converts the chapter into a Typst formatted code snippet for rendering."""
+        return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
-        if (s_len := len(self.sections)) == 0:
-            return ""
+        out = ""
 
-        if s_len != len(other.sections):
-            return f"Sections length mismatched, expected {len(self.sections)}, got {len(other.sections)}"
-        sec_err_seq = [
-            out for s, o in zip(self.sections, other.sections, strict=True) if (out := s.resolve_update_conflict(o))
-        ]
-        if sec_err_seq:
-            return "\n".join(sec_err_seq)
-        return ""
+        if self.title != other.title:
+            out += f"Title mismatched, expected `{self.title}`, got `{other.title}`"
+        if len(self.sections) == len(other.sections):
+            out += f"Chapter count mismatched, expected `{len(self.sections)}`, got `{len(other.sections)}`"
 
-    def _update_from_inner(self, other: Self) -> Self:
+        return out or "\n".join(
+            [conf for s, o in zip(self.sections, other.sections, strict=True) if (conf := s.resolve_update_conflict(o))]
+        )
+
+    def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         if len(self.sections) == 0:
             self.sections = other.sections
@@ -186,14 +226,24 @@ class ChapterBase[T: SectionBase](ResolveUpdateConflict, UpdateFrom):
             self_sec.update_from(other_sec)
         return self
 
+    def introspect(self) -> str:
+        """Introspects the article chapter outline."""
+        if len(self.sections) == 0:
+            return f"Chapter `{self.title}` contains no sections, expected at least one, but got 0, you can add one or more as needed."
+        return ""
 
-class ArticleBase[T: ChapterBase, A: "ArticleOutlineBase"](Base):
+
+class ArticleBase[T: ChapterBase](Base):
     """Base class for article outlines."""
 
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
+    title: str
+    """Title of the article outline, do not add any prefix or suffix to the title. should not contain special characters."""
 
-    def iter_dfs(self) -> Generator[A, None, None]:
+    def iter_dfs(
+        self,
+    ) -> Generator[ChapterBase | SectionBase | SubSectionBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure.
 
         Returns:
@@ -206,11 +256,18 @@ class ArticleBase[T: ChapterBase, A: "ArticleOutlineBase"](Base):
             yield chap
 
 
-class ArticleOutlineBase(UpdateFrom):
+class ArticleOutlineBase(
+    CensoredAble,
+    UpdateFrom,
+    ResolveUpdateConflict,
+    ProposedAble,
+    PersistentAble,
+    Display,
+    ModelHash,
+    ABC,
+):
     """Base class for article outlines."""
 
-    title: str
-    """Title of the article outline, do not add any prefix or suffix to the title. should not contain special characters."""
     description: str
     """Description of the research component in academic style."""
 
@@ -222,7 +279,8 @@ class ArticleOutlineBase(UpdateFrom):
     writing_aim: List[str]
     """List of writing aims of the research component in academic style."""
 
-    def _update_from_inner(self, other: Self) -> Self:
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
         self.support_to.clear()
         self.support_to.extend(other.support_to)
         self.depend_on.clear()
@@ -231,17 +289,3 @@ class ArticleOutlineBase(UpdateFrom):
         self.writing_aim.extend(other.writing_aim)
         self.description = other.description
         return self
-
-
-class ArticleMainBase(
-    CensoredAble,
-    Display,
-    ArticleOutlineBase,
-    PersistentAble,
-    ModelHash,
-):
-    """Foundation for hierarchical document components with dependency tracking."""
-
-    @abstractmethod
-    def to_typst_code(self) -> str:
-        """Converts the component into a Typst code snippet for rendering."""

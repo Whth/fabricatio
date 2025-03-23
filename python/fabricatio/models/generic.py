@@ -95,7 +95,7 @@ class WithRef[T](Base):
         """Get the referenced object."""
         return ok(self._reference, "_reference is None")
 
-    def update_ref[S](self: S, reference: T | S) -> S:  # noqa: PYI019
+    def update_ref[S: "WithRef"](self: S, reference: T | S) -> S:  # noqa: PYI019
         """Update the reference of the object."""
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
@@ -142,7 +142,6 @@ class PersistentAble(Base):
 class ModelHash(Base):
     """Class that provides a hash value for the object."""
 
-    @final
     def __hash__(self) -> int:
         """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
         return hash(self.model_dump_json())
@@ -151,7 +150,7 @@ class ModelHash(Base):
 class UpdateFrom(Base):
     """Class that provides a method to update the object from another object."""
 
-    def _update_pre_check(self, other: Self) -> Self:
+    def update_pre_check(self, other: Self) -> Self:
         """Pre-check for updating the object from another object."""
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot update from a non-{self.__class__.__name__} instance.")
@@ -159,13 +158,13 @@ class UpdateFrom(Base):
         return self
 
     @abstractmethod
-    def _update_from_inner(self, other: Self) -> Self:
+    def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
 
     @final
     def update_from(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
-        return self._update_pre_check(other)._update_from_inner(other)
+        return self.update_pre_check(other).update_from_inner(other)
 
 
 class ResolveUpdateConflict(Base):
@@ -180,6 +179,18 @@ class ResolveUpdateConflict(Base):
 
         Returns:
             str: The resolved update conflict.
+        """
+
+
+class Introspect(Base):
+    """Class that provides a method to introspect the object."""
+
+    @abstractmethod
+    def introspect(self) -> str:
+        """Internal introspection of the object.
+
+        Returns:
+            str: The internal introspection of the object.
         """
 
 
@@ -436,7 +447,7 @@ class PrepareVectorization(Base):
         """
         max_length = max_length or configs.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
-        if len(chunk) > max_length:
+        if max_length and len(chunk) > max_length:
             logger.error(err := f"Chunk exceeds maximum sequence length {max_length}.")
             raise ValueError(err)
 

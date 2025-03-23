@@ -1,6 +1,6 @@
 """A module containing the ArticleOutline class, which represents the outline of an academic paper."""
 
-from typing import List, Optional, Self, Tuple, Union
+from typing import Generator, List, Optional, Self, Tuple, Union, override
 
 import regex
 from fabricatio.models.extra.article_base import (
@@ -18,28 +18,26 @@ from fabricatio.models.utils import ok
 class ArticleSubsectionOutline(ArticleOutlineBase, SubSectionBase):
     """Atomic research component specification for academic paper generation."""
 
-    def resolve_update_conflict(self, other: Self) -> str:
-        """Resolve update errors in the article outline."""
-        if self.title != other.title:
-            return f"Title mismatched, expected `{self.title}`, got `{other.title}`"
-        return ""
 
 
 class ArticleSectionOutline(ArticleOutlineBase, SectionBase[ArticleSubsectionOutline]):
     """A slightly more detailed research component specification for academic paper generation, Must contain subsections."""
 
-    def _update_from_inner(self, other: Self) -> Self:
-        ArticleOutlineBase.update_from(self, other)
-        SectionBase.update_from(self, other)
+
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        super().update_from_inner(other)
+        super(ArticleOutlineBase, self).update_from_inner(other)
         return self
 
 
 class ArticleChapterOutline(ArticleOutlineBase, ChapterBase[ArticleSectionOutline]):
     """Macro-structural unit implementing standard academic paper organization. Must contain sections."""
 
-    def _update_from_inner(self, other: Self) -> Self:
-        ArticleOutlineBase.update_from(self, other)
-        SectionBase.update_from(self, other)
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        super().update_from_inner(other)
+        super(ArticleOutlineBase, self).update_from_inner(other)
         return self
 
 
@@ -48,7 +46,7 @@ class ArticleOutline(
     CensoredAble,
     WithRef[ArticleProposal],
     PersistentAble,
-    ArticleBase[ArticleChapterOutline, ArticleOutlineBase],
+    ArticleBase[ArticleChapterOutline],
 ):
     """A class representing the outline of an academic paper."""
 
@@ -98,14 +96,16 @@ class ArticleOutline(
                     lines.append(f"=== {i}.{j}.{k} {subsection.title}")
         return "\n".join(lines)
 
-    def resolve_ref_error(self) -> str:
-        """Resolve reference errors in the article outline.
+    @override
+    def iter_dfs(
+        self,
+    ) -> Generator[ArticleChapterOutline | ArticleSectionOutline | ArticleSubsectionOutline, None, None]: 
+        return super().iter_dfs()
+    def find_illegal(self) -> Optional[Tuple[ArticleOutlineBase, str]]:
+        """Finds the first illegal component in the outline.
 
         Returns:
-            str: Error message indicating reference errors in the article outline.
-
-        Notes:
-            This function is designed to find all invalid `ArticleRef` objs in `depend_on` and `support_to` fields, which will be added to the final error summary.
+            Tuple[ArticleOutlineBase, str]: A tuple containing the illegal component and an error message.
         """
         summary = ""
         for component in self.iter_dfs():
@@ -115,8 +115,10 @@ class ArticleOutline(
             for ref in component.support_to:
                 if not ref.deref(self):
                     summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `support_to` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-
-        return summary
+            summary += component.introspect()
+            if summary:
+                return component, summary
+        return None
 
     @classmethod
     def from_typst_code(
