@@ -9,7 +9,7 @@ from fabricatio.actions.article import (
     GenerateArticleProposal,
     GenerateOutline,
 )
-from fabricatio.actions.output import DumpFinalizedOutput
+from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
 from fabricatio.models.task import Task
 
 
@@ -20,9 +20,7 @@ async def main() -> None:
         description="Write an outline for an article in typst format.",
         llm_top_p=0.8,
         llm_temperature=1.15,
-        llm_max_tokens=8192,
-        llm_model="openai/qwen-max",
-        llm_stream=True,
+        llm_model="litellm_proxy/qwen-max",
         registry={
             Event.quick_instantiate(ns := "article"): WorkFlow(
                 name="Generate Article Outline",
@@ -32,8 +30,13 @@ async def main() -> None:
                     GenerateOutline(llm_temperature=1.21, llm_top_p=0.3),
                     GenerateArticle(output_key="to_dump", llm_temperature=1.2, llm_top_p=0.45),
                     DumpFinalizedOutput(output_key="task_output"),
+                    PersistentAll,
                 ),
-            ).update_init_context(article_briefing=Path("./article_briefing.txt").read_text(), dump_path="out.typ")
+            ).update_init_context(
+                article_briefing=Path("./article_briefing.txt").read_text(),
+                dump_path="out.typ",
+                persist_dir="persistent",
+            )
         },
     )
 

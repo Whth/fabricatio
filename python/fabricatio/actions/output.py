@@ -60,8 +60,8 @@ class PersistentAll(Action):
         if persist_dir.is_file():
             logger.warning("Dump should be a directory, but it is a file. Skip dumping.")
             return count
-
-        for k, v in cxt:
+        persist_dir.mkdir(parents=True, exist_ok=True)
+        for v in cxt.values():
             if isinstance(v, PersistentAble):
                 v.persist(persist_dir)
                 count += 1

@@ -1,5 +1,6 @@
 """Actions for transmitting tasks to targets."""
 
+from asyncio import gather
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
@@ -143,18 +144,17 @@ class GenerateOutline(Action):
         )
 
         while pack := out.find_illegal_ref():
-            component, err = ok(pack)
+            ref, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
-            corrected_metadata = ok(
-                await self.correct_obj(
-                    component.metadata,
-                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}\n\n# Create a new metadata to handle the error.",
+            ok(
+                await self.correct_obj_inplace(
+                    ref,
+                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}\n\n",
                     topic=ref_topic,
                     rating_manual=ref_manual,
                     supervisor_check=False,
                 )
             )
-            component.update_metadata(corrected_metadata)
         return out.update_ref(article_proposal)
 
 
@@ -177,17 +177,20 @@ class GenerateArticle(Action):
             await self.draft_rating_manual(w_topic := "write the following paragraph in the subsection.")
         )
 
-        for *_, subsec in article.iter_subsections():
-            corrected_subsec = await self.correct_obj(
-                subsec,
-                reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{subsec.introspect()}",
-                topic=w_topic,
-                rating_manual=write_para_manual,
-                supervisor_check=False,
-            )
-            subsec.paragraphs.clear()
-            subsec.paragraphs.extend(corrected_subsec.paragraphs)
-
+        await gather(
+            *[
+                self.correct_obj_inplace(
+                    subsec,
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
+                    topic=w_topic,
+                    rating_manual=write_para_manual,
+                    supervisor_check=False,
+                )
+                for _, __, subsec in article.iter_subsections()
+                if (err := subsec.introspect())
+            ],
+            return_exceptions=True,
+        )
         return article
 
 

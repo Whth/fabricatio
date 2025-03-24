@@ -13,10 +13,8 @@ from fabricatio.models.generic import (
     Introspect,
     ModelHash,
     PersistentAble,
-    ProposedAble,
     ProposedUpdateAble,
     ResolveUpdateConflict,
-    UpdateFrom,
 )
 
 
@@ -125,9 +123,8 @@ class ArticleMetaData(CensoredAble, Display):
 
 class ArticleOutlineBase(
     ArticleMetaData,
-    UpdateFrom,
     ResolveUpdateConflict,
-    ProposedAble,
+    ProposedUpdateAble,
     PersistentAble,
     ModelHash,
     Introspect,
@@ -357,7 +354,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble):
         for component in self.iter_dfs_rev():
             for ref in chain(component.depend_on, component.support_to):
                 if not ref.deref(self):
-                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
+                    summary += f"Invalid internal reference in `{component.__class__.__name__}` titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
                 if summary:
                     return ref, summary
         return None

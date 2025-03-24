@@ -37,6 +37,11 @@ class ArticleSubsection(SubSectionBase):
     paragraphs: List[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
+    def introspect(self) -> str:
+        if len(self.paragraphs) == 0:
+            return f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, to achieve the goal of `{self.writing_aim}`."
+        return ""
+
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         logger.debug(f"Updating SubSection {self.title}")
