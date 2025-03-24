@@ -1,12 +1,13 @@
 """A foundation for hierarchical document components with dependency tracking."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from enum import StrEnum
 from functools import cache
 from itertools import chain
 from typing import Generator, List, Optional, Self, Tuple
 
 from fabricatio.models.generic import (
+    AsPrompt,
     CensoredAble,
     Display,
     FinalizedDumpAble,
@@ -119,6 +120,24 @@ class ArticleMetaData(CensoredAble, Display):
     """List of writing aims of the research component in academic style."""
     title: str
     """Do not add any prefix or suffix to the title. should not contain special characters."""
+
+
+class ArticleRefPatch(ProposedUpdateAble, Display):
+    """Patch for article refs."""
+
+    tweaked: List[ArticleRef]
+    """Tweaked refs"""
+
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        self.tweaked.clear()
+        self.tweaked.extend(other.tweaked)
+        return self
+
+    @classmethod
+    def default(cls) -> "ArticleRefPatch":
+        """Defaults to empty list."""
+        return cls(tweaked=[])
 
 
 class ArticleOutlineBase(
@@ -267,7 +286,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
     """Base class for article outlines."""
 
     language: str
