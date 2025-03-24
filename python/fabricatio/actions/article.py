@@ -55,13 +55,14 @@ class GenerateArticleProposal(Action):
         task_input: Optional[Task] = None,
         article_briefing: Optional[str] = None,
         article_briefing_path: Optional[str] = None,
+        langauge: Optional[str] = None,
         **_,
     ) -> Optional[ArticleProposal]:
         if article_briefing is None and article_briefing_path is None and task_input is None:
             logger.error("Task not approved, since all inputs are None.")
             return None
 
-        return ok(
+        proposal = ok(
             await self.propose(
                 ArticleProposal,
                 briefing := (
@@ -80,6 +81,10 @@ class GenerateArticleProposal(Action):
             ),
             "Could not generate the proposal.",
         ).update_ref(briefing)
+        if langauge:
+            proposal.language = langauge
+
+        return proposal
 
 
 class GenerateOutline(Action):
@@ -183,8 +188,6 @@ class GenerateArticle(Action):
             subsec.paragraphs.clear()
             subsec.paragraphs.extend(corrected_subsec.paragraphs)
 
-        logger.success(f"Finished: {article.display()}")
-        logger.success(f"Dump: {article.finalized_dump()}")
         return article
 
 
