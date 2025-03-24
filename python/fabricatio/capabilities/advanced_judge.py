@@ -20,4 +20,4 @@ class AdvancedJudge(Propose):
             prompt,
             **kwargs
         )
-    
+
