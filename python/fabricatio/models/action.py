@@ -104,7 +104,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     _instances: Tuple[Action, ...] = PrivateAttr(default_factory=tuple)
     """Instantiated action objects to be executed in this workflow."""
 
-    steps: Tuple[Union[Type[Action], Action], ...] = Field(...)
+    steps: Tuple[Union[Type[Action], Action], ...] = Field(frozen=True,)
     """The sequence of actions to be executed, can be action classes or instances."""
 
     task_input_key: str = Field(default="task_input")
@@ -157,13 +157,14 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             # Process each action in sequence
             for step in self._instances:
                 current_action = step.name
-                logger.info(f"Executing step: {current_action}")
+                logger.info(f"Executing step >> {current_action}")
 
                 # Get current context and execute action
                 context = await self._context.get()
                 act_task = create_task(step.act(context))
                 # Handle task cancellation
                 if task.is_cancelled():
+                    logger.warning(f"Task cancelled by task: {task.name}")
                     act_task.cancel(f"Cancelled by task: {task.name}")
                     break
 
@@ -171,7 +172,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
                 modified_ctx = await act_task
                 logger.success(f"Step execution finished: {current_action}")
                 if step.output_key:
-                    logger.success(f"Setting output: {step.output_key}")
+                    logger.success(f"Setting output to `{step.output_key}`")
                 await self._context.put(modified_ctx)
 
             logger.success(f"Workflow execution finished: {self.name}")
@@ -182,7 +183,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
 
             if self.task_output_key not in final_ctx:
                 logger.warning(
-                    f"Task output key: {self.task_output_key} not found in the context, None will be returned. "
+                    f"Task output key: `{self.task_output_key}` not found in the context, None will be returned. "
                     f"You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`."
                 )
 

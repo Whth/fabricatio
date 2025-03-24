@@ -5,9 +5,13 @@ from pathlib import Path
 
 from fabricatio import Event, Role, WorkFlow, logger
 from fabricatio.actions.article import (
+    FixIllegalReferences,
+    FixIntrospectedErrors,
     GenerateArticle,
     GenerateArticleProposal,
-    GenerateOutline,
+    GenerateInitialOutline,
+    TweakOutlineBackwardRef,
+    TweakOutlineForwardRef,
 )
 from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
 from fabricatio.models.task import Task
@@ -27,7 +31,11 @@ async def main() -> None:
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
                     GenerateArticleProposal(llm_temperature=1.18),
-                    GenerateOutline(llm_temperature=1.21, llm_top_p=0.3),
+                    GenerateInitialOutline(output_key="article_outline",llm_temperature=1.21, llm_top_p=0.3),
+                    FixIntrospectedErrors(output_key="article_outline"),
+                    FixIllegalReferences(output_key="article_outline"),
+                    TweakOutlineBackwardRef(output_key="article_outline"),
+                    TweakOutlineForwardRef(output_key="article_outline"),
                     GenerateArticle(output_key="to_dump", llm_temperature=1.2, llm_top_p=0.45),
                     DumpFinalizedOutput(output_key="task_output"),
                     PersistentAll,
