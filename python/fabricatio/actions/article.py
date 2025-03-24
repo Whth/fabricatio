@@ -4,9 +4,11 @@ from asyncio import gather
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
+from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
+from fabricatio.models.extra.article_base import ArticleRefPatch
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -88,10 +90,10 @@ class GenerateArticleProposal(Action):
         return proposal
 
 
-class GenerateOutline(Action):
-    """Generate the article based on the outline."""
+class GenerateInitialOutline(Action):
+    """Generate the initial article outline based on the article proposal."""
 
-    output_key: str = "article_outline"
+    output_key: str = "initial_article_outline"
     """The key of the output data."""
 
     async def _execute(
@@ -99,15 +101,27 @@ class GenerateOutline(Action):
         article_proposal: ArticleProposal,
         **_,
     ) -> Optional[ArticleOutline]:
-        out = ok(
+        return ok(
             await self.propose(
                 ArticleOutline,
                 article_proposal.as_prompt(),
                 **self.prepend_sys_msg(),
             ),
-            "Could not generate the outline.",
+            "Could not generate the initial outline.",
         )
 
+
+class FixIntrospectedErrors(Action):
+    """Fix introspected errors in the article outline."""
+
+    output_key: str = "introspected_errors_fixed_outline"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_outline: ArticleOutline,
+        **_,
+    ) -> Optional[ArticleOutline]:
         introspect_manual = ok(
             await self.draft_rating_manual(
                 topic=(
@@ -118,13 +132,13 @@ class GenerateOutline(Action):
             "Could not generate the rating manual.",
         )
 
-        while pack := out.find_introspected():
+        while pack := article_outline.find_introspected():
             component, err = ok(pack)
             logger.warning(f"Found introspected error: {err}")
             corrected = ok(
                 await self.correct_obj(
                     component,
-                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}",
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
                     topic=intro_topic,
                     rating_manual=introspect_manual,
                     supervisor_check=False,
@@ -133,6 +147,20 @@ class GenerateOutline(Action):
             )
             component.update_from(corrected)
 
+        return article_outline
+
+
+class FixIllegalReferences(Action):
+    """Fix illegal references in the article outline."""
+
+    output_key: str = "illegal_references_fixed_outline"
+    """The key of the output data."""
+
+    async def _execute(
+        self,
+        article_outline: ArticleOutline,
+        **_,
+    ) -> Optional[ArticleOutline]:
         ref_manual = ok(
             await self.draft_rating_manual(
                 topic=(
@@ -143,19 +171,87 @@ class GenerateOutline(Action):
             "Could not generate the rating manual.",
         )
 
-        while pack := out.find_illegal_ref():
+        while pack := article_outline.find_illegal_ref():
             ref, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
             ok(
                 await self.correct_obj_inplace(
                     ref,
-                    reference=f"# Original Article Outline\n{out.display()}\n# Error Need to be fixed\n{err}\n\n",
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}\n\n",
                     topic=ref_topic,
                     rating_manual=ref_manual,
                     supervisor_check=False,
                 )
             )
-        return out.update_ref(article_proposal)
+        return article_outline.update_ref(article_outline)
+
+
+class TweakOutlineBackwardRef(Action, AdvancedJudge):
+    """Tweak the backward references in the article outline.
+
+    Ensures that the prerequisites of the current chapter are correctly referenced in the `depend_on` field.
+    """
+
+    output_key: str = "article_outline_bw_ref_checked"
+
+    async def _execute(self, article_outline: ArticleOutline, **cxt) -> ArticleOutline:
+        tweak_depend_on_manual = ok(
+            await self.draft_rating_manual(
+                topic := "Ensure prerequisites are correctly referenced in the `depend_on` field."
+            ),
+            "Could not generate the rating manual.",
+        )
+
+        for a in article_outline.iter_dfs():
+            if await self.evidently_judge(
+                f"{article_outline.as_prompt()}\n\n{a.display()}\n"
+                f"Does the `{a.__class__.__name__}`'s `depend_on` field need to be extended or tweaked?"
+            ):
+                patch=ArticleRefPatch.default()
+                patch.tweaked=a.depend_on
+
+                await self.correct_obj_inplace(
+                    patch,
+                    topic=topic,
+                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `depend_on` field needs to be extended or tweaked",
+                    rating_manual=tweak_depend_on_manual,
+                )
+
+        return article_outline
+
+
+class TweakOutlineForwardRef(Action, AdvancedJudge):
+    """Tweak the forward references in the article outline.
+
+    Ensures that the conclusions of the current chapter effectively support the analysis of subsequent chapters.
+    """
+
+    output_key: str = "article_outline_fw_ref_checked"
+
+    async def _execute(self, article_outline: ArticleOutline, **cxt) -> ArticleOutline:
+        tweak_support_to_manual = ok(
+            await self.draft_rating_manual(
+                topic := "Ensure conclusions support the analysis of subsequent chapters, sections or subsections."
+            ),
+            "Could not generate the rating manual.",
+        )
+
+        for a in article_outline.iter_dfs():
+            if await self.evidently_judge(
+                f"{article_outline.as_prompt()}\n\n{a.display()}\n"
+                f"Does the `{a.__class__.__name__}`'s `support_to` field need to be extended or tweaked?"
+            ):
+                patch=ArticleRefPatch.default()
+                patch.tweaked=a.support_to
+
+                await self.correct_obj_inplace(
+                    patch,
+                    topic=topic,
+                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `support_to` field needs to be extended or tweaked",
+                    rating_manual=tweak_support_to_manual,
+                )
+
+        return article_outline
 
 
 class GenerateArticle(Action):
@@ -191,6 +287,7 @@ class GenerateArticle(Action):
             ],
             return_exceptions=True,
         )
+
         return article
 
 
