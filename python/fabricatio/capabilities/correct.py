@@ -10,7 +10,7 @@ from typing import Optional, Unpack, cast
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.review import Review, ReviewResult
 from fabricatio.config import configs
-from fabricatio.models.generic import CensoredAble, Display, ProposedAble, WithBriefing
+from fabricatio.models.generic import CensoredAble, Display, ProposedAble, ProposedUpdateAble, WithBriefing
 from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
 from questionary import confirm, text
@@ -145,3 +145,21 @@ class Correct(Review):
             last_modified_obj = modified_obj
             rprint(last_modified_obj.finalized_dump())
         return modified_obj or last_modified_obj
+
+    async def correct_obj_inplace[M: ProposedUpdateAble](
+        self, obj: M, **kwargs: Unpack[CorrectKwargs[ReviewResult[str]]]
+    ) -> Optional[M]:
+        """Correct an object in place based on defined criteria and templates.
+
+        Args:
+            obj (M): The object to be corrected.
+            **kwargs (Unpack[CensoredCorrectKwargs]): Additional keyword arguments for the correction process.
+
+        Returns:
+            Optional[M]: The corrected object, or None if correction fails.
+        """
+        corrected_obj = await self.correct_obj(obj, **kwargs)
+        if corrected_obj is None:
+            return corrected_obj
+        obj.update_from(corrected_obj)
+        return obj
