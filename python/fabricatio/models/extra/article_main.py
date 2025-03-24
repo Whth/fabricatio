@@ -38,6 +38,7 @@ class ArticleSubsection(SubSectionBase):
     """List of Paragraph objects containing the content of the subsection."""
 
     def introspect(self) -> str:
+        """Introspects the subsection and returns a message if it has no paragraphs."""
         if len(self.paragraphs) == 0:
             return f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, to achieve the goal of `{self.writing_aim}`."
         return ""
