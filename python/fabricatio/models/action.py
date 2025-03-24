@@ -170,6 +170,8 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
                 # Update context with modified values
                 modified_ctx = await act_task
                 logger.success(f"Step execution finished: {current_action}")
+                if step.output_key:
+                    logger.success(f"Setting output: {step.output_key}")
                 await self._context.put(modified_ctx)
 
             logger.success(f"Workflow execution finished: {self.name}")
