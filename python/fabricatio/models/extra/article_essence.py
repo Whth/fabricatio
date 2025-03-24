@@ -134,7 +134,7 @@ class Highlightings(BaseModel):
 
 
 class ArticleEssence(ProposedAble, Display, PrepareVectorization):
-    """ArticleEssence is a structured representation of the core elements of a scientific article,"""
+    """ArticleEssence is a structured representation of the core elements of a scientific article."""
 
     language: str = Field(...)
     """Language of the original article."""
