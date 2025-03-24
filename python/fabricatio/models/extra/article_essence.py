@@ -134,10 +134,10 @@ class Highlightings(BaseModel):
 
 
 class ArticleEssence(ProposedAble, Display, PrepareVectorization):
-    """Semantic fingerprint of academic paper for structured analysis.
+    """ArticleEssence is a structured representation of the core elements of a scientific article,"""
 
-    Encodes research artifacts with dual human-machine interpretability.
-    """
+    language: str = Field(...)
+    """Language of the original article."""
 
     title: str = Field(...)
     """Exact title of the original article without any modification.
@@ -149,7 +149,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     """
 
     authors: List[str]
-    """Original author names exactly as they appear in the source document. No translation or paraphrasing.
+    """Original author full names exactly as they appear in the source document. No translation or paraphrasing.
     Extract complete list without any modifications or formatting changes."""
 
     keywords: List[str]
@@ -170,11 +170,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     """Domain tags for research focus."""
 
     abstract: str = Field(...)
-    """Three-paragraph structured abstract:
-    Paragraph 1: Problem & Motivation (2-3 sentences)
-    Paragraph 2: Methodology & Innovations (3-4 sentences)
-    Paragraph 3: Results & Impact (2-3 sentences)
-    Total length: 150-250 words"""
+    """Abstract text with original language."""
 
     core_contributions: List[str]
     """3-5 technical contributions using CRediT taxonomy verbs.
@@ -184,6 +180,7 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     - 'Established cross-lingual transfer metrics'"""
 
     technical_novelty: List[str]
+
     """Patent-style claims with technical specificity.
     Format: 'A [system/method] comprising [novel components]...'
     Example:
