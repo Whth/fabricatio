@@ -16,7 +16,7 @@ from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt
 
 
-class GiveRating(WithBriefing, LLMUsage):
+class Rating(WithBriefing, LLMUsage):
     """A class that provides functionality to rate tasks based on a rating manual and score range.
 
     References:

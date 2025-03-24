@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Self, Set, Unpack, cast
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
-from fabricatio.capabilities.rating import GiveRating
+from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
 from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
@@ -175,7 +175,7 @@ class ReviewResult[T](ProposedAble, Display):
         return self
 
 
-class Review(GiveRating, Propose):
+class Review(Rating, Propose):
     """Class that provides functionality to review tasks and strings using a language model.
 
     This class extends GiveRating and Propose capabilities to analyze content,
