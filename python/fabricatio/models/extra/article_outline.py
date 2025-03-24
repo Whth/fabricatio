@@ -1,5 +1,7 @@
 """A module containing the ArticleOutline class, which represents the outline of an academic paper."""
 
+from typing import Dict
+
 from fabricatio.models.extra.article_base import (
     ArticleBase,
     ChapterBase,
@@ -30,3 +32,10 @@ class ArticleOutline(
     ArticleBase[ArticleChapterOutline],
 ):
     """Outline of an academic paper, containing chapters, sections, subsections."""
+
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        return {
+            "Original Article Briefing": self.referenced.referenced,
+            "Original Article Proposal": self.referenced.display(),
+            "Original Article Outline": self.display(),
+        }

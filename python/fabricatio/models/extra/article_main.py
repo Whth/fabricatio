@@ -1,7 +1,7 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
 from itertools import chain
-from typing import Generator, List, Self, Tuple, override
+from typing import Dict, Generator, List, Self, Tuple, override
 
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
@@ -80,6 +80,14 @@ class Article(
     This class integrates display, censorship processing, article structure referencing, and persistence capabilities,
     aiming to provide a comprehensive model for academic papers.
     """
+
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        return {
+            "Original Article Briefing": self.referenced.referenced.referenced,
+            "Original Article Proposal": self.referenced.referenced.display(),
+            "Original Article Outline": self.referenced.display(),
+            "Original Article": self.display(),
+        }
 
     @override
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
