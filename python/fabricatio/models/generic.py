@@ -1,6 +1,6 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
@@ -108,7 +108,7 @@ class PersistentAble(Base):
     """Class that provides a method to persist the object."""
 
     def persist(self, path: str | Path) -> Self:
-        """Persist the object to a file.
+        """Persist the object to a file or directory.
 
         Args:
             path (str | Path): The path to save the object.
@@ -117,7 +117,7 @@ class PersistentAble(Base):
             Self: The current instance of the object.
         """
         p = Path(path)
-        out = self.model_dump_json()
+        out = self.model_dump_json(indent=1)
         if p.is_dir():
             p.joinpath(f"{self.__class__.__name__}_{blake3_hash(out.encode())[:6]}.json").write_text(
                 out, encoding="utf-8"
@@ -125,6 +125,7 @@ class PersistentAble(Base):
             return self
         p.mkdir(exist_ok=True, parents=True)
         p.write_text(out, encoding="utf-8")
+        logger.info(f"Persisted {self} to {p.as_posix()}")
         return self
 
     def from_persistent(self, path: str | Path) -> Self:
@@ -305,6 +306,10 @@ class InstantiateFromString(Base):
 
 class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
     """Class that provides a method to propose a JSON object based on the requirement."""
+
+
+class ProposedUpdateAble(PersistentAble, UpdateFrom, ABC):
+    """Make the obj can be updated from the proposed obj in place."""
 
 
 class FinalizedDumpAble(Base):
