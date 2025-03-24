@@ -2,6 +2,8 @@
 
 from abc import abstractmethod
 from enum import StrEnum
+from functools import cache
+from itertools import chain
 from typing import Generator, List, Optional, Self, Tuple
 
 from fabricatio.models.generic import (
@@ -12,6 +14,7 @@ from fabricatio.models.generic import (
     ModelHash,
     PersistentAble,
     ProposedAble,
+    ProposedUpdateAble,
     ResolveUpdateConflict,
     UpdateFrom,
 )
@@ -25,7 +28,11 @@ class ReferringType(StrEnum):
     SUBSECTION = "subsection"
 
 
-class ArticleRef(CensoredAble, Display):
+type RefKey = Tuple[str, Optional[str], Optional[str]]
+
+
+@cache
+class ArticleRef(CensoredAble, Display, ProposedUpdateAble):
     """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
 
     Examples:
@@ -65,9 +72,12 @@ class ArticleRef(CensoredAble, Display):
     referred_subsection_title: Optional[str] = None
     """`title` Field of the referenced subsection."""
 
-    def __hash__(self) -> int:
-        """Overrides the default hash function to ensure consistent hashing across instances."""
-        return hash((self.referred_chapter_title, self.referred_section_title, self.referred_subsection_title))
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        self.referred_chapter_title = other.referred_chapter_title
+        self.referred_section_title = other.referred_section_title
+        self.referred_subsection_title = other.referred_subsection_title
+        return self
 
     def deref(self, article: "ArticleBase") -> Optional["ArticleOutlineBase"]:
         """Dereference the reference to the actual section or subsection within the provided article.
@@ -337,7 +347,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble):
                 return component, summary
         return None
 
-    def find_illegal_ref(self) -> Optional[Tuple[ArticleOutlineBase, str]]:
+    def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]:
         """Finds the first illegal component in the outline.
 
         Returns:
@@ -345,14 +355,11 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble):
         """
         summary = ""
         for component in self.iter_dfs_rev():
-            for ref in component.depend_on:
+            for ref in chain(component.depend_on, component.support_to):
                 if not ref.deref(self):
-                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `depend_on` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-            for ref in component.support_to:
-                if not ref.deref(self):
-                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}` at `support_to` field, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-            if summary:
-                return component, summary
+                    summary += f"Invalid internal reference in {component.__class__.__name__} titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
+                if summary:
+                    return ref, summary
         return None
 
     def finalized_dump(self) -> str:
