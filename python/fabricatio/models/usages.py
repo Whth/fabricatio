@@ -1,5 +1,6 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
+import traceback
 from asyncio import gather
 from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set, Type, Union, Unpack, overload
 
@@ -324,6 +325,7 @@ class LLMUsage(ScopedConfig):
                     continue
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation: \n{e}")
+                    logger.debug(traceback.format_exc())
                     break
                 if not kwargs.get("no_cache"):
                     kwargs["no_cache"] = True
