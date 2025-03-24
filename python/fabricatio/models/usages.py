@@ -39,6 +39,8 @@ ROUTER = Router(
     allowed_fails=configs.routing.allowed_fails,
     retry_after=configs.routing.retry_after,
     cooldown_time=configs.routing.cooldown_time,
+    cache_responses=configs.cache.enabled,
+    cache_kwargs=configs.cache.params,
 )
 
 
@@ -136,7 +138,7 @@ class LLMUsage(ScopedConfig):
             List[Choices | StreamingChoices]: A list of choices or streaming choices from the model response.
         """
         resp = await self.aquery(
-            messages=Messages().add_system_message(system_message).add_user_message(question),
+            messages=Messages().add_system_message(system_message).add_user_message(question).as_list(),
             n=n,
             **kwargs,
         )
