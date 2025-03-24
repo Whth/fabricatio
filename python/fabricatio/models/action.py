@@ -221,7 +221,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         self.provide_tools_to(self._instances)
         return self
 
-    def update_init_context(self, **kwargs) -> Self:
+    def update_init_context(self, /, **kwargs) -> Self:
         """Update the initial context with additional key-value pairs.
 
         Args:
