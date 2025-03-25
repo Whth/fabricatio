@@ -108,7 +108,7 @@ class GenerateInitialOutline(Action):
                 **self.prepend_sys_msg(),
             ),
             "Could not generate the initial outline.",
-        )
+        ).update_ref(article_proposal)
 
 
 class FixIntrospectedErrors(Action):
@@ -120,6 +120,7 @@ class FixIntrospectedErrors(Action):
     async def _execute(
         self,
         article_outline: ArticleOutline,
+        supervisor_check: bool = False,
         **_,
     ) -> Optional[ArticleOutline]:
         introspect_manual = ok(
@@ -141,7 +142,7 @@ class FixIntrospectedErrors(Action):
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
                     topic=intro_topic,
                     rating_manual=introspect_manual,
-                    supervisor_check=False,
+                    supervisor_check=supervisor_check,
                 ),
                 "Could not correct the component.",
             )
@@ -159,6 +160,7 @@ class FixIllegalReferences(Action):
     async def _execute(
         self,
         article_outline: ArticleOutline,
+        supervisor_check: bool = False,
         **_,
     ) -> Optional[ArticleOutline]:
         ref_manual = ok(
@@ -177,10 +179,10 @@ class FixIllegalReferences(Action):
             ok(
                 await self.correct_obj_inplace(
                     ref,
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}\n\n",
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
                     topic=ref_topic,
                     rating_manual=ref_manual,
-                    supervisor_check=False,
+                    supervisor_check=supervisor_check,
                 )
             )
         return article_outline.update_ref(article_outline)
@@ -194,7 +196,7 @@ class TweakOutlineBackwardRef(Action, AdvancedJudge):
 
     output_key: str = "article_outline_bw_ref_checked"
 
-    async def _execute(self, article_outline: ArticleOutline, **cxt) -> ArticleOutline:
+    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
         tweak_depend_on_manual = ok(
             await self.draft_rating_manual(
                 topic := "Ensure prerequisites are correctly referenced in the `depend_on` field."
@@ -207,14 +209,15 @@ class TweakOutlineBackwardRef(Action, AdvancedJudge):
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
                 f"Does the `{a.__class__.__name__}`'s `depend_on` field need to be extended or tweaked?"
             ):
-                patch=ArticleRefPatch.default()
-                patch.tweaked=a.depend_on
+                patch = ArticleRefPatch.default()
+                patch.tweaked = a.depend_on
 
                 await self.correct_obj_inplace(
                     patch,
                     topic=topic,
                     reference=f"{article_outline.as_prompt()}\nThe Article component whose `depend_on` field needs to be extended or tweaked",
                     rating_manual=tweak_depend_on_manual,
+                    supervisor_check=supervisor_check,
                 )
 
         return article_outline
@@ -228,7 +231,7 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
 
     output_key: str = "article_outline_fw_ref_checked"
 
-    async def _execute(self, article_outline: ArticleOutline, **cxt) -> ArticleOutline:
+    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
         tweak_support_to_manual = ok(
             await self.draft_rating_manual(
                 topic := "Ensure conclusions support the analysis of subsequent chapters, sections or subsections."
@@ -241,14 +244,15 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
                 f"Does the `{a.__class__.__name__}`'s `support_to` field need to be extended or tweaked?"
             ):
-                patch=ArticleRefPatch.default()
-                patch.tweaked=a.support_to
+                patch = ArticleRefPatch.default()
+                patch.tweaked = a.support_to
 
                 await self.correct_obj_inplace(
                     patch,
                     topic=topic,
                     reference=f"{article_outline.as_prompt()}\nThe Article component whose `support_to` field needs to be extended or tweaked",
                     rating_manual=tweak_support_to_manual,
+                    supervisor_check=supervisor_check,
                 )
 
         return article_outline
@@ -263,6 +267,7 @@ class GenerateArticle(Action):
     async def _execute(
         self,
         article_outline: ArticleOutline,
+        supervisor_check: bool = False,
         **_,
     ) -> Optional[Article]:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
@@ -280,7 +285,7 @@ class GenerateArticle(Action):
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
                     topic=w_topic,
                     rating_manual=write_para_manual,
-                    supervisor_check=False,
+                    supervisor_check=supervisor_check,
                 )
                 for _, __, subsec in article.iter_subsections()
                 if (err := subsec.introspect())
