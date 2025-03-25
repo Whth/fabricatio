@@ -93,7 +93,7 @@ class WithRef[T](Base):
     @property
     def referenced(self) -> T:
         """Get the referenced object."""
-        return ok(self._reference, "_reference is None")
+        return ok(self._reference, f"`{self.__class__.__name__}`\' s `_reference` field is None. Have you called `update_ref`?")
 
     def update_ref[S: "WithRef"](self: S, reference: T | S) -> S:  # noqa: PYI019
         """Update the reference of the object."""
