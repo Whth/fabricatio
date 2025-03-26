@@ -1,6 +1,7 @@
 """This module defines generic classes for models in the Fabricatio library."""
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
@@ -93,7 +94,9 @@ class WithRef[T](Base):
     @property
     def referenced(self) -> T:
         """Get the referenced object."""
-        return ok(self._reference, f"`{self.__class__.__name__}`\' s `_reference` field is None. Have you called `update_ref`?")
+        return ok(
+            self._reference, f"`{self.__class__.__name__}`' s `_reference` field is None. Have you called `update_ref`?"
+        )
 
     def update_ref[S: "WithRef"](self: S, reference: T | S) -> S:  # noqa: PYI019
         """Update the reference of the object."""
@@ -118,13 +121,22 @@ class PersistentAble(Base):
         """
         p = Path(path)
         out = self.model_dump_json(indent=1)
+
+        # Generate a timestamp in the format YYYYMMDD_HHMMSS
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Generate the hash
+        file_hash = blake3_hash(out.encode())[:6]
+
+        # Construct the file name with timestamp and hash
+        file_name = f"{self.__class__.__name__}_{timestamp}_{file_hash}.json"
+
         if p.is_dir():
-            p.joinpath(f"{self.__class__.__name__}_{blake3_hash(out.encode())[:6]}.json").write_text(
-                out, encoding="utf-8"
-            )
-            return self
-        p.mkdir(exist_ok=True, parents=True)
-        p.write_text(out, encoding="utf-8")
+            p.joinpath(file_name).write_text(out, encoding="utf-8")
+        else:
+            p.mkdir(exist_ok=True, parents=True)
+            p.write_text(out, encoding="utf-8")
+
         logger.info(f"Persisted {self} to {p.as_posix()}")
         return self
 
@@ -308,7 +320,7 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
     """Class that provides a method to propose a JSON object based on the requirement."""
 
 
-class ProposedUpdateAble(PersistentAble, UpdateFrom, ABC):
+class ProposedUpdateAble(ProposedAble, UpdateFrom, ABC):
     """Make the obj can be updated from the proposed obj in place."""
 
 
