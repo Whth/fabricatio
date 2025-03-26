@@ -136,7 +136,7 @@ class Highlightings(BaseModel):
 class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     """ArticleEssence is a structured representation of the core elements of a scientific article,using its original language."""
 
-    language: str = Field(...)
+    language: str
     """Language of the original article, note that you should not attempt to translate the original language when generating JSON."""
 
     title: str = Field(...)
