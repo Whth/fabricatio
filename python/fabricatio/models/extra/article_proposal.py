@@ -29,5 +29,23 @@ class ArticleProposal(CensoredAble, Display, WithRef[str], AsPrompt, PersistentA
     research_aim: List[str]
     """A list of primary research objectives that the paper seeks to achieve."""
 
+    literature_review: List[str]
+    """A list of key references and literature that support the research context and background."""
+
+    expected_outcomes: List[str]
+    """A list of anticipated results or contributions that the research aims to achieve."""
+
+    keywords: List[str]
+    """A list of keywords that represent the main topics and focus areas of the research."""
+
+    abstract: str
+    """A concise summary of the research proposal, outlining the main points and objectives."""
+
+    min_word_count: int
+    """The minimum number of words required for the research proposal."""
+
     def _as_prompt_inner(self) -> Dict[str, str]:
-        return {"ArticleBriefing": self.referenced, "ArticleProposal": self.display()}
+        return {
+            "ArticleBriefing": self.referenced,
+            "ArticleProposal": self.display(),
+        }
