@@ -8,6 +8,7 @@ from fabricatio.models.extra.article_base import (
     ArticleBase,
     ArticleOutlineBase,
     ChapterBase,
+    Patch,
     SectionBase,
     SubSectionBase,
 )
@@ -29,6 +30,10 @@ class Paragraph(CensoredAble):
 
     content: str
     """The actual content of the paragraph, represented as a string."""
+
+
+class ArticleParagraphPatch(Patch[Paragraph]):
+    """Patch for `Paragraph` list of `ArticleSubsection`."""
 
 
 class ArticleSubsection(SubSectionBase):
