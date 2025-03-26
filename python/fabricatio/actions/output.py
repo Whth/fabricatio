@@ -1,7 +1,7 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Type
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -67,3 +67,18 @@ class PersistentAll(Action):
                 count += 1
 
         return count
+
+
+class RetrieveFromPersistent[T: PersistentAble](Action):
+    """Retrieve the object from the persistent file."""
+
+    output_key: str = "retrieved_obj"
+    """Retrieve the object from the persistent file."""
+    load_path: str
+    """The path of the persistent file."""
+    retrieve_cls: Type[T]
+    """The class of the object to retrieve."""
+
+    async def _execute(self, /, **__) -> T:
+        logger.debug(f'Retrieve `{self.retrieve_cls.__name__}` from persistent file: {self.load_path}')
+        return self.retrieve_cls.from_persistent(self.load_path)
