@@ -35,8 +35,7 @@ impl BibManager {
                     .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
                     .ok()?
                     .to_biblatex_string(false)
-                    .replace("{", "")
-                    .replace("}", "")
+                    .fix()
                     .to_lowercase();
 
                 (entry_title == title_lower).then(|| entry.key.clone())
@@ -57,8 +56,7 @@ impl BibManager {
         self.source.iter()
             .map(|entry| {
                 let mut buf = vec![];
-                let text = entry.to_biblatex_string().replace("{", "")
-                    .replace("}", "");
+                let text = entry.to_biblatex_string().fix();
                 (pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher), entry)
             })
             .par_bridge()
@@ -75,11 +73,54 @@ impl BibManager {
                 .ok()
                 .unwrap()
                 .to_biblatex_string(is_verbatim)
-                .replace("{", "")
-                .replace("}", "")
+                .fix()
         }).collect::<Vec<_>>()
     }
+
+    fn get_auther_by_key(&self, key: String)->Option<Vec<String>>{
+        if let Some(en) = self.source.get(key.as_str()){
+            Some(en.author().unwrap()
+                .iter().map(
+                |auther|{
+                    format!("{}",auther).to_string()
+                }
+            ).collect())
+            
+        }else { 
+            None
+        }
+    }
+    
+    fn get_year_by_key(&self, key: String)->Option<i32>{
+        if let Some(en) = self.source.get(key.as_str()){
+            Some(en.get("year").unwrap()
+                .to_biblatex_string(false).fix().parse().unwrap())
+        }else { 
+            None
+        }
+    }
+    
+    fn get_abstract_by_key(&self, key: String)->Option<String>{
+        if let Some(en) = self.source.get(key.as_str()){
+            Some(en.get("abstract").unwrap().to_biblatex_string(false).fix())
+        }else { 
+            None
+        }
+    }
+
 }
+
+trait Fix{
+    fn fix(&self)->String;
+}
+
+impl Fix for String {
+    fn fix(&self) -> String {
+        self.replace("{","").replace("}","")
+    }
+}
+
+
 
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
