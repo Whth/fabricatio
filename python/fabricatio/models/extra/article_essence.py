@@ -1,6 +1,6 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import List
+from typing import List, Self
 
 from fabricatio.models.generic import Display, PrepareVectorization, ProposedAble
 from pydantic import BaseModel, Field
@@ -20,12 +20,49 @@ class Equation(BaseModel):
     Example: "Defines constrained search space dimensionality reduction. Used in architecture optimization phase (Section 3.2). Enables 40% parameter reduction."
     """
 
-    latex_code: str
-    """LaTeX representation following academic typesetting standards:
-    - Must use equation environment (e.g., `equation`, `align`).
-    - Multiline equations must align at '=' using `&`.
-    - Include unit annotations where applicable.
-    Example: "\\begin{equation} \\mathcal{L}_{NAS} = \\alpha \\|\\theta\\|_2 + \\beta H(p) \\end{equation}"
+    typst_code: str
+    r"""The typst code for the equation, including the equation itself and any necessary formatting.
+#let x = 5  // Define a code variable
+
+// Basic syntax examples
+$x^2$  // Inline formula
+$ x^2 $  // Block formula (spaces before/after $ for standalone display)
+
+// Variables and text handling
+$ A = pi r^2 $  // Single-letter variables as-is
+$"area" = pi dot "radius"^2 $  // Multi-letter variables in quotes
+$ cal(A) := { x in RR | x "is natural" } $  // Calligraphic font and text
+$ #x < 17 $  // Access code variables with #
+
+// Symbols and shorthands
+$x < y => x gt.eq.not y $  // Symbol shorthand (=> for ⇒, gt.eq.not for ≯)
+
+// Multi-line equations with alignment
+$ sum_(k=0)^n k
+    &= 1 + ... + n \
+    &= (n(n+1))/2 $  // Multi-line with & alignment
+
+// Function calls and formatting
+$ frac(a^2, 2) $  // Fraction
+$ vec(1, 2, delim: "[") $  // Custom vector delimiter
+$ mat(1, 2; 3, 4) $  // 2D matrix (semicolon separates rows)
+$ mat(..#range(1, 5).chunks(2)) $  // Dynamic matrix with array expansion
+
+// Advanced alignment example
+$ (3x + y)/7 &= 9 && "given" \
+  3x + y    &= 63 & "multiply by 7" \
+  3x        &= 63 - y && "subtract y" \
+  x         &= 21 - y/3 & "divide by 3" $
+// && skips a column alignment (left/right alternation)
+
+// Math font configuration
+#show math.equation: set text(font: "Fira Math")  // Set math font (requires Fira Math installed)
+$ sum_(i in NN) 1 + i $  // Display with new font
+
+// Escaping and special syntax
+$ frac(a\,, b) $  // Escape comma to display as literal
+$ f(x; y) $  // Literal semicolon (not for 2D arrays)
+$ lim_x = op("lim", limits: #true)_x $  // Custom operator with limits
     """
 
 
@@ -218,6 +255,14 @@ class ArticleEssence(ProposedAble, Display, PrepareVectorization):
     - Standard adoption potential
     Example:
     'Predicted 150+ citations via integration into MMEngine (Alibaba OpenMMLab)'"""
+
+    bibtex_cite_key: str
+    """Bibtex cite_key of the original article."""
+
+    def update_cite_key(self, new_cite_key: str) -> Self:
+        """Update the bibtex_cite_key of the article."""
+        self.bibtex_cite_key = new_cite_key
+        return self
 
     def _prepare_vectorization_inner(self) -> str:
         return self.model_dump_json()
