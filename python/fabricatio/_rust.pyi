@@ -122,3 +122,33 @@ class BibManager:
         Returns:
             List of all titles in the bibliography
         """
+
+    def get_author_by_key(self, key: str) -> Optional[List[str]]:
+        """Retrieve authors by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            List of authors if found, None otherwise
+        """
+
+    def get_year_by_key(self, key: str) -> Optional[int]:
+        """Retrieve the publication year by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Publication year if found, None otherwise
+        """
+
+    def get_abstract_by_key(self, key: str) -> Optional[str]:
+        """Retrieve the abstract by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Abstract if found, None otherwise
+        """
