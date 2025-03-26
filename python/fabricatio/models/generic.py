@@ -140,7 +140,8 @@ class PersistentAble(Base):
         logger.info(f"Persisted {self} to {p.as_posix()}")
         return self
 
-    def from_persistent(self, path: str | Path) -> Self:
+    @classmethod
+    def from_persistent(cls, path: str | Path) -> Self:
         """Load the object from a file.
 
         Args:
@@ -149,7 +150,7 @@ class PersistentAble(Base):
         Returns:
             Self: The current instance of the object.
         """
-        return self.model_validate_json(Path(path).read_text(encoding="utf-8"))
+        return cls.model_validate_json(Path(path).read_text(encoding="utf-8"))
 
 
 class ModelHash(Base):
