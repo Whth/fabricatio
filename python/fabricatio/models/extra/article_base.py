@@ -122,22 +122,28 @@ class ArticleMetaData(CensoredAble, Display):
     """Do not add any prefix or suffix to the title. should not contain special characters."""
 
 
-class ArticleRefPatch(ProposedUpdateAble, Display):
-    """Patch for article refs."""
+class Patch[T](ProposedUpdateAble, Display):
+    """Base class for patches."""
 
-    tweaked: List[ArticleRef]
-    """Tweaked refs"""
-
+    tweaked: List[T]
+    """Tweaked content list"""
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         self.tweaked.clear()
         self.tweaked.extend(other.tweaked)
         return self
 
+
     @classmethod
-    def default(cls) -> "ArticleRefPatch":
+    def default(cls) -> Self:
         """Defaults to empty list."""
         return cls(tweaked=[])
+
+
+class ArticleRefPatch(Patch[ArticleRef]):
+    """Patch for article refs."""
+
+
 
 
 class ArticleOutlineBase(
