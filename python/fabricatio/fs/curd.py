@@ -145,5 +145,9 @@ def gather_files(directory: str | Path | PathLike, extension: str) -> list[str]:
 
     Returns:
         list[str]: A list of file paths with the specified extension.
+
+    Example:
+        >>> gather_files('/path/to/directory', 'txt')
+        ['/path/to/directory/file1.txt', '/path/to/directory/file2.txt']
     """
     return [file.as_posix() for file in Path(directory).rglob(f"*.{extension}")]
