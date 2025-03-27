@@ -4,6 +4,7 @@ from asyncio import gather
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
+from fabricatio._rust import BibManager
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
@@ -40,11 +41,27 @@ class ExtractArticleEssence(Action):
 
         # trim the references
         contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
-        return await self.propose(
-            ArticleEssence,
-            contents,
-            system_message=f"# your personal briefing: \n{self.briefing}",
-        )
+        return await self.propose(ArticleEssence, contents, **self.prepend_sys_msg())
+
+
+class FixArticleEssence(Action):
+    """Fix the article essence based on the bibtex key."""
+
+    async def _execute(
+        self,
+        bib_mgr: BibManager,
+        article_essence: List[ArticleEssence],
+        **_,
+    ) -> None:
+        for a in article_essence:
+            if key := (bib_mgr.get_cite_key(a.title) or bib_mgr.get_cite_key_fuzzy(a.title)):
+                a.title = bib_mgr.get_title_by_key(key) or a.title
+                a.authors = bib_mgr.get_author_by_key(key) or a.authors
+                a.publication_year = bib_mgr.get_year_by_key(key) or a.publication_year
+                a.bibtex_cite_key = key
+                logger.info(f'Updated {a.title} with {key}')
+            else:
+                logger.warning(f"No key found for {a.title}")
 
 
 class GenerateArticleProposal(Action):
