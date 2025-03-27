@@ -14,6 +14,7 @@ class DumpFinalizedOutput(Action):
     """Dump the finalized output to a file."""
 
     output_key: str = "dump_path"
+    dump_path: Optional[str] = None
 
     async def _execute(
         self,
@@ -24,6 +25,7 @@ class DumpFinalizedOutput(Action):
     ) -> str:
         dump_path = Path(
             dump_path
+            or self.dump_path
             or ok(
                 await self.awhich_pathstr(
                     f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data."
@@ -39,6 +41,7 @@ class PersistentAll(Action):
     """Persist all the data to a file."""
 
     output_key: str = "persistent_count"
+    persist_dir: Optional[str] = None
 
     async def _execute(
         self,
@@ -48,6 +51,7 @@ class PersistentAll(Action):
     ) -> int:
         persist_dir = Path(
             persist_dir
+            or self.persist_dir
             or ok(
                 await self.awhich_pathstr(
                     f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will persist the data."
