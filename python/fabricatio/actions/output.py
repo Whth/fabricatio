@@ -1,7 +1,7 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Iterable, Optional, Type
+from typing import Iterable, List, Optional, Type
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -83,10 +83,15 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     output_key: str = "retrieved_obj"
     """Retrieve the object from the persistent file."""
     load_path: str
-    """The path of the persistent file."""
+    """The path of the persistent file or directory contains multiple file."""
     retrieve_cls: Type[T]
     """The class of the object to retrieve."""
 
-    async def _execute(self, /, **__) -> T:
+    async def _execute(self, /, **__) -> Optional[T | List[T]]:
         logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from persistent file: {self.load_path}")
+        if not (p := Path(self.load_path)).exists():
+            return None
+
+        if p.is_dir():
+            return [self.retrieve_cls.from_persistent(per) for per in p.glob("*")]
         return self.retrieve_cls.from_persistent(self.load_path)
