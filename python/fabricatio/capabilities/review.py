@@ -6,7 +6,7 @@ from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
-from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing, WithRef
+from fabricatio.models.generic import Base, Described, Display, PersistentAble, ProposedAble, WithBriefing, WithRef
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.utils import ask_edit
@@ -121,14 +121,14 @@ class ReviewResult[T](ProposedAble, Display, WithRef[T]):
         Returns:
             Self: The current instance with filtered problems and solutions.
         """
-        if isinstance(self._ref, str):
-            display = self._ref
-        elif isinstance(self._ref, WithBriefing):
-            display = self._ref.briefing
-        elif isinstance(self._ref, Display):
-            display = self._ref.display()
+        if isinstance(self.referenced, str):
+            display = self.referenced
+        elif isinstance(self.referenced, WithBriefing):
+            display = self.referenced.briefing
+        elif isinstance(self.referenced, Display):
+            display = self.referenced.display()
         else:
-            raise TypeError(f"Unsupported type for review: {type(self._ref)}")
+            raise TypeError(f"Unsupported type for review: {type(self.referenced)}")
         # Choose the problems to retain
         r_print(display)
         chosen_ones: List[ProblemSolutions] = await checkbox(
@@ -150,6 +150,22 @@ class ReviewResult[T](ProposedAble, Display, WithRef[T]):
             await to_exam.edit_solutions()
 
         return self
+
+
+class Rule(WithBriefing):
+    """Represents a rule or guideline for a specific topic."""
+    violation_examples: List[str]
+    """Examples of violations of the rule."""
+    compliance_examples: List[str]
+    """Examples of how to comply with the rule."""
+
+
+class RuleSet(ProposedAble, Display, PersistentAble, Described):
+    """Represents a collection of rules and guidelines for a particular topic."""
+    title: str
+    """The title of the rule set."""
+    rules: List[Rule]
+    """The rules and guidelines contained in the rule set."""
 
 
 class Review(Rating, Propose):
@@ -226,7 +242,7 @@ class Review(Rating, Propose):
         )
         if not res:
             raise ValueError("Failed to generate review result.")
-        return res.update_ref(input_text).update_topic(topic)
+        return res.updatereferenced(input_text).update_topic(topic)
 
     async def review_obj[M: (Display, WithBriefing)](
         self, obj: M, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
