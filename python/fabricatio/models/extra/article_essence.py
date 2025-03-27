@@ -2,7 +2,7 @@
 
 from typing import List, Self
 
-from fabricatio.models.generic import Display, PrepareVectorization, ProposedAble
+from fabricatio.models.generic import Display, PersistentAble, PrepareVectorization, ProposedAble
 from pydantic import BaseModel, Field
 
 
@@ -170,7 +170,7 @@ class Highlightings(BaseModel):
     """
 
 
-class ArticleEssence(ProposedAble, Display, PrepareVectorization):
+class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization):
     """ArticleEssence is a structured representation of the core elements of a scientific article,using its original language."""
 
     language: str
