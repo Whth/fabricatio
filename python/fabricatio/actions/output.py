@@ -1,7 +1,7 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Optional, Type
+from typing import Iterable, Optional, Type
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -60,11 +60,19 @@ class PersistentAll(Action):
         if persist_dir.is_file():
             logger.warning("Dump should be a directory, but it is a file. Skip dumping.")
             return count
-        persist_dir.mkdir(parents=True, exist_ok=True)
-        for v in cxt.values():
+
+        for k, v in cxt.items():
+            final_dir = persist_dir.joinpath(k)
+            final_dir.mkdir(parents=True, exist_ok=True)
             if isinstance(v, PersistentAble):
-                v.persist(persist_dir)
+                v.persist(final_dir)
                 count += 1
+            if isinstance(v, Iterable) and any(
+                persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
+            ):
+                for per in persistent_ables:
+                    per.persist(final_dir)
+                    count += 1
 
         return count
 
@@ -80,5 +88,5 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     """The class of the object to retrieve."""
 
     async def _execute(self, /, **__) -> T:
-        logger.debug(f'Retrieve `{self.retrieve_cls.__name__}` from persistent file: {self.load_path}')
+        logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from persistent file: {self.load_path}")
         return self.retrieve_cls.from_persistent(self.load_path)
