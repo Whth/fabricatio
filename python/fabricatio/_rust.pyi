@@ -152,3 +152,23 @@ class BibManager:
         Returns:
             Abstract if found, None otherwise
         """
+    def get_title_by_key(self, key: str) -> Optional[str]:
+        """Retrieve the title by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Title if found, None otherwise
+        """
+
+    def get_field_by_key(self, key: str, field: str)-> Optional[str]:
+        """Retrieve a specific field by citation key.
+
+        Args:
+            key: Citation key
+            field: Field name
+
+        Returns:
+            Field value if found, None otherwise
+        """

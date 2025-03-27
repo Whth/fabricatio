@@ -91,18 +91,23 @@ impl BibManager {
         }
     }
     
+    
+    
     fn get_year_by_key(&self, key: String)->Option<i32>{
-        if let Some(en) = self.source.get(key.as_str()){
-            Some(en.get("year").unwrap()
-                .to_biblatex_string(false).fix().parse().unwrap())
-        }else { 
-            None
-        }
+        self.get_field_by_key(key, "year".to_string()).map(|s|{s.parse().unwrap()})
     }
     
     fn get_abstract_by_key(&self, key: String)->Option<String>{
+        self.get_field_by_key(key, "abstract".to_string())
+    }
+    
+    fn get_title_by_key(&self, key: String)->Option<String>{
+        self.get_field_by_key(key, "title".to_string())
+    }
+    
+    fn get_field_by_key(&self, key: String, field: String)->Option<String>{
         if let Some(en) = self.source.get(key.as_str()){
-            Some(en.get("abstract").unwrap().to_biblatex_string(false).fix())
+            Some(en.get(field.as_str()).unwrap().to_biblatex_string(false).fix())
         }else { 
             None
         }
