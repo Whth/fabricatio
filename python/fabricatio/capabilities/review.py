@@ -6,7 +6,7 @@ from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
-from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing
+from fabricatio.models.generic import Base, Display, ProposedAble, WithBriefing, WithRef
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.utils import ask_edit
@@ -75,7 +75,7 @@ class ProblemSolutions(Base):
         return self
 
 
-class ReviewResult[T](ProposedAble, Display):
+class ReviewResult[T](ProposedAble, Display, WithRef[T]):
     """Represents the outcome of a review process with identified problems and solutions.
 
     This class maintains a structured collection of problems found during a review,
@@ -96,9 +96,6 @@ class ReviewResult[T](ProposedAble, Display):
     problem_solutions: List[ProblemSolutions]
     """Collection of problems identified during review along with their potential solutions."""
 
-    _ref: T
-    """Reference to the original object that was reviewed."""
-
     def update_topic(self, topic: str) -> Self:
         """Update the review topic.
 
@@ -110,26 +107,6 @@ class ReviewResult[T](ProposedAble, Display):
         """
         self.review_topic = topic
         return self
-
-    def update_ref[K](self, ref: K) -> "ReviewResult[K]":
-        """Update the reference to the reviewed object.
-
-        Args:
-            ref (K): The new reference object to be associated with this review.
-
-        Returns:
-            ReviewResult[K]: The current instance with updated reference type.
-        """
-        self._ref = ref  # pyright: ignore [reportAttributeAccessIssue]
-        return cast("ReviewResult[K]", self)
-
-    def deref(self) -> T:
-        """Retrieve the referenced object that was reviewed.
-
-        Returns:
-            T: The original object that was reviewed.
-        """
-        return self._ref
 
     async def supervisor_check(self, check_solutions: bool = True) -> Self:
         """Perform an interactive review session to filter problems and solutions.
@@ -272,10 +249,10 @@ class Review(Rating, Propose):
                 with a reference to the original object.
         """
         if isinstance(obj, Display):
-            text = obj.display()
+            text_to_review = obj.display()
         elif isinstance(obj, WithBriefing):
-            text = obj.briefing
+            text_to_review = obj.briefing
         else:
             raise TypeError(f"Unsupported type for review: {type(obj)}")
 
-        return (await self.review_string(text, **kwargs)).update_ref(obj)
+        return (await self.review_string(text_to_review, **kwargs)).derive(obj)

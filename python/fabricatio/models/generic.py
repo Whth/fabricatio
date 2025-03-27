@@ -98,13 +98,27 @@ class WithRef[T](Base):
             self._reference, f"`{self.__class__.__name__}`' s `_reference` field is None. Have you called `update_ref`?"
         )
 
-    def update_ref[S: "WithRef"](self: S, reference: T | S) -> S:  # noqa: PYI019
+    @overload
+    def update_ref(self, reference: T) -> Self: ...
+
+    @overload
+    def update_ref(self, reference: "WithRef[T]") -> Self: ...
+
+    @overload
+    def update_ref(self, reference: None = None) -> Self: ...
+    def update_ref(self, reference: Union[T, "WithRef[T]", None] = None) -> Self:
         """Update the reference of the object."""
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
         else:
-            self._reference = reference
+            self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
+
+    def derive[K](self, reference: K) -> Self:
+        """Derive a new object from the current object."""
+        new=self.model_copy()
+        new._reference=reference
+        return new
 
 
 class PersistentAble(Base):
