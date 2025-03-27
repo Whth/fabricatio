@@ -99,14 +99,14 @@ class WithRef[T](Base):
         )
 
     @overload
-    def update_ref(self, reference: T) -> Self: ...
+    def update_ref[S](self: S, reference: T) -> S: ...
 
     @overload
-    def update_ref(self, reference: "WithRef[T]") -> Self: ...
+    def update_ref[S](self: S, reference: "WithRef[T]") -> S: ...
 
     @overload
-    def update_ref(self, reference: None = None) -> Self: ...
-    def update_ref(self, reference: Union[T, "WithRef[T]", None] = None) -> Self:
+    def update_ref[S](self: S, reference: None = None) -> S: ...
+    def update_ref[S](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
         """Update the reference of the object."""
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
@@ -114,10 +114,10 @@ class WithRef[T](Base):
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
 
-    def derive[K](self, reference: K) -> Self:
+    def derive[K, S](self: S, reference: K) -> S:  # noqa: PYI019
         """Derive a new object from the current object."""
-        new=self.model_copy()
-        new._reference=reference
+        new = self.model_copy()
+        new._reference = reference
         return new
 
 
@@ -143,7 +143,7 @@ class PersistentAble(Base):
         file_hash = blake3_hash(out.encode())[:6]
 
         # Construct the file name with timestamp and hash
-        file_name = f"{self.__class__.__name__}_{timestamp}_{file_hash}.json"
+        file_name = f"{self.__class__.__name__}_{file_hash}_{timestamp}.json"
 
         if p.is_dir():
             p.joinpath(file_name).write_text(out, encoding="utf-8")
