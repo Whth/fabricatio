@@ -59,7 +59,7 @@ class FixArticleEssence(Action):
                 a.authors = bib_mgr.get_author_by_key(key) or a.authors
                 a.publication_year = bib_mgr.get_year_by_key(key) or a.publication_year
                 a.bibtex_cite_key = key
-                logger.info(f'Updated {a.title} with {key}')
+                logger.info(f"Updated {a.title} with {key}")
             else:
                 logger.warning(f"No key found for {a.title}")
 
@@ -205,40 +205,6 @@ class FixIllegalReferences(Action):
         return article_outline.update_ref(article_outline)
 
 
-class TweakOutlineBackwardRef(Action, AdvancedJudge):
-    """Tweak the backward references in the article outline.
-
-    Ensures that the prerequisites of the current chapter are correctly referenced in the `depend_on` field.
-    """
-
-    output_key: str = "article_outline_bw_ref_checked"
-
-    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
-        tweak_depend_on_manual = ok(
-            await self.draft_rating_manual(
-                topic := "Ensure prerequisites are correctly referenced in the `depend_on` field."
-            ),
-            "Could not generate the rating manual.",
-        )
-
-        for a in article_outline.iter_dfs():
-            if await self.evidently_judge(
-                f"{article_outline.as_prompt()}\n\n{a.display()}\n"
-                f"Does the `{a.__class__.__name__}`'s `depend_on` field need to be extended or tweaked?"
-            ):
-                patch = ArticleRefPatch.default()
-                patch.tweaked = a.depend_on
-
-                await self.correct_obj_inplace(
-                    patch,
-                    topic=topic,
-                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `depend_on` field needs to be extended or tweaked",
-                    rating_manual=tweak_depend_on_manual,
-                    supervisor_check=supervisor_check,
-                )
-
-        return article_outline
-
 
 class TweakOutlineForwardRef(Action, AdvancedJudge):
     """Tweak the forward references in the article outline.
@@ -249,30 +215,51 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
     output_key: str = "article_outline_fw_ref_checked"
 
     async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
-        tweak_support_to_manual = ok(
-            await self.draft_rating_manual(
-                topic := "Ensure conclusions support the analysis of subsequent chapters, sections or subsections."
-            ),
-            "Could not generate the rating manual.",
+        return await self._inner(
+            article_outline,
+            supervisor_check,
+            topic="Ensure conclusions support the analysis of subsequent chapters, sections or subsections.",
+            field_name="support_to",
         )
 
+    async def _inner(self, article_outline: ArticleOutline, supervisor_check: bool, topic: str, field_name: str)-> ArticleOutline:
+        tweak_support_to_manual = ok(
+            await self.draft_rating_manual(topic),
+            "Could not generate the rating manual.",
+        )
         for a in article_outline.iter_dfs():
             if await self.evidently_judge(
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
-                f"Does the `{a.__class__.__name__}`'s `support_to` field need to be extended or tweaked?"
+                f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
             ):
                 patch = ArticleRefPatch.default()
-                patch.tweaked = a.support_to
+                patch.tweaked = getattr(a, field_name)
 
                 await self.correct_obj_inplace(
                     patch,
                     topic=topic,
-                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `support_to` field needs to be extended or tweaked",
+                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `{field_name}` field needs to be extended or tweaked",
                     rating_manual=tweak_support_to_manual,
                     supervisor_check=supervisor_check,
                 )
-
         return article_outline
+
+
+class TweakOutlineBackwardRef(TweakOutlineForwardRef):
+    """Tweak the backward references in the article outline.
+
+    Ensures that the prerequisites of the current chapter are correctly referenced in the `depend_on` field.
+    """
+
+    output_key: str = "article_outline_bw_ref_checked"
+
+    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
+        return await self._inner(
+            article_outline,
+            supervisor_check,
+            topic="Ensure the dependencies of the current chapter are neither abused nor missing.",
+            field_name="depend_on",
+        )
 
 
 class GenerateArticle(Action):
