@@ -7,7 +7,6 @@ from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.models.utils import override_kwargs
@@ -16,7 +15,7 @@ from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt
 
 
-class Rating(WithBriefing, LLMUsage):
+class Rating(LLMUsage):
     """A class that provides functionality to rate tasks based on a rating manual and score range.
 
     References:
@@ -149,9 +148,7 @@ class Rating(WithBriefing, LLMUsage):
                 return json_data
             return None
 
-        criteria = criteria or await self.draft_rating_criteria(
-            topic, **self.prepend_sys_msg(override_kwargs(dict(kwargs), default=None))
-        )
+        criteria = criteria or await self.draft_rating_criteria(topic, **override_kwargs(dict(kwargs), default=None))
 
         if criteria is None:
             logger.error(f"Failed to draft rating criteria for topic {topic}")
@@ -168,7 +165,7 @@ class Rating(WithBriefing, LLMUsage):
                 )
             ),
             validator=_validator,
-            **self.prepend_sys_msg(kwargs),
+            **kwargs,
         )
 
     async def draft_rating_criteria(
@@ -200,7 +197,7 @@ class Rating(WithBriefing, LLMUsage):
             validator=lambda resp: set(out)
             if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None
             else out,
-            **self.prepend_sys_msg(kwargs),
+            **kwargs,
         )
 
     async def draft_rating_criteria_from_examples(
@@ -253,7 +250,7 @@ class Rating(WithBriefing, LLMUsage):
                 validator=lambda resp: JsonCapture.validate_with(
                     resp, target_type=list, elements_type=str, length=reasons_count
                 ),
-                **self.prepend_sys_msg(kwargs),
+                **kwargs,
             )
         )
         # extract certain mount of criteria from reasons according to their importance and frequency
@@ -310,7 +307,7 @@ class Rating(WithBriefing, LLMUsage):
                 for pair in windows
             ],
             validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
-            **self.prepend_sys_msg(kwargs),
+            **kwargs,
         )
         weights = [1]
         for rw in relative_weights:

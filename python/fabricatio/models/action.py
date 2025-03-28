@@ -18,7 +18,7 @@ from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(HandleTask, ProposeTask, Correct):
+class Action(WithBriefing, HandleTask, ProposeTask, Correct):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
@@ -104,7 +104,9 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     _instances: Tuple[Action, ...] = PrivateAttr(default_factory=tuple)
     """Instantiated action objects to be executed in this workflow."""
 
-    steps: Tuple[Union[Type[Action], Action], ...] = Field(frozen=True,)
+    steps: Tuple[Union[Type[Action], Action], ...] = Field(
+        frozen=True,
+    )
     """The sequence of actions to be executed, can be action classes or instances."""
 
     task_input_key: str = Field(default="task_input")

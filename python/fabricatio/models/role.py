@@ -8,11 +8,12 @@ from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.events import Event
+from fabricatio.models.generic import WithBriefing
 from fabricatio.models.tool import ToolBox
 from pydantic import Field
 
 
-class Role(ProposeTask, HandleTask, Correct):
+class Role(WithBriefing, ProposeTask, HandleTask, Correct):
     """Class that represents a role with a registry of events and workflows.
 
     A Role serves as a container for workflows, managing their registration to events
