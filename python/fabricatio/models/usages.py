@@ -339,7 +339,7 @@ class LLMUsage(ScopedConfig):
 
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
-    async def aliststr(
+    async def alist_str(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
@@ -361,6 +361,7 @@ class LLMUsage(ScopedConfig):
             **kwargs,
         )
 
+
     async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
 
@@ -371,7 +372,7 @@ class LLMUsage(ScopedConfig):
         Returns:
             List[str]: The validated response as a list of strings.
         """
-        return await self.aliststr(
+        return await self.alist_str(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.pathstr_template,
                 {"requirement": requirement},

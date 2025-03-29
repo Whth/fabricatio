@@ -377,7 +377,7 @@ class RAG(EmbeddingUsage):
         Returns:
             List[str]: A list of refined questions.
         """
-        return await self.aliststr(
+        return await self.alist_str(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.refined_query_template,
                 {"question": [question] if isinstance(question, str) else question},

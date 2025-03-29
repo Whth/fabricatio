@@ -4,8 +4,8 @@ from typing import List, Literal, Self
 
 from fabricatio.models.generic import Display, ProposedAble, ProposedUpdateAble, WithBriefing
 from fabricatio.utils import ask_edit
-from questionary import text
-from questionary.prompts.common import print_formatted_text as q_print
+from questionary import Choice, checkbox, text
+from rich import print as r_print
 
 
 class Problem(ProposedAble, WithBriefing, Display):
@@ -73,7 +73,48 @@ class ProblemSolutions(ProposedUpdateAble):
 
     async def edit_solutions(self) -> Self:
         """Interactively edit the list of potential solutions."""
-        q_print(self.problem.display(), style="bold cyan")
+        r_print(self.problem.display())
         string_seq = await ask_edit([s.display() for s in self.solutions])
         self.solutions = [Solution.model_validate_strings(s) for s in string_seq]
+        return self
+
+
+class Improvement(ProposedAble, Display):
+    """A class representing an improvement suggestion."""
+
+    problem_solutions: List[ProblemSolutions]
+    """Collection of problems identified during review along with their potential solutions."""
+
+    async def supervisor_check(self, check_solutions: bool = True) -> Self:
+        """Perform an interactive review session to filter problems and solutions.
+
+        Presents an interactive prompt allowing a supervisor to select which
+        problems (and optionally solutions) should be retained in the final review.
+
+        Args:
+            check_solutions (bool, optional): When True, also prompts for filtering
+                individual solutions for each retained problem. Defaults to False.
+
+        Returns:
+            Self: The current instance with filtered problems and solutions.
+        """
+        # Choose the problems to retain
+        chosen_ones: List[ProblemSolutions] = await checkbox(
+            "Please choose the problems you want to retain.(Default: retain all)",
+            choices=[Choice(p.problem.name, p, checked=True) for p in self.problem_solutions],
+        ).ask_async()
+        self.problem_solutions = [await p.edit_problem() for p in chosen_ones]
+        if not check_solutions:
+            return self
+
+        # Choose the solutions to retain
+        for to_exam in self.problem_solutions:
+            to_exam.update_solutions(
+                await checkbox(
+                    f"Please choose the solutions you want to retain.(Default: retain all)\n\t`{to_exam.problem}`",
+                    choices=[Choice(s.name, s, checked=True) for s in to_exam.solutions],
+                ).ask_async()
+            )
+            await to_exam.edit_solutions()
+
         return self

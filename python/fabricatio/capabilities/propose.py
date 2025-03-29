@@ -62,3 +62,4 @@ class Propose(LLMUsage):
             validator=cls.instantiate_from_string,
             **kwargs,
         )
+

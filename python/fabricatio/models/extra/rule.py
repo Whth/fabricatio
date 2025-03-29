@@ -5,7 +5,7 @@ from typing import List
 from fabricatio.models.generic import Described, Display, PersistentAble, ProposedAble, WithBriefing
 
 
-class Rule(WithBriefing):
+class Rule(WithBriefing,ProposedAble):
     """Represents a rule or guideline for a specific topic."""
 
     violation_examples: List[str]

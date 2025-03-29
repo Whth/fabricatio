@@ -1,15 +1,16 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
-from typing import Dict, Optional, Set, Unpack, cast
+from typing import Dict, Optional, Set, Unpack
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
-from fabricatio.models.extra.review import ReviewResult
+from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.generic import Display, WithBriefing
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
+from fabricatio.utils import ok
 
 
 class Review(Rating, Propose):
@@ -22,7 +23,7 @@ class Review(Rating, Propose):
     appropriate topic and criteria.
     """
 
-    async def review_task[T](self, task: Task[T], **kwargs: Unpack[ReviewKwargs]) -> ReviewResult[Task[T]]:
+    async def review_task[T](self, task: Task[T], **kwargs: Unpack[ReviewKwargs]) -> Optional[Improvement]:
         """Review a task using specified review criteria.
 
         This method analyzes a task object to identify problems and propose solutions
@@ -34,10 +35,10 @@ class Review(Rating, Propose):
                 including topic and optional criteria.
 
         Returns:
-            ReviewResult[Task[T]]: A review result containing identified problems and proposed solutions,
+            Improvement[Task[T]]: A review result containing identified problems and proposed solutions,
                 with a reference to the original task.
         """
-        return cast("ReviewResult[Task[T]]", await self.review_obj(task, **kwargs))
+        return await self.review_obj(task, **kwargs)
 
     async def review_string(
         self,
@@ -45,8 +46,8 @@ class Review(Rating, Propose):
         topic: str,
         criteria: Optional[Set[str]] = None,
         rating_manual: Optional[Dict[str, str]] = None,
-        **kwargs: Unpack[ValidateKwargs[ReviewResult[str]]],
-    ) -> ReviewResult[str]:
+        **kwargs: Unpack[ValidateKwargs[Improvement]],
+    ) -> Optional[Improvement]:
         """Review a string based on specified topic and criteria.
 
         This method analyzes a text string to identify problems and propose solutions
@@ -61,7 +62,7 @@ class Review(Rating, Propose):
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            ReviewResult[str]: A review result containing identified problems and proposed solutions,
+            Improvement: A review result containing identified problems and proposed solutions,
                 with a reference to the original text.
         """
         default = None
@@ -69,28 +70,21 @@ class Review(Rating, Propose):
             # this `default` is the default for the `propose` method
             default = kwargs.pop("default")
 
-        criteria = criteria or (await self.draft_rating_criteria(topic, **kwargs))
-        if not criteria:
-            raise ValueError("No criteria provided for review.")
+        criteria = ok(criteria or (await self.draft_rating_criteria(topic, **kwargs))," No criteria could be use.")
         manual = rating_manual or await self.draft_rating_manual(topic, criteria, **kwargs)
 
         if default is not None:
             kwargs["default"] = default
-        res = await self.propose(
-            ReviewResult,
+        return await self.propose(
+            Improvement,
             TEMPLATE_MANAGER.render_template(
                 configs.templates.review_string_template,
                 {"text": input_text, "topic": topic, "criteria_manual": manual},
             ),
             **kwargs,
         )
-        if not res:
-            raise ValueError("Failed to generate review result.")
-        return res.update_ref(input_text).update_topic(topic)
 
-    async def review_obj[M: (Display, WithBriefing)](
-        self, obj: M, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
-    ) -> ReviewResult[M]:
+    async def review_obj[M: (Display, WithBriefing)](self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]) -> Optional[Improvement]:
         """Review an object that implements Display or WithBriefing interface.
 
         This method extracts displayable text from the object and performs a review
@@ -105,7 +99,7 @@ class Review(Rating, Propose):
             TypeError: If the object does not implement Display or WithBriefing.
 
         Returns:
-            ReviewResult[M]: A review result containing identified problems and proposed solutions,
+            Improvement: A review result containing identified problems and proposed solutions,
                 with a reference to the original object.
         """
         if isinstance(obj, Display):
@@ -115,4 +109,4 @@ class Review(Rating, Propose):
         else:
             raise TypeError(f"Unsupported type for review: {type(obj)}")
 
-        return (await self.review_string(text_to_review, **kwargs)).derive(obj)
+        return await self.review_string(text_to_review, **kwargs)

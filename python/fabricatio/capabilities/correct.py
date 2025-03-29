@@ -10,7 +10,7 @@ from typing import Optional, Unpack, cast
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.review import Review
 from fabricatio.config import configs
-from fabricatio.models.extra.review import ReviewResult
+from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.generic import CensoredAble, Display, ProposedAble, ProposedUpdateAble, WithBriefing
 from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
@@ -32,7 +32,7 @@ class Correct(Review):
         obj: M,
         reference: str = "",
         supervisor_check: bool = True,
-        **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]],
+        **kwargs: Unpack[ReviewKwargs[Improvement]],
     ) -> Optional[M]:
         """Review and correct an object based on defined criteria and templates.
 
@@ -72,7 +72,7 @@ class Correct(Review):
         )
 
     async def correct_string(
-        self, input_text: str, supervisor_check: bool = True, **kwargs: Unpack[ReviewKwargs[ReviewResult[str]]]
+        self, input_text: str, supervisor_check: bool = True, **kwargs: Unpack[ReviewKwargs[Improvement]]
     ) -> Optional[str]:
         """Review and correct a string based on defined criteria and templates.
 
@@ -101,7 +101,7 @@ class Correct(Review):
         )
 
     async def correct_task[T](
-        self, task: Task[T], **kwargs: Unpack[CorrectKwargs[ReviewResult[str]]]
+        self, task: Task[T], **kwargs: Unpack[CorrectKwargs[Improvement]]
     ) -> Optional[Task[T]]:
         """Review and correct a task object based on defined criteria.
 
@@ -118,7 +118,7 @@ class Correct(Review):
         return await self.correct_obj(task, **kwargs)
 
     async def censor_obj[M: CensoredAble](
-        self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[ReviewResult[str]]]
+        self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[Improvement]]
     ) -> M:
         """Censor and correct an object based on defined criteria and templates.
 
@@ -148,7 +148,7 @@ class Correct(Review):
         return modified_obj or last_modified_obj
 
     async def correct_obj_inplace[M: ProposedUpdateAble](
-        self, obj: M, **kwargs: Unpack[CorrectKwargs[ReviewResult[str]]]
+        self, obj: M, **kwargs: Unpack[CorrectKwargs[Improvement]]
     ) -> Optional[M]:
         """Correct an object in place based on defined criteria and templates.
 

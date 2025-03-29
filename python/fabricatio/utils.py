@@ -1,11 +1,8 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from questionary import text
-
-if TYPE_CHECKING:
-    from fabricatio.models.generic import WithBriefing
 
 
 async def ask_edit(
@@ -53,23 +50,3 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     if val is None:
         raise ValueError(msg)
     return val
-
-
-def prepend_sys_msg[D: (Dict[str, Any], str)](with_briefing: "WithBriefing", system_msg_like: D = "") -> Dict[str, Any]:
-    """Prepend the system message with the briefing.
-
-    Args:
-        with_briefing (WithBriefing): The object with the briefing.
-        system_msg_like (str | dict): The system message or a dictionary containing the system message.
-
-    Returns:
-        dict: The system message with the briefing prepended.
-    """
-    match system_msg_like:
-        case dict(d):
-            d["system_message"] = f"# your personal briefing: \n{with_briefing.briefing}\n{d.get('system_message', '')}"
-            return d
-        case str(s):
-            return {"system_message": f"# your personal briefing: \n{with_briefing.briefing}\n{s}"}
-        case _:
-            raise TypeError(f"{system_msg_like} is not a dict or str")
