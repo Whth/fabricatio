@@ -1,78 +1,11 @@
-"""A class that represents a review result, including identified problems and solutions."""
+"""A class that represents the result of a review process."""
 
 from typing import List, Self
 
-from fabricatio.models.generic import Display, ProposedAble, ProposedUpdateAble, WithBriefing, WithRef
-from fabricatio.models.utils import ask_edit
-from questionary import Choice, checkbox, text
-from questionary.prompts.common import print_formatted_text as q_print
+from fabricatio.models.extra.problem import ProblemSolutions
+from fabricatio.models.generic import Display, ProposedAble, WithBriefing, WithRef
+from questionary import Choice, checkbox
 from rich import print as r_print
-
-
-class ProblemSolutions(ProposedUpdateAble):
-    """Represents a problem-solution pair identified during a review process.
-
-    This class encapsulates a single problem with its corresponding potential solutions,
-    providing a structured way to manage review findings.
-
-    Attributes:
-        problem (str): The problem statement identified during review.
-        solutions (List[str]): A collection of potential solutions to address the problem.
-    """
-
-    problem: str
-    """The problem identified in the review."""
-    solutions: List[str]
-    """A collection of potential solutions to address the problem."""
-
-    def update_from_inner(self, other: Self) -> Self:
-        """Update the current instance with the attributes of another instance."""
-        self.solutions.clear()
-        self.solutions.extend(other.solutions)
-        return self
-
-    def update_problem(self, problem: str) -> Self:
-        """Update the problem description.
-
-        Args:
-            problem (str): The new problem description to replace the current one.
-
-        Returns:
-            Self: The current instance with updated problem description.
-        """
-        self.problem = problem
-        return self
-
-    def update_solutions(self, solutions: List[str]) -> Self:
-        """Update the list of potential solutions.
-
-        Args:
-            solutions (List[str]): The new collection of solutions to replace the current ones.
-
-        Returns:
-            Self: The current instance with updated solutions.
-        """
-        self.solutions = solutions
-        return self
-
-    async def edit_problem(self) -> Self:
-        """Interactively edit the problem description using a prompt.
-
-        Returns:
-            Self: The current instance with updated problem description.
-        """
-        self.problem = await text("Please edit the problem below:", default=self.problem).ask_async()
-        return self
-
-    async def edit_solutions(self) -> Self:
-        """Interactively edit the list of potential solutions using a prompt.
-
-        Returns:
-            Self: The current instance with updated solutions.
-        """
-        q_print(self.problem, style="bold cyan")
-        self.solutions = await ask_edit(self.solutions)
-        return self
 
 
 class ReviewResult[T](ProposedAble, Display, WithRef[T]):
@@ -83,7 +16,7 @@ class ReviewResult[T](ProposedAble, Display, WithRef[T]):
 
     Attributes:
         review_topic (str): The subject or focus area of the review.
-        problem_solutions (List[ProblemSolutions]): Collection of problems identified
+        problem_solutions (List[fabricatio.models.extra.problem.ProblemSolutions]): Collection of problems identified
             during review along with their potential solutions.
 
     Type Parameters:
@@ -133,7 +66,7 @@ class ReviewResult[T](ProposedAble, Display, WithRef[T]):
         r_print(display)
         chosen_ones: List[ProblemSolutions] = await checkbox(
             f"Please choose the problems you want to retain.(Default: retain all)\n\t`{self.review_topic}`",
-            choices=[Choice(p.problem, p, checked=True) for p in self.problem_solutions],
+            choices=[Choice(p.problem.name, p, checked=True) for p in self.problem_solutions],
         ).ask_async()
         self.problem_solutions = [await p.edit_problem() for p in chosen_ones]
         if not check_solutions:
@@ -144,7 +77,7 @@ class ReviewResult[T](ProposedAble, Display, WithRef[T]):
             to_exam.update_solutions(
                 await checkbox(
                     f"Please choose the solutions you want to retain.(Default: retain all)\n\t`{to_exam.problem}`",
-                    choices=[Choice(s, s, checked=True) for s in to_exam.solutions],
+                    choices=[Choice(s.name, s, checked=True) for s in to_exam.solutions],
                 ).ask_async()
             )
             await to_exam.edit_solutions()
