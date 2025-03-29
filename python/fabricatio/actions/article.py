@@ -42,7 +42,14 @@ class ExtractArticleEssence(Action):
         # trim the references
         contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
 
-        return [a for a in await self.propose(ArticleEssence, contents) if a is not None]
+        out = []
+        for ess, file in zip(await self.propose(ArticleEssence, contents), task_input.dependencies, strict=True):
+            if ess is None:
+                logger.warning(f"Could not extract article essence from {file}")
+            else:
+                out.append(ess)
+
+        return out
 
 
 class FixArticleEssence(Action):

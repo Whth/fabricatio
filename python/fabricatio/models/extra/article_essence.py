@@ -3,218 +3,149 @@
 from typing import List, Self
 
 from fabricatio.models.generic import Display, PersistentAble, PrepareVectorization, ProposedAble
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Equation(BaseModel):
-    """Mathematical formalism specification for research contributions.
-
-    Encodes equations with dual representation: semantic meaning and typeset-ready notation.
-    """
+    """Mathematical formalism specification for research contributions."""
 
     description: str
-    """Equation significance structured in three elements:
-    1. Physical/conceptual meaning of the equation.
-    2. Role in technical workflow (e.g., derivation, optimization, or analysis).
-    3. Relationship to the paper's core contribution (e.g., theoretical foundation, empirical validation).
-    Example: "Defines constrained search space dimensionality reduction. Used in architecture optimization phase (Section 3.2). Enables 40% parameter reduction."
+    """Structured significance including:
+    1. Conceptual meaning
+    2. Technical workflow role
+    3. Contribution relationship
     """
 
     latex_code: str
-    """Equation typeset-ready notation."""
+    """Typeset-ready notation."""
+
 
 class Figure(BaseModel):
-    """Visual component specification for technical communication.
-
-    Combines graphical assets with structured academic captioning.Extracted from the article provided
-    """
+    """Visual component with academic captioning."""
 
     description: str
-    """Figure interpretation guide containing:
-    1. Key visual elements mapping (e.g., axes, legends, annotations).
-    2. Data representation methodology (e.g., visualization type, statistical measures).
-    3. Connection to research findings (e.g., supports hypothesis, demonstrates performance).
-    Example: "Architecture search space topology (left) vs. convergence curves (right). Demonstrates NAS efficiency gains through constrained search."
+    """Interpretation guide covering:
+    1. Visual element mapping
+    2. Data representation method
+    3. Research connection
     """
 
     figure_caption: str
-    """Complete caption following Nature-style guidelines:
-    1. Brief overview statement (首句总结).
-    2. Technical detail layer (e.g., data sources, experimental conditions).
-    3. Result implication (e.g., key insights, implications for future work).
-    Example: "Figure 3: Differentiable NAS framework. (a) Search space topology with constrained dimensions. (b) Training convergence across language pairs. Dashed lines indicate baseline methods."
+    """Nature-style caption containing:
+    1. Overview statement
+    2. Technical details
+    3. Result implications
     """
 
     figure_serial_number: int
-    """The Image serial number extracted from the Markdown article provided, the path usually in the form of `![](images/1.jpg)`, in this case the serial number is `1`"""
+    """Image serial number extracted from Markdown path"""
 
 
 class Algorithm(BaseModel):
-    """Algorithm specification for research contributions."""
+    """Research algorithm specification."""
 
     title: str
-    """Algorithm title with technical focus descriptor (e.g., 'Gradient Descent Optimization').
-
-    Tip: Do not attempt to translate the original element titles when generating JSON.
-    """
+    """Technical title descriptor."""
 
     description: str
-    """Algorithm description with technical focus descriptor:
-    - Includes input/output specifications.
-    - Describes key steps and their purpose.
-    - Explains its role in the research workflow.
-    Example: "Proposed algorithm for neural architecture search. Inputs include search space constraints and training data. Outputs optimized architecture."
+    """Description including:
+    - Input/output specs
+    - Key steps
+    - Workflow role
     """
 
 
 class Table(BaseModel):
-    """Table specification for research contributions."""
+    """Research table specification."""
 
     title: str
-    """Table title with technical focus descriptor (e.g., 'Comparison of Model Performance Metrics').
-
-    Tip: Do not attempt to translate the original element titles when generating JSON.
-    """
+    """Technical title descriptor."""
 
     description: str
-    """Table description with technical focus descriptor:
-    - Includes data source and structure.
-    - Explains key columns/rows and their significance.
-    - Connects to research findings or hypotheses.
-    Example: "Performance metrics for different architectures. Columns represent accuracy, F1-score, and inference time. Highlights efficiency gains of proposed method."
+    """Description covering:
+    - Data source/structure
+    - Column/row significance
+    - Research connections
     """
 
 
 class Highlightings(BaseModel):
-    """Technical showcase aggregator for research artifacts.
-
-    Curates core scientific components with machine-parseable annotations.
-    """
+    """Technical component aggregator."""
 
     highlighted_equations: List[Equation]
-    """3-5 pivotal equations representing theoretical contributions:
-    - Each equation must be wrapped in $$ for display math.
-    - Contain at least one novel operator/symbol.
-    - Be referenced in Methods/Results sections.
-    Example: Equation describing proposed loss function.
+    """3-5 pivotal equations with:
+    - Display math formatting
+    - Novel operators
+    - Section references
     """
 
     highlighted_algorithms: List[Algorithm]
-    """1-2 key algorithms demonstrating methodological contributions:
-    - Include pseudocode or step-by-step descriptions.
-    - Highlight innovation in computational approach.
-    Example: Algorithm for constrained search space exploration.
-
-    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """1-2 key algorithms showing:
+    - Pseudocode/steps
+    - Computational innovations
     """
 
     highlighted_figures: List[Figure]
-    """4-6 key figures demonstrating:
-    1. Framework overview (1 required).
-    2. Quantitative results (2-3 required).
-    3. Ablation studies (1 optional).
-    Each must appear in Results/Discussion chapters.
-    Example: Figure showing architecture topology and convergence curves.
+    """4-6 key figures requiring:
+    1. Framework overview (required)
+    2. Quantitative results (2-3 required)
+    3. Ablation studies (optional)
     """
 
     highlighted_tables: List[Table]
-    """2-3 key tables summarizing:
-    - Comparative analysis of methods.
-    - Empirical results supporting claims.
-    Example: Table comparing model performance across datasets.
-
-    Tip: Do not attempt to translate the original element titles when generating JSON.
+    """2-3 tables summarizing:
+    - Method comparisons
+    - Empirical results
     """
 
 
 class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization):
-    """ArticleEssence is a structured representation of the core elements of a scientific article,using its original language."""
+    """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
-    """Language of the original article, note that you should not attempt to translate the original language when generating JSON."""
+    """Language of the original article."""
 
-    title: str = Field(...)
-    """Exact title of the original article without any modification.
-    Must be preserved precisely from the source material without:
-    - Translation
-    - Paraphrasing
-    - Adding/removing words
-    - Altering style or formatting
-    """
+    title: str
+    """Exact title of the original article."""
 
     authors: List[str]
-    """Original author full names exactly as they appear in the source document. No translation or paraphrasing.
-    Extract complete list without any modifications or formatting changes."""
+    """Original author full names as they appear in the source document."""
 
     keywords: List[str]
-    """Original keywords exactly as they appear in the source document. No translation or paraphrasing.
-    Extract the complete set without modifying format or terminology."""
+    """Original keywords as they appear in the source document."""
 
     publication_year: int
-    """Publication timestamp in ISO 8601 (YYYY format)."""
+    """Publication year in ISO 8601 (YYYY format)."""
 
     highlightings: Highlightings
-    """Technical highlight reel containing:
-    - Core equations (Theory)
-    - Key algorithms (Implementation)
-    - Critical figures (Results)
-    - Benchmark tables (Evaluation)"""
+    """Technical highlights including equations, algorithms, figures, and tables."""
 
     domain: List[str]
     """Domain tags for research focus."""
 
-    abstract: str = Field(...)
-    """Abstract text with original language."""
+    abstract: str
+    """Abstract text in the original language."""
 
     core_contributions: List[str]
-    """3-5 technical contributions using CRediT taxonomy verbs.
-    Each item starts with action verb.
-    Example:
-    - 'Developed constrained NAS framework'
-    - 'Established cross-lingual transfer metrics'"""
+    """Technical contributions using CRediT taxonomy verbs."""
 
     technical_novelty: List[str]
-
-    """Patent-style claims with technical specificity.
-    Format: 'A [system/method] comprising [novel components]...'
-    Example:
-    'A neural architecture search system comprising:
-     a differentiable constrained search space;
-     multi-lingual transferability predictors...'"""
+    """Patent-style claims with technical specificity."""
 
     research_problems: List[str]
-    """Problem statements as how/why questions.
-    Example:
-    - 'How to reduce NAS computational overhead while maintaining search diversity?'
-    - 'Why do existing architectures fail in low-resource cross-lingual transfer?'"""
+    """Problem statements as how/why questions."""
 
     limitations: List[str]
-    """Technical limitations analysis containing:
-    1. Constraint source (data/method/theory)
-    2. Impact quantification
-    3. Mitigation pathway
-    Example:
-    'Methodology constraint: Single-objective optimization (affects 5% edge cases),
-    mitigated through future multi-task extension'"""
+    """Technical limitations analysis."""
 
     future_work: List[str]
-    """Research roadmap items with 3 horizons:
-    1. Immediate extensions (1 year)
-    2. Mid-term directions (2-3 years)
-    3. Long-term vision (5+ years)
-    Example:
-    'Short-term: Adapt framework for vision transformers (ongoing with CVPR submission)'"""
+    """Research roadmap items with 3 horizons: immediate, mid-term, and long-term."""
 
     impact_analysis: List[str]
-    """Bibliometric impact projections:
-    - Expected citation counts (next 3 years)
-    - Target application domains
-    - Standard adoption potential
-    Example:
-    'Predicted 150+ citations via integration into MMEngine (Alibaba OpenMMLab)'"""
+    """Impact analysis of the research."""
 
     bibtex_cite_key: str
-    """Bibtex cite_key of the original article."""
+    """Bibtex cite key of the original article."""
 
     def update_cite_key(self, new_cite_key: str) -> Self:
         """Update the bibtex_cite_key of the article."""
