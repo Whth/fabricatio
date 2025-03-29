@@ -7,7 +7,7 @@ from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import FinalizedDumpAble, PersistentAble
 from fabricatio.models.task import Task
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok
 
 
 class DumpFinalizedOutput(Action):
