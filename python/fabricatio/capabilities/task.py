@@ -1,14 +1,13 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from types import CodeType
-from typing import Any, Dict, List, Optional, Tuple, Unpack, cast
+from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.generic import WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
@@ -16,7 +15,7 @@ from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
 
 
-class ProposeTask(WithBriefing, Propose):
+class ProposeTask(Propose):
     """A class that proposes a task based on a prompt."""
 
     async def propose_task[T](
@@ -34,13 +33,13 @@ class ProposeTask(WithBriefing, Propose):
             A Task object based on the proposal result.
         """
         if not prompt:
-            logger.error(err := f"{self.name}: Prompt must be provided.")
+            logger.error(err := "Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.propose(Task, prompt, **self.prepend_sys_msg(cast("Dict[str, Any]", kwargs)))
+        return await self.propose(Task, prompt, **kwargs)
 
 
-class HandleTask(WithBriefing, ToolBoxUsage):
+class HandleTask(ToolBoxUsage):
     """A class that handles a task based on a task object."""
 
     async def draft_tool_usage_code(
@@ -54,7 +53,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         logger.info(f"Drafting tool usage code for task: {task.briefing}")
 
         if not tools:
-            err = f"{self.name}: Tools must be provided to draft the tool usage code."
+            err = "Tools must be provided to draft the tool usage code."
             logger.error(err)
             raise ValueError(err)
 
@@ -81,7 +80,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         return await self.aask_validate(
             question=q,
             validator=_validator,
-            **self.prepend_sys_msg(cast("Dict[str, Any]", kwargs)),
+            **kwargs,
         )
 
     async def handle_fine_grind(
@@ -96,7 +95,7 @@ class HandleTask(WithBriefing, ToolBoxUsage):
         logger.info(f"Handling task: \n{task.briefing}")
 
         tools = await self.gather_tools_fine_grind(task, box_choose_kwargs, tool_choose_kwargs)
-        logger.info(f"{self.name} have gathered {[t.name for t in tools]}")
+        logger.info(f"Gathered {[t.name for t in tools]}")
 
         if tools and (pack := await self.draft_tool_usage_code(task, tools, data, **kwargs)):
             executor = ToolExecutor(candidates=tools, data=data)
