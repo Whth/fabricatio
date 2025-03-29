@@ -25,7 +25,8 @@ class TweakArticleRAG(Action, RAG):
         "Single author: 'Author1 (YYYY)'"
         "Multiple citations: 'Author1 (YYYY), Author2 (YYYY)'"
         "Prioritize formulas from reference highlights."
-        "Specify authors/years only - no numeric citations"
+        "Specify authors/years only."
+        "You can create numeric citation numbers for article whose `bibtex_cite_key` is 'wangWind2024' by using notation like `#cite(<wangWind2024>)`."
         "Paragraphs must exceed 2-3 sentences",
         supervisor_check: bool = False,
         parallel: bool = False,
@@ -41,9 +42,7 @@ class TweakArticleRAG(Action, RAG):
             criteria_count=13,
         )
 
-        tweak_manual = ok(
-            await self.draft_rating_manual(topic, criteria=criteria, co_extractor={"model": "openai/qwen-max"})
-        )
+        tweak_manual = ok(await self.draft_rating_manual(topic, criteria=criteria))
         self.view(collection_name)
 
         if parallel:

@@ -25,9 +25,9 @@ async def main() -> None:
         description="Write an outline for an article in typst format.",
         llm_top_p=0.8,
         llm_temperature=1.15,
-        llm_model="openai/qwen-max",
+        llm_model="openai/deepseek-v3-250324",
         llm_rpm=1000,
-        llm_tpm=10000000,
+        llm_tpm=1000000,
         llm_max_tokens=8190,
         registry={
             Event.quick_instantiate(ns := "article"): WorkFlow(
@@ -35,7 +35,7 @@ async def main() -> None:
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
                     GenerateArticleProposal(llm_temperature=1.18),
-                    GenerateInitialOutline(output_key="article_outline",llm_temperature=1.21, llm_top_p=0.3),
+                    GenerateInitialOutline(output_key="article_outline",llm_temperature=1.21, llm_top_p=0.5),
                     FixIntrospectedErrors(output_key="article_outline"),
                     FixIllegalReferences(output_key="article_outline"),
                     TweakOutlineBackwardRef(output_key="article_outline"),
