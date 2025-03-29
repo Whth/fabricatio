@@ -77,7 +77,7 @@ class PersistentAll(Action):
                 for per in persistent_ables:
                     per.persist(final_dir)
                     count += 1
-
+        logger.info(f"Persisted {count} objects to {persist_dir}")
         return count
 
 
