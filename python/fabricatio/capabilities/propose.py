@@ -15,23 +15,38 @@ class Propose(LLMUsage):
         self,
         cls: Type[M],
         prompt: List[str],
+        **kwargs: Unpack[ValidateKwargs[None]],
+    ) -> List[Optional[M]]: ...
+
+    @overload
+    async def propose[M: ProposedAble](
+        self,
+        cls: Type[M],
+        prompt: List[str],
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> Optional[List[M]]: ...
+    ) -> List[M]: ...
 
     @overload
     async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: str,
-        **kwargs: Unpack[ValidateKwargs[M]],
+        **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Optional[M]: ...
+    @overload
+    async def propose[M: ProposedAble](
+        self,
+        cls: Type[M],
+        prompt: str,
+        **kwargs: Unpack[ValidateKwargs[M]],
+    ) -> M: ...
 
     async def propose[M: ProposedAble](
         self,
         cls: Type[M],
         prompt: List[str] | str,
-        **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> Optional[List[M] | M]:
+        **kwargs: Unpack[ValidateKwargs[Optional[M]]],
+    ) -> Optional[M] | List[Optional[M]] | M | List[M]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
