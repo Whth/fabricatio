@@ -67,13 +67,14 @@ class PersistentAll(Action):
 
         for k, v in cxt.items():
             final_dir = persist_dir.joinpath(k)
-            final_dir.mkdir(parents=True, exist_ok=True)
             if isinstance(v, PersistentAble):
+                final_dir.mkdir(parents=True, exist_ok=True)
                 v.persist(final_dir)
                 count += 1
             if isinstance(v, Iterable) and any(
                 persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
             ):
+                final_dir.mkdir(parents=True, exist_ok=True)
                 for per in persistent_ables:
                     per.persist(final_dir)
                     count += 1
