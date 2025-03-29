@@ -9,7 +9,7 @@ from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
-from fabricatio.models.utils import override_kwargs
+from fabricatio.utils import override_kwargs
 from fabricatio.parser import JsonCapture
 from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt

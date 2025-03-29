@@ -8,7 +8,7 @@ from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.output import PersistentAll
 from fabricatio.actions.rag import InjectToDB
 from fabricatio.fs.curd import gather_files
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok
 from pydantic import HttpUrl
 
 

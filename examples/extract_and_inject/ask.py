@@ -4,7 +4,7 @@ import asyncio
 
 from fabricatio import RAG, Action, Role, Task, WorkFlow, logger
 from fabricatio.models.events import Event
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok
 from questionary import text
 
 

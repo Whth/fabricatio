@@ -16,7 +16,7 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import CensoredAble, Display, PersistentAble, WithRef
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok
 
 
 class Paragraph(CensoredAble):

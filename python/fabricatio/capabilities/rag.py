@@ -22,7 +22,8 @@ from fabricatio.models.kwargs_types import (
     RetrievalKwargs,
 )
 from fabricatio.models.usages import EmbeddingUsage
-from fabricatio.models.utils import MilvusData, ok
+from fabricatio.models.utils import MilvusData
+from fabricatio.utils import ok
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
 

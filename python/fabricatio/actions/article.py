@@ -15,7 +15,7 @@ from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.task import Task
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok, prepend_sys_msg
 
 
 class ExtractArticleEssence(Action):
@@ -41,7 +41,7 @@ class ExtractArticleEssence(Action):
 
         # trim the references
         contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
-        return await self.propose(ArticleEssence, contents, **self.prepend_sys_msg())
+        return await self.propose(ArticleEssence, contents, **prepend_sys_msg(self))
 
 
 class FixArticleEssence(Action):
@@ -97,7 +97,7 @@ class GenerateArticleProposal(Action):
                         )
                     )
                 ),
-                **self.prepend_sys_msg(),
+                **prepend_sys_msg(self),
             ),
             "Could not generate the proposal.",
         ).update_ref(briefing)
@@ -122,7 +122,7 @@ class GenerateInitialOutline(Action):
             await self.propose(
                 ArticleOutline,
                 article_proposal.as_prompt(),
-                **self.prepend_sys_msg(),
+                **prepend_sys_msg(self),
             ),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)

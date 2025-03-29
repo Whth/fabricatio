@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
 from fabricatio.models.extra.article_main import Article, ArticleParagraphPatch, ArticleSubsection
-from fabricatio.models.utils import ok
+from fabricatio.utils import ok
 
 
 class TweakArticleRAG(Action, RAG):
