@@ -11,8 +11,8 @@ from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
-from fabricatio.models.utils import ok
 from fabricatio.parser import JsonCapture
+from fabricatio.utils import ok
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -99,14 +99,14 @@ class WithRef[T](Base):
         )
 
     @overload
-    def update_ref[S](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
 
     @overload
-    def update_ref[S](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
 
     @overload
-    def update_ref[S](self: S, reference: None = None) -> S: ...
-    def update_ref[S](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
         """Update the reference of the object."""
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
@@ -114,7 +114,7 @@ class WithRef[T](Base):
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
 
-    def derive[K, S](self: S, reference: K) -> S:  # noqa: PYI019
+    def derive[S: WithRef](self: S, reference: Any) -> S:  # noqa: PYI019
         """Derive a new object from the current object."""
         new = self.model_copy()
         new._reference = reference
@@ -233,27 +233,6 @@ class WithBriefing(Named, Described):
             str: The briefing of the object.
         """
         return f"{self.name}: {self.description}" if self.description else self.name
-
-    def _prepend_inner(self, input_text: str) -> str:
-        return f"# your personal briefing: \n{self.briefing}\n{input_text}"
-
-    def prepend_sys_msg[D: (Dict[str, Any], str)](self, system_msg_like: D = "") -> Dict[str, Any]:
-        """Prepend the system message with the briefing.
-
-        Args:
-            system_msg_like (str | dict): The system message or a dictionary containing the system message.
-
-        Returns:
-            dict: The system message with the briefing prepended.
-        """
-        match system_msg_like:
-            case dict(d):
-                d["system_message"] = self._prepend_inner(d.get("system_message", ""))
-                return d
-            case str(s):
-                return {"system_message": self._prepend_inner(s)}
-            case _:
-                raise TypeError(f"{system_msg_like} is not a dict or str")
 
 
 class UnsortGenerate(GenerateJsonSchema):
