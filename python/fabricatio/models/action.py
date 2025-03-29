@@ -97,6 +97,8 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     A workflow manages the execution of multiple actions in sequence, passing
     a shared context between them and handling task lifecycle events.
     """
+    description:str =""
+    """The description of the workflow, which describes the workflow's purpose and requirements."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """Queue for storing the workflow execution context."""

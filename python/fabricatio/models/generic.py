@@ -63,7 +63,7 @@ class Named(Base):
 class Described(Base):
     """Class that includes a description attribute."""
 
-    description: str = Field(default="", frozen=True)
+    description: str = Field( frozen=True)
     """The description of the object."""
 
 

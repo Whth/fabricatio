@@ -4,12 +4,16 @@ from typing import List, Literal, Self
 
 from fabricatio.models.generic import Display, ProposedAble, ProposedUpdateAble, WithBriefing
 from fabricatio.utils import ask_edit
+from pydantic import Field
 from questionary import text
 from questionary.prompts.common import print_formatted_text as q_print
 
 
 class Problem(ProposedAble, WithBriefing, Display):
     """Represents a problem identified during review."""
+
+    description: str
+    """Description of the problem, The """
 
     severity: Literal["low", "medium", "high"]
     """Severity level of the problem."""

@@ -23,7 +23,9 @@ class Role(WithBriefing, ProposeTask, HandleTask, Correct):
         registry: Mapping of events to workflows that handle them
         toolboxes: Set of toolboxes available to this role and its workflows
     """
-
+    description:str =""
+    """A brief description of the role's responsibilities and capabilities."""
+    
     registry: dict[Event | str, WorkFlow] = Field(default_factory=dict)
     """The registry of events and workflows."""
 
