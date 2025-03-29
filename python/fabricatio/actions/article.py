@@ -46,19 +46,15 @@ class ExtractArticleEssence(Action):
 
         out = []
 
-        for ess, file in zip(
-            await self.propose(
+        for ess in await self.propose(
                 ArticleEssence,
                 [
                     f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it."
                     for c in contents
                 ],
-            ),
-            task_input.dependencies,
-            strict=True,
         ):
             if ess is None:
-                logger.warning(f"Could not extract article essence from {file}")
+                logger.warning("Could not extract article essence")
             else:
                 out.append(ess)
         logger.info(f"Extracted {len(out)} article essence from {len(task_input.dependencies)} files.")

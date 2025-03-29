@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
 
 import orjson
+import rtoml
 from fabricatio._rust import blake3_hash
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
@@ -13,6 +14,7 @@ from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
 from fabricatio.utils import ok
+from litellm.utils import token_counter
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -63,7 +65,7 @@ class Named(Base):
 class Described(Base):
     """Class that includes a description attribute."""
 
-    description: str = Field( frozen=True)
+    description: str = Field(frozen=True)
     """The description of the object."""
 
 
@@ -134,7 +136,7 @@ class PersistentAble(Base):
             Self: The current instance of the object.
         """
         p = Path(path)
-        out = self.model_dump_json(indent=1)
+        out = rtoml.dumps(self.model_dump())
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
         timestamp = datetime.now().strftime("%Y%m%d")
@@ -164,7 +166,7 @@ class PersistentAble(Base):
         Returns:
             Self: The current instance of the object.
         """
-        return cls.model_validate_json(Path(path).read_text(encoding="utf-8"))
+        return cls.model_validate(rtoml.load(path))
 
 
 class ModelHash(Base):
@@ -434,13 +436,13 @@ class WithDependency(Base):
         )
 
 
-class PrepareVectorization(Base):
+class Vectorizable(Base):
     """Class that prepares the vectorization of the model."""
 
-    @abstractmethod
     def _prepare_vectorization_inner(self) -> str:
-        """Prepare the vectorization of the model."""
+        return rtoml.dumps(self.model_dump())
 
+    @final
     def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
         """Prepare the vectorization of the model.
 
@@ -449,8 +451,8 @@ class PrepareVectorization(Base):
         """
         max_length = max_length or configs.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
-        if max_length and len(chunk) > max_length:
-            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}.")
+        if max_length and (length := token_counter(text=chunk)) > max_length:
+            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}, got {length},see {chunk}")
             raise ValueError(err)
 
         return chunk

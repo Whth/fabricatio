@@ -240,7 +240,7 @@ class TemplateConfig(BaseModel):
 
     check_string_template: str = Field(default="check_string")
     """The name of the check string template which will be used to check a string."""
-    
+
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 

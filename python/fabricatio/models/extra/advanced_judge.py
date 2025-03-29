@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fabricatio.models.generic import ProposedAble,Display
+from fabricatio.models.generic import Display, ProposedAble
 
 
 class JudgeMent(ProposedAble,Display):

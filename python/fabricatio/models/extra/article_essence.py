@@ -2,7 +2,7 @@
 
 from typing import List, Self
 
-from fabricatio.models.generic import Display, PersistentAble, PrepareVectorization, ProposedAble
+from fabricatio.models.generic import Display, PersistentAble, ProposedAble, Vectorizable
 from pydantic import BaseModel
 
 
@@ -41,65 +41,20 @@ class Figure(BaseModel):
     """Image serial number extracted from Markdown path"""
 
 
-class Algorithm(BaseModel):
-    """Research algorithm specification."""
-
-    title: str
-    """Technical title descriptor."""
-
-    description: str
-    """Description including:
-    - Input/output specs
-    - Key steps
-    - Workflow role
-    """
-
-
-class Table(BaseModel):
-    """Research table specification."""
-
-    title: str
-    """Technical title descriptor."""
-
-    description: str
-    """Description covering:
-    - Data source/structure
-    - Column/row significance
-    - Research connections
-    """
-
-
 class Highlightings(BaseModel):
     """Technical component aggregator."""
 
     highlighted_equations: List[Equation]
-    """3-5 pivotal equations with:
-    - Display math formatting
-    - Novel operators
-    - Section references
-    """
-
-    highlighted_algorithms: List[Algorithm]
-    """1-2 key algorithms showing:
-    - Pseudocode/steps
-    - Computational innovations
-    """
+    """Equations that highlight the article's core contributions"""
 
     highlighted_figures: List[Figure]
-    """4-6 key figures requiring:
-    1. Framework overview (required)
-    2. Quantitative results (2-3 required)
-    3. Ablation studies (optional)
-    """
-
-    highlighted_tables: List[Table]
-    """2-3 tables summarizing:
-    - Method comparisons
-    - Empirical results
+    """key figures requiring:
+    1. Framework overview
+    2. Quantitative results
     """
 
 
-class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization):
+class ArticleEssence(ProposedAble, Display, PersistentAble, Vectorizable):
     """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
@@ -120,9 +75,6 @@ class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization
     highlightings: Highlightings
     """Technical highlights including equations, algorithms, figures, and tables."""
 
-    domain: List[str]
-    """Domain tags for research focus."""
-
     abstract: str
     """Abstract text in the original language."""
 
@@ -138,12 +90,6 @@ class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization
     limitations: List[str]
     """Technical limitations analysis."""
 
-    future_work: List[str]
-    """Research roadmap items with 3 horizons: immediate, mid-term, and long-term."""
-
-    impact_analysis: List[str]
-    """Impact analysis of the research."""
-
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
 
@@ -151,6 +97,3 @@ class ArticleEssence(ProposedAble, Display, PersistentAble, PrepareVectorization
         """Update the bibtex_cite_key of the article."""
         self.bibtex_cite_key = new_cite_key
         return self
-
-    def _prepare_vectorization_inner(self) -> str:
-        return self.model_dump_json()

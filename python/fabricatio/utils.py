@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from questionary import text
 

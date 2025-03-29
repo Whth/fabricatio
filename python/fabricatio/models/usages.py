@@ -552,8 +552,8 @@ class EmbeddingUsage(LLMUsage):
         """
         # check seq length
         max_len = self.embedding_max_sequence_length or configs.embedding.max_sequence_length
-        if max_len and any(len(t) > max_len for t in input_text):
-            logger.error(err := f"Input text exceeds maximum sequence length {max_len}.")
+        if max_len and any(length:=(token_counter(text=t)) > max_len for t in input_text):
+            logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
             raise ValueError(err)
 
         return await litellm.aembedding(

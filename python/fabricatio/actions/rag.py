@@ -5,7 +5,7 @@ from typing import List, Optional
 from fabricatio.capabilities.rag import RAG
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.generic import PrepareVectorization
+from fabricatio.models.generic import Vectorizable
 from fabricatio.models.task import Task
 from questionary import text
 
@@ -15,7 +15,7 @@ class InjectToDB(Action, RAG):
 
     output_key: str = "collection_name"
 
-    async def _execute[T: PrepareVectorization](
+    async def _execute[T: Vectorizable](
         self, to_inject: Optional[T] | List[Optional[T]], collection_name: str = "my_collection",override_inject:bool=False, **_
     ) -> Optional[str]:
         if not isinstance(to_inject, list):
@@ -27,7 +27,7 @@ class InjectToDB(Action, RAG):
             [
                 t.prepare_vectorization(self.embedding_max_sequence_length)
                 for t in to_inject
-                if isinstance(t, PrepareVectorization)
+                if isinstance(t, Vectorizable)
             ],
         )
 
