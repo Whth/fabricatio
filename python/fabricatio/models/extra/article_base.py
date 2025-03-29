@@ -2,9 +2,8 @@
 
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from functools import cache
 from itertools import chain
-from typing import Generator, List, Optional, Self, Tuple
+from typing import Generator, List, Optional, Self, Tuple, overload
 
 from fabricatio.models.generic import (
     AsPrompt,
@@ -30,7 +29,6 @@ class ReferringType(StrEnum):
 type RefKey = Tuple[str, Optional[str], Optional[str]]
 
 
-@cache
 class ArticleRef(CensoredAble, Display, ProposedUpdateAble):
     """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
 
@@ -104,6 +102,12 @@ class ArticleRef(CensoredAble, Display, ProposedUpdateAble):
             return ReferringType.SECTION
         return ReferringType.CHAPTER
 
+    def __eq__(self, other:Self)->bool:
+        return (
+            self.referred_chapter_title == other.referred_chapter_title
+            and self.referred_section_title == other.referred_section_title
+            and self.referred_subsection_title == other.referred_subsection_title
+        )
 
 class ArticleMetaData(CensoredAble, Display):
     """Metadata for an article component."""
@@ -127,12 +131,12 @@ class Patch[T](ProposedUpdateAble, Display):
 
     tweaked: List[T]
     """Tweaked content list"""
+
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         self.tweaked.clear()
         self.tweaked.extend(other.tweaked)
         return self
-
 
     @classmethod
     def default(cls) -> Self:
@@ -142,8 +146,6 @@ class Patch[T](ProposedUpdateAble, Display):
 
 class ArticleRefPatch(Patch[ArticleRef]):
     """Patch for article refs."""
-
-
 
 
 class ArticleOutlineBase(
@@ -340,6 +342,19 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
                 yield sec
                 yield from sec.subsections
 
+
+    def iter_support_on(self,rev:bool=False)->Generator[ArticleRef, None, None]:
+        if rev:
+            yield  from chain(*[a.depend_on for a in self.iter_dfs_rev()])
+            return
+        yield  from chain(*[a.depend_on for a in self.iter_dfs()])
+
+    def iter_depend_on(self,rev:bool=False)->Generator[ArticleRef, None, None]:
+        if rev:
+            yield  from chain(*[a.depend_on for a in self.iter_dfs_rev()])
+            return
+        yield  from chain(*[a.depend_on for a in self.iter_dfs()])
+
     def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
         """Iterates through all sections in the article.
 
@@ -369,7 +384,13 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
                 return component, summary
         return None
 
-    def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]:
+    @overload
+    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef|List[ArticleRef], str]]: ...
+
+    @overload
+    def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]: ...
+
+    def find_illegal_ref(self, gather_identical: bool = False) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]:
         """Finds the first illegal component in the outline.
 
         Returns:
@@ -380,8 +401,11 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
             for ref in chain(component.depend_on, component.support_to):
                 if not ref.deref(self):
                     summary += f"Invalid internal reference in `{component.__class__.__name__}` titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-                if summary:
+                if summary and not gather_identical:
                     return ref, summary
+                if summary and gather_identical:
+                    return [identical_ref for identical_ref in chain(self.iter_depend_on(),self.iter_support_on()) if identical_ref==ref],summary
+
         return None
 
     def finalized_dump(self) -> str:

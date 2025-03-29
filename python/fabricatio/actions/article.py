@@ -46,7 +46,8 @@ class ExtractArticleEssence(Action):
 
 class FixArticleEssence(Action):
     """Fix the article essence based on the bibtex key."""
-
+    output_key:str = "fixed_article_essence"
+    """The key of the output data."""
     async def _execute(
         self,
         bib_mgr: BibManager,
@@ -190,18 +191,21 @@ class FixIllegalReferences(Action):
             "Could not generate the rating manual.",
         )
 
-        while pack := article_outline.find_illegal_ref():
-            ref, err = ok(pack)
+        while pack := article_outline.find_illegal_ref(gather_identical=True):
+            refs, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
-            ok(
-                await self.correct_obj_inplace(
-                    ref,
+            corrected_ref=ok(
+                await self.correct_obj(
+                    refs[0],  # pyright: ignore [reportIndexIssue]
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
                     topic=ref_topic,
                     rating_manual=ref_manual,
                     supervisor_check=supervisor_check,
                 )
             )
+            for ref in refs:
+                ref.update_from(corrected_ref)  # pyright: ignore [reportAttributeAccessIssue]
+            
         return article_outline.update_ref(article_outline)
 
 
