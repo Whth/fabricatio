@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from questionary import text
 
@@ -25,16 +25,18 @@ async def ask_edit(
     return res
 
 
-def override_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
+def override_kwargs(kwargs: Dict[str,Any], **overrides) -> Dict[str, Any]:
     """Override the values in kwargs with the provided overrides."""
-    kwargs.update({k: v for k, v in overrides.items() if v is not None})
-    return kwargs
+    new_kwargs = kwargs.copy()
+    new_kwargs.update({k: v for k, v in overrides.items() if v is not None})
+    return new_kwargs
 
 
-def fallback_kwargs[T](kwargs: Dict[str, T], **overrides) -> Dict[str, T]:
+def fallback_kwargs(kwargs: Dict[str, Any], **overrides) -> Dict[str, Any]:
     """Fallback the values in kwargs with the provided overrides."""
-    kwargs.update({k: v for k, v in overrides.items() if k not in kwargs})
-    return kwargs
+    new_kwargs = kwargs.copy()
+    new_kwargs.update({k: v for k, v in overrides.items() if k not in new_kwargs and v is not None})
+    return new_kwargs
 
 
 def ok[T](val: Optional[T], msg: str = "Value is None") -> T:

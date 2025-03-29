@@ -238,7 +238,9 @@ class TemplateConfig(BaseModel):
     as_prompt_template: str = Field(default="as_prompt")
     """The name of the as prompt template which will be used to convert a string to a prompt."""
 
-
+    check_string_template: str = Field(default="check_string")
+    """The name of the check string template which will be used to check a string."""
+    
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 

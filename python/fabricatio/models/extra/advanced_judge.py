@@ -2,23 +2,23 @@
 
 from typing import List
 
-from fabricatio.models.generic import ProposedAble
+from fabricatio.models.generic import ProposedAble,Display
 
 
-class JudgeMent(ProposedAble):
+class JudgeMent(ProposedAble,Display):
     """Represents a judgment result containing supporting/denying evidence and final verdict.
 
-    The class stores both affirmative and denies evidence lists along with the final boolean judgment.
+    The class stores both affirmative and denies evidence, truth and reasons lists along with the final boolean judgment.
     """
+    deny_evidence: List[str]
+    """List of clues supporting the denial."""
 
     affirm_evidence: List[str]
-    """List of evidence supporting the affirmation."""
+    """List of clues supporting the affirmation."""
 
-    deny_evidence: List[str]
-    """List of evidence supporting the denial."""
 
     final_judgement: bool
-    """The final judgment made according to all extracted evidence."""
+    """The final judgment made according to all extracted clues."""
 
     def __bool__(self) -> bool:
         """Return the final judgment value.
