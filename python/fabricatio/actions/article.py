@@ -15,7 +15,7 @@ from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.task import Task
-from fabricatio.utils import ok, prepend_sys_msg
+from fabricatio.utils import ok
 
 
 class ExtractArticleEssence(Action):
@@ -34,20 +34,23 @@ class ExtractArticleEssence(Action):
         task_input: Task,
         reader: Callable[[str], str] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
-    ) -> Optional[List[ArticleEssence]]:
+    ) -> List[ArticleEssence]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
             raise RuntimeError(err)
 
         # trim the references
         contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
-        return await self.propose(ArticleEssence, contents, **prepend_sys_msg(self))
+
+        return [a for a in await self.propose(ArticleEssence, contents) if a is not None]
 
 
 class FixArticleEssence(Action):
     """Fix the article essence based on the bibtex key."""
-    output_key:str = "fixed_article_essence"
+
+    output_key: str = "fixed_article_essence"
     """The key of the output data."""
+
     async def _execute(
         self,
         bib_mgr: BibManager,
@@ -98,7 +101,6 @@ class GenerateArticleProposal(Action):
                         )
                     )
                 ),
-                **prepend_sys_msg(self),
             ),
             "Could not generate the proposal.",
         ).update_ref(briefing)
@@ -123,7 +125,6 @@ class GenerateInitialOutline(Action):
             await self.propose(
                 ArticleOutline,
                 article_proposal.as_prompt(),
-                **prepend_sys_msg(self),
             ),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
@@ -194,7 +195,7 @@ class FixIllegalReferences(Action):
         while pack := article_outline.find_illegal_ref(gather_identical=True):
             refs, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
-            corrected_ref=ok(
+            corrected_ref = ok(
                 await self.correct_obj(
                     refs[0],  # pyright: ignore [reportIndexIssue]
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
@@ -205,9 +206,8 @@ class FixIllegalReferences(Action):
             )
             for ref in refs:
                 ref.update_from(corrected_ref)  # pyright: ignore [reportAttributeAccessIssue]
-            
-        return article_outline.update_ref(article_outline)
 
+        return article_outline.update_ref(article_outline)
 
 
 class TweakOutlineForwardRef(Action, AdvancedJudge):
@@ -226,7 +226,9 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
             field_name="support_to",
         )
 
-    async def _inner(self, article_outline: ArticleOutline, supervisor_check: bool, topic: str, field_name: str)-> ArticleOutline:
+    async def _inner(
+        self, article_outline: ArticleOutline, supervisor_check: bool, topic: str, field_name: str
+    ) -> ArticleOutline:
         tweak_support_to_manual = ok(
             await self.draft_rating_manual(topic),
             "Could not generate the rating manual.",

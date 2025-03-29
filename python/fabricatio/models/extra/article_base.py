@@ -102,12 +102,6 @@ class ArticleRef(CensoredAble, Display, ProposedUpdateAble):
             return ReferringType.SECTION
         return ReferringType.CHAPTER
 
-    def __eq__(self, other:Self)->bool:
-        return (
-            self.referred_chapter_title == other.referred_chapter_title
-            and self.referred_section_title == other.referred_section_title
-            and self.referred_subsection_title == other.referred_subsection_title
-        )
 
 class ArticleMetaData(CensoredAble, Display):
     """Metadata for an article component."""
@@ -342,18 +336,33 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
                 yield sec
                 yield from sec.subsections
 
+    def iter_support_on(self, rev: bool = False) -> Generator[ArticleRef, None, None]:
+        """Iterates over all references that the article components support.
 
-    def iter_support_on(self,rev:bool=False)->Generator[ArticleRef, None, None]:
-        if rev:
-            yield  from chain(*[a.depend_on for a in self.iter_dfs_rev()])
-            return
-        yield  from chain(*[a.depend_on for a in self.iter_dfs()])
+        Args:
+            rev (bool): If True, iterate in reverse order.
 
-    def iter_depend_on(self,rev:bool=False)->Generator[ArticleRef, None, None]:
+        Yields:
+            ArticleRef: Each reference that the article components support.
+        """
         if rev:
-            yield  from chain(*[a.depend_on for a in self.iter_dfs_rev()])
+            yield from chain(*[a.support_to for a in self.iter_dfs_rev()])
             return
-        yield  from chain(*[a.depend_on for a in self.iter_dfs()])
+        yield from chain(*[a.support_to for a in self.iter_dfs()])
+
+    def iter_depend_on(self, rev: bool = False) -> Generator[ArticleRef, None, None]:
+        """Iterates over all references that the article components depend on.
+
+        Args:
+            rev (bool): If True, iterate in reverse order.
+
+        Yields:
+            ArticleRef: Each reference that the article components depend on.
+        """
+        if rev:
+            yield from chain(*[a.depend_on for a in self.iter_dfs_rev()])
+            return
+        yield from chain(*[a.depend_on for a in self.iter_dfs()])
 
     def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
         """Iterates through all sections in the article.
@@ -385,7 +394,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
         return None
 
     @overload
-    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef|List[ArticleRef], str]]: ...
+    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]: ...
 
     @overload
     def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]: ...
@@ -404,7 +413,11 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
                 if summary and not gather_identical:
                     return ref, summary
                 if summary and gather_identical:
-                    return [identical_ref for identical_ref in chain(self.iter_depend_on(),self.iter_support_on()) if identical_ref==ref],summary
+                    return [
+                        identical_ref
+                        for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
+                        if identical_ref == ref
+                    ], summary
 
         return None
 
