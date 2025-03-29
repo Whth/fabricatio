@@ -137,13 +137,13 @@ class PersistentAble(Base):
         out = self.model_dump_json(indent=1)
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d")
 
         # Generate the hash
         file_hash = blake3_hash(out.encode())[:6]
 
         # Construct the file name with timestamp and hash
-        file_name = f"{self.__class__.__name__}_{file_hash}_{timestamp}.json"
+        file_name = f"{self.__class__.__name__}_{timestamp}_{file_hash}.json"
 
         if p.is_dir():
             p.joinpath(file_name).write_text(out, encoding="utf-8")
