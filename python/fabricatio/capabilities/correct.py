@@ -8,8 +8,9 @@ based on predefined criteria and templates.
 from typing import Optional, Unpack, cast
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
-from fabricatio.capabilities.review import Review, ReviewResult
+from fabricatio.capabilities.review import Review
 from fabricatio.config import configs
+from fabricatio.models.extra.review import ReviewResult
 from fabricatio.models.generic import CensoredAble, Display, ProposedAble, ProposedUpdateAble, WithBriefing
 from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
 from fabricatio.models.task import Task
