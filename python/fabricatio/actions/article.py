@@ -16,6 +16,7 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
+from more_itertools import filter_map
 
 
 class ExtractArticleEssence(Action):
@@ -32,23 +33,35 @@ class ExtractArticleEssence(Action):
     async def _execute(
         self,
         task_input: Task,
-        reader: Callable[[str], str] = lambda p: Path(p).read_text(encoding="utf-8"),
+        reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
     ) -> List[ArticleEssence]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
             raise RuntimeError(err)
-
+        logger.info(f"Extracting article essence from {len(task_input.dependencies)} files.")
         # trim the references
-        contents = ["References".join(c.split("References")[:-1]) for c in map(reader, task_input.dependencies)]
+        contents = list(filter_map(reader, task_input.dependencies))
+        logger.info(f"Read {len(task_input.dependencies)} to get {len(contents)} contents.")
 
         out = []
-        for ess, file in zip(await self.propose(ArticleEssence, contents), task_input.dependencies, strict=True):
+
+        for ess, file in zip(
+            await self.propose(
+                ArticleEssence,
+                [
+                    f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it."
+                    for c in contents
+                ],
+            ),
+            task_input.dependencies,
+            strict=True,
+        ):
             if ess is None:
                 logger.warning(f"Could not extract article essence from {file}")
             else:
                 out.append(ess)
-
+        logger.info(f"Extracted {len(out)} article essence from {len(task_input.dependencies)} files.")
         return out
 
 
@@ -63,8 +76,9 @@ class FixArticleEssence(Action):
         bib_mgr: BibManager,
         article_essence: List[ArticleEssence],
         **_,
-    ) -> None:
-        count=0
+    ) -> List[ArticleEssence]:
+        out = []
+        count = 0
         for a in article_essence:
             if key := (bib_mgr.get_cite_key(a.title) or bib_mgr.get_cite_key_fuzzy(a.title)):
                 a.title = bib_mgr.get_title_by_key(key) or a.title
@@ -72,11 +86,13 @@ class FixArticleEssence(Action):
                 a.publication_year = bib_mgr.get_year_by_key(key) or a.publication_year
                 a.bibtex_cite_key = key
                 logger.info(f"Updated {a.title} with {key}")
+                out.append(a)
             else:
                 logger.warning(f"No key found for {a.title}")
-                count+=1
+                count += 1
         if count:
             logger.warning(f"{count} articles have no key")
+        return out
 
 
 class GenerateArticleProposal(Action):
