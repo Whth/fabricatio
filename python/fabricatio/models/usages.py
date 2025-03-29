@@ -15,8 +15,8 @@ from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, Genera
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
-from fabricatio.utils import ok
 from fabricatio.parser import GenericCapture, JsonCapture
+from fabricatio.utils import ok
 from litellm import RateLimitError, Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
@@ -281,7 +281,7 @@ class LLMUsage(ScopedConfig):
         question: str | List[str],
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
-        max_validations: PositiveInt = 2,
+        max_validations: PositiveInt = 3,
         co_extractor: Optional[GenerateKwargs] = None,
         **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T] | List[Optional[T]] | List[T] | T:
