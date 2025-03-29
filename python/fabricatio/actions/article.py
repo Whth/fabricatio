@@ -64,6 +64,7 @@ class FixArticleEssence(Action):
         article_essence: List[ArticleEssence],
         **_,
     ) -> None:
+        count=0
         for a in article_essence:
             if key := (bib_mgr.get_cite_key(a.title) or bib_mgr.get_cite_key_fuzzy(a.title)):
                 a.title = bib_mgr.get_title_by_key(key) or a.title
@@ -73,6 +74,9 @@ class FixArticleEssence(Action):
                 logger.info(f"Updated {a.title} with {key}")
             else:
                 logger.warning(f"No key found for {a.title}")
+                count+=1
+        if count:
+            logger.warning(f"{count} articles have no key")
 
 
 class GenerateArticleProposal(Action):
