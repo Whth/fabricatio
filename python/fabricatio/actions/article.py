@@ -6,6 +6,8 @@ from typing import Any, Callable, List, Optional
 
 from fabricatio._rust import BibManager
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
+from fabricatio.capabilities.correct import Correct
+from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -19,7 +21,7 @@ from fabricatio.utils import ok
 from more_itertools import filter_map
 
 
-class ExtractArticleEssence(Action):
+class ExtractArticleEssence(Action, Propose):
     """Extract the essence of article(s) in text format from the paths specified in the task dependencies.
 
     Notes:
@@ -91,7 +93,7 @@ class FixArticleEssence(Action):
         return out
 
 
-class GenerateArticleProposal(Action):
+class GenerateArticleProposal(Action, Propose):
     """Generate an outline for the article based on the extracted essence."""
 
     output_key: str = "article_proposal"
@@ -133,7 +135,7 @@ class GenerateArticleProposal(Action):
         return proposal
 
 
-class GenerateInitialOutline(Action):
+class GenerateInitialOutline(Action, Propose):
     """Generate the initial article outline based on the article proposal."""
 
     output_key: str = "initial_article_outline"
@@ -153,7 +155,7 @@ class GenerateInitialOutline(Action):
         ).update_ref(article_proposal)
 
 
-class FixIntrospectedErrors(Action):
+class FixIntrospectedErrors(Action, Correct):
     """Fix introspected errors in the article outline."""
 
     output_key: str = "introspected_errors_fixed_outline"
@@ -190,7 +192,7 @@ class FixIntrospectedErrors(Action):
         return article_outline
 
 
-class FixIllegalReferences(Action):
+class FixIllegalReferences(Action, Correct):
     """Fix illegal references in the article outline."""
 
     output_key: str = "illegal_references_fixed_outline"
@@ -230,7 +232,7 @@ class FixIllegalReferences(Action):
         return article_outline.update_ref(article_outline)
 
 
-class TweakOutlineForwardRef(Action, AdvancedJudge):
+class TweakOutlineForwardRef(Action, AdvancedJudge, Correct):
     """Tweak the forward references in the article outline.
 
     Ensures that the conclusions of the current chapter effectively support the analysis of subsequent chapters.
@@ -289,7 +291,7 @@ class TweakOutlineBackwardRef(TweakOutlineForwardRef):
         )
 
 
-class GenerateArticle(Action):
+class GenerateArticle(Action, Correct):
     """Generate the article based on the outline."""
 
     output_key: str = "article"
@@ -327,7 +329,7 @@ class GenerateArticle(Action):
         return article
 
 
-class CorrectProposal(Action):
+class CorrectProposal(Action, Correct):
     """Correct the proposal of the article."""
 
     output_key: str = "corrected_proposal"
@@ -338,7 +340,7 @@ class CorrectProposal(Action):
         )
 
 
-class CorrectOutline(Action):
+class CorrectOutline(Action, Correct):
     """Correct the outline of the article."""
 
     output_key: str = "corrected_outline"
@@ -354,7 +356,7 @@ class CorrectOutline(Action):
         )
 
 
-class CorrectArticle(Action):
+class CorrectArticle(Action, Correct):
     """Correct the article based on the outline."""
 
     output_key: str = "corrected_article"
