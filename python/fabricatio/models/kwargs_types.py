@@ -1,7 +1,7 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
 from importlib.util import find_spec
-from typing import Any, Dict, Required, TypedDict
+from typing import Any, Dict, List, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
@@ -98,6 +98,18 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     default: T
     max_validations: int
     co_extractor: GenerateKwargs
+
+class CompositeScoreKwargs(ValidateKwargs[List[Dict[str,float]]], total=False):
+    """Arguments for composite score generation operations.
+
+    Extends GenerateKwargs with parameters for generating composite scores
+    based on specific criteria and weights.
+    """
+
+    topic:str
+    criteria: set[str]
+    weights: Dict[str, float]
+    manual: Dict[str, str]
 
 
 class ReviewInnerKwargs[T](ValidateKwargs[T], total=False):
