@@ -15,20 +15,29 @@ from fabricatio.utils import override_kwargs
 
 
 class Check(AdvancedJudge, Propose):
-    """Class that provides the capability to validate strings/objects against predefined rules and guidelines."""
+    """Class for validating strings/objects against predefined rules and guidelines.
+
+    This capability combines rule-based judgment and proposal generation to provide
+    structured validation results with actionable improvement suggestions.
+    """
 
     async def draft_ruleset(
         self, ruleset_requirement: str, rule_count: int = 0, **kwargs: Unpack[ValidateKwargs[Rule]]
     ) -> Optional[RuleSet]:
-        """Generate a rule set based on specified requirements.
+        """Generate rule set based on requirement description.
 
         Args:
-            ruleset_requirement (str): Description of desired rule set characteristics
-            rule_count (int): Number of rules to generate
-            **kwargs: Validation configuration parameters
+            ruleset_requirement (str): Natural language description of desired ruleset characteristics
+            rule_count (int): Number of rules to generate (0 for default count)
+            **kwargs: Validation parameters for rule generation
 
         Returns:
-            Optional[RuleSet]: Generated rule set if successful
+            Optional[RuleSet]: Validated ruleset object or None if generation fails
+
+        Notes:
+            - Requires valid template configuration in configs.templates
+            - Returns None if any step in rule generation fails
+            - Uses `alist_str` for requirement breakdown and iterative rule proposal
         """
         rule_reqs = await self.alist_str(
             TEMPLATE_MANAGER.render_template(
@@ -57,21 +66,26 @@ class Check(AdvancedJudge, Propose):
 
         return ruleset_patch.apply(RuleSet(rules=rules, name="", description=""))
 
-    async def check_string(
+    async def check_string_against_rule(
         self,
         input_text: str,
         rule: Rule,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
-        """Evaluate text against a specific rule.
+        """Validate text against specific rule.
 
         Args:
-            input_text (str): Text content to be evaluated
-            rule (Rule): Rule instance used for validation
-            **kwargs: Validation configuration parameters
+            input_text (str): Text content to validate
+            rule (Rule): Rule instance for validation
+            **kwargs: Configuration for validation process
 
         Returns:
-            Optional[Improvement]: Suggested improvement if violations found, else None
+            Optional[Improvement]: Suggested improvement if violation detected
+
+        Notes:
+            - Uses `evidently_judge` to determine violation presence
+            - Renders template using `check_string_template` for proposal
+            - Proposes Improvement only when violation is confirmed
         """
         if judge := await self.evidently_judge(
             f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `Rule Must to follow` provided above?",
@@ -87,21 +101,26 @@ class Check(AdvancedJudge, Propose):
             )
         return None
 
-    async def check_obj[M: (Display, WithBriefing)](
+    async def check_obj_against_rule[M: (Display, WithBriefing)](
         self,
         obj: M,
         rule: Rule,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
-        """Validate an object against specified rule.
+        """Validate object against rule using text representation.
 
         Args:
-            obj (M): Object implementing Display or WithBriefing interface
-            rule (Rule): Validation rule to apply
+            obj (M): Object implementing Display/WithBriefing interface
+            rule (Rule): Validation rule
             **kwargs: Validation configuration parameters
 
         Returns:
-            Optional[Improvement]: Improvement suggestion if issues detected
+            Optional[Improvement]: Improvement suggestion if issues found
+
+        Notes:
+            - Requires obj to implement display() or briefing property
+            - Raises TypeError for incompatible object types
+            - Converts object to text before string validation
         """
         if isinstance(obj, Display):
             input_text = obj.display()
@@ -110,7 +129,58 @@ class Check(AdvancedJudge, Propose):
         else:
             raise TypeError("obj must be either Display or WithBriefing")
 
-        return await self.check_string(input_text, rule, **kwargs)
+        return await self.check_string_against_rule(input_text, rule, **kwargs)
 
+    async def check_string(
+        self,
+        input_text: str,
+        ruleset: RuleSet,
+        **kwargs: Unpack[ValidateKwargs[Improvement]],
+    ) -> Optional[Improvement]:
+        """Validate text against full ruleset.
 
-    
+        Args:
+            input_text (str): Text content to validate
+            ruleset (RuleSet): Collection of validation rules
+            **kwargs: Validation configuration parameters
+
+        Returns:
+            Optional[Improvement]: First detected improvement
+
+        Notes:
+            - Checks rules sequentially and returns first violation
+            - Halts validation after first successful improvement proposal
+            - Maintains rule execution order from ruleset.rules list
+        """
+        for rule in ruleset.rules:
+            improvement = await self.check_string_against_rule(input_text, rule, **kwargs)
+            if improvement:
+                return improvement
+        return None
+
+    async def check_obj[M: (Display, WithBriefing)](
+        self,
+        obj: M,
+        ruleset: RuleSet,
+        **kwargs: Unpack[ValidateKwargs[Improvement]],
+    ) -> Optional[Improvement]:
+        """Validate object against full ruleset.
+
+        Args:
+            obj (M): Object implementing Display/WithBriefing interface
+            ruleset (RuleSet): Collection of validation rules
+            **kwargs: Validation configuration parameters
+
+        Returns:
+            Optional[Improvement]: First detected improvement
+
+        Notes:
+            - Uses check_obj_against_rule for individual rule checks
+            - Maintains same early termination behavior as check_string
+            - Validates object through text conversion mechanism
+        """
+        for rule in ruleset.rules:
+            improvement = await self.check_obj_against_rule(obj, rule, **kwargs)
+            if improvement:
+                return improvement
+        return None
