@@ -9,16 +9,14 @@ from abc import abstractmethod
 from asyncio import Queue, create_task
 from typing import Any, Dict, Self, Tuple, Type, Union, final
 
-from fabricatio.capabilities.correct import Correct
-from fabricatio.capabilities.task import HandleTask, ProposeTask
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
-from fabricatio.models.usages import ToolBoxUsage
+from fabricatio.models.usages import LLMUsage, ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
 
-class Action(WithBriefing, HandleTask, ProposeTask, Correct):
+class Action(WithBriefing, LLMUsage):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
@@ -97,7 +95,8 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     A workflow manages the execution of multiple actions in sequence, passing
     a shared context between them and handling task lifecycle events.
     """
-    description:str =""
+
+    description: str = ""
     """The description of the workflow, which describes the workflow's purpose and requirements."""
 
     _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
