@@ -713,7 +713,7 @@ class ToolBoxUsage(LLMUsage):
         """
         if isinstance(others, ToolBoxUsage):
             others = [others]
-        for other in others:
+        for other in (x for x in others if isinstance(x, ToolBoxUsage)):
             self.toolboxes.update(other.toolboxes)
         return self
 
@@ -729,6 +729,6 @@ class ToolBoxUsage(LLMUsage):
         """
         if isinstance(others, ToolBoxUsage):
             others = [others]
-        for other in others:
+        for other in (x for x in others if isinstance(x, ToolBoxUsage)):
             other.toolboxes.update(self.toolboxes)
         return self
