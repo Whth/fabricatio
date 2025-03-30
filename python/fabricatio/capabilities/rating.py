@@ -7,10 +7,10 @@ from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.kwargs_types import ValidateKwargs
+from fabricatio.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
-from fabricatio.utils import override_kwargs
+from fabricatio.utils import ok, override_kwargs
 from more_itertools import flatten, windowed
 from pydantic import NonNegativeInt, PositiveInt
 
@@ -86,6 +86,7 @@ class Rating(LLMUsage):
         to_rate: str,
         topic: str,
         criteria: Set[str],
+        manual: Optional[Dict[str, str]],
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> Dict[str, float]: ...
@@ -96,6 +97,7 @@ class Rating(LLMUsage):
         to_rate: List[str],
         topic: str,
         criteria: Set[str],
+        manual: Optional[Dict[str, str]],
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> List[Dict[str, float]]: ...
@@ -105,6 +107,7 @@ class Rating(LLMUsage):
         to_rate: Union[str, List[str]],
         topic: str,
         criteria: Set[str],
+        manual: Optional[Dict[str, str]],
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
@@ -114,6 +117,7 @@ class Rating(LLMUsage):
             to_rate (Union[str, List[str]]): The string or sequence of strings to be rated.
             topic (str): The topic related to the task.
             criteria (Set[str]): A set of criteria for rating.
+            manual (Optional[Dict[str, str]]): A dictionary containing the rating criteria. If not provided, then this method will draft the criteria automatically.
             score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
@@ -121,7 +125,11 @@ class Rating(LLMUsage):
             Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each criterion if a single string is provided,
             or a list of dictionaries with the ratings for each criterion if a sequence of strings is provided.
         """
-        manual = await self.draft_rating_manual(topic, criteria, **kwargs) or dict(zip(criteria, criteria, strict=True))
+        manual = (
+            manual
+            or await self.draft_rating_manual(topic, criteria, **override_kwargs(kwargs, default=None))
+            or dict(zip(criteria, criteria, strict=True))
+        )
 
         return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
 
@@ -309,7 +317,7 @@ class Rating(LLMUsage):
             validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
             **kwargs,
         )
-        weights = [1]
+        weights = [1.0]
         for rw in relative_weights:
             weights.append(weights[-1] * rw)
         total = sum(weights)
@@ -319,27 +327,46 @@ class Rating(LLMUsage):
         self,
         topic: str,
         to_rate: List[str],
-        reasons_count: PositiveInt = 2,
-        criteria_count: PositiveInt = 5,
-        **kwargs: Unpack[ValidateKwargs],
+        criteria: Optional[Set[str]] = None,
+        weights: Optional[Dict[str, float]] = None,
+        manual: Optional[Dict[str, str]] = None,
+        **kwargs: Unpack[ValidateKwargs[List[Dict[str, float]]]],
     ) -> List[float]:
         """Calculates the composite scores for a list of items based on a given topic and criteria.
 
         Args:
             topic (str): The topic for the rating.
             to_rate (List[str]): A list of strings to be rated.
-            reasons_count (PositiveInt, optional): The number of reasons to extract from each pair of examples. Defaults to 2.
-            criteria_count (PositiveInt, optional): The number of criteria to draft. Defaults to 5.
+            criteria (Optional[Set[str]]): A set of criteria for the rating. Defaults to None.
+            weights (Optional[Dict[str, float]]): A dictionary of rating weights for each criterion. Defaults to None.
+            manual (Optional[Dict[str, str]]): A dictionary of manual ratings for each item. Defaults to None.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[float]: A list of composite scores for the items.
         """
-        criteria = await self.draft_rating_criteria_from_examples(
-            topic, to_rate, reasons_count, criteria_count, **kwargs
+        criteria = ok(
+            criteria
+            or await self.draft_rating_criteria_from_examples(topic, to_rate, **override_kwargs(kwargs, default=None))
         )
-        weights = await self.drafting_rating_weights_klee(topic, criteria, **kwargs)
+        weights = ok(
+            weights or await self.drafting_rating_weights_klee(topic, criteria, **override_kwargs(kwargs, default=None))
+        )
         logger.info(f"Criteria: {criteria}\nWeights: {weights}")
-        ratings_seq = await self.rate(to_rate, topic, criteria, **kwargs)
+        ratings_seq = await self.rate(to_rate, topic, criteria, manual, **kwargs)
 
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
+
+    async def best(self, k: int, candidates: List[str], **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]:
+        """Choose the best candidates from the list of candidates based on the composite score.
+
+        Args:
+            k (int): The number of best candidates to choose.
+            candidates (List[str]): A list of candidates to choose from.
+            **kwargs (CompositeScoreKwargs): Additional keyword arguments for the composite score calculation.
+
+        Returns:
+            List[str]: The best candidates.
+        """
+        rating_seq = await self.composite_score(to_rate=candidates, **kwargs)
+        return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]
