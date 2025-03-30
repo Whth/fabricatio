@@ -46,6 +46,7 @@ class Capture(BaseModel):
         """
         match self.capture_type:
             case "json" if configs.general.use_json_repair:
+                logger.debug("Applying json repair to text.")
                 if isinstance(text, str):
                     return repair_json(text, ensure_ascii=False)
                 return [repair_json(item, ensure_ascii=False) for item in text]
@@ -141,7 +142,7 @@ class Capture(BaseModel):
         Returns:
             Self: The instance of the class with the captured code block.
         """
-        return cls(pattern=f"--- Start of {language} ---\n(.*?)\n--- end of {language} ---", capture_type=language)
+        return cls(pattern=f"--- Start of {language} ---(.*?)--- end of {language} ---", capture_type=language)
 
 
 JsonCapture = Capture.capture_code_block("json")

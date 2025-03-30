@@ -303,12 +303,11 @@ class LLMUsage(ScopedConfig):
         async def _inner(q: str) -> Optional[T]:
             for lap in range(max_validations):
                 try:
-                    if (
-                        (response := await self.aask(question=q, **kwargs))
-                        or (
-                            co_extractor
-                            and (
-                                response := await self.aask(
+                    if ((validated := validator(response := await self.aask(question=q, **kwargs))) is not None) or (
+                        co_extractor
+                        and (
+                            validated := validator(
+                                await self.aask(
                                     question=(
                                         TEMPLATE_MANAGER.render_template(
                                             configs.templates.co_validation_template,
@@ -319,7 +318,8 @@ class LLMUsage(ScopedConfig):
                                 )
                             )
                         )
-                    ) and (validated := validator(response)):
+                        is not None
+                    ):
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
 
@@ -360,7 +360,6 @@ class LLMUsage(ScopedConfig):
             lambda resp: JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=k),
             **kwargs,
         )
-
 
     async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
@@ -552,7 +551,7 @@ class EmbeddingUsage(LLMUsage):
         """
         # check seq length
         max_len = self.embedding_max_sequence_length or configs.embedding.max_sequence_length
-        if max_len and any(length:=(token_counter(text=t)) > max_len for t in input_text):
+        if max_len and any(length := (token_counter(text=t)) > max_len for t in input_text):
             logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
             raise ValueError(err)
 

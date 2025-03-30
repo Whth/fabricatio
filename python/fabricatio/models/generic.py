@@ -309,7 +309,9 @@ class InstantiateFromString(Base):
         Returns:
             Self | None: The instance of the class or None if the string is not valid.
         """
-        return JsonCapture.convert_with(string, cls.model_validate_json)
+        obj=JsonCapture.convert_with(string, cls.model_validate_json)
+        logger.debug(f'Instantiate `{cls.__name__}` from string, {"Failed" if obj is None else "Success"}.')
+        return obj
 
 
 class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
