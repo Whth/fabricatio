@@ -169,7 +169,7 @@ class FixIntrospectedErrors(Action):
             await self.draft_rating_manual(
                 topic=(
                     intro_topic
-                    := "Fix the error in the article outline, make sure there is no more error in the article outline."
+                    := "Article got some errors that need to be fixed, like content missing, etc."
                 ),
             ),
             "Could not generate the rating manual.",
@@ -209,7 +209,7 @@ class FixIllegalReferences(Action):
             await self.draft_rating_manual(
                 topic=(
                     ref_topic
-                    := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component."
+                    := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component when following the appropriate referring logic."
                 ),
             ),
             "Could not generate the rating manual.",
@@ -257,7 +257,7 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
             "Could not generate the rating manual.",
         )
         for a in article_outline.iter_dfs():
-            if await self.evidently_judge(
+            if judge:= await self.evidently_judge(
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
                 f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
             ):
@@ -267,7 +267,8 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
                 await self.correct_obj_inplace(
                     patch,
                     topic=topic,
-                    reference=f"{article_outline.as_prompt()}\nThe Article component whose `{field_name}` field needs to be extended or tweaked",
+                    reference=f"{article_outline.as_prompt()}\nThe Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
+                              f"# Judgement\n{judge.display()}",
                     rating_manual=tweak_support_to_manual,
                     supervisor_check=supervisor_check,
                 )

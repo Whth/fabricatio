@@ -39,7 +39,7 @@ class TweakArticleRAG(Action, RAG):
             "Extensively use formulas highlighted in reference文献 should be translated to 'references'."
             "Only specify authors and years without numeric citation numbers (like [1],[2])."
             "Each paragraph should not end with just 2-3 sentences for better readability.",
-            criteria_count=13,
+            criteria_count=8
         )
 
         tweak_manual = ok(await self.draft_rating_manual(topic, criteria=criteria))

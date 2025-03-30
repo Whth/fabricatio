@@ -45,13 +45,12 @@ class Capture(BaseModel):
             str | List[str]: The fixed text with the same type as input.
         """
         match self.capture_type:
-            case "json":
+            case "json" if configs.general.use_json_repair:
                 if isinstance(text, str):
                     return repair_json(text, ensure_ascii=False)
                 return [repair_json(item, ensure_ascii=False) for item in text]
             case _:
                 return text
-
 
     def capture(self, text: str) -> Tuple[str, ...] | str | None:
         """Capture the first occurrence of the pattern in the given text.
@@ -63,11 +62,10 @@ class Capture(BaseModel):
             str | None: The captured text if the pattern is found, otherwise None.
 
         """
-        match = self._compiled.search(text)
-        if match is None:
-            logger.debug(f"Capture Failed: \n{text}")
+        if (match :=self._compiled.match(text) or self._compiled.search(text) ) is None:
+            logger.debug(f"Capture Failed {type(text)}: \n{text}")
             return None
-        groups = self.fix(match.groups()) if configs.general.use_json_repair else match.groups()
+        groups = self.fix(match.groups())
         if self.target_groups:
             cap = tuple(groups[g - 1] for g in self.target_groups)
             logger.debug(f"Captured text: {'\n\n'.join(cap)}")
@@ -134,7 +132,7 @@ class Capture(BaseModel):
         Returns:
             Self: The instance of the class with the captured code block.
         """
-        return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
+        return cls(pattern=f"```{language}(.*?)```", capture_type=language)
 
     @classmethod
     def capture_generic_block(cls, language: str) -> Self:
