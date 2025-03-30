@@ -54,6 +54,11 @@ class Display(Base):
         """
         return self.model_dump_json()
 
+    @staticmethod
+    def seq_display(seq: Iterable["Display"], compact: bool = False) -> str:
+        """Display a sequence of Display objects in a formatted JSON string."""
+        return "\n".join(d.compact() if compact else d.display() for d in seq)
+
 
 class Named(Base):
     """Class that includes a name attribute."""
@@ -136,7 +141,7 @@ class PersistentAble(Base):
             Self: The current instance of the object.
         """
         p = Path(path)
-        out = rtoml.dumps(self.model_dump())
+        out = self.model_dump_json()
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
         timestamp = datetime.now().strftime("%Y%m%d")
@@ -166,7 +171,7 @@ class PersistentAble(Base):
         Returns:
             Self: The current instance of the object.
         """
-        return cls.model_validate(rtoml.load(path))
+        return cls.model_validate_json(safe_text_read(path))
 
 
 class ModelHash(Base):
@@ -309,8 +314,8 @@ class InstantiateFromString(Base):
         Returns:
             Self | None: The instance of the class or None if the string is not valid.
         """
-        obj=JsonCapture.convert_with(string, cls.model_validate_json)
-        logger.debug(f'Instantiate `{cls.__name__}` from string, {"Failed" if obj is None else "Success"}.')
+        obj = JsonCapture.convert_with(string, cls.model_validate_json)
+        logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
         return obj
 
 
@@ -569,3 +574,33 @@ class ScopedConfig(Base):
                 if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
                     setattr(other, attr_name, attr)
         return self
+
+
+class Patch[T](ProposedAble):
+    """Base class for patches."""
+
+    def apply(self, other: T) -> T:
+        """Apply the patch to another instance."""
+        for field in self.__class__.model_fields:
+            if not hasattr(other, field):
+                raise ValueError(f"{field} not found in {other}, are you applying to the wrong type?")
+            setattr(other, field, getattr(self, field))
+        return other
+
+
+class SequencePatch[T](ProposedUpdateAble, Display):
+    """Base class for patches."""
+
+    tweaked: List[T]
+    """Tweaked content list"""
+
+    def update_from_inner(self, other: Self) -> Self:
+        """Updates the current instance with the attributes of another instance."""
+        self.tweaked.clear()
+        self.tweaked.extend(other.tweaked)
+        return self
+
+    @classmethod
+    def default(cls) -> Self:
+        """Defaults to empty list."""
+        return cls(tweaked=[])

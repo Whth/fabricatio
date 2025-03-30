@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fabricatio.models.generic import Described, Display, PersistentAble, ProposedAble, WithBriefing
+from fabricatio.models.generic import Display, PersistentAble, ProposedAble, WithBriefing
 
 
 class Rule(WithBriefing,ProposedAble,Display):
@@ -14,10 +14,8 @@ class Rule(WithBriefing,ProposedAble,Display):
     """Examples of how to comply with the rule."""
 
 
-class RuleSet(ProposedAble, Display, PersistentAble, Described):
+class RuleSet(ProposedAble, Display, PersistentAble, WithBriefing):
     """Represents a collection of rules and guidelines for a particular topic."""
 
-    title: str
-    """The title of the rule set."""
     rules: List[Rule]
     """The rules and guidelines contained in the rule set."""

@@ -30,8 +30,8 @@ class Problem(ProposedAble, WithBriefing, Display):
 class Solution(ProposedAble, WithBriefing, Display):
     """Represents a proposed solution to a problem."""
 
-    operation: str
-    """Description or identifier of the operation."""
+    execute_steps: List[str]
+    """A list of steps to execute to implement the solution, which is expected to be able to finally solve the corresponding problem."""
 
     feasibility: Literal["low", "medium", "high"]
     """Feasibility level of the solution."""
@@ -81,6 +81,8 @@ class ProblemSolutions(ProposedUpdateAble):
 
 class Improvement(ProposedAble, Display):
     """A class representing an improvement suggestion."""
+    focused_on:str
+    """The focused on topic of the improvement"""
 
     problem_solutions: List[ProblemSolutions]
     """Collection of problems identified during review along with their potential solutions."""

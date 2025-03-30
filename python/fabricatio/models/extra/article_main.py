@@ -8,14 +8,13 @@ from fabricatio.models.extra.article_base import (
     ArticleBase,
     ArticleOutlineBase,
     ChapterBase,
-    Patch,
     SectionBase,
     SubSectionBase,
 )
 from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
-from fabricatio.models.generic import CensoredAble, Display, PersistentAble, WithRef
+from fabricatio.models.generic import CensoredAble, Display, PersistentAble, SequencePatch, WithRef
 from fabricatio.utils import ok
 
 
@@ -32,7 +31,7 @@ class Paragraph(CensoredAble):
     """The actual content of the paragraph, represented as a string."""
 
 
-class ArticleParagraphPatch(Patch[Paragraph]):
+class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
     """Patch for `Paragraph` list of `ArticleSubsection`."""
 
 

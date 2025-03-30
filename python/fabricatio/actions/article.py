@@ -9,7 +9,7 @@ from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import ArticleRefPatch
+from fabricatio.models.extra.article_base import ArticleRefSequencePatch
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -47,11 +47,11 @@ class ExtractArticleEssence(Action):
         out = []
 
         for ess in await self.propose(
-                ArticleEssence,
-                [
-                    f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it."
-                    for c in contents
-                ],
+            ArticleEssence,
+            [
+                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it."
+                for c in contents
+            ],
         ):
             if ess is None:
                 logger.warning("Could not extract article essence")
@@ -167,10 +167,7 @@ class FixIntrospectedErrors(Action):
     ) -> Optional[ArticleOutline]:
         introspect_manual = ok(
             await self.draft_rating_manual(
-                topic=(
-                    intro_topic
-                    := "Article got some errors that need to be fixed, like content missing, etc."
-                ),
+                topic=(intro_topic := "Article got some errors that need to be fixed, like content missing, etc."),
             ),
             "Could not generate the rating manual.",
         )
@@ -257,18 +254,18 @@ class TweakOutlineForwardRef(Action, AdvancedJudge):
             "Could not generate the rating manual.",
         )
         for a in article_outline.iter_dfs():
-            if judge:= await self.evidently_judge(
+            if judge := await self.evidently_judge(
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
                 f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
             ):
-                patch = ArticleRefPatch.default()
+                patch = ArticleRefSequencePatch.default()
                 patch.tweaked = getattr(a, field_name)
 
                 await self.correct_obj_inplace(
                     patch,
                     topic=topic,
                     reference=f"{article_outline.as_prompt()}\nThe Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
-                              f"# Judgement\n{judge.display()}",
+                    f"# Judgement\n{judge.display()}",
                     rating_manual=tweak_support_to_manual,
                     supervisor_check=supervisor_check,
                 )

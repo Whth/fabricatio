@@ -1,10 +1,12 @@
 """A class that provides the capability to check strings and objects against rules and guidelines."""
+
 from typing import Optional, Unpack
 
 from fabricatio import TEMPLATE_MANAGER
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
+from fabricatio.models.extra.patches import BriefingPatch
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
 from fabricatio.models.generic import Display, WithBriefing
@@ -16,30 +18,44 @@ class Check(AdvancedJudge, Propose):
     """Class that provides the capability to validate strings/objects against predefined rules and guidelines."""
 
     async def draft_ruleset(
-        self, ruleset_requirement: str, **kwargs: Unpack[ValidateKwargs[RuleSet]]
+        self, ruleset_requirement: str, rule_count: int = 0, **kwargs: Unpack[ValidateKwargs[Rule]]
     ) -> Optional[RuleSet]:
         """Generate a rule set based on specified requirements.
 
         Args:
             ruleset_requirement (str): Description of desired rule set characteristics
+            rule_count (int): Number of rules to generate
             **kwargs: Validation configuration parameters
 
         Returns:
             Optional[RuleSet]: Generated rule set if successful
         """
-        return await self.propose(RuleSet, ruleset_requirement, **kwargs)
+        rule_reqs = await self.alist_str(
+            TEMPLATE_MANAGER.render_template(
+                configs.templates.ruleset_requirement_breakdown_template, {"ruleset_requirement": ruleset_requirement}
+            ),
+            rule_count,
+            **override_kwargs(kwargs, default=None),
+        )
 
-    async def draft_rule(self, rule_requirement: str, **kwargs: Unpack[ValidateKwargs[Rule]]) -> Optional[Rule]:
-        """Create a specific rule based on given specifications.
+        if rule_reqs is None:
+            return None
 
-        Args:
-            rule_requirement (str): Detailed rule description requirements
-            **kwargs: Validation configuration parameters
+        rules = await self.propose(Rule, rule_reqs, **kwargs)
+        if any(r for r in rules if r is None):
+            return None
 
-        Returns:
-            Optional[Rule]: Generated rule instance if successful
-        """
-        return await self.propose(Rule, rule_requirement, **kwargs)
+        ruleset_patch = await self.propose(
+            BriefingPatch,
+            f"# Rules Requirements\n{rule_reqs}\n# Generated Rules\n{Display.seq_display(rules)}\n\n"
+            f"You need to write a concise and detailed patch for this ruleset that can be applied to the ruleset nicely",
+            **override_kwargs(kwargs, default=None),
+        )
+
+        if ruleset_patch is None:
+            return None
+
+        return ruleset_patch.apply(RuleSet(rules=rules, name="", description=""))
 
     async def check_string(
         self,

@@ -241,6 +241,9 @@ class TemplateConfig(BaseModel):
     check_string_template: str = Field(default="check_string")
     """The name of the check string template which will be used to check a string."""
 
+    ruleset_requirement_breakdown_template: str = Field(default="ruleset_requirement_breakdown")
+    """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
+
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 
