@@ -111,3 +111,6 @@ class Check(AdvancedJudge, Propose):
             raise TypeError("obj must be either Display or WithBriefing")
 
         return await self.check_string(input_text, rule, **kwargs)
+
+
+    
