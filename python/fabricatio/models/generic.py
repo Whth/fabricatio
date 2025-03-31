@@ -327,7 +327,7 @@ class SketchedAble(ProposedAble, Display):
     """Class that provides a method to scratch the object."""
 
 
-class ProposedUpdateAble(ProposedAble, UpdateFrom, ABC):
+class ProposedUpdateAble(SketchedAble, UpdateFrom, ABC):
     """Make the obj can be updated from the proposed obj in place."""
 
 
@@ -592,7 +592,7 @@ class Patch[T](ProposedAble):
         return other
 
 
-class SequencePatch[T](ProposedUpdateAble, Display):
+class SequencePatch[T](ProposedUpdateAble):
     """Base class for patches."""
 
     tweaked: List[T]

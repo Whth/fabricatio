@@ -30,7 +30,7 @@ class ReferringType(StrEnum):
 type RefKey = Tuple[str, Optional[str], Optional[str]]
 
 
-class ArticleRef(CensoredAble, Display, ProposedUpdateAble):
+class ArticleRef(CensoredAble, ProposedUpdateAble):
     """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
 
     Examples:
