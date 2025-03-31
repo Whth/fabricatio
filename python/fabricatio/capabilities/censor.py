@@ -9,7 +9,7 @@ from typing import Optional, Unpack
 from fabricatio.capabilities.check import Check
 from fabricatio.capabilities.correct import Correct
 from fabricatio.models.extra.rule import RuleSet
-from fabricatio.models.generic import SketchedAble
+from fabricatio.models.generic import ProposedUpdateAble, SketchedAble
 from fabricatio.models.kwargs_types import ReferencedKwargs
 from fabricatio.utils import override_kwargs
 
@@ -62,3 +62,26 @@ class Censor(Correct, Check):
         if imp is None:
             return imp
         return await self.correct_string(input_text, imp, **kwargs)
+
+    async def censor_obj_inplace[M: ProposedUpdateAble](
+        self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
+    ) -> Optional[M]:
+        """Censors an object in-place based on the provided ruleset.
+
+        This method modifies the object directly if corrections are needed.
+
+        Args:
+            obj (M): The object to be censored.
+            ruleset (RuleSet): The ruleset to apply for censoring.
+            **kwargs: Additional keyword arguments to be passed to the check and correct methods.
+
+        Returns:
+            Optional[M]: The censored object if corrections were made, otherwise None.
+
+        Note:
+            This method first checks the object against the ruleset and then corrects it in-place if necessary.
+        """
+        imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
+        if imp is None:
+            return imp
+        return await self.correct_obj_inplace(obj, improvement=imp, **kwargs)
