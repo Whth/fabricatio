@@ -355,8 +355,6 @@ class FinalizedDumpAble(Base):
         return self
 
 
-class CensoredAble(ProposedAble, FinalizedDumpAble):
-    """Class that provides a method to censor the object."""
 
 
 class WithDependency(Base):
