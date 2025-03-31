@@ -138,6 +138,7 @@ class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
 
 
 class ReferencedKwargs[T](ValidateKwargs[T], total=False):
+    """Arguments for content review operations."""
     reference: str
 
 
