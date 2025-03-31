@@ -1,9 +1,4 @@
-"""Correct capability module providing advanced review and validation functionality.
-
-This module implements the Correct capability, which extends the Review functionality
-to provide mechanisms for reviewing, validating, and correcting various objects and tasks
-based on predefined criteria and templates.
-"""
+"""A module containing the Correct capability for reviewing, validating, and improving objects."""
 
 from typing import Optional, Type, Unpack, cast
 
@@ -21,22 +16,23 @@ from fabricatio.models.kwargs_types import (
     ValidateKwargs,
 )
 from fabricatio.utils import ok, override_kwargs
-from questionary import confirm, text
-from rich import print as rprint
 
 
 class Correct(Rating, Propose):
-    """Correct capability for reviewing, validating, and improving objects.
-
-    This class enhances the Review capability with specialized functionality for
-    correcting and improving objects based on review feedback. It can process
-    various inputs including tasks, strings, and generic objects that implement
-    the required interfaces, applying corrections based on templated review processes.
-    """
+    """A class that provides the capability to correct objects."""
 
     async def decide_solution(
         self, problem_solutions: ProblemSolutions, **kwargs: Unpack[BestKwargs]
     ) -> ProblemSolutions:
+        """Decide the best solution from a list of problem solutions.
+
+        Args:
+            problem_solutions (ProblemSolutions): The problem solutions to evaluate.
+            **kwargs (Unpack[BestKwargs]): Additional keyword arguments for the decision process.
+
+        Returns:
+            ProblemSolutions: The problem solutions with the best solution selected.
+        """
         if (leng := len(problem_solutions.solutions)) == 0:
             logger.error(f"No solutions found in ProblemSolutions, Skip: {problem_solutions.problem}")
         if leng > 1:
@@ -44,6 +40,15 @@ class Correct(Rating, Propose):
         return problem_solutions
 
     async def decide_improvement(self, improvement: Improvement, **kwargs: Unpack[BestKwargs]) -> Improvement:
+        """Decide the best solution for each problem solution in an improvement.
+
+        Args:
+            improvement (Improvement): The improvement containing problem solutions to evaluate.
+            **kwargs (Unpack[BestKwargs]): Additional keyword arguments for the decision process.
+
+        Returns:
+            Improvement: The improvement with the best solutions selected for each problem solution.
+        """
         if (leng := len(improvement.problem_solutions)) == 0:
             logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
         if leng > 1:
@@ -58,6 +63,17 @@ class Correct(Rating, Propose):
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> Optional[M]:
+        """Fix a troubled object based on problem solutions.
+
+        Args:
+            obj (M): The object to be fixed.
+            problem_solutions (ProblemSolutions): The problem solutions to apply.
+            reference (str): A reference or contextual information for the object.
+            **kwargs (Unpack[ValidateKwargs[M]]): Additional keyword arguments for the validation process.
+
+        Returns:
+            Optional[M]: The fixed object, or None if fixing fails.
+        """
         return await self.propose(
             cast("Type[M]", obj.__class__),
             TEMPLATE_MANAGER.render_template(
@@ -81,6 +97,17 @@ class Correct(Rating, Propose):
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
+        """Fix a troubled string based on problem solutions.
+
+        Args:
+            input_text (str): The string to be fixed.
+            problem_solutions (ProblemSolutions): The problem solutions to apply.
+            reference (str): A reference or contextual information for the string.
+            **kwargs (Unpack[ValidateKwargs[str]]): Additional keyword arguments for the validation process.
+
+        Returns:
+            Optional[str]: The fixed string, or None if fixing fails.
+        """
         return await self.ageneric_string(
             TEMPLATE_MANAGER.render_template(
                 configs.templates.fix_troubled_string_template,
@@ -113,7 +140,7 @@ class Correct(Rating, Propose):
             obj (M): The object to be reviewed and corrected. Must implement ProposedAble.
             improvement (Improvement): The improvement object containing the review results.
             reference (str): A reference or contextual information for the object.
-            **kwargs: Review configuration parameters including criteria and review options.
+            **kwargs (Unpack[ValidateKwargs[M]]): Review configuration parameters including criteria and review options.
 
         Returns:
             Optional[M]: A corrected version of the input object, or None if correction fails.
@@ -137,6 +164,20 @@ class Correct(Rating, Propose):
     async def correct_string(
         self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[str]:
+        """Review and correct a string based on defined criteria and templates.
+
+        This method first conducts a review of the given string, then uses the review results
+        to generate a corrected version of the string using appropriate templates.
+
+        Args:
+            input_text (str): The string to be reviewed and corrected.
+            improvement (Improvement): The improvement object containing the review results.
+            reference (str): A reference or contextual information for the string.
+            **kwargs (Unpack[ValidateKwargs[str]]): Review configuration parameters including criteria and review options.
+
+        Returns:
+            Optional[str]: A corrected version of the input string, or None if correction fails.
+        """
         if not improvement.decided():
             improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
@@ -155,37 +196,22 @@ class Correct(Rating, Propose):
 
         Args:
             obj (M): The object to be reviewed and corrected.
-            **kwargs (Unpack[CensoredCorrectKwargs]): Additional keyword
+            **kwargs (Unpack[CensoredCorrectKwargs[Improvement]]): Additional keyword arguments for the censoring and correction process.
 
         Returns:
             M: The censored and corrected object.
         """
-        last_modified_obj = obj
-        modified_obj = None
-        rprint(obj.finalized_dump())
-        while await confirm("Begin to correct obj above with human censorship?").ask_async():
-            while (topic := await text("What is the topic of the obj reviewing?").ask_async()) is not None and topic:
-                ...
-            if (
-                modified_obj := await self.correct_obj(
-                    last_modified_obj,
-                    topic=topic,
-                    **kwargs,
-                )
-            ) is None:
-                break
-            last_modified_obj = modified_obj
-            rprint(last_modified_obj.finalized_dump())
-        return modified_obj or last_modified_obj
+        # FIXME: Implement the censoring logic here.
+        raise NotImplementedError("Censoring logic is not implemented yet.")
 
     async def correct_obj_inplace[M: ProposedUpdateAble](
-        self, obj: M, **kwargs: Unpack[CorrectKwargs[Improvement]]
+        self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]
     ) -> Optional[M]:
         """Correct an object in place based on defined criteria and templates.
 
         Args:
             obj (M): The object to be corrected.
-            **kwargs (Unpack[CensoredCorrectKwargs]): Additional keyword arguments for the correction process.
+            **kwargs (Unpack[CorrectKwargs[M]]): Additional keyword arguments for the correction process.
 
         Returns:
             Optional[M]: The corrected object, or None if correction fails.
