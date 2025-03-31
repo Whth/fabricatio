@@ -5,20 +5,27 @@ to provide mechanisms for reviewing, validating, and correcting various objects 
 based on predefined criteria and templates.
 """
 
-from typing import Optional, Unpack, cast
+from typing import Optional, Type, Unpack, cast
 
 from fabricatio._rust_instances import TEMPLATE_MANAGER
-from fabricatio.capabilities.review import Review
+from fabricatio.capabilities.propose import Propose
+from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
-from fabricatio.models.extra.problem import Improvement
-from fabricatio.models.generic import CensoredAble, Display, ProposedAble, ProposedUpdateAble, WithBriefing
-from fabricatio.models.kwargs_types import CensoredCorrectKwargs, CorrectKwargs, ReviewKwargs
-from fabricatio.models.task import Task
+from fabricatio.journal import logger
+from fabricatio.models.extra.problem import Improvement, ProblemSolutions
+from fabricatio.models.generic import CensoredAble, ProposedUpdateAble, SketchedAble
+from fabricatio.models.kwargs_types import (
+    BestKwargs,
+    CensoredCorrectKwargs,
+    CorrectKwargs,
+    ValidateKwargs,
+)
+from fabricatio.utils import ok, override_kwargs
 from questionary import confirm, text
 from rich import print as rprint
 
 
-class Correct(Review):
+class Correct(Rating, Propose):
     """Correct capability for reviewing, validating, and improving objects.
 
     This class enhances the Review capability with specialized functionality for
@@ -27,12 +34,75 @@ class Correct(Review):
     the required interfaces, applying corrections based on templated review processes.
     """
 
-    async def correct_obj[M: ProposedAble](
+    async def decide_solution(
+        self, problem_solutions: ProblemSolutions, **kwargs: Unpack[BestKwargs]
+    ) -> ProblemSolutions:
+        if (leng := len(problem_solutions.solutions)) == 0:
+            logger.error(f"No solutions found in ProblemSolutions, Skip: {problem_solutions.problem}")
+        if leng > 1:
+            problem_solutions.solutions = await self.best(problem_solutions.solutions, **kwargs)
+        return problem_solutions
+
+    async def decide_improvement(self, improvement: Improvement, **kwargs: Unpack[BestKwargs]) -> Improvement:
+        if (leng := len(improvement.problem_solutions)) == 0:
+            logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
+        if leng > 1:
+            for ps in improvement.problem_solutions:
+                ps.solutions = await self.best(ps.solutions, **kwargs)
+        return improvement
+
+    async def fix_troubled_obj[M: SketchedAble](
         self,
         obj: M,
+        problem_solutions: ProblemSolutions,
         reference: str = "",
-        supervisor_check: bool = True,
-        **kwargs: Unpack[ReviewKwargs[Improvement]],
+        **kwargs: Unpack[ValidateKwargs[M]],
+    ) -> Optional[M]:
+        return await self.propose(
+            cast("Type[M]", obj.__class__),
+            TEMPLATE_MANAGER.render_template(
+                configs.templates.fix_troubled_obj_template,
+                {
+                    "problem": problem_solutions.problem,
+                    "solution": ok(
+                        problem_solutions.final_solution(),
+                        f"No solution found for problem: {problem_solutions.problem}",
+                    ),
+                    "reference": reference,
+                },
+            ),
+            **kwargs,
+        )
+
+    async def fix_troubled_string(
+        self,
+        input_text: str,
+        problem_solutions: ProblemSolutions,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> Optional[str]:
+        return await self.ageneric_string(
+            TEMPLATE_MANAGER.render_template(
+                configs.templates.fix_troubled_string_template,
+                {
+                    "problem": problem_solutions.problem,
+                    "solution": ok(
+                        problem_solutions.final_solution(),
+                        f"No solution found for problem: {problem_solutions.problem}",
+                    ),
+                    "reference": reference,
+                    "string_to_fix": input_text,
+                },
+            ),
+            **kwargs,
+        )
+
+    async def correct_obj[M: SketchedAble](
+        self,
+        obj: M,
+        improvement: Improvement,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> Optional[M]:
         """Review and correct an object based on defined criteria and templates.
 
@@ -41,8 +111,8 @@ class Correct(Review):
 
         Args:
             obj (M): The object to be reviewed and corrected. Must implement ProposedAble.
+            improvement (Improvement): The improvement object containing the review results.
             reference (str): A reference or contextual information for the object.
-            supervisor_check (bool, optional): Whether to perform a supervisor check on the review results. Defaults to True.
             **kwargs: Review configuration parameters including criteria and review options.
 
         Returns:
@@ -51,75 +121,36 @@ class Correct(Review):
         Raises:
             TypeError: If the provided object doesn't implement Display or WithBriefing interfaces.
         """
-        if not isinstance(obj, (Display, WithBriefing)):
-            raise TypeError(f"Expected Display or WithBriefing, got {type(obj)}")
+        if not improvement.decided():
+            improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
-        review_res = await self.review_obj(obj, **kwargs)
-        if supervisor_check:
-            await review_res.supervisor_check()
-        if "default" in kwargs:
-            cast("ReviewKwargs[None]", kwargs)["default"] = None
-        return await self.propose(
-            obj.__class__,
-            TEMPLATE_MANAGER.render_template(
-                configs.templates.correct_template,
-                {
-                    "content": f"{(reference + '\n\nAbove is referencing material') if reference else ''}{obj.display() if isinstance(obj, Display) else obj.briefing}",
-                    "review": review_res.display(),
-                },
-            ),
-            **kwargs,
-        )
+        for ps in improvement.problem_solutions:
+            fixed_obj = await self.fix_troubled_obj(obj, ps, reference, **kwargs)
+            if fixed_obj is None:
+                logger.error(
+                    f"Failed to fix troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem}",
+                )
+                return None
+            obj = fixed_obj
+        return obj
 
     async def correct_string(
-        self, input_text: str, supervisor_check: bool = True, **kwargs: Unpack[ReviewKwargs[Improvement]]
+        self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[str]:
-        """Review and correct a string based on defined criteria and templates.
+        if not improvement.decided():
+            improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
-        This method applies the review process to the input text and generates
-        a corrected version based on the review results.
+        for ps in improvement.problem_solutions:
+            fixed_string = await self.fix_troubled_string(input_text, ps, reference, **kwargs)
+            if fixed_string is None:
+                logger.error(
+                    f"Failed to fix troubling string when deal with problem: {ps.problem}",
+                )
+                return None
+            input_text = fixed_string
+        return input_text
 
-        Args:
-            input_text (str): The text content to be reviewed and corrected.
-            supervisor_check (bool, optional): Whether to perform a supervisor check on the review results. Defaults to True.
-            **kwargs: Review configuration parameters including criteria and review options.
-
-        Returns:
-            Optional[str]: The corrected text content, or None if correction fails.
-        """
-        review_res = await self.review_string(input_text, **kwargs)
-        if supervisor_check:
-            await review_res.supervisor_check()
-
-        if "default" in kwargs:
-            cast("ReviewKwargs[None]", kwargs)["default"] = None
-        return await self.ageneric_string(
-            TEMPLATE_MANAGER.render_template(
-                configs.templates.correct_template, {"content": input_text, "review": review_res.display()}
-            ),
-            **kwargs,
-        )
-
-    async def correct_task[T](
-        self, task: Task[T], **kwargs: Unpack[CorrectKwargs[Improvement]]
-    ) -> Optional[Task[T]]:
-        """Review and correct a task object based on defined criteria.
-
-        This is a specialized version of correct_obj specifically for Task objects,
-        applying the same review and correction process to task definitions.
-
-        Args:
-            task (Task[T]): The task to be reviewed and corrected.
-            **kwargs: Review configuration parameters including criteria and review options.
-
-        Returns:
-            Optional[Task[T]]: The corrected task, or None if correction fails.
-        """
-        return await self.correct_obj(task, **kwargs)
-
-    async def censor_obj[M: CensoredAble](
-        self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[Improvement]]
-    ) -> M:
+    async def censor_obj[M: CensoredAble](self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[Improvement]]) -> M:
         """Censor and correct an object based on defined criteria and templates.
 
         Args:
