@@ -4,8 +4,11 @@ from importlib.util import find_spec
 from typing import Any, Dict, List, Optional, Required, TypedDict
 
 from fabricatio.models.extra.problem import Improvement
+from fabricatio.models.extra.rule import RuleSet
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
+
+from fabricatio.models.generic import SketchedAble
 
 if find_spec("pymilvus"):
     from pymilvus import CollectionSchema
@@ -138,7 +141,7 @@ class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
     topic: Required[str]
 
 
-class CorrectKwargs[T](ReviewKwargs[T], total=False):
+class CorrectKwargs[T:SketchedAble](ValidateKwargs[T], total=False):
     """Arguments for content correction operations.
 
     Extends GenerateKwargs with parameters for correcting content based on
@@ -149,12 +152,19 @@ class CorrectKwargs[T](ReviewKwargs[T], total=False):
     improvement: Improvement
 
 
-class CensoredCorrectKwargs[T](ReviewInnerKwargs[T], total=False):
-    """Arguments for content censorship operations."""
+class CheckKwargs(ValidateKwargs[Improvement], total=False):
+    """Arguments for content checking operations.
 
-    improvement: Improvement
+    Extends GenerateKwargs with parameters for checking content against
+    specific criteria and templates.
+    """
 
+    ruleset: RuleSet
     reference: str
+
+
+class CensorKwargs[T](CorrectKwargs[T], total=False):
+    """Arguments for content censorship operations."""
 
 
 # noinspection PyTypedDict
