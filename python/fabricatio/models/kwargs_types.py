@@ -111,6 +111,10 @@ class CompositeScoreKwargs(ValidateKwargs[List[Dict[str,float]]], total=False):
     weights: Dict[str, float]
     manual: Dict[str, str]
 
+class BestKwargs(CompositeScoreKwargs, total=False):
+    """Arguments for choose top-k operations."""
+    k:int
+
 
 class ReviewInnerKwargs[T](ValidateKwargs[T], total=False):
     """Arguments for content review operations."""
@@ -138,7 +142,6 @@ class CorrectKwargs[T](ReviewKwargs[T], total=False):
     """
 
     reference: str
-    supervisor_check: bool
 
 
 class CensoredCorrectKwargs[T](ReviewInnerKwargs[T], total=False):
