@@ -80,7 +80,7 @@ class Named(Base):
     This class adds a name attribute to models, which is intended to be a unique identifier.
     """
 
-    name: str = Field(frozen=True)
+    name: str
     """The name of the object."""
 
 
@@ -90,7 +90,7 @@ class Described(Base):
     This class adds a description attribute to models, providing additional context or information.
     """
 
-    description: str = Field(frozen=True)
+    description: str
     """The description of the object."""
 
 
