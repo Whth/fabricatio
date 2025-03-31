@@ -4,6 +4,8 @@ from asyncio import gather
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
+from more_itertools import filter_map
+
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.correct import Correct
 from fabricatio.capabilities.propose import Propose
@@ -19,7 +21,6 @@ from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.task import Task
 from fabricatio.rust import BibManager
 from fabricatio.utils import ok
-from more_itertools import filter_map
 
 
 class ExtractArticleEssence(Action, Propose):

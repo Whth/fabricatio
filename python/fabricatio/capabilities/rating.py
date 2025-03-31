@@ -4,6 +4,9 @@ from itertools import permutations
 from random import sample
 from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
+from more_itertools import flatten, windowed
+from pydantic import NonNegativeInt, PositiveInt
+
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.generic import Display
@@ -12,8 +15,6 @@ from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok, override_kwargs
-from more_itertools import flatten, windowed
-from pydantic import NonNegativeInt, PositiveInt
 
 
 class Rating(LLMUsage):

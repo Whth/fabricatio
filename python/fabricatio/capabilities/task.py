@@ -4,6 +4,7 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
+
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger

@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, Set, Unpack
 
-from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, fs_toolbox, logger
+from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, logger, toolboxes
 from pydantic import Field
 
 
@@ -23,7 +23,7 @@ class WriteCode(Action):
 class DumpText(Action):
     """Dump the text to a file."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
+    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Any:

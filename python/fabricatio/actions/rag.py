@@ -2,12 +2,13 @@
 
 from typing import List, Optional
 
+from questionary import text
+
 from fabricatio.capabilities.rag import RAG
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import Vectorizable
 from fabricatio.models.task import Task
-from questionary import text
 
 
 class InjectToDB(Action, RAG):

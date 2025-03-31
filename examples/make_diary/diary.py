@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import Optional, Set, Unpack
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, fs_toolbox, logger
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger, toolboxes
 from fabricatio.fs.readers import safe_json_read
 from fabricatio.models.tool import ToolBox
 from pydantic import Field
@@ -48,7 +48,7 @@ class WriteDiary(Action):
 class DumpText(Action):
     """Dump the text to a file."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
+    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Optional[str]:

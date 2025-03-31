@@ -2,7 +2,8 @@
 
 import asyncio
 
-from fabricatio import Event, Role, WriteOutlineWorkFlow, logger
+from fabricatio import Event, Role, logger
+from fabricatio.workflows.articles import WriteOutlineCorrectedWorkFlow
 
 
 async def main() -> None:
@@ -10,7 +11,7 @@ async def main() -> None:
     role = Role(
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",
-        registry={Event.quick_instantiate(ns := "article"): WriteOutlineWorkFlow},
+        registry={Event.quick_instantiate(ns := "article"): WriteOutlineCorrectedWorkFlow},
     )
 
     proposed_task = await role.propose_task(
