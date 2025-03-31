@@ -244,6 +244,12 @@ class TemplateConfig(BaseModel):
     ruleset_requirement_breakdown_template: str = Field(default="ruleset_requirement_breakdown")
     """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
 
+    fix_troubled_obj_template: str = Field(default="fix_troubled_obj")
+    """The name of the fix troubled object template which will be used to fix a troubled object."""
+
+    fix_troubled_string_template: str = Field(default="fix_troubled_string")
+    """The name of the fix troubled string template which will be used to fix a troubled string."""
+
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 
