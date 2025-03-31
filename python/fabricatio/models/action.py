@@ -15,6 +15,10 @@ from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
 from pydantic import Field, PrivateAttr
 
+OUTPUT_KEY = "task_output"
+
+INPUT_KEY = "task_input"
+
 
 class Action(WithBriefing, LLMUsage):
     """Class that represents an action to be executed in a workflow.
@@ -88,6 +92,10 @@ class Action(WithBriefing, LLMUsage):
             return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
         return f"# The action you are going to perform: \n{super().briefing}"
 
+    def to_task_output(self)->Self:
+        """Set the output key to OUTPUT_KEY and return the action instance."""
+        self.output_key=OUTPUT_KEY
+        return self
 
 class WorkFlow(WithBriefing, ToolBoxUsage):
     """Class that represents a sequence of actions to be executed for a task.
@@ -110,10 +118,10 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     )
     """The sequence of actions to be executed, can be action classes or instances."""
 
-    task_input_key: str = Field(default="task_input")
+    task_input_key: str = Field(default=INPUT_KEY)
     """Key used to store the input task in the context dictionary."""
 
-    task_output_key: str = Field(default="task_output")
+    task_output_key: str = Field(default=OUTPUT_KEY)
     """Key used to extract the final result from the context dictionary."""
 
     extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)

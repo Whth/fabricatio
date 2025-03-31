@@ -57,7 +57,8 @@ class Check(AdvancedJudge, Propose):
         ruleset_patch = await self.propose(
             BriefingPatch,
             f"# Rules Requirements\n{rule_reqs}\n# Generated Rules\n{Display.seq_display(rules)}\n\n"
-            f"You need to write a concise and detailed patch for this ruleset that can be applied to the ruleset nicely",
+            f"You need to write a concise and detailed patch for this ruleset that can be applied to the ruleset nicely.\n"
+            f"Note that all fields in this patch will be directly copied to the ruleset obj, including `name` and `description`, so write when knowing the subject.\n",
             **override_kwargs(kwargs, default=None),
         )
 
