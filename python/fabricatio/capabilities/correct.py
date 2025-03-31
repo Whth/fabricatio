@@ -8,10 +8,9 @@ from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.extra.problem import Improvement, ProblemSolutions
-from fabricatio.models.generic import CensoredAble, ProposedUpdateAble, SketchedAble
+from fabricatio.models.generic import ProposedUpdateAble, SketchedAble
 from fabricatio.models.kwargs_types import (
     BestKwargs,
-    CensoredCorrectKwargs,
     CorrectKwargs,
     ValidateKwargs,
 )
@@ -190,19 +189,6 @@ class Correct(Rating, Propose):
                 return None
             input_text = fixed_string
         return input_text
-
-    async def censor_obj[M: CensoredAble](self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[Improvement]]) -> M:
-        """Censor and correct an object based on defined criteria and templates.
-
-        Args:
-            obj (M): The object to be reviewed and corrected.
-            **kwargs (Unpack[CensoredCorrectKwargs[Improvement]]): Additional keyword arguments for the censoring and correction process.
-
-        Returns:
-            M: The censored and corrected object.
-        """
-        # FIXME: Implement the censoring logic here.
-        raise NotImplementedError("Censoring logic is not implemented yet.")
 
     async def correct_obj_inplace[M: ProposedUpdateAble](
         self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]
