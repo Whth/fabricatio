@@ -1,8 +1,9 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
 from importlib.util import find_spec
-from typing import Any, Dict, List, Required, TypedDict
+from typing import Any, Dict, List, Optional, Required, TypedDict
 
+from fabricatio.models.extra.problem import Improvement
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
 
@@ -95,25 +96,28 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     such as limiting the number of validation attempts.
     """
 
-    default: T
+    default: Optional[T]
     max_validations: int
     co_extractor: GenerateKwargs
 
-class CompositeScoreKwargs(ValidateKwargs[List[Dict[str,float]]], total=False):
+
+class CompositeScoreKwargs(ValidateKwargs[List[Dict[str, float]]], total=False):
     """Arguments for composite score generation operations.
 
     Extends GenerateKwargs with parameters for generating composite scores
     based on specific criteria and weights.
     """
 
-    topic:str
+    topic: str
     criteria: set[str]
     weights: Dict[str, float]
     manual: Dict[str, str]
 
+
 class BestKwargs(CompositeScoreKwargs, total=False):
     """Arguments for choose top-k operations."""
-    k:int
+
+    k: int
 
 
 class ReviewInnerKwargs[T](ValidateKwargs[T], total=False):
@@ -142,13 +146,15 @@ class CorrectKwargs[T](ReviewKwargs[T], total=False):
     """
 
     reference: str
+    improvement: Improvement
 
 
 class CensoredCorrectKwargs[T](ReviewInnerKwargs[T], total=False):
     """Arguments for content censorship operations."""
 
+    improvement: Improvement
+
     reference: str
-    supervisor_check: bool
 
 
 # noinspection PyTypedDict
