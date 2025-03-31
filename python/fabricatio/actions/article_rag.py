@@ -1,59 +1,86 @@
 """A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
 
 from asyncio import gather
-from typing import Dict, Optional
+from typing import Optional
 
+from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
 from fabricatio.models.extra.article_main import Article, ArticleParagraphSequencePatch, ArticleSubsection
+from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ok
 
 
-class TweakArticleRAG(Action, RAG):
-    """Write an article based on the provided outline."""
+class TweakArticleRAG(Action, RAG, Censor):
+    """Write an article based on the provided outline.
+
+    This class inherits from `Action`, `RAG`, and `Censor` to provide capabilities for writing and refining articles
+    using Retrieval-Augmented Generation (RAG) techniques. It processes an article outline, enhances subsections by
+    searching for related references, and applies censoring rules to ensure compliance with the provided ruleset.
+
+    Attributes:
+        output_key (str): The key used to store the output of the action.
+        ruleset (Optional[RuleSet]): The ruleset to be used for censoring the article.
+    """
 
     output_key: str = "rag_tweaked_article"
+    """The key used to store the output of the action."""
+
+    ruleset: Optional[RuleSet] = None
+    """The ruleset to be used for censoring the article."""
 
     async def _execute(
         self,
         article: Article,
         collection_name: str = "article_essence",
-        citation_requirement: str = "Prioritize formulas from reference highlights."
-        "Specify authors/years only."
-        "You can create numeric citation numbers for article whose `bibtex_cite_key` is 'wangWind2024' by using notation like `#cite(<wangWind2024>)`."
-        "Paragraphs must exceed 2-3 sentences",
-        supervisor_check: bool = False,
+        ruleset: Optional[RuleSet] = None,
         parallel: bool = False,
         **cxt,
     ) -> Optional[Article]:
-        """Write an article based on the provided outline."""
-        criteria = await self.draft_rating_criteria(topic := citation_requirement, criteria_count=8)
+        """Write an article based on the provided outline.
 
-        tweak_manual = ok(await self.draft_rating_manual(topic, criteria=criteria))
+        This method processes the article outline, either in parallel or sequentially, by enhancing each subsection
+        with relevant references and applying censoring rules.
+
+        Args:
+            article (Article): The article to be processed.
+            collection_name (str): The name of the collection to view for processing.
+            ruleset (Optional[RuleSet]): The ruleset to apply for censoring. If not provided, the class's ruleset is used.
+            parallel (bool): If True, process subsections in parallel. Otherwise, process them sequentially.
+            **cxt: Additional context parameters.
+
+        Returns:
+            Optional[Article]: The processed article with enhanced subsections and applied censoring rules.
+        """
         self.view(collection_name)
 
         if parallel:
             await gather(
                 *[
-                    self._inner(article, subsec, supervisor_check, citation_requirement, topic, tweak_manual)
+                    self._inner(article, subsec, ok(ruleset or self.ruleset, "No ruleset provided!"))
                     for _, __, subsec in article.iter_subsections()
                 ],
                 return_exceptions=True,
             )
         else:
             for _, __, subsec in article.iter_subsections():
-                await self._inner(article, subsec, supervisor_check, citation_requirement, topic, tweak_manual)
+                await self._inner(article, subsec, ok(ruleset or self.ruleset, "No ruleset provided!"))
         return article
 
-    async def _inner(
-        self,
-        article: Article,
-        subsec: ArticleSubsection,
-        supervisor_check: bool,
-        citation_requirement: str,
-        topic: str,
-        tweak_manual: Dict[str, str],
-    ) -> None:
+    async def _inner(self, article: Article, subsec: ArticleSubsection, ruleset: RuleSet) -> None:
+        """Enhance a subsection of the article with references and apply censoring rules.
+
+        This method refines the query for the subsection, retrieves related references, and applies censoring rules
+        to the subsection's paragraphs.
+
+        Args:
+            article (Article): The article containing the subsection.
+            subsec (ArticleSubsection): The subsection to be enhanced.
+            ruleset (RuleSet): The ruleset to apply for censoring.
+
+        Returns:
+            None
+        """
         refind_q = ok(
             await self.arefined_query(
                 f"{article.referenced.as_prompt()}\n"
@@ -66,10 +93,8 @@ class TweakArticleRAG(Action, RAG):
         )
         patch = ArticleParagraphSequencePatch.default()
         patch.tweaked = subsec.paragraphs
-        await self.correct_obj_inplace(
+        await self.censor_obj_inplace(
             patch,
-            reference=f"{await self.aretrieve_compact(refind_q, final_limit=30)}\n{citation_requirement}",
-            topic=topic,
-            rating_manual=tweak_manual,
-            supervisor_check=supervisor_check,
+            ruleset=ruleset,
+            reference=await self.aretrieve_compact(refind_q, final_limit=30),
         )
