@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
+from fabricatio.models.generic import Display
 from fabricatio.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
@@ -357,7 +358,16 @@ class Rating(LLMUsage):
 
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
 
-    async def best(self, k: int, candidates: List[str], **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]:
+    @overload
+    async def best(self, candidates: List[str], k: int, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
+    @overload
+    async def best[T: Display](
+        self, candidates: List[T], k: int, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> List[T]: ...
+
+    async def best[T: Display](
+        self, candidates: List[str] | List[T], k: int, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> Optional[List[str] | List[T]]:
         """Choose the best candidates from the list of candidates based on the composite score.
 
         Args:
@@ -368,5 +378,16 @@ class Rating(LLMUsage):
         Returns:
             List[str]: The best candidates.
         """
-        rating_seq = await self.composite_score(to_rate=candidates, **kwargs)
-        return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]
+        if (leng := len(candidates)) == 0:
+            logger.warning(f"No candidates, got {leng}, return None.")
+            return None
+
+        if leng == 1:
+            logger.warning(f"Only one candidate, got {leng}, return it.")
+            return candidates
+        logger.info(f"Choose best {k} from {leng} candidates.")
+
+        rating_seq = await self.composite_score(
+            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], **kwargs
+        )
+        return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]  # pyright: ignore [reportReturnType]

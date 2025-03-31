@@ -323,6 +323,10 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
     """Class that provides a method to propose a JSON object based on the requirement."""
 
 
+class SketchedAble(ProposedAble, Display):
+    """Class that provides a method to scratch the object."""
+
+
 class ProposedUpdateAble(ProposedAble, UpdateFrom, ABC):
     """Make the obj can be updated from the proposed obj in place."""
 
