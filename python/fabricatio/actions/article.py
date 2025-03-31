@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional
 
 from fabricatio._rust import BibManager
-from fabricatio.capabilities.advanced_judge import AdvancedJudge
+from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.correct import Correct
 from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
@@ -16,6 +16,7 @@ from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
+from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
 from more_itertools import filter_map
@@ -155,35 +156,29 @@ class GenerateInitialOutline(Action, Propose):
         ).update_ref(article_proposal)
 
 
-class FixIntrospectedErrors(Action, Correct):
+class FixIntrospectedErrors(Action, Censor):
     """Fix introspected errors in the article outline."""
 
     output_key: str = "introspected_errors_fixed_outline"
     """The key of the output data."""
 
+    ruleset: Optional[RuleSet] = None
+    """The ruleset to use to fix the introspected errors."""
+
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        supervisor_check: bool = False,
+        ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        introspect_manual = ok(
-            await self.draft_rating_manual(
-                topic=(intro_topic := "Article got some errors that need to be fixed, like content missing, etc."),
-            ),
-            "Could not generate the rating manual.",
-        )
-
         while pack := article_outline.find_introspected():
             component, err = ok(pack)
             logger.warning(f"Found introspected error: {err}")
             corrected = ok(
-                await self.correct_obj(
+                await self.censor_obj(
                     component,
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
-                    topic=intro_topic,
-                    rating_manual=introspect_manual,
-                    supervisor_check=supervisor_check,
+                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Some Basic errors found from `{component.title}` that need to be fixed\n{err}",
                 ),
                 "Could not correct the component.",
             )
@@ -192,38 +187,29 @@ class FixIntrospectedErrors(Action, Correct):
         return article_outline
 
 
-class FixIllegalReferences(Action, Correct):
+class FixIllegalReferences(Action, Censor):
     """Fix illegal references in the article outline."""
 
     output_key: str = "illegal_references_fixed_outline"
     """The key of the output data."""
 
+    ruleset: Optional[RuleSet] = None
+    """Ruleset to use to fix the illegal references."""
+
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        supervisor_check: bool = False,
+        ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        ref_manual = ok(
-            await self.draft_rating_manual(
-                topic=(
-                    ref_topic
-                    := "Fix the internal referring error, make sure there is no more `ArticleRef` pointing to a non-existing article component when following the appropriate referring logic."
-                ),
-            ),
-            "Could not generate the rating manual.",
-        )
-
         while pack := article_outline.find_illegal_ref(gather_identical=True):
             refs, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
             corrected_ref = ok(
-                await self.correct_obj(
+                await self.censor_obj(
                     refs[0],  # pyright: ignore [reportIndexIssue]
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
-                    topic=ref_topic,
-                    rating_manual=ref_manual,
-                    supervisor_check=supervisor_check,
+                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Some Basic errors found that need to be fixed\n{err}",
                 )
             )
             for ref in refs:
@@ -232,29 +218,26 @@ class FixIllegalReferences(Action, Correct):
         return article_outline.update_ref(article_outline)
 
 
-class TweakOutlineForwardRef(Action, AdvancedJudge, Correct):
+class TweakOutlineForwardRef(Action, Censor):
     """Tweak the forward references in the article outline.
 
     Ensures that the conclusions of the current chapter effectively support the analysis of subsequent chapters.
     """
 
     output_key: str = "article_outline_fw_ref_checked"
+    ruleset: Optional[RuleSet] = None
+    """Ruleset to use to fix the illegal references."""
 
-    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
+    async def _execute(
+        self, article_outline: ArticleOutline, ruleset: Optional[RuleSet] = None, **cxt
+    ) -> ArticleOutline:
         return await self._inner(
             article_outline,
-            supervisor_check,
-            topic="Ensure conclusions support the analysis of subsequent chapters, sections or subsections.",
+            ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
             field_name="support_to",
         )
 
-    async def _inner(
-        self, article_outline: ArticleOutline, supervisor_check: bool, topic: str, field_name: str
-    ) -> ArticleOutline:
-        tweak_support_to_manual = ok(
-            await self.draft_rating_manual(topic),
-            "Could not generate the rating manual.",
-        )
+    async def _inner(self, article_outline: ArticleOutline, ruleset: RuleSet, field_name: str) -> ArticleOutline:
         for a in article_outline.iter_dfs():
             if judge := await self.evidently_judge(
                 f"{article_outline.as_prompt()}\n\n{a.display()}\n"
@@ -263,13 +246,12 @@ class TweakOutlineForwardRef(Action, AdvancedJudge, Correct):
                 patch = ArticleRefSequencePatch.default()
                 patch.tweaked = getattr(a, field_name)
 
-                await self.correct_obj_inplace(
+                await self.censor_obj_inplace(
                     patch,
-                    topic=topic,
-                    reference=f"{article_outline.as_prompt()}\nThe Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
+                    ruleset=ruleset,
+                    reference=f"{article_outline.as_prompt()}\n"
+                    f"The Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
                     f"# Judgement\n{judge.display()}",
-                    rating_manual=tweak_support_to_manual,
-                    supervisor_check=supervisor_check,
                 )
         return article_outline
 
@@ -281,44 +263,41 @@ class TweakOutlineBackwardRef(TweakOutlineForwardRef):
     """
 
     output_key: str = "article_outline_bw_ref_checked"
+    ruleset: Optional[RuleSet] = None
 
-    async def _execute(self, article_outline: ArticleOutline, supervisor_check: bool = False, **cxt) -> ArticleOutline:
+    async def _execute(
+        self, article_outline: ArticleOutline, ruleset: Optional[RuleSet] = None, **cxt
+    ) -> ArticleOutline:
         return await self._inner(
             article_outline,
-            supervisor_check,
-            topic="Ensure the dependencies of the current chapter are neither abused nor missing.",
+            ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
             field_name="depend_on",
         )
 
 
-class GenerateArticle(Action, Correct):
+class GenerateArticle(Action, Censor):
     """Generate the article based on the outline."""
 
     output_key: str = "article"
     """The key of the output data."""
+    ruleset: Optional[RuleSet] = None
 
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        supervisor_check: bool = False,
+        ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[Article]:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
             article_outline
         )
 
-        write_para_manual = ok(
-            await self.draft_rating_manual(w_topic := "write the following paragraph in the subsection.")
-        )
-
         await gather(
             *[
-                self.correct_obj_inplace(
+                self.censor_obj_inplace(
                     subsec,
+                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
-                    topic=w_topic,
-                    rating_manual=write_para_manual,
-                    supervisor_check=supervisor_check,
                 )
                 for _, __, subsec in article.iter_subsections()
                 if (err := subsec.introspect())
@@ -329,15 +308,13 @@ class GenerateArticle(Action, Correct):
         return article
 
 
-class CorrectProposal(Action, Correct):
+class CorrectProposal(Action, Censor):
     """Correct the proposal of the article."""
 
     output_key: str = "corrected_proposal"
 
     async def _execute(self, article_proposal: ArticleProposal, **_) -> Any:
-        return (await self.censor_obj(article_proposal, reference=article_proposal.referenced)).update_ref(
-            article_proposal
-        )
+        raise  NotImplementedError("Not implemented.")
 
 
 class CorrectOutline(Action, Correct):
@@ -351,9 +328,7 @@ class CorrectOutline(Action, Correct):
         article_outline: ArticleOutline,
         **_,
     ) -> ArticleOutline:
-        return (await self.censor_obj(article_outline, reference=article_outline.referenced.as_prompt())).update_ref(
-            article_outline
-        )
+        raise NotImplementedError("Not implemented.")
 
 
 class CorrectArticle(Action, Correct):
@@ -368,4 +343,4 @@ class CorrectArticle(Action, Correct):
         article_outline: ArticleOutline,
         **_,
     ) -> Article:
-        return await self.censor_obj(article, reference=article_outline.referenced.as_prompt())
+        raise NotImplementedError("Not implemented.")
