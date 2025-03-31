@@ -2,7 +2,7 @@
 
 import traceback
 from asyncio import gather
-from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set, Type, Union, Unpack, overload
+from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set, Union, Unpack, overload
 
 import asyncstdlib
 import litellm
@@ -52,10 +52,6 @@ class LLMUsage(ScopedConfig):
         """Add a deployment to the router."""
         self._added_deployment = ROUTER.upsert_deployment(deployment)
         return ROUTER
-
-    @classmethod
-    def _scoped_model(cls) -> Type["LLMUsage"]:
-        return LLMUsage
 
     # noinspection PyTypeChecker,PydanticTypeChecker
     async def aquery(
