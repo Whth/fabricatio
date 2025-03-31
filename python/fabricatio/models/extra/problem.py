@@ -2,13 +2,13 @@
 
 from typing import List, Literal, Self
 
-from fabricatio.models.generic import Display, ProposedAble, ProposedUpdateAble, WithBriefing
+from fabricatio.models.generic import SketchedAble, WithBriefing
 from fabricatio.utils import ask_edit
 from questionary import Choice, checkbox, text
 from rich import print as r_print
 
 
-class Problem(ProposedAble, WithBriefing, Display):
+class Problem(SketchedAble, WithBriefing):
     """Represents a problem identified during review."""
 
     description: str
@@ -27,8 +27,11 @@ class Problem(ProposedAble, WithBriefing, Display):
     """Recommended solution or action."""
 
 
-class Solution(ProposedAble, WithBriefing, Display):
+class Solution(SketchedAble, WithBriefing):
     """Represents a proposed solution to a problem."""
+
+    description: str
+    """Description of the solution, including a detailed description of the execution steps, and the mechanics, principle or fact."""
 
     execute_steps: List[str]
     """A list of steps to execute to implement the solution, which is expected to be able to finally solve the corresponding problem."""
@@ -40,7 +43,7 @@ class Solution(ProposedAble, WithBriefing, Display):
     """Impact level of the solution."""
 
 
-class ProblemSolutions(ProposedUpdateAble):
+class ProblemSolutions(SketchedAble):
     """Represents a problem-solution pair identified during a review process."""
 
     problem: Problem
@@ -79,9 +82,10 @@ class ProblemSolutions(ProposedUpdateAble):
         return self
 
 
-class Improvement(ProposedAble, Display):
+class Improvement(SketchedAble):
     """A class representing an improvement suggestion."""
-    focused_on:str
+
+    focused_on: str
     """The focused on topic of the improvement"""
 
     problem_solutions: List[ProblemSolutions]
