@@ -1,7 +1,8 @@
 """A class representing a problem-solution pair identified during a review process."""
 
-from typing import List, Literal, Self
+from typing import List, Literal, Optional, Self
 
+from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
 from fabricatio.utils import ask_edit
 from questionary import Choice, checkbox, text
@@ -81,6 +82,19 @@ class ProblemSolutions(SketchedAble):
         self.solutions = [Solution.model_validate_strings(s) for s in string_seq]
         return self
 
+    def decided(self) -> bool:
+        """Check if the improvement is decided."""
+        return len(self.solutions) == 1
+
+    def final_solution(self) -> Optional[Solution]:
+        """Get the final solution."""
+        if not self.decided():
+            logger.error(
+                f"There is more than one solution for problem {self.problem.name}, please decide which solution is eventually adopted."
+            )
+            return None
+        return self.solutions[0]
+
 
 class Improvement(SketchedAble):
     """A class representing an improvement suggestion."""
@@ -124,3 +138,7 @@ class Improvement(SketchedAble):
             await to_exam.edit_solutions()
 
         return self
+
+    def decided(self) -> bool:
+        """Check if the improvement is decided."""
+        return all(ps.decided() for ps in self.problem_solutions)
