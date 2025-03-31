@@ -1,3 +1,4 @@
+"""A module containing kwargs types for content correction and checking operations."""
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.generic import SketchedAble
