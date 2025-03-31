@@ -7,11 +7,11 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
 from fabricatio.journal import logger
+from fabricatio.models.adv_kwargs_types import CorrectKwargs
 from fabricatio.models.extra.problem import Improvement, ProblemSolutions
 from fabricatio.models.generic import ProposedUpdateAble, SketchedAble
 from fabricatio.models.kwargs_types import (
     BestKwargs,
-    CorrectKwargs,
     ValidateKwargs,
 )
 from fabricatio.utils import ok, override_kwargs
