@@ -3,7 +3,7 @@
 try:
     from pymilvus import MilvusClient
 except ImportError as e:
-    raise RuntimeError("pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`") from e
+    raise RuntimeError("pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`?") from e
 from functools import lru_cache
 from operator import itemgetter
 from os import PathLike
