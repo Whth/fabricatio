@@ -1,37 +1,64 @@
-from typing import Optional, Type, Unpack, cast
+"""Module for censoring objects and strings based on provided rulesets.
 
-from fabricatio._rust_instances import TEMPLATE_MANAGER
+This module includes the Censor class which inherits from both Correct and Check classes.
+It provides methods to censor objects and strings by first checking them against a ruleset and then correcting them if necessary.
+"""
+
+from typing import Optional, Unpack
+
 from fabricatio.capabilities.check import Check
 from fabricatio.capabilities.correct import Correct
-from fabricatio.capabilities.propose import Propose
-from fabricatio.capabilities.rating import Rating
-from fabricatio.config import configs
-from fabricatio.journal import logger
-from fabricatio.models.extra.problem import Improvement, ProblemSolutions
-from fabricatio.models.generic import CensoredAble, ProposedUpdateAble, SketchedAble
-from fabricatio.models.kwargs_types import (
-    BestKwargs,
-    CensoredCorrectKwargs,
-    CorrectKwargs,
-    ValidateKwargs,
-)
-from fabricatio.utils import ok, override_kwargs
+from fabricatio.models.extra.rule import RuleSet
+from fabricatio.models.generic import SketchedAble
+from fabricatio.models.kwargs_types import ReferencedKwargs
+from fabricatio.utils import override_kwargs
 
 
+class Censor(Correct, Check):
+    """Class to censor objects and strings based on provided rulesets.
 
-class Censor(Correct,Rating,Check):
+    Inherits from both Correct and Check classes.
+    Provides methods to censor objects and strings by first checking them against a ruleset and then correcting them if necessary.
+    """
 
-
-
-    async def censor_obj[M: CensoredAble](self, obj: M, **kwargs: Unpack[CensoredCorrectKwargs[Improvement]]) -> M:
-        """Censor and correct an object based on defined criteria and templates.
+    async def censor_obj[M: SketchedAble](
+        self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
+    ) -> Optional[M]:
+        """Censors an object based on the provided ruleset.
 
         Args:
-            obj (M): The object to be reviewed and corrected.
-            **kwargs (Unpack[CensoredCorrectKwargs[Improvement]]): Additional keyword arguments for the censoring and correction process.
+            obj (M): The object to be censored.
+            ruleset (RuleSet): The ruleset to apply for censoring.
+            **kwargs: Additional keyword arguments to be passed to the check and correct methods.
 
         Returns:
-            M: The censored and corrected object.
+            Optional[M]: The censored object if corrections were made, otherwise None.
+
+        Note:
+            This method first checks the object against the ruleset and then corrects it if necessary.
         """
-        # FIXME: Implement the censoring logic here.
-        raise NotImplementedError("Censoring logic is not implemented yet.")
+        imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
+        if imp is None:
+            return imp
+        return await self.correct_obj(obj, imp, **kwargs)
+
+    async def censor_string(
+        self, input_text: str, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[str]]
+    ) -> Optional[str]:
+        """Censors a string based on the provided ruleset.
+
+        Args:
+            input_text (str): The string to be censored.
+            ruleset (RuleSet): The ruleset to apply for censoring.
+            **kwargs: Additional keyword arguments to be passed to the check and correct methods.
+
+        Returns:
+            Optional[str]: The censored string if corrections were made, otherwise None.
+
+        Note:
+            This method first checks the string against the ruleset and then corrects it if necessary.
+        """
+        imp = await self.check_string(input_text, ruleset, **override_kwargs(kwargs, default=None))
+        if imp is None:
+            return imp
+        return await self.correct_string(input_text, imp, **kwargs)
