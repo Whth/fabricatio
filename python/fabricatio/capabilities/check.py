@@ -70,6 +70,7 @@ class Check(AdvancedJudge, Propose):
         self,
         input_text: str,
         rule: Rule,
+        reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate text against specific rule.
@@ -77,6 +78,7 @@ class Check(AdvancedJudge, Propose):
         Args:
             input_text (str): Text content to validate
             rule (Rule): Rule instance for validation
+            reference (str): Reference text for comparison (default: "")
             **kwargs: Configuration for validation process
 
         Returns:
@@ -95,7 +97,7 @@ class Check(AdvancedJudge, Propose):
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.check_string_template,
-                    {"to_check": input_text, "rule": rule, "judge": judge.display()},
+                    {"to_check": input_text, "rule": rule, "judge": judge.display(),"reference":reference},
                 ),
                 **kwargs,
             )
@@ -105,6 +107,7 @@ class Check(AdvancedJudge, Propose):
         self,
         obj: M,
         rule: Rule,
+        reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate object against rule using text representation.
@@ -112,6 +115,7 @@ class Check(AdvancedJudge, Propose):
         Args:
             obj (M): Object implementing Display/WithBriefing interface
             rule (Rule): Validation rule
+            reference (str): Reference text for comparison (default: "")
             **kwargs: Validation configuration parameters
 
         Returns:
@@ -129,12 +133,13 @@ class Check(AdvancedJudge, Propose):
         else:
             raise TypeError("obj must be either Display or WithBriefing")
 
-        return await self.check_string_against_rule(input_text, rule, **kwargs)
+        return await self.check_string_against_rule(input_text, rule,reference, **kwargs)
 
     async def check_string(
         self,
         input_text: str,
         ruleset: RuleSet,
+        reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate text against full ruleset.
@@ -142,6 +147,7 @@ class Check(AdvancedJudge, Propose):
         Args:
             input_text (str): Text content to validate
             ruleset (RuleSet): Collection of validation rules
+            reference (str): Reference text for comparison
             **kwargs: Validation configuration parameters
 
         Returns:
@@ -153,7 +159,7 @@ class Check(AdvancedJudge, Propose):
             - Maintains rule execution order from ruleset.rules list
         """
         for rule in ruleset.rules:
-            improvement = await self.check_string_against_rule(input_text, rule, **kwargs)
+            improvement = await self.check_string_against_rule(input_text, rule,reference, **kwargs)
             if improvement:
                 return improvement
         return None
@@ -162,6 +168,7 @@ class Check(AdvancedJudge, Propose):
         self,
         obj: M,
         ruleset: RuleSet,
+        reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate object against full ruleset.
@@ -169,6 +176,7 @@ class Check(AdvancedJudge, Propose):
         Args:
             obj (M): Object implementing Display/WithBriefing interface
             ruleset (RuleSet): Collection of validation rules
+            reference (str): Reference text for comparison (default: "")
             **kwargs: Validation configuration parameters
 
         Returns:
@@ -180,7 +188,7 @@ class Check(AdvancedJudge, Propose):
             - Validates object through text conversion mechanism
         """
         for rule in ruleset.rules:
-            improvement = await self.check_obj_against_rule(obj, rule, **kwargs)
+            improvement = await self.check_obj_against_rule(obj, rule,reference, **kwargs)
             if improvement:
                 return improvement
         return None
