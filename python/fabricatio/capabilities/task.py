@@ -4,7 +4,6 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import orjson
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -13,6 +12,7 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 
 
 class ProposeTask(Propose):

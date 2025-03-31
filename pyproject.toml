@@ -57,7 +57,7 @@ build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
-module-name = "fabricatio._rust"
+module-name = "fabricatio.rust"
 data = "extra"
 [dependency-groups]
 dev = [

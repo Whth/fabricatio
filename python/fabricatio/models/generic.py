@@ -1,4 +1,4 @@
-"""This module defines generic classes for models in the Fabricatio library."""
+"""This module defines generic classes for models in the Fabricatio library, providing a foundation for various model functionalities."""
 
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -7,12 +7,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, f
 
 import orjson
 import rtoml
-from fabricatio._rust import blake3_hash
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
+from fabricatio.rust import blake3_hash
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
 from litellm.utils import token_counter
 from pydantic import (
@@ -30,13 +30,19 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 
 class Base(BaseModel):
-    """Base class for all models with Pydantic configuration."""
+    """Base class for all models with Pydantic configuration.
+
+    This class sets up the basic Pydantic configuration for all models in the Fabricatio library.
+    """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 class Display(Base):
-    """Class that provides a method to display the model in a formatted JSON string."""
+    """Class that provides a method to display the model in a formatted JSON string.
+
+    This class includes methods to display the model in both formatted and compact JSON strings.
+    """
 
     def display(self) -> str:
         """Display the model in a formatted JSON string.
@@ -56,26 +62,43 @@ class Display(Base):
 
     @staticmethod
     def seq_display(seq: Iterable["Display"], compact: bool = False) -> str:
-        """Display a sequence of Display objects in a formatted JSON string."""
+        """Display a sequence of Display objects in a formatted JSON string.
+
+        Args:
+            seq (Iterable[Display]): The sequence of Display objects to display.
+            compact (bool): Whether to display the sequence in a compact format. Defaults to False.
+
+        Returns:
+            str: The formatted JSON string of the sequence.
+        """
         return "\n".join(d.compact() if compact else d.display() for d in seq)
 
 
 class Named(Base):
-    """Class that includes a name attribute."""
+    """Class that includes a name attribute.
+
+    This class adds a name attribute to models, which is intended to be a unique identifier.
+    """
 
     name: str = Field(frozen=True)
     """The name of the object."""
 
 
 class Described(Base):
-    """Class that includes a description attribute."""
+    """Class that includes a description attribute.
+
+    This class adds a description attribute to models, providing additional context or information.
+    """
 
     description: str = Field(frozen=True)
     """The description of the object."""
 
 
 class AsPrompt(Base):
-    """Class that provides a method to generate a prompt from the model."""
+    """Class that provides a method to generate a prompt from the model.
+
+    This class includes a method to generate a prompt based on the model's attributes.
+    """
 
     @final
     def as_prompt(self) -> str:
@@ -90,31 +113,53 @@ class AsPrompt(Base):
         )
 
     @abstractmethod
-    def _as_prompt_inner(self) -> Dict[str, str]: ...
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        """Generate the inner part of the prompt.
+
+        This method should be implemented by subclasses to provide the specific data for the prompt.
+
+        Returns:
+            Dict[str, str]: The data for the prompt.
+        """
 
 
 class WithRef[T](Base):
-    """Class that provides a reference to another object."""
+    """Class that provides a reference to another object.
+
+    This class manages a reference to another object, allowing for easy access and updates.
+    """
 
     _reference: Optional[T] = PrivateAttr(None)
 
     @property
     def referenced(self) -> T:
-        """Get the referenced object."""
+        """Get the referenced object.
+
+        Returns:
+            T: The referenced object.
+
+        Raises:
+            ValueError: If the reference is not set.
+        """
         return ok(
-            self._reference, f"`{self.__class__.__name__}`' s `_reference` field is None. Have you called `update_ref`?"
+            self._reference, f"`{self.__class__.__name__}`'s `_reference` field is None. Have you called `update_ref`?"
         )
 
     @overload
     def update_ref[S: WithRef](self: S, reference: T) -> S: ...
-
     @overload
     def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
-
     @overload
     def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
-        """Update the reference of the object."""
+        """Update the reference of the object.
+
+        Args:
+            reference (Union[T, WithRef[T], None]): The new reference to set.
+
+        Returns:
+            S: The current instance with the updated reference.
+        """
         if isinstance(reference, self.__class__):
             self._reference = reference.referenced
         else:
@@ -122,14 +167,24 @@ class WithRef[T](Base):
         return self
 
     def derive[S: WithRef](self: S, reference: Any) -> S:  # noqa: PYI019
-        """Derive a new object from the current object."""
+        """Derive a new object from the current object.
+
+        Args:
+            reference (Any): The reference for the new object.
+
+        Returns:
+            S: A new instance derived from the current object with the provided reference.
+        """
         new = self.model_copy()
         new._reference = reference
         return new
 
 
 class PersistentAble(Base):
-    """Class that provides a method to persist the object."""
+    """Class that provides a method to persist the object.
+
+    This class includes methods to persist the object to a file or directory.
+    """
 
     def persist(self, path: str | Path) -> Self:
         """Persist the object to a file or directory.
@@ -175,18 +230,38 @@ class PersistentAble(Base):
 
 
 class ModelHash(Base):
-    """Class that provides a hash value for the object."""
+    """Class that provides a hash value for the object.
+
+    This class includes a method to calculate a hash value for the object based on its JSON representation.
+    """
 
     def __hash__(self) -> int:
-        """Calculates a hash value for the ArticleBase object based on its model_dump_json representation."""
+        """Calculates a hash value for the object based on its model_dump_json representation.
+
+        Returns:
+            int: The hash value of the object.
+        """
         return hash(self.model_dump_json())
 
 
 class UpdateFrom(Base):
-    """Class that provides a method to update the object from another object."""
+    """Class that provides a method to update the object from another object.
+
+    This class includes methods to update the current object with the attributes of another object.
+    """
 
     def update_pre_check(self, other: Self) -> Self:
-        """Pre-check for updating the object from another object."""
+        """Pre-check for updating the object from another object.
+
+        Args:
+            other (Self): The other object to update from.
+
+        Returns:
+            Self: The current instance after pre-check.
+
+        Raises:
+            TypeError: If the other object is not of the same type.
+        """
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot update from a non-{self.__class__.__name__} instance.")
 
@@ -194,16 +269,35 @@ class UpdateFrom(Base):
 
     @abstractmethod
     def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
+        """Updates the current instance with the attributes of another instance.
+
+        This method should be implemented by subclasses to provide the specific update logic.
+
+        Args:
+            other (Self): The other instance to update from.
+
+        Returns:
+            Self: The current instance with updated attributes.
+        """
 
     @final
     def update_from(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
+        """Updates the current instance with the attributes of another instance.
+
+        Args:
+            other (Self): The other instance to update from.
+
+        Returns:
+            Self: The current instance with updated attributes.
+        """
         return self.update_pre_check(other).update_from_inner(other)
 
 
 class ResolveUpdateConflict(Base):
-    """Class that provides a method to update the object from another object."""
+    """Class that provides a method to update the object from another object.
+
+    This class includes a method to resolve conflicts when updating the object from another object.
+    """
 
     @abstractmethod
     def resolve_update_conflict(self, other: Self) -> str:
@@ -218,7 +312,10 @@ class ResolveUpdateConflict(Base):
 
 
 class Introspect(Base):
-    """Class that provides a method to introspect the object."""
+    """Class that provides a method to introspect the object.
+
+    This class includes a method to perform internal introspection of the object.
+    """
 
     @abstractmethod
     def introspect(self) -> str:
@@ -230,7 +327,10 @@ class Introspect(Base):
 
 
 class WithBriefing(Named, Described):
-    """Class that provides a briefing based on the name and description."""
+    """Class that provides a briefing based on the name and description.
+
+    This class combines the name and description attributes to provide a brief summary of the object.
+    """
 
     @property
     def briefing(self) -> str:
@@ -243,15 +343,29 @@ class WithBriefing(Named, Described):
 
 
 class UnsortGenerate(GenerateJsonSchema):
-    """Class that provides a reverse JSON schema of the model."""
+    """Class that provides a reverse JSON schema of the model.
+
+    This class overrides the sorting behavior of the JSON schema generation to maintain the original order.
+    """
 
     def sort(self, value: JsonSchemaValue, parent_key: str | None = None) -> JsonSchemaValue:
-        """Not sort."""
+        """Not sort.
+
+        Args:
+            value (JsonSchemaValue): The JSON schema value to sort.
+            parent_key (str | None): The parent key of the JSON schema value.
+
+        Returns:
+            JsonSchemaValue: The JSON schema value without sorting.
+        """
         return value
 
 
 class WithFormatedJsonSchema(Base):
-    """Class that provides a formatted JSON schema of the model."""
+    """Class that provides a formatted JSON schema of the model.
+
+    This class includes a method to generate a formatted JSON schema of the model.
+    """
 
     @classmethod
     def formated_json_schema(cls) -> str:
@@ -267,25 +381,26 @@ class WithFormatedJsonSchema(Base):
 
 
 class CreateJsonObjPrompt(WithFormatedJsonSchema):
-    """Class that provides a prompt for creating a JSON object."""
+    """Class that provides a prompt for creating a JSON object.
+
+    This class includes a method to create a prompt for creating a JSON object based on the model's schema and a requirement.
+    """
 
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
-
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: str) -> str: ...
-
     @classmethod
     def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
         """Create the prompt for creating a JSON object with given requirement.
 
         Args:
-            requirement (str): The requirement for the JSON object.
+            requirement (str | List[str]): The requirement for the JSON object.
 
         Returns:
-            str: The prompt for creating a JSON object with given requirement.
+            str | List[str]: The prompt for creating a JSON object with given requirement.
         """
         if isinstance(requirement, str):
             return TEMPLATE_MANAGER.render_template(
@@ -302,7 +417,10 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
 
 
 class InstantiateFromString(Base):
-    """Class that provides a method to instantiate the class from a string."""
+    """Class that provides a method to instantiate the class from a string.
+
+    This class includes a method to instantiate the class from a JSON string representation.
+    """
 
     @classmethod
     def instantiate_from_string(cls, string: str) -> Self | None:
@@ -320,19 +438,31 @@ class InstantiateFromString(Base):
 
 
 class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
-    """Class that provides a method to propose a JSON object based on the requirement."""
+    """Class that provides a method to propose a JSON object based on the requirement.
+
+    This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
+    """
 
 
 class SketchedAble(ProposedAble, Display):
-    """Class that provides a method to scratch the object."""
+    """Class that provides a method to scratch the object.
+
+    This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
+    """
 
 
 class ProposedUpdateAble(SketchedAble, UpdateFrom, ABC):
-    """Make the obj can be updated from the proposed obj in place."""
+    """Make the obj can be updated from the proposed obj in place.
+
+    This class provides the ability to update an object in place from a proposed object.
+    """
 
 
 class FinalizedDumpAble(Base):
-    """Class that provides a method to finalize the dump of the object."""
+    """Class that provides a method to finalize the dump of the object.
+
+    This class includes methods to finalize the JSON representation of the object and dump it to a file.
+    """
 
     def finalized_dump(self) -> str:
         """Finalize the dump of the object.
@@ -355,10 +485,11 @@ class FinalizedDumpAble(Base):
         return self
 
 
-
-
 class WithDependency(Base):
-    """Class that manages file dependencies."""
+    """Class that manages file dependencies.
+
+    This class includes methods to manage file dependencies required for reading or writing.
+    """
 
     dependencies: List[str] = Field(default_factory=list)
     """The file dependencies which is needed to read or write to meet a specific requirement, a list of file paths."""
@@ -446,7 +577,10 @@ class WithDependency(Base):
 
 
 class Vectorizable(Base):
-    """Class that prepares the vectorization of the model."""
+    """Class that prepares the vectorization of the model.
+
+    This class includes methods to prepare the model for vectorization, ensuring it fits within a specified token length.
+    """
 
     def _prepare_vectorization_inner(self) -> str:
         return rtoml.dumps(self.model_dump())
@@ -455,20 +589,29 @@ class Vectorizable(Base):
     def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
         """Prepare the vectorization of the model.
 
+        Args:
+            max_length (Optional[int]): The maximum token length for the vectorization. Defaults to the configuration.
+
         Returns:
             str: The prepared vectorization of the model.
+
+        Raises:
+            ValueError: If the chunk exceeds the maximum sequence length.
         """
         max_length = max_length or configs.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
         if max_length and (length := token_counter(text=chunk)) > max_length:
-            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}, got {length},see {chunk}")
+            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}, got {length}, see {chunk}")
             raise ValueError(err)
 
         return chunk
 
 
 class ScopedConfig(Base):
-    """Class that manages a scoped configuration."""
+    """Class that manages a scoped configuration.
+
+    This class includes attributes and methods to manage configuration settings scoped to the instance.
+    """
 
     llm_api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""
@@ -526,15 +669,19 @@ class ScopedConfig(Base):
 
     embedding_dimensions: Optional[PositiveInt] = None
     """The dimensions of the embedding."""
+
     embedding_caching: Optional[bool] = False
     """Whether to cache the embedding result."""
 
     milvus_uri: Optional[HttpUrl] = Field(default=None)
     """The URI of the Milvus server."""
+
     milvus_token: Optional[SecretStr] = Field(default=None)
     """The token for the Milvus server."""
+
     milvus_timeout: Optional[PositiveFloat] = Field(default=None)
     """The timeout for the Milvus server."""
+
     milvus_dimensions: Optional[PositiveInt] = Field(default=None)
     """The dimensions of the Milvus server."""
 
@@ -579,10 +726,23 @@ class ScopedConfig(Base):
 
 
 class Patch[T](ProposedAble):
-    """Base class for patches."""
+    """Base class for patches.
+
+    This class provides a base implementation for patches that can be applied to other objects.
+    """
 
     def apply(self, other: T) -> T:
-        """Apply the patch to another instance."""
+        """Apply the patch to another instance.
+
+        Args:
+            other (T): The instance to apply the patch to.
+
+        Returns:
+            T: The instance with the patch applied.
+
+        Raises:
+            ValueError: If a field in the patch is not found in the target instance.
+        """
         for field in self.__class__.model_fields:
             if not hasattr(other, field):
                 raise ValueError(f"{field} not found in {other}, are you applying to the wrong type?")
@@ -591,18 +751,32 @@ class Patch[T](ProposedAble):
 
 
 class SequencePatch[T](ProposedUpdateAble):
-    """Base class for patches."""
+    """Base class for patches.
+
+    This class provides a base implementation for patches that can be applied to sequences of objects.
+    """
 
     tweaked: List[T]
     """Tweaked content list"""
 
     def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
+        """Updates the current instance with the attributes of another instance.
+
+        Args:
+            other (Self): The other instance to update from.
+
+        Returns:
+            Self: The current instance with updated attributes.
+        """
         self.tweaked.clear()
         self.tweaked.extend(other.tweaked)
         return self
 
     @classmethod
     def default(cls) -> Self:
-        """Defaults to empty list."""
+        """Defaults to empty list.
+
+        Returns:
+            Self: A new instance with an empty list of tweaks.
+        """
         return cls(tweaked=[])

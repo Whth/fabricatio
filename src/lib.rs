@@ -10,7 +10,7 @@ use pyo3::prelude::*;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-#[pyo3(name = "_rust")]
+#[pyo3(name = "rust")]
 fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the TemplateManager class to the Python module
     templates::register(python, m)?;

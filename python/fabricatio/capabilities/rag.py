@@ -10,7 +10,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Self, Union, Unpack, cast, overload
 
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import (
@@ -23,6 +22,7 @@ from fabricatio.models.kwargs_types import (
 )
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.models.utils import MilvusData
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr

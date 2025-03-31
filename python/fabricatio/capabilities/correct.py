@@ -2,7 +2,6 @@
 
 from typing import Optional, Type, Unpack, cast
 
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
@@ -14,6 +13,7 @@ from fabricatio.models.kwargs_types import (
     BestKwargs,
     ValidateKwargs,
 )
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok, override_kwargs
 
 

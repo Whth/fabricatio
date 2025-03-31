@@ -2,7 +2,6 @@
 
 from typing import Dict, Optional, Set, Unpack
 
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
 from fabricatio.config import configs
@@ -10,6 +9,7 @@ from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.generic import Display, WithBriefing
 from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
 from fabricatio.models.task import Task
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
 
 

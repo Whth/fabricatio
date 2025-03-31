@@ -1,7 +1,7 @@
 """Some necessary instances."""
 
-from fabricatio._rust import TemplateManager
 from fabricatio.config import configs
+from fabricatio.rust import TemplateManager
 
 TEMPLATE_MANAGER = TemplateManager(
     template_dirs=configs.templates.template_dir,

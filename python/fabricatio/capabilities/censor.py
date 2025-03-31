@@ -19,6 +19,9 @@ class Censor(Correct, Check):
 
     Inherits from both Correct and Check classes.
     Provides methods to censor objects and strings by first checking them against a ruleset and then correcting them if necessary.
+
+    Attributes:
+        ruleset (RuleSet): The ruleset to be used for censoring.
     """
 
     async def censor_obj[M: SketchedAble](

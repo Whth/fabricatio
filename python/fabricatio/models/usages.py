@@ -6,7 +6,6 @@ from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set
 
 import asyncstdlib
 import litellm
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.decorators import logging_exec_time
 from fabricatio.journal import logger
@@ -16,6 +15,7 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.models.utils import Messages
 from fabricatio.parser import GenericCapture, JsonCapture
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
 from litellm import RateLimitError, Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
@@ -46,10 +46,21 @@ ROUTER = Router(
 
 
 class LLMUsage(ScopedConfig):
-    """Class that manages LLM (Large Language Model) usage parameters and methods."""
+    """Class that manages LLM (Large Language Model) usage parameters and methods.
+
+    This class provides methods to deploy LLMs, query them for responses, and handle various configurations
+    related to LLM usage such as API keys, endpoints, and rate limits.
+    """
 
     def _deploy(self, deployment: Deployment) -> Router:
-        """Add a deployment to the router."""
+        """Add a deployment to the router.
+
+        Args:
+            deployment (Deployment): The deployment to be added to the router.
+
+        Returns:
+            Router: The updated router with the added deployment.
+        """
         self._added_deployment = ROUTER.upsert_deployment(deployment)
         return ROUTER
 
@@ -132,7 +143,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[Choices | StreamingChoices]: A list of choices or streaming choices from the model response.
+            Sequence[TextChoices | Choices | StreamingChoices]: A sequence of choices or streaming choices from the model response.
         """
         resp = await self.aquery(
             messages=Messages().add_system_message(system_message).add_user_message(question).as_list(),
@@ -284,16 +295,15 @@ class LLMUsage(ScopedConfig):
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
-            question (str): The question to ask.
+            question (str | List[str]): The question to ask.
             validator (Callable[[str], T | None]): A function to validate the response.
             default (T | None): Default value to return if validation fails. Defaults to None.
-            max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 2.
+            max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 3.
             co_extractor (Optional[GenerateKwargs]): Keyword arguments for the co-extractor, if provided will enable co-extraction.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            T: The validated response.
-
+            Optional[T] | List[Optional[T]] | List[T] | T: The validated response.
         """
 
         async def _inner(q: str) -> Optional[T]:
@@ -346,7 +356,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[str]: The validated response as a list of strings.
+            Optional[List[str]]: The validated response as a list of strings.
         """
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
@@ -365,7 +375,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[str]: The validated response as a list of strings.
+            Optional[List[str]]: The validated response as a list of strings.
         """
         return await self.alist_str(
             TEMPLATE_MANAGER.render_template(
@@ -383,7 +393,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            str: The validated response as a single string.
+            Optional[str]: The validated response as a single string.
         """
         if paths := await self.apathstr(
             requirement,
@@ -402,7 +412,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            str: The generated string.
+            Optional[str]: The generated string.
         """
         return await self.aask_validate(  # pyright: ignore [reportReturnType]
             TEMPLATE_MANAGER.render_template(
@@ -429,12 +439,7 @@ class LLMUsage(ScopedConfig):
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[T]: The final validated selection result list, with element types matching the input `choices`.
-
-        Important:
-            - Uses a template engine to generate structured prompts.
-            - Ensures response compliance through JSON parsing and format validation.
-            - Relies on `aask_validate` to implement retry mechanisms with validation.
+            Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
         if dup := duplicates_everseen(choices, key=lambda x: x.name):
             logger.error(err := f"Redundant choices: {dup}")
@@ -522,7 +527,10 @@ class LLMUsage(ScopedConfig):
 
 
 class EmbeddingUsage(LLMUsage):
-    """A class representing the embedding model."""
+    """A class representing the embedding model.
+
+    This class extends LLMUsage and provides methods to generate embeddings for input text using various models.
+    """
 
     async def aembedding(
         self,
@@ -540,7 +548,6 @@ class EmbeddingUsage(LLMUsage):
             dimensions (Optional[int]): The dimensions of the embedding output should have, which is used to validate the result. Defaults to None.
             timeout (Optional[PositiveInt]): The timeout for the embedding request. Defaults to the instance's `llm_timeout` or the global configuration.
             caching (Optional[bool]): Whether to cache the embedding result. Defaults to False.
-
 
         Returns:
             EmbeddingResponse: The response containing the embeddings.
@@ -599,14 +606,21 @@ class EmbeddingUsage(LLMUsage):
 
 
 class ToolBoxUsage(LLMUsage):
-    """A class representing the usage of tools in a task."""
+    """A class representing the usage of tools in a task.
+
+    This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.
+    """
 
     toolboxes: Set[ToolBox] = Field(default_factory=set)
     """A set of toolboxes used by the instance."""
 
     @property
     def available_toolbox_names(self) -> List[str]:
-        """Return a list of available toolbox names."""
+        """Return a list of available toolbox names.
+
+        Returns:
+            List[str]: A list of names of the available toolboxes.
+        """
         return [toolbox.name for toolbox in self.toolboxes]
 
     async def choose_toolboxes(
@@ -618,11 +632,10 @@ class ToolBoxUsage(LLMUsage):
 
         Args:
             task (Task): The task for which to choose toolboxes.
-            system_message (str): Custom system-level prompt, defaults to an empty string.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[ToolBox]: The selected toolboxes.
+            Optional[List[ToolBox]]: The selected toolboxes.
         """
         if not self.toolboxes:
             logger.warning("No toolboxes available.")
@@ -647,7 +660,7 @@ class ToolBoxUsage(LLMUsage):
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            List[Tool]: The selected tools.
+            Optional[List[Tool]]: The selected tools.
         """
         if not toolbox.tools:
             logger.warning(f"No tools available in toolbox {toolbox.name}.")

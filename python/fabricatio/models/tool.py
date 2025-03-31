@@ -22,6 +22,11 @@ class Tool[**P, R](WithBriefing):
 
     This class encapsulates a callable function (source) and provides methods to invoke it, log its execution, and generate
     a brief description (briefing) of the tool.
+
+    Attributes:
+        name (str): The name of the tool.
+        description (str): The description of the tool.
+        source (Callable[P, R]): The source function of the tool.
     """
 
     name: str = Field(default="")
@@ -92,9 +97,13 @@ class ToolBox(WithBriefing):
 
     This class manages a list of tools and provides methods to add tools, retrieve tools by name, and generate a brief
     description (briefing) of the toolbox.
+
+    Attributes:
+        description (str): The description of the toolbox.
+        tools (List[Tool]): A list of tools in the toolbox.
     """
 
-    description:str = ""
+    description: str = ""
     """The description of the toolbox."""
 
     tools: List[Tool] = Field(default_factory=list, frozen=True)
@@ -177,8 +186,11 @@ class ToolExecutor(BaseModel):
 
     This class manages a sequence of tools and provides methods to inject tools and data into a module, execute the tools,
     and retrieve specific outputs.
-    """
 
+    Attributes:
+        candidates (List[Tool]): The sequence of tools to execute.
+        data (Dict[str, Any]): The data that could be used when invoking the tools.
+    """
     model_config = ConfigDict(use_attribute_docstrings=True)
     candidates: List[Tool] = Field(default_factory=list, frozen=True)
     """The sequence of tools to execute."""

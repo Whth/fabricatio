@@ -6,13 +6,13 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 from asyncio import Queue
 from typing import Any, List, Optional, Self
 
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.config import configs
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio.models.utils import TaskStatus
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 from pydantic import Field, PrivateAttr
 
 

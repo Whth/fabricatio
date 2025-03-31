@@ -50,7 +50,7 @@ async def main() -> None:
                 article_briefing=Path("./article_briefing.txt").read_text(),
                 dump_path="out.typ",
                 persist_dir="persistent",
-                collection_name="article_essence"
+                collection_name="article_essence_0324"
             )
         },
     )

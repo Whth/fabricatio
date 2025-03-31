@@ -3,8 +3,6 @@
 from importlib.util import find_spec
 
 from fabricatio import actions, toolboxes, workflows
-from fabricatio._rust import BibManager
-from fabricatio._rust_instances import TEMPLATE_MANAGER
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models import extra
@@ -14,6 +12,8 @@ from fabricatio.models.role import Role
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
 from fabricatio.parser import Capture, GenericCapture, JsonCapture, PythonCapture
+from fabricatio.rust import BibManager
+from fabricatio.rust_instances import TEMPLATE_MANAGER
 
 __all__ = [
     "TEMPLATE_MANAGER",
