@@ -229,9 +229,6 @@ class TemplateConfig(BaseModel):
     generic_string_template: str = Field(default="generic_string")
     """The name of the generic string template which will be used to review a string."""
 
-    correct_template: str = Field(default="correct")
-    """The name of the correct template which will be used to correct a string."""
-
     co_validation_template: str = Field(default="co_validation")
     """The name of the co-validation template which will be used to co-validate a string."""
 
