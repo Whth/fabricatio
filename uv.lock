@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.8.dev4"
+version = "0.2.8"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -1105,11 +1105,11 @@ wheels = [
 
 [[package]]
 name = "pyflakes"
-version = "3.3.1"
+version = "3.3.2"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/1e/13/4b463974c9443b7b3d98ab0e9443c60cc14af357a2dd130c7755c49e8eb4/pyflakes-3.3.1.tar.gz", hash = "sha256:8752eee11d4ef3a4be642d774863047864b47406cba906fabf8dd892cf98d5b3", size = 64135 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/af/cc/1df338bd7ed1fa7c317081dcf29bf2f01266603b301e6858856d346a12b3/pyflakes-3.3.2.tar.gz", hash = "sha256:6dfd61d87b97fba5dcfaaf781171ac16be16453be6d816147989e7f6e6a9576b", size = 64175 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d3/b6/3be30d68556e72baeab06d5cb37b2dfdcbfab96848c7682ad4f7ba4fb89f/pyflakes-3.3.1-py2.py3-none-any.whl", hash = "sha256:af4d63344d478524956e9950a9ae11da51414622479b8c148647fe9722e96837", size = 63069 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/15/40/b293a4fa769f3b02ab9e387c707c4cbdc34f073f945de0386107d4e669e6/pyflakes-3.3.2-py2.py3-none-any.whl", hash = "sha256:5039c8339cbb1944045f4ee5466908906180f13cc99cc9949348d10f82a5c32a", size = 63164 },
 ]
 
 [[package]]
