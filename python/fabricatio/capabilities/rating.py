@@ -359,14 +359,14 @@ class Rating(LLMUsage):
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
 
     @overload
-    async def best(self, candidates: List[str], k: int, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
+    async def best(self, candidates: List[str], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
     @overload
     async def best[T: Display](
-        self, candidates: List[T], k: int, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[T], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[T]: ...
 
     async def best[T: Display](
-        self, candidates: List[str] | List[T], k: int, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[str] | List[T], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> Optional[List[str] | List[T]]:
         """Choose the best candidates from the list of candidates based on the composite score.
 
