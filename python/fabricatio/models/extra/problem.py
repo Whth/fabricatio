@@ -1,5 +1,6 @@
 """A class representing a problem-solution pair identified during a review process."""
 
+from itertools import chain
 from typing import List, Literal, Optional, Self
 
 from fabricatio.journal import logger
@@ -142,3 +143,11 @@ class Improvement(SketchedAble):
     def decided(self) -> bool:
         """Check if the improvement is decided."""
         return all(ps.decided() for ps in self.problem_solutions)
+
+    @classmethod
+    def gather(cls, *improvements: Self) -> Self:
+        """Gather multiple improvements into a single instance."""
+        return cls(
+            focused_on="\n".join(imp.focused_on for imp in improvements),
+            problem_solutions=list(chain(*(imp.problem_solutions for imp in improvements))),
+        )

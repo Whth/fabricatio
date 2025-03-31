@@ -97,7 +97,7 @@ class Check(AdvancedJudge, Propose):
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.check_string_template,
-                    {"to_check": input_text, "rule": rule, "judge": judge.display(),"reference":reference},
+                    {"to_check": input_text, "rule": rule, "judge": judge.display(), "reference": reference},
                 ),
                 **kwargs,
             )
@@ -133,7 +133,7 @@ class Check(AdvancedJudge, Propose):
         else:
             raise TypeError("obj must be either Display or WithBriefing")
 
-        return await self.check_string_against_rule(input_text, rule,reference, **kwargs)
+        return await self.check_string_against_rule(input_text, rule, reference, **kwargs)
 
     async def check_string(
         self,
@@ -158,10 +158,11 @@ class Check(AdvancedJudge, Propose):
             - Halts validation after first successful improvement proposal
             - Maintains rule execution order from ruleset.rules list
         """
-        for rule in ruleset.rules:
-            improvement = await self.check_string_against_rule(input_text, rule,reference, **kwargs)
-            if improvement:
-                return improvement
+        imp_seq = [
+            await self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules
+        ]
+        if all(isinstance(i, Improvement) for i in imp_seq):
+            return Improvement.gather(*imp_seq)  # pyright: ignore [reportArgumentType]
         return None
 
     async def check_obj[M: (Display, WithBriefing)](
@@ -187,8 +188,7 @@ class Check(AdvancedJudge, Propose):
             - Maintains same early termination behavior as check_string
             - Validates object through text conversion mechanism
         """
-        for rule in ruleset.rules:
-            improvement = await self.check_obj_against_rule(obj, rule,reference, **kwargs)
-            if improvement:
-                return improvement
+        imp_seq = [await self.check_obj_against_rule(obj, rule, reference, **kwargs) for rule in ruleset.rules]
+        if all(isinstance(i, Improvement) for i in imp_seq):
+            return Improvement.gather(*imp_seq)  # pyright: ignore [reportArgumentType]
         return None
