@@ -24,10 +24,10 @@ async def main() -> None:
         registry={
             Event.quick_instantiate(ns := "article"): WorkFlow(
                 name="write ruleset",
-                description="Generate an outline for an article. dump the outline to the given path. in typst format.",
+                description="Generate a draft ruleset for article.",
                 steps=(
                     DraftRuleSet(
-                        ruleset_requirement="1.when try to use an article as reference cited in our article, you should obey the format like (author1, author2 et al., YYYY)\n"
+                        ruleset_requirement="1.when try to use an article as reference cited in our article, you should obey the format like `(author1, author2 et al., YYYY)#cite(<bibtex_cite_key>)`\n"
                         "2.we use typst to generate numeric citation. For example, for an article whose `bibtex_key` is `YanWindEnergy2018`, you can create a numeric citation by typing `#cite(<YanWindEnergy2018>)`(note that `bibtex_key` with `<` and `>` wrapped is needed), those notations could automatically be processed and output by compiler as a numeric citation like `[1]` in the upper right corner of text.\n"
                         "3.in addition, since `#cite()` can ONLY cite ONE article at once, we need use multiple `#cite()` notations to cite multiple articles, for example, there are three articles whose `bibtex_key` are `YanWindEnergy2018`, `YanWindEnergy2019`, `YanWindEnergy2020, you can cite them three as numeric citation by typing `#cite(<YanWindEnergy2018>)#cite(<YanWindEnergy2019>)#cite(<YanWindEnergy2020>)` those notations could automatically be processed and output by compiler as a numeric citation like `[1,2,3]` in the upper right corner of text.\n"
                         "4.to cover more references, we usually cite more than one articles that have similar opinions in a single sentence if possible.\n"
