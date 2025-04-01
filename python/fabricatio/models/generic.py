@@ -202,7 +202,7 @@ class PersistentAble(Base):
         out = self.model_dump_json()
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
-        timestamp = datetime.now().strftime("%Y%m%d")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Generate the hash
         file_hash = blake3_hash(out.encode())[:6]
