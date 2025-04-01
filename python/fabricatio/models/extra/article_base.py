@@ -7,8 +7,6 @@ from typing import Generator, List, Optional, Self, Tuple, overload
 
 from fabricatio.models.generic import (
     AsPrompt,
-    CensoredAble,
-    Display,
     FinalizedDumpAble,
     Introspect,
     ModelHash,
@@ -16,6 +14,7 @@ from fabricatio.models.generic import (
     ProposedUpdateAble,
     ResolveUpdateConflict,
     SequencePatch,
+    SketchedAble,
 )
 
 
@@ -30,7 +29,7 @@ class ReferringType(StrEnum):
 type RefKey = Tuple[str, Optional[str], Optional[str]]
 
 
-class ArticleRef(CensoredAble, ProposedUpdateAble):
+class ArticleRef(ProposedUpdateAble):
     """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
 
     Examples:
@@ -104,7 +103,7 @@ class ArticleRef(CensoredAble, ProposedUpdateAble):
         return ReferringType.CHAPTER
 
 
-class ArticleMetaData(CensoredAble, Display):
+class ArticleMetaData(SketchedAble):
     """Metadata for an article component."""
 
     description: str

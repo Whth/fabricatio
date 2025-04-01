@@ -9,7 +9,7 @@ from fabricatio.models.extra.article_base import (
     SubSectionBase,
 )
 from fabricatio.models.extra.article_proposal import ArticleProposal
-from fabricatio.models.generic import CensoredAble, Display, PersistentAble, WithRef
+from fabricatio.models.generic import PersistentAble, SketchedAble, WithRef
 
 
 class ArticleSubsectionOutline(SubSectionBase):
@@ -25,8 +25,7 @@ class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
 
 
 class ArticleOutline(
-    Display,
-    CensoredAble,
+    SketchedAble,
     WithRef[ArticleProposal],
     PersistentAble,
     ArticleBase[ArticleChapterOutline],
