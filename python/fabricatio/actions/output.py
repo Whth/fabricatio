@@ -1,7 +1,7 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Iterable, List, Optional, Type
+from typing import Any, Iterable, List, Optional, Type
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -46,6 +46,7 @@ class PersistentAll(Action):
     """The directory to persist the data."""
     override: bool = False
     """Whether to remove the existing dir before dumping."""
+
     async def _execute(
         self,
         task_input: Optional[Task] = None,
@@ -106,3 +107,25 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
         if p.is_dir():
             return [self.retrieve_cls.from_persistent(per) for per in p.glob("*")]
         return self.retrieve_cls.from_persistent(self.load_path)
+
+
+class GatherAsList(Action):
+    """Gather the objects from the context as a list.
+
+    Notes:
+        If both `gather_suffix` and `gather_prefix` are specified, only the objects with the suffix will be gathered.
+    """
+    output_key: str = "gathered"
+    """Gather the objects from the context as a list."""
+    gather_suffix: Optional[str] = None
+    """Gather the objects from the context as a list."""
+    gather_prefix: Optional[str] = None
+    """Gather the objects from the context as a list."""
+
+    async def _execute(self, **cxt) -> List[Any]:
+
+        if self.gather_suffix is not None:
+            return [cxt[k] for k in cxt if k.endswith(self.gather_suffix)]
+        if  self.gather_prefix is None:
+            raise ValueError("Either `gather_suffix` or `gather_prefix` must be specified.")
+        return [cxt[k] for k in cxt if k.startswith(self.gather_prefix)]
