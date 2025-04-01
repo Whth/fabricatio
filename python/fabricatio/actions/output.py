@@ -33,6 +33,7 @@ class DumpFinalizedOutput(Action):
                 "Could not find the path of file to dump the data.",
             )
         )
+        logger.info(f"Saving output to {dump_path.as_posix()}")
         ok(to_dump, "Could not dump the data since the path is not specified.").finalized_dump_to(dump_path)
         return dump_path.as_posix()
 
@@ -71,16 +72,19 @@ class PersistentAll(Action):
         if self.override and persist_dir.is_dir():
             logger.info(f"Override the existing directory {persist_dir.as_posix()}.")
             persist_dir.rmdir()
-
+        logger.info(f"Starting persistence in directory {persist_dir}")
         for k, v in cxt.items():
             final_dir = persist_dir.joinpath(k)
+            logger.debug(f"Checking key {k} for persistence")
             if isinstance(v, PersistentAble):
+                logger.info(f"Persisting object {k} to {final_dir}")
                 final_dir.mkdir(parents=True, exist_ok=True)
                 v.persist(final_dir)
                 count += 1
             if isinstance(v, Iterable) and any(
                 persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
             ):
+                logger.info(f"Persisting collection {k} to {final_dir}")
                 final_dir.mkdir(parents=True, exist_ok=True)
                 for per in persistent_ables:
                     per.persist(final_dir)
@@ -100,11 +104,13 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     """The class of the object to retrieve."""
 
     async def _execute(self, /, **__) -> Optional[T | List[T]]:
-        logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from persistent file: {self.load_path}")
+        logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
+            logger.warning(f"Path {self.load_path} does not exist")
             return None
 
         if p.is_dir():
+            logger.info(f"Found directory with {len(list(p.glob('*')))} items")
             return [self.retrieve_cls.from_persistent(per) for per in p.glob("*")]
         return self.retrieve_cls.from_persistent(self.load_path)
 
@@ -125,7 +131,12 @@ class GatherAsList(Action):
     async def _execute(self, **cxt) -> List[Any]:
 
         if self.gather_suffix is not None:
-            return [cxt[k] for k in cxt if k.endswith(self.gather_suffix)]
+            result = [cxt[k] for k in cxt if k.endswith(self.gather_suffix)]
+            logger.debug(f"Gathered {len(result)} items with suffix {self.gather_suffix}")
+            return result
         if  self.gather_prefix is None:
-            raise ValueError("Either `gather_suffix` or `gather_prefix` must be specified.")
-        return [cxt[k] for k in cxt if k.startswith(self.gather_prefix)]
+            logger.error(err:="Either `gather_suffix` or `gather_prefix` must be specified.")
+            raise ValueError(err)
+        result = [cxt[k] for k in cxt if k.startswith(self.gather_prefix)]
+        logger.debug(f"Gathered {len(result)} items with prefix {self.gather_prefix}")
+        return result
