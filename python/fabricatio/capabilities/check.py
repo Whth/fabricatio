@@ -97,7 +97,7 @@ class Check(AdvancedJudge, Propose):
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.check_string_template,
-                    {"to_check": input_text, "rule": rule, "judge": judge.display(), "reference": reference},
+                    {"to_check": input_text, "rule": rule.display(), "judge": judge.display(), "reference": reference},
                 ),
                 **kwargs,
             )

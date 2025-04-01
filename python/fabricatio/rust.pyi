@@ -1,5 +1,7 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
+
+from pydantic import JsonValue
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -41,7 +43,7 @@ class TemplateManager:
         This refreshes the template cache, finding any new or modified templates.
         """
 
-    def render_template(self, name: str, data: Dict[str, Any]) -> str:
+    def render_template(self, name: str, data: JsonValue) -> str:
         """Render a template with context data.
 
         Args:
@@ -55,7 +57,7 @@ class TemplateManager:
             RuntimeError: If template rendering fails
         """
 
-    def render_template_raw(self, template: str, data: Dict[str, Any]) -> str:
+    def render_template_raw(self, template: str, data: JsonValue) -> str:
         """Render a template with context data.
 
         Args:
@@ -76,7 +78,7 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
-def detect_language(string:str)->str:
+def detect_language(string: str) -> str:
     """Detect the language of a given string."""
 
 class BibManager:
@@ -165,7 +167,7 @@ class BibManager:
             Title if found, None otherwise
         """
 
-    def get_field_by_key(self, key: str, field: str)-> Optional[str]:
+    def get_field_by_key(self, key: str, field: str) -> Optional[str]:
         """Retrieve a specific field by citation key.
 
         Args:
