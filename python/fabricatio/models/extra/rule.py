@@ -22,6 +22,8 @@ class Rule(WithBriefing, SketchedAble):
     examples of violations, and examples of compliance. This class is designed to ensure
     that rules are clearly defined, well-documented, and easy to understand and enforce.
     """
+    language:str
+    """The language of the rule, which should be aligned to the original rule requirement."""
 
     description: str
     """A comprehensive description of the rule, including its purpose, scope, and context.
@@ -51,6 +53,11 @@ class RuleSet(SketchedAble, PersistentAble, WithBriefing):
     class is designed to ensure that rule sets are well-organized, consistent, and easy to
     navigate and enforce.
     """
+    language:str
+    """The language of the rule set, which should be aligned to the original ruleset requirement."""
+    
+    name:str 
+    """The name of the ruleset,briefly and conclusively."""
 
     description: str
     """A comprehensive description of the rule set, including its overall purpose, scope, and

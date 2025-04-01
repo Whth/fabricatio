@@ -6,7 +6,7 @@ from fabricatio import TEMPLATE_MANAGER
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
-from fabricatio.models.extra.patches import BriefingPatch
+from fabricatio.models.extra.patches import RuleSetBriefingPatch
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
 from fabricatio.models.generic import Display, WithBriefing
@@ -55,7 +55,7 @@ class Check(AdvancedJudge, Propose):
             return None
 
         ruleset_patch = await self.propose(
-            BriefingPatch,
+            RuleSetBriefingPatch,
             f"# Rules Requirements\n{rule_reqs}\n# Generated Rules\n{Display.seq_display(rules)}\n\n"
             f"You need to write a concise and detailed patch for this ruleset that can be applied to the ruleset nicely.\n"
             f"Note that all fields in this patch will be directly copied to the ruleset obj, including `name` and `description`, so write when knowing the subject.\n",
@@ -65,7 +65,7 @@ class Check(AdvancedJudge, Propose):
         if ruleset_patch is None:
             return None
 
-        return ruleset_patch.apply(RuleSet(rules=rules, name="", description=""))
+        return RuleSet(rules=rules, **ruleset_patch.as_kwargs())
 
     async def check_string_against_rule(
         self,

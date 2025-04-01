@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Union, final, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Type, Union, final, overload
 
 import orjson
 import rtoml
@@ -748,6 +748,35 @@ class Patch[T](ProposedAble):
                 raise ValueError(f"{field} not found in {other}, are you applying to the wrong type?")
             setattr(other, field, getattr(self, field))
         return other
+    def as_kwargs(self)->Dict[str,Any]:
+        """Get the kwargs of the patch."""
+        return self.model_dump()
+    @staticmethod
+    def ref_cls() -> Optional[Type[BaseModel]]:
+        """Get the reference class of the model."""
+        return None
+
+    @classmethod
+    def formated_json_schema(cls) -> str:
+        """Get the JSON schema of the model in a formatted string.
+
+        Returns:
+            str: The JSON schema of the model in a formatted string.
+        """
+        my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
+        if (ref_cls := cls.ref_cls()) is not None:
+            # copy the desc info of each corresponding fields from `ref_cls`
+            for field_name, field_info in cls.model_fields.items():
+                if (ref_field := getattr(ref_cls, field_name, None)) is not None:
+                    if (desc := ref_field.field_info.description) is not None:
+                        my_schema["properties"][field_name]["description"] = desc
+                    if (example := ref_field.field_info.examples) is not None:
+                        my_schema["properties"][field_name]["examples"] = example
+
+        return orjson.dumps(
+            my_schema,
+            option=orjson.OPT_INDENT_2,
+        ).decode()
 
 
 class SequencePatch[T](ProposedUpdateAble):
