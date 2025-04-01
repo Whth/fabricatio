@@ -76,6 +76,9 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
+def detect_language(string:str)->str:
+    """Detect the language of a given string."""
+
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
 
