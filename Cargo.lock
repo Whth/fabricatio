@@ -453,6 +453,7 @@ dependencies = [
  "rayon",
  "serde_json",
  "walkdir",
+ "whichlang",
 ]
 
 [[package]]
@@ -2098,6 +2099,12 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "whichlang"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b9aa3ad29c3d08283ac6b769e3ec15ad1ddb88af7d2e9bc402c574973b937e7"
 
 [[package]]
 name = "winapi-util"

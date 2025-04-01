@@ -2,6 +2,7 @@ mod templates;
 mod hash;
 mod hbs_helpers;
 mod bib_tools;
+mod language;
 
 use pyo3::prelude::*;
 
@@ -16,6 +17,7 @@ fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     templates::register(python, m)?;
     hash::register(python, m)?;
     bib_tools::register(python, m)?;
+    language::register(python, m)?;
     Ok(())
 }
 
