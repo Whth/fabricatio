@@ -1,24 +1,3 @@
-# Task: Generate List of Strings
-
-## CFER Framework
-When generating your list of strings, follow these principles:
-- **Complete**: Include all items that match the requirement criteria
-- **Focused**: Each string should represent a distinct, relevant item
-- **Exact**: Follow the requirement precisely without adding irrelevant items
-- **Refined**: Format each string consistently and appropriately
-
-## Response Guidelines
-When creating your list:
-1. Identify all items that fully satisfy the requirement
-2. Express each item as a clear, concise string
-3. Remove duplicates and redundant entries
-4. Use consistent formatting across all items (capitalization, terminology)
-5. Order items logically (alphabetical, chronological, or by importance)
-{{#if k}}6. Provide EXACTLY {{k}} items as specified{{/if}}
-
-## Response Format
-Return your list as a JSON array of strings within a code block.
-
 # Example:
 Requirement: break down this requirement below to multiple smaller but descriptive sub requirements
 "When citing other articles as references in a text, follow the format `(Author1, Author2 et al., Year)#cite(<bibtex_cite_key>)`. Typst is used to generate numeric citations, where each BibTeX key (e.g., `YanWindEnergy2018`) must be enclosed in angle brackets `<` and `>` within the `#cite()` command (e.g., `#cite(<YanWindEnergy2018>)`), which compiles to a superscript number like [1]. Since `#cite()` only references a single文献 at a time, multiple citations (e.g., three keys: `YanWindEnergy2018`, `YanWindEnergy2019`, `YanWindEnergy2020`) require stacking individual `#cite()` tags: `#cite(<YanWindEnergy2018>)#cite(<YanWindEnergy2019>)#cite(<YanWindEnergy2020>)`, resulting in [1,2,3]. To enhance reference coverage, similar studies should be grouped into a single citation whenever possible. Note that omitting angle brackets around BibTeX keys will cause compiler errors."
@@ -39,4 +18,5 @@ Requirement: break down this requirement below to multiple smaller but descripti
 {{requirement}}
 --- End of Generation Requirement ---
 
-{{#if k}}- The array MUST contain EXACTLY {{k}} strings{{/if}}
+`Generation Requirement` is absolute and highest specification. You must generate string array strictly against it.
+{{#if k}}- The array MUST contain EXACTLY {{k}} strings.{{/if}}
