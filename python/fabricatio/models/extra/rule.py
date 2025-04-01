@@ -8,28 +8,14 @@ descriptions, examples, and metadata for each rule and rule set, making it suita
 complex rule management systems.
 """
 
-
 from typing import List
 
-from fabricatio.models.generic import PersistentAble, SketchedAble, WithBriefing
+from fabricatio.models.generic import Language, PersistentAble, SketchedAble, WithBriefing
 
 
-class Rule(WithBriefing, SketchedAble):
-    """Represents a rule or guideline for a specific topic.
+class Rule(WithBriefing,Language, SketchedAble,PersistentAble):
+    """Represents a rule or guideline for a specific topic."""
 
-    The `Rule` class encapsulates a single rule, providing detailed information about its
-    purpose, scope, and application. It includes fields for a comprehensive description,
-    examples of violations, and examples of compliance. This class is designed to ensure
-    that rules are clearly defined, well-documented, and easy to understand and enforce.
-    """
-    language:str
-    """The language of the rule, which should be aligned to the original rule requirement."""
-
-    description: str
-    """A comprehensive description of the rule, including its purpose, scope, and context.
-    This should clearly explain what the rule is about, why it exists, and in what situations
-    it applies. The description should be detailed enough to provide full understanding of
-    the rule's intent and application."""
 
     violation_examples: List[str]
     """A list of concrete examples demonstrating violations of this rule. Each example should
@@ -44,26 +30,8 @@ class Rule(WithBriefing, SketchedAble):
     serve as practical guidance for implementing the rule correctly."""
 
 
-class RuleSet(SketchedAble, PersistentAble, WithBriefing):
-    """Represents a collection of rules and guidelines for a particular topic.
-
-    The `RuleSet` class is used to group related rules into a coherent set, providing a
-    structured way to manage and apply multiple rules. It includes a description of the
-    overall purpose and scope of the rule set, as well as a list of individual rules. This
-    class is designed to ensure that rule sets are well-organized, consistent, and easy to
-    navigate and enforce.
-    """
-    language:str
-    """The language of the rule set, which should be aligned to the original ruleset requirement."""
-    
-    name:str 
-    """The name of the ruleset,briefly and conclusively."""
-
-    description: str
-    """A comprehensive description of the rule set, including its overall purpose, scope, and
-    context. This should explain why this collection of rules exists, what domain or topic it
-    covers, and how the rules within the set are related to each other. The description should
-    provide a clear understanding of the rule set's intent and application."""
+class RuleSet( SketchedAble, PersistentAble, WithBriefing,Language):
+    """Represents a collection of rules and guidelines for a particular topic."""
 
     rules: List[Rule]
     """The collection of rules and guidelines contained in this rule set. Each rule should be

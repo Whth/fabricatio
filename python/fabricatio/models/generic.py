@@ -81,7 +81,7 @@ class Named(Base):
     """
 
     name: str
-    """The name of the object."""
+    """The name of this object,briefly and conclusively."""
 
 
 class Described(Base):
@@ -91,7 +91,10 @@ class Described(Base):
     """
 
     description: str
-    """The description of the object."""
+    """A comprehensive description of this object, including its purpose, scope, and context.
+    This should clearly explain what this object is about, why it exists, and in what situations
+    it applies. The description should be detailed enough to provide full understanding of
+    this object's intent and application."""
 
 
 class AsPrompt(Base):
@@ -227,6 +230,14 @@ class PersistentAble(Base):
             Self: The current instance of the object.
         """
         return cls.model_validate_json(safe_text_read(path))
+
+
+class Language(Base):
+    """Class that provides a language attribute."""
+
+    language: str
+    """The written language of this object, which should be aligned to the original requirement 
+    For example if the requirement is in Chinese, the language should be set to `zh`, if the requirement is in English, the language should be set to `en` and etc."""
 
 
 class ModelHash(Base):
@@ -748,9 +759,11 @@ class Patch[T](ProposedAble):
                 raise ValueError(f"{field} not found in {other}, are you applying to the wrong type?")
             setattr(other, field, getattr(self, field))
         return other
-    def as_kwargs(self)->Dict[str,Any]:
+
+    def as_kwargs(self) -> Dict[str, Any]:
         """Get the kwargs of the patch."""
         return self.model_dump()
+
     @staticmethod
     def ref_cls() -> Optional[Type[BaseModel]]:
         """Get the reference class of the model."""
