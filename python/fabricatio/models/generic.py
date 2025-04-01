@@ -236,7 +236,7 @@ class Language(Base):
     """Class that provides a language attribute."""
 
     language: str
-    """The written language of this object, which should be aligned to the original requirement 
+    """The written language of this object, which should be aligned to the original requirement
     For example if the requirement is in Chinese, the language should be set to `zh`, if the requirement is in English, the language should be set to `en` and etc."""
 
 
@@ -777,14 +777,16 @@ class Patch[T](ProposedAble):
             str: The JSON schema of the model in a formatted string.
         """
         my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
+
+        prop_dict = my_schema["properties"]
         if (ref_cls := cls.ref_cls()) is not None:
             # copy the desc info of each corresponding fields from `ref_cls`
-            for field_name, field_info in cls.model_fields.items():
+            for field_name in cls.model_fields:
                 if (ref_field := getattr(ref_cls, field_name, None)) is not None:
                     if (desc := ref_field.field_info.description) is not None:
-                        my_schema["properties"][field_name]["description"] = desc
+                        prop_dict[field_name]["description"] = desc
                     if (example := ref_field.field_info.examples) is not None:
-                        my_schema["properties"][field_name]["examples"] = example
+                        prop_dict[field_name]["examples"] = example
 
         return orjson.dumps(
             my_schema,
