@@ -11,6 +11,7 @@ from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
 from fabricatio.models.generic import Display, WithBriefing
 from fabricatio.models.kwargs_types import ValidateKwargs
+from fabricatio.rust import detect_language
 from fabricatio.utils import override_kwargs
 
 
@@ -56,7 +57,7 @@ class Check(AdvancedJudge, Propose):
 
         ruleset_patch = await self.propose(
             RuleSetBriefingPatch,
-            ruleset_requirement,
+            f"{ruleset_requirement}\n\nYou should use `{detect_language(ruleset_requirement)}`!",
             **override_kwargs(kwargs, default=None),
         )
 
