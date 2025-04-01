@@ -78,11 +78,11 @@ class Correct(Rating, Propose):
             TEMPLATE_MANAGER.render_template(
                 configs.templates.fix_troubled_obj_template,
                 {
-                    "problem": problem_solutions.problem,
+                    "problem": problem_solutions.problem.display(),
                     "solution": ok(
                         problem_solutions.final_solution(),
                         f"No solution found for problem: {problem_solutions.problem}",
-                    ),
+                    ).display(),
                     "reference": reference,
                 },
             ),
@@ -111,11 +111,11 @@ class Correct(Rating, Propose):
             TEMPLATE_MANAGER.render_template(
                 configs.templates.fix_troubled_string_template,
                 {
-                    "problem": problem_solutions.problem,
+                    "problem": problem_solutions.problem.display(),
                     "solution": ok(
                         problem_solutions.final_solution(),
                         f"No solution found for problem: {problem_solutions.problem}",
-                    ),
+                    ).display(),
                     "reference": reference,
                     "string_to_fix": input_text,
                 },

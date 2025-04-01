@@ -303,7 +303,7 @@ class CacheConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    type: Optional[LiteLLMCacheType] = None
+    type: LiteLLMCacheType = LiteLLMCacheType.LOCAL
     """The type of cache to use. If None, the default cache type will be used."""
     params: CacheKwargs = Field(default_factory=CacheKwargs)
     """The parameters for the cache. If type is None, the default parameters will be used."""

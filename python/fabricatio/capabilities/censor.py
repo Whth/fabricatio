@@ -20,8 +20,6 @@ class Censor(Correct, Check):
     Inherits from both Correct and Check classes.
     Provides methods to censor objects and strings by first checking them against a ruleset and then correcting them if necessary.
 
-    Attributes:
-        ruleset (RuleSet): The ruleset to be used for censoring.
     """
 
     async def censor_obj[M: SketchedAble](
@@ -42,7 +40,7 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
-            return imp
+            return None
         return await self.correct_obj(obj, imp, **kwargs)
 
     async def censor_string(
