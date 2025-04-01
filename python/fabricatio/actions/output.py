@@ -41,8 +41,11 @@ class PersistentAll(Action):
     """Persist all the data to a file."""
 
     output_key: str = "persistent_count"
+    """The number of objects persisted."""
     persist_dir: Optional[str] = None
-
+    """The directory to persist the data."""
+    override: bool = False
+    """Whether to remove the existing dir before dumping."""
     async def _execute(
         self,
         task_input: Optional[Task] = None,
@@ -64,6 +67,9 @@ class PersistentAll(Action):
         if persist_dir.is_file():
             logger.warning("Dump should be a directory, but it is a file. Skip dumping.")
             return count
+        if self.override and persist_dir.is_dir():
+            logger.info(f"Override the existing directory {persist_dir.as_posix()}.")
+            persist_dir.rmdir()
 
         for k, v in cxt.items():
             final_dir = persist_dir.joinpath(k)

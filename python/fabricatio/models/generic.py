@@ -778,15 +778,14 @@ class Patch[T](ProposedAble):
         """
         my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
 
-        prop_dict = my_schema["properties"]
-        if (ref_cls := cls.ref_cls()) is not None:
+        if cls.ref_cls() is not None:
             # copy the desc info of each corresponding fields from `ref_cls`
-            for field_name in cls.model_fields:
-                if (ref_field := getattr(ref_cls, field_name, None)) is not None:
-                    if (desc := ref_field.field_info.description) is not None:
-                        prop_dict[field_name]["description"] = desc
-                    if (example := ref_field.field_info.examples) is not None:
-                        prop_dict[field_name]["examples"] = example
+            for field_name in [f for f in cls.model_fields if f in cls.ref_cls().model_fields]:
+                my_schema["properties"][field_name]["description"] = (
+                    cls.ref_cls().model_fields[field_name].description
+                    or my_schema["properties"][field_name]["description"]
+                )
+            my_schema["description"] = cls.ref_cls().__doc__
 
         return orjson.dumps(
             my_schema,
