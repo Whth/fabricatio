@@ -71,7 +71,7 @@ class Display(Base):
         Returns:
             str: The formatted JSON string of the sequence.
         """
-        return "\n".join(d.compact() if compact else d.display() for d in seq)
+        return "--- Start of Extra Info Sequence ---"+"\n".join(d.compact() if compact else d.display() for d in seq) + "--- End of Extra Info Sequence ---"
 
 
 class Named(Base):
