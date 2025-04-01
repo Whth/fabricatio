@@ -2,10 +2,10 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import AsPrompt, CensoredAble, Display, PersistentAble, WithRef
+from fabricatio.models.generic import AsPrompt, SketchedAble, PersistentAble, WithRef
 
 
-class ArticleProposal(CensoredAble, Display, WithRef[str], AsPrompt, PersistentAble):
+class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.

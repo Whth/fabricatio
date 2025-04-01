@@ -14,11 +14,11 @@ from fabricatio.models.extra.article_base import (
 from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
-from fabricatio.models.generic import CensoredAble, Display, PersistentAble, SequencePatch, WithRef
+from fabricatio.models.generic import PersistentAble, SequencePatch, SketchedAble, WithRef
 from fabricatio.utils import ok
 
 
-class Paragraph(CensoredAble):
+class Paragraph(SketchedAble):
     """Structured academic paragraph blueprint for controlled content generation."""
 
     description: str
@@ -73,8 +73,7 @@ class ArticleChapter(ChapterBase[ArticleSection]):
 
 
 class Article(
-    Display,
-    CensoredAble,
+    SketchedAble,
     WithRef[ArticleOutline],
     PersistentAble,
     ArticleBase[ArticleChapter],
