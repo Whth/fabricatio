@@ -33,43 +33,44 @@ class Base(BaseModel):
     """Base class for all models with Pydantic configuration.
 
     This class sets up the basic Pydantic configuration for all models in the Fabricatio library.
+    The `model_config` uses `use_attribute_docstrings=True` to ensure field descriptions are
+    pulled from the attribute's docstring instead of the default Pydantic behavior.
     """
-
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
 class Display(Base):
-    """Class that provides a method to display the model in a formatted JSON string.
+    """Class that provides formatted JSON representation utilities.
 
-    This class includes methods to display the model in both formatted and compact JSON strings.
+    Provides methods to generate both pretty-printed and compact JSON representations of the model.
+    Used for debugging and logging purposes.
     """
-
     def display(self) -> str:
-        """Display the model in a formatted JSON string.
+        """Generate pretty-printed JSON representation.
 
         Returns:
-            str: The formatted JSON string of the model.
+            str: JSON string with 1-level indentation for readability
         """
         return self.model_dump_json(indent=1)
 
     def compact(self) -> str:
-        """Display the model in a compact JSON string.
+        """Generate compact JSON representation.
 
         Returns:
-            str: The compact JSON string of the model.
+            str: Minified JSON string without whitespace
         """
         return self.model_dump_json()
 
     @staticmethod
     def seq_display(seq: Iterable["Display"], compact: bool = False) -> str:
-        """Display a sequence of Display objects in a formatted JSON string.
+        """Generate formatted display for sequence of Display objects.
 
         Args:
-            seq (Iterable[Display]): The sequence of Display objects to display.
-            compact (bool): Whether to display the sequence in a compact format. Defaults to False.
+            seq (Iterable[Display]): Sequence of objects to display
+            compact (bool): Use compact format instead of pretty print
 
         Returns:
-            str: The formatted JSON string of the sequence.
+            str: Combined display output with boundary markers
         """
         return (
             "--- Start of Extra Info Sequence ---"
@@ -188,21 +189,23 @@ class WithRef[T](Base):
 
 
 class PersistentAble(Base):
-    """Class that provides methods to persist and load the object to/from files."""
+    """Class providing file persistence capabilities.
 
+    Enables saving model instances to disk with timestamped filenames and loading from persisted files.
+    Implements basic versioning through filename hashing and timestamping.
+    """
     def persist(self, path: str | Path) -> Self:
-        """Persist the object to a file or directory.
+        """Save model instance to disk with versioned filename.
 
         Args:
-            path (str | Path): The target path. If a directory, the file will be saved there with a generated name.
+            path (str | Path): Target directory or file path. If directory, filename is auto-generated.
 
         Returns:
-            Self: The current instance after persistence.
+            Self: Current instance for method chaining
 
         Notes:
-            - The filename is generated as: <ClassName>_<timestamp>_<hash>.json
-            - The timestamp is in YYYYMMDD_HHMMSS format.
-            - The hash is a 6-character Blake3 hash of the object's JSON content.
+            - Filename format: <ClassName>_<YYYYMMDD_HHMMSS>_<6-char_hash>.json
+            - Hash generated from JSON content ensures uniqueness
         """
         p = Path(path)
         out = self.model_dump_json()
@@ -227,21 +230,17 @@ class PersistentAble(Base):
 
     @classmethod
     def from_latest_persistent(cls, dir_path: str | Path) -> Self:
-        """Load the latest persisted instance from a directory.
+        """Load most recent persisted instance from directory.
 
         Args:
-            dir_path (str | Path): Directory containing persisted files.
+            dir_path (str | Path): Directory containing persisted files
 
         Returns:
-            Self: The most recently modified instance found.
+            Self: Most recently modified instance
 
         Raises:
-            NotADirectoryError: If the provided path is not a valid directory.
-            FileNotFoundError: If no matching files are found.
-
-        Notes:
-            - Files are sorted by timestamp extracted from their filenames.
-            - Filename format must be: <ClassName>_<timestamp>_<hash>.json
+            NotADirectoryError: If path is not a valid directory
+            FileNotFoundError: If no matching files found
         """
         dir_path = Path(dir_path)
         if not dir_path.is_dir():
@@ -666,11 +665,11 @@ class Vectorizable(Base):
 
 
 class ScopedConfig(Base):
-    """Class that manages a scoped configuration.
+    """Configuration holder with hierarchical fallback mechanism.
 
-    This class includes attributes and methods to manage configuration settings scoped to the instance.
+    Manages LLM, embedding, and vector database configurations with fallback logic.
+    Allows configuration values to be overridden in a hierarchical manner.
     """
-
     llm_api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""
 
@@ -745,13 +744,15 @@ class ScopedConfig(Base):
 
     @final
     def fallback_to(self, other: "ScopedConfig") -> Self:
-        """Fallback to another instance's attribute values if the current instance's attributes are None.
+        """Merge configuration values with fallback priority.
+
+        Copies non-null values from 'other' to self where current values are None.
 
         Args:
-            other (ScopedConfig): Another instance from which to copy attribute values.
+            other (ScopedConfig): Configuration to fallback to
 
         Returns:
-            Self: The current instance, allowing for method chaining.
+            Self: Current instance with merged values
         """
         # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
         # noinspection PydanticTypeChecker,PyTypeChecker
@@ -765,13 +766,15 @@ class ScopedConfig(Base):
 
     @final
     def hold_to(self, others: Union["ScopedConfig", Iterable["ScopedConfig"]]) -> Self:
-        """Hold to another instance's attribute values if the current instance's attributes are None.
+        """Propagate non-null values to other configurations.
+
+        Copies current non-null values to target configurations where they are None.
 
         Args:
-            others (Union[ScopedConfig, Iterable[ScopedConfig]]): Another instance or iterable of instances from which to copy attribute values.
+            others (ScopedConfig|Iterable): Target configurations to update
 
         Returns:
-            Self: The current instance, allowing for method chaining.
+            Self: Current instance unchanged
         """
         if not isinstance(others, Iterable):
             others = [others]

@@ -1,7 +1,12 @@
-"""Module that contains the classes for actions and workflows.
+"""Module that contains the classes for defining and executing task workflows.
 
-This module defines the Action and WorkFlow classes, which are used for
-creating and executing sequences of actions in a task-based context.
+This module provides the Action and WorkFlow classes for creating structured
+task execution pipelines. Actions represent atomic operations, while WorkFlows
+orchestrate sequences of actions with shared context and error handling.
+
+Classes:
+    Action: Base class for defining executable actions with context management.
+    WorkFlow: Manages action sequences, context propagation, and task lifecycle.
 """
 
 import traceback
@@ -50,28 +55,26 @@ class Action(WithBriefing, LLMUsage):
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
-    async def _execute(self, *_, **cxt) -> Any:  # noqa: ANN002
-        """Execute the action logic with the provided context arguments.
-
-        This method must be implemented by subclasses to define the actual behavior.
+    async def _execute(self, *_:Any, **cxt) -> Any:
+        """Implement the core logic of the action.
 
         Args:
-            **cxt: The context dictionary containing input and output data.
+            **cxt: Context dictionary containing input/output data.
 
         Returns:
-            Any: The result of the action execution.
+            Result of the action execution to be stored in context.
         """
         pass
 
     @final
     async def act(self, cxt: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform the action and update the context with results.
+        """Execute action and update context.
 
         Args:
-            cxt: The context dictionary containing input and output data.
+            cxt (Dict[str, Any]): Shared context dictionary.
 
         Returns:
-            Dict[str, Any]: The updated context dictionary.
+            Updated context dictionary with new/modified entries.
         """
         ret = await self._execute(**cxt)
 
@@ -83,10 +86,10 @@ class Action(WithBriefing, LLMUsage):
 
     @property
     def briefing(self) -> str:
-        """Return a formatted description of the action including personality context if available.
+        """Generate formatted action description with personality context.
 
         Returns:
-            str: Formatted briefing text with personality and action description.
+            Briefing text combining personality and action description.
         """
         if self.personality:
             return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
@@ -98,10 +101,15 @@ class Action(WithBriefing, LLMUsage):
         return self
 
 class WorkFlow(WithBriefing, ToolBoxUsage):
-    """Class that represents a sequence of actions to be executed for a task.
+    """Manages sequences of actions to fulfill tasks.
 
-    A workflow manages the execution of multiple actions in sequence, passing
-    a shared context between them and handling task lifecycle events.
+    Handles context propagation between actions, error handling, and task lifecycle
+    events like cancellation and completion.
+
+    Attributes:
+        steps (Tuple): Sequence of Action instances or classes to execute.
+        task_input_key (str): Key for storing task instance in context.
+        task_output_key (str): Key to retrieve final result from context.
     """
 
     description: str = ""
@@ -137,26 +145,29 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         self._instances = tuple(step if isinstance(step, Action) else step() for step in self.steps)
 
     def inject_personality(self, personality: str) -> Self:
-        """Set the personality for all actions that don't have one defined.
+        """Set personality for actions without existing personality.
 
         Args:
-            personality: The personality text to inject.
+            personality (str): Shared personality context
 
         Returns:
-            Self: The workflow instance for method chaining.
+            Workflow instance with updated actions
         """
         for action in filter(lambda a: not a.personality, self._instances):
             action.personality = personality
         return self
 
     async def serve(self, task: Task) -> None:
-        """Execute the workflow to fulfill the given task.
-
-        This method manages the complete lifecycle of processing a task through
-        the workflow's sequence of actions.
+        """Execute workflow to complete given task.
 
         Args:
-            task: The task to be processed.
+            task (Task): Task instance to be processed.
+
+        Steps:
+            1. Initialize context with task instance and extra data
+            2. Execute each action sequentially
+            3. Handle task cancellation and exceptions
+            4. Extract final result from context
         """
         logger.info(f"Start execute workflow: {self.name}")
 
@@ -206,10 +217,14 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             await task.fail()
 
     async def _init_context[T](self, task: Task[T]) -> None:
-        """Initialize the context dictionary for workflow execution.
+        """Initialize workflow execution context.
 
         Args:
-            task: The task being served by this workflow.
+            task (Task[T]): Task being processed
+
+        Context includes:
+            - Task instance stored under task_input_key
+            - Any extra_init_context values
         """
         logger.debug(f"Initializing context for workflow: {self.name}")
         initial_context = {self.task_input_key: task, **dict(self.extra_init_context)}
@@ -230,7 +245,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         Returns:
             Self: The workflow instance for method chaining.
         """
-        self.provide_tools_to(self._instances)
+        self.provide_tools_to(i for i in self._instances if isinstance(i,ToolBoxUsage))
         return self
 
     def update_init_context(self, /, **kwargs) -> Self:
