@@ -71,7 +71,11 @@ class Display(Base):
         Returns:
             str: The formatted JSON string of the sequence.
         """
-        return "--- Start of Extra Info Sequence ---"+"\n".join(d.compact() if compact else d.display() for d in seq) + "--- End of Extra Info Sequence ---"
+        return (
+            "--- Start of Extra Info Sequence ---"
+            + "\n".join(d.compact() if compact else d.display() for d in seq)
+            + "--- End of Extra Info Sequence ---"
+        )
 
 
 class Named(Base):
@@ -184,19 +188,21 @@ class WithRef[T](Base):
 
 
 class PersistentAble(Base):
-    """Class that provides a method to persist the object.
-
-    This class includes methods to persist the object to a file or directory.
-    """
+    """Class that provides methods to persist and load the object to/from files."""
 
     def persist(self, path: str | Path) -> Self:
         """Persist the object to a file or directory.
 
         Args:
-            path (str | Path): The path to save the object.
+            path (str | Path): The target path. If a directory, the file will be saved there with a generated name.
 
         Returns:
-            Self: The current instance of the object.
+            Self: The current instance after persistence.
+
+        Notes:
+            - The filename is generated as: <ClassName>_<timestamp>_<hash>.json
+            - The timestamp is in YYYYMMDD_HHMMSS format.
+            - The hash is a 6-character Blake3 hash of the object's JSON content.
         """
         p = Path(path)
         out = self.model_dump_json()
@@ -220,14 +226,55 @@ class PersistentAble(Base):
         return self
 
     @classmethod
-    def from_persistent(cls, path: str | Path) -> Self:
-        """Load the object from a file.
+    def from_latest_persistent(cls, dir_path: str | Path) -> Self:
+        """Load the latest persisted instance from a directory.
 
         Args:
-            path (str | Path): The path to load the object from.
+            dir_path (str | Path): Directory containing persisted files.
 
         Returns:
-            Self: The current instance of the object.
+            Self: The most recently modified instance found.
+
+        Raises:
+            NotADirectoryError: If the provided path is not a valid directory.
+            FileNotFoundError: If no matching files are found.
+
+        Notes:
+            - Files are sorted by timestamp extracted from their filenames.
+            - Filename format must be: <ClassName>_<timestamp>_<hash>.json
+        """
+        dir_path = Path(dir_path)
+        if not dir_path.is_dir():
+            raise NotADirectoryError(f"{dir_path} is not a valid directory")
+
+        pattern = f"{cls.__name__}_*.json"
+        files = list(dir_path.glob(pattern))
+
+        if not files:
+            raise FileNotFoundError(f"No persistent files found for {cls.__name__} in {dir_path}")
+
+        def _get_timestamp(file_path: Path) -> datetime:
+            stem = file_path.stem
+            parts = stem.split("_")
+            return datetime.strptime(f"{parts[1]}_{parts[2]}", "%Y%m%d_%H%M%S")
+
+        files.sort(key=lambda f: _get_timestamp(f), reverse=True)
+
+        return cls.from_persistent(files.pop(0))
+
+    @classmethod
+    def from_persistent(cls, path: str | Path) -> Self:
+        """Load an instance from a specific persisted file.
+
+        Args:
+            path (str | Path): Path to the JSON file.
+
+        Returns:
+            Self: The loaded instance from the file.
+
+        Raises:
+            FileNotFoundError: If the specified file does not exist.
+            ValueError: If the file content is invalid for the model.
         """
         return cls.model_validate_json(safe_text_read(path))
 
@@ -778,14 +825,14 @@ class Patch[T](ProposedAble):
         """
         my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
 
-        if cls.ref_cls() is not None:
+        ref_cls = cls.ref_cls()
+        if ref_cls is not None:
             # copy the desc info of each corresponding fields from `ref_cls`
-            for field_name in [f for f in cls.model_fields if f in cls.ref_cls().model_fields]:
+            for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    cls.ref_cls().model_fields[field_name].description
-                    or my_schema["properties"][field_name]["description"]
+                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
                 )
-            my_schema["description"] = cls.ref_cls().__doc__
+            my_schema["description"] = ref_cls.__doc__
 
         return orjson.dumps(
             my_schema,
