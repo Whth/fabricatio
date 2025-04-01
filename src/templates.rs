@@ -1,4 +1,4 @@
-use crate::hbs_helpers::len;
+use crate::hbs_helpers::{len,getlang,hash};
 use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -100,8 +100,11 @@ impl TemplateManager {
             .collect()
     }
 
+
     fn register_builtin_helper(&mut self) {
         self.handlebars.register_helper("len", Box::new(len));
+        self.handlebars.register_helper("getlang", Box::new(getlang));
+        self.handlebars.register_helper("hash", Box::new(hash));
     }
 }
 
