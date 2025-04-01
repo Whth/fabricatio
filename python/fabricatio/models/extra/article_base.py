@@ -119,6 +119,9 @@ class ArticleMetaData(SketchedAble):
     title: str
     """Do not add any prefix or suffix to the title. should not contain special characters."""
 
+    expected_word_count: int
+    """Expected word count of this research component."""
+
 
 class ArticleRefSequencePatch(SequencePatch[ArticleRef]):
     """Patch for article refs."""

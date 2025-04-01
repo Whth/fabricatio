@@ -41,8 +41,8 @@ class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble):
     abstract: str
     """A concise summary of the research proposal, outlining the main points and objectives."""
 
-    min_word_count: int
-    """The minimum number of words required for the research proposal."""
+    expected_word_count: int
+    """The estimated word count of the final academic paper."""
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
