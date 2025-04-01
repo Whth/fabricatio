@@ -50,7 +50,7 @@ class Check(AdvancedJudge, Propose):
         if rule_reqs is None:
             return None
 
-        rules = await self.propose(Rule, rule_reqs, **kwargs)
+        rules = await self.propose(Rule, [TEMPLATE_MANAGER.render_template(configs.templates.rule_requirement_template, {"rule_requirement": r}) for r in rule_reqs], **kwargs)
         if any(r for r in rules if r is None):
             return None
 

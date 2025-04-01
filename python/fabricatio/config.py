@@ -247,6 +247,8 @@ class TemplateConfig(BaseModel):
     fix_troubled_string_template: str = Field(default="fix_troubled_string")
     """The name of the fix troubled string template which will be used to fix a troubled string."""
 
+    rule_requirement_template: str = Field(default="rule_requirement")
+    """The name of the rule requirement template which will be used to generate a rule requirement."""
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 
