@@ -43,7 +43,7 @@ class Rating(LLMUsage):
             Dict[str, float]: A dictionary with the ratings for each dimension.
         """
 
-        def _validator(response: str) -> Dict[str, float] | None:
+        def _validator(response: str) -> Optional[Dict[str, float]] :
             if (
                 (json_data := JsonCapture.validate_with(response, dict, str))
                 and json_data.keys() == rating_manual.keys()
@@ -88,7 +88,7 @@ class Rating(LLMUsage):
         to_rate: str,
         topic: str,
         criteria: Set[str],
-        manual: Optional[Dict[str, str]],
+        manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> Dict[str, float]: ...
@@ -99,7 +99,7 @@ class Rating(LLMUsage):
         to_rate: List[str],
         topic: str,
         criteria: Set[str],
-        manual: Optional[Dict[str, str]],
+        manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> List[Dict[str, float]]: ...
@@ -109,7 +109,7 @@ class Rating(LLMUsage):
         to_rate: Union[str, List[str]],
         topic: str,
         criteria: Set[str],
-        manual: Optional[Dict[str, str]],
+        manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
     ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
@@ -170,7 +170,7 @@ class Rating(LLMUsage):
                     configs.templates.draft_rating_manual_template,
                     {
                         "topic": topic,
-                        "criteria": criteria,
+                        "criteria": list(criteria),
                     },
                 )
             ),
@@ -360,14 +360,14 @@ class Rating(LLMUsage):
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
 
     @overload
-    async def best(self, candidates: List[str], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
+    async def best(self, candidates: List[str], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
     @overload
     async def best[T: Display](
-        self, candidates: List[T], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[T], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[T]: ...
 
     async def best[T: Display](
-        self, candidates: List[str] | List[T], k: int=1, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[str] | List[T], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> Optional[List[str] | List[T]]:
         """Choose the best candidates from the list of candidates based on the composite score.
 
