@@ -161,6 +161,6 @@ class Improvement(SketchedAble):
     def gather(cls, *improvements: Unpack[Tuple["Improvement", ...]]) -> Self:
         """Gather multiple improvements into a single instance."""
         return cls(
-            focused_on="\n".join(imp.focused_on for imp in improvements),
+            focused_on=";".join(imp.focused_on for imp in improvements),
             problem_solutions=list(chain(*(imp.problem_solutions for imp in improvements))),
         )

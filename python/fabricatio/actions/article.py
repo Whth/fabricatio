@@ -12,7 +12,7 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import ArticleOutlineBase, ArticleRefSequencePatch
+from fabricatio.models.extra.article_base import ArticleOutlineBase
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -263,16 +263,15 @@ class TweakOutlineForwardRef(Action, Censor):
 
         return article_outline
 
-    async def _loop(self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet)-> None:
+    async def _loop(
+        self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet
+    ) -> None:
         if judge := await self.evidently_judge(
             f"{article_outline.as_prompt()}\n\n{a.display()}\n"
             f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
         ):
-            patch = ArticleRefSequencePatch.default()
-            patch.tweaked = getattr(a, field_name)
-
             await self.censor_obj_inplace(
-                patch,
+                a,
                 ruleset=ruleset,
                 reference=f"{article_outline.as_prompt()}\n"
                 f"The Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
