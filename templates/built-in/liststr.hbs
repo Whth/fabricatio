@@ -1,8 +1,12 @@
+--- Start of Generation Requirement ---
+{{requirement}}
+--- End of Generation Requirement ---
+
 # Example:
 Requirement: break down this requirement below to multiple smaller but descriptive sub requirements
 "When citing other articles as references in a text, follow the format `(Author1, Author2 et al., Year)#cite(<bibtex_cite_key>)`. Typst is used to generate numeric citations, where each BibTeX key (e.g., `YanWindEnergy2018`) must be enclosed in angle brackets `<` and `>` within the `#cite()` command (e.g., `#cite(<YanWindEnergy2018>)`), which compiles to a superscript number like [1]. Since `#cite()` only references a single文献 at a time, multiple citations (e.g., three keys: `YanWindEnergy2018`, `YanWindEnergy2019`, `YanWindEnergy2020`) require stacking individual `#cite()` tags: `#cite(<YanWindEnergy2018>)#cite(<YanWindEnergy2019>)#cite(<YanWindEnergy2020>)`, resulting in [1,2,3]. To enhance reference coverage, similar studies should be grouped into a single citation whenever possible. Note that omitting angle brackets around BibTeX keys will cause compiler errors."
 
------ Start of response example -----
+--- Start of response example ---
 ```json
 [
 "When citing references in an article, strictly follow the format `(Author1, Author2 et al., Year)#cite(<BibTeX_key>)`: list the first three authors followed by 'et al.' if there are more than three; use four-digit years (e.g., 2020); and ensure `#cite()` immediately follows the author/year text with the BibTeX key enclosed in angle brackets (e.g., `(Smith, Johnson et al., 2020)#cite(<SmithClimate2020>)`).",
@@ -12,11 +16,10 @@ Requirement: break down this requirement below to multiple smaller but descripti
 "Require `#cite()` keys to be enclosed in `<` and `>`. Omitting brackets causes compilation errors like `Error: Invalid citation format`. Fix by verifying angle brackets and recompiling."
 ]
 ```
------ End of response example -----
+--- End of response example ---
 
---- Start of Generation Requirement ---
-{{requirement}}
---- End of Generation Requirement ---
-
-`Generation Requirement` is absolute and highest specification. You must generate string array strictly against it.
+# Warning:
+- The response SHALL be returned as a JSON array whose elements is all String within the codeblock.
+- You SHALL not attempt to output `--- Start of response example ---` and `--- End of response example ---`.
+- `Generation Requirement` is absolute and highest specification. You must generate string array strictly against it.
 {{#if k}}- The array MUST contain EXACTLY {{k}} strings.{{/if}}

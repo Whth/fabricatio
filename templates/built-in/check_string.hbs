@@ -2,18 +2,18 @@
 {{reference}}
 ----- End of reference content -----
 {{/if}}
-## Content to Check
------ Start of content to check -----
+----- Start of Content to Check -----
 {{to_check}}
------ End of content to check -----
+----- End of Content to Check -----
 
 ## Rule to Follow
 {{rule}}
 
-## Judge thinks `Content to check` does violate the `Rule to Follow`
+## Judge thinks `Content to Check` does violate the `Rule to Follow`
 {{judge}}
 
-## Improvement Instructions
-1. Analyze the content against the rule
-2. Identify specific violations or issues
-3. For each issue, propose a clear, actionable solution
+## `Improvement` object build Instructions
+- Analyze the `Content to Check` against the rule.
+- Identify specific violations or issues that need improvement.
+- Since an `Improvement` object contains multiple problems, each of which MUST have multiple corresponding solutions to allow the supervisor decide which to use.
+- You should use `{{getlang to_check}}` as written language of `Improvement` object's JSON value content.
