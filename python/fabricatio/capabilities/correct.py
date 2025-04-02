@@ -34,9 +34,9 @@ class Correct(Rating, Propose):
             ProblemSolutions: The problem solutions with the best solution selected.
         """
         if (leng := len(problem_solutions.solutions)) == 0:
-            logger.error(f"No solutions found in ProblemSolutions, Skip: {problem_solutions.problem}")
+            logger.error(f"No solutions found in ProblemSolutions, Skip: `{problem_solutions.problem.name}`")
         if leng > 1:
-            logger.info(f"{leng} solutions found in Problem `{problem_solutions.problem.name}`, Select a best.")
+            logger.info(f"{leng} solutions found in Problem `{problem_solutions.problem.name}`, select the best.")
             problem_solutions.solutions = await self.best(problem_solutions.solutions, **kwargs)
         return problem_solutions
 
@@ -50,9 +50,7 @@ class Correct(Rating, Propose):
         Returns:
             Improvement: The improvement with the best solutions selected for each problem solution.
         """
-        if (leng := len(improvement.problem_solutions)) == 0:
-            logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
-        if leng > 1:
+        if leng := len(improvement.problem_solutions):
             logger.debug(f"{leng} problem_solutions found in Improvement, decide solution for each of them.")
             await gather(
                 *[
@@ -69,6 +67,8 @@ class Correct(Rating, Propose):
                 logger.error(f"Some problem_solutions are not decided: {violated}")
             else:
                 logger.success(f"All problem_solutions are decided '{improvement.focused_on}'")
+        else:
+            logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
         return improvement
 
     async def fix_troubled_obj[M: SketchedAble](
@@ -97,7 +97,7 @@ class Correct(Rating, Propose):
                     "problem": problem_solutions.problem.display(),
                     "solution": ok(
                         problem_solutions.final_solution(),
-                        f"No solution found for problem: {problem_solutions.problem}",
+                        f"{len(problem_solutions.solutions)} solution Found for `{problem_solutions.problem.name}`.",
                     ).display(),
                     "reference": reference,
                 },
@@ -196,6 +196,8 @@ class Correct(Rating, Propose):
             Optional[str]: A corrected version of the input string, or None if correction fails.
         """
         if not improvement.decided():
+            logger.info(f"Improvement {improvement.focused_on} not decided, start deciding...")
+
             improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
         for ps in improvement.problem_solutions:
