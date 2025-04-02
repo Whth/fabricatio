@@ -259,7 +259,6 @@ class TweakOutlineForwardRef(Action, Censor):
     async def _inner(self, article_outline: ArticleOutline, ruleset: RuleSet, field_name: str) -> ArticleOutline:
         await gather(
             *[self._loop(a, article_outline, field_name, ruleset) for a in article_outline.iter_dfs()],
-            return_exceptions=True,
         )
 
         return article_outline
@@ -322,12 +321,11 @@ class GenerateArticle(Action, Censor):
                 self.censor_obj_inplace(
                     subsec,
                     ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Error Need to be fixed\n{err}",
+                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}",
                 )
                 for _, __, subsec in article.iter_subsections()
                 if (err := subsec.introspect())
             ],
-            return_exceptions=True,
         )
 
         return article
