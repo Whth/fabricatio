@@ -1,6 +1,15 @@
-# Task: Rate Content on Multiple Dimensions
+# Task: Rate Content on Multiple criteria
 
 Rate the following content based on the provided rating manual and score range:
+## Rating Guidelines
+When determining your ratings:
+1. Analyze the content thoroughly against each criterion in the rating manual
+2. Consider only what's present in the content being rated
+3. Evaluate each criterion independently based on its specific description
+4. Assign precise scores within the specified range for each criteria
+5. Round all scores to exactly two decimal places
+6. Ensure no criteria is scored outside the range [{{ min_score }}, {{ max_score }}]
+
 
 ----- Start of content to rate -----
 {{ to_rate }}
@@ -13,21 +22,9 @@ Rate the following content based on the provided rating manual and score range:
 - Minimum score: {{ min_score }}
 - Maximum score: {{ max_score }}
 
-## Rating Guidelines
-When determining your ratings:
-1. Analyze the content thoroughly against each dimension in the rating manual
-2. Consider only what's present in the content being rated
-3. Evaluate each dimension independently based on its specific criteria
-4. Assign precise scores within the specified range for each dimension
-5. Round all scores to exactly two decimal places
-6. Ensure no dimension is scored outside the range [{{ min_score }}, {{ max_score }}]
-
-## Response Format
-Return your ratings as a JSON object with dimension names as keys and scores as values.
-
 # Example:
-rate using criteria {"nice outlook", "taste", "texture"}, with score range [0, 5]
------ Start of response example -----
+rate using rating manual {"nice outlook": "If the appearance is good", "taste": "If the taste is good", "texture": "If the texture is good"}, with score range [0, 5]
+--- Start of response example ---
 ```json
 {
 "nice outlook": 3.56,
@@ -35,11 +32,12 @@ rate using criteria {"nice outlook", "taste", "texture"}, with score range [0, 5
 "texture": 3.01
 }
 ```
------ End of response example -----
+--- End of response example ---
 
-## Format Requirements
+# Format Requirements
 - Response MUST be a valid JSON object within a code block
-- Keys MUST match ALL dimensions from the rating manual: [{{#each rating_manual}}"{{@key}}",{{/each}}]
+- Keys MUST match ALL criterion names from the rating manual: [{{#each rating_manual}}"{{@key}}",{{/each}}]
 - Values MUST be numeric, rounded to exactly two decimal places
 - All scores MUST be within the range [{{ min_score }}, {{ max_score }}]
 - No explanations or additional text outside the JSON code block
+- DO NOT try to output `--- Start of response example ---` or `--- End of response example ---`!
