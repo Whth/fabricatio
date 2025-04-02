@@ -32,9 +32,9 @@ def override_kwargs(kwargs: Mapping[str,Any], **overrides) -> Dict[str, Any]:
     return new_kwargs
 
 
-def fallback_kwargs(kwargs: Dict[str, Any], **overrides) -> Dict[str, Any]:
+def fallback_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
     """Fallback the values in kwargs with the provided overrides."""
-    new_kwargs = kwargs.copy()
+    new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in overrides.items() if k not in new_kwargs and v is not None})
     return new_kwargs
 
