@@ -12,7 +12,7 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import ArticleRefSequencePatch
+from fabricatio.models.extra.article_base import ArticleOutlineBase, ArticleRefSequencePatch
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -176,7 +176,7 @@ class FixIntrospectedErrors(Action, Censor):
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
-        origin=article_outline
+        origin = article_outline
         while pack := article_outline.gather_introspected():
             logger.info(f"Found {counter}th introspected errors")
             logger.warning(f"Found introspected error: {pack}")
@@ -215,7 +215,7 @@ class FixIllegalReferences(Action, Censor):
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
-        origin=article_outline
+        origin = article_outline
         while (pack := article_outline.gather_illegal_ref())[1]:
             logger.info(f"Found {counter}th illegal references")
             _, err = ok(pack)
@@ -257,22 +257,28 @@ class TweakOutlineForwardRef(Action, Censor):
         )
 
     async def _inner(self, article_outline: ArticleOutline, ruleset: RuleSet, field_name: str) -> ArticleOutline:
-        for a in article_outline.iter_dfs():
-            if judge := await self.evidently_judge(
-                f"{article_outline.as_prompt()}\n\n{a.display()}\n"
-                f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
-            ):
-                patch = ArticleRefSequencePatch.default()
-                patch.tweaked = getattr(a, field_name)
+        await gather(
+            *[self._loop(a, article_outline, field_name, ruleset) for a in article_outline.iter_dfs()],
+            return_exceptions=True,
+        )
 
-                await self.censor_obj_inplace(
-                    patch,
-                    ruleset=ruleset,
-                    reference=f"{article_outline.as_prompt()}\n"
-                    f"The Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
-                    f"# Judgement\n{judge.display()}",
-                )
         return article_outline
+
+    async def _loop(self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet):
+        if judge := await self.evidently_judge(
+            f"{article_outline.as_prompt()}\n\n{a.display()}\n"
+            f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
+        ):
+            patch = ArticleRefSequencePatch.default()
+            patch.tweaked = getattr(a, field_name)
+
+            await self.censor_obj_inplace(
+                patch,
+                ruleset=ruleset,
+                reference=f"{article_outline.as_prompt()}\n"
+                f"The Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
+                f"# Judgement\n{judge.display()}",
+            )
 
 
 class TweakOutlineBackwardRef(TweakOutlineForwardRef):
