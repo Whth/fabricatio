@@ -1,7 +1,7 @@
 """A class representing a problem-solution pair identified during a review process."""
 
 from itertools import chain
-from typing import Any, List, Literal, Optional, Self
+from typing import Any, List, Literal, Optional, Self, Tuple, Unpack
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
@@ -55,8 +55,8 @@ class ProblemSolutions(SketchedAble):
 
     def model_post_init(self, context: Any, /) -> None:
         """Initialize the problem-solution pair with a problem and a list of solutions."""
-        if len(self.solutions)==0:
-            logger.warning(f'No solution found for problem {self.problem.name}, please add more solutions manually.')
+        if len(self.solutions) == 0:
+            logger.warning(f"No solution found for problem {self.problem.name}, please add more solutions manually.")
 
     def update_from_inner(self, other: Self) -> Self:
         """Update the current instance with another instance's attributes."""
@@ -77,6 +77,7 @@ class ProblemSolutions(SketchedAble):
     def has_solutions(self) -> bool:
         """Check if the problem-solution pair has any solutions."""
         return len(self.solutions) > 0
+
     async def edit_problem(self) -> Self:
         """Interactively edit the problem description."""
         self.problem = Problem.model_validate_strings(
@@ -95,7 +96,7 @@ class ProblemSolutions(SketchedAble):
         """Check if the improvement is decided."""
         return len(self.solutions) == 1
 
-    def final_solution(self,always_use_first:bool=False) -> Optional[Solution]:
+    def final_solution(self, always_use_first: bool = False) -> Optional[Solution]:
         """Get the final solution."""
         if not always_use_first and not self.decided():
             logger.error(
@@ -117,6 +118,7 @@ class Improvement(SketchedAble):
     def all_problems_have_solutions(self) -> bool:
         """Check if all problems have solutions."""
         return all(ps.has_solutions() for ps in self.problem_solutions)
+
     async def supervisor_check(self, check_solutions: bool = True) -> Self:
         """Perform an interactive review session to filter problems and solutions.
 
@@ -156,7 +158,7 @@ class Improvement(SketchedAble):
         return all(ps.decided() for ps in self.problem_solutions)
 
     @classmethod
-    def gather(cls, *improvements: Self) -> Self:
+    def gather(cls, *improvements: Unpack[Tuple["Improvement", ...]]) -> Self:
         """Gather multiple improvements into a single instance."""
         return cls(
             focused_on="\n".join(imp.focused_on for imp in improvements),
