@@ -36,6 +36,7 @@ class Correct(Rating, Propose):
         if (leng := len(problem_solutions.solutions)) == 0:
             logger.error(f"No solutions found in ProblemSolutions, Skip: {problem_solutions.problem}")
         if leng > 1:
+            logger.info(f"{leng} solutions found in Problem `{problem_solutions.problem.name}`, Select a best.")
             problem_solutions.solutions = await self.best(problem_solutions.solutions, **kwargs)
         return problem_solutions
 
@@ -52,9 +53,12 @@ class Correct(Rating, Propose):
         if (leng := len(improvement.problem_solutions)) == 0:
             logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
         if leng > 1:
+            logger.debug(f"{leng} problem_solutions found in Improvement, decide solution for each of them.")
             await gather(
                 *[self.decide_solution(ps, **kwargs) for ps in improvement.problem_solutions], return_exceptions=True
             )
+            if any(not (violated:=ps).decided() for ps in improvement.problem_solutions):
+                logger.error(f"Some problem_solutions are not decided: {violated}")
         return improvement
 
     async def fix_troubled_obj[M: SketchedAble](
