@@ -19,7 +19,7 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.task import Task
-from fabricatio.rust import BibManager
+from fabricatio.rust import BibManager, detect_language
 from fabricatio.utils import ok
 
 
@@ -151,7 +151,8 @@ class GenerateInitialOutline(Action, Propose):
         return ok(
             await self.propose(
                 ArticleOutline,
-                article_proposal.as_prompt(),
+                f"{(p := article_proposal.as_prompt())}\n\nNote that you should use `{detect_language(p)}` to write the `ArticleOutline`\n"
+                f"You Must make sure every chapter have sections, and every section have subsections.",
             ),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
@@ -165,6 +166,8 @@ class FixIntrospectedErrors(Action, Censor):
 
     ruleset: Optional[RuleSet] = None
     """The ruleset to use to fix the introspected errors."""
+    max_error_count: Optional[int] = None
+    """The maximum number of errors to fix."""
 
     async def _execute(
         self,
@@ -172,18 +175,24 @@ class FixIntrospectedErrors(Action, Censor):
         ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        while pack := article_outline.find_introspected():
-            component, err = ok(pack)
-            logger.warning(f"Found introspected error: {err}")
-            corrected = ok(
+        counter = 0
+        origin=article_outline
+        while pack := article_outline.gather_introspected():
+            logger.info(f"Found {counter}th introspected errors")
+            logger.warning(f"Found introspected error: {pack}")
+            article_outline = ok(
                 await self.censor_obj(
-                    component,
+                    article_outline,
                     ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Some Basic errors found from `{component.title}` that need to be fixed\n{err}",
+                    reference=f"# Original Article Outline\n{article_outline.display()}\n # Fatal Error of the Original Article Outline\n{pack}",
                 ),
                 "Could not correct the component.",
-            )
-            component.update_from(corrected)
+            ).update_ref(origin)
+
+            if self.max_error_count and counter > self.max_error_count:
+                logger.warning("Max error count reached, stopping.")
+                break
+            counter += 1
 
         return article_outline
 
@@ -196,6 +205,8 @@ class FixIllegalReferences(Action, Censor):
 
     ruleset: Optional[RuleSet] = None
     """Ruleset to use to fix the illegal references."""
+    max_error_count: Optional[int] = None
+    """The maximum number of errors to fix."""
 
     async def _execute(
         self,
@@ -203,21 +214,27 @@ class FixIllegalReferences(Action, Censor):
         ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        while pack := article_outline.find_illegal_ref(gather_identical=True):
-            refs, err = ok(pack)
+        counter = 0
+        origin=article_outline
+        while (pack := article_outline.gather_illegal_ref())[1]:
+            logger.info(f"Found {counter}th illegal references")
+            _, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
-            corrected_ref = ok(
+            article_outline = ok(
                 await self.censor_obj(
-                    refs[0],  # pyright: ignore [reportIndexIssue]
+                    article_outline,
                     ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n# Some Basic errors found that need to be fixed\n{err}",
+                    reference=f"{article_outline.as_prompt()}\n# Some Basic errors found that need to be fixed\n{err}",
                 ),
-                f'Could not correct the component'
-            )
-            for ref in refs:
-                ref.update_from(corrected_ref)  # pyright: ignore [reportAttributeAccessIssue]
+                "Could not correct the component",
+            ).update_ref(origin)
 
-        return article_outline.update_ref(article_outline)
+            if self.max_error_count and counter > self.max_error_count:
+                logger.warning("Max error count reached, stopping.")
+                break
+            counter += 1
+
+        return article_outline
 
 
 class TweakOutlineForwardRef(Action, Censor):
@@ -316,7 +333,7 @@ class CorrectProposal(Action, Censor):
     output_key: str = "corrected_proposal"
 
     async def _execute(self, article_proposal: ArticleProposal, **_) -> Any:
-        raise  NotImplementedError("Not implemented.")
+        raise NotImplementedError("Not implemented.")
 
 
 class CorrectOutline(Action, Correct):
