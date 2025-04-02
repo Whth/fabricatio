@@ -4,25 +4,18 @@ Please draft a rating manual for the following topic and criteria. This manual w
 Topic: {{ topic }}
 Criteria: {{ criteria }}
 
-## CFER Framework
-Ensure your rating manual follows these principles:
-- **Comprehensive**: Cover all important aspects of each criterion
-- **Fair**: Describe measurable and objective evaluation standards
-- **Evidence-based**: Focus on observable evidence for each rating level
-- **Relevant**: Connect directly to quality or performance within the topic
-
 Return the rating manual as a JSON object within a codeblock where the keys are the criteria and the values are the detailed descriptions for each criterion.
 
 # Example:
 
 Topic: Nice icecream
-Criteria: ["outlook","taste","texture"]
+Criteria: ["nice outlook","good taste","good texture"]
 ----- Start of response example -----
 ```json
 {
-"outlook": "Appearance of the icecream, how it looks. High score for an ice cream with a beautiful appearance such as vibrant color combinations and topped with fresh fruits or chocolate pieces; low score for an ice cream that looks unappealing, possibly showing signs of melting or covered in ice crystals.",
-"taste": "How the icecream tastes. High score for delicious ice cream with rich and authentic flavors, like vanilla with natural vanilla bean aroma and moderate sweetness; low score for bland or overly sweet ice cream with noticeable artificial flavoring or not matching its claimed flavor.",
-"texture": "How the icecream feels. High score for smooth texture without icy bits, melts smoothly in the mouth providing a creamy experience; low score for rough texture containing many ice crystals, feeling like it has been frozen for too long lacking softness."
+"nice outlook": "Appearance of the icecream, how it looks. High score for an ice cream with a beautiful appearance such as vibrant color combinations and topped with fresh fruits or chocolate pieces; low score for an ice cream that looks unappealing, possibly showing signs of melting or covered in ice crystals.",
+"good taste": "How the icecream tastes. High score for delicious ice cream with rich and authentic flavors, like vanilla with natural vanilla bean aroma and moderate sweetness; low score for bland or overly sweet ice cream with noticeable artificial flavoring or not matching its claimed flavor.",
+"good texture": "How the icecream feels. High score for smooth texture without icy bits, melts smoothly in the mouth providing a creamy experience; low score for rough texture containing many ice crystals, feeling like it has been frozen for too long lacking softness."
 }
 ```
 ----- End of response example -----
@@ -39,3 +32,4 @@ For each criterion in your manual:
 - Please ensure that the rating manual is clear and concise, and that the criteria for each criterion are well-defined.
 - The response SHALL be returned as a JSON object within the codeblock.
 - No additional explanation is needed.
+- All keys in the json must include all {{ criteria }}, do not modify the string of each!

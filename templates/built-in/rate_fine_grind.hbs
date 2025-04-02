@@ -6,13 +6,6 @@ Rate the following content based on the provided rating manual and score range:
 {{ to_rate }}
 ----- End of content to rate -----
 
-## CFER Framework
-When rating the content, follow these principles:
-- **Consistent**: Apply the same standards across all dimensions
-- **Factual**: Base ratings on observable qualities rather than subjective preferences
-- **Explicit**: Consider each dimension independently based on its defined criteria
-- **Refined**: Provide precise scores rounded to two decimal places
-
 ## Rating Manual
 {{ rating_manual }}
 
@@ -33,10 +26,11 @@ When determining your ratings:
 Return your ratings as a JSON object with dimension names as keys and scores as values.
 
 # Example:
+rate using criteria {"nice outlook", "taste", "texture"}, with score range [0, 5]
 ----- Start of response example -----
 ```json
 {
-"outlook": 3.56,
+"nice outlook": 3.56,
 "taste": 4.55,
 "texture": 3.01
 }
