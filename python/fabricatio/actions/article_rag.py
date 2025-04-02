@@ -6,7 +6,7 @@ from typing import Optional
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_main import Article, ArticleParagraphSequencePatch, ArticleSubsection
+from fabricatio.models.extra.article_main import Article, ArticleSubsection
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ok
 
