@@ -1,7 +1,7 @@
 """A class representing a problem-solution pair identified during a review process."""
 
 from itertools import chain
-from typing import List, Literal, Optional, Self, Any
+from typing import Any, List, Literal, Optional, Self
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
@@ -74,6 +74,9 @@ class ProblemSolutions(SketchedAble):
         self.solutions = solutions
         return self
 
+    def has_solutions(self) -> bool:
+        """Check if the problem-solution pair has any solutions."""
+        return len(self.solutions) > 0
     async def edit_problem(self) -> Self:
         """Interactively edit the problem description."""
         self.problem = Problem.model_validate_strings(
@@ -94,7 +97,7 @@ class ProblemSolutions(SketchedAble):
 
     def final_solution(self,always_use_first:bool=False) -> Optional[Solution]:
         """Get the final solution."""
-        if not  always_use_first and not self.decided():
+        if not always_use_first and not self.decided():
             logger.error(
                 f"There is {len(self.solutions)} solutions for problem {self.problem.name}, please decide which solution is eventually adopted."
             )
@@ -111,6 +114,9 @@ class Improvement(SketchedAble):
     problem_solutions: List[ProblemSolutions]
     """Collection of problems identified during review along with their potential solutions."""
 
+    def all_problems_have_solutions(self) -> bool:
+        """Check if all problems have solutions."""
+        return all(ps.has_solutions() for ps in self.problem_solutions)
     async def supervisor_check(self, check_solutions: bool = True) -> Self:
         """Perform an interactive review session to filter problems and solutions.
 
