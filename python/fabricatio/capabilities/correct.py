@@ -1,5 +1,6 @@
 """A module containing the Correct capability for reviewing, validating, and improving objects."""
 
+from asyncio import gather
 from typing import Optional, Type, Unpack, cast
 
 from fabricatio.capabilities.propose import Propose
@@ -51,8 +52,9 @@ class Correct(Rating, Propose):
         if (leng := len(improvement.problem_solutions)) == 0:
             logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
         if leng > 1:
-            for ps in improvement.problem_solutions:
-                ps.solutions = await self.best(ps.solutions, **kwargs)
+            await gather(
+                *[self.decide_solution(ps, **kwargs) for ps in improvement.problem_solutions], return_exceptions=True
+            )
         return improvement
 
     async def fix_troubled_obj[M: SketchedAble](
@@ -152,7 +154,7 @@ class Correct(Rating, Propose):
             improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
         for ps in improvement.problem_solutions:
-            logger.info(f'Fixing troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}')
+            logger.info(f"Fixing troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}")
             fixed_obj = await self.fix_troubled_obj(obj, ps, reference, **kwargs)
             if fixed_obj is None:
                 logger.error(
