@@ -177,27 +177,27 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         current_action = None
         try:
             # Process each action in sequence
-            for step in self._instances:
+            for i,step in enumerate(self._instances):
                 current_action = step.name
-                logger.info(f"Executing step >> {current_action}")
+                logger.info(f"Executing step [{i}] >> {current_action}")
 
                 # Get current context and execute action
                 context = await self._context.get()
                 act_task = create_task(step.act(context))
                 # Handle task cancellation
                 if task.is_cancelled():
-                    logger.warning(f"Task cancelled by task: {task.name}")
+                    logger.warning(f"Workflow cancelled by task: {task.name}")
                     act_task.cancel(f"Cancelled by task: {task.name}")
                     break
 
                 # Update context with modified values
                 modified_ctx = await act_task
-                logger.success(f"Step execution finished: {current_action}")
+                logger.success(f"Step [{i}] `{current_action}` execution finished.")
                 if step.output_key:
-                    logger.success(f"Setting output to `{step.output_key}`")
+                    logger.success(f"Setting action `{current_action}` output to `{step.output_key}`")
                 await self._context.put(modified_ctx)
 
-            logger.success(f"Workflow execution finished: {self.name}")
+            logger.success(f"Workflow `{self.name}` execution finished.")
 
             # Get final context and extract result
             final_ctx = await self._context.get()
