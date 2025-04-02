@@ -5,11 +5,12 @@ from typing import Dict, List, Set, Unpack
 
 import orjson
 from fabricatio import Action, JsonCapture, Role, WorkFlow, logger
+from fabricatio.capabilities.rating import Rating
 from fabricatio.models.events import Event
 from fabricatio.models.task import Task
 
 
-class Rate(Action):
+class Rate(Action, Rating):
     """Rate the task."""
 
     output_key: str = "task_output"
@@ -49,7 +50,7 @@ class WhatToRate(Action):
         )
 
 
-class MakeCriteria(Action):
+class MakeCriteria(Action, Rating):
     """Make criteria for rating."""
 
     output_key: str = "criteria"
@@ -60,7 +61,7 @@ class MakeCriteria(Action):
         return set(criteria)
 
 
-class MakeCompositeScore(Action):
+class MakeCompositeScore(Action, Rating):
     """Make a composite score."""
 
     output_key: str = "task_output"
@@ -70,6 +71,13 @@ class MakeCompositeScore(Action):
             rate_topic,
             to_rate,
         )
+
+
+class Best(Action, Rating):
+    output_key: str = "task_output"
+
+    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> str:
+        return (await self.best(to_rate, topic=rate_topic)).pop(0)
 
 
 async def main() -> None:
@@ -100,23 +108,29 @@ async def main() -> None:
                     "rate_topic": "if the food is 'good'",
                 },
             ),
+            Event.quick_instantiate("best"): WorkFlow(name="choose the best",
+                                                      steps=(WhatToRate, Best)
+                                                      ,extra_init_context={"rate_topic": "if the food is 'good'"}),
         },
     )
     task = await role.propose_task(
         "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",
     )
-    rating = await task.move_to("rate_food").delegate()
+    rating = await task.delegate("rate_food")
 
     logger.success(f"Result: \n{rating}")
 
-    generated_criteria = await task.move_to("make_criteria_for_food").delegate()
+    generated_criteria = await task.delegate("make_criteria_for_food")
 
     logger.success(f"Generated Criteria: \n{generated_criteria}")
 
-    composite_score = await task.move_to("make_composite_score").delegate()
+    composite_score = await task.delegate("make_composite_score")
 
     logger.success(f"Composite Score: \n{composite_score}")
-
+    
+    best = await task.delegate("best")
+    
+    logger.success(f"Best: \n{best}")
 
 if __name__ == "__main__":
     asyncio.run(main())
