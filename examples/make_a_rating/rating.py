@@ -74,6 +74,8 @@ class MakeCompositeScore(Action, Rating):
 
 
 class Best(Action, Rating):
+    """Select the best."""
+
     output_key: str = "task_output"
 
     async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> str:
@@ -108,9 +110,11 @@ async def main() -> None:
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.quick_instantiate("best"): WorkFlow(name="choose the best",
-                                                      steps=(WhatToRate, Best)
-                                                      ,extra_init_context={"rate_topic": "if the food is 'good'"}),
+            Event.quick_instantiate("best"): WorkFlow(
+                name="choose the best",
+                steps=(WhatToRate, Best),
+                extra_init_context={"rate_topic": "if the food is 'good'"},
+            ),
         },
     )
     task = await role.propose_task(
@@ -127,10 +131,11 @@ async def main() -> None:
     composite_score = await task.delegate("make_composite_score")
 
     logger.success(f"Composite Score: \n{composite_score}")
-    
+
     best = await task.delegate("best")
-    
+
     logger.success(f"Best: \n{best}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

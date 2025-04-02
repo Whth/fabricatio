@@ -377,9 +377,10 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
             if summary:
                 return component, summary
         return None
+
     def gather_introspected(self) -> Optional[str]:
         """Gathers all introspected components in the article structure."""
-        return "\n".join([i for component in self.chapters if (i:=component.introspect())])
+        return "\n".join([i for component in self.chapters if (i := component.introspect())])
 
     @overload
     def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]: ...
@@ -444,6 +445,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
         return None
 
     def gather_illegal_ref(self) -> Tuple[List[ArticleRef], str]:
+        """Gathers all illegal references in the article."""
         summary = []
         chap_titles_set = set(self.iter_chap_title())
         sec_titles_set = set(self.iter_section_title())
@@ -456,9 +458,13 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
             ):
                 res_seq.append(ref)
                 if ref.referred_chapter_title not in chap_titles_set:
-                    summary.append(f"Chapter titled `{ref.referred_chapter_title}` is not exist, since it is not any of {chap_titles_set}.")
+                    summary.append(
+                        f"Chapter titled `{ref.referred_chapter_title}` is not exist, since it is not any of {chap_titles_set}."
+                    )
                 if ref.referred_section_title and (ref.referred_section_title not in sec_titles_set):
-                    summary.append(f"Section Titled `{ref.referred_section_title}` is not exist, since it is not any of {sec_titles_set}")
+                    summary.append(
+                        f"Section Titled `{ref.referred_section_title}` is not exist, since it is not any of {sec_titles_set}"
+                    )
                 if ref.referred_subsection_title and (ref.referred_subsection_title not in subsec_titles_set):
                     summary.append(
                         f"Subsection Titled `{ref.referred_subsection_title}` is not exist, since it is not any of {subsec_titles_set}"

@@ -263,7 +263,7 @@ class TweakOutlineForwardRef(Action, Censor):
 
         return article_outline
 
-    async def _loop(self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet):
+    async def _loop(self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet)-> None:
         if judge := await self.evidently_judge(
             f"{article_outline.as_prompt()}\n\n{a.display()}\n"
             f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
