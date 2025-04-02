@@ -15,7 +15,7 @@ from fabricatio.models.kwargs_types import (
     ValidateKwargs,
 )
 from fabricatio.rust_instances import TEMPLATE_MANAGER
-from fabricatio.utils import ok, override_kwargs
+from fabricatio.utils import fallback_kwargs, ok, override_kwargs
 
 
 class Correct(Rating, Propose):
@@ -55,9 +55,18 @@ class Correct(Rating, Propose):
         if leng > 1:
             logger.debug(f"{leng} problem_solutions found in Improvement, decide solution for each of them.")
             await gather(
-                *[self.decide_solution(ps, **kwargs) for ps in improvement.problem_solutions], return_exceptions=True
+                *[
+                    self.decide_solution(
+                        ps,
+                        **fallback_kwargs(
+                            kwargs, topic=f"which solution is better to deal this problem {ps.problem.compact()}\n\n"
+                        ),
+                    )
+                    for ps in improvement.problem_solutions
+                ],
+                return_exceptions=True,
             )
-            if any(not (violated:=ps).decided() for ps in improvement.problem_solutions):
+            if any(not (violated := ps).decided() for ps in improvement.problem_solutions):
                 logger.error(f"Some problem_solutions are not decided: {violated}")
         return improvement
 
