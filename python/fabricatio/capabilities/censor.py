@@ -8,6 +8,8 @@ from typing import Optional, Unpack
 
 from fabricatio.capabilities.check import Check
 from fabricatio.capabilities.correct import Correct
+from fabricatio.journal import logger
+from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.generic import ProposedUpdateAble, SketchedAble
 from fabricatio.models.kwargs_types import ReferencedKwargs
@@ -40,8 +42,12 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
+            return None
+        if not imp:
+            logger.info(f"No improvement found for `{obj.__class__.__name__}`.")
             return obj
-        return await self.correct_obj(obj, imp, **kwargs)
+        logger.info(f'Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}')
+        return await self.correct_obj(obj, Improvement.gather(*imp), **kwargs)
 
     async def censor_string(
         self, input_text: str, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[str]]
@@ -61,8 +67,12 @@ class Censor(Correct, Check):
         """
         imp = await self.check_string(input_text, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
+            return None
+        if not imp:
+            logger.info("No improvement found for string.")
             return input_text
-        return await self.correct_string(input_text, imp, **kwargs)
+        logger.info(f'Generated {len(imp)} improvement(s) for string.')
+        return await self.correct_string(input_text, Improvement.gather(*imp), **kwargs)
 
     async def censor_obj_inplace[M: ProposedUpdateAble](
         self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
@@ -84,5 +94,9 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
+            return None
+        if not imp:
+            logger.info(f"No improvement found for `{obj.__class__.__name__}`.")
             return obj
-        return await self.correct_obj_inplace(obj, improvement=imp, **kwargs)
+        logger.info(f'Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}')
+        return await self.correct_obj_inplace(obj, improvement=Improvement.gather(*imp), **kwargs)
