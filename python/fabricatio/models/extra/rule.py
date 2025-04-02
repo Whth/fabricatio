@@ -8,14 +8,14 @@ descriptions, examples, and metadata for each rule and rule set, making it suita
 complex rule management systems.
 """
 
-from typing import List
+from typing import List, Self, Tuple, Unpack
 
 from fabricatio.models.generic import Language, PersistentAble, SketchedAble, WithBriefing
+from more_itertools import flatten
 
 
-class Rule(WithBriefing,Language, SketchedAble,PersistentAble):
+class Rule(WithBriefing, Language, SketchedAble, PersistentAble):
     """Represents a rule or guideline for a specific topic."""
-
 
     violation_examples: List[str]
     """A list of concrete examples demonstrating violations of this rule. Each example should
@@ -30,7 +30,7 @@ class Rule(WithBriefing,Language, SketchedAble,PersistentAble):
     serve as practical guidance for implementing the rule correctly."""
 
 
-class RuleSet( SketchedAble, PersistentAble, WithBriefing,Language):
+class RuleSet(SketchedAble, PersistentAble, WithBriefing, Language):
     """Represents a collection of rules and guidelines for a particular topic."""
 
     rules: List[Rule]
@@ -38,3 +38,13 @@ class RuleSet( SketchedAble, PersistentAble, WithBriefing,Language):
     a well-defined, specific guideline that contributes to the overall purpose of the rule set.
     The rules should be logically organized and consistent with each other, forming a coherent
     framework for the topic or domain covered by the rule set."""
+
+    @classmethod
+    def gather(cls, *rulesets: Unpack[Tuple["RuleSet",...]]) -> Self:
+        """Gathers multiple rule sets into a single rule set."""
+        return cls(
+            language=rulesets[0].language,
+            name=";".join(ruleset.name for ruleset in rulesets),
+            description=";".join(ruleset.description for ruleset in rulesets),
+            rules=list(flatten(r.rules for r in rulesets)),
+        )

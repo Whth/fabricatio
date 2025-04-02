@@ -91,10 +91,8 @@ class TweakArticleRAG(Action, RAG, Censor):
                 f"prioritizing both original article language and English usage, which can return multiple candidates.",
             )
         )
-        patch = ArticleParagraphSequencePatch.default()
-        patch.tweaked = subsec.paragraphs
         await self.censor_obj_inplace(
-            patch,
+            subsec,
             ruleset=ruleset,
             reference=await self.aretrieve_compact(refind_q, final_limit=30),
         )
