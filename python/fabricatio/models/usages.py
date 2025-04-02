@@ -130,7 +130,6 @@ class LLMUsage(ScopedConfig):
         question: str,
         system_message: str = "",
         n: PositiveInt | None = None,
-        stream_buffer_size: int = 200,
         **kwargs: Unpack[LLMKwargs],
     ) -> Sequence[TextChoices | Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
@@ -139,7 +138,6 @@ class LLMUsage(ScopedConfig):
             question (str): The question to ask the model.
             system_message (str): The system message to provide context to the model. Defaults to an empty string.
             n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
-            stream_buffer_size (int): The buffer size for streaming responses. Defaults to 200.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -155,16 +153,7 @@ class LLMUsage(ScopedConfig):
         if isinstance(resp, CustomStreamWrapper):
             if not configs.debug.streaming_visible and (pack := stream_chunk_builder(await asyncstdlib.list())):
                 return pack.choices
-            chunks = []
-            buffer = ""
-            async for chunk in resp:
-                chunks.append(chunk)
-                buffer += chunk.choices[0].delta.content or ""
-                if len(buffer) > stream_buffer_size:
-                    print(buffer, end="")  # noqa: T201
-                    buffer = ""
-            print(buffer)  # noqa: T201
-            if pack := stream_chunk_builder(chunks):
+            if pack := stream_chunk_builder(await asyncstdlib.list(resp)):
                 return pack.choices
         logger.critical(err := f"Unexpected response type: {type(resp)}")
         raise ValueError(err)

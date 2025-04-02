@@ -1,7 +1,7 @@
 """A class representing a problem-solution pair identified during a review process."""
 
 from itertools import chain
-from typing import List, Literal, Optional, Self
+from typing import List, Literal, Optional, Self, Any
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
@@ -51,7 +51,12 @@ class ProblemSolutions(SketchedAble):
     problem: Problem
     """The problem identified in the review."""
     solutions: List[Solution]
-    """A collection of potential solutions."""
+    """A collection of potential solutions, spread the thought, add more solution as possible.Do not leave this as blank"""
+
+    def model_post_init(self, context: Any, /) -> None:
+        """Initialize the problem-solution pair with a problem and a list of solutions."""
+        if len(self.solutions)==0:
+            logger.warning(f'No solution found for problem {self.problem.name}, please add more solutions manually.')
 
     def update_from_inner(self, other: Self) -> Self:
         """Update the current instance with another instance's attributes."""
