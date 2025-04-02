@@ -3,6 +3,7 @@
 from typing import Optional
 
 from fabricatio.capabilities.check import Check
+from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ok
@@ -18,9 +19,10 @@ class DraftRuleSet(Action, Check):
     """The natural language description of the desired ruleset characteristics."""
     rule_count: int = 0
     """The number of rules to generate in the ruleset (0 for no restriction)."""
+
     async def _execute(
         self,
-        ruleset_requirement: Optional[str]=None,
+        ruleset_requirement: Optional[str] = None,
         **_,
     ) -> Optional[RuleSet]:
         """Draft a ruleset based on the requirement description.
@@ -33,7 +35,9 @@ class DraftRuleSet(Action, Check):
         Returns:
             Optional[RuleSet]: Drafted ruleset object or None if generation fails
         """
-        return await self.draft_ruleset(
-            ruleset_requirement=ok(ruleset_requirement or self.ruleset_requirement,"No ruleset requirement provided"),
+        ruleset = await self.draft_ruleset(
+            ruleset_requirement=ok(ruleset_requirement or self.ruleset_requirement, "No ruleset requirement provided"),
             rule_count=self.rule_count,
         )
+        logger.info(f"Drafted Ruleset length:\n{len(ruleset.rules)}")
+        return ruleset
