@@ -88,7 +88,7 @@ class TweakArticleRAG(Action, RAG, Censor):
                 f"{subsec.display()}\n"
                 f"# Requirement\n"
                 f"Search related articles in the base to find reference candidates, "
-                f"prioritizing both original article language and English usage",
+                f"prioritizing both original article language and English usage, which can return multiple candidates.",
             )
         )
         patch = ArticleParagraphSequencePatch.default()
