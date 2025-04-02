@@ -1,11 +1,12 @@
 """A class that provides the capability to check strings and objects against rules and guidelines."""
 
-from typing import Optional, Unpack
+from typing import List, Optional, Unpack
 
 from fabricatio import TEMPLATE_MANAGER
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
+from fabricatio.journal import logger
 from fabricatio.models.extra.patches import RuleSetBriefingPatch
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
@@ -51,7 +52,14 @@ class Check(AdvancedJudge, Propose):
         if rule_reqs is None:
             return None
 
-        rules = await self.propose(Rule, [TEMPLATE_MANAGER.render_template(configs.templates.rule_requirement_template, {"rule_requirement": r}) for r in rule_reqs], **kwargs)
+        rules = await self.propose(
+            Rule,
+            [
+                TEMPLATE_MANAGER.render_template(configs.templates.rule_requirement_template, {"rule_requirement": r})
+                for r in rule_reqs
+            ],
+            **kwargs,
+        )
         if any(r for r in rules if r is None):
             return None
 
@@ -141,7 +149,7 @@ class Check(AdvancedJudge, Propose):
         ruleset: RuleSet,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[Improvement]:
+    ) -> Optional[List[Improvement]]:
         """Validate text against full ruleset.
 
         Args:
@@ -162,7 +170,8 @@ class Check(AdvancedJudge, Propose):
             await self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules
         ]
         if all(isinstance(i, Improvement) for i in imp_seq):
-            return Improvement.gather(*imp_seq)  # pyright: ignore [reportArgumentType]
+            return imp_seq  # pyright: ignore [reportReturnType]
+        logger.warning(f"Generation failed for string check against `{ruleset.name}`")
         return None
 
     async def check_obj[M: (Display, WithBriefing)](
@@ -171,7 +180,7 @@ class Check(AdvancedJudge, Propose):
         ruleset: RuleSet,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[Improvement]:
+    ) -> Optional[List[Improvement]]:
         """Validate object against full ruleset.
 
         Args:
@@ -190,5 +199,6 @@ class Check(AdvancedJudge, Propose):
         """
         imp_seq = [await self.check_obj_against_rule(obj, rule, reference, **kwargs) for rule in ruleset.rules]
         if all(isinstance(i, Improvement) for i in imp_seq):
-            return Improvement.gather(*imp_seq)  # pyright: ignore [reportArgumentType]
+            return imp_seq  # pyright: ignore [reportReturnType]
+        logger.warning(f"Generation Failed for `{obj.__class__.__name__}` against Ruleset `{ruleset.name}`")
         return None
