@@ -377,12 +377,30 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
             if summary:
                 return component, summary
         return None
+    def gather_introspected(self) -> Optional[str]:
+        """Gathers all introspected components in the article structure."""
+        return "\n".join([i for component in self.chapters if (i:=component.introspect())])
 
     @overload
     def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]: ...
 
     @overload
     def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]: ...
+
+    def iter_chap_title(self) -> Generator[str, None, None]:
+        """Iterates through all chapter titles in the article."""
+        for chap in self.chapters:
+            yield chap.title
+
+    def iter_section_title(self) -> Generator[str, None, None]:
+        """Iterates through all section titles in the article."""
+        for _, sec in self.iter_sections():
+            yield sec.title
+
+    def iter_subsection_title(self) -> Generator[str, None, None]:
+        """Iterates through all subsection titles in the article."""
+        for _, _, subsec in self.iter_subsections():
+            yield subsec.title
 
     def find_illegal_ref(self, gather_identical: bool = False) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]:
         """Finds the first illegal component in the outline.
@@ -391,20 +409,62 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
             Tuple[ArticleOutlineBase, str]: A tuple containing the illegal component and an error message.
         """
         summary = ""
+        chap_titles_set = set(self.iter_chap_title())
+        sec_titles_set = set(self.iter_section_title())
+        subsec_titles_set = set(self.iter_subsection_title())
+
         for component in self.iter_dfs_rev():
             for ref in chain(component.depend_on, component.support_to):
                 if not ref.deref(self):
                     summary += f"Invalid internal reference in `{component.__class__.__name__}` titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-                if summary and not gather_identical:
-                    return ref, summary
-                if summary and gather_identical:
-                    return [
-                        identical_ref
-                        for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
-                        if identical_ref == ref
-                    ], summary
+
+                    if ref.referred_chapter_title not in (chap_titles_set):
+                        summary += f"Chapter titled `{ref.referred_chapter_title}` is not any of {chap_titles_set}\n"
+                    if ref.referred_section_title and ref.referred_section_title not in (sec_titles_set):
+                        summary += f"Section Titled `{ref.referred_section_title}` is not any of {sec_titles_set}\n"
+                    if ref.referred_subsection_title and ref.referred_subsection_title not in (subsec_titles_set):
+                        summary += (
+                            f"Subsection Titled `{ref.referred_subsection_title}` is not any of {subsec_titles_set}"
+                        )
+
+                if summary:
+                    return (
+                        (
+                            [
+                                identical_ref
+                                for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
+                                if identical_ref == ref
+                            ],
+                            summary,
+                        )
+                        if gather_identical
+                        else (ref, summary)
+                    )
 
         return None
+
+    def gather_illegal_ref(self) -> Tuple[List[ArticleRef], str]:
+        summary = []
+        chap_titles_set = set(self.iter_chap_title())
+        sec_titles_set = set(self.iter_section_title())
+        subsec_titles_set = set(self.iter_subsection_title())
+        res_seq = []
+
+        for component in self.iter_dfs():
+            for ref in (
+                r for r in chain(component.depend_on, component.support_to) if not r.deref(self) and r not in res_seq
+            ):
+                res_seq.append(ref)
+                if ref.referred_chapter_title not in chap_titles_set:
+                    summary.append(f"Chapter titled `{ref.referred_chapter_title}` is not exist, since it is not any of {chap_titles_set}.")
+                if ref.referred_section_title and (ref.referred_section_title not in sec_titles_set):
+                    summary.append(f"Section Titled `{ref.referred_section_title}` is not exist, since it is not any of {sec_titles_set}")
+                if ref.referred_subsection_title and (ref.referred_subsection_title not in subsec_titles_set):
+                    summary.append(
+                        f"Subsection Titled `{ref.referred_subsection_title}` is not exist, since it is not any of {subsec_titles_set}"
+                    )
+
+        return res_seq, "\n".join(summary)
 
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.
