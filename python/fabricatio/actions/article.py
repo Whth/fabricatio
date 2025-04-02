@@ -215,20 +215,20 @@ class FixIllegalReferences(Action, Censor):
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
-        origin = article_outline
-        while (pack := article_outline.gather_illegal_ref())[1]:
+        while pack := article_outline.find_illegal_ref(gather_identical=True):
             logger.info(f"Found {counter}th illegal references")
-            _, err = ok(pack)
+            ref_seq, err = ok(pack)
             logger.warning(f"Found illegal referring error: {err}")
-            article_outline = ok(
+            new = ok(
                 await self.censor_obj(
-                    article_outline,
+                    ref_seq[0],
                     ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"{article_outline.as_prompt()}\n# Some Basic errors found that need to be fixed\n{err}",
                 ),
                 "Could not correct the component",
-            ).update_ref(origin)
-
+            )
+            for r in ref_seq:
+                r.update_from(new)
             if self.max_error_count and counter > self.max_error_count:
                 logger.warning("Max error count reached, stopping.")
                 break
