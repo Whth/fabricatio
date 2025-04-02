@@ -64,10 +64,11 @@ class Correct(Rating, Propose):
                     )
                     for ps in improvement.problem_solutions
                 ],
-                return_exceptions=True,
             )
             if any(not (violated := ps).decided() for ps in improvement.problem_solutions):
                 logger.error(f"Some problem_solutions are not decided: {violated}")
+            else:
+                logger.success(f"All problem_solutions are decided '{improvement.focused_on}'")
         return improvement
 
     async def fix_troubled_obj[M: SketchedAble](
