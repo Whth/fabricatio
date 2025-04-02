@@ -67,6 +67,7 @@ class Censor(Correct, Check):
         """
         imp = await self.check_string(input_text, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
+            logger.warning(f"Censor failed for string:\n{input_text}")
             return None
         if not imp:
             logger.info("No improvement found for string.")
@@ -94,6 +95,7 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
+            logger.warning(f"Censor failed for `{obj.__class__.__name__}`")
             return None
         if not imp:
             logger.info(f"No improvement found for `{obj.__class__.__name__}`.")

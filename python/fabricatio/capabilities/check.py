@@ -1,5 +1,6 @@
 """A class that provides the capability to check strings and objects against rules and guidelines."""
 
+from asyncio import gather
 from typing import List, Optional, Unpack
 
 from fabricatio import TEMPLATE_MANAGER
@@ -101,6 +102,7 @@ class Check(AdvancedJudge, Propose):
             f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `Rule Must to follow` provided above?",
             **override_kwargs(kwargs, default=None),
         ):
+            logger.info(f"Rule `{rule.name}` violated: \n{judge.display()}")
             return await self.propose(
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
@@ -166,13 +168,13 @@ class Check(AdvancedJudge, Propose):
             - Halts validation after first successful improvement proposal
             - Maintains rule execution order from ruleset.rules list
         """
-        imp_seq = [
-            await self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules
-        ]
-        if all(isinstance(i, Improvement) for i in imp_seq):
-            return imp_seq  # pyright: ignore [reportReturnType]
-        logger.warning(f"Generation failed for string check against `{ruleset.name}`")
-        return None
+        imp_seq = await gather(
+            *[self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules]
+        )
+        if imp_seq is None:
+            logger.warning(f"Generation failed for string check against `{ruleset.name}`")
+            return None
+        return [imp for imp in imp_seq if imp]
 
     async def check_obj[M: (Display, WithBriefing)](
         self,
@@ -197,8 +199,9 @@ class Check(AdvancedJudge, Propose):
             - Maintains same early termination behavior as check_string
             - Validates object through text conversion mechanism
         """
-        imp_seq = [await self.check_obj_against_rule(obj, rule, reference, **kwargs) for rule in ruleset.rules]
-        if all(isinstance(i, Improvement) for i in imp_seq):
-            return imp_seq  # pyright: ignore [reportReturnType]
-        logger.warning(f"Generation Failed for `{obj.__class__.__name__}` against Ruleset `{ruleset.name}`")
-        return None
+        imp_seq = await gather(*[self.check_obj_against_rule(obj, rule, reference, **kwargs) for rule in ruleset.rules])
+
+        if imp_seq is None:
+            logger.warning(f"Generation Failed for `{obj.__class__.__name__}` against Ruleset `{ruleset.name}`")
+            return None
+        return [i for i in imp_seq if i]

@@ -39,5 +39,8 @@ class DraftRuleSet(Action, Check):
             ruleset_requirement=ok(ruleset_requirement or self.ruleset_requirement, "No ruleset requirement provided"),
             rule_count=self.rule_count,
         )
-        logger.info(f"Drafted Ruleset length:\n{len(ruleset.rules)}")
+        if ruleset:
+            logger.info(f"Drafted Ruleset length: {len(ruleset.rules)}")
+        else :
+            logger.warning(f"Drafting Rule Failed for:\n{ruleset_requirement}")
         return ruleset
