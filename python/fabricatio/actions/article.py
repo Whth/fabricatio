@@ -211,7 +211,8 @@ class FixIllegalReferences(Action, Censor):
                     refs[0],  # pyright: ignore [reportIndexIssue]
                     ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"# Original Article Outline\n{article_outline.display()}\n# Some Basic errors found that need to be fixed\n{err}",
-                )
+                ),
+                f'Could not correct the component'
             )
             for ref in refs:
                 ref.update_from(corrected_ref)  # pyright: ignore [reportAttributeAccessIssue]

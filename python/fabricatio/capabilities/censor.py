@@ -40,7 +40,7 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
-            return None
+            return obj
         return await self.correct_obj(obj, imp, **kwargs)
 
     async def censor_string(
@@ -61,7 +61,7 @@ class Censor(Correct, Check):
         """
         imp = await self.check_string(input_text, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
-            return imp
+            return input_text
         return await self.correct_string(input_text, imp, **kwargs)
 
     async def censor_obj_inplace[M: ProposedUpdateAble](
@@ -84,5 +84,5 @@ class Censor(Correct, Check):
         """
         imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
         if imp is None:
-            return imp
+            return obj
         return await self.correct_obj_inplace(obj, improvement=imp, **kwargs)
