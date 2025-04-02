@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from questionary import text
 
@@ -25,9 +25,9 @@ async def ask_edit(
     return res
 
 
-def override_kwargs(kwargs: Dict[str,Any], **overrides) -> Dict[str, Any]:
+def override_kwargs(kwargs: Mapping[str,Any], **overrides) -> Dict[str, Any]:
     """Override the values in kwargs with the provided overrides."""
-    new_kwargs = kwargs.copy()
+    new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in overrides.items() if v is not None})
     return new_kwargs
 

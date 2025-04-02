@@ -2,7 +2,7 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import AsPrompt, SketchedAble, PersistentAble, WithRef
+from fabricatio.models.generic import AsPrompt, PersistentAble, SketchedAble, WithRef
 
 
 class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble):

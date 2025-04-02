@@ -148,13 +148,15 @@ class Correct(Rating, Propose):
             TypeError: If the provided object doesn't implement Display or WithBriefing interfaces.
         """
         if not improvement.decided():
+            logger.info(f"Improvement {improvement.focused_on} not decided, start deciding...")
             improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
         for ps in improvement.problem_solutions:
+            logger.info(f'Fixing troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}')
             fixed_obj = await self.fix_troubled_obj(obj, ps, reference, **kwargs)
             if fixed_obj is None:
                 logger.error(
-                    f"Failed to fix troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem}",
+                    f"Failed to fix troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}",
                 )
                 return None
             obj = fixed_obj
