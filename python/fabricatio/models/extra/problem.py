@@ -87,11 +87,11 @@ class ProblemSolutions(SketchedAble):
         """Check if the improvement is decided."""
         return len(self.solutions) == 1
 
-    def final_solution(self) -> Optional[Solution]:
+    def final_solution(self,always_use_first:bool=False) -> Optional[Solution]:
         """Get the final solution."""
-        if not self.decided():
+        if not  always_use_first and not self.decided():
             logger.error(
-                f"There is more than one solution for problem {self.problem.name}, please decide which solution is eventually adopted."
+                f"There is {len(self.solutions)} solutions for problem {self.problem.name}, please decide which solution is eventually adopted."
             )
             return None
         return self.solutions[0]
