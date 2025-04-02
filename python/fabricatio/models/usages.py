@@ -130,7 +130,7 @@ class LLMUsage(ScopedConfig):
         question: str,
         system_message: str = "",
         n: PositiveInt | None = None,
-        stream_buffer_size: int = 50,
+        stream_buffer_size: int = 200,
         **kwargs: Unpack[LLMKwargs],
     ) -> Sequence[TextChoices | Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
@@ -139,7 +139,7 @@ class LLMUsage(ScopedConfig):
             question (str): The question to ask the model.
             system_message (str): The system message to provide context to the model. Defaults to an empty string.
             n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
-            stream_buffer_size (int): The buffer size for streaming responses. Defaults to 50.
+            stream_buffer_size (int): The buffer size for streaming responses. Defaults to 200.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
