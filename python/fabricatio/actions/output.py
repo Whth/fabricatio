@@ -103,7 +103,7 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     retrieve_cls: Type[T]
     """The class of the object to retrieve."""
 
-    async def _execute(self, /, **__) -> Optional[T | List[T]]:
+    async def _execute(self, /, **_) -> Optional[T | List[T]]:
         logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
             logger.warning(f"Path {self.load_path} does not exist")
@@ -115,12 +115,29 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
         return self.retrieve_cls.from_persistent(self.load_path)
 
 
+class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T]):
+    """Retrieve the object from the latest persistent file in the dir at `load_path`."""
+
+    async def _execute(self, /, **_) -> Optional[T]:
+        logger.info(f"Retrieve latest `{self.retrieve_cls.__name__}` from {self.load_path}")
+        if not (p := Path(self.load_path)).exists():
+            logger.warning(f"Path {self.load_path} does not exist")
+            return None
+
+        if p.is_dir():
+            logger.info(f"Found directory with {len(list(p.glob('*')))} items")
+            return self.retrieve_cls.from_latest_persistent(self.load_path)
+        logger.error(f"Path {self.load_path} is not a directory")
+        return None
+
+
 class GatherAsList(Action):
     """Gather the objects from the context as a list.
 
     Notes:
         If both `gather_suffix` and `gather_prefix` are specified, only the objects with the suffix will be gathered.
     """
+
     output_key: str = "gathered"
     """Gather the objects from the context as a list."""
     gather_suffix: Optional[str] = None
@@ -129,13 +146,12 @@ class GatherAsList(Action):
     """Gather the objects from the context as a list."""
 
     async def _execute(self, **cxt) -> List[Any]:
-
         if self.gather_suffix is not None:
             result = [cxt[k] for k in cxt if k.endswith(self.gather_suffix)]
             logger.debug(f"Gathered {len(result)} items with suffix {self.gather_suffix}")
             return result
-        if  self.gather_prefix is None:
-            logger.error(err:="Either `gather_suffix` or `gather_prefix` must be specified.")
+        if self.gather_prefix is None:
+            logger.error(err := "Either `gather_suffix` or `gather_prefix` must be specified.")
             raise ValueError(err)
         result = [cxt[k] for k in cxt if k.startswith(self.gather_prefix)]
         logger.debug(f"Gathered {len(result)} items with prefix {self.gather_prefix}")
