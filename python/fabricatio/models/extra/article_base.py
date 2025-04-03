@@ -7,8 +7,10 @@ from typing import Generator, List, Optional, Self, Tuple, overload
 
 from fabricatio.models.generic import (
     AsPrompt,
+    Described,
     FinalizedDumpAble,
     Introspect,
+    Language,
     ModelHash,
     PersistentAble,
     ProposedUpdateAble,
@@ -103,11 +105,8 @@ class ArticleRef(ProposedUpdateAble):
         return ReferringType.CHAPTER
 
 
-class ArticleMetaData(SketchedAble):
+class ArticleMetaData(SketchedAble, Described, Language):
     """Metadata for an article component."""
-
-    description: str
-    """Description of the research component in academic style."""
 
     support_to: List[ArticleRef]
     """List of references to other component of this articles that this component supports."""
@@ -273,11 +272,8 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, ABC):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Language, ABC):
     """Base class for article outlines."""
-
-    language: str
-    """Written language of the article. SHALL be aligned to the language of the article proposal provided."""
 
     title: str
     """Title of the academic paper."""
