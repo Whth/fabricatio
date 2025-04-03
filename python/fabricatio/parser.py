@@ -48,10 +48,10 @@ class Capture(BaseModel):
             case "json" if configs.general.use_json_repair:
                 logger.debug("Applying json repair to text.")
                 if isinstance(text, str):
-                    return repair_json(text, ensure_ascii=False)
-                return [repair_json(item, ensure_ascii=False) for item in text]
+                    return repair_json(text, ensure_ascii=False)  # pyright: ignore [reportReturnType]
+                return [repair_json(item, ensure_ascii=False) for item in text]  # pyright: ignore [reportReturnType, reportGeneralTypeIssues]
             case _:
-                return text
+                return text  # pyright: ignore [reportReturnType]
 
     def capture(self, text: str) -> Tuple[str, ...] | str | None:
         """Capture the first occurrence of the pattern in the given text.
@@ -74,7 +74,7 @@ class Capture(BaseModel):
         cap = groups[0]
         logger.debug(f"Captured text: \n{cap}")
         return cap
-
+    
     def convert_with[T](self, text: str, convertor: Callable[[Tuple[str, ...]], T] | Callable[[str], T]) -> T | None:
         """Convert the given text using the pattern.
 
@@ -88,7 +88,7 @@ class Capture(BaseModel):
         if (cap := self.capture(text)) is None:
             return None
         try:
-            return convertor(cap)
+            return convertor(cap)  # pyright: ignore [reportArgumentType]
         except (ValueError, SyntaxError, ValidationError) as e:
             logger.error(f"Failed to convert text using {convertor.__name__} to convert.\nerror: {e}\n {cap}")
             return None
@@ -120,7 +120,7 @@ class Capture(BaseModel):
             judges.append(lambda output_obj: len(output_obj) == length)
 
         if (out := self.convert_with(text, deserializer)) and all(j(out) for j in judges):
-            return out
+            return out  # pyright: ignore [reportReturnType]
         return None
 
     @classmethod
