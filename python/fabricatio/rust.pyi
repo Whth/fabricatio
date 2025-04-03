@@ -1,5 +1,4 @@
-"""
-Python interface definitions for Rust-based functionality.
+"""Python interface definitions for Rust-based functionality.
 
 This module provides type stubs and documentation for Rust-implemented utilities,
 including template rendering, cryptographic hashing, language detection, and
@@ -12,12 +11,10 @@ Key Features:
 - Text utilities: Word boundary splitting and word counting.
 """
 
-
 from pathlib import Path
 from typing import List, Optional
 
 from pydantic import JsonValue
-
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -97,7 +94,6 @@ def blake3_hash(content: bytes) -> str:
 def detect_language(string: str) -> str:
     """Detect the language of a given string."""
 
-
 def split_word_bounds(string: str) -> List[str]:
     """Split the string into words based on word boundaries.
 
@@ -107,6 +103,7 @@ def split_word_bounds(string: str) -> List[str]:
     Returns:
         A list of words extracted from the string.
     """
+
 def word_count(string: str) -> int:
     """Count the number of words in the string.
 
@@ -116,8 +113,6 @@ def word_count(string: str) -> int:
     Returns:
         The number of words in the string.
     """
-
-
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
