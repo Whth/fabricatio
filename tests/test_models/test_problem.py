@@ -86,11 +86,11 @@ class TestImprovement:
         gathered = Improvement.gather(improvement, another_imp)
         assert len(gathered.problem_solutions) == 2
 
-    def test_decided(self, problem_solutions, improvement):
-        problem_solutions.solutions = [problem_solutions.solutions[0]]  # Ensure decided
+    def test_decided(self, problem_solutions, improvement,sample_problem):
+        problem_solutions.solutions = [sample_problem]  # Ensure decided
         assert improvement.decided() == True
         problem_solutions.solutions = []
         assert improvement.decided() == False
-        problem_solutions.solutions = [problem_solutions.solutions[0], problem_solutions.solutions[0]]
+        problem_solutions.solutions = [sample_problem, sample_problem]
         assert improvement.decided() == False
         
