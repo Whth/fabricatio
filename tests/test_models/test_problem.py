@@ -1,5 +1,5 @@
 """The problem module contains the Problem, Solution, ProblemSolutions, and Improvement classes."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fabricatio.models.extra.problem import Improvement, Problem, ProblemSolutions, Solution
