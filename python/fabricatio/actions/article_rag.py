@@ -33,7 +33,7 @@ class TweakArticleRAG(Action, RAG, Censor):
         self,
         article: Article,
         collection_name: str = "article_essence",
-        ruleset: Optional[RuleSet] = None,
+        twk_rag_ruleset: Optional[RuleSet] = None,
         parallel: bool = False,
         **cxt,
     ) -> Optional[Article]:
@@ -45,7 +45,7 @@ class TweakArticleRAG(Action, RAG, Censor):
         Args:
             article (Article): The article to be processed.
             collection_name (str): The name of the collection to view for processing.
-            ruleset (Optional[RuleSet]): The ruleset to apply for censoring. If not provided, the class's ruleset is used.
+            twk_rag_ruleset (Optional[RuleSet]): The ruleset to apply for censoring. If not provided, the class's ruleset is used.
             parallel (bool): If True, process subsections in parallel. Otherwise, process them sequentially.
             **cxt: Additional context parameters.
 
@@ -57,14 +57,14 @@ class TweakArticleRAG(Action, RAG, Censor):
         if parallel:
             await gather(
                 *[
-                    self._inner(article, subsec, ok(ruleset or self.ruleset, "No ruleset provided!"))
+                    self._inner(article, subsec, ok(twk_rag_ruleset or self.ruleset, "No ruleset provided!"))
                     for _, __, subsec in article.iter_subsections()
                 ],
                 return_exceptions=True,
             )
         else:
             for _, __, subsec in article.iter_subsections():
-                await self._inner(article, subsec, ok(ruleset or self.ruleset, "No ruleset provided!"))
+                await self._inner(article, subsec, ok(twk_rag_ruleset or self.ruleset, "No ruleset provided!"))
         return article
 
     async def _inner(self, article: Article, subsec: ArticleSubsection, ruleset: RuleSet) -> None:
