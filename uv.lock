@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "aiohttp"
-version = "3.11.15"
+version = "3.11.16"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "aiohappyeyeballs" },
@@ -24,24 +24,24 @@ dependencies = [
     { name = "propcache" },
     { name = "yarl" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/19/18/31398875dc7b9815767370f60f44284155f2e1c1b87ec721c1b0ee61d1e5/aiohttp-3.11.15.tar.gz", hash = "sha256:b9b9a1e592ac8fcc4584baea240e41f77415e0de98932fdf19565aa3b6a02d0b", size = 7676625 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f1/d9/1c4721d143e14af753f2bf5e3b681883e1f24b592c0482df6fa6e33597fa/aiohttp-3.11.16.tar.gz", hash = "sha256:16f8a2c9538c14a557b4d309ed4d0a7c60f0253e8ed7b6c9a2859a7582f8b1b8", size = 7676826 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/fb/9b/e3a30cfc8781af8f1175812a1a886f36b75c2ac92f1185ea48d1dc9ec2d3/aiohttp-3.11.15-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:433e7388b3063bba462b3362641988270b087a9ccae22390364f86b37a480c17", size = 704848 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ea/b2/abd592077b79638ddfe36681c45670278e9b4a070b3d958f58c46b6dad24/aiohttp-3.11.15-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:d99981304065f4ea407dd7495f74f8b8c10f0e26733f8a47dc174ece73744d14", size = 464529 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c5/a1/85b0738f108806d3b1e1d83e8131cd7680c1266aad6f4d01737bee5cacc4/aiohttp-3.11.15-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a3739daa52c0cff42f1c40f63b2fe818fcf41019d84c80a7add3224207a7060f", size = 456517 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c9/68/0460c66cafd826acd1bbd00e9fc9e1a7838ba56ca518540b1edccfd30cce/aiohttp-3.11.15-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6fd82d0b3f73c59c80dade0ca8e0342de1ee261e147140ade65a465be670e83c", size = 1691717 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/91/4b/f2d9c1d0a9e2c7faf080cfe4013b1ca637311fdf24b0023d1412f0cde0a1/aiohttp-3.11.15-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c930064b79cc0eb63678e376b819d546b0e2360264cd7544c32119496f646f35", size = 1736840 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c0/d0/9b989329a912806b58162064e914f943e61a99c8606c103ec5862b34ab24/aiohttp-3.11.15-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:291f324f49ecede693dfb4820a412d1388cb10a2214ab60028252b505e105d6f", size = 1786852 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/87/a8/e1294430720c67aa92039075fc87ff71485cb80acac948b74c1b7b3e6955/aiohttp-3.11.15-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:65eb40e74e3126cba185da7a78815cf3a30140932193831b3bfd73c79965c723", size = 1698027 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ce/a8/35c7e118316cf27c8d42c5357b4893e31229117e69802da5d7874df2f690/aiohttp-3.11.15-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a6d6d86443580f846ec9cf60f899b7cace34411f2ff5c95db5970047195e5bfa", size = 1626494 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/48/0c/399e9aba5700591f2c1a9bdad24a4191d6aa497e6107852418c2c4254782/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:8b4d8d78fbd5290204dcf43957a2184acd5cee358f203f24a3a97f7d7984eeb7", size = 1644005 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/0e/48/f0c11b78775d5a6f07c721983229f365860090ff8d57f04a526decff30b6/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:94c552a4864ed292dadf1d341213374284a3af72e49bea02e70ce6f07cb37004", size = 1685236 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/1c/4a/d3704524d11eab7c8f1b59a4b2c7b87129e3ac2cc8392b2072e5fd2ec277/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:23857adc919b64bba8a4db0eccb24e53fcaf85633e690ef1581c5562ed58cae7", size = 1650818 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/65/87/12275b20f4a5f5016c114ff12ca6b77e423903bca082f55adf1e729d266f/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:eba325409a0f990f9b43ed18916cbf5b9779bc4c979b8887c444e7be9c38ccca", size = 1704447 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c9/99/a7709475303efac3fa929507ecdea1d7c9f9b49a14145eb0f382367f3997/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_s390x.whl", hash = "sha256:f1b6c639750bf2a228957e25fcab7a7ff11987c543d70bf73223369f0d7bdb27", size = 1735337 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/36/b4/5d45c7343a38ff6b463ac860b9fe266f6bdc1c9a6b41ba4659ad3ede4a39/aiohttp-3.11.15-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:2241d862dc6a3c0c2662a6934e79078d3a1e51a76c0dca5d65b30f3debee6c9b", size = 1697586 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/84/d9/61da0272c2b3a00ddbc3176d0eee268624f8dbd5c791f0be3a973ed0c851/aiohttp-3.11.15-cp312-cp312-win32.whl", hash = "sha256:18733fa6bbe44698ff96138c1f1d682bbdf0846250a42c25c108eed328fef0d4", size = 411667 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c7/ae/c37d218057f9d69ac0423f049f989bbb8dfbe5bcc2404579c9a1958bddae/aiohttp-3.11.15-cp312-cp312-win_amd64.whl", hash = "sha256:0ec98c22030ea2a430cb11afddda7d4737b7e5c236c704f0d7d15504978598f7", size = 437969 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/db/38/100d01cbc60553743baf0fba658cb125f8ad674a8a771f765cdc155a890d/aiohttp-3.11.16-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:911a6e91d08bb2c72938bc17f0a2d97864c531536b7832abee6429d5296e5b27", size = 704881 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/21/ed/b4102bb6245e36591209e29f03fe87e7956e54cb604ee12e20f7eb47f994/aiohttp-3.11.16-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:6ac13b71761e49d5f9e4d05d33683bbafef753e876e8e5a7ef26e937dd766713", size = 464564 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/3b/e1/a9ab6c47b62ecee080eeb33acd5352b40ecad08fb2d0779bcc6739271745/aiohttp-3.11.16-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:fd36c119c5d6551bce374fcb5c19269638f8d09862445f85a5a48596fd59f4bb", size = 456548 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/80/ad/216c6f71bdff2becce6c8776f0aa32cb0fa5d83008d13b49c3208d2e4016/aiohttp-3.11.16-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d489d9778522fbd0f8d6a5c6e48e3514f11be81cb0a5954bdda06f7e1594b321", size = 1691749 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/bd/ea/7df7bcd3f4e734301605f686ffc87993f2d51b7acb6bcc9b980af223f297/aiohttp-3.11.16-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:69a2cbd61788d26f8f1e626e188044834f37f6ae3f937bd9f08b65fc9d7e514e", size = 1736874 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/51/41/c7724b9c87a29b7cfd1202ec6446bae8524a751473d25e2ff438bc9a02bf/aiohttp-3.11.16-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:cd464ba806e27ee24a91362ba3621bfc39dbbb8b79f2e1340201615197370f7c", size = 1786885 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/86/b3/f61f8492fa6569fa87927ad35a40c159408862f7e8e70deaaead349e2fba/aiohttp-3.11.16-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1ce63ae04719513dd2651202352a2beb9f67f55cb8490c40f056cea3c5c355ce", size = 1698059 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ce/be/7097cf860a9ce8bbb0e8960704e12869e111abcd3fbd245153373079ccec/aiohttp-3.11.16-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:09b00dd520d88eac9d1768439a59ab3d145065c91a8fab97f900d1b5f802895e", size = 1626527 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/1d/1d/aaa841c340e8c143a8d53a1f644c2a2961c58cfa26e7b398d6bf75cf5d23/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:7f6428fee52d2bcf96a8aa7b62095b190ee341ab0e6b1bcf50c615d7966fd45b", size = 1644036 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2c/88/59d870f76e9345e2b149f158074e78db457985c2b4da713038d9da3020a8/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:13ceac2c5cdcc3f64b9015710221ddf81c900c5febc505dbd8f810e770011540", size = 1685270 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2b/b1/c6686948d4c79c3745595efc469a9f8a43cab3c7efc0b5991be65d9e8cb8/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:fadbb8f1d4140825069db3fedbbb843290fd5f5bc0a5dbd7eaf81d91bf1b003b", size = 1650852 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/fe/94/3e42a6916fd3441721941e0f1b8438e1ce2a4c49af0e28e0d3c950c9b3c9/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:6a792ce34b999fbe04a7a71a90c74f10c57ae4c51f65461a411faa70e154154e", size = 1704481 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/b1/6d/6ab5854ff59b27075c7a8c610597d2b6c38945f9a1284ee8758bc3720ff6/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_s390x.whl", hash = "sha256:f4065145bf69de124accdd17ea5f4dc770da0a6a6e440c53f6e0a8c27b3e635c", size = 1735370 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/73/2a/08a68eec3c99a6659067d271d7553e4d490a0828d588e1daa3970dc2b771/aiohttp-3.11.16-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:fa73e8c2656a3653ae6c307b3f4e878a21f87859a9afab228280ddccd7369d71", size = 1697619 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/61/d5/fea8dbbfb0cd68fbb56f0ae913270a79422d9a41da442a624febf72d2aaf/aiohttp-3.11.16-cp312-cp312-win32.whl", hash = "sha256:f244b8e541f414664889e2c87cac11a07b918cb4b540c36f7ada7bfa76571ea2", size = 411710 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/33/fb/41cde15fbe51365024550bf77b95a4fc84ef41365705c946da0421f0e1e0/aiohttp-3.11.16-cp312-cp312-win_amd64.whl", hash = "sha256:23a15727fbfccab973343b6d1b7181bfb0b4aa7ae280f36fd2f90f5476805682", size = 438012 },
 ]
 
 [[package]]
@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.9.dev2"
+version = "0.2.9.dev3"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -823,26 +823,26 @@ wheels = [
 
 [[package]]
 name = "multidict"
-version = "6.3.0"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/99/68/42bf1fb4272959aa7c0775caf53265c1a0da9d77f2d4e76326296c943811/multidict-6.3.0.tar.gz", hash = "sha256:2cf3e0781febf9f093eff3eca2d6dd7954ef2969ff46f6cd95173a4db8397fd8", size = 85840 }
+version = "6.3.1"
+source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/a1/d4/4e0e25aabd94f289b7d47da8293a3563e73ac1a4f7e9caddf11b6eeaf52d/multidict-6.3.1.tar.gz", hash = "sha256:3e18d6afe3f855736022748606def2000af18e90253fb8b4d698b51f61e21283" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/82/60/6905d85104d39092a9f6b21123f1d2df85d30b22dbd01e795b47c9b6eb32/multidict-6.3.0-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:2a83896925e3a2ddec736c48255572e6f15a95339024c02b800dab28e63461a3", size = 61868 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e6/db/9223dcc59aa26f48e3915e0ce9c31a989a8225e3c794e0d6390772de6f9c/multidict-6.3.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:74e45386528db2d9346618276e8746507ec6ccb91512c5f02d2049ccafb0576e", size = 36835 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/21/1b/f7080011d022bfc68c2b29c329012f2b3d19c446e77a0dc34e0cdfaed768/multidict-6.3.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bc15e81587b652bbeba9d4d7d3707bcaaa1d7b4aab2024c14be477662003a211", size = 35737 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/91/59/33391241661176e1691add307a72757faecf5ae035e16b93c527f52a1d51/multidict-6.3.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a716344c6e92551bdf842b999c7d7b34a13e32facf3e6c5942690c9883d45e3a", size = 245422 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/44/4a/e4f70e767067c9fd31e45d625490c128da4d63689ad99342e5e87599e5a9/multidict-6.3.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:299070f503a9a99e4af38d07da784ced28377cc62b678084b9e2e48fa51c57d3", size = 255425 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2f/18/6c37d3e336e270cbe1deecf2b5669edde93dfabb15796c3e19362f06da0e/multidict-6.3.0-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:2e87a8635a7db577617b50bd2f2080744ed20e556750b97e4f9988e6d20d3941", size = 251939 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/3b/47/76f9e21ad746262b70bc5992e69c840aec8f1501d3a974cc46678f334cf5/multidict-6.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8ab4ea5f49166b990411c522c1f5f901014932ead15a463616ec93e10fff2c05", size = 246197 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/88/4f/52b26ef6fef9b7dcc9083c5c9e3e621f300a06c7bb9a67aa0a167618ddc0/multidict-6.3.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2cef02d3878804909283549bc10d4789a14c610fcd286f17cd94a195b21fe469", size = 231438 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/09/dc/425c013d902ccad1b666bd06bfd7e2124a7be473e812ab812318858e5194/multidict-6.3.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:a466c14574152b7caed5d76f1e46ae2963d33f5b0eb2dd915fa33870183b0f26", size = 249942 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/18/cb/277fe0a3d83e094716ee436d39a6707496d77c255fd235b0aed1e71deddc/multidict-6.3.0-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:883c07b404229e98d30b1ef64f07d4e3422d431ecd727c2ebba8549f70b2ba16", size = 243881 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/28/eb/3087bc61a29d62c9637699ed4f6dfc98759bc8e54a899477b1a309a17afb/multidict-6.3.0-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:767ed12b1662fac32d84eb43707e4f778b12554fc12ce3c8f7793a02111a9e32", size = 256525 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/10/a7/25f50ca151999ec32f1ade23be06cffe088e7ffe3fe826e05c1dbd84db6d/multidict-6.3.0-cp312-cp312-musllinux_1_2_s390x.whl", hash = "sha256:34ef116022119d3053ecce8ba62109c8b54a650a537b183e79de1db4078894a8", size = 252166 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c6/4d/ac24c83fa6fe19b05b03fb7a3ca283eed5f74c26d238a41411fcd90a0c3a/multidict-6.3.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:3ad737617d38c55c0b72cd3ea01bf5cbab0d75123de5e52c39643ddc6465cb5f", size = 248461 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/55/a9/cc2ec0dbdcb252ca461711363089d14a6ae80f97d8f0dcaffa025d1d5d4c/multidict-6.3.0-cp312-cp312-win32.whl", hash = "sha256:3d783be54d076843f58bf061fdaf1071789fb924fb35a0eb84dbc2c8b68499a2", size = 34640 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9a/20/ad6bf2fd522c0ab35a942e35c8b21bc8197fad6890f66d725eebf03a8770/multidict-6.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:6fbe184451480c17f1f8dac160c9f3f6d243010fdb8416de4d3d7ee69ea65aa4", size = 37969 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/65/66/730bb6dbfbf87df8a341707ebd468044ea6c530605d41b3f31b494f03d6a/multidict-6.3.0-py3-none-any.whl", hash = "sha256:9ca652d9c6f68535537d75502b549ed0ca07fa6d3908f84f29f92148ec7310f2", size = 10266 },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/62/74/acf7ecc3eb1195b3930008cfaae9ffbc54c71a5582a0c86db291307dd7cf/multidict-6.3.1-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:9679106633695b132ebc9191ec6230bfb1415d37c483833fcef2b35a2e8665ec" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/d3/78/544442c1bb61986e5cbd529bfb7038b38f88fc39fe17962bc63bb0013199/multidict-6.3.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:73a43b3b2409aa395cce91b7471cff6b45814548063b18412162ba2222084201" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/f5/d1/8260a5da38ac65e885a0adbd40b50113e6f9e8eeb94b91aeeac08e4ad36e/multidict-6.3.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1ce924e24c4f1c014f2ed8782e82a5232d5f61293fc5c204d8569f451191ffa8" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/e7/51/cceca6f30954620b9b03f96e06a54f908367cf86ae0c61a3472aa3de9363/multidict-6.3.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:123b1d48eeed2ac1126be078deb88006f871559787cefc8759a884442a6f2cdc" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/08/df/fb512545fa3cbf20f870175a4698c6ba58abf261ab19faf28d293e39621d/multidict-6.3.1-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:6d98447906885e7f0f90456cde1d14ff41f30d9d7e127ab7140a45e784a0ff1b" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/65/fb/a7648f5764e25e0a18e7d3bdda9fd67e86bb7e0c70a6ffee0348e1fb493f/multidict-6.3.1-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:5072a9efe7f7f79d3dff1f26ac41e4893478f85ce55fe5318625f7eb703d76f8" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/c0/98/32ef5e26956ee8cd7af8d7367b9da11f5a211438498e854bd5385e8eb812/multidict-6.3.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bbc825b34595fe43966242e30b54d29617013e51b4310134aa2c16c3b3d00c91" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/4d/e1/a8cf44bef56bee949ec68d993ecbc4b713338b3137fa42416f0e34a46c48/multidict-6.3.1-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:baec41c191855f92507f9e0bb182eea7eea5992d649f9c712c96a38076e59d00" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/08/7c/81e91ef84b5df88d4780bcd03b08df423668b61ada7b387e0482ac19690a/multidict-6.3.1-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:eacd4036bb3d632828702a076458d660b53d12e049155eaeb7d11a91242d67b8" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/6c/00/32b94a1b060f602aa9056189febefddfaf6cece4c6f4c5873668011fd67b/multidict-6.3.1-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:284737db826cc00fbd5292225717492f037afa404a2ddfea812cfbef7a3f0e93" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/9c/78/9994ab4cc9b18c48e089f08c85028ea8c60ffa0d5868d7e42c842b9ca80e/multidict-6.3.1-cp312-cp312-musllinux_1_2_ppc64le.whl", hash = "sha256:ebd121433f5d8707379f4fc0e6b4bf67b0b7cd1a7132e097ead2713c8d661a41" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/86/aa/d40c0bce043fa2903e7d3f9e5a2402fd55850933bc81f86a08efe78e303d/multidict-6.3.1-cp312-cp312-musllinux_1_2_s390x.whl", hash = "sha256:31f94d64672487570c7c2bbcff74311055066e013545714b938786843eb54ef8" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/86/1b/20580f901b260c2d6733e5ec3e1e227e04330de966b567b3f3e102567bd0/multidict-6.3.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:739fe3fde8b8aca7219048f8bda17901afb8710c93307dc0d740014d3481b36b" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/9c/44/db7cb84b604ee1912d5ba908def729adc60413448e789247db98992c149f/multidict-6.3.1-cp312-cp312-win32.whl", hash = "sha256:891a94a056de2d904cc30f40ec1d111aebb09abd33089a34631ff5a19e0167b2" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/32/bb/2931b3d6a2b57b5a7dbb819c2b5c55d3170c54098009224872d4b6ae40d3/multidict-6.3.1-cp312-cp312-win_amd64.whl", hash = "sha256:d9844e0f93405a9c5bc2106d48cf82e022e18685baebea74cc5057ca2009799e" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/57/99/624da94f4deb41a75b5e08752270ecdb1ff871c1b1539705c0aef02aa7a2/multidict-6.3.1-py3-none-any.whl", hash = "sha256:2d45b070b33fa1d0a9a7650469997713e3a4f5cd9eb564332d5d0206cf61efc5" },
 ]
 
 [[package]]
@@ -965,19 +965,19 @@ wheels = [
 [[package]]
 name = "pillow"
 version = "11.2.0"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/b7/d8/cd5483af4982faa07e33b8d4e0be9212df666cabf86ce4ee2d631c80c4c7/pillow-11.2.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ffcfac194064f4a5bc389b9ef910a60b9bc8573a7e59f081fbc71a59794140f2", size = 11417787 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/dc/9f/1e5f59ce9a3aab74a5c4429be91efffea5624335335072ba9eddada31148/pillow-11.2.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:40f972b6e2a97c633fa25c3c8405d45942747eaf838805d76f7da0363a7696ec", size = 8922770 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e5/b2/bf7b89d9561dfd1d8cafba9da689ee44f82298575b3682a3568f0e558193/pillow-11.2.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8b46bd331193a7b223864010e751a30ec48245e5106e00eda94b435e37109de1", size = 17098029 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/97/7e/71db1559bd5d3e42210f3c7dc0e43b15bd9d2c3eb1d69ad239108745bd92/pillow-11.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6581ee02eec144cbcdeb6bef055142129cfda0f52939480d81806ee8d61ab4f3", size = 18940242 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/11/3e/886a818c1ec342c750830636ff58214d192b111881f8fbc3bd5c2449d204/pillow-11.2.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:c2a6700be18335d341ddd12facbc49dcf0febbfeefdda4990e017698a8e66f59", size = 17630373 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/21/95/7b33e3cd5210c9e5028e915aaac7a97c27f7e01726c36ac1e2cf6805bfd0/pillow-11.2.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:b228ae10b25650539d37c056063c8f34c0da4f69419ce03249dfd0adc322d46b", size = 19631958 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/82/18/00315a811f2d850456ece317c6acaf2c4535ee699b31219a5683a37d8d14/pillow-11.2.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:36de59d15a95584fad3758c4bcb992c3bf279ddd86236d3f096dbf696efc2b48", size = 18041279 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/72/9c/f20eee2e239e6ec17f24448a92dbea69a2e5ce23d1fabf4cdb6cebf8f306/pillow-11.2.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:23fedf0def4193848ce5be2f685e3606c1ebf42a033cfa092b729e6cf844d337", size = 19809904 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/cf/b2/a2c03b90be1916e712227dd012dfc4ae56a7a035709f60a6d993c27b6b6e/pillow-11.2.0-cp312-cp312-win32.whl", hash = "sha256:290fd44a0b517a48af7660b7586538f9db1fe0656d7d6c97b0aefd2a4ad2b14d", size = 2332129 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ec/fb/d878e8bfedfd6c959b408088cb98c337f143b0db9758c07bcc57c1192f98/pillow-11.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:728f2381d178722d008772e57b3252b8c6c0c284cee76e798ffb392ca71e3fd9", size = 13807352 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9c/61/95c09187bdd6af8069ef300c23f0704b22324ee1acb5796cc1b919d36d8f/pillow-11.2.0-cp312-cp312-win_arm64.whl", hash = "sha256:65dfab8348a42ba9883141e4fa09a7db6ff2a203d17450717b998fb27f4ba0b4", size = 2414775 },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/b7/d8/cd5483af4982faa07e33b8d4e0be9212df666cabf86ce4ee2d631c80c4c7/pillow-11.2.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ffcfac194064f4a5bc389b9ef910a60b9bc8573a7e59f081fbc71a59794140f2" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/dc/9f/1e5f59ce9a3aab74a5c4429be91efffea5624335335072ba9eddada31148/pillow-11.2.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:40f972b6e2a97c633fa25c3c8405d45942747eaf838805d76f7da0363a7696ec" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/e5/b2/bf7b89d9561dfd1d8cafba9da689ee44f82298575b3682a3568f0e558193/pillow-11.2.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8b46bd331193a7b223864010e751a30ec48245e5106e00eda94b435e37109de1" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/97/7e/71db1559bd5d3e42210f3c7dc0e43b15bd9d2c3eb1d69ad239108745bd92/pillow-11.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6581ee02eec144cbcdeb6bef055142129cfda0f52939480d81806ee8d61ab4f3" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/11/3e/886a818c1ec342c750830636ff58214d192b111881f8fbc3bd5c2449d204/pillow-11.2.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:c2a6700be18335d341ddd12facbc49dcf0febbfeefdda4990e017698a8e66f59" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/21/95/7b33e3cd5210c9e5028e915aaac7a97c27f7e01726c36ac1e2cf6805bfd0/pillow-11.2.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:b228ae10b25650539d37c056063c8f34c0da4f69419ce03249dfd0adc322d46b" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/82/18/00315a811f2d850456ece317c6acaf2c4535ee699b31219a5683a37d8d14/pillow-11.2.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:36de59d15a95584fad3758c4bcb992c3bf279ddd86236d3f096dbf696efc2b48" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/72/9c/f20eee2e239e6ec17f24448a92dbea69a2e5ce23d1fabf4cdb6cebf8f306/pillow-11.2.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:23fedf0def4193848ce5be2f685e3606c1ebf42a033cfa092b729e6cf844d337" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/cf/b2/a2c03b90be1916e712227dd012dfc4ae56a7a035709f60a6d993c27b6b6e/pillow-11.2.0-cp312-cp312-win32.whl", hash = "sha256:290fd44a0b517a48af7660b7586538f9db1fe0656d7d6c97b0aefd2a4ad2b14d" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/ec/fb/d878e8bfedfd6c959b408088cb98c337f143b0db9758c07bcc57c1192f98/pillow-11.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:728f2381d178722d008772e57b3252b8c6c0c284cee76e798ffb392ca71e3fd9" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/9c/61/95c09187bdd6af8069ef300c23f0704b22324ee1acb5796cc1b919d36d8f/pillow-11.2.0-cp312-cp312-win_arm64.whl", hash = "sha256:65dfab8348a42ba9883141e4fa09a7db6ff2a203d17450717b998fb27f4ba0b4" },
 ]
 
 [[package]]
@@ -1612,27 +1612,27 @@ wheels = [
 
 [[package]]
 name = "uv"
-version = "0.6.11"
+version = "0.6.12"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/3c/bf/ad296aa142160459fa4f2f6100a2d3a672212c275346ed3a52b99a37ee65/uv-0.6.11.tar.gz", hash = "sha256:15356a53c4bca7f3d1cbf15321a864ed97b58da16c666261f5869115f87fcb04", size = 3119444 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9e/d1/b31059e582f8a92f64a4c98e9684840a83048d3547392d9b14186d98c557/uv-0.6.12.tar.gz", hash = "sha256:b6f67fb3458b2c856152b54b54102f0f3b82cfd18fddbbc38b59ff7fa87e5291", size = 3117528 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9b/aa/e6d3d1c03587b42f9075657234468025f23e10ade68f8db4d7ab473c06bd/uv-0.6.11-py3-none-linux_armv6l.whl", hash = "sha256:5dcf349398a45778fda7677723270158e6c6596e9a49b85f8d7146c50823dd2d", size = 15952567 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2e/89/31140f76b8a33a58c2fd2eb6f5d19101b28f82ec2d28333c8423f9c39af7/uv-0.6.11-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:1a861070b06e749c4e53e5e370df6f337ac567e017fe6c10d5b9a48cc6317033", size = 16111150 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/6a/c7/564d3398809645e3894c7f9d9baa32d3d700bc458f7d3f893d4589b34f31/uv-0.6.11-py3-none-macosx_11_0_arm64.whl", hash = "sha256:43af64b66ea1d26ce6c7836caaf61e5d44b3d2025cdee3fc1b8f33a5067cb6fa", size = 14916272 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2f/cb/7bada86750024535592233c62f065da660e39022b0d209828b29e08fdc61/uv-0.6.11-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:5d4125fddfd42c7691309cc16f2c7f3be6dbcdb61804596756188223f459a25e", size = 15369132 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/13/43/c2d9ce59291fc4cf8c44b04223962bce6130594902a0e842c66d54d2c712/uv-0.6.11-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:11e979e95a0cfed1b6de96d16f772aa027359642953fa329c7fcf88e7468170a", size = 15697050 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ab/23/2248fa90948486d610e7c2a7b7950a80b44463122b740191790057733c67/uv-0.6.11-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:90ed73a0f4b4930fe310b9dc0c6348da37ec5c6026ddcd750868b516ad6abace", size = 16460088 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d8/d0/e5c5b93f547bbe2c498632cefbc4da2c6c764c3d53a9fd3b2764dc7c751b/uv-0.6.11-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:94cf32e334329ec2db1704706c6ffb7b58edafb95a63499440327f1df2e0d30e", size = 17302986 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e1/74/679b112e5e55a291a9135d396daf74630e28a799b4e111fd069476ed0961/uv-0.6.11-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7dc1df62322c03c2aee465e4f3f28ef7b3c6a948c2c79fde85651d8bccfc303c", size = 17063804 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/7f/97/b410f85e704773309241973401203926569f828fe8292b6ae25e7fe871c3/uv-0.6.11-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:b8c43a85ca2aa429b13a5abde9abae2c58e0189ebc76d7d214b94e667f7d44e2", size = 21317299 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ff/5d/b13b3a7dbff2f58e1b0fe0f2e8ae5a665e9fb938f66fdb25b99deacb9f5a/uv-0.6.11-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f3c2adb80f0b93ad312daff7ebb1bf4b26456d7d35a1687827ed03f11d238d7", size = 16756723 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d4/6e/4e5db3258f26eeaef864c8d91938656134a2c1f9b3096dbbe3582be6ab2f/uv-0.6.11-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:aed91b596d85277342c9252288d8e3e2b39111b28ac947caa1c540c903797496", size = 15632470 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/50/ad/0ab8e563e496a40007fcbed4e1bdcd31cbfd0cfc726a18a027590387d491/uv-0.6.11-py3-none-musllinux_1_1_armv7l.whl", hash = "sha256:c0a657830850e4ade1d2185ac66dad39015d0bd17c555c274eb00a73e0644fc4", size = 15653135 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/86/55/fc4da876cec3b579aa3c508bc74e4ab47fe13908f504fb4dea5aed7e2488/uv-0.6.11-py3-none-musllinux_1_1_i686.whl", hash = "sha256:6b4248984a30843fbff8eedc846bb64ba3cebb417378fd04bc29e7273eeca022", size = 16017597 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/4f/a5/fae7373d07c788602b1535b96fde763e67ecc30963ce43b398f4771619f5/uv-0.6.11-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:473dbe1d3fb53b08090f2c0f05ca46c85b1eadd134496338e167b2cc94e0aae2", size = 16870461 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c1/6f/bbcb37f9dbd3f4ebe589cefbfb99798fdf75fa51a8da8c43b04ec5e2755b/uv-0.6.11-py3-none-win32.whl", hash = "sha256:0222e801be2e923787118f7cf2d0530dec016666ce07729215055aac24898899", size = 16075417 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d4/48/74771422fefebaae40bb6db615a378576f7eb568ca1e60220a00da2c57c8/uv-0.6.11-py3-none-win_amd64.whl", hash = "sha256:b9aebfd86bb9f8e4ed9a7d89d65b8b84ccd6d98061e1ebbaa96f8e6ee4632f10", size = 17560705 },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/42/b4/b1c6d7677ad78b0b08593c61da25cd2504cc2fd382a9a50a40d3e4245233/uv-0.6.11-py3-none-win_arm64.whl", hash = "sha256:baeb89b285f6a16bce390d81005b877c89600b0bfe1fc24895984efd117fa597", size = 16330881 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/19/70/38f27bdd68f7e187125c6f5bf2aa653d844c9baacb4be07410470b8b4d18/uv-0.6.12-py3-none-linux_armv6l.whl", hash = "sha256:cddc4ffb7c5337efe7584d3654875db6812175326100fa8a2b5f5af0b90f6482", size = 16011234 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/3e/f1/0fffa9c63fbf0e54746109fc94c77c09dd805c3f10605715f00a2e6b8fcc/uv-0.6.12-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:3c048a48df0fb7cc905a4a9f727179d0c65661d61b850afa3a5d413d81dac3d4", size = 16122250 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/54/08/b8369dfade56724ce42df1254d7e483d75cdbc535feff60ac9fa2d6672fa/uv-0.6.12-py3-none-macosx_11_0_arm64.whl", hash = "sha256:829999121373dd00990abf35b59da3214977d935021027ae338dd55a7f30daa4", size = 14944312 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e4/4e/7ff41d3b4b3d6c19276b4f7dd703a7581404fdeabb31756082eb356b72a9/uv-0.6.12-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:ba1348123de4fdddc9fd75007e42ddc4bf0a213e62fe3d278d7ce98c27da144e", size = 15399035 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e7/1e/879f09d579e1610cddab2a3908ab9c4aaccd0026a1f984c7aabbb0ccbe6e/uv-0.6.12-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:72ea6424d54b44a21e63e126d11e86c5102e4840cf93c7af712cc2ff23d66e9b", size = 15673445 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/4b/56/22c94b9637770c9851f376886c4b062091858719f64b832c3b7427ef3c91/uv-0.6.12-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:32f2123d3a828857d9757d8bb92c8c4b436f8a420d78364cd6b4bb256f27d8d4", size = 16400873 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8e/9b/f41b99e547f7d5c2771bb6b28d40d6d97164aaffdf8bda5b132853a81007/uv-0.6.12-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:27bade3c1fbcd8ca97fad1846693d79d0cd2c7c1a5b752929eae53b78acfacb7", size = 17341617 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/d7/07/2e04fb798f157e536c5a4ab7fe4107e0e82d09d5250c370604793b69cb23/uv-0.6.12-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:9719c163c89c66afa6fd9f82bc965a02ac4d048908f67ebc2a5384de2d8a5205", size = 17098181 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c8/f2/91a2e20f55a146bcb4efbdddd5b073137660eb5b22b0b54bbd00fe0256a7/uv-0.6.12-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:5e26dd9aa9b52acf8cec4cca50b0158733f8d94e2a23b6d2910d09162ccfa4d8", size = 21278391 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/bc/86/710fd8fa0186539fac8962ecd5cb738e6e93452877c1fbfdf5ea5bfc32da/uv-0.6.12-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6932436148b8c300aa143e1c38b2711ad1ec27ef22bf61036baf6257d8026250", size = 16762542 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/bb/7f/e11acbbd863ffad2edefdfb57e3cc8e6ab147994f11893ec734eb24aa959/uv-0.6.12-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:15d747d024a93eb5bc9186a601e97c853b9600e522219a7651b4b2041fa6de72", size = 15647309 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/92/d7/034962db8bac194d97c91a1a761205f8bbfbfe0f4a3bbc05e19394e5a1ac/uv-0.6.12-py3-none-musllinux_1_1_armv7l.whl", hash = "sha256:4288d00e346fe82847d90335fb812ba5dd27cae6a4d1fcb7f14c8a9eefd46a1d", size = 15705972 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/cc/66/55fe8e114460037736a89df83f7d19ac4d6f761c8634f0d362c5a397d571/uv-0.6.12-py3-none-musllinux_1_1_i686.whl", hash = "sha256:98e0dfcd102d1630681eb73f03e1b307e0487a2e714f22adf6bea3d7bd83d40b", size = 16016347 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/37/7e/f1c95f34de2016d3dba40aad32f15efe21915f128aa7d4f455e0251227e6/uv-0.6.12-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:78f44b83fe4b0e1c747cd5a9d04532e9e4558b63658a7784539a429dbb189160", size = 16902438 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/aa/4a/a355d564a80d18e43a66b9317ff3348986da9621ec2967dbca279c33de08/uv-0.6.12-py3-none-win32.whl", hash = "sha256:28d207fc832909e19b08cbc6d00b849b3951b358d67926cb1b355467d10dace4", size = 16136117 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/65/3a/62ac4182edaf27006a4e7d01a058595b871f226f760204fd765f34610415/uv-0.6.12-py3-none-win_amd64.whl", hash = "sha256:2af26986a94a91cad1805d59e76f529c57dcbb69b37f51e329754c254b90ace2", size = 17582809 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9f/d5/26b7b5eaa766e7927dca40777aa20c7f685c3ed7aa0bd9fe8f89af46cc8d/uv-0.6.12-py3-none-win_arm64.whl", hash = "sha256:3a016661589c422413acdf2c238cd461570b3cde77a690cbd37205dc21fc1c09", size = 16319209 },
 ]
 
 [[package]]
