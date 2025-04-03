@@ -2,17 +2,16 @@
 
 from asyncio import gather
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 from more_itertools import filter_map
 
 from fabricatio.capabilities.censor import Censor
-from fabricatio.capabilities.correct import Correct
 from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import ArticleOutlineBase
+from fabricatio.models.extra.article_base import SubSectionBase
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -53,7 +52,7 @@ class ExtractArticleEssence(Action, Propose):
         for ess in await self.propose(
             ArticleEssence,
             [
-                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it."
+                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
                 for c in contents
             ],
         ):
@@ -113,21 +112,20 @@ class GenerateArticleProposal(Action, Propose):
             logger.error("Task not approved, since all inputs are None.")
             return None
 
+        briefing = article_briefing or safe_text_read(
+            ok(
+                article_briefing_path
+                or await self.awhich_pathstr(
+                    f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing."
+                ),
+                "Could not find the path of file to read.",
+            )
+        )
+
         proposal = ok(
             await self.propose(
                 ArticleProposal,
-                briefing := (
-                    article_briefing
-                    or safe_text_read(
-                        ok(
-                            article_briefing_path
-                            or await self.awhich_pathstr(
-                                f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing."
-                            ),
-                            "Could not find the path of file to read.",
-                        )
-                    )
-                ),
+                f"{briefing}\n\nWrite the value string using `{detect_language(briefing)}`",
             ),
             "Could not generate the proposal.",
         ).update_ref(briefing)
@@ -172,7 +170,7 @@ class FixIntrospectedErrors(Action, Censor):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        ruleset: Optional[RuleSet] = None,
+        intro_fix_ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
@@ -183,8 +181,8 @@ class FixIntrospectedErrors(Action, Censor):
             article_outline = ok(
                 await self.censor_obj(
                     article_outline,
-                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"# Original Article Outline\n{article_outline.display()}\n # Fatal Error of the Original Article Outline\n{pack}",
+                    ruleset=ok(intro_fix_ruleset or self.ruleset, "No ruleset provided"),
+                    reference=f"{article_outline.as_prompt()}\n # Fatal Error of the Original Article Outline\n{pack}",
                 ),
                 "Could not correct the component.",
             ).update_ref(origin)
@@ -211,7 +209,7 @@ class FixIllegalReferences(Action, Censor):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        ruleset: Optional[RuleSet] = None,
+        ref_fix_ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
@@ -222,7 +220,7 @@ class FixIllegalReferences(Action, Censor):
             new = ok(
                 await self.censor_obj(
                     ref_seq[0],
-                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+                    ruleset=ok(ref_fix_ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"{article_outline.as_prompt()}\n# Some Basic errors found that need to be fixed\n{err}",
                 ),
                 "Could not correct the component",
@@ -248,23 +246,23 @@ class TweakOutlineForwardRef(Action, Censor):
     """Ruleset to use to fix the illegal references."""
 
     async def _execute(
-        self, article_outline: ArticleOutline, ruleset: Optional[RuleSet] = None, **cxt
+        self, article_outline: ArticleOutline, ref_twk_ruleset: Optional[RuleSet] = None, **cxt
     ) -> ArticleOutline:
         return await self._inner(
             article_outline,
-            ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+            ruleset=ok(ref_twk_ruleset or self.ruleset, "No ruleset provided"),
             field_name="support_to",
         )
 
     async def _inner(self, article_outline: ArticleOutline, ruleset: RuleSet, field_name: str) -> ArticleOutline:
         await gather(
-            *[self._loop(a, article_outline, field_name, ruleset) for a in article_outline.iter_dfs()],
+            *[self._loop(a[-1], article_outline, field_name, ruleset) for a in article_outline.iter_subsections()],
         )
 
         return article_outline
 
     async def _loop(
-        self, a: ArticleOutlineBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet
+        self, a: SubSectionBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet
     ) -> None:
         if judge := await self.evidently_judge(
             f"{article_outline.as_prompt()}\n\n{a.display()}\n"
@@ -289,11 +287,11 @@ class TweakOutlineBackwardRef(TweakOutlineForwardRef):
     ruleset: Optional[RuleSet] = None
 
     async def _execute(
-        self, article_outline: ArticleOutline, ruleset: Optional[RuleSet] = None, **cxt
+        self, article_outline: ArticleOutline, ref_twk_ruleset: Optional[RuleSet] = None, **cxt
     ) -> ArticleOutline:
         return await self._inner(
             article_outline,
-            ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+            ruleset=ok(ref_twk_ruleset or self.ruleset, "No ruleset provided"),
             field_name="depend_on",
         )
 
@@ -308,7 +306,7 @@ class GenerateArticle(Action, Censor):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        ruleset: Optional[RuleSet] = None,
+        article_gen_ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[Article]:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
@@ -319,50 +317,12 @@ class GenerateArticle(Action, Censor):
             *[
                 self.censor_obj_inplace(
                     subsec,
-                    ruleset=ok(ruleset or self.ruleset, "No ruleset provided"),
+                    ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}",
                 )
-                for _, __, subsec in article.iter_subsections()
-                if (err := subsec.introspect())
+                for _, _, subsec in article.iter_subsections()
+                if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None
             ],
         )
 
         return article
-
-
-class CorrectProposal(Action, Censor):
-    """Correct the proposal of the article."""
-
-    output_key: str = "corrected_proposal"
-
-    async def _execute(self, article_proposal: ArticleProposal, **_) -> Any:
-        raise NotImplementedError("Not implemented.")
-
-
-class CorrectOutline(Action, Correct):
-    """Correct the outline of the article."""
-
-    output_key: str = "corrected_outline"
-    """The key of the output data."""
-
-    async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        **_,
-    ) -> ArticleOutline:
-        raise NotImplementedError("Not implemented.")
-
-
-class CorrectArticle(Action, Correct):
-    """Correct the article based on the outline."""
-
-    output_key: str = "corrected_article"
-    """The key of the output data."""
-
-    async def _execute(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        **_,
-    ) -> Article:
-        raise NotImplementedError("Not implemented.")
