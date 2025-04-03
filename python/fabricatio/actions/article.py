@@ -318,7 +318,7 @@ class GenerateArticle(Action, Censor):
                 self.censor_obj_inplace(
                     subsec,
                     ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}",
+                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{detect_language(subsec.display())}` to write the new `Subsection`.",
                 )
                 for _, _, subsec in article.iter_subsections()
                 if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None
