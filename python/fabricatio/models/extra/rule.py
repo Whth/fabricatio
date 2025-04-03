@@ -42,6 +42,8 @@ class RuleSet(SketchedAble, PersistentAble, WithBriefing, Language):
     @classmethod
     def gather(cls, *rulesets: Unpack[Tuple["RuleSet",...]]) -> Self:
         """Gathers multiple rule sets into a single rule set."""
+        if not rulesets:
+            raise ValueError("No rulesets provided")
         return cls(
             language=rulesets[0].language,
             name=";".join(ruleset.name for ruleset in rulesets),
