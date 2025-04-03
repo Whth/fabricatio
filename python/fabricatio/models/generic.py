@@ -229,7 +229,7 @@ class PersistentAble(Base):
         return self
 
     @classmethod
-    def from_latest_persistent(cls, dir_path: str | Path) -> Self:
+    def from_latest_persistent(cls, dir_path: str | Path) -> Optional[Self]:
         """Load most recent persisted instance from directory.
 
         Args:
@@ -244,13 +244,13 @@ class PersistentAble(Base):
         """
         dir_path = Path(dir_path)
         if not dir_path.is_dir():
-            raise NotADirectoryError(f"{dir_path} is not a valid directory")
+            return None
 
         pattern = f"{cls.__name__}_*.json"
         files = list(dir_path.glob(pattern))
 
         if not files:
-            raise FileNotFoundError(f"No persistent files found for {cls.__name__} in {dir_path}")
+            return None
 
         def _get_timestamp(file_path: Path) -> datetime:
             stem = file_path.stem
