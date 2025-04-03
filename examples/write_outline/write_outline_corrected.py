@@ -3,7 +3,7 @@
 import asyncio
 
 from fabricatio import Event, Role, WorkFlow, logger
-from fabricatio.actions.article import CorrectOutline, CorrectProposal, GenerateArticleProposal, GenerateInitialOutline
+from fabricatio.actions.article import GenerateArticleProposal, GenerateInitialOutline
 from fabricatio.actions.output import DumpFinalizedOutput
 
 
@@ -20,13 +20,7 @@ async def main() -> None:
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
                     GenerateArticleProposal(llm_model="deepseek/deepseek-reasoner", llm_temperature=1.3),
-                    CorrectProposal(
-                        output_key="article_proposal",
-                        llm_model="deepseek/deepseek-reasoner",
-                        llm_temperature=1.3,
-                    ),
                     GenerateInitialOutline(llm_model="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
-                    CorrectOutline(output_key="to_dump", llm_temperature=1.4, llm_top_p=0.45),
                     DumpFinalizedOutput(output_key="task_output"),
                 ),
             )
