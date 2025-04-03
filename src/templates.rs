@@ -1,4 +1,4 @@
-use crate::hbs_helpers::{len,getlang,hash};
+use crate::hbs_helpers::{getlang, hash, len, word_count};
 use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -105,6 +105,7 @@ impl TemplateManager {
         self.handlebars.register_helper("len", Box::new(len));
         self.handlebars.register_helper("getlang", Box::new(getlang));
         self.handlebars.register_helper("hash", Box::new(hash));
+        self.handlebars.register_helper("word_count", Box::new(word_count))
     }
 }
 

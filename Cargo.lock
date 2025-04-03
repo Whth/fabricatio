@@ -452,6 +452,7 @@ dependencies = [
  "pythonize",
  "rayon",
  "serde_json",
+ "unicode-segmentation",
  "walkdir",
  "whichlang",
 ]

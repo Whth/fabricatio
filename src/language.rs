@@ -1,9 +1,8 @@
-use whichlang::{detect_language as dl, Lang};
 use pyo3::prelude::*;
+use whichlang::{detect_language as dl, Lang};
 
 
-
-
+/// convert the language to a string
 pub(crate) fn convert_to_string_respectively(lang:Lang)->String{
     match lang {
         Lang::Ara => "العربية".to_string(),    // Arabic
@@ -27,7 +26,7 @@ pub(crate) fn convert_to_string_respectively(lang:Lang)->String{
 
 
 
-
+/// detect the language of a string
 #[pyfunction]
 #[pyo3(signature = (string))]
 fn detect_language(string: String) -> String {
