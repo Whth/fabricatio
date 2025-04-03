@@ -43,7 +43,7 @@ class Rating(LLMUsage):
             Dict[str, float]: A dictionary with the ratings for each dimension.
         """
 
-        def _validator(response: str) -> Optional[Dict[str, float]] :
+        def _validator(response: str) -> Optional[Dict[str, float]]:
             if (
                 (json_data := JsonCapture.validate_with(response, dict, str))
                 and json_data.keys() == rating_manual.keys()
@@ -53,11 +53,11 @@ class Rating(LLMUsage):
             return None
 
         logger.info(f"Rating for {to_rate}")
-        return await self.aask_validate(
+        return await self.aask_validate(  # pyright: ignore [reportReturnType]
             question=(
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.rate_fine_grind_template,
-                    {
+                    {  # pyright: ignore [reportArgumentType]
                         "to_rate": to_rate,
                         "min_score": score_range[0],
                         "max_score": score_range[1],
@@ -69,7 +69,7 @@ class Rating(LLMUsage):
             else [
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.rate_fine_grind_template,
-                    {
+                    {  # pyright: ignore [reportArgumentType]
                         "to_rate": item,
                         "min_score": score_range[0],
                         "max_score": score_range[1],
@@ -244,7 +244,7 @@ class Rating(LLMUsage):
 
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
-            await self.aask_validate(
+            await self.aask_validate(  # pyright: ignore [reportArgumentType]
                 question=[
                     TEMPLATE_MANAGER.render_template(
                         configs.templates.extract_reasons_from_examples_template,
@@ -319,9 +319,11 @@ class Rating(LLMUsage):
             validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
             **kwargs,
         )
+        if not all(relative_weights):
+            raise ValueError(f"found illegal weight: {relative_weights}")
         weights = [1.0]
         for rw in relative_weights:
-            weights.append(weights[-1] * rw)
+            weights.append(weights[-1] * rw)  # pyright: ignore [reportOperatorIssue]
         total = sum(weights)
         return dict(zip(criteria_seq, [w / total for w in weights], strict=True))
 
