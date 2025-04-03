@@ -15,6 +15,7 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import PersistentAble, SequencePatch, SketchedAble, WithRef
+from fabricatio.rust import word_count
 from fabricatio.utils import ok
 
 
@@ -26,6 +27,9 @@ class Paragraph(SketchedAble):
 
     writing_aim: List[str]
     """Specific communicative objectives for this paragraph's content."""
+
+    expected_word_count: int
+    """Expected word count for the paragraph."""
 
     content: str
     """The actual content of the paragraph, represented as a string."""
@@ -41,11 +45,26 @@ class ArticleSubsection(SubSectionBase):
     paragraphs: List[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
+    _max_word_count_deviation: float = 0.3
+    """Maximum allowed deviation from the expected word count, as a percentage."""
+
+    @property
+    def word_count(self) -> int:
+        """Calculates the total word count of all paragraphs in the subsection."""
+        return sum(word_count(p.content) for p in self.paragraphs)
+
     def introspect(self) -> str:
-        """Introspects the subsection and returns a message if it has no paragraphs."""
+        """Introspects the subsection and returns a summary of its state."""
+        summary = ""
         if len(self.paragraphs) == 0:
-            return f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, to achieve the goal of `{self.writing_aim}`."
-        return ""
+            summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs!\n"
+        if (
+            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+            > self._max_word_count_deviation
+        ):
+            summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
+
+        return summary
 
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
@@ -94,7 +113,7 @@ class Article(
 
     @override
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
-        return super().iter_subsections()
+        return super().iter_subsections()  # pyright: ignore [reportReturnType]
 
     @classmethod
     def from_outline(cls, outline: ArticleOutline) -> "Article":
