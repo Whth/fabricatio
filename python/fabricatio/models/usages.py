@@ -303,7 +303,7 @@ class LLMUsage(ScopedConfig):
                         and logger.debug("Co-extraction is enabled.") is None
                         and (
                             validated := validator(
-                                await self.aask(
+                                response:=await self.aask(
                                     question=(
                                         TEMPLATE_MANAGER.render_template(
                                             configs.templates.co_validation_template,
@@ -320,12 +320,13 @@ class LLMUsage(ScopedConfig):
                         return validated
 
                 except RateLimitError as e:
-                    logger.warning(f"Rate limit error: {e}")
+                    logger.warning(f"Rate limit error:\n{e}")
                     continue
                 except Exception as e:  # noqa: BLE001
-                    logger.error(f"Error during validation: \n{e}")
+                    logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
                     break
+                logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
                 if not kwargs.get("no_cache"):
                     kwargs["no_cache"] = True
                     logger.debug("Closed the cache for the next attempt")

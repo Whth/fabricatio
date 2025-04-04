@@ -5,19 +5,19 @@ from random import sample
 from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
 from more_itertools import flatten, windowed
-from pydantic import NonNegativeInt, PositiveInt
+from pydantic import Field, NonNegativeInt, PositiveInt, create_model
 
+from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.generic import Display
+from fabricatio.models.generic import Display, ProposedAble
 from fabricatio.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
-from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import fallback_kwargs, ok, override_kwargs
 
 
-class Rating(LLMUsage):
+class Rating(Propose):
     """A class that provides functionality to rate tasks based on a rating manual and score range.
 
     References:
@@ -30,7 +30,7 @@ class Rating(LLMUsage):
         rating_manual: Dict[str, str],
         score_range: Tuple[float, float],
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
+    ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
         """Rate a given string based on a rating manual and score range.
 
         Args:
@@ -42,45 +42,50 @@ class Rating(LLMUsage):
         Returns:
             Dict[str, float]: A dictionary with the ratings for each dimension.
         """
+        min_score, max_score = score_range
+        tip = (max_score - min_score) / 9
 
-        def _validator(response: str) -> Optional[Dict[str, float]]:
-            if (
-                (json_data := JsonCapture.validate_with(response, dict, str))
-                and json_data.keys() == rating_manual.keys()
-                and all(score_range[0] <= v <= score_range[1] for v in json_data.values())
-            ):
-                return json_data
-            return None
+        model = create_model(  # pyright: ignore [reportCallIssue]
+            "RatingResult",
+            __base__=ProposedAble,
+            __doc__=f"The rating result contains the scores against each criterion, with min_score={min_score} and max_score={max_score}.",
+            **{  # pyright: ignore [reportArgumentType]
+                criterion: (
+                    float,
+                    Field(
+                        ge=min_score,
+                        le=max_score,
+                        description=desc,
+                        examples=[round(min_score + tip * i, 2) for i in range(10)],
+                    ),
+                )
+                for criterion, desc in rating_manual.items()
+            },
+        )
 
         logger.info(f"Rating for {to_rate}")
-        return await self.aask_validate(  # pyright: ignore [reportReturnType]
-            question=(
-                TEMPLATE_MANAGER.render_template(
-                    configs.templates.rate_fine_grind_template,
-                    {  # pyright: ignore [reportArgumentType]
-                        "to_rate": to_rate,
-                        "min_score": score_range[0],
-                        "max_score": score_range[1],
-                        "rating_manual": rating_manual,
-                    },
-                )
+        res = await self.propose(
+            model,
+            TEMPLATE_MANAGER.render_template(
+                configs.templates.rate_fine_grind_template,
+                {"to_rate": to_rate, "min_score": min_score, "max_score": max_score},
             )
             if isinstance(to_rate, str)
             else [
                 TEMPLATE_MANAGER.render_template(
                     configs.templates.rate_fine_grind_template,
-                    {  # pyright: ignore [reportArgumentType]
-                        "to_rate": item,
-                        "min_score": score_range[0],
-                        "max_score": score_range[1],
-                        "rating_manual": rating_manual,
-                    },
+                    {"to_rate": t, "min_score": min_score, "max_score": max_score},
                 )
-                for item in to_rate
+                for t in to_rate
             ],
-            validator=_validator,
-            **kwargs,
+            **override_kwargs(kwargs, default=None),
         )
+        default = kwargs.get("default")
+        if isinstance(res, list):
+            return [r.model_dump() if r else default for r in res]
+        if res is None:
+            return default
+        return res.model_dump()
 
     @overload
     async def rate(
@@ -112,7 +117,7 @@ class Rating(LLMUsage):
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
         **kwargs: Unpack[ValidateKwargs],
-    ) -> Optional[Dict[str, float] | List[Dict[str, float]]]:
+    ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
 
         Args:

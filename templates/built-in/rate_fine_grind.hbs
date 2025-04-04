@@ -10,34 +10,6 @@ When determining your ratings:
 5. Round all scores to exactly two decimal places
 6. Ensure no criteria is scored outside the range [{{ min_score }}, {{ max_score }}]
 
-
 ----- Start of content to rate -----
 {{ to_rate }}
 ----- End of content to rate -----
-
-## Rating Manual
-{{ rating_manual }}
-
-## Score Range
-- Minimum score: {{ min_score }}
-- Maximum score: {{ max_score }}
-
-# Example:
-rate using rating manual {"nice outlook": "If the appearance is good", "taste": "If the taste is good", "texture": "If the texture is good"}, with score range [0, 5]
---- Start of response example ---
-```json
-{
-"nice outlook": 3.56,
-"taste": 4.55,
-"texture": 3.01
-}
-```
---- End of response example ---
-
-# Format Requirements
-- Response MUST be a valid JSON object within a code block
-- Keys MUST match ALL criterion names from the rating manual: [{{#each rating_manual}}"{{@key}}",{{/each}}]
-- Values MUST be numeric, rounded to exactly two decimal places
-- All scores MUST be within the range [{{ min_score }}, {{ max_score }}]
-- No explanations or additional text outside the JSON code block
-- DO NOT try to output `--- Start of response example ---` or `--- End of response example ---`!
