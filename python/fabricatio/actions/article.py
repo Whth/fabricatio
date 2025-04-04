@@ -11,7 +11,7 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import SubSectionBase
+from fabricatio.models.extra.article_base import ArticleRef, SubSectionBase
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -314,7 +314,7 @@ class GenerateArticle(Action, Censor):
                 self.censor_obj_inplace(
                     subsec,
                     ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
+                    reference=f"{article_outline.as_prompt()}\n# `ArticleRef` usage doc\n{ArticleRef.__doc__}# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
                 )
                 for _, _, subsec in article.iter_subsections()
                 if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None
