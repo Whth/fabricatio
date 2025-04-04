@@ -40,44 +40,44 @@ class ArticleRef(ProposedUpdateAble):
         - Referring to a chapter titled `Introduction`:
             Using Python
             ```python
-            ArticleRef(referred_chapter_title="Introduction")
+            ArticleRef(chap="Introduction")
             ```
             Using JSON
             ```json
-            {referred_chapter_title="Introduction"}
+            {chap="Introduction"}
             ```
         - Referring to a section titled `Background` under the `Introduction` chapter:
             Using Python
             ```python
-            ArticleRef(referred_chapter_title="Introduction", referred_section_title="Background")
+            ArticleRef(chap="Introduction", sec="Background")
             ```
             Using JSON
             ```json
-            {referred_chapter_title="Introduction", referred_section_title="Background"}
+            {chap="Introduction", sec="Background"}
             ```
         - Referring to a subsection titled `Related Work` under the `Background` section of the `Introduction` chapter:
             Using Python
             ```python
-            ArticleRef(referred_chapter_title="Introduction", referred_section_title="Background", referred_subsection_title="Related Work")
+            ArticleRef(chap="Introduction", sec="Background", subsec="Related Work")
             ```
             Using JSON
             ```json
-            {referred_chapter_title="Introduction", referred_section_title="Background", referred_subsection_title="Related Work"}
+            {chap="Introduction", sec="Background", subsec="Related Work"}
             ```
     """
 
-    referred_chapter_title: str
+    chap: str
     """`title` Field of the referenced chapter"""
-    referred_section_title: Optional[str] = None
+    sec: Optional[str] = None
     """`title` Field of the referenced section."""
-    referred_subsection_title: Optional[str] = None
+    subsec: Optional[str] = None
     """`title` Field of the referenced subsection."""
 
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
-        self.referred_chapter_title = other.referred_chapter_title
-        self.referred_section_title = other.referred_section_title
-        self.referred_subsection_title = other.referred_subsection_title
+        self.chap = other.chap
+        self.sec = other.sec
+        self.subsec = other.subsec
         return self
 
     def deref(self, article: "ArticleBase") -> Optional["ArticleOutlineBase"]:
@@ -89,20 +89,20 @@ class ArticleRef(ProposedUpdateAble):
         Returns:
             ArticleMainBase | ArticleOutline | None: The dereferenced section or subsection, or None if not found.
         """
-        chap = next((chap for chap in article.chapters if chap.title == self.referred_chapter_title), None)
-        if self.referred_section_title is None or chap is None:
+        chap = next((chap for chap in article.chapters if chap.title == self.chap), None)
+        if self.sec is None or chap is None:
             return chap
-        sec = next((sec for sec in chap.sections if sec.title == self.referred_section_title), None)
-        if self.referred_subsection_title is None or sec is None:
+        sec = next((sec for sec in chap.sections if sec.title == self.sec), None)
+        if self.subsec is None or sec is None:
             return sec
-        return next((subsec for subsec in sec.subsections if subsec.title == self.referred_subsection_title), None)
+        return next((subsec for subsec in sec.subsections if subsec.title == self.subsec), None)
 
     @property
     def referring_type(self) -> ReferringType:
         """Determine the type of reference based on the presence of specific attributes."""
-        if self.referred_subsection_title is not None:
+        if self.subsec is not None:
             return ReferringType.SUBSECTION
-        if self.referred_section_title is not None:
+        if self.sec is not None:
             return ReferringType.SECTION
         return ReferringType.CHAPTER
 
@@ -117,7 +117,7 @@ class ArticleMetaData(SketchedAble, Described, Titled, Language):
 
     title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
 
-    writing_aim: List[str]
+    aims: List[str]
     """List of writing aims of the research component in academic style."""
 
     support_to: List[ArticleRef]
@@ -125,7 +125,7 @@ class ArticleMetaData(SketchedAble, Described, Titled, Language):
     depend_on: List[ArticleRef]
     """List of references to other previous components in this article that this component depends on."""
 
-    expected_word_count: int
+    word_count: int
     """Expected word count of this research component."""
 
 
@@ -154,8 +154,8 @@ class ArticleOutlineBase(
         self.support_to.extend(other.support_to)
         self.depend_on.clear()
         self.depend_on.extend(other.depend_on)
-        self.writing_aim.clear()
-        self.writing_aim.extend(other.writing_aim)
+        self.aims.clear()
+        self.aims.extend(other.aims)
         self.description = other.description
         return self
 
@@ -421,13 +421,13 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled
                 if not ref.deref(self):
                     summary += f"Invalid internal reference in `{component.__class__.__name__}` titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
 
-                    if ref.referred_chapter_title not in (chap_titles_set):
-                        summary += f"Chapter titled `{ref.referred_chapter_title}` is not any of {chap_titles_set}\n"
-                    if ref.referred_section_title and ref.referred_section_title not in (sec_titles_set):
-                        summary += f"Section Titled `{ref.referred_section_title}` is not any of {sec_titles_set}\n"
-                    if ref.referred_subsection_title and ref.referred_subsection_title not in (subsec_titles_set):
+                    if ref.chap not in (chap_titles_set):
+                        summary += f"Chapter titled `{ref.chap}` is not any of {chap_titles_set}\n"
+                    if ref.sec and ref.sec not in (sec_titles_set):
+                        summary += f"Section Titled `{ref.sec}` is not any of {sec_titles_set}\n"
+                    if ref.subsec and ref.subsec not in (subsec_titles_set):
                         summary += (
-                            f"Subsection Titled `{ref.referred_subsection_title}` is not any of {subsec_titles_set}"
+                            f"Subsection Titled `{ref.subsec}` is not any of {subsec_titles_set}"
                         )
 
                 if summary:
@@ -459,17 +459,17 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled
                 r for r in chain(component.depend_on, component.support_to) if not r.deref(self) and r not in res_seq
             ):
                 res_seq.append(ref)
-                if ref.referred_chapter_title not in chap_titles_set:
+                if ref.chap not in chap_titles_set:
                     summary.append(
-                        f"Chapter titled `{ref.referred_chapter_title}` is not exist, since it is not any of {chap_titles_set}."
+                        f"Chapter titled `{ref.chap}` is not exist, since it is not any of {chap_titles_set}."
                     )
-                if ref.referred_section_title and (ref.referred_section_title not in sec_titles_set):
+                if ref.sec and (ref.sec not in sec_titles_set):
                     summary.append(
-                        f"Section Titled `{ref.referred_section_title}` is not exist, since it is not any of {sec_titles_set}"
+                        f"Section Titled `{ref.sec}` is not exist, since it is not any of {sec_titles_set}"
                     )
-                if ref.referred_subsection_title and (ref.referred_subsection_title not in subsec_titles_set):
+                if ref.subsec and (ref.subsec not in subsec_titles_set):
                     summary.append(
-                        f"Subsection Titled `{ref.referred_subsection_title}` is not exist, since it is not any of {subsec_titles_set}"
+                        f"Subsection Titled `{ref.subsec}` is not exist, since it is not any of {subsec_titles_set}"
                     )
 
         return res_seq, "\n".join(summary)

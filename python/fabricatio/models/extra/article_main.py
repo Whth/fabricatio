@@ -34,7 +34,7 @@ class Paragraph(SketchedAble, Described):
     writing_aim: List[str]
     """Specific communicative objectives for this paragraph's content."""
 
-    expected_word_count: int
+    word_count: int
     """Expected word count for the paragraph."""
 
     content: str
@@ -43,7 +43,7 @@ class Paragraph(SketchedAble, Described):
     @classmethod
     def from_content(cls, content: str) -> Self:
         """Create a Paragraph object from the given content."""
-        return cls(elaboration="", writing_aim=[], expected_word_count=word_count(content), content=content)
+        return cls(elaboration="", writing_aim=[], word_count=word_count(content), content=content)
 
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
@@ -70,10 +70,10 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs!\n"
         if (
-            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+            abs((wc := self.word_count) - self.word_count) / self.word_count
             > self._max_word_count_deviation
         ):
-            summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
+            summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
 
         return summary
 
@@ -100,9 +100,9 @@ class ArticleSubsection(SubSectionBase):
             heading=title,
             elaboration="",
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
-            expected_word_count=word_count(body),
+            word_count=word_count(body),
             language=language,
-            writing_aim=[],
+            aims=[],
             support_to=[],
             depend_on=[],
         )
@@ -121,9 +121,9 @@ class ArticleSection(SectionBase[ArticleSubsection]):
             ],
             heading=title,
             elaboration="",
-            expected_word_count=word_count(body),
+            word_count=word_count(body),
             language=language,
-            writing_aim=[],
+            aims=[],
             support_to=[],
             depend_on=[],
         )
@@ -142,9 +142,9 @@ class ArticleChapter(ChapterBase[ArticleSection]):
             ],
             heading=title,
             elaboration="",
-            expected_word_count=word_count(body),
+            word_count=word_count(body),
             language=language,
-            writing_aim=[],
+            aims=[],
             support_to=[],
             depend_on=[],
         )
