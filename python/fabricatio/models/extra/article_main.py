@@ -15,18 +15,21 @@ from fabricatio.models.extra.article_base import (
 from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
-from fabricatio.models.generic import PersistentAble, SequencePatch, SketchedAble, WithRef
+from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef
 from fabricatio.rust import detect_language, word_count
 from fabricatio.utils import ok
+from pydantic import Field
 
 PARAGRAPH_SEP = "// - - -"
 
 
-class Paragraph(SketchedAble):
+class Paragraph(SketchedAble, Described):
     """Structured academic paragraph blueprint for controlled content generation."""
 
-    description: str
-    """Functional summary of the paragraph's role in document structure."""
+    description: str = Field(
+        alias="elaboration",
+        description=Described.model_fields["description"].description,
+    )
 
     writing_aim: List[str]
     """Specific communicative objectives for this paragraph's content."""
@@ -40,7 +43,7 @@ class Paragraph(SketchedAble):
     @classmethod
     def from_content(cls, content: str) -> Self:
         """Create a Paragraph object from the given content."""
-        return cls(description="", writing_aim=[], expected_word_count=word_count(content), content=content)
+        return cls(elaboration="", writing_aim=[], expected_word_count=word_count(content), content=content)
 
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
@@ -94,8 +97,8 @@ class ArticleSubsection(SubSectionBase):
     def from_typst_code(cls, title: str, body: str, language: str) -> Self:
         """Creates an Article object from the given Typst code."""
         return cls(
-            title=title,
-            description="",
+            heading=title,
+            elaboration="",
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
             expected_word_count=word_count(body),
             language=language,
@@ -116,8 +119,8 @@ class ArticleSection(SectionBase[ArticleSubsection]):
                 ArticleSubsection.from_typst_code(*pack, language=language)
                 for pack in extract_sections(body, level=3, section_char="=")
             ],
-            title=title,
-            description="",
+            heading=title,
+            elaboration="",
             expected_word_count=word_count(body),
             language=language,
             writing_aim=[],
@@ -137,8 +140,8 @@ class ArticleChapter(ChapterBase[ArticleSection]):
                 ArticleSection.from_typst_code(*pack, language=language)
                 for pack in extract_sections(body, level=2, section_char="=")
             ],
-            title=title,
-            description="",
+            heading=title,
+            elaboration="",
             expected_word_count=word_count(body),
             language=language,
             writing_aim=[],
@@ -216,7 +219,7 @@ class Article(
                 ArticleChapter.from_typst_code(*pack, language=lang)
                 for pack in extract_sections(body, level=1, section_char="=")
             ],
-            title=title,
+            heading=title,
             expected_word_count=word_count(body),
             abstract="",
         )

@@ -19,6 +19,7 @@ from fabricatio.models.generic import (
     SketchedAble,
     Titled,
 )
+from pydantic import Field
 
 
 class ReferringType(StrEnum):
@@ -106,17 +107,23 @@ class ArticleRef(ProposedUpdateAble):
         return ReferringType.CHAPTER
 
 
-class ArticleMetaData(SketchedAble, Described,Titled, Language):
+class ArticleMetaData(SketchedAble, Described, Titled, Language):
     """Metadata for an article component."""
 
+    description: str = Field(
+        alias="elaboration",
+        description=Described.model_fields["description"].description,
+    )
+
+    title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
 
     writing_aim: List[str]
     """List of writing aims of the research component in academic style."""
 
     support_to: List[ArticleRef]
-    """List of references to other component of this articles that this component supports."""
+    """List of references to other future components in this article that this component supports to."""
     depend_on: List[ArticleRef]
-    """List of references to other component of this articles that this component depends on."""
+    """List of references to other previous components in this article that this component depends on."""
 
     expected_word_count: int
     """Expected word count of this research component."""
@@ -272,11 +279,19 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Titled, Language, ABC):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled, Language, ABC):
     """Base class for article outlines."""
 
-    abstract: str
-    """The abstract is a concise summary of the academic paper's main findings."""
+    title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
+    description: str = Field(alias="abstract")
+    """The abstract serves as a concise summary of an academic article, encapsulating its core purpose, methodologies, key results,
+    and conclusions while enabling readers to rapidly assess the relevance and significance of the study.
+    Functioning as the article's distilled essence, it succinctly articulates the research problem, objectives,
+    and scope, providing a roadmap for the full text while also facilitating database indexing, literature reviews,
+    and citation tracking through standardized metadata. Additionally, it acts as an accessibility gateway,
+    allowing scholars to gauge the study's contribution to existing knowledge, its methodological rigor,
+    and its broader implications without engaging with the entire manuscript, thereby optimizing scholarly communication efficiency."""
+
     expected_word_count: int
     """The expected word count of the article."""
     chapters: List[T]
