@@ -14,6 +14,9 @@
 
 ## `Improvement` object build Instructions
 - Analyze the `Content to Check` against the rule.
-- Identify specific violations or issues that need improvement.
-- Since an `Improvement` object contains multiple problems, each of which MUST have multiple corresponding solutions to allow the supervisor decide which to use.
+- Identify specific violations of the rule that need to be fixed.
+- Since an `Improvement` object contains violations of the rule, each violation MUST have multiple corresponding solutions to allow the supervisor decide which to use.
 - You should use `{{getlang to_check}}` as written language of `Improvement` object's JSON value content.
+- `Improvement` object is designed to deal with the rule violation. Every thing other than it is not what we need to consider here!
+- Do not try to interfere any other thing that have nothing to do with the `Rule Violation Solving`
+- `Rule Violation Solving` is the absolute and highest priority of your work.
