@@ -292,8 +292,7 @@ class Language(Base):
     """Class that provides a language attribute."""
 
     language: str
-    """The written language of this object, which should be aligned to the original requirement
-    For example if the requirement is in Chinese, the language should be set to `zh`, if the requirement is in English, the language should be set to `en` and etc."""
+    """The fullname of the written language of this object."""
 
 
 class ModelHash(Base):
