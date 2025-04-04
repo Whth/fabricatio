@@ -111,6 +111,13 @@ class Titled(Base):
     """The title of this object, make it professional and concise.No prefixed heading number should be included."""
 
 
+class WordCount(Base):
+    """Class that includes a word count attribute."""
+
+    expected_word_count: int
+    """Expected word count of this research component."""
+
+
 class AsPrompt(Base):
     """Class that provides a method to generate a prompt from the model.
 

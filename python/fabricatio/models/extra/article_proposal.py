@@ -2,11 +2,20 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import AsPrompt, Described, Language, PersistentAble, SketchedAble, Titled, WithRef
+from fabricatio.models.generic import (
+    AsPrompt,
+    Described,
+    Language,
+    PersistentAble,
+    SketchedAble,
+    Titled,
+    WithRef,
+    WordCount,
+)
 from pydantic import Field
 
 
-class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Described, Titled, Language):
+class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, WordCount, Described, Titled, Language):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
@@ -35,9 +44,6 @@ class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Desc
 
     description: str = Field(alias="abstract")
     """A concise summary of the research proposal, outlining the main points and objectives."""
-
-    expected_word_count: int
-    """The estimated word count of the final academic paper."""
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {

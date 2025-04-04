@@ -18,6 +18,7 @@ from fabricatio.models.generic import (
     SequencePatch,
     SketchedAble,
     Titled,
+    WordCount,
 )
 from pydantic import Field
 
@@ -107,7 +108,7 @@ class ArticleRef(ProposedUpdateAble):
         return ReferringType.CHAPTER
 
 
-class ArticleMetaData(SketchedAble, Described, Titled, Language):
+class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     """Metadata for an article component."""
 
     description: str = Field(
@@ -124,9 +125,6 @@ class ArticleMetaData(SketchedAble, Described, Titled, Language):
     """List of references to other future components in this article that this component supports to."""
     depend_on: List[ArticleRef]
     """List of references to other previous components in this article that this component depends on."""
-
-    word_count: int
-    """Expected word count of this research component."""
 
 
 class ArticleRefSequencePatch(SequencePatch[ArticleRef]):
@@ -279,7 +277,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled, Language, ABC):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Described, Titled, Language, ABC):
     """Base class for article outlines."""
 
     title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
@@ -292,8 +290,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled
     allowing scholars to gauge the study's contribution to existing knowledge, its methodological rigor,
     and its broader implications without engaging with the entire manuscript, thereby optimizing scholarly communication efficiency."""
 
-    expected_word_count: int
-    """The expected word count of the article."""
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
 
@@ -426,9 +422,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled
                     if ref.sec and ref.sec not in (sec_titles_set):
                         summary += f"Section Titled `{ref.sec}` is not any of {sec_titles_set}\n"
                     if ref.subsec and ref.subsec not in (subsec_titles_set):
-                        summary += (
-                            f"Subsection Titled `{ref.subsec}` is not any of {subsec_titles_set}"
-                        )
+                        summary += f"Subsection Titled `{ref.subsec}` is not any of {subsec_titles_set}"
 
                 if summary:
                     return (
@@ -464,9 +458,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Described, Titled
                         f"Chapter titled `{ref.chap}` is not exist, since it is not any of {chap_titles_set}."
                     )
                 if ref.sec and (ref.sec not in sec_titles_set):
-                    summary.append(
-                        f"Section Titled `{ref.sec}` is not exist, since it is not any of {sec_titles_set}"
-                    )
+                    summary.append(f"Section Titled `{ref.sec}` is not exist, since it is not any of {sec_titles_set}")
                 if ref.subsec and (ref.subsec not in subsec_titles_set):
                     summary.append(
                         f"Subsection Titled `{ref.subsec}` is not exist, since it is not any of {subsec_titles_set}"

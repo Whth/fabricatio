@@ -44,7 +44,7 @@ class LLMConfig(BaseModel):
         top_p (NonNegativeFloat): The top p of the LLM model. Controls diversity via nucleus sampling. Set to 0.35 as per request.
         generation_count (PositiveInt): The number of generations to generate. Default is 1.
         stream (bool): Whether to stream the LLM model's response. Default is False.
-        max_tokens (PositiveInt): The maximum number of tokens to generate. Set to 8192 as per request.
+        max_tokens (PositiveInt): The maximum number of tokens to generate.
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
@@ -79,7 +79,7 @@ class LLMConfig(BaseModel):
     """Whether to stream the LLM model's response. Default is False."""
 
     max_tokens: Optional[PositiveInt] = Field(default=None)
-    """The maximum number of tokens to generate. Set to 8192 as per request."""
+    """The maximum number of tokens to generate."""
 
     rpm: Optional[PositiveInt] = Field(default=100)
     """The rate limit of the LLM model in requests per minute. None means not checked."""

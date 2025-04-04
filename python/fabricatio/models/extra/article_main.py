@@ -15,7 +15,7 @@ from fabricatio.models.extra.article_base import (
 from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
-from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef
+from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import detect_language, word_count
 from fabricatio.utils import ok
 from pydantic import Field
@@ -23,7 +23,7 @@ from pydantic import Field
 PARAGRAPH_SEP = "// - - -"
 
 
-class Paragraph(SketchedAble, Described):
+class Paragraph(SketchedAble, WordCount, Described):
     """Structured academic paragraph blueprint for controlled content generation."""
 
     description: str = Field(
@@ -31,11 +31,8 @@ class Paragraph(SketchedAble, Described):
         description=Described.model_fields["description"].description,
     )
 
-    writing_aim: List[str]
+    aims: List[str]
     """Specific communicative objectives for this paragraph's content."""
-
-    word_count: int
-    """Expected word count for the paragraph."""
 
     content: str
     """The actual content of the paragraph, represented as a string."""
@@ -43,7 +40,7 @@ class Paragraph(SketchedAble, Described):
     @classmethod
     def from_content(cls, content: str) -> Self:
         """Create a Paragraph object from the given content."""
-        return cls(elaboration="", writing_aim=[], word_count=word_count(content), content=content)
+        return cls(elaboration="", aims=[], expected_word_count=word_count(content), content=content)
 
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
@@ -69,11 +66,10 @@ class ArticleSubsection(SubSectionBase):
         summary = ""
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs!\n"
-        if (
-            abs((wc := self.word_count) - self.word_count) / self.word_count
-            > self._max_word_count_deviation
-        ):
-            summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
+        if abs((wc := self.word_count) - self.word_count) / self.word_count > self._max_word_count_deviation:
+            summary += (
+                f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
+            )
 
         return summary
 
@@ -100,7 +96,7 @@ class ArticleSubsection(SubSectionBase):
             heading=title,
             elaboration="",
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
-            word_count=word_count(body),
+            expected_word_count=word_count(body),
             language=language,
             aims=[],
             support_to=[],
@@ -121,7 +117,7 @@ class ArticleSection(SectionBase[ArticleSubsection]):
             ],
             heading=title,
             elaboration="",
-            word_count=word_count(body),
+            expected_word_count=word_count(body),
             language=language,
             aims=[],
             support_to=[],
@@ -142,7 +138,7 @@ class ArticleChapter(ChapterBase[ArticleSection]):
             ],
             heading=title,
             elaboration="",
-            word_count=word_count(body),
+            expected_word_count=word_count(body),
             language=language,
             aims=[],
             support_to=[],
@@ -185,7 +181,7 @@ class Article(
             Article: The generated article.
         """
         # Set the title from the outline
-        article = Article(**outline.model_dump(exclude={"chapters"},by_alias=True), chapters=[])
+        article = Article(**outline.model_dump(exclude={"chapters"}, by_alias=True), chapters=[])
 
         for chapter in outline.chapters:
             # Create a new chapter
