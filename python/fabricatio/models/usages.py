@@ -299,7 +299,8 @@ class LLMUsage(ScopedConfig):
             for lap in range(max_validations):
                 try:
                     if ((validated := validator(response := await self.aask(question=q, **kwargs))) is not None) or (
-                        co_extractor
+                        co_extractor is not None
+                        and logger.debug("Co-extraction is enabled.") is None
                         and (
                             validated := validator(
                                 await self.aask(

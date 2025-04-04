@@ -14,7 +14,7 @@ from fabricatio.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 from fabricatio.parser import JsonCapture
 from fabricatio.rust_instances import TEMPLATE_MANAGER
-from fabricatio.utils import ok, override_kwargs
+from fabricatio.utils import fallback_kwargs, ok, override_kwargs
 
 
 class Rating(LLMUsage):
@@ -133,7 +133,7 @@ class Rating(LLMUsage):
             or dict(zip(criteria, criteria, strict=True))
         )
 
-        return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
+        return await self.rate_fine_grind(to_rate, manual, score_range, **fallback_kwargs(kwargs, co_extractor={}))
 
     async def draft_rating_manual(
         self, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]

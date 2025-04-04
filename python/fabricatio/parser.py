@@ -74,7 +74,7 @@ class Capture(BaseModel):
         cap = groups[0]
         logger.debug(f"Captured text: \n{cap}")
         return cap
-    
+
     def convert_with[T](self, text: str, convertor: Callable[[Tuple[str, ...]], T] | Callable[[str], T]) -> T | None:
         """Convert the given text using the pattern.
 
