@@ -262,13 +262,15 @@ class TweakOutlineForwardRef(Action, Censor):
     ) -> None:
         if judge := await self.evidently_judge(
             f"{article_outline.as_prompt()}\n\n{a.display()}\n"
-            f"Does the `{a.__class__.__name__}`'s `{field_name}` field need to be extended or tweaked?"
+            f"# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n"
+            f"Does the `{a.__class__.__name__}`'s `{field_name}` field contains proper ref that looks like a reasonable ref structure?"
         ):
             await self.censor_obj_inplace(
                 a,
                 ruleset=ruleset,
                 reference=f"{article_outline.as_prompt()}\n"
-                f"The Article component titled `{a.title}` whose `{field_name}` field needs to be extended or tweaked.\n"
+                f"The Article component titled `{a.title}` whose `{field_name}` field needs to be tweaked.\n"
+                f"# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n"
                 f"# Judgement\n{judge.display()}",
             )
 
