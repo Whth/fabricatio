@@ -2,17 +2,17 @@
 
 from typing import List
 
-from fabricatio.models.generic import Display, ProposedAble
+from fabricatio.models.generic import SketchedAble
 
 
-class JudgeMent(ProposedAble, Display):
+class JudgeMent(SketchedAble):
     """Represents a judgment result containing supporting/denying evidence and final verdict.
 
     The class stores both affirmative and denies evidence, truth and reasons lists along with the final boolean judgment.
     """
 
     issue_to_judge: str
-    """The issue to be judged"""
+    """The issue to be judged, true for affirmation, false for denial."""
 
     deny_evidence: List[str]
     """List of clues supporting the denial."""
