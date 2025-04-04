@@ -167,13 +167,12 @@ class Correct(Rating, Propose):
             logger.info(f"Improvement {improvement.focused_on} not decided, start deciding...")
             improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
 
-        for ps in improvement.problem_solutions:
-            logger.info(f"Fixing troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}")
+        total = len(improvement.problem_solutions)
+        for idx, ps in enumerate(improvement.problem_solutions):
+            logger.info(f"[{idx + 1}/{total}] Fixing {obj.__class__.__name__} for problem `{ps.problem.name}`")
             fixed_obj = await self.fix_troubled_obj(obj, ps, reference, **kwargs)
             if fixed_obj is None:
-                logger.error(
-                    f"Failed to fix troubling obj {obj.__class__.__name__} when deal with problem: {ps.problem.name}",
-                )
+                logger.error(f"[{idx + 1}/{total}] Failed to fix problem `{ps.problem.name}`")
                 return None
             obj = fixed_obj
         return obj
