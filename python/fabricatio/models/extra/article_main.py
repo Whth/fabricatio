@@ -66,7 +66,7 @@ class ArticleSubsection(SubSectionBase):
         summary = ""
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
-        if abs((wc := self.word_count) - self.word_count) / self.word_count > self._max_word_count_deviation:
+        if abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count > self._max_word_count_deviation:
             summary += (
                 f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
             )
