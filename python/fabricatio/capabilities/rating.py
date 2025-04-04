@@ -63,7 +63,6 @@ class Rating(Propose):
             },
         )
 
-        logger.info(f"Rating for {to_rate}")
         res = await self.propose(
             model,
             TEMPLATE_MANAGER.render_template(

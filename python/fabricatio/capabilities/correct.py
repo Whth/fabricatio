@@ -57,7 +57,7 @@ class Correct(Rating, Propose):
                     self.decide_solution(
                         ps,
                         **fallback_kwargs(
-                            kwargs, topic=f"which solution is better to deal this problem {ps.problem.compact()}\n\n"
+                            kwargs, topic=f"which solution is better to deal this problem {ps.problem.description}\n\n"
                         ),
                     )
                     for ps in improvement.problem_solutions
