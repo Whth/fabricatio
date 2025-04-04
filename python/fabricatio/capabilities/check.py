@@ -42,12 +42,17 @@ class Check(AdvancedJudge, Propose):
             - Returns None if any step in rule generation fails
             - Uses `alist_str` for requirement breakdown and iterative rule proposal
         """
-        rule_reqs = await self.alist_str(
-            TEMPLATE_MANAGER.render_template(
-                configs.templates.ruleset_requirement_breakdown_template, {"ruleset_requirement": ruleset_requirement}
-            ),
-            rule_count,
-            **override_kwargs(kwargs, default=None),
+        rule_reqs = (
+            await self.alist_str(
+                TEMPLATE_MANAGER.render_template(
+                    configs.templates.ruleset_requirement_breakdown_template,
+                    {"ruleset_requirement": ruleset_requirement},
+                ),
+                rule_count,
+                **override_kwargs(kwargs, default=None),
+            )
+            if rule_count > 1
+            else [ruleset_requirement]
         )
 
         if rule_reqs is None:
