@@ -263,7 +263,9 @@ class TweakOutlineForwardRef(Action, Censor):
         if judge := await self.evidently_judge(
             f"{article_outline.as_prompt()}\n\n{a.display()}\n"
             f"# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n"
-            f"Does the `{a.__class__.__name__}`'s `{field_name}` field contains proper ref that looks like a reasonable ref structure?"
+            f"# Ruleset\n{ruleset.display()}\n"
+            f"Does the `{a.__class__.__name__}`'s `{field_name}` field contains inappropriate ref that obviously violated the ruleset provided?\n"
+            f"true for it does violated, false for it does not violated."
         ):
             await self.censor_obj_inplace(
                 a,
