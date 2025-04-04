@@ -104,6 +104,13 @@ class Described(Base):
     this object's intent and application."""
 
 
+class Titled(Base):
+    """Class that includes a title attribute."""
+
+    title: str
+    """The title of this object, make it professional and concise.No prefixed heading number should be included."""
+
+
 class AsPrompt(Base):
     """Class that provides a method to generate a prompt from the model.
 

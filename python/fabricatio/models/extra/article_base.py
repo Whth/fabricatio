@@ -17,6 +17,7 @@ from fabricatio.models.generic import (
     ResolveUpdateConflict,
     SequencePatch,
     SketchedAble,
+    Titled,
 )
 
 
@@ -105,18 +106,17 @@ class ArticleRef(ProposedUpdateAble):
         return ReferringType.CHAPTER
 
 
-class ArticleMetaData(SketchedAble, Described, Language):
+class ArticleMetaData(SketchedAble, Described,Titled, Language):
     """Metadata for an article component."""
+
+
+    writing_aim: List[str]
+    """List of writing aims of the research component in academic style."""
 
     support_to: List[ArticleRef]
     """List of references to other component of this articles that this component supports."""
     depend_on: List[ArticleRef]
     """List of references to other component of this articles that this component depends on."""
-
-    writing_aim: List[str]
-    """List of writing aims of the research component in academic style."""
-    title: str
-    """Do not add any prefix or suffix to the title. should not contain special characters."""
 
     expected_word_count: int
     """Expected word count of this research component."""
@@ -272,23 +272,12 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Language, ABC):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Titled, Language, ABC):
     """Base class for article outlines."""
-
-    title: str
-    """Title of the academic paper."""
-
-    prospect: str
-    """Consolidated research statement with four pillars:
-    1. Problem Identification: Current limitations
-    2. Methodological Response: Technical approach
-    3. Empirical Validation: Evaluation strategy
-    4. Scholarly Impact: Field contributions
-    """
 
     abstract: str
     """The abstract is a concise summary of the academic paper's main findings."""
-    expected_word_count:int
+    expected_word_count: int
     """The expected word count of the article."""
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""

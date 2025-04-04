@@ -219,7 +219,6 @@ class Article(
             title=title,
             expected_word_count=word_count(body),
             abstract="",
-            prospect="",
         )
 
     def gather_dependencies(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
