@@ -36,6 +36,7 @@ class Base(BaseModel):
     The `model_config` uses `use_attribute_docstrings=True` to ensure field descriptions are
     pulled from the attribute's docstring instead of the default Pydantic behavior.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
@@ -45,6 +46,7 @@ class Display(Base):
     Provides methods to generate both pretty-printed and compact JSON representations of the model.
     Used for debugging and logging purposes.
     """
+
     def display(self) -> str:
         """Generate pretty-printed JSON representation.
 
@@ -194,6 +196,7 @@ class PersistentAble(Base):
     Enables saving model instances to disk with timestamped filenames and loading from persisted files.
     Implements basic versioning through filename hashing and timestamping.
     """
+
     def persist(self, path: str | Path) -> Self:
         """Save model instance to disk with versioned filename.
 
@@ -208,7 +211,7 @@ class PersistentAble(Base):
             - Hash generated from JSON content ensures uniqueness
         """
         p = Path(path)
-        out = self.model_dump_json()
+        out = self.model_dump_json(indent=1)
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -670,6 +673,7 @@ class ScopedConfig(Base):
     Manages LLM, embedding, and vector database configurations with fallback logic.
     Allows configuration values to be overridden in a hierarchical manner.
     """
+
     llm_api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""
 
