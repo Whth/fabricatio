@@ -104,7 +104,8 @@ class Check(AdvancedJudge, Propose):
             - Proposes Improvement only when violation is confirmed
         """
         if judge := await self.evidently_judge(
-            f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `Rule Must to follow` provided above?",
+            f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `{rule.name}` provided above?"
+            f"should I take some measure to fix that violation? true for I do need, false for I don't need.",
             **override_kwargs(kwargs, default=None),
         ):
             logger.info(f"Rule `{rule.name}` violated: \n{judge.display()}")
