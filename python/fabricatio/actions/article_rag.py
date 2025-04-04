@@ -29,6 +29,9 @@ class TweakArticleRAG(Action, RAG, Censor):
     ruleset: Optional[RuleSet] = None
     """The ruleset to be used for censoring the article."""
 
+    ref_limit: int = 30
+    """The limit of references to be retrieved"""
+
     async def _execute(
         self,
         article: Article,
@@ -88,11 +91,13 @@ class TweakArticleRAG(Action, RAG, Censor):
                 f"{subsec.display()}\n"
                 f"# Requirement\n"
                 f"Search related articles in the base to find reference candidates, "
-                f"prioritizing both original article language and English usage, which can return multiple candidates.",
+                f"provide queries in both `English` and `{subsec.language}`",
             )
         )
         await self.censor_obj_inplace(
             subsec,
             ruleset=ruleset,
-            reference=await self.aretrieve_compact(refind_q, final_limit=30),
+            reference=f"{await self.aretrieve_compact(refind_q, final_limit=self.ref_limit)}\n\n"
+            f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
+            f"You should use `{subsec.language}` as written language.",
         )
