@@ -185,25 +185,25 @@ class Article(
             Article: The generated article.
         """
         # Set the title from the outline
-        article = Article(**outline.model_dump(exclude={"chapters"}), chapters=[])
+        article = Article(**outline.model_dump(exclude={"chapters"},by_alias=True), chapters=[])
 
         for chapter in outline.chapters:
             # Create a new chapter
             article_chapter = ArticleChapter(
                 sections=[],
-                **chapter.model_dump(exclude={"sections"}),
+                **chapter.model_dump(exclude={"sections"}, by_alias=True),
             )
             for section in chapter.sections:
                 # Create a new section
                 article_section = ArticleSection(
                     subsections=[],
-                    **section.model_dump(exclude={"subsections"}),
+                    **section.model_dump(exclude={"subsections"}, by_alias=True),
                 )
                 for subsection in section.subsections:
                     # Create a new subsection
                     article_subsection = ArticleSubsection(
                         paragraphs=[],
-                        **subsection.model_dump(),
+                        **subsection.model_dump(by_alias=True),
                     )
                     article_section.subsections.append(article_subsection)
                 article_chapter.sections.append(article_section)
