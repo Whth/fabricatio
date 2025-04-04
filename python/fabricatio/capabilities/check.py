@@ -8,7 +8,7 @@ from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.capabilities.propose import Propose
 from fabricatio.config import configs
 from fabricatio.journal import logger
-from fabricatio.models.extra.patches import RuleSetBriefingPatch
+from fabricatio.models.extra.patches import RuleSetMetadata
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
 from fabricatio.models.generic import Display, WithBriefing
@@ -65,7 +65,7 @@ class Check(AdvancedJudge, Propose):
             return None
 
         ruleset_patch = await self.propose(
-            RuleSetBriefingPatch,
+            RuleSetMetadata,
             f"{ruleset_requirement}\n\nYou should use `{detect_language(ruleset_requirement)}`!",
             **override_kwargs(kwargs, default=None),
         )
