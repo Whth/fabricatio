@@ -65,7 +65,7 @@ class ArticleSubsection(SubSectionBase):
         """Introspects the subsection and returns a summary of its state."""
         summary = ""
         if len(self.paragraphs) == 0:
-            summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs!\n"
+            summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if abs((wc := self.word_count) - self.word_count) / self.word_count > self._max_word_count_deviation:
             summary += (
                 f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
