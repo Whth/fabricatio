@@ -1,9 +1,10 @@
 """Filesystem readers for Fabricatio."""
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import orjson
+import regex
 from magika import Magika
 
 from fabricatio.config import configs
@@ -44,3 +45,21 @@ def safe_json_read(path: Path | str) -> Dict:
     except (orjson.JSONDecodeError, IsADirectoryError, FileNotFoundError) as e:
         logger.error(f"Failed to read file {path}: {e!s}")
         return {}
+
+
+def extract_sections(string: str, level: int, section_char: str = "#") -> List[Tuple[str, str]]:
+    """Extract sections from markdown-style text by header level.
+
+    Args:
+        string (str): Input text to parse
+        level (int): Header level (e.g., 1 for '#', 2 for '##')
+        section_char (str, optional): The character used for headers (default: '#')
+
+    Returns:
+        List[Tuple[str, str]]: List of (header_text, section_content) tuples
+    """
+    return regex.findall(
+        r"^%s{%d}\s+(.+?)\n((?:(?!^%s{%d}\s).|\n)*)" % (section_char, level, section_char, level),
+        string,
+        regex.MULTILINE,
+    )
