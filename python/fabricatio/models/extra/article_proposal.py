@@ -2,10 +2,11 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import AsPrompt, Language, PersistentAble, SketchedAble, Titled, WithRef
+from fabricatio.models.generic import AsPrompt, Described, Language, PersistentAble, SketchedAble, Titled, WithRef
+from pydantic import Field
 
 
-class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Titled, Language):
+class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Described, Titled, Language):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
@@ -32,7 +33,7 @@ class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Titl
     keywords: List[str]
     """A list of keywords that represent the main topics and focus areas of the research."""
 
-    abstract: str
+    description: str = Field(alias="abstract")
     """A concise summary of the research proposal, outlining the main points and objectives."""
 
     expected_word_count: int

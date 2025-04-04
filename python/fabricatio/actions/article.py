@@ -105,7 +105,6 @@ class GenerateArticleProposal(Action, Propose):
         task_input: Optional[Task] = None,
         article_briefing: Optional[str] = None,
         article_briefing_path: Optional[str] = None,
-        langauge: Optional[str] = None,
         **_,
     ) -> Optional[ArticleProposal]:
         if article_briefing is None and article_briefing_path is None and task_input is None:
@@ -122,17 +121,14 @@ class GenerateArticleProposal(Action, Propose):
             )
         )
 
-        proposal = ok(
+        logger.info("Start generating the proposal.")
+        return ok(
             await self.propose(
                 ArticleProposal,
-                f"{briefing}\n\nWrite the value string using `{detect_language(briefing)}`",
+                f"{briefing}\n\nWrite the value string using `{detect_language(briefing)}` as written language.",
             ),
             "Could not generate the proposal.",
         ).update_ref(briefing)
-        if langauge:
-            proposal.language = langauge
-
-        return proposal
 
 
 class GenerateInitialOutline(Action, Propose):
