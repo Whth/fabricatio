@@ -1,11 +1,12 @@
 """A class representing a problem-solution pair identified during a review process."""
 
 from itertools import chain
-from typing import Any, List, Literal, Optional, Self, Tuple, Unpack
+from typing import Any, List, Optional, Self, Tuple, Unpack
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
 from fabricatio.utils import ask_edit
+from pydantic import Field
 from questionary import Choice, checkbox, text
 from rich import print as r_print
 
@@ -13,36 +14,30 @@ from rich import print as r_print
 class Problem(SketchedAble, WithBriefing):
     """Represents a problem identified during review."""
 
-    description: str
-    """Description of the problem, The """
+    description: str = Field(alias="cause")
+    """The cause of the problem, including the root cause, the context, and the impact, make detailed enough for engineer to understand the problem and its impact."""
 
-    severity: Literal["low", "medium", "high"]
-    """Severity level of the problem."""
-
-    category: str
-    """Category of the problem."""
+    severity_level: int = Field(ge=0, le=10)
+    """Severity level of the problem, which is a number between 0 and 10, 0 means the problem is not severe, 10 means the problem is extremely severe."""
 
     location: str
     """Location where the problem was identified."""
-
-    recommendation: str
-    """Recommended solution or action."""
 
 
 class Solution(SketchedAble, WithBriefing):
     """Represents a proposed solution to a problem."""
 
-    description: str
+    description: str = Field(alias="mechanism")
     """Description of the solution, including a detailed description of the execution steps, and the mechanics, principle or fact."""
 
     execute_steps: List[str]
-    """A list of steps to execute to implement the solution, which is expected to be able to finally solve the corresponding problem."""
+    """A list of steps to execute to implement the solution, which is expected to be able to finally solve the corresponding problem, and which should be an Idiot-proof tutorial."""
 
-    feasibility: Literal["low", "medium", "high"]
-    """Feasibility level of the solution."""
+    feasibility_level: int = Field(ge=0, le=10)
+    """Feasibility level of the solution, which is a number between 0 and 10, 0 means the solution is not feasible, 10 means the solution is complete feasible."""
 
-    impact: Literal["low", "medium", "high"]
-    """Impact level of the solution."""
+    impact_level: int = Field(ge=0, le=10)
+    """Impact level of the solution, which is a number between 0 and 10, 0 means the solution is not impactful, 10 means the solution is extremely impactful."""
 
 
 class ProblemSolutions(SketchedAble):

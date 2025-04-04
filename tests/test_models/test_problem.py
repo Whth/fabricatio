@@ -26,7 +26,7 @@ def sample_problem():
     return Problem(
         name="Sample Problem",
         description="Sample description",
-        severity="high",
+        severity_level="high",
         category="category",
         recommendation="Fix it",
         location="here",
@@ -39,8 +39,8 @@ def sample_solution():
         name="Sample Solution",
         description="Sample steps",
         execute_steps=["Step 1", "Step 2"],
-        feasibility="medium",
-        impact="high",
+        feasibility_level="medium",
+        impact_level="high",
     )
 
 
@@ -57,21 +57,21 @@ def improvement(problem_solutions):
 class TestProblem:
     def test_initialization(self, sample_problem):
         assert sample_problem.name == "Sample Problem"
-        assert sample_problem.severity == "high"
+        assert sample_problem.severity_level == "high"
 
     def test_invalid_severity(self):
         with pytest.raises(ValueError):
-            Problem(severity="invalid")
+            Problem(severity_level="invalid")
 
 
 class TestSolution:
     def test_initialization(self, sample_solution):
         assert len(sample_solution.execute_steps) == 2
-        assert sample_solution.impact == "high"
+        assert sample_solution.impact_level == "high"
 
     def test_invalid_feasibility(self):
         with pytest.raises(ValueError):
-            Solution(feasibility="invalid")
+            Solution(feasibility_level="invalid")
 
 
 
