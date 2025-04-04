@@ -288,6 +288,8 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, Language, ABC):
 
     abstract: str
     """The abstract is a concise summary of the academic paper's main findings."""
+    expected_word_count:int
+    """The expected word count of the article."""
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
 

@@ -149,7 +149,7 @@ class GenerateInitialOutline(Action, Propose):
         return ok(
             await self.propose(
                 ArticleOutline,
-                f"{(p := article_proposal.as_prompt())}\n\nNote that you should use `{detect_language(p)}` to write the `ArticleOutline`\n"
+                f"{(article_proposal.as_prompt())}\n\nNote that you should use `{article_proposal.language}` to write the `ArticleOutline`\n"
                 f"You Must make sure every chapter have sections, and every section have subsections.",
             ),
             "Could not generate the initial outline.",
@@ -318,7 +318,7 @@ class GenerateArticle(Action, Censor):
                 self.censor_obj_inplace(
                     subsec,
                     ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{detect_language(subsec.display())}` to write the new `Subsection`.",
+                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
                 )
                 for _, _, subsec in article.iter_subsections()
                 if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None

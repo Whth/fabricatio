@@ -3,6 +3,7 @@
 from itertools import chain
 from typing import Dict, Generator, List, Self, Tuple, override
 
+from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
     ArticleBase,
@@ -15,8 +16,10 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import PersistentAble, SequencePatch, SketchedAble, WithRef
-from fabricatio.rust import word_count
+from fabricatio.rust import detect_language, word_count
 from fabricatio.utils import ok
+
+PARAGRAPH_SEP = "// - - -"
 
 
 class Paragraph(SketchedAble):
@@ -33,6 +36,11 @@ class Paragraph(SketchedAble):
 
     content: str
     """The actual content of the paragraph, represented as a string."""
+
+    @classmethod
+    def from_content(cls, content: str) -> Self:
+        """Create a Paragraph object from the given content."""
+        return cls(description="", writing_aim=[], expected_word_count=word_count(content), content=content)
 
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
@@ -80,15 +88,63 @@ class ArticleSubsection(SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return f"=== {self.title}\n" + "\n\n".join(p.content for p in self.paragraphs)
+        return f"=== {self.title}\n" + f"\n{PARAGRAPH_SEP}\n".join(p.content for p in self.paragraphs)
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+        """Creates an Article object from the given Typst code."""
+        return cls(
+            title=title,
+            description="",
+            paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
+            expected_word_count=word_count(body),
+            language=language,
+            writing_aim=[],
+            support_to=[],
+            depend_on=[],
+        )
 
 
 class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+        """Creates an Article object from the given Typst code."""
+        return cls(
+            subsections=[
+                ArticleSubsection.from_typst_code(*pack, language=language)
+                for pack in extract_sections(body, level=3, section_char="=")
+            ],
+            title=title,
+            description="",
+            expected_word_count=word_count(body),
+            language=language,
+            writing_aim=[],
+            support_to=[],
+            depend_on=[],
+        )
+
 
 class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+        """Creates an Article object from the given Typst code."""
+        return cls(
+            sections=[
+                ArticleSection.from_typst_code(*pack, language=language)
+                for pack in extract_sections(body, level=2, section_char="=")
+            ],
+            title=title,
+            description="",
+            expected_word_count=word_count(body),
+            language=language,
+            writing_aim=[],
+            support_to=[],
+            depend_on=[],
+        )
 
 
 class Article(
@@ -150,6 +206,21 @@ class Article(
                 article_chapter.sections.append(article_section)
             article.chapters.append(article_chapter)
         return article
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str) -> Self:
+        """Generates an article from the given Typst code."""
+        return cls(
+            language=(lang := detect_language(body)),
+            chapters=[
+                ArticleChapter.from_typst_code(*pack, language=lang)
+                for pack in extract_sections(body, level=1, section_char="=")
+            ],
+            title=title,
+            expected_word_count=word_count(body),
+            abstract="",
+            prospect="",
+        )
 
     def gather_dependencies(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
         """Gathers dependencies for all sections and subsections in the article.

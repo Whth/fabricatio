@@ -2,17 +2,14 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import AsPrompt, PersistentAble, SketchedAble, WithRef
+from fabricatio.models.generic import AsPrompt, PersistentAble, SketchedAble, WithRef,Language
 
 
-class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble):
+class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble,Language):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
     """
-
-    language: str
-    """The language in which the article is written. This should align with the language specified in the article briefing."""
 
     title: str
     """The title of the academic paper, formatted in Title Case."""
