@@ -91,7 +91,7 @@ class TweakArticleRAG(Action, RAG, Censor):
                 f"{subsec.display()}\n"
                 f"# Requirement\n"
                 f"Search related articles in the base to find reference candidates, "
-                f"provide queries in both `English` and `{subsec.language}`",
+                f"provide queries in both `English` and `{subsec.language}` can get more accurate results.",
             )
         )
         await self.censor_obj_inplace(
@@ -99,5 +99,7 @@ class TweakArticleRAG(Action, RAG, Censor):
             ruleset=ruleset,
             reference=f"{await self.aretrieve_compact(refind_q, final_limit=self.ref_limit)}\n\n"
             f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
-            f"You should use `{subsec.language}` as written language.",
+            f"You should Always use `{subsec.language}` as written language, "
+            f"which is the original language of the `{subsec.title}`. "
+            f"since rewrite a `{subsec.__class__.__name__}` in a different language is usually a bad choice",
         )
