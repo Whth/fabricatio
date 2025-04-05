@@ -7,11 +7,11 @@ from asyncio import Queue
 from typing import Any, List, Optional, Self
 
 from fabricatio.config import configs
+from fabricatio.constants import TaskStatus
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import ProposedAble, WithBriefing, WithDependency
-from fabricatio.models.utils import TaskStatus
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from pydantic import Field, PrivateAttr
 
@@ -112,12 +112,12 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """Return a formatted status label for the task.
 
         Args:
-            status (TaskStatus): The status of the task.
+            status (fabricatio.constants.TaskStatus): The status of the task.
 
         Returns:
             str: The formatted status label.
         """
-        return self._namespace.derive(self.name).push(status.value).collapse()
+        return self._namespace.derive(self.name).push(status).collapse()
 
     @property
     def pending_label(self) -> str:
