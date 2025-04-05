@@ -11,7 +11,7 @@ from fabricatio.config import configs
 from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
-from fabricatio.rust import blake3_hash
+from fabricatio.rust import blake3_hash, detect_language
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
 from litellm.utils import token_counter
@@ -53,7 +53,7 @@ class Display(Base):
         Returns:
             str: JSON string with 1-level indentation for readability
         """
-        return self.model_dump_json(indent=1)
+        return self.model_dump_json(indent=1,by_alias=True)
 
     def compact(self) -> str:
         """Generate compact JSON representation.
@@ -61,7 +61,7 @@ class Display(Base):
         Returns:
             str: Minified JSON string without whitespace
         """
-        return self.model_dump_json()
+        return self.model_dump_json(by_alias=True)
 
     @staticmethod
     def seq_display(seq: Iterable["Display"], compact: bool = False) -> str:
@@ -225,7 +225,7 @@ class PersistentAble(Base):
             - Hash generated from JSON content ensures uniqueness
         """
         p = Path(path)
-        out = self.model_dump_json(indent=1)
+        out = self.model_dump_json(indent=1,by_alias=True)
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -298,10 +298,17 @@ class PersistentAble(Base):
 class Language(Base):
     """Class that provides a language attribute."""
 
-    language: str
-    """The fullname of the written language of this object."""
-
-
+    @property
+    def language(self)->str:
+        """Get the language of the object."""
+        if isinstance(self,Described):
+            return detect_language(self.description)
+        if isinstance(self,Titled):
+            return detect_language(self.title)
+        if isinstance(self,Named):
+            return detect_language(self.name)
+        
+        return detect_language(self.model_dump_json(by_alias=True))
 class ModelHash(Base):
     """Class that provides a hash value for the object.
 
@@ -543,7 +550,7 @@ class FinalizedDumpAble(Base):
         Returns:
             str: The finalized dump of the object.
         """
-        return self.model_dump_json()
+        return self.model_dump_json(indent=1,by_alias=True)
 
     def finalized_dump_to(self, path: str | Path) -> Self:
         """Finalize the dump of the object to a file.
