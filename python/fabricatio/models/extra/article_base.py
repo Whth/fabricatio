@@ -2,8 +2,7 @@
 
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from itertools import chain
-from typing import Generator, List, Optional, Self, Tuple, overload
+from typing import Generator, List, Optional, Self, Tuple
 
 from fabricatio.models.generic import (
     AsPrompt,
@@ -31,81 +30,9 @@ class ReferringType(StrEnum):
     SUBSECTION = "subsection"
 
 
+
 type RefKey = Tuple[str, Optional[str], Optional[str]]
 
-
-class ArticleRef(ProposedUpdateAble):
-    """Reference to a specific chapter, section or subsection within the article. You SHALL not refer to an article component that is external and not present within our own article.
-
-    Examples:
-        - Referring to a chapter titled `Introduction`:
-            Using Python
-            ```python
-            ArticleRef(chap="Introduction")
-            ```
-            Using JSON
-            ```json
-            {chap="Introduction"}
-            ```
-        - Referring to a section titled `Background` under the `Introduction` chapter:
-            Using Python
-            ```python
-            ArticleRef(chap="Introduction", sec="Background")
-            ```
-            Using JSON
-            ```json
-            {chap="Introduction", sec="Background"}
-            ```
-        - Referring to a subsection titled `Related Work` under the `Background` section of the `Introduction` chapter:
-            Using Python
-            ```python
-            ArticleRef(chap="Introduction", sec="Background", subsec="Related Work")
-            ```
-            Using JSON
-            ```json
-            {chap="Introduction", sec="Background", subsec="Related Work"}
-            ```
-    """
-
-    chap: str
-    """`title` Field of the referenced chapter"""
-    sec: Optional[str] = None
-    """`title` Field of the referenced section."""
-    subsec: Optional[str] = None
-    """`title` Field of the referenced subsection."""
-
-    def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance."""
-        self.chap = other.chap
-        self.sec = other.sec
-        self.subsec = other.subsec
-        return self
-
-    def deref(self, article: "ArticleBase") -> Optional["ArticleOutlineBase"]:
-        """Dereference the reference to the actual section or subsection within the provided article.
-
-        Args:
-            article (ArticleOutline | Article): The article to dereference the reference from.
-
-        Returns:
-            ArticleMainBase | ArticleOutline | None: The dereferenced section or subsection, or None if not found.
-        """
-        chap = next((chap for chap in article.chapters if chap.title == self.chap), None)
-        if self.sec is None or chap is None:
-            return chap
-        sec = next((sec for sec in chap.sections if sec.title == self.sec), None)
-        if self.subsec is None or sec is None:
-            return sec
-        return next((subsec for subsec in sec.subsections if subsec.title == self.subsec), None)
-
-    @property
-    def referring_type(self) -> ReferringType:
-        """Determine the type of reference based on the presence of specific attributes."""
-        if self.subsec is not None:
-            return ReferringType.SUBSECTION
-        if self.sec is not None:
-            return ReferringType.SECTION
-        return ReferringType.CHAPTER
 
 
 class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
@@ -121,14 +48,7 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     aims: List[str]
     """List of writing aims of the research component in academic style."""
 
-    support_to: List[ArticleRef]
-    """List of references to other future components in this article that this component supports to."""
-    depend_on: List[ArticleRef]
-    """List of references to other previous components in this article that this component depends on."""
 
-
-class ArticleRefSequencePatch(SequencePatch[ArticleRef]):
-    """Patch for article refs."""
 
 
 class ArticleOutlineBase(
@@ -148,10 +68,6 @@ class ArticleOutlineBase(
 
     def update_metadata(self, other: ArticleMetaData) -> Self:
         """Updates the metadata of the current instance with the attributes of another instance."""
-        self.support_to.clear()
-        self.support_to.extend(other.support_to)
-        self.depend_on.clear()
-        self.depend_on.extend(other.depend_on)
         self.aims.clear()
         self.aims.extend(other.aims)
         self.description = other.description
@@ -319,34 +235,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                 yield sec
                 yield from sec.subsections
 
-    def iter_support_on(self, rev: bool = False) -> Generator[ArticleRef, None, None]:
-        """Iterates over all references that the article components support.
-
-        Args:
-            rev (bool): If True, iterate in reverse order.
-
-        Yields:
-            ArticleRef: Each reference that the article components support.
-        """
-        if rev:
-            yield from chain(*[a.support_to for a in self.iter_dfs_rev()])
-            return
-        yield from chain(*[a.support_to for a in self.iter_dfs()])
-
-    def iter_depend_on(self, rev: bool = False) -> Generator[ArticleRef, None, None]:
-        """Iterates over all references that the article components depend on.
-
-        Args:
-            rev (bool): If True, iterate in reverse order.
-
-        Yields:
-            ArticleRef: Each reference that the article components depend on.
-        """
-        if rev:
-            yield from chain(*[a.depend_on for a in self.iter_dfs_rev()])
-            return
-        yield from chain(*[a.depend_on for a in self.iter_dfs()])
-
     def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
         """Iterates through all sections in the article.
 
@@ -380,7 +268,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
         """Gathers all introspected components in the article structure."""
         return "\n".join([i for component in self.chapters if (i := component.introspect())])
 
-
     def iter_chap_title(self) -> Generator[str, None, None]:
         """Iterates through all chapter titles in the article."""
         for chap in self.chapters:
@@ -395,77 +282,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
         """Iterates through all subsection titles in the article."""
         for _, _, subsec in self.iter_subsections():
             yield subsec.title
-
-    @overload
-    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleOutlineBase,ArticleRef | List[ArticleRef], str]]: ...
-
-    @overload
-    def find_illegal_ref(self) -> Optional[Tuple[ArticleOutlineBase,ArticleRef, str]]: ...
-    def find_illegal_ref(
-        self, gather_identical: bool = False
-    ) -> Optional[Tuple[ArticleOutlineBase, ArticleRef | List[ArticleRef], str]]:
-        """Finds the first illegal component in the outline.
-
-        Returns:
-            Tuple[ArticleOutlineBase, str]: A tuple containing the illegal component and an error message.
-        """
-        summary = ""
-        chap_titles_set = set(self.iter_chap_title())
-        sec_titles_set = set(self.iter_section_title())
-        subsec_titles_set = set(self.iter_subsection_title())
-
-        for component in self.iter_dfs_rev():
-            for ref in chain(component.depend_on, component.support_to):
-                if not ref.deref(self):
-                    summary += f"Invalid internal reference in `{component.__class__.__name__}` titled `{component.title}`, because the referred {ref.referring_type} is not exists within the article, see the original obj dump: {ref.model_dump()}\n"
-
-                    if ref.chap not in (chap_titles_set):
-                        summary += f"Chapter titled `{ref.chap}` is not any of {chap_titles_set}\n"
-                    if ref.sec and ref.sec not in (sec_titles_set):
-                        summary += f"Section Titled `{ref.sec}` is not any of {sec_titles_set}\n"
-                    if ref.subsec and ref.subsec not in (subsec_titles_set):
-                        summary += f"Subsection Titled `{ref.subsec}` is not any of {subsec_titles_set}"
-
-                if summary and gather_identical:
-                    return (
-                        component,
-                        [
-                            identical_ref
-                            for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
-                            if identical_ref == ref
-                        ],
-                        summary,
-                    )
-                if summary:
-                    return component, ref, summary
-
-        return None
-
-    def gather_illegal_ref(self) -> Tuple[List[ArticleRef], str]:
-        """Gathers all illegal references in the article."""
-        summary = []
-        chap_titles_set = set(self.iter_chap_title())
-        sec_titles_set = set(self.iter_section_title())
-        subsec_titles_set = set(self.iter_subsection_title())
-        res_seq = []
-
-        for component in self.iter_dfs():
-            for ref in (
-                r for r in chain(component.depend_on, component.support_to) if not r.deref(self) and r not in res_seq
-            ):
-                res_seq.append(ref)
-                if ref.chap not in chap_titles_set:
-                    summary.append(
-                        f"Chapter titled `{ref.chap}` is not exist, since it is not any of {chap_titles_set}."
-                    )
-                if ref.sec and (ref.sec not in sec_titles_set):
-                    summary.append(f"Section Titled `{ref.sec}` is not exist, since it is not any of {sec_titles_set}")
-                if ref.subsec and (ref.subsec not in subsec_titles_set):
-                    summary.append(
-                        f"Subsection Titled `{ref.subsec}` is not exist, since it is not any of {subsec_titles_set}"
-                    )
-
-        return res_seq, "\n".join(summary)
 
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.

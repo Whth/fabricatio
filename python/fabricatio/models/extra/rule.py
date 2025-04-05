@@ -40,12 +40,11 @@ class RuleSet(SketchedAble, PersistentAble, WithBriefing, Language):
     framework for the topic or domain covered by the rule set."""
 
     @classmethod
-    def gather(cls, *rulesets: Unpack[Tuple["RuleSet",...]]) -> Self:
+    def gather(cls, *rulesets: Unpack[Tuple["RuleSet", ...]]) -> Self:
         """Gathers multiple rule sets into a single rule set."""
         if not rulesets:
             raise ValueError("No rulesets provided")
         return cls(
-            language=rulesets[0].language,
             name=";".join(ruleset.name for ruleset in rulesets),
             description=";".join(ruleset.description for ruleset in rulesets),
             rules=list(flatten(r.rules for r in rulesets)),

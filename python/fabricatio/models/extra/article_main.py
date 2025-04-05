@@ -1,13 +1,11 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
-from itertools import chain
 from typing import Dict, Generator, List, Self, Tuple, override
 
 from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
     ArticleBase,
-    ArticleOutlineBase,
     ChapterBase,
     SectionBase,
     SubSectionBase,
@@ -17,7 +15,6 @@ from fabricatio.models.extra.article_outline import (
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import word_count
-from fabricatio.utils import ok
 from pydantic import Field
 
 PARAGRAPH_SEP = "// - - -"
@@ -70,9 +67,7 @@ class ArticleSubsection(SubSectionBase):
             abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
             > self._max_word_count_deviation
         ):
-            summary += (
-                f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
-            )
+            summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
         return summary
 
@@ -101,8 +96,6 @@ class ArticleSubsection(SubSectionBase):
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
             expected_word_count=word_count(body),
             aims=[],
-            support_to=[],
-            depend_on=[],
         )
 
 
@@ -120,8 +113,6 @@ class ArticleSection(SectionBase[ArticleSubsection]):
             elaboration="",
             expected_word_count=word_count(body),
             aims=[],
-            support_to=[],
-            depend_on=[],
         )
 
 
@@ -139,8 +130,6 @@ class ArticleChapter(ChapterBase[ArticleSection]):
             elaboration="",
             expected_word_count=word_count(body),
             aims=[],
-            support_to=[],
-            depend_on=[],
         )
 
 
@@ -215,83 +204,3 @@ class Article(
             expected_word_count=word_count(body),
             abstract="",
         )
-
-    def gather_dependencies(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
-        """Gathers dependencies for all sections and subsections in the article.
-
-        This method should be called after the article is fully constructed.
-        """
-        depends = [ok(a.deref(self)) for a in article.depend_on]
-
-        supports = []
-        for a in self.iter_dfs_rev():
-            if article in {ok(b.deref(self)) for b in a.support_to}:  # pyright: ignore [reportUnhashable]
-                supports.append(a)
-
-        return list(set(depends + supports))
-
-    def gather_dependencies_recursive(self, article: ArticleOutlineBase) -> List[ArticleOutlineBase]:
-        """Gathers all dependencies recursively for the given article.
-
-        Args:
-            article (ArticleOutlineBase): The article to gather dependencies for.
-
-        Returns:
-            List[ArticleBase]: A list of all dependencies for the given article.
-        """
-        q = self.gather_dependencies(article)
-
-        deps = []
-        while q:
-            a = q.pop()
-            deps.extend(self.gather_dependencies(a))
-
-        deps = list(
-            chain(
-                filter(lambda x: isinstance(x, ArticleChapter), deps),
-                filter(lambda x: isinstance(x, ArticleSection), deps),
-                filter(lambda x: isinstance(x, ArticleSubsection), deps),
-            )
-        )
-
-        # Initialize result containers
-        formatted_code = ""
-        processed_components = []
-
-        # Process all dependencies
-        while deps:
-            component = deps.pop()
-            # Skip duplicates
-            if (component_code := component.to_typst_code()) in formatted_code:
-                continue
-
-            # Add this component
-            formatted_code += component_code
-            processed_components.append(component)
-
-        return processed_components
-
-    def iter_dfs_with_deps(
-        self, chapter: bool = True, section: bool = True, subsection: bool = True
-    ) -> Generator[Tuple[ArticleOutlineBase, List[ArticleOutlineBase]], None, None]:
-        """Iterates through the article in a depth-first manner, yielding each component and its dependencies.
-
-        Args:
-            chapter (bool, optional): Whether to include chapter components. Defaults to True.
-            section (bool, optional): Whether to include section components. Defaults to True.
-            subsection (bool, optional): Whether to include subsection components. Defaults to True.
-
-        Yields:
-            Tuple[ArticleBase, List[ArticleBase]]: Each component and its dependencies.
-        """
-        if all((not chapter, not section, not subsection)):
-            raise ValueError("At least one of chapter, section, or subsection must be True.")
-
-        for component in self.iter_dfs_rev():
-            if not chapter and isinstance(component, ArticleChapter):
-                continue
-            if not section and isinstance(component, ArticleSection):
-                continue
-            if not subsection and isinstance(component, ArticleSubsection):
-                continue
-            yield component, (self.gather_dependencies_recursive(component))
