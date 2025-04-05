@@ -77,55 +77,51 @@ impl BibManager {
         }).collect::<Vec<_>>()
     }
 
-    fn get_author_by_key(&self, key: String)->Option<Vec<String>>{
-        if let Some(en) = self.source.get(key.as_str()){
+    fn get_author_by_key(&self, key: String) -> Option<Vec<String>> {
+        if let Some(en) = self.source.get(key.as_str()) {
             Some(en.author().unwrap()
                 .iter().map(
-                |auther|{
-                    format!("{}",auther).to_string()
+                |auther| {
+                    format!("{}", auther).to_string()
                 }
             ).collect())
-            
-        }else { 
+        } else {
             None
         }
     }
-    
-    
-    
-    fn get_year_by_key(&self, key: String)->Option<i32>{
-        self.get_field_by_key(key, "year".to_string()).map(|s|{s.parse().unwrap()})
+
+
+    fn get_year_by_key(&self, key: String) -> Option<i32> {
+        self.get_field_by_key(key, "year".to_string()).map(|s| { s.parse().unwrap() })
     }
-    
-    fn get_abstract_by_key(&self, key: String)->Option<String>{
+
+    fn get_abstract_by_key(&self, key: String) -> Option<String> {
         self.get_field_by_key(key, "abstract".to_string())
     }
-    
-    fn get_title_by_key(&self, key: String)->Option<String>{
+
+    fn get_title_by_key(&self, key: String) -> Option<String> {
         self.get_field_by_key(key, "title".to_string())
     }
-    
-    fn get_field_by_key(&self, key: String, field: String)->Option<String>{
-        if let Some(en) = self.source.get(key.as_str()){
+
+    fn get_field_by_key(&self, key: String, field: String) -> Option<String> {
+        if let Some(en) = self.source.get(key.as_str()) {
             Some(en.get(field.as_str()).unwrap().to_biblatex_string(false).fix())
-        }else { 
+        } else {
             None
         }
     }
-
 }
 
-trait Fix{
-    fn fix(&self)->String;
+
+trait Fix {
+    fn fix(&self) -> String;
 }
 
 impl Fix for String {
     fn fix(&self) -> String {
-        self.replace("{","").replace("}","")
+        self.replace("{", "").replace("}", "")
     }
 }
-
-
 
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {

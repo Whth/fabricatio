@@ -3,7 +3,7 @@ use whichlang::{detect_language as dl, Lang};
 
 
 /// convert the language to a string
-pub(crate) fn convert_to_string_respectively(lang:Lang)->String{
+pub(crate) fn convert_to_string_respectively(lang: Lang) -> String {
     match lang {
         Lang::Ara => "العربية".to_string(),    // Arabic
         Lang::Cmn => "简体中文".to_string(),        // Mandarin Chinese
@@ -23,7 +23,6 @@ pub(crate) fn convert_to_string_respectively(lang:Lang)->String{
         Lang::Vie => "Tiếng Việt".to_string(), // Vietnamese
     }
 }
-
 
 
 /// detect the language of a string

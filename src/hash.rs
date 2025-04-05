@@ -5,7 +5,7 @@ use pyo3::prelude::*;
 /// calculate hash with blake3 as backbone
 #[pyfunction]
 #[pyo3(signature=(content))]
-fn blake3_hash(content:&[u8]) ->String{
+fn blake3_hash(content: &[u8]) -> String {
     hash(content).to_string()
 }
 

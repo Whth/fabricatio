@@ -16,6 +16,7 @@ pub struct TemplateManager {
     suffix: String,
 }
 
+
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
