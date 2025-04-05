@@ -14,7 +14,6 @@ from fabricatio.models.generic import (
     PersistentAble,
     ProposedUpdateAble,
     ResolveUpdateConflict,
-    SequencePatch,
     SketchedAble,
     Titled,
     WordCount,
