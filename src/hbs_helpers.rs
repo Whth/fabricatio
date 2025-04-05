@@ -18,4 +18,4 @@ handlebars_helper!(getlang: |v:String| convert_to_string_respectively(detect_lan
 
 handlebars_helper!(hash: |v:String| blake3_hash(v.as_bytes()).to_string());
 
-handlebars_helper!(word_count: |v:String| wc(v));
+handlebars_helper!(word_count: |v:String| wc(v.as_str()));

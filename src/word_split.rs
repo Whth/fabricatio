@@ -3,50 +3,62 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// split the string into words
 #[pyfunction]
-fn split_word_bounds(string: String) ->Vec<String>{
-    string.as_str().split_word_bounds().map(|s| s.to_string()).collect()
+fn split_word_bounds(string: &str) ->Vec<String>{
+    string.split_word_bounds().map(|s| s.to_string()).collect()
 }
 
 
 /// split the string into sentences
 #[pyfunction]
-fn split_sentence_bounds(string: String) ->Vec<String>{
-    string.as_str().split_sentence_bounds().map(|s| s.to_string()).collect()
+fn split_sentence_bounds(string: &str) ->Vec<String>{
+    string.split_sentence_bounds().map(|s| s.to_string()).collect()
 }
 
 
-/// split the string into chunks
+
 #[pyfunction]
-fn split_into_chunks(string: String, max_chunk_size: isize) -> Vec<String> {
-    let sentences = split_sentence_bounds(string);
-    let mut chunks = Vec::new();
-    let mut current_chunk = String::new();
-    let mut current_size = 0;
+#[pyo3(signature = (string, max_chunk_size, max_overlapping_rate=0.3))]
+fn split_into_chunks(string: &str, max_chunk_size: usize, max_overlapping_rate: f64) -> Vec<String> {
+    let sentences=split_sentence_bounds(string);
+    let mut res=vec![];
+    let max_overlapping_size = (max_overlapping_rate * max_chunk_size as f64) as usize;
+    let mut overlapping=String::new();
+    let mut current_chunk=String::new();
 
-    for sentence in sentences {
-        let word_count = sentence.split_word_bounds().count() as isize;
-        if current_size + word_count > max_chunk_size {
-            if !current_chunk.is_empty() {
-                chunks.push(current_chunk);
-                current_chunk = String::new();
-                current_size = 0;
-            }
+    for s in sentences{
+       let sentence_word_count =word_count(s.as_str());
+        let overlapping_word_count = word_count(overlapping.as_str());
+        let current_word_count = word_count(current_chunk.as_str());
+        if overlapping_word_count + current_word_count+ sentence_word_count <= max_chunk_size {
+            current_chunk.push_str(&s)
+        } else {
+            res.push(overlapping+current_chunk.as_str());
+            overlapping=get_tail_sentences(&current_chunk,max_overlapping_size).join("");
+            current_chunk.clear()
         }
-        current_chunk.push_str(&sentence);
-        current_size += word_count;
-    }
 
-    if !current_chunk.is_empty() {
-        chunks.push(current_chunk);
     }
-
-    chunks
+    res
 }
 
+
+/// get the tail of the sentences of a long string.
+fn get_tail_sentences(string:&str,max_size:usize)->Vec<String>{
+    let mut res:Vec<String>=vec![];
+    for s in split_sentence_bounds(string).iter().rev(){
+        if word_count(s.as_str())+res.iter().map(|s| word_count(s)).sum::<usize>()<=max_size{
+            res.push(s.to_string());
+        }else{
+            break;
+        }
+    }
+    res.reverse();
+    res
+}
 
 /// count the words
 #[pyfunction]
-pub(crate) fn word_count(string: String) -> usize {
+pub(crate) fn word_count(string: &str) -> usize {
     string.split_word_bounds().count()
 }
 
