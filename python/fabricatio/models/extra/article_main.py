@@ -16,7 +16,7 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import detect_language, word_count
+from fabricatio.rust import word_count
 from fabricatio.utils import ok
 from pydantic import Field
 
@@ -66,7 +66,10 @@ class ArticleSubsection(SubSectionBase):
         summary = ""
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
-        if abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count > self._max_word_count_deviation:
+        if (
+            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+            > self._max_word_count_deviation
+        ):
             summary += (
                 f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
             )
@@ -90,14 +93,13 @@ class ArticleSubsection(SubSectionBase):
         return f"=== {self.title}\n" + f"\n{PARAGRAPH_SEP}\n".join(p.content for p in self.paragraphs)
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+    def from_typst_code(cls, title: str, body: str) -> Self:
         """Creates an Article object from the given Typst code."""
         return cls(
             heading=title,
             elaboration="",
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
             expected_word_count=word_count(body),
-            language=language,
             aims=[],
             support_to=[],
             depend_on=[],
@@ -108,17 +110,15 @@ class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+    def from_typst_code(cls, title: str, body: str) -> Self:
         """Creates an Article object from the given Typst code."""
         return cls(
             subsections=[
-                ArticleSubsection.from_typst_code(*pack, language=language)
-                for pack in extract_sections(body, level=3, section_char="=")
+                ArticleSubsection.from_typst_code(*pack) for pack in extract_sections(body, level=3, section_char="=")
             ],
             heading=title,
             elaboration="",
             expected_word_count=word_count(body),
-            language=language,
             aims=[],
             support_to=[],
             depend_on=[],
@@ -129,17 +129,15 @@ class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str, language: str) -> Self:
+    def from_typst_code(cls, title: str, body: str) -> Self:
         """Creates an Article object from the given Typst code."""
         return cls(
             sections=[
-                ArticleSection.from_typst_code(*pack, language=language)
-                for pack in extract_sections(body, level=2, section_char="=")
+                ArticleSection.from_typst_code(*pack) for pack in extract_sections(body, level=2, section_char="=")
             ],
             heading=title,
             elaboration="",
             expected_word_count=word_count(body),
-            language=language,
             aims=[],
             support_to=[],
             depend_on=[],
@@ -210,10 +208,8 @@ class Article(
     def from_typst_code(cls, title: str, body: str) -> Self:
         """Generates an article from the given Typst code."""
         return cls(
-            language=(lang := detect_language(body)),
             chapters=[
-                ArticleChapter.from_typst_code(*pack, language=lang)
-                for pack in extract_sections(body, level=1, section_char="=")
+                ArticleChapter.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
             ],
             heading=title,
             expected_word_count=word_count(body),
@@ -229,7 +225,7 @@ class Article(
 
         supports = []
         for a in self.iter_dfs_rev():
-            if article in {ok(b.deref(self)) for b in a.support_to}:
+            if article in {ok(b.deref(self)) for b in a.support_to}:  # pyright: ignore [reportUnhashable]
                 supports.append(a)
 
         return list(set(depends + supports))
