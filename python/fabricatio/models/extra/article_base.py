@@ -380,11 +380,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
         """Gathers all introspected components in the article structure."""
         return "\n".join([i for component in self.chapters if (i := component.introspect())])
 
-    @overload
-    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]: ...
-
-    @overload
-    def find_illegal_ref(self) -> Optional[Tuple[ArticleRef, str]]: ...
 
     def iter_chap_title(self) -> Generator[str, None, None]:
         """Iterates through all chapter titles in the article."""
@@ -401,7 +396,14 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
         for _, _, subsec in self.iter_subsections():
             yield subsec.title
 
-    def find_illegal_ref(self, gather_identical: bool = False) -> Optional[Tuple[ArticleRef | List[ArticleRef], str]]:
+    @overload
+    def find_illegal_ref(self, gather_identical: bool) -> Optional[Tuple[ArticleOutlineBase,ArticleRef | List[ArticleRef], str]]: ...
+
+    @overload
+    def find_illegal_ref(self) -> Optional[Tuple[ArticleOutlineBase,ArticleRef, str]]: ...
+    def find_illegal_ref(
+        self, gather_identical: bool = False
+    ) -> Optional[Tuple[ArticleOutlineBase, ArticleRef | List[ArticleRef], str]]:
         """Finds the first illegal component in the outline.
 
         Returns:
@@ -424,19 +426,18 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                     if ref.subsec and ref.subsec not in (subsec_titles_set):
                         summary += f"Subsection Titled `{ref.subsec}` is not any of {subsec_titles_set}"
 
-                if summary:
+                if summary and gather_identical:
                     return (
-                        (
-                            [
-                                identical_ref
-                                for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
-                                if identical_ref == ref
-                            ],
-                            summary,
-                        )
-                        if gather_identical
-                        else (ref, summary)
+                        component,
+                        [
+                            identical_ref
+                            for identical_ref in chain(self.iter_depend_on(), self.iter_support_on())
+                            if identical_ref == ref
+                        ],
+                        summary,
                     )
+                if summary:
+                    return component, ref, summary
 
         return None
 

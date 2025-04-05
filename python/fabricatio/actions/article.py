@@ -178,7 +178,7 @@ class FixIntrospectedErrors(Action, Censor):
                 await self.censor_obj(
                     article_outline,
                     ruleset=ok(intro_fix_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n # Fatal Error of the Original Article Outline\n{pack}",
+                    reference=f"{article_outline.display()}\n # Fatal Error of the Original Article Outline\n{pack}",
                 ),
                 "Could not correct the component.",
             ).update_ref(origin)
@@ -209,20 +209,20 @@ class FixIllegalReferences(Action, Censor):
         **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
-        while pack := article_outline.find_illegal_ref(gather_identical=True):
+        while pack := article_outline.find_illegal_ref():
             logger.info(f"Found {counter}th illegal references")
-            ref_seq, err = ok(pack)
-            logger.warning(f"Found illegal referring error: {err}")
+            cmp, ref, err = ok(pack)
+            logger.warning(f"Found illegal referring error: {err}\n\n{cmp.display()}")
             new = ok(
-                await self.censor_obj(
-                    ref_seq[0],
+                await self.censor_obj_inplace(
+                    cmp,
                     ruleset=ok(ref_fix_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# Some Basic errors found that need to be fixed\n{err}",
+                    reference=f"{article_outline.as_prompt()}\n# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n# Invalid `ArticleRef`\n```json\n{ref}```\n\n# Some Ref errors found that need to be fixed for the `ArticleRef`\n{err}",
                 ),
                 "Could not correct the component",
             )
-            for r in ref_seq:
-                r.update_from(new)
+
+            logger.info(f"Applying correction:\n{new.display()}")
             if self.max_error_count and counter > self.max_error_count:
                 logger.warning("Max error count reached, stopping.")
                 break

@@ -31,9 +31,11 @@ Reasons count: 2
 
 ## Requirements
 - Provide EXACTLY {{reasons_count}} reasons, no more and no less
-- Format as a valid JSON array of strings
+- Format as a valid JSON array of strings wrapped in a markdown JSON code block, which is
+```json
+<Fill in your JSON>
+```
 - Each reason should be a complete sentence with proper punctuation
 - Each reason must mention both `First Entity` and `Second Entity` by name
 - Each reason should highlight a specific advantage of `First Entity` over `Second Entity`
-- No explanations, justifications, or additional text outside the JSON array
-- You should use `{{getlang topic}}` to write all examples.
+- You should use `{{getlang topic}}` as written language,
