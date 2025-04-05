@@ -71,7 +71,7 @@ class ArticleSubsection(SubSectionBase):
             > self._max_word_count_deviation
         ):
             summary += (
-                f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.word_count} words!"
+                f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
             )
 
         return summary
