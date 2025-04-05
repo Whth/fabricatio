@@ -3,7 +3,7 @@
 from typing import List, Self, Union
 
 from fabricatio.config import configs
-from fabricatio.models.utils import TaskStatus
+from fabricatio.constants import TaskStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 type EventLike = Union[str, List[str], "Event"]
@@ -77,23 +77,23 @@ class Event(BaseModel):
 
     def push_pending(self) -> Self:
         """Push a pending segment to the event."""
-        return self.push(TaskStatus.Pending.value)
+        return self.push(TaskStatus.Pending)
 
     def push_running(self) -> Self:
         """Push a running segment to the event."""
-        return self.push(TaskStatus.Running.value)
+        return self.push(TaskStatus.Running)
 
     def push_finished(self) -> Self:
         """Push a finished segment to the event."""
-        return self.push(TaskStatus.Finished.value)
+        return self.push(TaskStatus.Finished)
 
     def push_failed(self) -> Self:
         """Push a failed segment to the event."""
-        return self.push(TaskStatus.Failed.value)
+        return self.push(TaskStatus.Failed)
 
     def push_cancelled(self) -> Self:
         """Push a cancelled segment to the event."""
-        return self.push(TaskStatus.Cancelled.value)
+        return self.push(TaskStatus.Cancelled)
 
     def pop(self) -> str:
         """Pop a segment from the event."""
