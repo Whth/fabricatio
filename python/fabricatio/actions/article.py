@@ -142,11 +142,17 @@ class GenerateInitialOutline(Action, Propose):
         article_proposal: ArticleProposal,
         **_,
     ) -> Optional[ArticleOutline]:
+        raw_outline = await self.aask(
+            f"{(article_proposal.as_prompt())}\n\nNote that you should use `{article_proposal.language}` to write the `ArticleOutline`\n"
+            f"Design each chapter of a proper and academic and ready for release manner.\n"
+            f"You Must make sure every chapter have sections, and every section have subsections.\n"
+            f"Make the chapter and sections and subsections bing divided into a specific enough article component.",
+        )
+
         return ok(
             await self.propose(
                 ArticleOutline,
-                f"{(article_proposal.as_prompt())}\n\nNote that you should use `{article_proposal.language}` to write the `ArticleOutline`\n"
-                f"You Must make sure every chapter have sections, and every section have subsections.",
+                f'{raw_outline}\n\n\n\noutline provided above is the outline i need to extract to a JSON,'
             ),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
