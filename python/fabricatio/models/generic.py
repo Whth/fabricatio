@@ -307,7 +307,7 @@ class Language(Base):
             return detect_language(self.title)
         if isinstance(self,Named):
             return detect_language(self.name)
-        
+
         return detect_language(self.model_dump_json(by_alias=True))
 class ModelHash(Base):
     """Class that provides a hash value for the object.

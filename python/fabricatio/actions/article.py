@@ -11,7 +11,6 @@ from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.extra.article_base import ArticleRef, SubSectionBase
 from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
@@ -152,7 +151,7 @@ class GenerateInitialOutline(Action, Propose):
         return ok(
             await self.propose(
                 ArticleOutline,
-                f'{raw_outline}\n\n\n\noutline provided above is the outline i need to extract to a JSON,'
+                f"{raw_outline}\n\n\n\noutline provided above is the outline i need to extract to a JSON,",
             ),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
@@ -197,111 +196,6 @@ class FixIntrospectedErrors(Action, Censor):
         return article_outline
 
 
-class FixIllegalReferences(Action, Censor):
-    """Fix illegal references in the article outline."""
-
-    output_key: str = "illegal_references_fixed_outline"
-    """The key of the output data."""
-
-    ruleset: Optional[RuleSet] = None
-    """Ruleset to use to fix the illegal references."""
-    max_error_count: Optional[int] = None
-    """The maximum number of errors to fix."""
-
-    async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        ref_fix_ruleset: Optional[RuleSet] = None,
-        **_,
-    ) -> Optional[ArticleOutline]:
-        counter = 0
-        while pack := article_outline.find_illegal_ref():
-            logger.info(f"Found {counter}th illegal references")
-            cmp, ref, err = ok(pack)
-            logger.warning(f"Found illegal referring error: {err}\n\n{cmp.display()}")
-            new = ok(
-                await self.censor_obj_inplace(
-                    cmp,
-                    ruleset=ok(ref_fix_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n# Invalid `ArticleRef`\n```json\n{ref}```\n\n# Some Ref errors found that need to be fixed for the `ArticleRef`\n{err}",
-                ),
-                "Could not correct the component",
-            )
-
-            logger.info(f"Applying correction:\n{new.display()}")
-            if self.max_error_count and counter > self.max_error_count:
-                logger.warning("Max error count reached, stopping.")
-                break
-            counter += 1
-
-        return article_outline
-
-
-class TweakOutlineForwardRef(Action, Censor):
-    """Tweak the forward references in the article outline.
-
-    Ensures that the conclusions of the current chapter effectively support the analysis of subsequent chapters.
-    """
-
-    output_key: str = "article_outline_fw_ref_checked"
-    ruleset: Optional[RuleSet] = None
-    """Ruleset to use to fix the illegal references."""
-
-    async def _execute(
-        self, article_outline: ArticleOutline, ref_twk_ruleset: Optional[RuleSet] = None, **cxt
-    ) -> ArticleOutline:
-        return await self._inner(
-            article_outline,
-            ruleset=ok(ref_twk_ruleset or self.ruleset, "No ruleset provided"),
-            field_name="support_to",
-        )
-
-    async def _inner(self, article_outline: ArticleOutline, ruleset: RuleSet, field_name: str) -> ArticleOutline:
-        await gather(
-            *[self._loop(a[-1], article_outline, field_name, ruleset) for a in article_outline.iter_subsections()],
-        )
-
-        return article_outline
-
-    async def _loop(
-        self, a: SubSectionBase, article_outline: ArticleOutline, field_name: str, ruleset: RuleSet
-    ) -> None:
-        if judge := await self.evidently_judge(
-            f"{article_outline.as_prompt()}\n\n{a.display()}\n"
-            f"# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n"
-            f"# Ruleset\n{ruleset.display()}\n"
-            f"Does the `{a.__class__.__name__}`'s `{field_name}` field contains inappropriate ref that obviously violated the ruleset provided?\n"
-            f"true for it does violated, false for it does not violated."
-        ):
-            await self.censor_obj_inplace(
-                a,
-                ruleset=ruleset,
-                reference=f"{article_outline.as_prompt()}\n"
-                f"The Article component titled `{a.title}` whose `{field_name}` field needs to be tweaked.\n"
-                f"# `ArticleRef` usage doc\n{ArticleRef.__doc__}\n"
-                f"# Judgement\n{judge.display()}",
-            )
-
-
-class TweakOutlineBackwardRef(TweakOutlineForwardRef):
-    """Tweak the backward references in the article outline.
-
-    Ensures that the prerequisites of the current chapter are correctly referenced in the `depend_on` field.
-    """
-
-    output_key: str = "article_outline_bw_ref_checked"
-    ruleset: Optional[RuleSet] = None
-
-    async def _execute(
-        self, article_outline: ArticleOutline, ref_twk_ruleset: Optional[RuleSet] = None, **cxt
-    ) -> ArticleOutline:
-        return await self._inner(
-            article_outline,
-            ruleset=ok(ref_twk_ruleset or self.ruleset, "No ruleset provided"),
-            field_name="depend_on",
-        )
-
-
 class GenerateArticle(Action, Censor):
     """Generate the article based on the outline."""
 
@@ -324,7 +218,7 @@ class GenerateArticle(Action, Censor):
                 self.censor_obj_inplace(
                     subsec,
                     ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# `ArticleRef` usage doc\n{ArticleRef.__doc__}# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
+                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
                 )
                 for _, _, subsec in article.iter_subsections()
                 if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None
