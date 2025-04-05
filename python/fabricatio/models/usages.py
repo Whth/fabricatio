@@ -2,7 +2,7 @@
 
 import traceback
 from asyncio import gather
-from typing import Callable, Dict, Iterable, List, Optional, Self, Sequence, Set, Union, Unpack, overload
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Self, Sequence, Set, Union, Unpack, overload
 
 import asyncstdlib
 import litellm
@@ -13,7 +13,6 @@ from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.models.utils import Messages
 from fabricatio.parser import GenericCapture, JsonCapture
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
@@ -28,7 +27,7 @@ from litellm.types.utils import (
 )
 from litellm.utils import CustomStreamWrapper, token_counter  # pyright: ignore [reportPrivateImportUsage]
 from more_itertools import duplicates_everseen
-from pydantic import Field, NonNegativeInt, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
 
 if configs.cache.enabled and configs.cache.type:
     litellm.enable_cache(type=configs.cache.type, **configs.cache.params)
@@ -303,7 +302,7 @@ class LLMUsage(ScopedConfig):
                         and logger.debug("Co-extraction is enabled.") is None
                         and (
                             validated := validator(
-                                response:=await self.aask(
+                                response := await self.aask(
                                     question=(
                                         TEMPLATE_MANAGER.render_template(
                                             configs.templates.co_validation_template,
@@ -495,7 +494,7 @@ class LLMUsage(ScopedConfig):
         affirm_case: str = "",
         deny_case: str = "",
         **kwargs: Unpack[ValidateKwargs[bool]],
-    ) -> bool:
+    ) -> Optional[bool]:
         """Asynchronously judges a prompt using AI validation.
 
         Args:
@@ -732,3 +731,72 @@ class ToolBoxUsage(LLMUsage):
         for other in (x for x in others if isinstance(x, ToolBoxUsage)):
             other.toolboxes.update(self.toolboxes)
         return self
+
+
+class Message(BaseModel):
+    """A class representing a message."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+    role: Literal["user", "system", "assistant"]
+    """The role of the message sender."""
+    content: str
+    """The content of the message."""
+
+
+class Messages(list):
+    """A list of messages."""
+
+    def add_message(self, role: Literal["user", "system", "assistant"], content: str) -> Self:
+        """Adds a message to the list with the specified role and content.
+
+        Args:
+            role (Literal["user", "system", "assistant"]): The role of the message sender.
+            content (str): The content of the message.
+
+        Returns:
+            Self: The current instance of Messages to allow method chaining.
+        """
+        if content:
+            self.append(Message(role=role, content=content))
+        return self
+
+    def add_user_message(self, content: str) -> Self:
+        """Adds a user message to the list with the specified content.
+
+        Args:
+            content (str): The content of the user message.
+
+        Returns:
+            Self: The current instance of Messages to allow method chaining.
+        """
+        return self.add_message("user", content)
+
+    def add_system_message(self, content: str) -> Self:
+        """Adds a system message to the list with the specified content.
+
+        Args:
+            content (str): The content of the system message.
+
+        Returns:
+            Self: The current instance of Messages to allow method chaining.
+        """
+        return self.add_message("system", content)
+
+    def add_assistant_message(self, content: str) -> Self:
+        """Adds an assistant message to the list with the specified content.
+
+        Args:
+            content (str): The content of the assistant message.
+
+        Returns:
+            Self: The current instance of Messages to allow method chaining.
+        """
+        return self.add_message("assistant", content)
+
+    def as_list(self) -> List[Dict[str, str]]:
+        """Converts the messages to a list of dictionaries.
+
+        Returns:
+            list[dict]: A list of dictionaries representing the messages.
+        """
+        return [message.model_dump() for message in self]
