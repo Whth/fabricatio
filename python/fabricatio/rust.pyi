@@ -103,6 +103,28 @@ def split_word_bounds(string: str) -> List[str]:
     Returns:
         A list of words extracted from the string.
     """
+def split_sentence_bounds(string: str) -> List[str]:
+    """Split the string into sentences based on sentence boundaries.
+
+    Args:
+        string: The input string to be split.
+
+    Returns:
+        A list of sentences extracted from the string.
+    """
+
+def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate:float=0.3) -> List[str]:
+    """Split the string into chunks of a specified size.
+
+    Args:
+        string: The input string to be split.
+        max_chunk_size: The maximum size of each chunk.
+        max_overlapping_rate: The minimum overlapping rate between chunks.
+
+    Returns:
+        A list of chunks extracted from the string.
+    """
+
 
 def word_count(string: str) -> int:
     """Count the number of words in the string.
