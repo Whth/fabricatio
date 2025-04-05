@@ -12,7 +12,7 @@ class JudgeMent(SketchedAble):
     """
 
     issue_to_judge: str
-    """The issue to be judged, true for affirmation, false for denial."""
+    """The issue to be judged, including the original question and context"""
 
     deny_evidence: List[str]
     """List of clues supporting the denial."""
@@ -21,7 +21,7 @@ class JudgeMent(SketchedAble):
     """List of clues supporting the affirmation."""
 
     final_judgement: bool
-    """The final judgment made according to all extracted clues."""
+    """The final judgment made according to all extracted clues. true for the `issue_to_judge` is correct and false for incorrect."""
 
     def __bool__(self) -> bool:
         """Return the final judgment value.
