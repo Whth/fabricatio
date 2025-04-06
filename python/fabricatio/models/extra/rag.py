@@ -1,14 +1,18 @@
 """A module containing the RAG (Retrieval-Augmented Generation) models."""
 
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence
 
 from fabricatio.decorators import precheck_package
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 if TYPE_CHECKING:
+    from importlib.util import find_spec
+
     from pydantic.fields import FieldInfo
-    from pymilvus import CollectionSchema
+
+    if find_spec("pymilvus"):
+        from pymilvus import CollectionSchema
 
 
 class MilvusDataBase(BaseModel, metaclass=ABCMeta):
@@ -61,3 +65,8 @@ class MilvusDataBase(BaseModel, metaclass=ABCMeta):
                 FieldSchema(k, dtype=type_mapping.get(v.annotation, DataType.UNKNOWN), description=v.description or "")
             )
         return CollectionSchema(fields)
+
+    @classmethod
+    def from_sequence(cls, data: Sequence[Dict[str, Any]]) -> List[Self]:
+        """Constructs a list of instances from a sequence of dictionaries."""
+        return [cls(**d) for d in data]
