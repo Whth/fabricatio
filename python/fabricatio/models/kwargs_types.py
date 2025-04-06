@@ -1,47 +1,9 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from importlib.util import find_spec
 from typing import Any, Dict, List, Optional, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
-
-if find_spec("pymilvus"):
-    from pymilvus import CollectionSchema
-    from pymilvus.milvus_client import IndexParams
-
-    class CollectionConfigKwargs(TypedDict, total=False):
-        """Configuration parameters for a vector collection.
-
-        These arguments are typically used when configuring connections to vector databases.
-        """
-
-        dimension: int | None
-        primary_field_name: str
-        id_type: str
-        vector_field_name: str
-        metric_type: str
-        timeout: float | None
-        schema: CollectionSchema | None
-        index_params: IndexParams | None
-
-
-class FetchKwargs(TypedDict, total=False):
-    """Arguments for fetching data from vector collections.
-
-    Controls how data is retrieved from vector databases, including filtering
-    and result limiting parameters.
-    """
-
-    collection_name: str | None
-    similarity_threshold: float
-    result_per_query: int
-
-
-class RetrievalKwargs(FetchKwargs, total=False):
-    """Arguments for retrieval operations."""
-
-    final_limit: int
 
 
 class EmbeddingKwargs(TypedDict, total=False):
@@ -139,6 +101,7 @@ class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
 
 class ReferencedKwargs[T](ValidateKwargs[T], total=False):
     """Arguments for content review operations."""
+
     reference: str
 
 

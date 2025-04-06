@@ -15,12 +15,9 @@ from pydantic import Field, PrivateAttr
 
 from fabricatio.config import configs
 from fabricatio.journal import logger
+from fabricatio.models.adv_kwargs_types import CollectionConfigKwargs, FetchKwargs
 from fabricatio.models.extra.rag import MilvusDataBase
-from fabricatio.models.kwargs_types import (
-    ChooseKwargs,
-    CollectionConfigKwargs,
-    FetchKwargs,
-)
+from fabricatio.models.kwargs_types import ChooseKwargs
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.rust_instances import TEMPLATE_MANAGER
 from fabricatio.utils import ok
