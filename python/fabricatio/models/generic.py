@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Type, Union, final, overload
 
 import orjson
-import rtoml
 from fabricatio.config import configs
 from fabricatio.fs.readers import MAGIKA, safe_text_read
 from fabricatio.journal import logger
@@ -53,7 +52,7 @@ class Display(Base):
         Returns:
             str: JSON string with 1-level indentation for readability
         """
-        return self.model_dump_json(indent=1,by_alias=True)
+        return self.model_dump_json(indent=1, by_alias=True)
 
     def compact(self) -> str:
         """Generate compact JSON representation.
@@ -225,7 +224,7 @@ class PersistentAble(Base):
             - Hash generated from JSON content ensures uniqueness
         """
         p = Path(path)
-        out = self.model_dump_json(indent=1,by_alias=True)
+        out = self.model_dump_json(indent=1, by_alias=True)
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -299,16 +298,18 @@ class Language(Base):
     """Class that provides a language attribute."""
 
     @property
-    def language(self)->str:
+    def language(self) -> str:
         """Get the language of the object."""
-        if isinstance(self,Described):
+        if isinstance(self, Described):
             return detect_language(self.description)
-        if isinstance(self,Titled):
+        if isinstance(self, Titled):
             return detect_language(self.title)
-        if isinstance(self,Named):
+        if isinstance(self, Named):
             return detect_language(self.name)
 
         return detect_language(self.model_dump_json(by_alias=True))
+
+
 class ModelHash(Base):
     """Class that provides a hash value for the object.
 
@@ -550,7 +551,7 @@ class FinalizedDumpAble(Base):
         Returns:
             str: The finalized dump of the object.
         """
-        return self.model_dump_json(indent=1,by_alias=True)
+        return self.model_dump_json(indent=1, by_alias=True)
 
     def finalized_dump_to(self, path: str | Path) -> Self:
         """Finalize the dump of the object to a file.
@@ -662,8 +663,9 @@ class Vectorizable(Base):
     This class includes methods to prepare the model for vectorization, ensuring it fits within a specified token length.
     """
 
+    @abstractmethod
     def _prepare_vectorization_inner(self) -> str:
-        return rtoml.dumps(self.model_dump())
+        """Prepare the model for vectorization."""
 
     @final
     def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
@@ -681,8 +683,7 @@ class Vectorizable(Base):
         max_length = max_length or configs.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
         if max_length and (length := token_counter(text=chunk)) > max_length:
-            logger.error(err := f"Chunk exceeds maximum sequence length {max_length}, got {length}, see {chunk}")
-            raise ValueError(err)
+            raise ValueError(f"Chunk exceeds maximum sequence length {max_length}, got {length}, see \n{chunk}")
 
         return chunk
 

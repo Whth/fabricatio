@@ -3,7 +3,7 @@
 from typing import List
 
 from fabricatio.models.extra.rag import MilvusDataBase
-from fabricatio.models.generic import PersistentAble, SketchedAble, Vectorizable
+from fabricatio.models.generic import PersistentAble, SketchedAble
 from pydantic import BaseModel
 
 
@@ -55,7 +55,7 @@ class Highlightings(BaseModel):
     """
 
 
-class ArticleEssence(SketchedAble, PersistentAble, Vectorizable, MilvusDataBase):
+class ArticleEssence(SketchedAble, PersistentAble, MilvusDataBase):
     """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
@@ -94,7 +94,7 @@ class ArticleEssence(SketchedAble, PersistentAble, Vectorizable, MilvusDataBase)
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
 
-    @property
-    def to_vectorize(self) -> str:
-        """Text to vectorize."""
-        return self.display()
+    def _prepare_vectorization_inner(self) -> str:
+        return self.compact()
+
+

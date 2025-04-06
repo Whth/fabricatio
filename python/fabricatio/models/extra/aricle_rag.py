@@ -29,9 +29,7 @@ class ArticleChunk(MilvusDataBase):
     bibtex_cite_key: str
     """The bibtex cite key of the article"""
 
-    @property
-    def to_vectorize(self) -> str:
-        """The text to vectorize."""
+    def _prepare_vectorization_inner(self) -> str:
         return self.chunk
 
     @classmethod

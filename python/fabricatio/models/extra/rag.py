@@ -1,10 +1,10 @@
 """A module containing the RAG (Retrieval-Augmented Generation) models."""
-
-from abc import ABCMeta, abstractmethod
+from abc import ABC
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence
 
 from fabricatio.decorators import precheck_package
-from pydantic import BaseModel, ConfigDict, JsonValue
+from fabricatio.models.generic import Vectorizable
+from pydantic import JsonValue
 
 if TYPE_CHECKING:
     from importlib.util import find_spec
@@ -15,10 +15,8 @@ if TYPE_CHECKING:
         from pymilvus import CollectionSchema
 
 
-class MilvusDataBase(BaseModel, metaclass=ABCMeta):
+class MilvusDataBase(Vectorizable,ABC):
     """A base class for Milvus data."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
 
     primary_field_name: ClassVar[str] = "id"
     """The name of the primary field in Milvus."""
@@ -32,11 +30,6 @@ class MilvusDataBase(BaseModel, metaclass=ABCMeta):
             dict: A dictionary containing the data to be inserted into Milvus.
         """
         return {**self.model_dump(exclude_none=True, by_alias=True), self.vector_field_name: vector}
-
-    @property
-    @abstractmethod
-    def to_vectorize(self) -> str:
-        """The text representation of the data."""
 
     @classmethod
     @precheck_package(
