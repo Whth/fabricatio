@@ -96,5 +96,5 @@ class ArticleEssence(SketchedAble, PersistentAble, Vectorizable, MilvusDataBase)
 
     @property
     def to_vectorize(self) -> str:
-        """Text to vectorize"""
+        """Text to vectorize."""
         return self.display()
