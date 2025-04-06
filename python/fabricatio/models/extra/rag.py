@@ -1,4 +1,5 @@
 """A module containing the RAG (Retrieval-Augmented Generation) models."""
+
 from abc import ABC
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
         from pymilvus import CollectionSchema
 
 
-class MilvusDataBase(Vectorizable,ABC):
+class MilvusDataBase(Vectorizable, ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
@@ -64,3 +65,16 @@ class MilvusDataBase(Vectorizable,ABC):
     def from_sequence(cls, data: Sequence[Dict[str, Any]]) -> List[Self]:
         """Constructs a list of instances from a sequence of dictionaries."""
         return [cls(**d) for d in data]
+
+
+
+class MilvusClassicModel(MilvusDataBase):
+    """A class representing a classic model stored in Milvus."""
+
+    text: str
+    """The text to be stored in Milvus."""
+    subject: str=""
+    """The subject of the text."""
+
+    def _prepare_vectorization_inner(self) -> str:
+        return self.text
