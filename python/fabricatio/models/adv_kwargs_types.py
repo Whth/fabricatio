@@ -1,7 +1,7 @@
 """A module containing kwargs types for content correction and checking operations."""
 
 from importlib.util import find_spec
-from typing import Required, Type, TypedDict
+from typing import NotRequired, Required, Type, TypedDict
 
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rag import MilvusDataBase
@@ -49,7 +49,7 @@ if find_spec("pymilvus"):
         schema: CollectionSchema | None
         index_params: IndexParams | None
 
-    class FetchKwargs[D: MilvusDataBase](TypedDict, total=False):
+    class FetchKwargs[D: MilvusDataBase](TypedDict):
         """Arguments for fetching data from vector collections.
 
         Controls how data is retrieved from vector databases, including filtering
@@ -57,11 +57,7 @@ if find_spec("pymilvus"):
         """
 
         document_model: Required[Type[D]]
-        collection_name: str | None
-        similarity_threshold: float
-        result_per_query: int
+        collection_name: NotRequired[str | None]
+        similarity_threshold: NotRequired[float]
+        result_per_query: NotRequired[int]
 
-    class RetrievalKwargs(FetchKwargs, total=False):
-        """Arguments for retrieval operations."""
-
-        final_limit: int
