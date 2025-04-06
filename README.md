@@ -1,8 +1,6 @@
 # Fabricatio
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
 ## Overview
 
