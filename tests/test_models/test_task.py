@@ -1,6 +1,6 @@
 import pytest
-from fabricatio.models.task import Task
 from fabricatio.constants import TaskStatus
+from fabricatio.models.task import Task
 
 
 @pytest.fixture
