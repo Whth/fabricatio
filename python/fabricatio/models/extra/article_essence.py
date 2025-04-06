@@ -1,8 +1,9 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import List, Self
+from typing import List
 
-from fabricatio.models.generic import Display, PersistentAble, ProposedAble, Vectorizable
+from fabricatio.models.extra.rag import MilvusDataBase
+from fabricatio.models.generic import PersistentAble, SketchedAble, Vectorizable
 from pydantic import BaseModel
 
 
@@ -54,7 +55,7 @@ class Highlightings(BaseModel):
     """
 
 
-class ArticleEssence(ProposedAble, Display, PersistentAble, Vectorizable):
+class ArticleEssence(SketchedAble, PersistentAble, Vectorizable, MilvusDataBase):
     """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
@@ -93,7 +94,7 @@ class ArticleEssence(ProposedAble, Display, PersistentAble, Vectorizable):
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
 
-    def update_cite_key(self, new_cite_key: str) -> Self:
-        """Update the bibtex_cite_key of the article."""
-        self.bibtex_cite_key = new_cite_key
-        return self
+    @property
+    def to_vectorize(self) -> str:
+        """Text to vectorize"""
+        return self.display()
