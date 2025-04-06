@@ -130,7 +130,7 @@ class RAG(EmbeddingUsage):
         if isinstance(data, MilvusDataBase):
             data = [data]
 
-        data_vec = await self.vectorize([d.to_vectorize for d in data])
+        data_vec = await self.vectorize([d.prepare_vectorization() for d in data])
         prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data, data_vec, strict=True)]
 
         c_name = collection_name or self.safe_target_collection
