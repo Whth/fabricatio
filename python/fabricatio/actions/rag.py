@@ -7,7 +7,7 @@ from questionary import text
 from fabricatio.capabilities.rag import RAG
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.generic import Vectorizable
+from fabricatio.models.extra.rag import MilvusClassicModel, MilvusDataBase
 from fabricatio.models.task import Task
 
 
@@ -15,24 +15,25 @@ class InjectToDB(Action, RAG):
     """Inject data into the database."""
 
     output_key: str = "collection_name"
+    collection_name: str = "my_collection"
+    """The name of the collection to inject data into."""
 
-    async def _execute[T: Vectorizable](
-        self, to_inject: Optional[T] | List[Optional[T]], collection_name: str = "my_collection",override_inject:bool=False, **_
+    async def _execute[T: MilvusDataBase](
+        self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
     ) -> Optional[str]:
+        if to_inject is None:
+            return None
         if not isinstance(to_inject, list):
             to_inject = [to_inject]
-        logger.info(f"Injecting {len(to_inject)} items into the collection '{collection_name}'")
+        logger.info(f"Injecting {len(to_inject)} items into the collection '{self.collection_name}'")
         if override_inject:
-            self.check_client().client.drop_collection(collection_name)
-        await self.view(collection_name, create=True).consume_string(
-            [
-                t.prepare_vectorization(self.embedding_max_sequence_length)
-                for t in to_inject
-                if isinstance(t, Vectorizable)
-            ],
+            self.check_client().client.drop_collection(self.collection_name)
+
+        await self.view(self.collection_name, create=True).add_document(
+            [t for t in to_inject if t is not None], flush=True
         )
 
-        return collection_name
+        return self.collection_name
 
 
 class RAGTalk(Action, RAG):
@@ -62,10 +63,10 @@ class RAGTalk(Action, RAG):
                 user_say = await text("User: ").ask_async()
                 if user_say is None:
                     break
-                gpt_say = await self.aask_retrieved(
-                    user_say,
-                    user_say,
-                    extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                ret: List[MilvusClassicModel] = await self.aretrieve(user_say, document_model=MilvusClassicModel)
+
+                gpt_say = await self.aask(
+                    user_say, system_message="\n".join(m.text for m in ret) + "\nYou can refer facts provided above."
                 )
                 print(f"GPT: {gpt_say}")  # noqa: T201
                 counter += 1
