@@ -40,7 +40,9 @@ class ArticleChunk(MilvusDataBase):
     ) -> List[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
-            return list(flatten(cls._from_file_inner(p, bib_mgr, **kwargs) for p in path))
+            result = list(flatten(cls._from_file_inner(p, bib_mgr, **kwargs) for p in path))
+            logger.debug(f"Number of chunks created from list of files: {len(result)}")
+            return result
 
         return cls._from_file_inner(path, bib_mgr, **kwargs)
 
@@ -50,22 +52,26 @@ class ArticleChunk(MilvusDataBase):
 
         key = bib_mgr.get_cite_key_fuzzy(path.stem)
         if key is None:
-            logger.warning(f"no cite key found for {path.as_posix()}")
+            logger.warning(f"no cite key found for {path.as_posix()}, skip.")
             return []
         authors = ok(bib_mgr.get_author_by_key(key), f"no author found for {key}")
         year = ok(bib_mgr.get_year_by_key(key), f"no year found for {key}")
         article_title = ok(bib_mgr.get_title_by_key(key), f"no title found for {key}")
 
-        return [
+        result = [
             cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
             for c in split_into_chunks(cls.strip(safe_text_read(path)), **kwargs)
         ]
+        logger.debug(f"Number of chunks created from file {path.as_posix()}: {len(result)}")
+        return result
 
     @classmethod
     def strip(cls, string: str) -> str:
         """Strip the head and tail of the string."""
         for split in cls.head_split:
-            string = string.split(split)[-1]
+            parts = string.split(split)
+            string = split.join(parts[1:]) if len(parts) > 1 else parts[0]
         for split in cls.tail_split:
-            string = string.split(split)[0]
+            parts = string.split(split)
+            string = split.join(parts[:-1]) if len(parts) > 1 else parts[0]
         return string
