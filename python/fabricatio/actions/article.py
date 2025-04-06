@@ -4,6 +4,7 @@ from asyncio import gather
 from pathlib import Path
 from typing import Callable, List, Optional
 
+from fabricatio.rust import BibManager, detect_language
 from more_itertools import filter_map
 
 from fabricatio.capabilities.censor import Censor
@@ -17,7 +18,6 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.task import Task
-from fabricatio.rust import BibManager, detect_language
 from fabricatio.utils import ok
 
 
@@ -78,7 +78,7 @@ class FixArticleEssence(Action):
         out = []
         count = 0
         for a in article_essence:
-            if key := (bib_mgr.get_cite_key(a.title) or bib_mgr.get_cite_key_fuzzy(a.title)):
+            if key := (bib_mgr.get_cite_key_by_title(a.title) or bib_mgr.get_cite_key_fuzzy(a.title)):
                 a.title = bib_mgr.get_title_by_key(key) or a.title
                 a.authors = bib_mgr.get_author_by_key(key) or a.authors
                 a.publication_year = bib_mgr.get_year_by_key(key) or a.publication_year
