@@ -21,8 +21,9 @@ class MilvusDataBase(BaseModel, metaclass=ABCMeta):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     primary_field_name: ClassVar[str] = "id"
-
+    """The name of the primary field in Milvus."""
     vector_field_name: ClassVar[str] = "vector"
+    """The name of the vector field in Milvus."""
 
     def prepare_insertion(self, vector: List[float]) -> Dict[str, Any]:
         """Prepares the data for insertion into Milvus.
