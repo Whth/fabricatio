@@ -1,9 +1,16 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Any, Dict, List, Optional, Required, TypedDict
+from typing import Any, Dict, List, NotRequired, Optional, Required, TypedDict
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
+
+
+class ChunkKwargs(TypedDict):
+    """Configuration parameters for chunking operations."""
+
+    max_chunk_size: int
+    max_overlapping_rate: NotRequired[float]
 
 
 class EmbeddingKwargs(TypedDict, total=False):
