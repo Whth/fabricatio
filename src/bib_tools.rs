@@ -26,7 +26,7 @@ impl BibManager {
     }
 
     /// find the cite key of an article with given title
-    fn get_cite_key(&self, title: String) -> Option<String> {
+    fn get_cite_key_by_title(&self, title: String) -> Option<String> {
         let title_lower = title.to_lowercase();
 
         self.source.iter().par_bridge()
@@ -42,6 +42,27 @@ impl BibManager {
             })
     }
 
+    fn get_cite_key_by_title_fuzzy(&self, title: String) -> Option<String> {
+        let mut matcher = Matcher::new(Config::DEFAULT);
+        let pattern = Pattern::new(
+            title.as_str(),
+            CaseMatching::Ignore,
+            Normalization::Smart,
+            AtomKind::Fuzzy,
+        );
+        self.source.iter()
+            .map(|entry| {
+                let mut buf = vec![];
+                let text = entry.title().expect("Failed to get title").to_biblatex_string(false).fix();
+                (pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher), entry)
+            })
+            .par_bridge()
+            // Use filter_map's more concise form with pattern matching
+            .filter_map(|(maybe_score, entry)| maybe_score.map(|score| (score, entry)))
+            .max_by_key(|(score, _)| *score)
+            .map(|(_, entry)| entry.key.clone())
+    }
+
     /// Find the corresponding cite key of an article with given query string using fuzzy matcher
     fn get_cite_key_fuzzy(&self, query: String) -> Option<String> {
         let mut matcher = Matcher::new(Config::DEFAULT);
@@ -49,7 +70,7 @@ impl BibManager {
             query.as_str(),
             CaseMatching::Ignore,
             Normalization::Smart,
-            AtomKind::Substring,
+            AtomKind::Fuzzy,
         );
 
 

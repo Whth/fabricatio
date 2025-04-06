@@ -147,7 +147,7 @@ class BibManager:
             RuntimeError: If file cannot be read or parsed
         """
 
-    def get_cite_key(self, title: str) -> Optional[str]:
+    def get_cite_key_by_title(self, title: str) -> Optional[str]:
         """Find citation key by exact title match.
 
         Args:
@@ -155,6 +155,15 @@ class BibManager:
 
         Returns:
             Citation key if exact match found, None otherwise
+        """
+    def get_cite_key_by_title_fuzzy(self, title: str) -> Optional[str]:
+        """Find citation key by fuzzy title match.
+
+        Args:
+            title: Search term to find in bibliography entries
+
+        Returns:
+            Citation key of best matching entry, or None if no good match
         """
 
     def get_cite_key_fuzzy(self, query: str) -> Optional[str]:
