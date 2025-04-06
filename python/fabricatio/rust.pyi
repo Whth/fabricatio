@@ -12,9 +12,7 @@ Key Features:
 """
 
 from pathlib import Path
-from typing import List, Optional
-
-from pydantic import JsonValue
+from typing import Any, Dict, List, Optional
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -56,7 +54,7 @@ class TemplateManager:
         This refreshes the template cache, finding any new or modified templates.
         """
 
-    def render_template(self, name: str, data: JsonValue) -> str:
+    def render_template(self, name: str, data: Dict[str, Any]) -> str:
         """Render a template with context data.
 
         Args:
@@ -70,7 +68,7 @@ class TemplateManager:
             RuntimeError: If template rendering fails
         """
 
-    def render_template_raw(self, template: str, data: JsonValue) -> str:
+    def render_template_raw(self, template: str, data: Dict[str, Any]) -> str:
         """Render a template with context data.
 
         Args:
@@ -103,6 +101,7 @@ def split_word_bounds(string: str) -> List[str]:
     Returns:
         A list of words extracted from the string.
     """
+
 def split_sentence_bounds(string: str) -> List[str]:
     """Split the string into sentences based on sentence boundaries.
 
@@ -113,7 +112,7 @@ def split_sentence_bounds(string: str) -> List[str]:
         A list of sentences extracted from the string.
     """
 
-def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate:float=0.3) -> List[str]:
+def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: float = 0.3) -> List[str]:
     """Split the string into chunks of a specified size.
 
     Args:
@@ -124,7 +123,6 @@ def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate:flo
     Returns:
         A list of chunks extracted from the string.
     """
-
 
 def word_count(string: str) -> int:
     """Count the number of words in the string.
