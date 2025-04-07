@@ -1,26 +1,27 @@
 """A Module containing the article rag models."""
 
 from pathlib import Path
-from typing import ClassVar, List, Self, Unpack
+from typing import ClassVar, Dict, List, Self, Unpack
 
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.extra.rag import MilvusDataBase
+from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
 from fabricatio.rust import BibManager, split_into_chunks
-from fabricatio.utils import ok
+from fabricatio.utils import ok, wrapp_in_block
 from more_itertools.recipes import flatten
 from pydantic import Field
 
 
-class ArticleChunk(MilvusDataBase):
+class ArticleChunk(MilvusDataBase, AsPrompt):
     """The chunk of an article."""
 
     head_split: ClassVar[List[str]] = [
         "引 言",
         "引言",
-        "绪论",
         "绪 论",
+        "绪论",
         "前言",
         "INTRODUCTION",
         "Introduction",
@@ -31,8 +32,8 @@ class ArticleChunk(MilvusDataBase):
         "参考文献",
         "REFERENCES",
         "References",
-        "Reference",
         "Bibliography",
+        "Reference",
     ]
     chunk: str
     """The segment of the article"""
@@ -44,6 +45,14 @@ class ArticleChunk(MilvusDataBase):
     """The title of the article"""
     bibtex_cite_key: str
     """The bibtex cite key of the article"""
+
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        return {
+            self.article_title: f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
+            f"Authors: {';'.join(self.authors)}\n"
+            f"Published Year: {self.year}\n"
+            f"Bibtex Key: {self.bibtex_cite_key}\n",
+        }
 
     def _prepare_vectorization_inner(self) -> str:
         return self.chunk

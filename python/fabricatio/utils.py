@@ -25,7 +25,7 @@ async def ask_edit(
     return res
 
 
-def override_kwargs(kwargs: Mapping[str,Any], **overrides) -> Dict[str, Any]:
+def override_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
     """Override the values in kwargs with the provided overrides."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in overrides.items() if v is not None})
@@ -52,3 +52,16 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     if val is None:
         raise ValueError(msg)
     return val
+
+
+def wrapp_in_block(string: str, title: str) -> str:
+    """Wraps a string in a block with a title.
+
+    Args:
+        string: The string to wrap.
+        title: The title of the block.
+
+    Returns:
+        str: The wrapped string.
+    """
+    return f"--- Start of {title} ---\n{string}\n--- End of {title} ---"

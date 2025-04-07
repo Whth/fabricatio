@@ -9,7 +9,6 @@ from fabricatio.fs import gather_files
 from fabricatio.utils import ok
 
 
-
 async def main() -> None:
     """Main function."""
     Role(
