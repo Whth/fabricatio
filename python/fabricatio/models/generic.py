@@ -734,6 +734,12 @@ class ScopedConfig(Base):
     llm_rpm: Optional[PositiveInt] = None
     """The requests per minute of the LLM model."""
 
+    llm_presence_penalty: Optional[PositiveFloat] = None
+    """The presence penalty of the LLM model."""
+
+    llm_frequency_penalty:Optional[PositiveFloat]=None
+    """The frequency penalty of the LLM model."""
+
     embedding_api_endpoint: Optional[HttpUrl] = None
     """The OpenAI API endpoint."""
 

@@ -86,8 +86,10 @@ class LLMConfig(BaseModel):
 
     tpm: Optional[PositiveInt] = Field(default=1000000)
     """The rate limit of the LLM model in tokens per minute. None means not checked."""
-
-
+    presence_penalty:Optional[PositiveFloat]=None
+    """The presence penalty of the LLM model."""
+    frequency_penalty:Optional[PositiveFloat]=None
+    """The frequency penalty of the LLM model."""
 class EmbeddingConfig(BaseModel):
     """Embedding configuration class."""
 

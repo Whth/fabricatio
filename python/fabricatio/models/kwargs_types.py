@@ -45,6 +45,8 @@ class LLMKwargs(TypedDict, total=False):
     no_store: bool  # If store the response of this call to cache
     cache_ttl: int  # how long the stored cache is alive, in seconds
     s_maxage: int  # max accepted age of cached response, in seconds
+    presence_penalty: float
+    frequency_penalty: float
 
 
 class GenerateKwargs(LLMKwargs, total=False):

@@ -63,7 +63,7 @@ class LLMUsage(ScopedConfig):
         self._added_deployment = ROUTER.upsert_deployment(deployment)
         return ROUTER
 
-    # noinspection PyTypeChecker,PydanticTypeChecker
+    # noinspection PyTypeChecker,PydanticTypeChecker,t
     async def aquery(
         self,
         messages: List[Dict[str, str]],
@@ -122,6 +122,12 @@ class LLMUsage(ScopedConfig):
                 "cache-ttl": kwargs.get("cache_ttl"),
                 "s-maxage": kwargs.get("s_maxage"),
             },
+            presence_penalty=kwargs.get("presence_penalty")
+            or self.llm_presence_penalty
+            or configs.llm.presence_penalty,
+            frequency_penalty=kwargs.get("frequency_penalty")
+            or self.llm_frequency_penalty
+            or configs.llm.frequency_penalty,
         )
 
     async def ainvoke(
