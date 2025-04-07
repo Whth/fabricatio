@@ -6,6 +6,7 @@ from fabricatio import Action, Role, Task, WorkFlow, logger
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.events import Event
 from fabricatio.models.extra.aricle_rag import ArticleChunk
+from fabricatio.utils import ok
 from questionary import text
 
 
@@ -24,7 +25,9 @@ class Talk(Action, RAG):
                 user_say = await text("User: ").ask_async()
                 if user_say is None:
                     break
-                ret = await self.aretrieve(user_say, document_model=ArticleChunk)
+                ref_q = ok(await self.arefined_query(user_say))
+                logger.info(f'refined query: \n{ref_q}')
+                ret = await self.aretrieve(ref_q, document_model=ArticleChunk)
 
                 sys_msg = "\n".join(r.as_prompt() for r in ret)
                 logger.info(f"System message: \n{sys_msg}")

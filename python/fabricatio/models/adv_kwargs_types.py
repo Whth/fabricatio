@@ -1,10 +1,9 @@
 """A module containing kwargs types for content correction and checking operations."""
 
 from importlib.util import find_spec
-from typing import NotRequired, Required, Type, TypedDict
+from typing import NotRequired, TypedDict
 
 from fabricatio.models.extra.problem import Improvement
-from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.generic import SketchedAble
 from fabricatio.models.kwargs_types import ReferencedKwargs
@@ -51,12 +50,11 @@ if find_spec("pymilvus"):
 
     class FetchKwargs(TypedDict):
         """Arguments for fetching data from vector collections.
-    
+
         Controls how data is retrieved from vector databases, including filtering
         and result limiting parameters.
         """
-    
+
         collection_name: NotRequired[str | None]
         similarity_threshold: NotRequired[float]
         result_per_query: NotRequired[int]
-    
