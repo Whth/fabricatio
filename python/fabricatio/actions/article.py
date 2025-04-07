@@ -4,7 +4,6 @@ from asyncio import gather
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from fabricatio.rust import BibManager, detect_language
 from more_itertools import filter_map
 
 from fabricatio.capabilities.censor import Censor
@@ -18,6 +17,7 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.task import Task
+from fabricatio.rust import BibManager, detect_language
 from fabricatio.utils import ok
 
 
@@ -145,7 +145,8 @@ class GenerateInitialOutline(Action, Propose):
             f"{(article_proposal.as_prompt())}\n\nNote that you should use `{article_proposal.language}` to write the `ArticleOutline`\n"
             f"Design each chapter of a proper and academic and ready for release manner.\n"
             f"You Must make sure every chapter have sections, and every section have subsections.\n"
-            f"Make the chapter and sections and subsections bing divided into a specific enough article component.",
+            f"Make the chapter and sections and subsections bing divided into a specific enough article component.\n"
+            f"Every chapter must have sections, every section must have subsections.",
         )
 
         return ok(
