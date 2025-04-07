@@ -5,10 +5,12 @@ from typing import List, Optional
 from questionary import text
 
 from fabricatio.capabilities.rag import RAG
+from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.rag import MilvusClassicModel, MilvusDataBase
 from fabricatio.models.task import Task
+from fabricatio.utils import ok
 
 
 class InjectToDB(Action, RAG):
@@ -21,17 +23,36 @@ class InjectToDB(Action, RAG):
     async def _execute[T: MilvusDataBase](
         self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
     ) -> Optional[str]:
+        from pymilvus.milvus_client import IndexParams
+
         if to_inject is None:
             return None
         if not isinstance(to_inject, list):
             to_inject = [to_inject]
-        logger.info(f"Injecting {len(to_inject)} items into the collection '{self.collection_name}'")
+        if not (seq := [t for t in to_inject if t is not None]):  # filter out None
+            return None
+        logger.info(f"Injecting {len(seq)} items into the collection '{self.collection_name}'")
         if override_inject:
             self.check_client().client.drop_collection(self.collection_name)
 
-        await self.view(self.collection_name, create=True).add_document(
-            [t for t in to_inject if t is not None], flush=True
-        )
+        await self.view(
+            self.collection_name,
+            create=True,
+            schema=seq[0].as_milvus_schema(
+                ok(
+                    self.milvus_dimensions
+                    or configs.rag.milvus_dimensions
+                    or self.embedding_dimensions
+                    or configs.embedding.dimensions
+                ),
+            ),
+            index_params=IndexParams(
+                seq[0].vector_field_name,
+                index_name=seq[0].vector_field_name,
+                index_type=seq[0].index_type,
+                metric_type=seq[0].metric_type,
+            ),
+        ).add_document(seq, flush=True)
 
         return self.collection_name
 
