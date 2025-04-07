@@ -188,13 +188,15 @@ class RAG(EmbeddingUsage):
     async def aretrieve[D: MilvusDataBase](
         self,
         query: List[str] | str,
+        document_model: Type[D],
         final_limit: int = 20,
-        **kwargs: Unpack[FetchKwargs[D]],
+        **kwargs: Unpack[FetchKwargs],
     ) -> List[D]:
         """Retrieve data from the collection.
 
         Args:
             query (List[str] | str): The query to be used for retrieval.
+            document_model (Type[D]): The model class used to convert retrieved data into document objects.
             final_limit (int): The final limit on the number of results to return.
             **kwargs (Unpack[FetchKwargs]): Additional keyword arguments for retrieval.
 
@@ -206,6 +208,7 @@ class RAG(EmbeddingUsage):
         return (
             await self.afetch_document(
                 vecs=(await self.vectorize(query)),
+                document_model=document_model,
                 **kwargs,
             )
         )[:final_limit]

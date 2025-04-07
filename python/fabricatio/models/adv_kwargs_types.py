@@ -49,15 +49,14 @@ if find_spec("pymilvus"):
         schema: CollectionSchema | None
         index_params: IndexParams | None
 
-    class FetchKwargs[D: MilvusDataBase](TypedDict):
+    class FetchKwargs(TypedDict):
         """Arguments for fetching data from vector collections.
-
+    
         Controls how data is retrieved from vector databases, including filtering
         and result limiting parameters.
         """
-
-        document_model: Required[Type[D]]
+    
         collection_name: NotRequired[str | None]
         similarity_threshold: NotRequired[float]
         result_per_query: NotRequired[int]
-
+    

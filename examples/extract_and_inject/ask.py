@@ -2,9 +2,10 @@
 
 import asyncio
 
-from fabricatio import RAG, Action, Role, Task, WorkFlow, logger
+from fabricatio import Action, Role, Task, WorkFlow, logger
+from fabricatio.capabilities.rag import RAG
 from fabricatio.models.events import Event
-from fabricatio.utils import ok
+from fabricatio.models.extra.aricle_rag import ArticleChunk
 from questionary import text
 
 
@@ -23,14 +24,12 @@ class Talk(Action, RAG):
                 user_say = await text("User: ").ask_async()
                 if user_say is None:
                     break
-                gpt_say = await self.aask_refined(
-                    user_say,
-                    "article_essence_max",
-                    extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}\nYou should explicitly say write a label if you draw a conclusion from the references, the label shall contain names.",
-                    result_per_query=16,
-                    final_limit=40,
-                    similarity_threshold=0.31,
-                )
+                ret = await self.aretrieve(user_say, document_model=ArticleChunk)
+
+                sys_msg = "\n".join(r.as_prompt() for r in ret)
+                logger.info(f"System message: \n{sys_msg}")
+                gpt_say = await self.aask(user_say, sys_msg)
+
                 print(f"GPT: {gpt_say}")  # noqa: T201
                 counter += 1
         except KeyboardInterrupt:
@@ -40,18 +39,15 @@ class Talk(Action, RAG):
 
 async def main() -> None:
     """Main function."""
-    role = Role(
+    Role(
         name="talker",
         description="talker role but with rag",
-        registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
+        registry={
+            Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Talk(target_collection="article_chunks"),))
+        },
     )
 
-    task = ok(
-        await role.propose_task(
-            "you have to act as a helpful assistant, answer to all user questions properly and patiently"
-        ),
-        "Failed to propose task",
-    )
+    task = Task(name="answer user's questions")
     _ = await task.delegate("talk")
 
 
