@@ -1,7 +1,7 @@
 """A Module containing the article rag models."""
 
 from pathlib import Path
-from typing import ClassVar, Dict, List, Self, Unpack
+from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
@@ -16,6 +16,9 @@ from pydantic import Field
 
 class ArticleChunk(MilvusDataBase, AsPrompt):
     """The chunk of an article."""
+
+    etc_word: ClassVar[str] = " et al."
+    _cite_number: Optional[int] = None
 
     head_split: ClassVar[List[str]] = [
         "引 言",
@@ -48,10 +51,9 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
-            self.article_title: f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
+            f"{ok(self._cite_number, 'You need to update cite number first.')}th reference `{self.article_title}`": f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
             f"Authors: {';'.join(self.authors)}\n"
             f"Published Year: {self.year}\n"
-            f"Bibtex Key: {self.bibtex_cite_key}\n",
         }
 
     def _prepare_vectorization_inner(self) -> str:
@@ -118,3 +120,33 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
             logger.warning("No decrease at tail strip, which is might be abnormal.")
 
         return string
+
+    def as_typst_cite(self) -> str:
+        """As typst cite."""
+        return f"#cite(<{self.bibtex_cite_key}>)"
+
+    @property
+    def auther_firstnames(self) -> List[str]:
+        """Get the first name of the authors."""
+        return [a.split()[0] for a in self.authors]
+
+    def as_auther_seq(self) -> str:
+        """Get the auther sequence."""
+        match len(self.authors):
+            case 0:
+                raise ValueError("No authors found")
+            case 1:
+                return f"({self.auther_firstnames.pop()}, {self.year}){self.as_typst_cite()}"
+            case 2:
+                return f"({self.auther_firstnames[0]}, {self.auther_firstnames[1]}, {self.year}){self.as_typst_cite()}"
+            case _:
+                return f"({self.auther_firstnames[0]}, {self.auther_firstnames[1]}{self.etc_word}, {self.year}){self.as_typst_cite()}"
+
+    def update_cite_number(self, cite_number: int) -> Self:
+        """Update the cite number."""
+        self._cite_number = cite_number
+        return self
+
+    def replace_cite(self, string: str) -> str:
+        """Replace the cite number in the string."""
+        return string.replace(f"[{self._cite_number}]", self.as_auther_seq())
