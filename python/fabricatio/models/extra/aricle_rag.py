@@ -3,15 +3,17 @@
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
+from fabricatio.rust import BibManager, split_into_chunks, is_chinese
+from more_itertools.recipes import flatten
+from pydantic import Field
+
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
+from fabricatio.models.extra.article_main import ArticleSubsection
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
-from fabricatio.rust import BibManager, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
-from more_itertools.recipes import flatten
-from pydantic import Field
 
 
 class ArticleChunk(MilvusDataBase, AsPrompt):
@@ -128,7 +130,13 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
     @property
     def auther_firstnames(self) -> List[str]:
         """Get the first name of the authors."""
-        return [a.split()[0] for a in self.authors]
+        ret=[]
+        for n in self.authors:
+            if is_chinese(n):
+                ret.append(n[0])
+            else:
+                ret.append(n.split()[0])
+        return ret
 
     def as_auther_seq(self) -> str:
         """Get the auther sequence."""
@@ -149,4 +157,11 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     def replace_cite(self, string: str) -> str:
         """Replace the cite number in the string."""
-        return string.replace(f"[{self._cite_number}]", self.as_auther_seq())
+        return string.replace(f"[{ok(self._cite_number)}]", self.as_auther_seq())
+
+    def apply(self, article_subsection: ArticleSubsection) -> ArticleSubsection:
+        """Apply the patch to the article subsection."""
+        for p in article_subsection.paragraphs:
+            p.content = self.replace_cite(p.content)
+
+        return article_subsection
