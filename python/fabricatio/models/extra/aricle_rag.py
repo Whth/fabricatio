@@ -16,8 +16,24 @@ from pydantic import Field
 class ArticleChunk(MilvusDataBase):
     """The chunk of an article."""
 
-    head_split: ClassVar[List[str]] = ["Introduction", "引言", "绪论"]
-    tail_split: ClassVar[List[str]] = ["Reference", "参考文献"]
+    head_split: ClassVar[List[str]] = [
+        "引 言",
+        "引言",
+        "绪论",
+        "绪 论",
+        "前言",
+        "INTRODUCTION",
+        "Introduction",
+    ]
+    tail_split: ClassVar[List[str]] = [
+        "参 考 文 献",
+        "参  考  文  献",
+        "参考文献",
+        "REFERENCES",
+        "References",
+        "Reference",
+        "Bibliography",
+    ]
     chunk: str
     """The segment of the article"""
     year: int
@@ -48,7 +64,13 @@ class ArticleChunk(MilvusDataBase):
     def _from_file_inner(cls, path: str | Path, bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]) -> List[Self]:
         path = Path(path)
 
-        key = bib_mgr.get_cite_key_fuzzy(path.stem)
+        title_seg = path.stem.split(" - ").pop()
+
+        key = (
+            bib_mgr.get_cite_key_by_title(title_seg)
+            or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
+            or bib_mgr.get_cite_key_fuzzy(path.stem)
+        )
         if key is None:
             logger.warning(f"no cite key found for {path.as_posix()}, skip.")
             return []
@@ -66,10 +88,24 @@ class ArticleChunk(MilvusDataBase):
     @classmethod
     def strip(cls, string: str) -> str:
         """Strip the head and tail of the string."""
-        for split in cls.head_split:
+        logger.debug(f"String length before strip: {(original := len(string))}")
+        for split in (s for s in cls.head_split if s in string):
+            logger.debug(f"Strip head using {split}")
             parts = string.split(split)
             string = split.join(parts[1:]) if len(parts) > 1 else parts[0]
-        for split in cls.tail_split:
+            break
+        logger.debug(
+            f"String length after head strip: {(stripped_len := len(string))}, decreased by {(d := original - stripped_len)}"
+        )
+        if not d:
+            logger.warning("No decrease at head strip, which is might be abnormal.")
+        for split in (s for s in cls.tail_split if s in string):
+            logger.debug(f"Strip tail using {split}")
             parts = string.split(split)
             string = split.join(parts[:-1]) if len(parts) > 1 else parts[0]
+            break
+        logger.debug(f"String length after tail strip: {len(string)}, decreased by {(d := stripped_len - len(string))}")
+        if not d:
+            logger.warning("No decrease at tail strip, which is might be abnormal.")
+
         return string
