@@ -15,8 +15,6 @@ For each query:
 - Decomposition: Break down multi-part questions into separate queries
 - Context Enrichment: Add implied but unstated contextual elements
 - Information Density: Ensure key concepts are emphasized
-- Multilingual: Make sure provide multiple language version of the query, which can greatly improve retrieval results
-
 # Examples
 Original: "How do I implement authentication?"
 Refined:
@@ -45,6 +43,6 @@ Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{
 {{#each question}}
 - "{{this}}"
 {{/each}}
-
-Output ONLY the refined queries as a numbered list without explanations.
+Make sure provide multiple language(like both english and chinese) version of the query, which can greatly improve retrieval results
+Output ONLY the refined queries as a JSON array without explanations.
 {{/if}}
