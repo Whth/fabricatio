@@ -15,6 +15,7 @@ For each query:
 - Decomposition: Break down multi-part questions into separate queries
 - Context Enrichment: Add implied but unstated contextual elements
 - Information Density: Ensure key concepts are emphasized
+- Multilingual: Make sure provide multiple language version of the query, which can greatly improve retrieval results
 
 # Examples
 Original: "How do I implement authentication?"
@@ -22,7 +23,9 @@ Refined:
 ```json
 [
 "What are best practices for implementing user authentication in web applications?",
-"How to securely store authentication credentials in a database?"
+"实现用户认证的最佳实践？",
+"How to securely store authentication credentials in a database?",
+"如何实现网站用户的身份验证？"
 ]
 ```
 
@@ -31,10 +34,10 @@ Original: "Explain vector databases"
 Refined:
 ```json
 [
-"Explain the architecture and similarity search mechanisms of vector databases for efficient storage of embedding vectors."
+"Explain the architecture and similarity search mechanisms of vector databases for efficient storage of embedding vectors.",
+"解释向量数据库的架构和相似性搜索机制，以实现向量嵌入向量存储的效率。"
 ]
 ```
-
 
 # Response
 Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{/if}}:
