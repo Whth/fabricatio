@@ -211,7 +211,6 @@ class Article(
         self = cls.from_typst_code(article_outline.title, typst_code)
         self.expected_word_count = article_outline.expected_word_count
         self.description = article_outline.description
-        self.update_ref(article_outline)
         for a, o in zip(self.iter_dfs(), article_outline.iter_dfs(), strict=True):
             a.update_metadata(o)
-        return self
+        return self.update_ref(article_outline)

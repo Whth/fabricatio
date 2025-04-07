@@ -227,3 +227,12 @@ class GenerateArticle(Action, Censor):
         )
 
         return article
+
+
+class LoadArticle(Action):
+    """Load the article from the outline and typst code."""
+
+    output_key: str = "loaded_article"
+
+    async def _execute(self, article_outline: ArticleOutline, typst_code: str, **cxt) -> Article:
+        return Article.from_mixed_source(article_outline, typst_code)
