@@ -1,15 +1,16 @@
 """A module containing the DraftRuleSet action."""
 
-from typing import List, Optional
+from typing import Any, List, Mapping, Optional, Self, Tuple
 
 from fabricatio.capabilities.check import Check
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.rule import RuleSet
+from fabricatio.models.generic import FromMapping
 from fabricatio.utils import ok
 
 
-class DraftRuleSet(Action, Check):
+class DraftRuleSet(Action, Check, FromMapping):
     """Action to draft a ruleset based on a given requirement description."""
 
     output_key: str = "drafted_ruleset"
@@ -45,8 +46,13 @@ class DraftRuleSet(Action, Check):
             logger.warning(f"Drafting Rule Failed for:\n{ruleset_requirement}")
         return ruleset
 
+    @classmethod
+    def from_mapping(cls, mapping: Mapping[str, Tuple[int, str]], **kwargs) -> List[Self]:
+        """Create a list of DraftRuleSet actions from a mapping of output keys to tuples of rule counts and requirements."""
+        return [cls(ruleset_requirement=r, rule_count=c, output_key=k, **kwargs) for k, (c, r) in mapping.items()]
 
-class GatherRuleset(Action):
+
+class GatherRuleset(Action, FromMapping):
     """Action to gather a ruleset from a given requirement description."""
 
     output_key: str = "gathered_ruleset"
@@ -54,6 +60,11 @@ class GatherRuleset(Action):
 
     to_gather: List[str]
     """the cxt name of RuleSet to gather"""
+
+    @classmethod
+    def from_mapping(cls, mapping: Mapping[str, List[str]], **kwargs: Any) -> List[Self]:
+        """Create a list of GatherRuleset actions from a mapping of output keys to tuples of rule counts and requirements."""
+        return [cls(to_gather=t, output_key=k, **kwargs) for k, t in mapping.items()]
 
     async def _execute(self, **cxt) -> RuleSet:
         logger.info(f"Gathering Ruleset from {self.to_gather}")

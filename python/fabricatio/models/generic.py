@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Type, Union, final, overload
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Type, Union, final, overload
 
 import orjson
 from fabricatio.config import configs
@@ -115,6 +115,15 @@ class WordCount(Base):
 
     expected_word_count: int
     """Expected word count of this research component."""
+
+
+class FromMapping(Base):
+    """Class that provides a method to generate a list of objects from a mapping."""
+
+    @classmethod
+    @abstractmethod
+    def from_mapping(cls, mapping: Mapping[str, Any], **kwargs: Any) -> List[Self]:
+        """Generate a list of objects from a mapping."""
 
 
 class AsPrompt(Base):
@@ -737,7 +746,7 @@ class ScopedConfig(Base):
     llm_presence_penalty: Optional[PositiveFloat] = None
     """The presence penalty of the LLM model."""
 
-    llm_frequency_penalty:Optional[PositiveFloat]=None
+    llm_frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
 
     embedding_api_endpoint: Optional[HttpUrl] = None

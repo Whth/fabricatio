@@ -1,11 +1,11 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Type
+from typing import Any, Iterable, List, Mapping, Optional, Type
 
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.generic import FinalizedDumpAble, PersistentAble
+from fabricatio.models.generic import FinalizedDumpAble, FromMapping, PersistentAble
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
 
@@ -115,7 +115,7 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
         return self.retrieve_cls.from_persistent(self.load_path)
 
 
-class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T]):
+class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMapping):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 
     async def _execute(self, /, **_) -> Optional[T]:
@@ -129,6 +129,20 @@ class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T]):
             return self.retrieve_cls.from_latest_persistent(self.load_path)
         logger.error(f"Path {self.load_path} is not a directory")
         return None
+
+    @classmethod
+    def from_mapping(
+        cls,
+        mapping: Mapping[str, str | Path],
+        *,
+        retrieve_cls: Type[T],
+        **kwargs,
+    ) -> List["RetrieveFromLatest[T]"]:
+        """Create a list of `RetrieveFromLatest` from the mapping."""
+        return [
+            cls(retrieve_cls=retrieve_cls, load_path=Path(p).as_posix(), output_key=o, **kwargs)
+            for o, p in mapping.items()
+        ]
 
 
 class GatherAsList(Action):
