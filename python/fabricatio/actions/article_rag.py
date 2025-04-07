@@ -1,11 +1,15 @@
 """A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
 
 from asyncio import gather
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
+from fabricatio import BibManager
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.rag import RAG
 from fabricatio.models.action import Action
+from fabricatio.models.extra.aricle_rag import ArticleChunk
+from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article, ArticleSubsection
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ok
@@ -97,9 +101,36 @@ class TweakArticleRAG(Action, RAG, Censor):
         await self.censor_obj_inplace(
             subsec,
             ruleset=ruleset,
-            reference=f"{await self.aretrieve_compact(refind_q, final_limit=self.ref_limit)}\n\n"
+            reference=f"{'\n\n'.join(d.display() for d in await self.aretrieve(refind_q, document_model=ArticleEssence, final_limit=self.ref_limit))}\n\n"
             f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
             f"You should Always use `{subsec.language}` as written language, "
             f"which is the original language of the `{subsec.title}`. "
             f"since rewrite a `{subsec.__class__.__name__}` in a different language is usually a bad choice",
         )
+
+
+class ChunkArticle(Action):
+    """Chunk an article into smaller chunks."""
+
+    output_key:str = "article_chunks"
+    """The key used to store the output of the action."""
+    max_chunk_size: Optional[int] = None
+    """The maximum size of each chunk."""
+    max_overlapping_rate: Optional[float] = None
+    """The maximum overlapping rate between chunks."""
+
+    async def _execute(
+        self,
+        article_path: str | Path,
+        bib_manager: BibManager,
+        max_chunk_size: Optional[int] = None,
+        max_overlapping_rate: Optional[float] = None,
+        **_,
+    ) -> List[ArticleChunk]:
+        return ArticleChunk.from_file(
+            article_path,
+            bib_manager,
+            max_chunk_size=ok(max_chunk_size or self.max_chunk_size, "No max_chunk_size provided!"),
+            max_overlapping_rate=ok(max_overlapping_rate or self.max_overlapping_rate, "No max_overlapping_rate provided!"),
+        )
+
