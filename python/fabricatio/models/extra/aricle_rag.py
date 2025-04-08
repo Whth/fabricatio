@@ -19,7 +19,8 @@ from fabricatio.utils import ok, wrapp_in_block
 class ArticleChunk(MilvusDataBase, AsPrompt):
     """The chunk of an article."""
 
-    etc_word: ClassVar[str] = " et al."
+    etc_word: ClassVar[str] = "等"
+    and_word: ClassVar[str] = "与"
     _cite_number: Optional[int] = None
 
     head_split: ClassVar[List[str]] = [
@@ -54,8 +55,8 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
             f"{ok(self._cite_number, 'You need to update cite number first.')}th reference `{self.article_title}`": f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
-            f"Authors: {';'.join(self.authors)}\n"
-            f"Published Year: {self.year}\n"
+                                                                                                                    f"Authors: {';'.join(self.authors)}\n"
+                                                                                                                    f"Published Year: {self.year}\n"
         }
 
     def _prepare_vectorization_inner(self) -> str:
@@ -63,7 +64,7 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     @classmethod
     def from_file[P: str | Path](
-        cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+            cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
     ) -> List[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
@@ -80,9 +81,9 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         title_seg = path.stem.split(" - ").pop()
 
         key = (
-            bib_mgr.get_cite_key_by_title(title_seg)
-            or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
-            or bib_mgr.get_cite_key_fuzzy(path.stem)
+                bib_mgr.get_cite_key_by_title(title_seg)
+                or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
+                or bib_mgr.get_cite_key_fuzzy(path.stem)
         )
         if key is None:
             logger.warning(f"no cite key found for {path.as_posix()}, skip.")
@@ -130,12 +131,12 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
     @property
     def auther_firstnames(self) -> List[str]:
         """Get the first name of the authors."""
-        ret=[]
+        ret = []
         for n in self.authors:
             if is_chinese(n):
                 ret.append(n[0])
             else:
-                ret.append(n.split()[0])
+                ret.append(n.split()[-1])
         return ret
 
     def as_auther_seq(self) -> str:
@@ -144,20 +145,22 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
             case 0:
                 raise ValueError("No authors found")
             case 1:
-                return f"({self.auther_firstnames.pop()}, {self.year}){self.as_typst_cite()}"
+                return f"（{self.auther_firstnames[0]}，{self.year}）{self.as_typst_cite()}"
             case 2:
-                return f"({self.auther_firstnames[0]}, {self.auther_firstnames[1]}, {self.year}){self.as_typst_cite()}"
+                return f"（{self.auther_firstnames[0]}{self.and_word}{self.auther_firstnames[1]}，{self.year}）{self.as_typst_cite()}"
+            case 3:
+                return f"（{self.auther_firstnames[0]}，{self.auther_firstnames[1]}{self.and_word}{self.auther_firstnames[2]}，{self.year}）{self.as_typst_cite()}"
             case _:
-                return f"({self.auther_firstnames[0]}, {self.auther_firstnames[1]}{self.etc_word}, {self.year}){self.as_typst_cite()}"
+                return f"（{self.auther_firstnames[0]}，{self.auther_firstnames[1]}{self.and_word}{self.auther_firstnames[2]}{self.etc_word}，{self.year}）{self.as_typst_cite()}"
 
     def update_cite_number(self, cite_number: int) -> Self:
         """Update the cite number."""
         self._cite_number = cite_number
         return self
 
-    def replace_cite(self, string: str) -> str:
+    def replace_cite(self, string: str, left_char: str = "[[", right_char: str = "]]") -> str:
         """Replace the cite number in the string."""
-        return string.replace(f"[{ok(self._cite_number)}]", self.as_auther_seq())
+        return string.replace(f"{left_char}{ok(self._cite_number)}{right_char}", self.as_auther_seq())
 
     def apply(self, article_subsection: ArticleSubsection) -> ArticleSubsection:
         """Apply the patch to the article subsection."""
