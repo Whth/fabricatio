@@ -95,7 +95,7 @@ impl TemplateManager {
                     .into_iter()
                     .filter_map(Result::ok)
                     .filter(|e| e.file_type().is_file())
-                    .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some(&self.suffix))
+                    .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some(self.suffix.as_str()))
                     .map(|e| e.path().to_path_buf())
             })
             .collect()

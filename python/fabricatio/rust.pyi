@@ -14,6 +14,7 @@ Key Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -24,7 +25,7 @@ class TemplateManager:
     """
 
     def __init__(
-        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
@@ -79,6 +80,7 @@ class TemplateManager:
             Rendered template content as string
         """
 
+
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
 
@@ -89,8 +91,10 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
+
 def detect_language(string: str) -> str:
     """Detect the language of a given string."""
+
 
 def split_word_bounds(string: str) -> List[str]:
     """Split the string into words based on word boundaries.
@@ -102,6 +106,7 @@ def split_word_bounds(string: str) -> List[str]:
         A list of words extracted from the string.
     """
 
+
 def split_sentence_bounds(string: str) -> List[str]:
     """Split the string into sentences based on sentence boundaries.
 
@@ -111,6 +116,7 @@ def split_sentence_bounds(string: str) -> List[str]:
     Returns:
         A list of sentences extracted from the string.
     """
+
 
 def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: float = 0.3) -> List[str]:
     """Split the string into chunks of a specified size.
@@ -124,6 +130,7 @@ def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: fl
         A list of chunks extracted from the string.
     """
 
+
 def word_count(string: str) -> int:
     """Count the number of words in the string.
 
@@ -134,50 +141,98 @@ def word_count(string: str) -> int:
         The number of words in the string.
     """
 
+
 def is_chinese(string: str) -> bool:
     """Check if the given string is in Chinese."""
+
 
 def is_english(string: str) -> bool:
     """Check if the given string is in English."""
 
+
 def is_japanese(string: str) -> bool:
     """Check if the given string is in Japanese."""
+
 
 def is_korean(string: str) -> bool:
     """Check if the given string is in Korean."""
 
+
 def is_arabic(string: str) -> bool:
     """Check if the given string is in Arabic."""
+
 
 def is_russian(string: str) -> bool:
     """Check if the given string is in Russian."""
 
+
 def is_german(string: str) -> bool:
     """Check if the given string is in German."""
+
 
 def is_french(string: str) -> bool:
     """Check if the given string is in French."""
 
+
 def is_hindi(string: str) -> bool:
     """Check if the given string is in Hindi."""
+
 
 def is_italian(string: str) -> bool:
     """Check if the given string is in Italian."""
 
+
 def is_dutch(string: str) -> bool:
     """Check if the given string is in Dutch."""
+
 
 def is_portuguese(string: str) -> bool:
     """Check if the given string is in Portuguese."""
 
+
 def is_swedish(string: str) -> bool:
     """Check if the given string is in Swedish."""
+
 
 def is_turkish(string: str) -> bool:
     """Check if the given string is in Turkish."""
 
+
 def is_vietnamese(string: str) -> bool:
     """Check if the given string is in Vietnamese."""
+
+
+def tex_to_typst(string: str) -> str:
+    """Convert TeX to Typst.
+
+    Args:
+        string: The input TeX string to be converted.
+
+    Returns:
+        The converted Typst string.
+    """
+
+
+def convert_all_inline_tex(string: str) -> str:
+    """Convert all inline TeX code in the string.
+
+    Args:
+        string: The input string containing inline TeX code wrapped in $code$.
+
+    Returns:
+        The converted string with inline TeX code replaced.
+    """
+
+
+def convert_all_block_tex(string: str) -> str:
+    """Convert all block TeX code in the string.
+
+    Args:
+        string: The input string containing block TeX code wrapped in $$code$$.
+
+    Returns:
+        The converted string with block TeX code replaced.
+    """
 
 
 class BibManager:
@@ -202,6 +257,7 @@ class BibManager:
         Returns:
             Citation key if exact match found, None otherwise
         """
+
     def get_cite_key_by_title_fuzzy(self, title: str) -> Optional[str]:
         """Find citation key by fuzzy title match.
 
@@ -265,6 +321,7 @@ class BibManager:
         Returns:
             Abstract if found, None otherwise
         """
+
     def get_title_by_key(self, key: str) -> Optional[str]:
         """Retrieve the title by citation key.
 
