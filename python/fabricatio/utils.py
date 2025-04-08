@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 
 async def ask_edit(
-    text_seq: List[str],
+        text_seq: List[str],
 ) -> List[str]:
     """Asks the user to edit a list of texts.
 
@@ -68,39 +68,21 @@ def wrapp_in_block(string: str, title: str) -> str:
 
 
 def replace_brackets(s: str) -> str:
-    """Converts comma-separated elements within square brackets into individual bracketed elements.
-
-    This function finds all substrings enclosed in square brackets (allowing internal spaces),
-    splits the comma-separated elements, then wraps each element in its own square brackets
-    and concatenates them in sequence. Leading/trailing spaces around elements are stripped.
-
-    Args:
-        s (str): Input string containing bracket structures to process
-
-    Returns:
-        str: Processed string with all matching bracket structures converted.
-            Example: "[a, b, c]" becomes "[a][b][c]"
-
-    Examples:
-        >>> replace_brackets("Test[  x , y ] and [alpha,beta  ]")
-        'Test[x][y] and [alpha][beta]'
-
-        >>> replace_brackets("Math formula: [a+b, c*d, e/f]")
-        'Math formula: [a+b][c*d][e/f]'
-
-        >>> replace_brackets("Empty test[] and [  ]")
-        'Empty test[] and []'
-
-    Note:
-        1. Does NOT support nested brackets (e.g., "[a, [b, c], d]")
-        2. Commas within elements are treated as separators (e.g., "[a,b,c]" splits into 3 elements)
-        3. Multiple spaces treated as single separator
-        4. Empty elements are preserved (e.g., "[,a,,b,]" becomes "[][a][][b][]")
-    """
     import regex
+    # Find all numbers within double brackets
+    matches = regex.findall(r'\[\[(.*?)\]\]', s)
 
-    def _replacer(match):
-        elements = [e.strip() for e in match.group(1).split(",")]
-        return "".join(f"[{e}]" for e in elements)
+    # Process each match to wrap each number in double brackets
+    processed_numbers = []
+    for match in matches:
+        # Split the match by commas and strip whitespace
+        numbers = [num.strip() for num in match.split(',')]
+        # Wrap each number in double brackets
+        wrapped_numbers = ''.join(f'[[{num}]]' for num in numbers)
+        processed_numbers.append(wrapped_numbers)
 
-    return regex.sub(r"\[\s*([^]]+?)\s*]", _replacer, s)
+    # Replace the original matches with the processed numbers
+    for original, processed in zip(matches, processed_numbers):
+        s = s.replace(f'[[{original}]]', processed)
+
+    return s
