@@ -67,22 +67,46 @@ def wrapp_in_block(string: str, title: str) -> str:
     return f"--- Start of {title} ---\n{string}\n--- End of {title} ---"
 
 
+
 def replace_brackets(s: str) -> str:
+    """Replace sequences within double brackets with each number wrapped in double brackets.
+
+    This function processes a string to find sequences enclosed in double brackets (e.g., [[1, 2, 3-5]]).
+    It splits these sequences by commas and hyphens, expands any ranges (e.g., 3-5 becomes 3, 4, 5),
+    and wraps each number in double brackets.
+
+    Args:
+        s (str): The input string containing sequences within double brackets.
+
+    Returns:
+        str: The processed string with each number in the sequences wrapped in double brackets.
+    """
     import regex
-    # Find all numbers within double brackets
+    # Find all sequences within double brackets
     matches = regex.findall(r'\[\[(.*?)\]\]', s)
 
     # Process each match to wrap each number in double brackets
-    processed_numbers = []
+    processed_sequences = []
     for match in matches:
-        # Split the match by commas and strip whitespace
-        numbers = [num.strip() for num in match.split(',')]
+        # Split the match by commas and hyphens, and strip whitespace
+        parts = [part.strip() for part in regex.split(r'[,]', match)]
+        
+        numbers = []
+        for part in parts:
+            if '-' in part:
+                # Expand the range if there's a hyphen
+                start, end = map(int, part.split('-'))
+                numbers.extend(str(i) for i in range(start, end + 1))
+            else:
+                numbers.append(part)
+        
         # Wrap each number in double brackets
         wrapped_numbers = ''.join(f'[[{num}]]' for num in numbers)
-        processed_numbers.append(wrapped_numbers)
+        processed_sequences.append(wrapped_numbers)
 
-    # Replace the original matches with the processed numbers
-    for original, processed in zip(matches, processed_numbers):
+    # Replace the original matches with the processed sequences
+    for original, processed in zip(matches, processed_sequences):
         s = s.replace(f'[[{original}]]', processed)
 
     return s
+
