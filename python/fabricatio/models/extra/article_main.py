@@ -2,6 +2,9 @@
 
 from typing import Dict, Generator, List, Self, Tuple, override
 
+from fabricatio.rust import word_count, convert_all_block_tex, convert_all_inline_tex
+from pydantic import Field
+
 from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
@@ -14,8 +17,6 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import word_count
-from pydantic import Field
 
 PARAGRAPH_SEP = "// - - -"
 
@@ -64,8 +65,8 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if (
-            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
-            > self._max_word_count_deviation
+                abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+                > self._max_word_count_deviation
         ):
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
@@ -152,6 +153,22 @@ class Article(
             "Original Article Outline": self.referenced.display(),
             "Original Article": self.display(),
         }
+
+    def convert_tex(self) -> Self:
+        """Convert tex to typst code"""
+        for _, _, subsec in self.iter_subsections():
+            for p in subsec.paragraphs:
+                p.content = convert_all_inline_tex(p.content)
+                p.content = convert_all_block_tex(p.content)
+        return self
+
+    def fix_wrapper(self) -> Self:
+        """Fix wrapper"""
+        for _, _, subsec in self.iter_subsections():
+            for p in subsec.paragraphs:
+                p.content = p.content.replace(r" \( ", "$").replace(r" \) ", "$").replace("\\[\n", "$$\n").replace(
+                    "\n\\]", "\n$$")
+        return self
 
     @override
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
