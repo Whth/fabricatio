@@ -17,13 +17,20 @@ fn convert_tex_with_pattern(pattern: &str, string: &str) -> PyResult<String> {
     let result = re.replace_all(string, |caps: &regex::Captures| {
         let tex_code = caps.get(1).unwrap().as_str();
         match convert_math(tex_code, None) {
-            Ok(converted) => converted,
+            Ok(converted) => {
+                if pattern == r"(?s)\$\$(.*?)\$\$" {
+                    format!("$${}$$", converted)
+                } else {
+                    format!("${}$", converted)
+                }
+            }
             Err(e) => format!("Error converting {}: {}", tex_code, e),
         }
     });
 
     Ok(result.to_string())
 }
+
 
 #[pyfunction]
 fn convert_all_inline_tex(string: &str) -> PyResult<String> {
