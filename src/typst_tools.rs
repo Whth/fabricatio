@@ -18,11 +18,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str) -> PyResult<String> {
         let tex_code = caps.get(1).unwrap().as_str();
         match convert_math(tex_code, None) {
             Ok(converted) => {
-                if pattern == r"(?s)\$\$(.*?)\$\$" {
-                    format!("$${}$$", converted)
-                } else {
-                    format!("${}$", converted)
-                }
+                format!("${}$", converted)
             }
             Err(e) => format!("Error converting {}: {}", tex_code, e),
         }
