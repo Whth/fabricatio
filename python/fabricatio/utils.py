@@ -90,7 +90,7 @@ def replace_brackets(s: str) -> str:
     for match in matches:
         # Split the match by commas and hyphens, and strip whitespace
         parts = [part.strip() for part in regex.split(r'[,]', match)]
-        
+
         numbers = []
         for part in parts:
             if '-' in part:
@@ -99,13 +99,13 @@ def replace_brackets(s: str) -> str:
                 numbers.extend(str(i) for i in range(start, end + 1))
             else:
                 numbers.append(part)
-        
+
         # Wrap each number in double brackets
         wrapped_numbers = ''.join(f'[[{num}]]' for num in numbers)
         processed_sequences.append(wrapped_numbers)
 
     # Replace the original matches with the processed sequences
-    for original, processed in zip(matches, processed_sequences):
+    for original, processed in zip(matches, processed_sequences, strict=False):
         s = s.replace(f'[[{original}]]', processed)
 
     return s

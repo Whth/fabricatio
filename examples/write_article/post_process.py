@@ -6,5 +6,6 @@ a.convert_tex()
 print(a.display())
 
 
-from fabricatio.fs.curd import dump_text 
+from fabricatio.fs.curd import dump_text
+
 dump_text("corrected.typ",a.finalized_dump())

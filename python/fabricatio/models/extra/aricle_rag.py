@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio.rust import BibManager, split_into_chunks, is_chinese
+from fabricatio.rust import BibManager, is_chinese, split_into_chunks
 from more_itertools.recipes import flatten
 from pydantic import Field
 

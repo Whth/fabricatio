@@ -2,7 +2,7 @@
 
 from typing import Dict, Generator, List, Self, Tuple, override
 
-from fabricatio.rust import word_count, convert_all_block_tex, convert_all_inline_tex
+from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
 from pydantic import Field
 
 from fabricatio.fs.readers import extract_sections

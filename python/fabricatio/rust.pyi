@@ -14,7 +14,6 @@ Key Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
