@@ -3,12 +3,12 @@
 from itertools import chain
 from typing import Any, List, Optional, Self, Tuple, Unpack
 
+from pydantic import Field
+from rich import print as r_print
+
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
 from fabricatio.utils import ask_edit
-from pydantic import Field
-from questionary import Choice, checkbox, text
-from rich import print as r_print
 
 
 class Problem(SketchedAble, WithBriefing):
@@ -74,6 +74,8 @@ class ProblemSolutions(SketchedAble):
         return len(self.solutions) > 0
 
     async def edit_problem(self) -> Self:
+        from questionary import text
+
         """Interactively edit the problem description."""
         self.problem = Problem.model_validate_strings(
             await text("Please edit the problem below:", default=self.problem.display()).ask_async()
@@ -127,6 +129,8 @@ class Improvement(SketchedAble):
         Returns:
             Self: The current instance with filtered problems and solutions.
         """
+        from questionary import Choice, checkbox
+
         # Choose the problems to retain
         chosen_ones: List[ProblemSolutions] = await checkbox(
             "Please choose the problems you want to retain.(Default: retain all)",

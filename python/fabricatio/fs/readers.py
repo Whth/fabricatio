@@ -1,16 +1,12 @@
 """Filesystem readers for Fabricatio."""
 
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import orjson
-import regex
-from magika import Magika
+import ujson
 
-from fabricatio.config import configs
 from fabricatio.journal import logger
-
-MAGIKA = Magika(model_dir=configs.magika.model_dir)
 
 
 def safe_text_read(path: Path | str) -> str:
@@ -41,8 +37,8 @@ def safe_json_read(path: Path | str) -> Dict:
     """
     path = Path(path)
     try:
-        return orjson.loads(path.read_text(encoding="utf-8"))
-    except (orjson.JSONDecodeError, IsADirectoryError, FileNotFoundError) as e:
+        return ujson.loads(path.read_text(encoding="utf-8"))
+    except (ujson.JSONDecodeError, IsADirectoryError, FileNotFoundError) as e:
         logger.error(f"Failed to read file {path}: {e!s}")
         return {}
 
@@ -58,8 +54,8 @@ def extract_sections(string: str, level: int, section_char: str = "#") -> List[T
     Returns:
         List[Tuple[str, str]]: List of (header_text, section_content) tuples
     """
-    return regex.findall(
+    return re.findall(
         r"^%s{%d}\s+(.+?)\n((?:(?!^%s{%d}\s).|\n)*)" % (section_char, level, section_char, level),
         string,
-        regex.MULTILINE,
+        re.MULTILINE,
     )

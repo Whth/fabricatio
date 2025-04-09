@@ -1,12 +1,12 @@
 """A module to parse text using regular expressions."""
 
+import re
+from re import Pattern, compile
 from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
 
-import orjson
-import regex
+import ujson
 from json_repair import repair_json
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
-from regex import Pattern, compile
 
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -25,7 +25,7 @@ class Capture(BaseModel):
     """The target groups to capture from the pattern."""
     pattern: str = Field(frozen=True)
     """The regular expression pattern to search for."""
-    flags: PositiveInt = Field(default=regex.DOTALL | regex.MULTILINE | regex.IGNORECASE, frozen=True)
+    flags: PositiveInt = Field(default=re.DOTALL | re.MULTILINE | re.IGNORECASE, frozen=True)
     """The flags to use when compiling the regular expression pattern."""
     capture_type: Optional[str] = None
     """The type of capture to perform, e.g., 'json', which is used to dispatch the fixer accordingly."""
@@ -49,7 +49,8 @@ class Capture(BaseModel):
                 logger.debug("Applying json repair to text.")
                 if isinstance(text, str):
                     return repair_json(text, ensure_ascii=False)  # pyright: ignore [reportReturnType]
-                return [repair_json(item, ensure_ascii=False) for item in text]  # pyright: ignore [reportReturnType, reportGeneralTypeIssues]
+                return [repair_json(item, ensure_ascii=False) for item in
+                        text]  # pyright: ignore [reportReturnType, reportGeneralTypeIssues]
             case _:
                 return text  # pyright: ignore [reportReturnType]
 
@@ -63,7 +64,7 @@ class Capture(BaseModel):
             str | None: The captured text if the pattern is found, otherwise None.
 
         """
-        if (match :=self._compiled.match(text) or self._compiled.search(text) ) is None:
+        if (match := self._compiled.match(text) or self._compiled.search(text)) is None:
             logger.debug(f"Capture Failed {type(text)}: \n{text}")
             return None
         groups = self.fix(match.groups())
@@ -94,12 +95,12 @@ class Capture(BaseModel):
             return None
 
     def validate_with[K, T, E](
-        self,
-        text: str,
-        target_type: Type[T],
-        elements_type: Optional[Type[E]] = None,
-        length: Optional[int] = None,
-        deserializer: Callable[[Tuple[str, ...]], K] | Callable[[str], K] = orjson.loads,
+            self,
+            text: str,
+            target_type: Type[T],
+            elements_type: Optional[Type[E]] = None,
+            length: Optional[int] = None,
+            deserializer: Callable[[Tuple[str, ...]], K] | Callable[[str], K] = ujson.loads,
     ) -> T | None:
         """Validate the given text using the pattern.
 

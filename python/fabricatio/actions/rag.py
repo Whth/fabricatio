@@ -2,8 +2,6 @@
 
 from typing import List, Optional
 
-from questionary import text
-
 from fabricatio.capabilities.rag import RAG
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -21,7 +19,7 @@ class InjectToDB(Action, RAG):
     """The name of the collection to inject data into."""
 
     async def _execute[T: MilvusDataBase](
-        self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
+            self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
     ) -> Optional[str]:
         from pymilvus.milvus_client import IndexParams
 
@@ -74,6 +72,8 @@ class RAGTalk(Action, RAG):
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **kwargs) -> int:
+        from questionary import text
+
         collection_name = kwargs.get("collection_name", "my_collection")
         counter = 0
 

@@ -5,14 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Type, Union, final, overload
 
-import orjson
-from fabricatio.config import configs
-from fabricatio.fs.readers import MAGIKA, safe_text_read
-from fabricatio.journal import logger
-from fabricatio.parser import JsonCapture
+import ujson
 from fabricatio.rust import blake3_hash, detect_language
-from fabricatio.rust_instances import TEMPLATE_MANAGER
-from fabricatio.utils import ok
 from litellm.utils import token_counter
 from pydantic import (
     BaseModel,
@@ -26,6 +20,13 @@ from pydantic import (
     SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
+
+from fabricatio.config import configs
+from fabricatio.fs.readers import safe_text_read
+from fabricatio.journal import logger
+from fabricatio.parser import JsonCapture
+from fabricatio.rust_instances import TEMPLATE_MANAGER
+from fabricatio.utils import ok
 
 
 class Base(BaseModel):
@@ -74,9 +75,9 @@ class Display(Base):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -178,11 +179,17 @@ class WithRef[T](Base):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S:
+        ...
+
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
+        ...
+
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
+        ...
+
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
         """Update the reference of the object.
 
@@ -464,9 +471,9 @@ class WithFormatedJsonSchema(Base):
         Returns:
             str: The JSON schema of the model in a formatted string.
         """
-        return orjson.dumps(
+        return ujson.dumps(
             cls.model_json_schema(schema_generator=UnsortGenerate),
-            option=orjson.OPT_INDENT_2,
+            option=ujson.OPT_INDENT_2,
         ).decode()
 
 
@@ -479,9 +486,11 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
+
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: str) -> str: ...
+
     @classmethod
     def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
         """Create the prompt for creating a JSON object with given requirement.
@@ -648,6 +657,8 @@ class WithDependency(Base):
         Returns:
             str: The generated prompt for the task.
         """
+        from fabricatio.fs import MAGIKA
+
         return TEMPLATE_MANAGER.render_template(
             configs.templates.dependencies_template,
             {
@@ -873,13 +884,14 @@ class Patch[T](ProposedAble):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 
-        return orjson.dumps(
+        return ujson.dumps(
             my_schema,
-            option=orjson.OPT_INDENT_2,
+            option=ujson.OPT_INDENT_2,
         ).decode()
 
 
