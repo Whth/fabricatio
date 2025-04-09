@@ -38,6 +38,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pymitter>=1.0.0",
     "rich>=13.9.4",
+    "ujson>=5.10.0",
 ]
 
 [project.urls]
@@ -72,13 +73,13 @@ dev = [
 ]
 
 [project.optional-dependencies]
+full = [
+    "fabricatio[calc,ftd,plot,qa,rag]",
+]
 rag = [
     "pymilvus>=2.5.4",
 ]
 
-full = [
-    "fabricatio[calc,ftd,plot,qa,rag]",
-]
 calc = [
     "sympy>=1.13.3",
 ]

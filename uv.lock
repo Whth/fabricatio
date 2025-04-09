@@ -262,6 +262,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pymitter" },
     { name = "rich" },
+    { name = "ujson" },
 ]
 
 [package.optional-dependencies]
@@ -324,6 +325,7 @@ requires-dist = [
     { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sympy", marker = "extra == 'calc'", specifier = ">=1.13.3" },
+    { name = "ujson", specifier = ">=5.10.0" },
 ]
 provides-extras = ["rag", "full", "calc", "plot", "qa", "ftd"]
 
