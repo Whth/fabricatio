@@ -1,6 +1,7 @@
 """A module to parse text using regular expressions."""
 
 import re
+from functools import lru_cache
 from re import Pattern, compile
 from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
 
@@ -125,6 +126,7 @@ class Capture(BaseModel):
         return None
 
     @classmethod
+    @lru_cache(32)
     def capture_code_block(cls, language: str) -> Self:
         """Capture the first occurrence of a code block in the given text.
 
@@ -137,6 +139,7 @@ class Capture(BaseModel):
         return cls(pattern=f"```{language}(.*?)```", capture_type=language)
 
     @classmethod
+    @lru_cache(32)
     def capture_generic_block(cls, language: str) -> Self:
         """Capture the first occurrence of a generic code block in the given text.
 

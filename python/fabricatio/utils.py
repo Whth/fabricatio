@@ -2,7 +2,11 @@
 
 from typing import Any, Dict, List, Mapping, Optional
 
+from fabricatio.decorators import precheck_package
 
+
+@precheck_package("questionary",
+                  "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?.")
 async def ask_edit(
         text_seq: List[str],
 ) -> List[str]:
@@ -67,7 +71,6 @@ def wrapp_in_block(string: str, title: str) -> str:
     return f"--- Start of {title} ---\n{string}\n--- End of {title} ---"
 
 
-
 def replace_brackets(s: str) -> str:
     """Replace sequences within double brackets with each number wrapped in double brackets.
 
@@ -109,4 +112,3 @@ def replace_brackets(s: str) -> str:
         s = s.replace(f'[[{original}]]', processed)
 
     return s
-

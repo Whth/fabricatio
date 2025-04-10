@@ -12,6 +12,28 @@ from fabricatio.config import configs
 from fabricatio.journal import logger
 
 
+def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Check if a package exists in the current environment.
+
+    Args:
+        package_name (str): The name of the package to check.
+        msg (str): The message to display if the package is not found.
+
+    Returns:
+        bool: True if the package exists, False otherwise.
+    """
+
+    def _wrapper(func: Callable[P, R]) -> Callable[P, R]:
+        def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
+            if find_spec(package_name):
+                return func(*args, **kwargs)
+            raise RuntimeError(msg)
+
+        return _inner
+
+    return _wrapper
+
+
 def depend_on_external_cmd[**P, R](
         bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -66,6 +88,8 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     return _wrapper
 
 
+@precheck_package("questionary",
+                  "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?.")
 def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, R]:
     """Decorator to confirm before executing a function.
 
@@ -206,27 +230,5 @@ def logging_exec_time[**P, R](func: Callable[P, R]) -> Callable[P, R]:
         result = func(*args, **kwargs)
         logger.debug(f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms")
         return result
-
-    return _wrapper
-
-
-def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Check if a package exists in the current environment.
-
-    Args:
-        package_name (str): The name of the package to check.
-        msg (str): The message to display if the package is not found.
-
-    Returns:
-        bool: True if the package exists, False otherwise.
-    """
-
-    def _wrapper(func: Callable[P, R]) -> Callable[P, R]:
-        def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            if find_spec(package_name):
-                return func(*args, **kwargs)
-            raise RuntimeError(msg)
-
-        return _inner
 
     return _wrapper
