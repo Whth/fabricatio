@@ -4,7 +4,8 @@
 
 ## Overview
 
-Fabricatio is a streamlined Python library for building LLM applications using an event-based agent structure. It leverages Rust for performance-critical tasks, Handlebars for templating, and PyO3 for Python bindings.
+Fabricatio is a streamlined Python library for building LLM applications using an event-based agent structure. It
+leverages Rust for performance-critical tasks, Handlebars for templating, and PyO3 for Python bindings.
 
 ## Features
 
@@ -44,6 +45,7 @@ import asyncio
 from fabricatio import Action, Role, Task, logger, WorkFlow
 from typing import Any
 
+
 class Hello(Action):
     name: str = "hello"
     output_key: str = "task_output"
@@ -52,6 +54,7 @@ class Hello(Action):
         ret = "Hello fabricatio!"
         logger.info("executing talk action")
         return ret
+
 
 async def main() -> None:
     role = Role(
@@ -64,6 +67,7 @@ async def main() -> None:
     result = await task.delegate()
     logger.success(f"Result: {result}")
 
+
 if __name__ == "__main__":
     asyncio.run(main())
 ```
@@ -71,6 +75,7 @@ if __name__ == "__main__":
 ### Examples
 
 For various usage scenarios, refer to the following examples:
+
 - Simple Chat
 - Retrieval-Augmented Generation (RAG)
 - Article Extraction
@@ -118,6 +123,7 @@ max_tokens = 8192
 ## Contributing
 
 Contributions are welcome! Follow these steps:
+
 1. Fork the repository.
 2. Create your feature branch (`git checkout -b feature/new-feature`).
 3. Commit your changes (`git commit -am 'Add new feature'`).
@@ -131,6 +137,7 @@ Fabricatio is licensed under the MIT License. See [LICENSE](LICENSE) for details
 ## Acknowledgments
 
 Special thanks to the contributors and maintainers of:
+
 - [PyO3](https://github.com/PyO3/pyo3)
 - [Maturin](https://github.com/PyO3/maturin)
 - [Handlebars.rs](https://github.com/sunng87/handlebars-rust)
