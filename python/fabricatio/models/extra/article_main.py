@@ -2,9 +2,7 @@
 
 from typing import Dict, Generator, List, Self, Tuple, override
 
-from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
-from pydantic import Field
-
+from fabricatio.decorators import precheck_package
 from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
@@ -17,6 +15,8 @@ from fabricatio.models.extra.article_outline import (
     ArticleOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
+from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
+from pydantic import Field
 
 PARAGRAPH_SEP = "// - - -"
 
@@ -65,8 +65,8 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if (
-                abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
-                > self._max_word_count_deviation
+            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+            > self._max_word_count_deviation
         ):
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
@@ -155,7 +155,7 @@ class Article(
         }
 
     def convert_tex(self) -> Self:
-        """Convert tex to typst code"""
+        """Convert tex to typst code."""
         for _, _, subsec in self.iter_subsections():
             for p in subsec.paragraphs:
                 p.content = convert_all_inline_tex(p.content)
@@ -163,11 +163,15 @@ class Article(
         return self
 
     def fix_wrapper(self) -> Self:
-        """Fix wrapper"""
+        """Fix wrapper."""
         for _, _, subsec in self.iter_subsections():
             for p in subsec.paragraphs:
-                p.content = p.content.replace(r" \( ", "$").replace(r" \) ", "$").replace("\\[\n", "$$\n").replace(
-                    "\n\\]", "\n$$")
+                p.content = (
+                    p.content.replace(r" \( ", "$")
+                    .replace(r" \) ", "$")
+                    .replace("\\[\n", "$$\n")
+                    .replace("\n\\]", "\n$$")
+                )
         return self
 
     @override
@@ -231,3 +235,10 @@ class Article(
         for a, o in zip(self.iter_dfs(), article_outline.iter_dfs(), strict=True):
             a.update_metadata(o)
         return self.update_ref(article_outline)
+
+    @precheck_package(
+        "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
+    )
+    def edit_titles(self) -> Self:
+        for a in self.iter_dfs():
+            pass
