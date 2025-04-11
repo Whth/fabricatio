@@ -3,17 +3,16 @@
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio.rust import BibManager, is_chinese, split_into_chunks
-from more_itertools.recipes import flatten
-from pydantic import Field
-
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_main import ArticleSubsection
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
+from fabricatio.rust import BibManager, is_chinese, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
+from more_itertools.recipes import flatten
+from pydantic import Field
 
 
 class ArticleChunk(MilvusDataBase, AsPrompt):
@@ -55,8 +54,8 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
             f"{ok(self._cite_number, 'You need to update cite number first.')}th reference `{self.article_title}`": f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
-                                                                                                                    f"Authors: {';'.join(self.authors)}\n"
-                                                                                                                    f"Published Year: {self.year}\n"
+            f"Authors: {';'.join(self.authors)}\n"
+            f"Published Year: {self.year}\n"
         }
 
     def _prepare_vectorization_inner(self) -> str:
@@ -64,7 +63,7 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     @classmethod
     def from_file[P: str | Path](
-            cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+        cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
     ) -> List[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
@@ -81,9 +80,9 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         title_seg = path.stem.split(" - ").pop()
 
         key = (
-                bib_mgr.get_cite_key_by_title(title_seg)
-                or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
-                or bib_mgr.get_cite_key_fuzzy(path.stem)
+            bib_mgr.get_cite_key_by_title(title_seg)
+            or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
+            or bib_mgr.get_cite_key_fuzzy(path.stem)
         )
         if key is None:
             logger.warning(f"no cite key found for {path.as_posix()}, skip.")
@@ -93,7 +92,7 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         article_title = ok(bib_mgr.get_title_by_key(key), f"no title found for {key}")
 
         result = [
-            cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
+            cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key).purge_numeric_citation()
             for c in split_into_chunks(cls.strip(safe_text_read(path)), **kwargs)
         ]
         logger.debug(f"Number of chunks created from file {path.as_posix()}: {len(result)}")
@@ -128,6 +127,13 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         """As typst cite."""
         return f"#cite(<{self.bibtex_cite_key}>)"
 
+    def purge_numeric_citation(self) -> Self:
+        """Purge numeric citation."""
+        import re
+
+        self.chunk = re.sub(r"\[([\d\s,-]*)]", "", self.chunk)
+        return self
+
     @property
     def auther_firstnames(self) -> List[str]:
         """Get the first name of the authors."""
@@ -158,9 +164,12 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         self._cite_number = cite_number
         return self
 
-    def replace_cite(self, string: str, left_char: str = "[[", right_char: str = "]]") -> str:
+    def replace_cite(self, string: str, left_char: str = "[[", right_char: str = "]]", auther_seq: bool = False) -> str:
         """Replace the cite number in the string."""
-        return string.replace(f"{left_char}{ok(self._cite_number)}{right_char}", self.as_auther_seq())
+        return string.replace(
+            f"{left_char}{ok(self._cite_number)}{right_char}",
+            self.as_auther_seq() if auther_seq else self.as_typst_cite(),
+        )
 
     def apply(self, article_subsection: ArticleSubsection) -> ArticleSubsection:
         """Apply the patch to the article subsection."""
