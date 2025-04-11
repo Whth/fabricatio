@@ -1,17 +1,17 @@
 """A Module containing the article rag models."""
 
+import re
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
-from fabricatio.models.extra.article_main import ArticleSubsection
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
 from fabricatio.rust import BibManager, is_chinese, split_into_chunks
-from fabricatio.utils import ok, wrapp_in_block
-from more_itertools.recipes import flatten
+from fabricatio.utils import ok
+from more_itertools.recipes import flatten, unique
 from pydantic import Field
 
 
@@ -53,10 +53,13 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
-            f"{ok(self._cite_number, 'You need to update cite number first.')}th reference `{self.article_title}`": f"{wrapp_in_block(self.chunk, 'Referring Content')}\n"
-            f"Authors: {';'.join(self.authors)}\n"
-            f"Published Year: {self.year}\n"
+            f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}`": self.chunk
         }
+
+    @property
+    def cite_number(self) -> int:
+        """Get the cite number."""
+        return ok(self._cite_number, "cite number not set")
 
     def _prepare_vectorization_inner(self) -> str:
         return self.chunk
@@ -165,16 +168,68 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         self._cite_number = cite_number
         return self
 
-    def replace_cite(self, string: str, left_char: str = "[[", right_char: str = "]]", auther_seq: bool = False) -> str:
-        """Replace the cite number in the string."""
-        return string.replace(
-            f"{left_char}{ok(self._cite_number)}{right_char}",
-            self.as_auther_seq() if auther_seq else self.as_typst_cite(),
-        )
 
-    def apply(self, article_subsection: ArticleSubsection) -> ArticleSubsection:
-        """Apply the patch to the article subsection."""
-        for p in article_subsection.paragraphs:
-            p.content = self.replace_cite(p.content)
+class CitationManager(AsPrompt):
+    """Citation manager."""
 
-        return article_subsection
+    article_chunks: List[ArticleChunk] = Field(default_factory=list)
+    """Article chunks."""
+
+    pat: str = r"\[\[([\d\s,-]*)]]"
+    """Regex pattern to match citations."""
+    sep: str = ","
+    """Separator for citation numbers."""
+    abbr_sep: str = "-"
+    """Separator for abbreviated citation numbers."""
+
+    def update_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True) -> Self:
+        """Update article chunks."""
+        self.article_chunks.clear()
+        self.article_chunks.extend(article_chunks)
+        if set_cite_number:
+            self.set_cite_number_all()
+        return self
+
+    def set_cite_number_all(self) -> Self:
+        """Set citation numbers for all article chunks."""
+        for i, a in enumerate(self.article_chunks, 1):
+            a.update_cite_number(i)
+        return self
+
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        """Generate prompt inner representation."""
+        return {"References": "\n".join(r.as_prompt() for r in self.article_chunks)}
+
+    def apply(self, string: str) -> str:
+        """Apply citation replacements to the input string."""
+        matches = re.findall(self.pat, string)
+
+        for m in matches:
+            notations = self.convert_to_numeric_notations(m)
+
+            citation_number_seq = list(flatten(self.decode_expr(n) for n in notations))
+            dedup = self.deduplicate_citation(citation_number_seq)
+            string.replace(m, self.unpack_cite_seq(dedup))
+        return string
+
+    def decode_expr(self, string: str) -> List[int]:
+        """Decode citation expression into a list of integers."""
+        if self.abbr_sep in string:
+            start, end = string.split(self.abbr_sep)
+            return list(range(int(start), int(end) + 1))
+        return [int(string)]
+
+    def convert_to_numeric_notations(self, string: str) -> List[str]:
+        """Convert citation string into numeric notations."""
+        return [s.strip() for s in string.split(self.sep)]
+
+    def deduplicate_citation(self, citation_seq: List[int]) -> List[int]:
+        """Deduplicate citation sequence."""
+        chunk_seq = [a for a in self.article_chunks if a.cite_number in citation_seq]
+        deduped = unique(chunk_seq, lambda a: a.cite_number)
+        return [a.cite_number for a in deduped]
+
+    def unpack_cite_seq(self, citation_seq: List[int]) -> str:
+        """Unpack citation sequence into a string."""
+        chunk_seq = [a for a in self.article_chunks if a.cite_number in citation_seq]
+        return "".join(a.as_typst_cite() for a in chunk_seq)
