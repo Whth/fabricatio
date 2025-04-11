@@ -86,7 +86,8 @@ def replace_brackets(s: str) -> str:
     """
     import re
     # Find all sequences within double brackets
-    matches = re.findall(r'\[\[(.*?)]]', s)
+    matches = re.findall(r'\[\[([\d\s,-]*)]]', s)
+
 
     # Process each match to wrap each number in double brackets
     processed_sequences = []
