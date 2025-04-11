@@ -11,14 +11,18 @@ fn tex_to_typst(string: &str) -> PyResult<String> {
 }
 
 /// Helper function to convert TeX with a given pattern
-fn convert_tex_with_pattern(pattern: &str, string: &str) -> PyResult<String> {
+fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResult<String> {
     let re = Regex::new(pattern).map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("Regex error: {}", e)))?;
 
     let result = re.replace_all(string, |caps: &regex::Captures| {
         let tex_code = caps.get(1).unwrap().as_str();
         match convert_math(tex_code, None) {
             Ok(converted) => {
-                format!("${}$", converted)
+                if block {
+                    format!("$\n{}\n$", converted)
+                } else {
+                    format!("${}$", converted)
+                }
             }
             Err(e) => format!("Error converting {}: {}", tex_code, e),
         }
@@ -30,12 +34,13 @@ fn convert_tex_with_pattern(pattern: &str, string: &str) -> PyResult<String> {
 
 #[pyfunction]
 fn convert_all_inline_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"(?s)\$(.*?)\$", string)
+    convert_tex_with_pattern(r"(?s)\$(.*?)\$", string, false)
 }
+
 
 #[pyfunction]
 fn convert_all_block_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"(?s)\$\$(.*?)\$\$", string)
+    convert_tex_with_pattern(r"(?s)\$\$(.*?)\$\$", string, true)
 }
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
