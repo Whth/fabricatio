@@ -92,9 +92,10 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         article_title = ok(bib_mgr.get_title_by_key(key), f"no title found for {key}")
 
         result = [
-            cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key).purge_numeric_citation()
-            for c in split_into_chunks(cls.strip(safe_text_read(path)), **kwargs)
+            cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
+            for c in split_into_chunks(cls.purge_numeric_citation(cls.strip(safe_text_read(path))), **kwargs)
         ]
+
         logger.debug(f"Number of chunks created from file {path.as_posix()}: {len(result)}")
         return result
 
@@ -127,12 +128,12 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         """As typst cite."""
         return f"#cite(<{self.bibtex_cite_key}>)"
 
-    def purge_numeric_citation(self) -> Self:
+    @staticmethod
+    def purge_numeric_citation(string: str) -> str:
         """Purge numeric citation."""
         import re
 
-        self.chunk = re.sub(r"\[([\d\s,-]*)]", "", self.chunk)
-        return self
+        return re.sub(r"\[[\d\s,\\~–-]+]", "", string)  # noqa: RUF001
 
     @property
     def auther_firstnames(self) -> List[str]:
