@@ -1,4 +1,4 @@
-use biblatex::{Bibliography, ChunksExt};
+use biblatex::{Bibliography, ChunksExt, PermissiveType};
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
 use pyo3::exceptions::PyRuntimeError;
@@ -113,8 +113,21 @@ impl BibManager {
 
 
     fn get_year_by_key(&self, key: String) -> Option<i32> {
-        self.get_field_by_key(key, "year".to_string()).map(|s| { s.parse().unwrap() })
+        if let Some(en) = self.source.get(key.as_str()) {
+            match en.date().expect(format!("Failed to get date for key {key}").as_str()) {
+                PermissiveType::Typed(t) => {
+                    match t.value {
+                        biblatex::DateValue::At(da) => Some(da.year),
+                        biblatex::DateValue::Before(da) => Some(da.year),
+                        biblatex::DateValue::After(da) => Some(da.year),
+                        biblatex::DateValue::Between(da, _) => Some(da.year),
+                    }
+                }
+                _ => None
+            }
+        } else { None }
     }
+
 
     fn get_abstract_by_key(&self, key: String) -> Option<String> {
         self.get_field_by_key(key, "abstract".to_string())
