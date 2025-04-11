@@ -338,6 +338,7 @@ class Rating(Propose):
         criteria: Optional[Set[str]] = None,
         weights: Optional[Dict[str, float]] = None,
         manual: Optional[Dict[str, str]] = None,
+        approx: bool = False,
         **kwargs: Unpack[ValidateKwargs[List[Dict[str, float]]]],
     ) -> List[float]:
         """Calculates the composite scores for a list of items based on a given topic and criteria.
@@ -348,6 +349,7 @@ class Rating(Propose):
             criteria (Optional[Set[str]]): A set of criteria for the rating. Defaults to None.
             weights (Optional[Dict[str, float]]): A dictionary of rating weights for each criterion. Defaults to None.
             manual (Optional[Dict[str, str]]): A dictionary of manual ratings for each item. Defaults to None.
+            approx (bool): Whether to use approximate rating criteria. Defaults to False.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -355,6 +357,7 @@ class Rating(Propose):
         """
         criteria = ok(
             criteria
+            or (await self.draft_rating_criteria(topic, **override_kwargs(kwargs, default=None)) if approx else None)
             or await self.draft_rating_criteria_from_examples(topic, to_rate, **override_kwargs(kwargs, default=None))
         )
         weights = ok(
