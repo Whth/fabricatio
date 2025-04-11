@@ -126,7 +126,7 @@ impl BibManager {
 
     fn get_field_by_key(&self, key: String, field: String) -> Option<String> {
         if let Some(en) = self.source.get(key.as_str()) {
-            Some(en.get(field.as_str()).unwrap().to_biblatex_string(false).fix())
+            Some(en.get(field.as_str()).expect(format!("Failed to get field `{field}` for key {key}").as_str()).to_biblatex_string(false).fix())
         } else {
             None
         }
