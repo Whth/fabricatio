@@ -12,7 +12,8 @@ Key Features:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, overload
+
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -54,29 +55,45 @@ class TemplateManager:
         This refreshes the template cache, finding any new or modified templates.
         """
 
+    @overload
     def render_template(self, name: str, data: Dict[str, Any]) -> str:
-        """Render a template with context data.
+        ...
 
+    @overload
+    def render_template(self, name: str, data: List[Dict[str, Any]]) -> List[str]:
+        ...
+
+    def render_template(self, name: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
+        """Render a template with context data.
+    
         Args:
             name: Template name (without extension)
-            data: Context dictionary to provide variables to the template
-
+            data: Context dictionary or list of dictionaries to provide variables to the template
+    
         Returns:
-            Rendered template content as string
-
+            Rendered template content as string or list of strings
+    
         Raises:
             RuntimeError: If template rendering fails
         """
 
+    @overload
     def render_template_raw(self, template: str, data: Dict[str, Any]) -> str:
-        """Render a template with context data.
+        ...
 
+    @overload
+    def render_template_raw(self, template: str, data: List[Dict[str, Any]]) -> List[str]:
+        ...
+
+    def render_template_raw(self, template: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
+        """Render a template with context data.
+    
         Args:
             template: The template string
-            data: Context dictionary to provide variables to the template
-
+            data: Context dictionary or list of dictionaries to provide variables to the template
+    
         Returns:
-            Rendered template content as string
+            Rendered template content as string or list of strings
         """
 
 
