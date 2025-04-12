@@ -137,7 +137,7 @@ class Rating(Propose):
             or dict(zip(criteria, criteria, strict=True))
         )
 
-        return await self.rate_fine_grind(to_rate, manual, score_range, **fallback_kwargs(kwargs, co_extractor={}))
+        return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
 
     async def draft_rating_manual(
         self, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
