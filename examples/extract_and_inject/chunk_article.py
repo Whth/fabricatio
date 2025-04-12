@@ -26,8 +26,9 @@ async def main() -> None:
             ).update_init_context(
                 article_path=gather_files("bare_md", "md"),
                 bib_manager=BibManager(path="ref.bib"),
-                max_chunk_size=500,
+                max_chunk_size=600,
                 max_overlapping_rate=0.3,
+                override_inject=True
             ),
         },
     )
