@@ -251,6 +251,11 @@ class TemplateConfig(BaseModel):
 
     rule_requirement_template: str = Field(default="rule_requirement")
     """The name of the rule requirement template which will be used to generate a rule requirement."""
+
+
+    extract_template: str = Field(default="extract")
+    """The name of the extract template which will be used to extract model from string."""
+    
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 
