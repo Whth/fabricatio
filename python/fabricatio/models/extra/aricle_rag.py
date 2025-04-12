@@ -136,7 +136,7 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
         """Purge numeric citation."""
         import re
 
-        return re.sub(r"\[[\d\s,\\~–-]+]", "", string)  # noqa: RUF001
+        return re.sub(r"\[[\d\s,\\~–-]+]", "", string)
 
     @property
     def auther_firstnames(self) -> List[str]:

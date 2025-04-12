@@ -68,7 +68,7 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
 
     default: Optional[T]
     max_validations: int
-    
+
 
 
 class CompositeScoreKwargs(ValidateKwargs[List[Dict[str, float]]], total=False):

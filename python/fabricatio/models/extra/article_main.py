@@ -239,6 +239,9 @@ class Article(
     @precheck_package(
         "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
     )
-    def edit_titles(self) -> Self:
+    async def edit_titles(self) -> Self:
+        """Edits the titles of the article."""
+        from questionary import text
+
         for a in self.iter_dfs():
-            pass
+            a.title = await text(f"Edit `{a.title}`.", default=a.title).ask_async() or a.title

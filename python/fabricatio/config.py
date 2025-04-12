@@ -255,7 +255,7 @@ class TemplateConfig(BaseModel):
 
     extract_template: str = Field(default="extract")
     """The name of the extract template which will be used to extract model from string."""
-    
+
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
 

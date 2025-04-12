@@ -3,12 +3,11 @@
 from itertools import chain
 from typing import Any, List, Optional, Self, Tuple, Unpack
 
-from pydantic import Field
-from rich import print as r_print
-
 from fabricatio.journal import logger
 from fabricatio.models.generic import SketchedAble, WithBriefing
 from fabricatio.utils import ask_edit
+from pydantic import Field
+from rich import print as r_print
 
 
 class Problem(SketchedAble, WithBriefing):
@@ -74,6 +73,7 @@ class ProblemSolutions(SketchedAble):
         return len(self.solutions) > 0
 
     async def edit_problem(self) -> Self:
+        """Interactively edit the problem description."""
         from questionary import text
 
         """Interactively edit the problem description."""

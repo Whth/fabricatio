@@ -14,7 +14,6 @@ Key Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, overload
 
-
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -65,14 +64,14 @@ class TemplateManager:
 
     def render_template(self, name: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
-    
+
         Args:
             name: Template name (without extension)
             data: Context dictionary or list of dictionaries to provide variables to the template
-    
+
         Returns:
             Rendered template content as string or list of strings
-    
+
         Raises:
             RuntimeError: If template rendering fails
         """
@@ -87,11 +86,11 @@ class TemplateManager:
 
     def render_template_raw(self, template: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
-    
+
         Args:
             template: The template string
             data: Context dictionary or list of dictionaries to provide variables to the template
-    
+
         Returns:
             Rendered template content as string or list of strings
         """
