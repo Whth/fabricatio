@@ -14,7 +14,7 @@ from fabricatio.models.generic import Display, ProposedAble
 from fabricatio.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
 from fabricatio.parser import JsonCapture
 from fabricatio.rust_instances import TEMPLATE_MANAGER
-from fabricatio.utils import fallback_kwargs, ok, override_kwargs
+from fabricatio.utils import ok, override_kwargs
 
 
 class Rating(Propose):
