@@ -74,9 +74,9 @@ class Display(Base):
             str: Combined display output with boundary markers
         """
         return (
-                "--- Start of Extra Info Sequence ---"
-                + "\n".join(d.compact() if compact else d.display() for d in seq)
-                + "--- End of Extra Info Sequence ---"
+            "--- Start of Extra Info Sequence ---"
+            + "\n".join(d.compact() if compact else d.display() for d in seq)
+            + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -178,16 +178,13 @@ class WithRef[T](Base):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
         """Update the reference of the object.
@@ -471,9 +468,8 @@ class WithFormatedJsonSchema(Base):
             str: The JSON schema of the model in a formatted string.
         """
         return ujson.dumps(
-            cls.model_json_schema(schema_generator=UnsortGenerate),
-            option=ujson.OPT_INDENT_2,
-        ).decode()
+            cls.model_json_schema(schema_generator=UnsortGenerate), indent=2, ensure_ascii=False, sort_keys=False
+        )
 
 
 class CreateJsonObjPrompt(WithFormatedJsonSchema):
@@ -883,15 +879,11 @@ class Patch[T](ProposedAble):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
-                    "description"]
+                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 
-        return ujson.dumps(
-            my_schema,
-            option=ujson.OPT_INDENT_2,
-        ).decode()
+        return ujson.dumps(my_schema, indent=2, ensure_ascii=False, sort_keys=False)
 
 
 class SequencePatch[T](ProposedUpdateAble):
