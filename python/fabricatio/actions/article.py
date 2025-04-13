@@ -5,8 +5,11 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 from more_itertools import filter_map
+from pydantic import Field
+from rich import print as r_print
 
 from fabricatio.capabilities.censor import Censor
+from fabricatio.capabilities.extract import Extract
 from fabricatio.capabilities.propose import Propose
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
@@ -16,9 +19,10 @@ from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
+from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.rust import BibManager, detect_language
-from fabricatio.utils import ok
+from fabricatio.utils import ok, wrapp_in_block
 
 
 class ExtractArticleEssence(Action, Propose):
@@ -130,11 +134,17 @@ class GenerateArticleProposal(Action, Propose):
         ).update_ref(briefing)
 
 
-class GenerateInitialOutline(Action, Propose):
+class GenerateInitialOutline(Action, Extract):
     """Generate the initial article outline based on the article proposal."""
 
     output_key: str = "initial_article_outline"
     """The key of the output data."""
+
+    supervisor: bool = False
+    """Whether to use the supervisor to fix the outline."""
+
+    extract_kwargs: ValidateKwargs[Optional[ArticleOutline]] = Field(default_factory=ValidateKwargs)
+    """The kwargs to extract the outline."""
 
     async def _execute(
         self,
@@ -149,11 +159,19 @@ class GenerateInitialOutline(Action, Propose):
             f"Every chapter must have sections, every section must have subsections.",
         )
 
+        if self.supervisor:
+            from questionary import confirm, text
+
+            r_print(raw_outline)
+            while not await confirm("continue?", default=False).ask_async():
+                imp = await text("Enter the improvement:").ask_async()
+                raw_outline = await self.aask(
+                    f"{article_proposal.as_prompt()}\n{wrapp_in_block(raw_outline, 'Previous ArticleOutline')}\n{imp}"
+                )
+                r_print(raw_outline)
+
         return ok(
-            await self.propose(
-                ArticleOutline,
-                f"{raw_outline}\n\n\n\noutline provided above is the outline i need to extract to a JSON,",
-            ),
+            await self.extract(ArticleOutline, raw_outline, **self.extract_kwargs),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
 
