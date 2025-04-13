@@ -14,8 +14,6 @@ async def main() -> None:
     Role(
         name="Researcher",
         description="chunk the article",
-        llm_rpm=50,
-        llm_tpm=100000,
         registry={
             Event.quick_instantiate(e := "Chunk"): WorkFlow(
                 name="Chunk",
@@ -28,7 +26,7 @@ async def main() -> None:
                 bib_manager=BibManager(path="ref.bib"),
                 max_chunk_size=600,
                 max_overlapping_rate=0.3,
-                override_inject=True
+                override_inject=True,
             ),
         },
     )
