@@ -175,7 +175,7 @@ class CitationManager(AsPrompt):
     article_chunks: List[ArticleChunk] = Field(default_factory=list)
     """Article chunks."""
 
-    pat: str = r"\[\[([\d\s,-]*)]]"
+    pat: str = r"(\[\[([\d\s,-]*)]])"
     """Regex pattern to match citations."""
     sep: str = ","
     """Separator for citation numbers."""
@@ -202,14 +202,15 @@ class CitationManager(AsPrompt):
 
     def apply(self, string: str) -> str:
         """Apply citation replacements to the input string."""
-        matches = re.findall(self.pat, string)
-
-        for m in matches:
+        for origin,m in re.findall(self.pat, string):
+            logger.info(f"Matching citation: {m}")
             notations = self.convert_to_numeric_notations(m)
-
+            logger.info(f"Citing Notations: {notations}")
             citation_number_seq = list(flatten(self.decode_expr(n) for n in notations))
+            logger.info(f"Citation Number Sequence: {citation_number_seq}")
             dedup = self.deduplicate_citation(citation_number_seq)
-            string.replace(m, self.unpack_cite_seq(dedup))
+            logger.info(f"Deduplicated Citation Number Sequence: {dedup}")
+            string=string.replace(origin, self.unpack_cite_seq(dedup))
         return string
 
     def decode_expr(self, string: str) -> List[int]:
