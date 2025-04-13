@@ -152,11 +152,12 @@ class GenerateInitialOutline(Action, Extract):
         **_,
     ) -> Optional[ArticleOutline]:
         raw_outline = await self.aask(
-            f"{(article_proposal.as_prompt())}\n\nNote that you should use `{article_proposal.language}` to write the `ArticleOutline`\n"
+            f"{(article_proposal.as_prompt())}\n"
             f"Design each chapter of a proper and academic and ready for release manner.\n"
             f"You Must make sure every chapter have sections, and every section have subsections.\n"
             f"Make the chapter and sections and subsections bing divided into a specific enough article component.\n"
-            f"Every chapter must have sections, every section must have subsections.",
+            f"Every chapter must have sections, every section must have subsections.\n"
+            f"Note that you SHALL use `{article_proposal.language}` as written language",
         )
 
         if self.supervisor:
