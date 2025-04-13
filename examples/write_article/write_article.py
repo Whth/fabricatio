@@ -6,6 +6,8 @@ from typing import List
 
 from fabricatio import Event, Role, WorkFlow, logger
 from fabricatio.actions.article import (
+    GenerateArticleProposal,
+    GenerateInitialOutline,
     LoadArticle,
 )
 from fabricatio.actions.article_rag import TweakArticleRAG, WriteArticleContentRAG
@@ -34,12 +36,12 @@ class Connect(Action):
     """Connect the article with the article_outline and article_proposal."""
 
     async def _execute(
-            self,
-            article_briefing: str,
-            article_proposal: ArticleProposal,
-            article_outline: ArticleOutline,
-            article: Article,
-            **cxt,
+        self,
+        article_briefing: str,
+        article_proposal: ArticleProposal,
+        article_outline: ArticleOutline,
+        article: Article,
+        **cxt,
     ) -> Article:
         """Connect the article with the article_outline and article_proposal."""
         return article.update_ref(article_outline.update_ref(article_proposal.update_ref(article_briefing)))
@@ -50,10 +52,10 @@ async def main(article: bool, rule: bool = False, fintune: bool = False) -> None
     Role(
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",
-        llm_model="openai/deepseek-r1-250120",
+        llm_model="openai/qwen-plus",
         llm_temperature=0.6,
         llm_stream=True,
-        llm_top_p=0.5,
+        llm_top_p=0.4,
         llm_max_tokens=8191,
         llm_rpm=1000,
         llm_tpm=1000000,
@@ -80,8 +82,8 @@ async def main(article: bool, rule: bool = False, fintune: bool = False) -> None
                         load_path=r"persistent/article_outline/ArticleOutline_20250407_203349_9c9353.json",
                         retrieve_cls=ArticleOutline,
                     ),
-                    # GenerateArticleProposal,
-                    # GenerateInitialOutline(output_key="article_outline"),
+                    GenerateArticleProposal,
+                    GenerateInitialOutline(output_key="article_outline"),
                     *GatherRuleset.from_mapping(
                         {
                             "intro_fix_ruleset": ["para_ruleset"],
@@ -92,8 +94,10 @@ async def main(article: bool, rule: bool = False, fintune: bool = False) -> None
                         }
                     ),
                     WriteArticleContentRAG(
-                        output_key="to_dump", target_collection="article_chunks", extractor_model="openai/qwen-max",
-                        query_model="openai/qwq-plus"
+                        output_key="to_dump",
+                        target_collection="article_chunks",
+                        extractor_model="openai/qwen-max",
+                        query_model="openai/qwen-plus",
                     ),
                     DumpFinalizedOutput(output_key="task_output"),
                     PersistentAll,
