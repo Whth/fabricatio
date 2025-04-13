@@ -18,6 +18,7 @@ class Extract(Propose):
         cls: Type[M],
         source: str,
         extract_requirement: Optional[str] = None,
+        align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
     @overload
@@ -26,6 +27,7 @@ class Extract(Propose):
         cls: Type[M],
         source: str,
         extract_requirement: Optional[str] = None,
+        align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Optional[M]: ...
 
@@ -35,6 +37,7 @@ class Extract(Propose):
         cls: Type[M],
         source: List[str],
         extract_requirement: Optional[str] = None,
+        align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> List[M]: ...
     @overload
@@ -43,6 +46,7 @@ class Extract(Propose):
         cls: Type[M],
         source: List[str],
         extract_requirement: Optional[str] = None,
+        align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> List[Optional[M]]: ...
     async def extract[M: ProposedAble](
@@ -50,6 +54,7 @@ class Extract(Propose):
         cls: Type[M],
         source: List[str] | str,
         extract_requirement: Optional[str] = None,
+        align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[Optional[M]]],
     ) -> M | List[M] | Optional[M] | List[Optional[M]]:
         """Extract information from a given source to a model."""
@@ -59,7 +64,7 @@ class Extract(Propose):
                 configs.templates.extract_template,
                 [{"source": s, "extract_requirement": extract_requirement} for s in source]
                 if isinstance(source, list)
-                else {"source": source, "extract_requirement": extract_requirement},
+                else {"source": source, "extract_requirement": extract_requirement, "align_language": align_language},
             ),
             **kwargs,
         )
