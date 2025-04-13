@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from fabricatio import BibManager
 from fabricatio.capabilities.censor import Censor
-from fabricatio.capabilities.propose import Propose
+from fabricatio.capabilities.extract import Extract
 from fabricatio.capabilities.rag import RAG
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
@@ -18,7 +18,7 @@ from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ok
 
 
-class WriteArticleContentRAG(Action, RAG, Propose):
+class WriteArticleContentRAG(Action, RAG, Extract):
     """Write an article based on the provided outline."""
 
     ref_limit: int = 100
@@ -85,24 +85,34 @@ class WriteArticleContentRAG(Action, RAG, Propose):
         )
 
         new_subsec = ok(
-            await self.propose(
+            await self.extract(
                 ArticleSubsection,
-                f"{raw_paras}\nAbove is the subsection titled `{subsec.title}`.\n"
+                raw_paras,
+                f"Above is the subsection titled `{subsec.title}`.\n"
                 f"I need you to extract the content to update my subsection obj provided below.\n"
                 f"Everything is build upon the typst language, which is similar to latex, \n"
                 f"so reference annotation like `[[1]]` for 1th reference or `[[2,6]]` for 2th and 6th reference or "
                 f"`[[1,5,9]]` for 1th,5th and 9th references or "
                 f"`[[1-9,16]]` for 1th to 9th and 16th references\n"
                 f"Those reference mark shall not be omitted during the extraction\n"
-                f"Wrapp inline expression using $ $, and wrapp block equation using $$ $$\n\n\n"
+                f"Wrapp inline expression using $ $, and wrapp block equation using $$ $$."
+                f"In addition to that, you can add a label to the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
+                f"you can refer to that label by using the syntax with prefix of `@eqt:`"
+                f"Below is a usage example:\n"
+                f"```typst\n"
+                f"See @eqt:mass-energy-equation , it's the equation.\n"
+                f"$$\n"
+                f"E = m c^2"
+                f"$$ <mass-energy-equation>\n"
+                f"```\n"
+                f"\n\n\n"
                 f"{subsec.display()}",
-                model=self.extractor_model,
             ),
             "Failed to propose new subsection.",
         )
 
         for p in new_subsec.paragraphs:
-            p.content = cm.apply(p.content)
+            p.content = cm.apply(p.content).replace("$$", "\n$$\n")
 
         subsec.update_from(new_subsec)
         logger.debug(f"{subsec.title}:rpl\n{subsec.display()}")
