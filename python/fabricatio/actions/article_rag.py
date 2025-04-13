@@ -74,10 +74,22 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
             f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`\n"
             f"You can output the written paragraphs directly, without explanation. you should use `{subsec.language}`, and maintain academic writing style."
-            f"In addition,you MUST follow the academic convention and use [[1]] to cite the first reference, and use [[9]] to cite the second reference, and so on.\n"
+            f"In addition,you MUST follow the academic convention and use [[1]] to cite the 1th reference, and use [[9]] to cite the 9th reference, and so on.\n"
             f"It 's greatly recommended to cite multiple references that stands for the same opinion at a single sentences, like [[1,5,9]] for 1th,5th and 9th references,[[1-9,16]] for 1th to 9th and 16th references.\n"
+            f"Usage like [[1],[2]] is completely wrong, instead, you should use [[1,2]] or [[1-2]] to represent citation for the 1th and the 2th\n"
             f"citation number is REQUIRED to cite any reference!\n"
             f"for paragraphs that need write equation you should also no forget to doing so. wrapp inline equation using $ $, and wrapp block equation using $$ $$.\n"
+            f"In addition to that, you can add a label to the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
+            f"you can refer to that label by using the syntax with prefix of `@eqt:`"
+            f"Below is a usage example:\n"
+            f"```typst\n"
+            f"See @eqt:mass-energy-equation , it's the equation.\n"
+            f"$$\n"
+            f"E = m c^2"
+            f"$$ <mass-energy-equation>\n"
+            f"In @eqt:mass-energy-equation , we get the foundation of physics.\n"
+            f"```\n"
+            f"You SHALL use `{article.language}` as writing language."
         )
 
         raw_paras = (
@@ -104,6 +116,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                 f"$$\n"
                 f"E = m c^2"
                 f"$$ <mass-energy-equation>\n"
+                f"In @eqt:mass-energy-equation , we get the foundation of physics.\n"
                 f"```\n"
                 f"\n\n\n"
                 f"{subsec.display()}",
