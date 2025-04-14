@@ -21,12 +21,33 @@ from fabricatio.utils import ok
 class WriteArticleContentRAG(Action, RAG, Extract):
     """Write an article based on the provided outline."""
 
-    ref_limit: int = 100
+    ref_limit: int = 35
     """The limit of references to be retrieved"""
     extractor_model: str
     """The model to use for extracting the content from the retrieved references."""
     query_model: str
     """The model to use for querying the database"""
+
+    req: str = (
+        "citation number is REQUIRED to cite any reference!\n"
+        "Everything is build upon the typst language, which is similar to latex, \n"
+        "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
+        "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
+        "Those reference mark shall not be omitted during the extraction\n"
+        "It's recommended to cite multiple references that supports your conclusion at a time.\n"
+        "Wrapp inline expression using $ $, and wrapp block equation using $$ $$."
+        "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
+        "you can refer to that label by using the syntax with prefix of `@eqt:`"
+        "Below is a usage example:\n"
+        "```typst\n"
+        "See @eqt:mass-energy-equation , it's the equation.\n"
+        "$$\n"
+        "E = m c^2"
+        "$$\n"
+        "<mass-energy-equation>"
+        "In @eqt:mass-energy-equation , we get the foundation of physics.\n"
+        "```"
+    )
 
     async def _execute(
         self,
@@ -64,31 +85,16 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             ),
             "Failed to refine query.",
         )
-        ret = await self.aretrieve(ref_q, ArticleChunk, final_limit=self.ref_limit, result_per_query=25)
+        ret = await self.aretrieve(ref_q, ArticleChunk, final_limit=self.ref_limit, result_per_query=6)
         ret.reverse()
         cm = CitationManager().update_chunks(ret)
 
         raw_paras = await self.aask(
-            f"{cm.as_prompt()}\nAbove is some related reference retrieved for you. When need to cite some of them ,you MUST follow the academic convention,"
+            f"{cm.as_prompt()}\nAbove is some related reference retrieved for you."
             f"{article.referenced.display()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
             f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
-            f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`\n"
-            f"You can output the written paragraphs directly, without explanation. you should use `{subsec.language}`, and maintain academic writing style."
-            f"In addition,you MUST follow the academic convention and use [[1]] to cite the 1th reference, and use [[9]] to cite the 9th reference, and so on.\n"
-            f"It 's greatly recommended to cite multiple references that stands for the same opinion at a single sentences, like [[1,5,9]] for 1th,5th and 9th references,[[1-9,16]] for 1th to 9th and 16th references.\n"
-            f"Usage like [[1],[2]] is completely wrong, instead, you should use [[1,2]] or [[1-2]] to represent citation for the 1th and the 2th\n"
-            f"citation number is REQUIRED to cite any reference!\n"
-            f"for paragraphs that need write equation you should also no forget to doing so. wrapp inline equation using $ $, and wrapp block equation using $$ $$.\n"
-            f"In addition to that, you can add a label to the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
-            f"you can refer to that label by using the syntax with prefix of `@eqt:`"
-            f"Below is a usage example:\n"
-            f"```typst\n"
-            f"See @eqt:mass-energy-equation , it's the equation.\n"
-            f"$$\n"
-            f"E = m c^2"
-            f"$$ <mass-energy-equation>\n"
-            f"In @eqt:mass-energy-equation , we get the foundation of physics.\n"
-            f"```\n"
+            f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`.\n"
+            f"{self.req}\n"
             f"You SHALL use `{article.language}` as writing language."
         )
 
@@ -101,25 +107,8 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                 ArticleSubsection,
                 raw_paras,
                 f"Above is the subsection titled `{subsec.title}`.\n"
-                f"I need you to extract the content to update my subsection obj provided below.\n"
-                f"Everything is build upon the typst language, which is similar to latex, \n"
-                f"so reference annotation like `[[1]]` for 1th reference or `[[2,6]]` for 2th and 6th reference or "
-                f"`[[1,5,9]]` for 1th,5th and 9th references or "
-                f"`[[1-9,16]]` for 1th to 9th and 16th references\n"
-                f"Those reference mark shall not be omitted during the extraction\n"
-                f"Wrapp inline expression using $ $, and wrapp block equation using $$ $$."
-                f"In addition to that, you can add a label to the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
-                f"you can refer to that label by using the syntax with prefix of `@eqt:`"
-                f"Below is a usage example:\n"
-                f"```typst\n"
-                f"See @eqt:mass-energy-equation , it's the equation.\n"
-                f"$$\n"
-                f"E = m c^2"
-                f"$$ <mass-energy-equation>\n"
-                f"In @eqt:mass-energy-equation , we get the foundation of physics.\n"
-                f"```\n"
-                f"\n\n\n"
-                f"{subsec.display()}",
+                f"I need you to extract the content to update my subsection obj provided below.\n{self.req}"
+                f"{subsec.display()}\n",
             ),
             "Failed to propose new subsection.",
         )
