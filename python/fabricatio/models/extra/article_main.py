@@ -16,13 +16,16 @@ from fabricatio.models.extra.article_outline import (
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
-from pydantic import Field
+from pydantic import Field, NonNegativeInt
 
 PARAGRAPH_SEP = "// - - -"
 
 
 class Paragraph(SketchedAble, WordCount, Described):
     """Structured academic paragraph blueprint for controlled content generation."""
+
+    expected_word_count: NonNegativeInt = 0
+    """The expected word count of this paragraph, 0 means not specified"""
 
     description: str = Field(
         alias="elaboration",
