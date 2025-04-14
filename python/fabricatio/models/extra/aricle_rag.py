@@ -227,7 +227,7 @@ class CitationManager(AsPrompt):
     def deduplicate_citation(self, citation_seq: List[int]) -> List[int]:
         """Deduplicate citation sequence."""
         chunk_seq = [a for a in self.article_chunks if a.cite_number in citation_seq]
-        deduped = unique(chunk_seq, lambda a: a.cite_number)
+        deduped = unique(chunk_seq, lambda a: a.bibtex_cite_key)
         return [a.cite_number for a in deduped]
 
     def unpack_cite_seq(self, citation_seq: List[int]) -> str:
