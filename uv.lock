@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.11.dev0"
+version = "0.2.11.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -576,11 +576,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.41.0"
+version = "0.41.1"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/a7/79/bfe51a451f6504e2fe40ccc01c59735736cd05cdcea8421fa2745049caca/json_repair-0.41.0.tar.gz", hash = "sha256:c9ee227d949d5da463024942b715e0e331f9f96cb7377e2f85a661b21596c50b", size = 31167 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/6d/6a/6c7a75a10da6dc807b582f2449034da1ed74415e8899746bdfff97109012/json_repair-0.41.1.tar.gz", hash = "sha256:bba404b0888c84a6b86ecc02ec43b71b673cfee463baf6da94e079c55b136565", size = 31208 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c5/f3/07804982ee14f80f480796949c9d218ac6385e35b2e5597ef4fe6e2bd51c/json_repair-0.41.0-py3-none-any.whl", hash = "sha256:e3be820988fa210fe046e54c8475eafa9e069f1b85d67725f842eb00d1b61f21", size = 21705 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/10/5c/abd7495c934d9af5c263c2245ae30cfaa716c3c0cf027b2b8fa686ee7bd4/json_repair-0.41.1-py3-none-any.whl", hash = "sha256:0e181fd43a696887881fe19fed23422a54b3e4c558b6ff27a86a8c3ddde9ae79", size = 21578 },
 ]
 
 [[package]]
@@ -635,7 +635,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.65.8"
+version = "1.66.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -650,9 +650,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/dd/e2/42d7926d56e363a8c80c90ffa6282697f41b5adc7cb6fdb1191b24b40433/litellm-1.65.8.tar.gz", hash = "sha256:b486359953aaf97c754c30bd865981208f545cb4454932378595988f3314e7b7", size = 7177881 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/5d/d0/78f8b8988a339001a043fdc6a940b69e7efeeb98bf002ade7bc399406e35/litellm-1.66.0.tar.gz", hash = "sha256:15f592bab604233083dc8b79e1e510e7e234f06525efe4c4255732bfc7ceb219", size = 7197719 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/12/0e/8b4b6e507beb698dedf4a512f148ccdd68b4547360b7905d8d5030587003/litellm-1.65.8-py3-none-any.whl", hash = "sha256:53323d8477bc6bf08e0744363a743f45197b6af789136a3e95099b3c5cb36b25", size = 7526793 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8b/f8/dcc2005e7600f82899e654f998efb1ade1dbbbb62ad2e590783df05b8e7c/litellm-1.66.0-py3-none-any.whl", hash = "sha256:1e4a2a9e023b12a385e4283b2f7922f7bd9c15b93ee9e64e203333cf8ddbc895", size = 7550112 },
 ]
 
 [[package]]
