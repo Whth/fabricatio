@@ -164,7 +164,7 @@ class GenerateInitialOutline(Action, Extract):
             from questionary import confirm, text
 
             r_print(raw_outline)
-            while not await confirm("continue?", default=False).ask_async():
+            while not await confirm("Accept this version and continue?", default=True).ask_async():
                 imp = await text("Enter the improvement:").ask_async()
                 raw_outline = await self.aask(
                     f"{article_proposal.as_prompt()}\n{wrapp_in_block(raw_outline, 'Previous ArticleOutline')}\n{imp}"
