@@ -50,7 +50,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     _namespace: Event = PrivateAttr(default_factory=Event)
     """The namespace of the task as an event, which is generated from the namespace list."""
-    _extra_init_context: Dict = Field(default_factory=dict)
+    _extra_init_context: Dict = PrivateAttr(default_factory=dict)
     """Extra initialization context for the task, which is designed to override the one of the Workflow."""
 
     @property
