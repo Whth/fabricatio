@@ -31,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
 
 if configs.cache.enabled and configs.cache.type:
     litellm.enable_cache(type=configs.cache.type, **configs.cache.params)
-    logger.success(f"{configs.cache.type.name} Cache enabled")
+    logger.debug(f"{configs.cache.type.name} Cache enabled")
 
 ROUTER = Router(
     routing_strategy="usage-based-routing-v2",
