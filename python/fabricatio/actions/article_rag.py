@@ -56,7 +56,6 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        writing_ruleset: RuleSet,
         collection_name: str = "article_chunks",
         **cxt,
     ) -> Article:
