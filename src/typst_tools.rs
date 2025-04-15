@@ -49,7 +49,12 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
                     format!("${}$", converted)
                 }
             }
-            Err(e) => format!("Error converting `{}` to `{}`", tex_code, e),
+
+            Err(e) => if block {
+                format!("$\n{}\n{}\n$", comment(tex_code), e)
+            } else {
+                format!("${}$\n{}\n", tex_code, comment(e.as_str()))
+            },
         }
     });
 
