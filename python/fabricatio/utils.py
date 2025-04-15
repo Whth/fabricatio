@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, overload
 
 from fabricatio.decorators import precheck_package
 
@@ -28,15 +28,26 @@ async def ask_edit(text_seq: List[str]) -> List[str]:
     return res
 
 
+@overload
+async def ask_retain[V](candidates: List[str]) -> List[str]: ...
+
+
+@overload
+async def ask_retain[V](candidates: List[str], value_mapping: List[V]) -> List[V]: ...
+
+
 @precheck_package(
     "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
 )
-async def ask_retain(candidates: List[str]) -> List[str]:
+async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] = None) -> List[str] | List[V]:
     """Asks the user to retain a list of candidates."""
     from questionary import Choice, checkbox
 
     return await checkbox(
-        "Please choose those that should be retained.", choices=[Choice(p, value=p, checked=True) for p in candidates]
+        "Please choose those that should be retained.",
+        choices=[Choice(p, value=p, checked=True) for p in candidates]
+        if value_mapping is None
+        else [Choice(p, value=v) for p, v in zip(candidates, value_mapping, strict=True)],
     ).ask_async()
 
 
