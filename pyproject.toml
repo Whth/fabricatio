@@ -74,7 +74,7 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[calc,ftd,plot,qa,rag]",
+    "fabricatio[calc,ftd,plot,qa,rag,cli]",
 ]
 rag = [
     "pymilvus>=2.5.4",
@@ -91,6 +91,9 @@ qa = [
 ]
 ftd = [
     "magika>=0.6.1",
+]
+cli = [
+    "typer>=0.15.2",
 ]
 
 [tool.ruff]
