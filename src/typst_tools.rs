@@ -8,7 +8,7 @@ use tex2typst_rs::tex2typst;
 /// convert the tex to typst
 #[pyfunction]
 fn tex_to_typst(string: &str) -> PyResult<String> {
-    tex2typst(string).map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
+    tex2typst(string).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
 }
 
 /// add comment to the string
@@ -53,7 +53,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
             Err(e) => if block {
                 format!("$\n{}\n{}\n$", comment(tex_code), e)
             } else {
-                format!("${}$\n{}\n", tex_code, comment(e.as_str()))
+                format!("$\"Err converting {}:{}\"$", tex_code, e)
             },
         }
     });
