@@ -46,11 +46,11 @@ Role(
                 PersistentAll,
             ),
         ),
-        Event.quick_instantiate(ns2 := ""): WorkFlow(
+        Event.quick_instantiate(ns2 := "complete"): WorkFlow(
             name="Generate Article",
             description="Generate an article with given raw article outline. dump the outline to the given path. in typst format.",
             steps=(
-                ExtractOutlineFromRaw,
+                ExtractOutlineFromRaw(output_key="article_outline"),
                 PersistentAll,
                 WriteArticleContentRAG(
                     output_key="to_dump",
@@ -95,7 +95,7 @@ def completion(
                 collection_name=collection_name,
                 supervisor=supervisor,
             )
-            .delegate(ns)
+            .delegate(ns2)
         ),
         "Failed to generate an article ",
     )
