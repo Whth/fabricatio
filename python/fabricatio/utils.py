@@ -8,9 +8,7 @@ from fabricatio.decorators import precheck_package
 @precheck_package(
     "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
 )
-async def ask_edit(
-    text_seq: List[str],
-) -> List[str]:
+async def ask_edit(text_seq: List[str]) -> List[str]:
     """Asks the user to edit a list of texts.
 
     Args:
@@ -28,6 +26,18 @@ async def ask_edit(
         if edited:
             res.append(edited)
     return res
+
+
+@precheck_package(
+    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
+)
+async def ask_retain(candidates: List[str]) -> List[str]:
+    """Asks the user to retain a list of candidates."""
+    from questionary import Choice, checkbox
+
+    return await checkbox(
+        "Please choose those that should be retained.", choices=[Choice(p, value=p, checked=True) for p in candidates]
+    ).ask_async()
 
 
 def override_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
@@ -71,5 +81,3 @@ def wrapp_in_block(string: str, title: str, style: str = "-") -> str:
         str: The wrapped string.
     """
     return f"--- Start of {title} ---\n{string}\n--- End of {title} ---".replace("-", style)
-
-
