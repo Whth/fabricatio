@@ -54,14 +54,14 @@ async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] 
 def override_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
     """Override the values in kwargs with the provided overrides."""
     new_kwargs = dict(kwargs.items())
-    new_kwargs.update({k: v for k, v in overrides.items() if v is not None})
+    new_kwargs.update(overrides)
     return new_kwargs
 
 
-def fallback_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
-    """Fallback the values in kwargs with the provided overrides."""
+def fallback_kwargs(kwargs: Mapping[str, Any], **fallbacks) -> Dict[str, Any]:
+    """Fallback the values in kwargs with the provided fallbacks."""
     new_kwargs = dict(kwargs.items())
-    new_kwargs.update({k: v for k, v in overrides.items() if k not in new_kwargs and v is not None})
+    new_kwargs.update({k: v for k, v in fallbacks.items() if k not in new_kwargs})
     return new_kwargs
 
 
