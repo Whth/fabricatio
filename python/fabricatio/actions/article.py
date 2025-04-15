@@ -149,6 +149,7 @@ class GenerateInitialOutline(Action, Extract):
     async def _execute(
         self,
         article_proposal: ArticleProposal,
+        supervisor: Optional[bool] = None,
         **_,
     ) -> Optional[ArticleOutline]:
         raw_outline = await self.aask(
@@ -160,7 +161,7 @@ class GenerateInitialOutline(Action, Extract):
             f"Note that you SHALL use `{article_proposal.language}` as written language",
         )
 
-        if self.supervisor:
+        if supervisor or (supervisor is None and self.supervisor):
             from questionary import confirm, text
 
             r_print(raw_outline)

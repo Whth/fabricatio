@@ -57,7 +57,7 @@ Role(
             description="Generate an outline for an article. dump the outline to the given path. in typst format.",
             steps=(
                 GenerateArticleProposal,
-                GenerateInitialOutline(output_key="article_outline", supervisor=False),
+                GenerateInitialOutline(output_key="article_outline"),
                 PersistentAll,
                 WriteArticleContentRAG(
                     output_key="to_dump",
@@ -89,6 +89,7 @@ def write(
         Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Write an article based on a briefing.
 
@@ -103,6 +104,7 @@ def write(
                 dump_path=dump_path,
                 persist_dir=persist_dir,
                 collection_name=collection_name,
+                supervisor=supervisor,
             )
             .delegate(ns)
         ),

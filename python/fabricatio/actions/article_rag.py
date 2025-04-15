@@ -57,11 +57,12 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         self,
         article_outline: ArticleOutline,
         collection_name: str = "article_chunks",
+        supervisor: Optional[bool] = None,
         **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline).update_ref(article_outline)
 
-        if self.supervisor:
+        if supervisor or (supervisor is None and self.supervisor):
             await gather(
                 *[
                     self._supervisor_inner(article, article_outline, chap, sec, subsec)
@@ -97,9 +98,10 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
         raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm)
         r_print(raw)
+
         while not await confirm("Accept this version and continue?").ask_async():
             if await confirm("Search for more refs?").ask_async():
-                new_refs = await self.search_database(article, article_outline, chap, sec, subsec)
+                new_refs = await self.search_database(article, article_outline, chap, sec, subsec, supervisor=True)
                 cm.add_chunks(await ask_retain([r.chunk for r in new_refs], new_refs))
 
             instruction = await text("Enter the instructions to improve").ask_async()
@@ -184,6 +186,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         sec: ArticleSection,
         subsec: ArticleSubsection,
         extra_instruction: str = "",
+        supervisor: bool = False,
     ) -> List[ArticleChunk]:
         """Search database for related references."""
         ref_q = ok(
@@ -198,7 +201,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             "Failed to refine query.",
         )
 
-        if self.supervisor:
+        if supervisor:
             ref_q = await ask_retain(ref_q)
 
         return await self.aretrieve(
