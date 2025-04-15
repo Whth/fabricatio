@@ -4,7 +4,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 """
 
 from asyncio import Queue
-from typing import Any, List, Optional, Self
+from typing import Any, Dict, List, Optional, Self
 
 from fabricatio.config import configs
 from fabricatio.constants import TaskStatus
@@ -50,6 +50,18 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     _namespace: Event = PrivateAttr(default_factory=Event)
     """The namespace of the task as an event, which is generated from the namespace list."""
+    _extra_init_context: Dict = Field(default_factory=dict)
+    """Extra initialization context for the task, which is designed to override the one of the Workflow."""
+
+    @property
+    def extra_init_context(self) -> Dict:
+        """Extra initialization context for the task, which is designed to override the one of the Workflow."""
+        return self._extra_init_context
+
+    def update_init_context(self, /, **kwargs) -> Self:
+        """Update the extra initialization context for the task."""
+        self.extra_init_context.update(kwargs)
+        return self
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the task with a namespace event."""
