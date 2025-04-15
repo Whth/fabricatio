@@ -18,6 +18,7 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
+from fabricatio.rust import comment
 from pydantic import Field
 
 
@@ -29,9 +30,7 @@ class ReferringType(StrEnum):
     SUBSECTION = "subsection"
 
 
-
 type RefKey = Tuple[str, Optional[str], Optional[str]]
-
 
 
 class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
@@ -46,8 +45,6 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
 
     aims: List[str]
     """List of writing aims of the research component in academic style."""
-
-
 
 
 class ArticleOutlineBase(
@@ -92,7 +89,13 @@ class SubSectionBase(ArticleOutlineBase):
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-        return f"=== {self.title}\n"
+        return (
+            f"=== {self.title}\n"
+            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
+            + f"Expected Word Count:{self.expected_word_count}"
+            if self.expected_word_count
+            else ""
+        )
 
     def introspect(self) -> str:
         """Introspects the article subsection outline."""
@@ -117,7 +120,13 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
         Returns:
             str: The formatted Typst code snippet.
         """
-        return f"== {self.title}\n" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
+        return (
+            f"== {self.title}\n"
+            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
+            + f"Expected Word Count:{self.expected_word_count}"
+            if self.expected_word_count
+            else ""
+        ) + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -160,7 +169,13 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
-        return f"= {self.title}\n" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
+        return (
+            f"= {self.title}\n"
+            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
+            + f"Expected Word Count:{self.expected_word_count}"
+            if self.expected_word_count
+            else ""
+        ) + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -302,4 +317,8 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
             === Implementation Details
             == Evaluation Protocol
         """
-        return "\n\n".join(a.to_typst_code() for a in self.chapters)
+        return comment(
+            f"Title:{self.title}\nDesc:\n{self.description}\n" + f"Word Count:{self.expected_word_count}"
+            if self.expected_word_count
+            else ""
+        ) + "\n\n".join(a.to_typst_code() for a in self.chapters)
