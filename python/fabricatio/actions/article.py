@@ -152,14 +152,15 @@ class GenerateInitialOutline(Action, Extract):
         supervisor: Optional[bool] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        raw_outline = await self.aask(
-            f"{(article_proposal.as_prompt())}\n"
+        req = (
             f"Design each chapter of a proper and academic and ready for release manner.\n"
             f"You Must make sure every chapter have sections, and every section have subsections.\n"
             f"Make the chapter and sections and subsections bing divided into a specific enough article component.\n"
             f"Every chapter must have sections, every section must have subsections.\n"
             f"Note that you SHALL use `{article_proposal.language}` as written language",
         )
+
+        raw_outline = await self.aask(f"{(article_proposal.as_prompt())}\n{req}")
 
         if supervisor or (supervisor is None and self.supervisor):
             from questionary import confirm, text
@@ -168,7 +169,7 @@ class GenerateInitialOutline(Action, Extract):
             while not await confirm("Accept this version and continue?", default=True).ask_async():
                 imp = await text("Enter the improvement:").ask_async()
                 raw_outline = await self.aask(
-                    f"{article_proposal.as_prompt()}\n{wrapp_in_block(raw_outline, 'Previous ArticleOutline')}\n{imp}"
+                    f"{article_proposal.as_prompt()}\n{wrapp_in_block(raw_outline, 'Previous ArticleOutline')}\n{req}\n{wrapp_in_block(imp, title='Improvement')}"
                 )
                 r_print(raw_outline)
 
@@ -176,6 +177,20 @@ class GenerateInitialOutline(Action, Extract):
             await self.extract(ArticleOutline, raw_outline, **self.extract_kwargs),
             "Could not generate the initial outline.",
         ).update_ref(article_proposal)
+
+
+class ExtractOutlineFromRaw(Action, Extract):
+    """Extract the outline from the raw outline."""
+
+    output_key: str = "article_outline_from_raw"
+
+    async def _execute(self, article_outline_raw_path: str | Path, **cxt) -> ArticleOutline:
+        logger.info(f"Extracting outline from raw: {Path(article_outline_raw_path).as_posix()}")
+
+        return ok(
+            await self.extract(ArticleOutline, safe_text_read(article_outline_raw_path)),
+            "Could not extract the outline from raw.",
+        )
 
 
 class FixIntrospectedErrors(Action, Censor):
