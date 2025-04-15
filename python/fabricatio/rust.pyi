@@ -14,6 +14,7 @@ Key Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, overload
 
+
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -93,6 +94,115 @@ class TemplateManager:
 
         Returns:
             Rendered template content as string or list of strings
+        """
+
+
+class BibManager:
+    """BibTeX bibliography manager for parsing and querying citation data."""
+
+    def __init__(self, path: str) -> None:
+        """Initialize the bibliography manager.
+
+        Args:
+            path: Path to BibTeX (.bib) file to load
+
+        Raises:
+            RuntimeError: If file cannot be read or parsed
+        """
+
+    def get_cite_key_by_title(self, title: str) -> Optional[str]:
+        """Find citation key by exact title match.
+
+        Args:
+            title: Full title to search for (case-insensitive)
+
+        Returns:
+            Citation key if exact match found, None otherwise
+        """
+
+    def get_cite_key_by_title_fuzzy(self, title: str) -> Optional[str]:
+        """Find citation key by fuzzy title match.
+
+        Args:
+            title: Search term to find in bibliography entries
+
+        Returns:
+            Citation key of best matching entry, or None if no good match
+        """
+
+    def get_cite_key_fuzzy(self, query: str) -> Optional[str]:
+        """Find best matching citation using fuzzy text search.
+
+        Args:
+            query: Search term to find in bibliography entries
+
+        Returns:
+            Citation key of best matching entry, or None if no good match
+
+        Notes:
+            Uses nucleo_matcher for high-quality fuzzy text searching
+            See: https://crates.io/crates/nucleo-matcher
+        """
+
+    def list_titles(self, is_verbatim: Optional[bool] = False) -> List[str]:
+        """List all titles in the bibliography.
+
+        Args:
+            is_verbatim: Whether to return verbatim titles (without formatting)
+
+        Returns:
+            List of all titles in the bibliography
+        """
+
+    def get_author_by_key(self, key: str) -> Optional[List[str]]:
+        """Retrieve authors by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            List of authors if found, None otherwise
+        """
+
+    def get_year_by_key(self, key: str) -> Optional[int]:
+        """Retrieve the publication year by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Publication year if found, None otherwise
+        """
+
+    def get_abstract_by_key(self, key: str) -> Optional[str]:
+        """Retrieve the abstract by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Abstract if found, None otherwise
+        """
+
+    def get_title_by_key(self, key: str) -> Optional[str]:
+        """Retrieve the title by citation key.
+
+        Args:
+            key: Citation key
+
+        Returns:
+            Title if found, None otherwise
+        """
+
+    def get_field_by_key(self, key: str, field: str) -> Optional[str]:
+        """Retrieve a specific field by citation key.
+
+        Args:
+            key: Citation key
+            field: Field name
+
+        Returns:
+            Field value if found, None otherwise
         """
 
 
@@ -250,110 +360,25 @@ def convert_all_block_tex(string: str) -> str:
     """
 
 
-class BibManager:
-    """BibTeX bibliography manager for parsing and querying citation data."""
+def comment(input: str) -> str:
+    """
+    Add comment to the string.
 
-    def __init__(self, path: str) -> None:
-        """Initialize the bibliography manager.
+    Args:
+        input: The input string to which comments will be added.
 
-        Args:
-            path: Path to BibTeX (.bib) file to load
+    Returns:
+        The string with each line prefixed by '// '.
+    """
 
-        Raises:
-            RuntimeError: If file cannot be read or parsed
-        """
 
-    def get_cite_key_by_title(self, title: str) -> Optional[str]:
-        """Find citation key by exact title match.
+def uncomment(input: str) -> str:
+    """
+    Remove comment from the string.
 
-        Args:
-            title: Full title to search for (case-insensitive)
+    Args:
+        input: The input string from which comments will be removed.
 
-        Returns:
-            Citation key if exact match found, None otherwise
-        """
-
-    def get_cite_key_by_title_fuzzy(self, title: str) -> Optional[str]:
-        """Find citation key by fuzzy title match.
-
-        Args:
-            title: Search term to find in bibliography entries
-
-        Returns:
-            Citation key of best matching entry, or None if no good match
-        """
-
-    def get_cite_key_fuzzy(self, query: str) -> Optional[str]:
-        """Find best matching citation using fuzzy text search.
-
-        Args:
-            query: Search term to find in bibliography entries
-
-        Returns:
-            Citation key of best matching entry, or None if no good match
-
-        Notes:
-            Uses nucleo_matcher for high-quality fuzzy text searching
-            See: https://crates.io/crates/nucleo-matcher
-        """
-
-    def list_titles(self, is_verbatim: Optional[bool] = False) -> List[str]:
-        """List all titles in the bibliography.
-
-        Args:
-            is_verbatim: Whether to return verbatim titles (without formatting)
-
-        Returns:
-            List of all titles in the bibliography
-        """
-
-    def get_author_by_key(self, key: str) -> Optional[List[str]]:
-        """Retrieve authors by citation key.
-
-        Args:
-            key: Citation key
-
-        Returns:
-            List of authors if found, None otherwise
-        """
-
-    def get_year_by_key(self, key: str) -> Optional[int]:
-        """Retrieve the publication year by citation key.
-
-        Args:
-            key: Citation key
-
-        Returns:
-            Publication year if found, None otherwise
-        """
-
-    def get_abstract_by_key(self, key: str) -> Optional[str]:
-        """Retrieve the abstract by citation key.
-
-        Args:
-            key: Citation key
-
-        Returns:
-            Abstract if found, None otherwise
-        """
-
-    def get_title_by_key(self, key: str) -> Optional[str]:
-        """Retrieve the title by citation key.
-
-        Args:
-            key: Citation key
-
-        Returns:
-            Title if found, None otherwise
-        """
-
-    def get_field_by_key(self, key: str, field: str) -> Optional[str]:
-        """Retrieve a specific field by citation key.
-
-        Args:
-            key: Citation key
-            field: Field name
-
-        Returns:
-            Field value if found, None otherwise
-        """
+    Returns:
+        The string with comments (lines starting with '// ' or '//') removed.
+    """

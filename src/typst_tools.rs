@@ -11,15 +11,20 @@ fn tex_to_typst(string: &str) -> PyResult<String> {
     tex2typst(string).map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
 }
 
-
-pub fn comment(input: &str) -> String {
+/// add comment to the string
+#[pyfunction]
+fn comment(input: &str) -> String {
     input
-        .split('\n') // 分割字符串为多行，包括末尾的空行
-        .map(|line| format!("// {}", line)) // 为每行添加注释
-        .collect::<Vec<_>>() // 收集为Vec<String>
-        .join("\n") // 用换行符连接所有行
+        .split('\n')
+        .map(|line| format!("// {}", line))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
-pub fn uncomment(input: &str) -> String {
+
+
+/// remove comment from the string
+#[pyfunction]
+fn uncomment(input: &str) -> String {
     input
         .split('\n') // Split the string into lines
         .map(|line| {
@@ -64,8 +69,12 @@ fn convert_all_block_tex(string: &str) -> PyResult<String> {
 }
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(comment, m)?)?;
+    m.add_function(wrap_pyfunction!(uncomment, m)?)?;
+
     m.add_function(wrap_pyfunction!(tex_to_typst, m)?)?;
     m.add_function(wrap_pyfunction!(convert_all_inline_tex, m)?)?;
     m.add_function(wrap_pyfunction!(convert_all_block_tex, m)?)?;
+
     Ok(())
 }
