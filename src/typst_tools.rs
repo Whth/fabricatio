@@ -13,8 +13,8 @@ fn tex_to_typst(string: &str) -> PyResult<String> {
 
 /// add comment to the string
 #[pyfunction]
-fn comment(input: &str) -> String {
-    input
+fn comment(string: &str) -> String {
+    string
         .split('\n')
         .map(|line| format!("// {}", line))
         .collect::<Vec<_>>()
@@ -24,8 +24,8 @@ fn comment(input: &str) -> String {
 
 /// remove comment from the string
 #[pyfunction]
-fn uncomment(input: &str) -> String {
-    input
+fn uncomment(string: &str) -> String {
+    string
         .split('\n') // Split the string into lines
         .map(|line| {
             line.strip_prefix("// ")

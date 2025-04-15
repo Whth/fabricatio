@@ -14,7 +14,6 @@ Key Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, overload
 
-
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -25,7 +24,7 @@ class TemplateManager:
     """
 
     def __init__(
-            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
@@ -56,13 +55,9 @@ class TemplateManager:
         """
 
     @overload
-    def render_template(self, name: str, data: Dict[str, Any]) -> str:
-        ...
-
+    def render_template(self, name: str, data: Dict[str, Any]) -> str: ...
     @overload
-    def render_template(self, name: str, data: List[Dict[str, Any]]) -> List[str]:
-        ...
-
+    def render_template(self, name: str, data: List[Dict[str, Any]]) -> List[str]: ...
     def render_template(self, name: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -78,13 +73,9 @@ class TemplateManager:
         """
 
     @overload
-    def render_template_raw(self, template: str, data: Dict[str, Any]) -> str:
-        ...
-
+    def render_template_raw(self, template: str, data: Dict[str, Any]) -> str: ...
     @overload
-    def render_template_raw(self, template: str, data: List[Dict[str, Any]]) -> List[str]:
-        ...
-
+    def render_template_raw(self, template: str, data: List[Dict[str, Any]]) -> List[str]: ...
     def render_template_raw(self, template: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -95,7 +86,6 @@ class TemplateManager:
         Returns:
             Rendered template content as string or list of strings
         """
-
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
@@ -205,7 +195,6 @@ class BibManager:
             Field value if found, None otherwise
         """
 
-
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
 
@@ -216,10 +205,8 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
-
 def detect_language(string: str) -> str:
     """Detect the language of a given string."""
-
 
 def split_word_bounds(string: str) -> List[str]:
     """Split the string into words based on word boundaries.
@@ -231,7 +218,6 @@ def split_word_bounds(string: str) -> List[str]:
         A list of words extracted from the string.
     """
 
-
 def split_sentence_bounds(string: str) -> List[str]:
     """Split the string into sentences based on sentence boundaries.
 
@@ -241,7 +227,6 @@ def split_sentence_bounds(string: str) -> List[str]:
     Returns:
         A list of sentences extracted from the string.
     """
-
 
 def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: float = 0.3) -> List[str]:
     """Split the string into chunks of a specified size.
@@ -255,7 +240,6 @@ def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: fl
         A list of chunks extracted from the string.
     """
 
-
 def word_count(string: str) -> int:
     """Count the number of words in the string.
 
@@ -266,66 +250,50 @@ def word_count(string: str) -> int:
         The number of words in the string.
     """
 
-
 def is_chinese(string: str) -> bool:
     """Check if the given string is in Chinese."""
-
 
 def is_english(string: str) -> bool:
     """Check if the given string is in English."""
 
-
 def is_japanese(string: str) -> bool:
     """Check if the given string is in Japanese."""
-
 
 def is_korean(string: str) -> bool:
     """Check if the given string is in Korean."""
 
-
 def is_arabic(string: str) -> bool:
     """Check if the given string is in Arabic."""
-
 
 def is_russian(string: str) -> bool:
     """Check if the given string is in Russian."""
 
-
 def is_german(string: str) -> bool:
     """Check if the given string is in German."""
-
 
 def is_french(string: str) -> bool:
     """Check if the given string is in French."""
 
-
 def is_hindi(string: str) -> bool:
     """Check if the given string is in Hindi."""
-
 
 def is_italian(string: str) -> bool:
     """Check if the given string is in Italian."""
 
-
 def is_dutch(string: str) -> bool:
     """Check if the given string is in Dutch."""
-
 
 def is_portuguese(string: str) -> bool:
     """Check if the given string is in Portuguese."""
 
-
 def is_swedish(string: str) -> bool:
     """Check if the given string is in Swedish."""
-
 
 def is_turkish(string: str) -> bool:
     """Check if the given string is in Turkish."""
 
-
 def is_vietnamese(string: str) -> bool:
     """Check if the given string is in Vietnamese."""
-
 
 def tex_to_typst(string: str) -> str:
     """Convert TeX to Typst.
@@ -337,7 +305,6 @@ def tex_to_typst(string: str) -> str:
         The converted Typst string.
     """
 
-
 def convert_all_inline_tex(string: str) -> str:
     """Convert all inline TeX code in the string.
 
@@ -347,7 +314,6 @@ def convert_all_inline_tex(string: str) -> str:
     Returns:
         The converted string with inline TeX code replaced.
     """
-
 
 def convert_all_block_tex(string: str) -> str:
     """Convert all block TeX code in the string.
@@ -359,25 +325,21 @@ def convert_all_block_tex(string: str) -> str:
         The converted string with block TeX code replaced.
     """
 
-
-def comment(input: str) -> str:
-    """
-    Add comment to the string.
+def comment(string: str) -> str:
+    """Add comment to the string.
 
     Args:
-        input: The input string to which comments will be added.
+        string: The input string to which comments will be added.
 
     Returns:
         The string with each line prefixed by '// '.
     """
 
-
-def uncomment(input: str) -> str:
-    """
-    Remove comment from the string.
+def uncomment(string: str) -> str:
+    """Remove comment from the string.
 
     Args:
-        input: The input string from which comments will be removed.
+        string: The input string from which comments will be removed.
 
     Returns:
         The string with comments (lines starting with '// ' or '//') removed.
