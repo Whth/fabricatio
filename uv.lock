@@ -270,7 +270,7 @@ calc = [
     { name = "sympy" },
 ]
 cli = [
-    { name = "typer" },
+    { name = "typer-slim", extra = ["standard"] },
 ]
 ftd = [
     { name = "magika" },
@@ -281,7 +281,7 @@ full = [
     { name = "pymilvus" },
     { name = "questionary" },
     { name = "sympy" },
-    { name = "typer" },
+    { name = "typer-slim", extra = ["standard"] },
 ]
 plot = [
     { name = "matplotlib" },
@@ -329,7 +329,7 @@ requires-dist = [
     { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sympy", marker = "extra == 'calc'", specifier = ">=1.13.3" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.15.2" },
+    { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
     { name = "ujson", specifier = ">=5.10.0" },
 ]
 provides-extras = ["full", "rag", "calc", "plot", "qa", "ftd", "cli"]
@@ -1530,18 +1530,22 @@ wheels = [
 ]
 
 [[package]]
-name = "typer"
+name = "typer-slim"
 version = "0.15.2"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "click" },
-    { name = "rich" },
-    { name = "shellingham" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8b/6f/3991f0f1c7fcb2df31aef28e0594d8d54b05393a0e4e34c65e475c2a5d41/typer-0.15.2.tar.gz", hash = "sha256:ab2fab47533a813c49fe1f16b1a370fd5819099c00b119e0633df65f22144ba5", size = 100711 }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/29/67/88189eb827c491646511dc6c806e2e6e543241cae5438383aa042b1dfa40/typer_slim-0.15.2.tar.gz", hash = "sha256:4a666bb7839a88f51dd25d078d36dbc1d0f37c8c2696e184fbc1f3eaa314a91b", size = 100755 }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/7f/fc/5b29fea8cee020515ca82cc68e3b8e1e34bb19a3535ad854cac9257b414c/typer-0.15.2-py3-none-any.whl", hash = "sha256:46a499c6107d645a9c13f7ee46c5d5096cae6f5fc57dd11eccbbb9ae3e44ddfc", size = 45061 },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9e/84/9b68e98bf7417d25e38b27a0296bfcbc6719b15d7000f4c09d9716fa9d11/typer_slim-0.15.2-py3-none-any.whl", hash = "sha256:4273014a3378b24367bffed45c2ce8dd3d85bd201a6f02e51ba6b19f336009be", size = 45117 },
+]
+
+[package.optional-dependencies]
+standard = [
+    { name = "rich" },
+    { name = "shellingham" },
 ]
 
 [[package]]
