@@ -18,6 +18,7 @@ from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage, ToolBoxUsage
+from fabricatio.utils import override_kwargs
 from pydantic import Field, PrivateAttr
 
 OUTPUT_KEY = "task_output"
@@ -55,7 +56,7 @@ class Action(WithBriefing, LLMUsage):
         self.description = self.description or self.__class__.__doc__ or ""
 
     @abstractmethod
-    async def _execute(self, *_:Any, **cxt) -> Any:
+    async def _execute(self, *_: Any, **cxt) -> Any:
         """Implement the core logic of the action.
 
         Args:
@@ -95,10 +96,11 @@ class Action(WithBriefing, LLMUsage):
             return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
         return f"# The action you are going to perform: \n{super().briefing}"
 
-    def to_task_output(self)->Self:
+    def to_task_output(self) -> Self:
         """Set the output key to OUTPUT_KEY and return the action instance."""
-        self.output_key=OUTPUT_KEY
+        self.output_key = OUTPUT_KEY
         return self
+
 
 class WorkFlow(WithBriefing, ToolBoxUsage):
     """Manages sequences of actions to fulfill tasks.
@@ -177,7 +179,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         current_action = None
         try:
             # Process each action in sequence
-            for i,step in enumerate(self._instances):
+            for i, step in enumerate(self._instances):
                 current_action = step.name
                 logger.info(f"Executing step [{i}] >> {current_action}")
 
@@ -227,8 +229,13 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             - Any extra_init_context values
         """
         logger.debug(f"Initializing context for workflow: {self.name}")
-        initial_context = {self.task_input_key: task, **dict(self.extra_init_context)}
-        await self._context.put(initial_context)
+        ctx = override_kwargs(self.extra_init_context, **task.extra_init_context)
+        if self.task_input_key in ctx:
+            raise ValueError(
+                f"Task input key: `{self.task_input_key}`, which is reserved, is already set in the init context"
+            )
+
+        await self._context.put({self.task_input_key: task, **ctx})
 
     def steps_fallback_to_self(self) -> Self:
         """Configure all steps to use this workflow's configuration as fallback.
@@ -245,7 +252,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         Returns:
             Self: The workflow instance for method chaining.
         """
-        self.provide_tools_to(i for i in self._instances if isinstance(i,ToolBoxUsage))
+        self.provide_tools_to(i for i in self._instances if isinstance(i, ToolBoxUsage))
         return self
 
     def update_init_context(self, /, **kwargs) -> Self:
