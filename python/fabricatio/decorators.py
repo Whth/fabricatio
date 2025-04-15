@@ -6,7 +6,7 @@ from importlib.util import find_spec
 from inspect import signature
 from shutil import which
 from types import ModuleType
-from typing import Callable, List, Optional
+from typing import Callable, Coroutine, List, Optional
 
 from fabricatio.config import configs
 from fabricatio.journal import logger
@@ -23,7 +23,20 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
         bool: True if the package exists, False otherwise.
     """
 
-    def _wrapper(func: Callable[P, R]) -> Callable[P, R]:
+    def _wrapper(
+        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+    ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
+        if iscoroutinefunction(func):
+
+            @wraps(func)
+            async def _async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
+                if find_spec(package_name):
+                    return await func(*args, **kwargs)
+                raise RuntimeError(msg)
+
+            return _async_inner
+
+        @wraps(func)
         def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
             if find_spec(package_name):
                 return func(*args, **kwargs)
@@ -35,7 +48,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
 
 
 def depend_on_external_cmd[**P, R](
-        bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
+    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 
@@ -88,8 +101,9 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     return _wrapper
 
 
-@precheck_package("questionary",
-                  "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?.")
+@precheck_package(
+    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
+)
 def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, R]:
     """Decorator to confirm before executing a function.
 
@@ -109,8 +123,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if await confirm(
-                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
-                    instruction="Please input [Yes/No] to proceed (default: Yes):",
+                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
+                instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask_async():
                 return await func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -121,8 +135,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if confirm(
-                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
-                    instruction="Please input [Yes/No] to proceed (default: Yes):",
+                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
+                instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask():
                 return func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -203,7 +217,9 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
     return _decorator
 
 
-def logging_exec_time[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+def logging_exec_time[**P, R](
+    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
     """Decorator to log the execution time of a function.
 
     Args:
@@ -215,6 +231,7 @@ def logging_exec_time[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     from time import time
 
     if iscoroutinefunction(func):
+
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()
