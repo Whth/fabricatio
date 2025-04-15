@@ -190,6 +190,12 @@ class CitationManager(AsPrompt):
             self.set_cite_number_all()
         return self
 
+    def add_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True)-> Self:
+        """Add article chunks."""
+        self.article_chunks.extend(article_chunks)
+        if set_cite_number:
+            self.set_cite_number_all()
+        return self
     def set_cite_number_all(self) -> Self:
         """Set citation numbers for all article chunks."""
         for i, a in enumerate(self.article_chunks, 1):
