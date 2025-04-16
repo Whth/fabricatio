@@ -93,7 +93,7 @@ class ArticleSubsection(SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return super().to_typst_code() + f"\n{PARAGRAPH_SEP}\n".join(p.content for p in self.paragraphs)
+        return super().to_typst_code() + f"\n\n{PARAGRAPH_SEP}\n\n".join(p.content for p in self.paragraphs)
 
     @classmethod
     def from_typst_code(cls, title: str, body: str) -> Self:
