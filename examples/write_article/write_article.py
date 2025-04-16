@@ -66,7 +66,7 @@ Role(
         Event.quick_instantiate(ns4 := "consult"): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG(ref_q_model="openai/qwen-max"),),
+            steps=(ArticleConsultRAG(ref_q_model="openai/qwen-max").to_task_output(),),
         ),
     },
 )

@@ -223,6 +223,8 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 class ArticleConsultRAG(Action, RAG):
     """Write an article based on the provided outline."""
 
+    output_key:str ="consult_count"
+
     ref_limit: int = 20
     """The final limit of references."""
     ref_per_q: int = 3

@@ -96,9 +96,9 @@ class Action(WithBriefing, LLMUsage):
             return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
         return f"# The action you are going to perform: \n{super().briefing}"
 
-    def to_task_output(self) -> Self:
+    def to_task_output(self, task_output_key: str = OUTPUT_KEY) -> Self:
         """Set the output key to OUTPUT_KEY and return the action instance."""
-        self.output_key = OUTPUT_KEY
+        self.output_key = task_output_key
         return self
 
 
