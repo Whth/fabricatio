@@ -63,12 +63,9 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         article = Article.from_outline(article_outline).update_ref(article_outline)
 
         if supervisor or (supervisor is None and self.supervisor):
-            await gather(
-                *[
-                    self._supervisor_inner(article, article_outline, chap, sec, subsec)
-                    for chap, sec, subsec in article.iter_subsections()
-                ]
-            )
+            for chap, sec, subsec in article.iter_subsections():
+                await self._supervisor_inner(article, article_outline, chap, sec, subsec)
+
         else:
             await gather(
                 *[
@@ -139,7 +136,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                 f"Above is the subsection titled `{subsec.title}`.\n"
                 f"I need you to extract the content to update my subsection obj provided below.\n{self.req}"
                 f"{subsec.display()}\n",
-                model=self.extractor_model
+                model=self.extractor_model,
             ),
             "Failed to propose new subsection.",
         )

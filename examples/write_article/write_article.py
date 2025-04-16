@@ -84,6 +84,7 @@ def finish(
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
     supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
+    """Finish an article based on a given article outline."""
     path = ok(
         asyncio.run(
             Task(name="write an article")
