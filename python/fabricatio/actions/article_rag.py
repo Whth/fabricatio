@@ -18,6 +18,26 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.utils import ask_retain, ok
 
+TYPST_CITE_USAGE = (
+    "citation number is REQUIRED to cite any reference!,for example in Auther Pattern: 'Doe et al.[[1]], Jack et al.[[2]]' or in Sentence Suffix Sattern: 'Global requirement is incresing[[1]].'\n"
+    "Everything is build upon the typst language, which is similar to latex, \n"
+    "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
+    "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
+    "Those reference mark shall not be omitted during the extraction\n"
+    "It's recommended to cite multiple references that supports your conclusion at a time.\n"
+    "Wrapp inline expression using $ $,like '$>5m$' '$89%$' , and wrapp block equation using $$ $$. if you are using '$' as the money unit, you should add a '\\' before it to avoid being interpreted as a inline equation. For example 'The pants worths 5\\$.'\n"
+    "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled.\n"
+    "you can refer to that label by using the syntax with prefix of `@eqt:`, which indicate that this notation is citing a label from the equations. For example ' @eqt:energy-release-rate-equation ' DO remember that the notation shall have both suffixed and prefixed space char which enable the compiler to distinguish the notation from the plaintext."
+    "Below is a usage example:\n"
+    "```typst\n"
+    "See @eqt:mass-energy-equation , it's the foundation of physics.\n"
+    "$$\n"
+    "E = m c^2\n"
+    "$$  <mass-energy-equation>\n\n\n"
+    "In @eqt:mass-energy-equation , $m$ stands for mass, $c$ stands for speed of light, and $E$ stands for energy. \n"
+    "```"
+)
+
 
 class WriteArticleContentRAG(Action, RAG, Extract):
     """Write an article based on the provided outline."""
@@ -32,35 +52,17 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     """The model to use for querying the database"""
     supervisor: bool = False
     """Whether to use supervisor mode"""
-    req: str = (
-        "citation number is REQUIRED to cite any reference!,for example in Auther Pattern: 'Doe et al.[[1]], Jack et al.[[2]]' or in Sentence Suffix Sattern: 'Global requirement is incresing[[1]].'\n"
-        "Everything is build upon the typst language, which is similar to latex, \n"
-        "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
-        "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
-        "Those reference mark shall not be omitted during the extraction\n"
-        "It's recommended to cite multiple references that supports your conclusion at a time.\n"
-        "Wrapp inline expression using $ $,like '$>5m$' '$89%$' , and wrapp block equation using $$ $$. if you are using '$' as the money unit, you should add a '\\' before it to avoid being interpreted as a inline equation. For example 'The pants worths 5\\$.'\n"
-        "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled.\n"
-        "you can refer to that label by using the syntax with prefix of `@eqt:`, which indicate that this notation is citing a label from the equations. For example ' @eqt:energy-release-rate-equation ' DO remember that the notation shall have both suffixed and prefixed space char which enable the compiler to distinguish the notation from the plaintext."
-        "Below is a usage example:\n"
-        "```typst\n"
-        "See @eqt:mass-energy-equation , it's the foundation of physics.\n"
-        "$$\n"
-        "E = m c^2\n"
-        "$$  <mass-energy-equation>\n\n\n"
-        "In @eqt:mass-energy-equation , $m$ stands for mass, $c$ stands for speed of light, and $E$ stands for energy. \n"
-        "```"
-    )
+    req: str = TYPST_CITE_USAGE
 
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        collection_name: str = "article_chunks",
+        collection_name: Optional[str] = None,
         supervisor: Optional[bool] = None,
         **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline).update_ref(article_outline)
-
+        self.target_collection = collection_name or self.safe_target_collection
         if supervisor or (supervisor is None and self.supervisor):
             for chap, sec, subsec in article.iter_subsections():
                 await self._supervisor_inner(article, article_outline, chap, sec, subsec)
@@ -216,6 +218,57 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         return await self.aretrieve(
             ref_q, ArticleChunk, final_limit=self.ref_limit, result_per_query=3, similarity_threshold=self.threshold
         )
+
+
+class ArticleConsultRAG(Action, RAG):
+    """Write an article based on the provided outline."""
+
+    ref_limit: int = 20
+    """The final limit of references."""
+    ref_per_q: int = 3
+    """The limit of references to retrieve per query."""
+    similarity_threshold: float = 0.62
+    """The similarity threshold of references to retrieve."""
+    ref_q_model: Optional[str] = None
+    """The model to use for refining query."""
+    req: str = TYPST_CITE_USAGE
+    """The request for the rag model."""
+
+    @precheck_package(
+        "questionary", "`questionary` is required for supervisor mode, please install it by `fabricatio[qa]`"
+    )
+    async def _execute(self, collection_name: Optional[str] = None, **cxt) -> int:
+        from questionary import confirm, text
+        from rich import print as r_print
+
+        from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex
+
+        self.target_collection = collection_name or self.safe_target_collection
+
+        cm = CitationManager()
+
+        counter = 0
+        while (req := await text("User: ").ask_async()) is not None:
+            if await confirm("Empty the cm?").ask_async():
+                cm.empty()
+            ref_q = await self.arefined_query(req, model=self.ref_q_model)
+            refs = await self.aretrieve(
+                ok(ref_q, "Failed to refine query."),
+                ArticleChunk,
+                final_limit=self.ref_limit,
+                result_per_query=self.ref_per_q,
+                similarity_threshold=self.similarity_threshold,
+            )
+
+            ret = await self.aask(f"{cm.add_chunks(refs).as_prompt()}\n{self.req}\n{req}")
+            ret = convert_all_inline_tex(ret)
+            ret = convert_all_block_tex(ret)
+            ret = cm.apply(ret)
+
+            r_print(ret)
+            counter += 1
+        logger.info(f"{counter} rounds of conversation.")
+        return counter
 
 
 class TweakArticleRAG(Action, RAG, Censor):
