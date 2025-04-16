@@ -139,6 +139,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                 f"Above is the subsection titled `{subsec.title}`.\n"
                 f"I need you to extract the content to update my subsection obj provided below.\n{self.req}"
                 f"{subsec.display()}\n",
+                model=self.extractor_model
             ),
             "Failed to propose new subsection.",
         )
