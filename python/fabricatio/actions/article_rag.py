@@ -24,7 +24,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
     ref_limit: int = 35
     """The limit of references to be retrieved"""
-    threshold: float = 0.55
+    threshold: float = 0.62
     """The threshold of relevance"""
     extractor_model: str
     """The model to use for extracting the content from the retrieved references."""
@@ -33,22 +33,21 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     supervisor: bool = False
     """Whether to use supervisor mode"""
     req: str = (
-        "citation number is REQUIRED to cite any reference!\n"
+        "citation number is REQUIRED to cite any reference!,for example in Auther Pattern: 'Doe et al.[[1]], Jack et al.[[2]]' or in Sentence Suffix Sattern: 'Global requirement is incresing[[1]].'\n"
         "Everything is build upon the typst language, which is similar to latex, \n"
         "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
         "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
         "Those reference mark shall not be omitted during the extraction\n"
         "It's recommended to cite multiple references that supports your conclusion at a time.\n"
-        "Wrapp inline expression using $ $, and wrapp block equation using $$ $$."
-        "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>`,"
-        "you can refer to that label by using the syntax with prefix of `@eqt:`"
+        "Wrapp inline expression using $ $,like '$>5m$' '$89%$' , and wrapp block equation using $$ $$. if you are using '$' as the money unit, you should add a '\\' before it to avoid being interpreted as a inline equation. For example 'The pants worths 5\\$.'\n"
+        "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled.\n"
+        "you can refer to that label by using the syntax with prefix of `@eqt:`, which indicate that this notation is citing a label from the equations. For example ' @eqt:energy-release-rate-equation ' DO remember that the notation shall have both suffixed and prefixed space char which enable the compiler to distinguish the notation from the plaintext."
         "Below is a usage example:\n"
         "```typst\n"
         "See @eqt:mass-energy-equation , it's the foundation of physics.\n"
         "$$\n"
-        "E = m c^2"
-        "$$\n"
-        "<mass-energy-equation>\n\n"
+        "E = m c^2\n"
+        "$$  <mass-energy-equation>\n\n\n"
         "In @eqt:mass-energy-equation , $m$ stands for mass, $c$ stands for speed of light, and $E$ stands for energy. \n"
         "```"
     )
@@ -97,14 +96,22 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         r_print(raw)
 
         while not await confirm("Accept this version and continue?").ask_async():
-            if await confirm("Search for more refs?").ask_async():
-                new_refs = await self.search_database(article, article_outline, chap, sec, subsec, supervisor=True)
+            if inst := await text("Search for more refs for additional spec.").ask_async():
+                new_refs = await self.search_database(
+                    article,
+                    article_outline,
+                    chap,
+                    sec,
+                    subsec,
+                    supervisor=True,
+                    extra_instruction=inst,
+                )
                 cm.add_chunks(await ask_retain([r.chunk for r in new_refs], new_refs))
 
-            instruction = await text("Enter the instructions to improve").ask_async()
-            raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm, instruction)
-            if await confirm("Edit it?").ask_async():
-                raw = await text("Edit", default=raw).ask_async() or raw
+            if instruction := await text("Enter the instructions to improve").ask_async():
+                raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm, instruction)
+            if edt := await text("Edit", default=raw).ask_async():
+                raw = edt
 
             r_print(raw)
 
@@ -160,12 +167,14 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         return (
             (
                 await self.aask(
-                    f"{cm.as_prompt()}\nAbove is some related reference retrieved for you."
+                    f"{cm.as_prompt()}\nAbove is some related reference from other auther retrieved for you."
                     f"{article_outline.finalized_dump()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
                     f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
                     f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`.\n"
                     f"{self.req}\n"
-                    f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}"
+                    f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
+                    f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the article\n"
+                    f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn."
                 )
             )
             .replace(r" \( ", "$")
@@ -173,7 +182,9 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             .replace(r"\(", "$")
             .replace(r"\)", "$")
             .replace("\\[\n", "$$\n")
+            .replace("\\[ ", "$$\n")
             .replace("\n\\]", "\n$$")
+            .replace(" \\]", "\n$$")
         )
 
     async def search_database(
