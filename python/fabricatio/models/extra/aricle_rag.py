@@ -9,7 +9,7 @@ from fabricatio.journal import logger
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
-from fabricatio.rust import BibManager, is_chinese, split_into_chunks
+from fabricatio.rust import BibManager, blake3_hash, is_chinese, split_into_chunks
 from fabricatio.utils import ok
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
@@ -53,7 +53,7 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
-            f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}`": self.chunk
+            f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}` from {self.as_auther_seq()}": self.chunk
         }
 
     @property
@@ -182,20 +182,27 @@ class CitationManager(AsPrompt):
     abbr_sep: str = "-"
     """Separator for abbreviated citation numbers."""
 
-    def update_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True) -> Self:
+    def update_chunks(
+        self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
+    ) -> Self:
         """Update article chunks."""
         self.article_chunks.clear()
         self.article_chunks.extend(article_chunks)
+        if dedup:
+            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.chunk.encode())))
         if set_cite_number:
             self.set_cite_number_all()
         return self
 
-    def add_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True)-> Self:
+    def add_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True) -> Self:
         """Add article chunks."""
         self.article_chunks.extend(article_chunks)
+        if dedup:
+            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.chunk.encode())))
         if set_cite_number:
             self.set_cite_number_all()
         return self
+
     def set_cite_number_all(self) -> Self:
         """Set citation numbers for all article chunks."""
         for i, a in enumerate(self.article_chunks, 1):
@@ -208,7 +215,7 @@ class CitationManager(AsPrompt):
 
     def apply(self, string: str) -> str:
         """Apply citation replacements to the input string."""
-        for origin,m in re.findall(self.pat, string):
+        for origin, m in re.findall(self.pat, string):
             logger.info(f"Matching citation: {m}")
             notations = self.convert_to_numeric_notations(m)
             logger.info(f"Citing Notations: {notations}")
@@ -216,7 +223,7 @@ class CitationManager(AsPrompt):
             logger.info(f"Citation Number Sequence: {citation_number_seq}")
             dedup = self.deduplicate_citation(citation_number_seq)
             logger.info(f"Deduplicated Citation Number Sequence: {dedup}")
-            string=string.replace(origin, self.unpack_cite_seq(dedup))
+            string = string.replace(origin, self.unpack_cite_seq(dedup))
         return string
 
     def decode_expr(self, string: str) -> List[int]:
