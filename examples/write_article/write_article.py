@@ -17,7 +17,8 @@ Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
-    llm_temperature=0.6,
+    llm_temperature=0.35,
+    llm_top_p=0.95,
     llm_max_tokens=8191,
     llm_rpm=600,
     llm_tpm=1000000,
@@ -32,11 +33,11 @@ Role(
                 (
                     a := WriteArticleContentRAG(
                         output_key="to_dump",
-                        ref_limit=40,
+                        ref_limit=26,
+                        threshold=0.575,
                         llm_model="openai/qwen-max",
-                        target_collection="article_chunks_700",
                         extractor_model="openai/qwen-max",
-                        query_model="openai/deepseek-r1-250120",
+                        query_model="openai/qwen-plus",
                     )
                 ),
                 DumpFinalizedOutput(output_key="task_output"),
@@ -66,7 +67,7 @@ Role(
         Event.quick_instantiate(ns4 := "consult"): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG(ref_q_model="openai/qwen-max").to_task_output(),),
+            steps=(ArticleConsultRAG().to_task_output(),),
         ),
     },
 )
