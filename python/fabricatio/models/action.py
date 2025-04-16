@@ -12,7 +12,7 @@ Classes:
 import traceback
 from abc import abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, Dict, Self, Tuple, Type, Union, final
+from typing import Any, Dict, Self, Sequence, Tuple, Type, Union, final
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
@@ -123,9 +123,7 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
     _instances: Tuple[Action, ...] = PrivateAttr(default_factory=tuple)
     """Instantiated action objects to be executed in this workflow."""
 
-    steps: Tuple[Union[Type[Action], Action], ...] = Field(
-        frozen=True,
-    )
+    steps: Sequence[Union[Type[Action], Action]] = Field(frozen=True)
     """The sequence of actions to be executed, can be action classes or instances."""
 
     task_input_key: str = Field(default=INPUT_KEY)
