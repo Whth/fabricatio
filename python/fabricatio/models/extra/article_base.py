@@ -49,12 +49,11 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     @property
     def typst_metadata_comment(self) -> str:
         """Generates a comment for the metadata of the article component."""
-        return (
-            (comment(f"Desc:\n{self.description}\n") if self.description else "")
-            + (comment(f"Aims:\n{'\n  '.join(self.aims)}\n") if self.aims else "")
-            + (comment(f"Expected Word Count:{self.expected_word_count}") if self.expected_word_count else "")
-            if self.expected_word_count
-            else ""
+        return comment(
+            (f"Desc:\n  {self.description}\n" if self.description else "")
+            + (f"Aims:\n  {'\n  '.join(self.aims)}\n" if self.aims else "")
+            + (f"Expected Word Count:{self.expected_word_count}" if self.expected_word_count else "")
+
         )
 
 
@@ -326,14 +325,14 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
             + "\n\n".join(a.to_typst_code() for a in self.chapters)
         )
 
-    def avg_chap_wordcount[S](self:S) -> S:
+    def avg_chap_wordcount[S](self: S) -> S:
         """Set all chap have same word count sum up to be `self.expected_word_count`."""
         avg = int(self.expected_word_count / len(self.chapters))
         for c in self.chapters:
             c.expected_word_count = avg
         return self
 
-    def avg_sec_wordcount[S](self:S) -> S:
+    def avg_sec_wordcount[S](self: S) -> S:
         """Set all sec have same word count sum up to be `self.expected_word_count`."""
         for c in self.chapters:
             avg = int(c.expected_word_count / len(c.sections))
@@ -341,7 +340,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                 s.expected_word_count = avg
         return self
 
-    def avg_subsec_wordcount[S](self:S) -> S:
+    def avg_subsec_wordcount[S](self: S) -> S:
         """Set all subsec have same word count sum up to be `self.expected_word_count`."""
         for _, s in self.iter_sections():
             avg = int(s.expected_word_count / len(s.subsections))
