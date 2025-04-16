@@ -44,7 +44,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
         match tex2typst(tex_code) {
             Ok(converted) => {
                 if block {
-                    format!("$\n{}\n{}\n$", comment(tex_code), converted)
+                    format!("$\n{}\n{}\n$", comment(tex_code.trim()), converted)
                 } else {
                     format!("${}$", converted)
                 }
