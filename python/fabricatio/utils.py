@@ -47,7 +47,7 @@ async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] 
         "Please choose those that should be retained.",
         choices=[Choice(p, value=p, checked=True) for p in candidates]
         if value_mapping is None
-        else [Choice(p, value=v) for p, v in zip(candidates, value_mapping, strict=True)],
+        else [Choice(p, value=v, checked=True) for p, v in zip(candidates, value_mapping, strict=True)],
     ).ask_async()
 
 
