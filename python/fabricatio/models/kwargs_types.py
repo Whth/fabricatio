@@ -33,7 +33,7 @@ class LLMKwargs(TypedDict, total=False):
     including generation parameters and caching options.
     """
 
-    model: str
+    model: Optional[str]
     temperature: float
     stop: str | list[str]
     top_p: float
