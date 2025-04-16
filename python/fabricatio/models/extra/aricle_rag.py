@@ -244,6 +244,10 @@ class CitationManager(AsPrompt):
             logger.info(f"Deduplicated Citation Number Sequence: {dedup}")
         return count
 
+    def citation_coverage(self, string: str) -> float:
+        """Get the citation coverage in the string."""
+        return self.citation_count(string) / len(self.article_chunks)
+
     def decode_expr(self, string: str) -> List[int]:
         """Decode citation expression into a list of integers."""
         if self.abbr_sep in string:
