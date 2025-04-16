@@ -12,10 +12,14 @@ from fabricatio.models.extra.article_base import (
     SubSectionBase,
 )
 from fabricatio.models.extra.article_outline import (
+    ArticleChapterOutline,
     ArticleOutline,
+    ArticleSectionOutline,
+    ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
+from fabricatio.utils import fallback_kwargs
 from pydantic import Field, NonNegativeInt
 
 PARAGRAPH_SEP = "// - - -"
@@ -89,7 +93,7 @@ class ArticleSubsection(SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return f"=== {self.title}\n" + f"\n{PARAGRAPH_SEP}\n".join(p.content for p in self.paragraphs)
+        return super().to_typst_code() + f"\n{PARAGRAPH_SEP}\n".join(p.content for p in self.paragraphs)
 
     @classmethod
     def from_typst_code(cls, title: str, body: str) -> Self:
@@ -181,6 +185,50 @@ class Article(
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
         return super().iter_subsections()  # pyright: ignore [reportReturnType]
 
+    def extrac_outline(self) -> ArticleOutline:
+        """Extract outline from article."""
+        # Create an empty list to hold chapter outlines
+        chapters = []
+
+        # Iterate through each chapter in the article
+        for chapter in self.chapters:
+            # Create an empty list to hold section outlines
+            sections = []
+
+            # Iterate through each section in the chapter
+            for section in chapter.sections:
+                # Create an empty list to hold subsection outlines
+                subsections = []
+
+                # Iterate through each subsection in the section
+                for subsection in section.subsections:
+                    # Create a subsection outline and add it to the list
+                    subsections.append(
+                        ArticleSubsectionOutline(**subsection.model_dump(exclude={"paragraphs"}, by_alias=True))
+                    )
+
+                # Create a section outline and add it to the list
+                sections.append(
+                    ArticleSectionOutline(
+                        **section.model_dump(exclude={"subsections"}, by_alias=True),
+                        subsections=subsections,
+                    )
+                )
+
+            # Create a chapter outline and add it to the list
+            chapters.append(
+                ArticleChapterOutline(
+                    **chapter.model_dump(exclude={"sections"}, by_alias=True),
+                    sections=sections,
+                )
+            )
+
+        # Create and return the article outline
+        return ArticleOutline(
+            **self.model_dump(exclude={"chapters"}, by_alias=True),
+            chapters=chapters,
+        )
+
     @classmethod
     def from_outline(cls, outline: ArticleOutline) -> "Article":
         """Generates an article from the given outline.
@@ -218,15 +266,18 @@ class Article(
         return article
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str) -> Self:
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Generates an article from the given Typst code."""
         return cls(
             chapters=[
                 ArticleChapter.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
             ],
             heading=title,
-            expected_word_count=word_count(body),
-            abstract="",
+            **fallback_kwargs(
+                kwargs,
+                expected_word_count=word_count(body),
+                abstract="",
+            ),
         )
 
     @classmethod
@@ -248,3 +299,4 @@ class Article(
 
         for a in self.iter_dfs():
             a.title = await text(f"Edit `{a.title}`.", default=a.title).ask_async() or a.title
+        return self
