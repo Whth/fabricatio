@@ -237,6 +237,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}"
         )
         if ref_q is None:
+            logger.warning("Second refine query is None, skipping.")
             return
         if supervisor:
             ref_q = await ask_retain(ref_q)
@@ -249,6 +250,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             similarity_threshold=self.threshold,
         )
         if ret is None:
+            logger.warning("Second retrieve is None, skipping.")
             return
         cm.add_chunks(ret)
 
