@@ -46,6 +46,17 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     aims: List[str]
     """List of writing aims of the research component in academic style."""
 
+    @property
+    def typst_metadata_comment(self) -> str:
+        """Generates a comment for the metadata of the article component."""
+        return (
+            (comment(f"Desc:\n{self.description}\n") if self.description else "")
+            + (comment(f"Aims:\n{'\n  '.join(self.aims)}\n") if self.aims else "")
+            + (comment(f"Expected Word Count:{self.expected_word_count}") if self.expected_word_count else "")
+            if self.expected_word_count
+            else ""
+        )
+
 
 class ArticleOutlineBase(
     ArticleMetaData,
@@ -89,13 +100,7 @@ class SubSectionBase(ArticleOutlineBase):
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-        return (
-            f"=== {self.title}\n"
-            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
-            + f"Expected Word Count:{self.expected_word_count}"
-            if self.expected_word_count
-            else ""
-        )
+        return f"=== {self.title}\n{self.typst_metadata_comment}\n"
 
     def introspect(self) -> str:
         """Introspects the article subsection outline."""
@@ -120,13 +125,9 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
         Returns:
             str: The formatted Typst code snippet.
         """
-        return (
-            f"== {self.title}\n"
-            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
-            + f"Expected Word Count:{self.expected_word_count}"
-            if self.expected_word_count
-            else ""
-        ) + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
+        return f"== {self.title}\n{self.typst_metadata_comment}\n" + "\n\n".join(
+            subsec.to_typst_code() for subsec in self.subsections
+        )
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -169,13 +170,9 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
-        return (
-            f"= {self.title}\n"
-            f"{comment(f'Desc:\n{self.description}\nAims:\n{"\n".join(self.aims)}')}\n"
-            + f"Expected Word Count:{self.expected_word_count}"
-            if self.expected_word_count
-            else ""
-        ) + "\n\n".join(sec.to_typst_code() for sec in self.sections)
+        return f"= {self.title}\n{self.typst_metadata_comment}\n" + "\n\n".join(
+            sec.to_typst_code() for sec in self.sections
+        )
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -317,8 +314,41 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
             === Implementation Details
             == Evaluation Protocol
         """
-        return comment(
-            f"Title:{self.title}\nDesc:\n{self.description}\n" + f"Word Count:{self.expected_word_count}"
-            if self.expected_word_count
-            else ""
-        ) + "\n\n".join(a.to_typst_code() for a in self.chapters)
+        return (
+            comment(
+                f"Title:{self.title}\n"
+                + (f"Desc:\n{self.description}\n" if self.description else "")
+                + f"Word Count:{self.expected_word_count}"
+                if self.expected_word_count
+                else ""
+            )
+            + "\n\n"
+            + "\n\n".join(a.to_typst_code() for a in self.chapters)
+        )
+
+    def avg_chap_wordcount[S](self:S) -> S:
+        """Set all chap have same word count sum up to be `self.expected_word_count`."""
+        avg = int(self.expected_word_count / len(self.chapters))
+        for c in self.chapters:
+            c.expected_word_count = avg
+        return self
+
+    def avg_sec_wordcount[S](self:S) -> S:
+        """Set all sec have same word count sum up to be `self.expected_word_count`."""
+        for c in self.chapters:
+            avg = int(c.expected_word_count / len(c.sections))
+            for s in c.sections:
+                s.expected_word_count = avg
+        return self
+
+    def avg_subsec_wordcount[S](self:S) -> S:
+        """Set all subsec have same word count sum up to be `self.expected_word_count`."""
+        for _, s in self.iter_sections():
+            avg = int(s.expected_word_count / len(s.subsections))
+            for ss in s.subsections:
+                ss.expected_word_count = avg
+        return self
+
+    def avg_wordcount_recursive(self) -> Self:
+        """Set all chap, sec, subsec have same word count sum up to be `self.expected_word_count`."""
+        return self.avg_chap_wordcount().avg_sec_wordcount().avg_sec_wordcount()
