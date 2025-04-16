@@ -194,6 +194,11 @@ class CitationManager(AsPrompt):
             self.set_cite_number_all()
         return self
 
+    def empty(self) -> Self:
+        """Empty the article chunks."""
+        self.article_chunks.clear()
+        return self
+
     def add_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True) -> Self:
         """Add article chunks."""
         self.article_chunks.extend(article_chunks)
