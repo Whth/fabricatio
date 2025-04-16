@@ -231,6 +231,19 @@ class CitationManager(AsPrompt):
             string = string.replace(origin, self.unpack_cite_seq(dedup))
         return string
 
+    def citation_count(self, string: str) -> int:
+        """Get the citation count in the string."""
+        count = 0
+        for _, m in re.findall(self.pat, string):
+            logger.info(f"Matching citation: {m}")
+            notations = self.convert_to_numeric_notations(m)
+            logger.info(f"Citing Notations: {notations}")
+            citation_number_seq = list(flatten(self.decode_expr(n) for n in notations))
+            logger.info(f"Citation Number Sequence: {citation_number_seq}")
+            count += len(dedup := self.deduplicate_citation(citation_number_seq))
+            logger.info(f"Deduplicated Citation Number Sequence: {dedup}")
+        return count
+
     def decode_expr(self, string: str) -> List[int]:
         """Decode citation expression into a list of integers."""
         if self.abbr_sep in string:
