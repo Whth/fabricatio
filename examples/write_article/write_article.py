@@ -11,7 +11,6 @@ from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
-from pydantic import HttpUrl
 from typer import Typer
 
 Role(
@@ -19,7 +18,6 @@ Role(
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
     llm_temperature=0.3,
-    llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_stream=True,
     llm_max_tokens=8191,
     llm_rpm=600,
@@ -32,14 +30,16 @@ Role(
                 GenerateArticleProposal,
                 GenerateInitialOutline(output_key="article_outline"),
                 PersistentAll,
-                WriteArticleContentRAG(
-                    output_key="to_dump",
-                    llm_top_p=0.85,
-                    ref_limit=26,
-                    llm_model="openai/qwen-plus",
-                    target_collection="article_chunks",
-                    extractor_model="openai/qwen-plus",
-                    query_model="openai/qwen-max",
+                (
+                    a := WriteArticleContentRAG(
+                        output_key="to_dump",
+                        llm_top_p=0.85,
+                        ref_limit=40,
+                        llm_model="openai/deepseek-v3-250324",
+                        target_collection="article_chunks",
+                        extractor_model="openai/qwen-plus",
+                        query_model="openai/qwen-max",
+                    )
                 ),
                 DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
@@ -51,15 +51,7 @@ Role(
             steps=(
                 ExtractOutlineFromRaw(output_key="article_outline"),
                 PersistentAll,
-                WriteArticleContentRAG(
-                    output_key="to_dump",
-                    llm_top_p=0.85,
-                    ref_limit=26,
-                    llm_model="openai/qwen-plus",
-                    target_collection="article_chunks",
-                    extractor_model="openai/qwen-plus",
-                    query_model="openai/qwen-max",
-                ),
+                a,
                 DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
             ),
@@ -68,15 +60,7 @@ Role(
             name="Finish Article",
             description="Finish an article with given article outline. dump the outline to the given path. in typst format.",
             steps=(
-                WriteArticleContentRAG(
-                    output_key="to_dump",
-                    llm_top_p=0.85,
-                    ref_limit=26,
-                    llm_model="openai/qwen-plus",
-                    target_collection="article_chunks",
-                    extractor_model="openai/qwen-plus",
-                    query_model="openai/qwen-max",
-                ),
+                a,
                 DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
             ),
