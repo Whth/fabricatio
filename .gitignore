@@ -167,3 +167,4 @@ extra/scripts/*
 output/
 .vscode/
 templates/customed
+*.typ
