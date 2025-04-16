@@ -7,21 +7,20 @@ import typer
 from fabricatio import Event, Role, WorkFlow, logger
 from fabricatio.actions.article import ExtractOutlineFromRaw, GenerateArticleProposal, GenerateInitialOutline
 from fabricatio.actions.article_rag import WriteArticleContentRAG
-from fabricatio.actions.output import (
-    DumpFinalizedOutput,
-    PersistentAll,
-)
+from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
+from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
+from pydantic import HttpUrl
 from typer import Typer
 
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/qwen-max",
-    llm_temperature=0.63,
+    llm_model="openai/qwen-plus",
+    llm_temperature=0.3,
+    llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_stream=True,
-    llm_top_p=0.85,
     llm_max_tokens=8191,
     llm_rpm=600,
     llm_tpm=900000,
@@ -35,9 +34,9 @@ Role(
                 PersistentAll,
                 WriteArticleContentRAG(
                     output_key="to_dump",
-                    llm_top_p=0.9,
-                    ref_limit=35,
-                    llm_model="openai/qwq-plus",
+                    llm_top_p=0.85,
+                    ref_limit=26,
+                    llm_model="openai/qwen-plus",
                     target_collection="article_chunks",
                     extractor_model="openai/qwen-plus",
                     query_model="openai/qwen-max",
@@ -54,9 +53,26 @@ Role(
                 PersistentAll,
                 WriteArticleContentRAG(
                     output_key="to_dump",
-                    llm_top_p=0.9,
-                    ref_limit=35,
-                    llm_model="openai/qwq-plus",
+                    llm_top_p=0.85,
+                    ref_limit=26,
+                    llm_model="openai/qwen-plus",
+                    target_collection="article_chunks",
+                    extractor_model="openai/qwen-plus",
+                    query_model="openai/qwen-max",
+                ),
+                DumpFinalizedOutput(output_key="task_output"),
+                PersistentAll,
+            ),
+        ),
+        Event.quick_instantiate(ns3 := "finish"): WorkFlow(
+            name="Finish Article",
+            description="Finish an article with given article outline. dump the outline to the given path. in typst format.",
+            steps=(
+                WriteArticleContentRAG(
+                    output_key="to_dump",
+                    llm_top_p=0.85,
+                    ref_limit=26,
+                    llm_model="openai/qwen-plus",
                     target_collection="article_chunks",
                     extractor_model="openai/qwen-plus",
                     query_model="openai/qwen-max",
@@ -70,6 +86,35 @@ Role(
 
 
 app = Typer()
+
+
+@app.command()
+def finish(
+    article_outline_path: Path = typer.Argument(  # noqa: B008
+        help="Path to the article outline raw file."
+    ),
+    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),  # noqa: B008
+    persist_dir: Path = typer.Option(  # noqa: B008
+        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
+    ),
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
+) -> None:
+    path = ok(
+        asyncio.run(
+            Task(name="write an article")
+            .update_init_context(
+                article_outline=ArticleOutline.from_persistent(article_outline_path),
+                dump_path=dump_path,
+                persist_dir=persist_dir,
+                collection_name=collection_name,
+                supervisor=supervisor,
+            )
+            .delegate(ns3)
+        ),
+        "Failed to generate an article ",
+    )
+    logger.success(f"The outline is saved in:\n{path}")
 
 
 @app.command()
