@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 from fabricatio import Event, Role, WorkFlow, logger
 from fabricatio.actions.article import ExtractOutlineFromRaw, GenerateArticleProposal, GenerateInitialOutline
-from fabricatio.actions.article_rag import WriteArticleContentRAG
+from fabricatio.actions.article_rag import ArticleConsultRAG, WriteArticleContentRAG
 from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
@@ -17,11 +17,10 @@ Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
-    llm_temperature=0.3,
-    llm_stream=True,
+    llm_temperature=0.6,
     llm_max_tokens=8191,
     llm_rpm=600,
-    llm_tpm=900000,
+    llm_tpm=1000000,
     registry={
         Event.quick_instantiate(ns := "article"): WorkFlow(
             name="Generate Article",
@@ -33,12 +32,11 @@ Role(
                 (
                     a := WriteArticleContentRAG(
                         output_key="to_dump",
-                        llm_top_p=0.85,
                         ref_limit=40,
-                        llm_model="openai/deepseek-v3-250324",
-                        target_collection="article_chunks",
-                        extractor_model="openai/qwen-plus",
-                        query_model="openai/qwen-max",
+                        llm_model="openai/qwen-max",
+                        target_collection="article_chunks_700",
+                        extractor_model="openai/qwen-max",
+                        query_model="openai/deepseek-r1-250120",
                     )
                 ),
                 DumpFinalizedOutput(output_key="task_output"),
@@ -65,11 +63,32 @@ Role(
                 PersistentAll,
             ),
         ),
+        Event.quick_instantiate(ns4 := "consult"): WorkFlow(
+            name="Consult Article",
+            description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
+            steps=(ArticleConsultRAG(ref_q_model="openai/qwen-max"),),
+        ),
     },
 )
 
 
 app = Typer()
+
+
+@app.command()
+def consult(
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+) -> None:
+    """Consult an article based on a given article outline."""
+    _ = asyncio.run(
+        Task(name="Answer Question")
+        .update_init_context(
+            collection_name=collection_name,
+        )
+        .delegate(ns4)
+    )
+
+    logger.info("Finished")
 
 
 @app.command()
