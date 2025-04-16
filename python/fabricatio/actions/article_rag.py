@@ -4,6 +4,8 @@ from asyncio import gather
 from pathlib import Path
 from typing import List, Optional
 
+from pydantic import PositiveInt
+
 from fabricatio import BibManager
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.extract import Extract
@@ -52,7 +54,10 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     """The model to use for querying the database"""
     supervisor: bool = False
     """Whether to use supervisor mode"""
+    result_per_query: PositiveInt = 4
+    """The number of results to be returned per query."""
     req: str = TYPST_CITE_USAGE
+    """The req of the write article content."""
 
     async def _execute(
         self,
@@ -90,25 +95,24 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         from questionary import confirm, text
         from rich import print as r_print
 
-        ret = await self.search_database(article, article_outline, chap, sec, subsec)
-
-        cm = CitationManager(article_chunks=await ask_retain([r.chunk for r in ret], ret)).set_cite_number_all()
+        cm = CitationManager()
+        await self.search_database(article, article_outline, chap, sec, subsec, cm)
 
         raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm)
         r_print(raw)
 
         while not await confirm("Accept this version and continue?").ask_async():
             if inst := await text("Search for more refs for additional spec.").ask_async():
-                new_refs = await self.search_database(
+                await self.search_database(
                     article,
                     article_outline,
                     chap,
                     sec,
                     subsec,
+                    cm,
                     supervisor=True,
                     extra_instruction=inst,
                 )
-                cm.add_chunks(await ask_retain([r.chunk for r in new_refs], new_refs))
 
             if instruction := await text("Enter the instructions to improve").ask_async():
                 raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm, instruction)
@@ -127,8 +131,9 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         sec: ArticleSection,
         subsec: ArticleSubsection,
     ) -> ArticleSubsection:
-        ret = await self.search_database(article, article_outline, chap, sec, subsec)
-        cm = CitationManager(article_chunks=ret).set_cite_number_all()
+        cm = CitationManager()
+
+        await self.search_database(article, article_outline, chap, sec, subsec, cm)
 
         raw_paras = await self.write_raw(article, article_outline, chap, sec, subsec, cm)
 
@@ -196,17 +201,22 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         chap: ArticleChapter,
         sec: ArticleSection,
         subsec: ArticleSubsection,
+        cm: CitationManager,
         extra_instruction: str = "",
         supervisor: bool = False,
-    ) -> List[ArticleChunk]:
+    ) -> None:
         """Search database for related references."""
+        search_req = (
+            f"{article_outline.finalized_dump()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
+            f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
+            f"I need to search related references to build up the content of the subsec mentioned above, which is `{subsec.title}`.\n"
+            f"provide 10~16 queries as possible, to get best result!\n"
+            f"You should provide both English version and chinese version of the refined queries!\n{extra_instruction}\n"
+        )
+
         ref_q = ok(
             await self.arefined_query(
-                f"{article_outline.finalized_dump()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
-                f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
-                f"I need to search related references to build up the content of the subsec mentioned above, which is `{subsec.title}`.\n"
-                f"provide 10~16 queries as possible, to get best result!\n"
-                f"You should provide both English version and chinese version of the refined queries!\n{extra_instruction}\n",
+                search_req,
                 model=self.query_model,
             ),
             "Failed to refine query.",
@@ -214,16 +224,39 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
         if supervisor:
             ref_q = await ask_retain(ref_q)
-
-        return await self.aretrieve(
-            ref_q, ArticleChunk, final_limit=self.ref_limit, result_per_query=3, similarity_threshold=self.threshold
+        ret = await self.aretrieve(
+            ref_q,
+            ArticleChunk,
+            final_limit=self.ref_limit,
+            result_per_query=self.result_per_query,
+            similarity_threshold=self.threshold,
         )
+
+        cm.add_chunks(ok(ret))
+        ref_q = await self.arefined_query(
+            f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}"
+        )
+        if ref_q is None:
+            return
+        if supervisor:
+            ref_q = await ask_retain(ref_q)
+
+        ret = await self.aretrieve(
+            ref_q,
+            ArticleChunk,
+            final_limit=self.ref_limit,
+            result_per_query=self.result_per_query,
+            similarity_threshold=self.threshold,
+        )
+        if ret is None:
+            return
+        cm.add_chunks(ret)
 
 
 class ArticleConsultRAG(Action, RAG):
     """Write an article based on the provided outline."""
 
-    output_key:str ="consult_count"
+    output_key: str = "consult_count"
 
     ref_limit: int = 20
     """The final limit of references."""
