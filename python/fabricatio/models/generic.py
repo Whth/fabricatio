@@ -186,7 +186,7 @@ class WithRef[T](Base):
     @overload
     def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
 
-    def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:  # noqa: PYI019
+    def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
 
         Args:
@@ -201,7 +201,7 @@ class WithRef[T](Base):
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
 
-    def derive[S: WithRef](self: S, reference: Any) -> S:  # noqa: PYI019
+    def derive[S: WithRef](self: S, reference: Any) -> S:
         """Derive a new object from the current object.
 
         Args:
