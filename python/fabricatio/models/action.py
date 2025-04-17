@@ -17,7 +17,7 @@ from typing import Any, Dict, Self, Sequence, Tuple, Type, Union, final
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
-from fabricatio.models.usages import LLMUsage, ToolBoxUsage
+from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.utils import override_kwargs
 from pydantic import Field, PrivateAttr
 
@@ -26,7 +26,7 @@ OUTPUT_KEY = "task_output"
 INPUT_KEY = "task_input"
 
 
-class Action(WithBriefing, LLMUsage):
+class Action(WithBriefing):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
