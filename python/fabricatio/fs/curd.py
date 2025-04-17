@@ -20,7 +20,7 @@ def dump_text(path: Union[str, Path], text: str) -> None:
     Returns:
         None
     """
-    Path(path).write_text(text, encoding="utf-8", errors="ignore")
+    Path(path).write_text(text, encoding="utf-8", errors="ignore", newline="\n")
 
 
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
