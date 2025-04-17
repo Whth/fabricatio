@@ -13,11 +13,14 @@ from fabricatio.models.task import Task
 from fabricatio.utils import ok
 from typer import Typer
 
+# from pydantic import HttpUrl
+
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
     llm_temperature=0.35,
+    # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_top_p=0.95,
     llm_max_tokens=8191,
     llm_rpm=600,
@@ -33,11 +36,12 @@ Role(
                 (
                     a := WriteArticleContentRAG(
                         output_key="to_dump",
-                        ref_limit=26,
-                        threshold=0.575,
-                        llm_model="openai/qwen-max",
+                        ref_limit=23,
+                        threshold=0.66,
+                        result_per_query=3,
+                        llm_model="openai/qwq-plus",
                         extractor_model="openai/qwen-max",
-                        query_model="openai/qwen-plus",
+                        query_model="openai/qwen-turbo",
                     )
                 ),
                 DumpFinalizedOutput(output_key="task_output"),
