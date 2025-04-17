@@ -37,7 +37,9 @@ fn uncomment(string: &str) -> String {
 }
 /// Helper function to convert TeX with a given pattern
 fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResult<String> {
-    let re = Regex::new(pattern).map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("Regex error: {}", e)))?;
+    let re = Regex::new(pattern).map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("Regex error: {}", e)))
+        .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
+
 
     let result = re.replace_all(string, |caps: &regex::Captures| {
         let tex_code = caps.get(1).unwrap().as_str();
@@ -46,14 +48,14 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
                 if block {
                     format!("$\n{}\n{}\n$", comment(tex_code.trim()), converted)
                 } else {
-                    format!("${}$", converted)
+                    format!(" ${}$ ", converted)
                 }
             }
 
             Err(e) => if block {
                 format!("$\n{}\n{}\n$", comment(tex_code), e)
             } else {
-                format!("$\"Err converting {}:{}\"$", tex_code, e)
+                format!(" ${}$ ", tex_code)
             },
         }
     });
@@ -64,7 +66,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
 
 #[pyfunction]
 fn convert_all_inline_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"(?s)\$(.*?)\$", string, false)
+    convert_tex_with_pattern(r"(?s)\s\$(.*?)\s\$", string, false)
 }
 
 
