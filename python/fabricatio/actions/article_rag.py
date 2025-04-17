@@ -137,6 +137,8 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
         raw_paras = await self.write_raw(article, article_outline, chap, sec, subsec, cm)
 
+        raw_paras = "\n".join(p for p in raw_paras.splitlines() if p and not p.endswith("**") and not p.startswith("#"))
+
         return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def extract_new_subsec(
@@ -182,7 +184,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                     f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
                     f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the thesis.\n"
                     f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn.\n"
-                    f"No extra explanation is allowed, you should only write the paragraphs of the subsec mentioned above. You need not add a title for paragraphs."
+                    f"No extra explanation is allowed."
                 )
             )
             .replace(r" \( ", "$")
