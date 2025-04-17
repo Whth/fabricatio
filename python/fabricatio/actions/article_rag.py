@@ -44,6 +44,8 @@ TYPST_CITE_USAGE = (
 class WriteArticleContentRAG(Action, RAG, Extract):
     """Write an article based on the provided outline."""
 
+    search_increment_multiplier: float = 1.6
+    """The increment multiplier of the search increment."""
     ref_limit: int = 35
     """The limit of references to be retrieved"""
     threshold: float = 0.62
@@ -250,8 +252,8 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         ret = await self.aretrieve(
             ref_q,
             ArticleChunk,
-            final_limit=self.ref_limit,
-            result_per_query=self.result_per_query,
+            final_limit=int(self.ref_limit * self.search_increment_multiplier),
+            result_per_query=int(self.result_per_query * self.search_increment_multiplier),
             similarity_threshold=self.threshold,
         )
         if ret is None:
