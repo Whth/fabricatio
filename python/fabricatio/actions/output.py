@@ -1,16 +1,18 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, Optional, Type
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Type
 
+from fabricatio import TEMPLATE_MANAGER
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import FinalizedDumpAble, FromMapping, PersistentAble
 from fabricatio.models.task import Task
+from fabricatio.models.usages import LLMUsage
 from fabricatio.utils import ok
 
 
-class DumpFinalizedOutput(Action):
+class DumpFinalizedOutput(Action, LLMUsage):
     """Dump the finalized output to a file."""
 
     output_key: str = "dump_path"
@@ -38,7 +40,37 @@ class DumpFinalizedOutput(Action):
         return dump_path.as_posix()
 
 
-class PersistentAll(Action):
+class RenderedDump(Action, LLMUsage):
+    """Render the data to a file."""
+
+    output_key: str = "dump_path"
+    dump_path: Optional[str] = None
+
+    template_name: str
+    """The template name to render the data."""
+
+    async def _execute(
+        self,
+        to_dump: Dict[str, Any],
+        task_input: Optional[Task] = None,
+        dump_path: Optional[str | Path] = None,
+        **_,
+    ) -> str:
+        dump_path = Path(
+            dump_path
+            or self.dump_path
+            or ok(
+                await self.awhich_pathstr(
+                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data."
+                ),
+                "Could not find the path of file to dump the data.",
+            )
+        )
+        logger.info(f"Saving output to {dump_path.as_posix()}")
+        return TEMPLATE_MANAGER.render_template(self.template_name, to_dump)
+
+
+class PersistentAll(Action, LLMUsage):
     """Persist all the data to a file."""
 
     output_key: str = "persistent_count"
