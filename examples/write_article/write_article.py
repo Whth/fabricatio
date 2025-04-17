@@ -23,8 +23,10 @@ Role(
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_top_p=0.95,
     llm_max_tokens=8191,
+    llm_stream=True,
     llm_rpm=600,
     llm_tpm=1000000,
+    llm_timeout=600,
     registry={
         Event.quick_instantiate(ns := "article"): WorkFlow(
             name="Generate Article",
@@ -36,9 +38,9 @@ Role(
                 (
                     a := WriteArticleContentRAG(
                         output_key="to_dump",
-                        ref_limit=23,
-                        threshold=0.66,
-                        result_per_query=3,
+                        ref_limit=18,
+                        threshold=0.58,
+                        result_per_query=2,
                         llm_model="openai/qwq-plus",
                         extractor_model="openai/qwen-max",
                         query_model="openai/qwen-turbo",
