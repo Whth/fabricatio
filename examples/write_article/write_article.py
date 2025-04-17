@@ -7,7 +7,7 @@ import typer
 from fabricatio import Event, Role, WorkFlow, logger
 from fabricatio.actions.article import ExtractOutlineFromRaw, GenerateArticleProposal, GenerateInitialOutline
 from fabricatio.actions.article_rag import ArticleConsultRAG, WriteArticleContentRAG
-from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll
+from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll, RenderedDump
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
@@ -46,8 +46,9 @@ Role(
                         query_model="openai/qwen-turbo",
                     )
                 ),
-                DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
+                DumpFinalizedOutput(dump_path="median.typ"),
+                RenderedDump(template_name="article").to_task_output(),
             ),
         ),
         Event.quick_instantiate(ns2 := "complete"): WorkFlow(
@@ -57,8 +58,9 @@ Role(
                 ExtractOutlineFromRaw(output_key="article_outline"),
                 PersistentAll,
                 a,
-                DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
+                DumpFinalizedOutput(dump_path="median.typ"),
+                RenderedDump(template_name="article").to_task_output(),
             ),
         ),
         Event.quick_instantiate(ns3 := "finish"): WorkFlow(
@@ -66,8 +68,9 @@ Role(
             description="Finish an article with given article outline. dump the outline to the given path. in typst format.",
             steps=(
                 a,
-                DumpFinalizedOutput(output_key="task_output"),
                 PersistentAll,
+                DumpFinalizedOutput(dump_path="median.typ"),
+                RenderedDump(template_name="article").to_task_output(),
             ),
         ),
         Event.quick_instantiate(ns4 := "consult"): WorkFlow(
