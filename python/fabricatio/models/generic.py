@@ -122,7 +122,7 @@ class FromMapping(Base):
 
     @classmethod
     @abstractmethod
-    def from_mapping(cls, mapping: Mapping[str, Any], **kwargs: Any) -> List[Self]:
+    def from_mapping[S](cls: S, mapping: Mapping[str, Any], **kwargs: Any) -> List[S]:
         """Generate a list of objects from a mapping."""
 
 
@@ -789,7 +789,7 @@ class ScopedConfig(Base):
     """The dimensions of the Milvus server."""
 
     @final
-    def fallback_to(self, other: "ScopedConfig") -> Self:
+    def fallback_to(self, other: Union["ScopedConfig", Any]) -> Self:
         """Merge configuration values with fallback priority.
 
         Copies non-null values from 'other' to self where current values are None.
@@ -800,6 +800,9 @@ class ScopedConfig(Base):
         Returns:
             Self: Current instance with merged values
         """
+        if not isinstance(other, ScopedConfig):
+            return self
+
         # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
         # noinspection PydanticTypeChecker,PyTypeChecker
         for attr_name in ScopedConfig.model_fields:
@@ -811,7 +814,7 @@ class ScopedConfig(Base):
         return self
 
     @final
-    def hold_to(self, others: Union["ScopedConfig", Iterable["ScopedConfig"]]) -> Self:
+    def hold_to(self, others: Union[Union["ScopedConfig", Any], Iterable[Union["ScopedConfig", Any]]]) -> Self:
         """Propagate non-null values to other configurations.
 
         Copies current non-null values to target configurations where they are None.
@@ -824,7 +827,8 @@ class ScopedConfig(Base):
         """
         if not isinstance(others, Iterable):
             others = [others]
-        for other in others:
+
+        for other in (o for o in others if isinstance(o, ScopedConfig)):
             # noinspection PyTypeChecker,PydanticTypeChecker
             for attr_name in ScopedConfig.model_fields:
                 if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
