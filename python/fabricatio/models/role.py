@@ -2,18 +2,18 @@
 
 from typing import Any, Self, Set
 
-from fabricatio.capabilities.correct import Correct
-from fabricatio.capabilities.task import HandleTask, ProposeTask
+from fabricatio.capabilities.propose import Propose
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.events import Event
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.tool import ToolBox
+from fabricatio.models.usages import ToolBoxUsage
 from pydantic import Field
 
 
-class Role(WithBriefing, ProposeTask, HandleTask, Correct):
+class Role(WithBriefing, Propose, ToolBoxUsage):
     """Class that represents a role with a registry of events and workflows.
 
     A Role serves as a container for workflows, managing their registration to events
@@ -23,7 +23,8 @@ class Role(WithBriefing, ProposeTask, HandleTask, Correct):
         registry: Mapping of events to workflows that handle them
         toolboxes: Set of toolboxes available to this role and its workflows
     """
-    description:str =""
+
+    description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
     registry: dict[Event | str, WorkFlow] = Field(default_factory=dict)
