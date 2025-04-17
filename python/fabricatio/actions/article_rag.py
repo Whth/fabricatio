@@ -180,8 +180,9 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                     f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`.\n"
                     f"{self.req}\n"
                     f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
-                    f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the article\n"
-                    f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn."
+                    f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the thesis.\n"
+                    f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn.\n"
+                    f"No extra explanation is allowed, you should only write the paragraphs of the subsec mentioned above. You need not add a title for paragraphs."
                 )
             )
             .replace(r" \( ", "$")
