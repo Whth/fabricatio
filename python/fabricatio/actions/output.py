@@ -1,9 +1,10 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Type
+from typing import Any, Iterable, List, Mapping, Optional, Type
 
 from fabricatio import TEMPLATE_MANAGER
+from fabricatio.fs import dump_text
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.generic import FinalizedDumpAble, FromMapping, PersistentAble
@@ -51,7 +52,7 @@ class RenderedDump(Action, LLMUsage):
 
     async def _execute(
         self,
-        to_dump: Dict[str, Any],
+        to_dump: FinalizedDumpAble,
         task_input: Optional[Task] = None,
         dump_path: Optional[str | Path] = None,
         **_,
@@ -66,8 +67,16 @@ class RenderedDump(Action, LLMUsage):
                 "Could not find the path of file to dump the data.",
             )
         )
+
         logger.info(f"Saving output to {dump_path.as_posix()}")
-        return TEMPLATE_MANAGER.render_template(self.template_name, to_dump)
+        dump_text(
+            dump_path,
+            TEMPLATE_MANAGER.render_template(
+                self.template_name, {to_dump.__class__.__name__: to_dump.finalized_dump()}
+            ),
+        )
+
+        return dump_path.as_posix()
 
 
 class PersistentAll(Action, LLMUsage):
