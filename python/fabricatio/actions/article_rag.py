@@ -234,8 +234,10 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
         cm.add_chunks(ok(ret))
         ref_q = await self.arefined_query(
-            f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}"
+            f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}",
+            model=self.query_model,
         )
+
         if ref_q is None:
             logger.warning("Second refine query is None, skipping.")
             return

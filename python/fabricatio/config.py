@@ -328,9 +328,9 @@ class RoutingConfig(BaseModel):
     allowed_fails: Optional[int] = 3
     """The number of allowed fails before the routing is considered failed."""
     retry_after: int = 15
-    """The time in seconds to wait before retrying the routing after a fail."""
-    cooldown_time: Optional[int] = 30
-    """The time in seconds to wait before retrying the routing after a cooldown."""
+    """Minimum time to wait before retrying a failed request."""
+    cooldown_time: Optional[int] = 60
+    """Time to cooldown a deployment after failure in seconds."""
 
 
 class Settings(BaseSettings):
