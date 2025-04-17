@@ -3,6 +3,8 @@
 import asyncio
 
 from fabricatio import Event, Role, logger
+from fabricatio.models.task import Task
+from fabricatio.utils import ok
 from fabricatio.workflows.articles import WriteOutlineCorrectedWorkFlow
 
 
@@ -14,10 +16,11 @@ async def main() -> None:
         registry={Event.quick_instantiate(ns := "article"): WriteOutlineCorrectedWorkFlow},
     )
 
-    proposed_task = await role.propose_task(
+    proposed_task = await role.propose(
+        Task,
         "You need to read the `./article_briefing.txt` file and write an outline for the article in typst format. The outline should be saved in the `./out.typ` file.",
     )
-    path = await proposed_task.delegate(ns)
+    path = await ok(proposed_task).delegate(ns)
     logger.success(f"The outline is saved in:\n{path}")
 
 
