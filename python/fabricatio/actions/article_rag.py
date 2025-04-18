@@ -4,9 +4,10 @@ from asyncio import gather
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import PositiveInt
+from pydantic import Field, PositiveInt
 
 from fabricatio import BibManager
+from fabricatio.capabilities.advanced_rag import AdvancedRAG
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.extract import Extract
 from fabricatio.capabilities.rag import RAG
@@ -18,7 +19,7 @@ from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
-from fabricatio.models.kwargs_types import LLMKwargs
+from fabricatio.models.kwargs_types import ChooseKwargs, LLMKwargs
 from fabricatio.utils import ask_retain, ok
 
 TYPST_CITE_USAGE = (
@@ -221,7 +222,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         ret = await self.aretrieve(
             ref_q,
             ArticleChunk,
-            final_limit=self.ref_limit,
+            max_accepted=self.ref_limit,
             result_per_query=self.result_per_query,
             similarity_threshold=self.threshold,
         )
@@ -241,7 +242,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         ret = await self.aretrieve(
             ref_q,
             ArticleChunk,
-            final_limit=int(self.ref_limit * self.search_increment_multiplier),
+            max_accepted=int(self.ref_limit * self.search_increment_multiplier),
             result_per_query=int(self.result_per_query * self.search_increment_multiplier),
             similarity_threshold=self.threshold,
         )
@@ -251,18 +252,19 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         cm.add_chunks(ret)
 
 
-class ArticleConsultRAG(Action, RAG):
+class ArticleConsultRAG(Action, AdvancedRAG):
     """Write an article based on the provided outline."""
 
     output_key: str = "consult_count"
-
+    search_increment_multiplier: float = 1.6
+    """The multiplier to increase the limit of references to retrieve per query."""
     ref_limit: int = 20
     """The final limit of references."""
     ref_per_q: int = 3
     """The limit of references to retrieve per query."""
     similarity_threshold: float = 0.62
     """The similarity threshold of references to retrieve."""
-    ref_q_model: Optional[str] = None
+    ref_q_model: ChooseKwargs = Field(default_factory=ChooseKwargs)
     """The model to use for refining query."""
     req: str = TYPST_CITE_USAGE
     """The request for the rag model."""
@@ -274,7 +276,7 @@ class ArticleConsultRAG(Action, RAG):
         from questionary import confirm, text
         from rich import print as r_print
 
-        from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex
+        from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, fix_misplaced_labels
 
         self.target_collection = collection_name or self.safe_target_collection
 
@@ -284,16 +286,19 @@ class ArticleConsultRAG(Action, RAG):
         while (req := await text("User: ").ask_async()) is not None:
             if await confirm("Empty the cm?").ask_async():
                 cm.empty()
-            ref_q = await self.arefined_query(req, model=self.ref_q_model)
-            refs = await self.aretrieve(
-                ok(ref_q, "Failed to refine query."),
-                ArticleChunk,
-                final_limit=self.ref_limit,
+            await self.clued_search(
+                req,
+                cm,
+                refinery_kwargs=self.ref_q_model,
+                expand_multiplier=self.search_increment_multiplier,
+                base_accepted=self.ref_limit,
                 result_per_query=self.ref_per_q,
                 similarity_threshold=self.similarity_threshold,
             )
 
-            ret = await self.aask(f"{cm.add_chunks(refs).as_prompt()}\n{self.req}\n{req}")
+            ret = await self.aask(f"{cm.as_prompt()}\n{self.req}\n{req}")
+
+            ret = fix_misplaced_labels(ret)
             ret = convert_all_inline_tex(ret)
             ret = convert_all_block_tex(ret)
             ret = cm.apply(ret)
@@ -385,7 +390,7 @@ class TweakArticleRAG(Action, RAG, Censor):
         await self.censor_obj_inplace(
             subsec,
             ruleset=ruleset,
-            reference=f"{'\n\n'.join(d.display() for d in await self.aretrieve(refind_q, document_model=ArticleEssence, final_limit=self.ref_limit))}\n\n"
+            reference=f"{'\n\n'.join(d.display() for d in await self.aretrieve(refind_q, document_model=ArticleEssence, max_accepted=self.ref_limit))}\n\n"
             f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
             f"You should Always use `{subsec.language}` as written language, "
             f"which is the original language of the `{subsec.title}`. "
