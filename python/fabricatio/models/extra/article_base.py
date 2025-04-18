@@ -348,6 +348,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                 ss.expected_word_count = avg
         return self
 
-    def avg_wordcount_recursive(self) -> Self:
+    def avg_wordcount_recursive[S](self:S) -> S:
         """Set all chap, sec, subsec have same word count sum up to be `self.expected_word_count`."""
-        return self.avg_chap_wordcount().avg_sec_wordcount().avg_sec_wordcount()
+        return self.avg_chap_wordcount().avg_sec_wordcount().avg_subsec_wordcount()
