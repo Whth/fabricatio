@@ -18,7 +18,7 @@ from fabricatio.models.extra.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, word_count
+from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, fix_misplaced_labels, word_count
 from fabricatio.utils import fallback_kwargs
 from pydantic import Field, NonNegativeInt
 
@@ -165,6 +165,7 @@ class Article(
         """Convert tex to typst code."""
         for _, _, subsec in self.iter_subsections():
             for p in subsec.paragraphs:
+                p.content = fix_misplaced_labels(p.content)
                 p.content = convert_all_inline_tex(p.content)
                 p.content = convert_all_block_tex(p.content)
         return self
