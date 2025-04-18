@@ -18,7 +18,7 @@ from typer import Typer
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/qwen-plus",
+    llm_model="openai/deepseek-v3-250324",
     llm_temperature=0.45,
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_top_p=0.95,
@@ -41,7 +41,7 @@ Role(
                         threshold=0.58,
                         result_per_query=2,
                         extractor_model={"model": "openai/qwen-max"},
-                        query_model={"model":"openai/qwen-turbo","temperature":0.3,"top_p":0.85},
+                        query_model={"model": "openai/qwen-turbo", "temperature": 0.3, "top_p": 0.85},
                     )
                 ),
                 PersistentAll,
@@ -74,7 +74,7 @@ Role(
         Event.quick_instantiate(ns4 := "consult"): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG().to_task_output(),),
+            steps=(ArticleConsultRAG(ref_q_model={"model":"openai/qwen-turbo"}).to_task_output(),),
         ),
     },
 )
