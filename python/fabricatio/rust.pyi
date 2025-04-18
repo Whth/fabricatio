@@ -325,6 +325,16 @@ def convert_all_block_tex(string: str) -> str:
         The converted string with block TeX code replaced.
     """
 
+def fix_misplaced_labels(input: str) -> str:
+    """A func to fix labels in a string.
+
+    Args:
+        input: The input string containing misplaced labels.
+
+    Returns:
+        The fixed string with labels properly placed.
+    """
+
 def comment(string: str) -> str:
     """Add comment to the string.
 

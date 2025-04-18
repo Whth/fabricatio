@@ -69,7 +69,7 @@ impl TemplateManager {
             .iter()
             .filter(|&path| path.file_stem().unwrap().to_string_lossy() == name)
             .map(|path| path.to_string_lossy().to_string())
-            .last()
+            .next_back()
     }
 
 

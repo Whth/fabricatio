@@ -75,6 +75,28 @@ fn convert_all_block_tex(string: &str) -> PyResult<String> {
     convert_tex_with_pattern(r"(?s)\\\[(.*?)\\]", string, true)
 }
 
+#[pyfunction]
+/// A func to fix labels in a string.
+pub fn fix_misplaced_labels(input: &str) -> String {
+    // Match \[ ... \] blocks, non-greedy matching for the content inside
+    let block_re = Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap();
+    // Match label format <...>
+    let label_re = Regex::new(r#"(?s)<[a-zA-Z0-9\-]*>"#).unwrap();
+
+    block_re.replace_all(input, move |caps: &regex::Captures| {
+        let content = caps.get(1).unwrap().as_str();
+        // Extract all labels and concatenate them into a single string
+        let labels_str = label_re.find_iter(content)
+            .map(|mat| mat.as_str())
+            .collect::<String>();
+        // Remove labels from the content
+        let new_content = label_re.replace_all(content, "").to_string();
+        // Construct the new block: [new content] + labels
+        format!("\\[{}\\]", new_content) + &labels_str
+    }).into_owned()
+}
+
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;
@@ -83,5 +105,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convert_all_inline_tex, m)?)?;
     m.add_function(wrap_pyfunction!(convert_all_block_tex, m)?)?;
 
+    
+    m.add_function(wrap_pyfunction!(fix_misplaced_labels, m)?)?;
     Ok(())
 }
