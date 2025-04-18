@@ -18,6 +18,7 @@ from fabricatio.models.extra.article_essence import ArticleEssence
 from fabricatio.models.extra.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
+from fabricatio.models.kwargs_types import LLMKwargs
 from fabricatio.utils import ask_retain, ok
 
 TYPST_CITE_USAGE = (
@@ -27,25 +28,16 @@ TYPST_CITE_USAGE = (
     "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
     "Those reference mark shall not be omitted during the extraction\n"
     "It's recommended to cite multiple references that supports your conclusion at a time.\n"
-    "Wrap inline expression with ' $' and '$ ',like ' $>5m$ ' ' $89%$ '， note that inline expression should have a space on either side, and wrap block equation with '\\n$$\\n' and '\\n$$\\n'.\n"
+    "Wrap inline expression with '\\(' and '\\)',like '\\(>5m\\)' '\\(89%\\)', and wrap block equation with '\\[' and '\\]'.\n"
     "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled.\n"
     "you can refer to that label by using the syntax with prefix of `@eqt:`, which indicate that this notation is citing a label from the equations. For example ' @eqt:energy-release-rate-equation ' DO remember that the notation shall have both suffixed and prefixed space char which enable the compiler to distinguish the notation from the plaintext."
     "Below is two usage example:\n"
-    "English version:"
     "```typst\n"
     "See @eqt:mass-energy-equation , it's the foundation of physics.\n"
-    "$$\n"
+    "\\[\n"
     "E = m c^2\n"
-    "$$  <mass-energy-equation>\n\n\n"
-    "In @eqt:mass-energy-equation , $m$ stands for mass, $c$ stands for speed of light, and $E$ stands for energy. \n"
-    "```\n"
-    "Chinese version:"
-    "```typst\n"
-    "见 @eqt:mass-energy-equation , 其为物理的基础.\n"
-    "$$\n"
-    "E = m c^2\n"
-    "$$  <mass-energy-equation>\n\n\n"
-    "在 @eqt:mass-energy-equation 中, 符号 $m$ 为质量, 符号 $c$ 为光速, 符号 $E$ 为能量。\n"
+    "\\]  <mass-energy-equation>\n\n\n"
+    "In @eqt:mass-energy-equation , \\(m\\) stands for mass, \\(c\\) stands for speed of light, and \\(E\\) stands for energy. \n"
     "```\n"
 )
 
@@ -59,9 +51,9 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     """The limit of references to be retrieved"""
     threshold: float = 0.62
     """The threshold of relevance"""
-    extractor_model: str
+    extractor_model: LLMKwargs
     """The model to use for extracting the content from the retrieved references."""
-    query_model: str
+    query_model: LLMKwargs
     """The model to use for querying the database"""
     supervisor: bool = False
     """Whether to use supervisor mode"""
@@ -163,12 +155,12 @@ class WriteArticleContentRAG(Action, RAG, Extract):
                 f"Above is the subsection titled `{subsec.title}`.\n"
                 f"I need you to extract the content to update my subsection obj provided below.\n{self.req}"
                 f"{subsec.display()}\n",
-                model=self.extractor_model,
+                **self.extractor_model,
             ),
             "Failed to propose new subsection.",
         )
         for p in new_subsec.paragraphs:
-            p.content = cm.apply(p.content).replace("$$", "\n$$\n")
+            p.content = cm.apply(p.content)
         subsec.update_from(new_subsec)
         logger.debug(f"{subsec.title}:rpl\n{subsec.display()}")
         return subsec
@@ -184,28 +176,16 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         extra_instruction: str = "",
     ) -> str:
         """Write the raw paragraphs of the subsec."""
-        return (
-            (
-                await self.aask(
-                    f"{cm.as_prompt()}\nAbove is some related reference from other auther retrieved for you."
-                    f"{article_outline.finalized_dump()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
-                    f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
-                    f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`.\n"
-                    f"{self.req}\n"
-                    f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
-                    f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the thesis.\n"
-                    f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn.\n"
-                    f"No extra explanation is allowed."
-                )
-            )
-            .replace(r" \( ", "$")
-            .replace(r" \) ", "$")
-            .replace(r"\(", "$")
-            .replace(r"\)", "$")
-            .replace("\\[\n", "$$\n")
-            .replace("\\[ ", "$$\n")
-            .replace("\n\\]", "\n$$")
-            .replace(" \\]", "\n$$")
+        return await self.aask(
+            f"{cm.as_prompt()}\nAbove is some related reference from other auther retrieved for you."
+            f"{article_outline.finalized_dump()}\n\nAbove is my article outline, I m writing graduate thesis titled `{article.title}`. "
+            f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
+            f"Please help me write the paragraphs of the subsec mentioned above, which is `{subsec.title}`.\n"
+            f"{self.req}\n"
+            f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
+            f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the thesis.\n"
+            f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn.\n"
+            f"No extra explanation is allowed."
         )
 
     async def search_database(
@@ -231,7 +211,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         ref_q = ok(
             await self.arefined_query(
                 search_req,
-                model=self.query_model,
+                **self.query_model,
             ),
             "Failed to refine query.",
         )
@@ -249,7 +229,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         cm.add_chunks(ok(ret))
         ref_q = await self.arefined_query(
             f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}",
-            model=self.query_model,
+            **self.query_model,
         )
 
         if ref_q is None:
