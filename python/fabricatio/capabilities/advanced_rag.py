@@ -24,7 +24,7 @@ class AdvancedRAG(RAG):
         **kwargs: Unpack[FetchKwargs],
     ) -> CitationManager:
         """Asynchronously performs a clued search based on a given requirement and citation manager."""
-        if max_round<0:
+        if max_round<=0:
             raise ValueError("max_round should be greater than 0")
         if max_round == 1:
             logger.warning(
