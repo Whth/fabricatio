@@ -19,13 +19,12 @@ Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
-    llm_temperature=0.35,
+    llm_temperature=0.45,
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_top_p=0.95,
     llm_max_tokens=8191,
-    llm_stream=True,
     llm_rpm=600,
-    llm_tpm=1000000,
+    llm_tpm=900000,
     llm_timeout=600,
     registry={
         Event.quick_instantiate(ns := "article"): WorkFlow(
@@ -41,9 +40,8 @@ Role(
                         ref_limit=18,
                         threshold=0.58,
                         result_per_query=2,
-                        llm_model="openai/qwq-plus",
-                        extractor_model="openai/qwen-max",
-                        query_model="openai/qwen-turbo",
+                        extractor_model={"model": "openai/qwen-max"},
+                        query_model={"model":"openai/qwen-turbo","temperature":0.3,"top_p":0.85},
                     )
                 ),
                 PersistentAll,
