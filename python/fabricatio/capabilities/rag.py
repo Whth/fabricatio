@@ -189,7 +189,7 @@ class RAG(EmbeddingUsage):
         self,
         query: List[str] | str,
         document_model: Type[D],
-        final_limit: int = 20,
+        max_accepted: int = 20,
         **kwargs: Unpack[FetchKwargs],
     ) -> List[D]:
         """Retrieve data from the collection.
@@ -197,7 +197,7 @@ class RAG(EmbeddingUsage):
         Args:
             query (List[str] | str): The query to be used for retrieval.
             document_model (Type[D]): The model class used to convert retrieved data into document objects.
-            final_limit (int): The final limit on the number of results to return.
+            max_accepted (int): The final limit on the number of results to return.
             **kwargs (Unpack[FetchKwargs]): Additional keyword arguments for retrieval.
 
         Returns:
@@ -211,9 +211,9 @@ class RAG(EmbeddingUsage):
                 document_model=document_model,
                 **kwargs,
             )
-        )[:final_limit]
+        )[:max_accepted]
 
-    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs]) -> Optional[List[str]]:
+    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]) -> Optional[List[str]]:
         """Refines the given question using a template.
 
         Args:
