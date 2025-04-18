@@ -53,7 +53,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
             }
 
             Err(e) => if block {
-                format!("$\n{}\n{}\n$", comment(tex_code), e)
+                format!("$\n{}\n\"{}\"\n$", comment(tex_code), e)
             } else {
                 format!(" ${}$ ", tex_code)
             },
@@ -66,13 +66,13 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
 
 #[pyfunction]
 fn convert_all_inline_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"(?s)\s\$(.*?)\s\$", string, false)
+    convert_tex_with_pattern(r"\\\((.*?)\\\)", string, false)
 }
 
 
 #[pyfunction]
 fn convert_all_block_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"(?s)\$\$(.*?)\$\$", string, true)
+    convert_tex_with_pattern(r"(?s)\\\[(.*?)\\]", string, true)
 }
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
