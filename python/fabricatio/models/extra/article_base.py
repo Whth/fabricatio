@@ -224,8 +224,10 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, ToTypstCode, ABC):
     """Base class for article outlines."""
 
-    description: str = Field(alias="abstract")
-    """The abstract serves as a concise summary of an academic article, encapsulating its core purpose, methodologies, key results,
+    description: str = Field(
+        alias="elaboration",
+    )
+    """The abstract of this article, which serves as a concise summary of an academic article, encapsulating its core purpose, methodologies, key results,
     and conclusions while enabling readers to rapidly assess the relevance and significance of the study.
     Functioning as the article's distilled essence, it succinctly articulates the research problem, objectives,
     and scope, providing a roadmap for the full text while also facilitating database indexing, literature reviews,

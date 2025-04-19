@@ -22,6 +22,7 @@ from fabricatio.rust import (
     convert_all_block_tex,
     convert_all_inline_tex,
     fix_misplaced_labels,
+    split_out_metadata,
     word_count,
 )
 from pydantic import Field, NonNegativeInt
@@ -101,10 +102,12 @@ class ArticleSubsection(SubSectionBase):
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        _, para_body = split_out_metadata(body)
+
         return super().from_typst_code(
             title,
             body,
-            paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
+            paragraphs=[Paragraph.from_content(p) for p in para_body.split(PARAGRAPH_SEP)],
         )
 
 

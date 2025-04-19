@@ -19,12 +19,36 @@ class ArticleSubsectionOutline(SubSectionBase):
 
 class ArticleSectionOutline(SectionBase[ArticleSubsectionOutline]):
     """A slightly more detailed research component specification for academic paper generation, Must contain subsections."""
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        return super().from_typst_code(
+            title,
+            body,
+            subsections=[
+                ArticleSubsectionOutline.from_typst_code(*pack)
+                for pack in extract_sections(body, level=3, section_char="=")
+            ],
+        )
+
 
 
 class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
     """Macro-structural unit implementing standard academic paper organization. Must contain sections."""
 
-
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        return super().from_typst_code(
+            title,
+            body,
+            sections=[
+                ArticleSectionOutline.from_typst_code(*pack)
+                for pack in extract_sections(body, level=2, section_char="=")
+            ],
+            
+        )
+    
+        
+        
 class ArticleOutline(
     WithRef[ArticleProposal],
     PersistentAble,
