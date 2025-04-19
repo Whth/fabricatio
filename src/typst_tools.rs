@@ -93,6 +93,26 @@ fn convert_all_block_tex(string: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
+
+/// Convert `$...$` to inline formula `\(...\)` and trim spaces
+pub fn convert_to_inline_formula(string: &str) -> String {
+    let re = Regex::new(r#"\$(.*?)\$"#).unwrap();
+    re.replace_all(string, |caps: &regex::Captures| {
+        format!("\\({}\\)", caps[1].trim())
+    }).into_owned()
+}
+#[pyfunction]
+
+/// Convert `$$...$$` to block formula `\[...\]` and trim spaces
+pub fn convert_to_block_formula(string: &str) -> String {
+    let re = Regex::new(r#"(?s)\$\$(.*?)\$\$"#).unwrap();
+    re.replace_all(string, |caps: &regex::Captures| {
+        format!("\\[{}\\]", caps[1].trim())
+    }).into_owned()
+}
+
+
+#[pyfunction]
 /// A func to fix labels in a string.
 pub fn fix_misplaced_labels(string: &str) -> String {
     // Match \[ ... \] blocks, non-greedy matching for the content inside
@@ -154,6 +174,9 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fix_misplaced_labels, m)?)?;
     m.add_function(wrap_pyfunction!(split_out_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(to_metadata, m)?)?;
+
+    m.add_function(wrap_pyfunction!(convert_to_inline_formula, m)?)?;
+    m.add_function(wrap_pyfunction!(convert_to_block_formula, m)?)?;
     Ok(())
 }
 

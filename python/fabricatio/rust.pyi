@@ -377,3 +377,8 @@ def to_metadata(data: JsonValue) -> str:
         The YAML string representation of the input data.
     """
 
+def convert_to_inline_formula(string: str) -> str:
+    r"""Convert `$...$` to inline formula `\(...\)` and trim spaces."""
+
+def convert_to_block_formula(string: str) -> str:
+    r"""Convert `$$...$$` to block formula `\[...\]` and trim spaces."""
