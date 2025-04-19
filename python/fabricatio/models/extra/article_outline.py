@@ -1,7 +1,8 @@
 """A module containing the ArticleOutline class, which represents the outline of an academic paper."""
 
-from typing import Dict
+from typing import Dict, Self
 
+from fabricatio.fs.readers import extract_sections
 from fabricatio.models.extra.article_base import (
     ArticleBase,
     ChapterBase,
@@ -9,7 +10,7 @@ from fabricatio.models.extra.article_base import (
     SubSectionBase,
 )
 from fabricatio.models.extra.article_proposal import ArticleProposal
-from fabricatio.models.generic import PersistentAble, SketchedAble, WithRef
+from fabricatio.models.generic import PersistentAble, WithRef
 
 
 class ArticleSubsectionOutline(SubSectionBase):
@@ -25,7 +26,6 @@ class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
 
 
 class ArticleOutline(
-    SketchedAble,
     WithRef[ArticleProposal],
     PersistentAble,
     ArticleBase[ArticleChapterOutline],
@@ -38,3 +38,14 @@ class ArticleOutline(
             "Original Article Proposal": self.referenced.display(),
             "Original Article Outline": self.display(),
         }
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        return super().from_typst_code(
+            title,
+            body,
+            chapters=[
+                ArticleChapterOutline.from_typst_code(*pack)
+                for pack in extract_sections(body, level=1, section_char="=")
+            ],
+        )

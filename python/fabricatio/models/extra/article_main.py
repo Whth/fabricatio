@@ -18,8 +18,12 @@ from fabricatio.models.extra.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import convert_all_block_tex, convert_all_inline_tex, fix_misplaced_labels, word_count
-from fabricatio.utils import fallback_kwargs
+from fabricatio.rust import (
+    convert_all_block_tex,
+    convert_all_inline_tex,
+    fix_misplaced_labels,
+    word_count,
+)
 from pydantic import Field, NonNegativeInt
 
 PARAGRAPH_SEP = "// - - -"
@@ -96,14 +100,11 @@ class ArticleSubsection(SubSectionBase):
         return super().to_typst_code() + f"\n\n{PARAGRAPH_SEP}\n\n".join(p.content for p in self.paragraphs)
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str) -> Self:
-        """Creates an Article object from the given Typst code."""
-        return cls(
-            heading=title,
-            elaboration="",
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        return super().from_typst_code(
+            title,
+            body,
             paragraphs=[Paragraph.from_content(p) for p in body.split(PARAGRAPH_SEP)],
-            expected_word_count=word_count(body),
-            aims=[],
         )
 
 
@@ -111,16 +112,14 @@ class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str) -> Self:
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
-        return cls(
+        return super().from_typst_code(
+            title,
+            body,
             subsections=[
                 ArticleSubsection.from_typst_code(*pack) for pack in extract_sections(body, level=3, section_char="=")
             ],
-            heading=title,
-            elaboration="",
-            expected_word_count=word_count(body),
-            aims=[],
         )
 
 
@@ -128,21 +127,18 @@ class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
     @classmethod
-    def from_typst_code(cls, title: str, body: str) -> Self:
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
-        return cls(
+        return super().from_typst_code(
+            title,
+            body,
             sections=[
                 ArticleSection.from_typst_code(*pack) for pack in extract_sections(body, level=2, section_char="=")
             ],
-            heading=title,
-            elaboration="",
-            expected_word_count=word_count(body),
-            aims=[],
         )
 
 
 class Article(
-    SketchedAble,
     WithRef[ArticleOutline],
     PersistentAble,
     ArticleBase[ArticleChapter],
@@ -169,7 +165,6 @@ class Article(
                 p.content = convert_all_inline_tex(p.content)
                 p.content = convert_all_block_tex(p.content)
         return self
-
 
     @override
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
@@ -258,16 +253,12 @@ class Article(
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Generates an article from the given Typst code."""
-        return cls(
+        return super().from_typst_code(
+            title,
+            body,
             chapters=[
                 ArticleChapter.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
             ],
-            heading=title,
-            **fallback_kwargs(
-                kwargs,
-                expected_word_count=word_count(body),
-                abstract="",
-            ),
         )
 
     @classmethod
