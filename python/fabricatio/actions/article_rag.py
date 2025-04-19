@@ -20,6 +20,7 @@ from fabricatio.models.extra.article_main import Article, ArticleChapter, Articl
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.kwargs_types import ChooseKwargs, LLMKwargs
+from fabricatio.rust import convert_to_block_formula, convert_to_inline_formula
 from fabricatio.utils import ask_retain, ok
 
 TYPST_CITE_USAGE = (
@@ -287,6 +288,10 @@ class ArticleConsultRAG(Action, AdvancedRAG):
         while (req := await text("User: ").ask_async()) is not None:
             if await confirm("Empty the cm?").ask_async():
                 cm.empty()
+
+            req = convert_to_block_formula(req)
+            req = convert_to_inline_formula(req)
+
             await self.clued_search(
                 req,
                 cm,
