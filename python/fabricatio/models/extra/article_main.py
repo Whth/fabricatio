@@ -170,17 +170,6 @@ class Article(
                 p.content = convert_all_block_tex(p.content)
         return self
 
-    def fix_wrapper(self) -> Self:
-        """Fix wrapper."""
-        for _, _, subsec in self.iter_subsections():
-            for p in subsec.paragraphs:
-                p.content = (
-                    p.content.replace(r" \( ", "$")
-                    .replace(r" \) ", "$")
-                    .replace("\\[\n", "$$\n")
-                    .replace("\n\\]", "\n$$")
-                )
-        return self
 
     @override
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
