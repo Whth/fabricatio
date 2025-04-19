@@ -12,7 +12,10 @@ Key Features:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, overload
+from typing import Any, Dict, List, Optional, overload, Tuple
+
+from pydantic import JsonValue
+
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -325,11 +328,11 @@ def convert_all_block_tex(string: str) -> str:
         The converted string with block TeX code replaced.
     """
 
-def fix_misplaced_labels(input: str) -> str:
+def fix_misplaced_labels(string: str) -> str:
     """A func to fix labels in a string.
 
     Args:
-        input: The input string containing misplaced labels.
+        string: The input string containing misplaced labels.
 
     Returns:
         The fixed string with labels properly placed.
@@ -354,3 +357,26 @@ def uncomment(string: str) -> str:
     Returns:
         The string with comments (lines starting with '// ' or '//') removed.
     """
+
+def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
+    """
+    Split out metadata from a string.
+
+    Args:
+        string: The input string containing metadata.
+
+    Returns:
+        A tuple containing the metadata as a Python object (if parseable) and the remaining string.
+    """
+
+def to_metadata(data: JsonValue) -> str:
+    """
+    Convert a Python object to a YAML string.
+
+    Args:
+        data: The Python object to be converted to YAML.
+
+    Returns:
+        The YAML string representation of the input data.
+    """
+
