@@ -12,10 +12,9 @@ Key Features:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, overload, Tuple
+from typing import Any, Dict, List, Optional, Tuple, overload
 
 from pydantic import JsonValue
-
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
