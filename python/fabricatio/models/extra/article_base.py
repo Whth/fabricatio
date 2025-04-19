@@ -1,6 +1,6 @@
 """A foundation for hierarchical document components with dependency tracking."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import StrEnum
 from typing import Generator, List, Optional, Self, Tuple
 
@@ -18,7 +18,8 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
-from fabricatio.rust import comment
+from fabricatio.rust import split_out_metadata, to_metadata, word_count
+from fabricatio.utils import fallback_kwargs
 from pydantic import Field
 
 
@@ -49,21 +50,46 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     @property
     def typst_metadata_comment(self) -> str:
         """Generates a comment for the metadata of the article component."""
-        return comment(
-            (f"Desc:\n  {self.description}\n" if self.description else "")
-            + (f"Aims:\n  {'\n  '.join(self.aims)}\n" if self.aims else "")
-            + (f"Expected Word Count:{self.expected_word_count}" if self.expected_word_count else "")
+        return to_metadata(self.model_dump(include={"description", "aims", "expected_word_count"}, by_alias=True))
 
+
+class FromTypstCode(ArticleMetaData):
+    """Base class for article components that can be created from a Typst code snippet."""
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Converts a Typst code snippet into an article component."""
+        data, body = split_out_metadata(body)
+
+        return cls(
+            heading=title,
+            **fallback_kwargs(
+                data or {},
+                elaboration="",
+                expected_word_count=word_count(body),
+                aims=[],
+            ),
+            **kwargs,
         )
 
 
+class ToTypstCode(ArticleMetaData):
+    """Base class for article components that can be converted to a Typst code snippet."""
+
+    def to_typst_code(self) -> str:
+        """Converts the component into a Typst code snippet for rendering."""
+        return f"{self.title}\n{self.typst_metadata_comment}\n"
+
+
 class ArticleOutlineBase(
-    ArticleMetaData,
     ResolveUpdateConflict,
     ProposedUpdateAble,
     PersistentAble,
     ModelHash,
     Introspect,
+    FromTypstCode,
+    ToTypstCode,
+    ABC,
 ):
     """Base class for article outlines."""
 
@@ -89,17 +115,13 @@ class ArticleOutlineBase(
         """Updates the current instance with the attributes of another instance."""
         return self.update_metadata(other)
 
-    @abstractmethod
-    def to_typst_code(self) -> str:
-        """Converts the component into a Typst code snippet for rendering."""
-
 
 class SubSectionBase(ArticleOutlineBase):
     """Base class for article sections and subsections."""
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-        return f"=== {self.title}\n{self.typst_metadata_comment}\n"
+        return f"=== {super().to_typst_code()}"
 
     def introspect(self) -> str:
         """Introspects the article subsection outline."""
@@ -124,9 +146,7 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
         Returns:
             str: The formatted Typst code snippet.
         """
-        return f"== {self.title}\n{self.typst_metadata_comment}\n" + "\n\n".join(
-            subsec.to_typst_code() for subsec in self.subsections
-        )
+        return f"== {super().to_typst_code()}" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -169,9 +189,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
-        return f"= {self.title}\n{self.typst_metadata_comment}\n" + "\n\n".join(
-            sec.to_typst_code() for sec in self.sections
-        )
+        return f"= {super().to_typst_code()}" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -203,10 +221,9 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return ""
 
 
-class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Described, Titled, Language, ABC):
+class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, ToTypstCode, ABC):
     """Base class for article outlines."""
 
-    title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
     description: str = Field(alias="abstract")
     """The abstract serves as a concise summary of an academic article, encapsulating its core purpose, methodologies, key results,
     and conclusions while enabling readers to rapidly assess the relevance and significance of the study.
@@ -293,6 +310,9 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
         for _, _, subsec in self.iter_subsections():
             yield subsec.title
 
+    def to_typst_code(self) -> str:
+        return f"// #{super().to_typst_code()}\n\n" + "\n\n".join(a.to_typst_code() for a in self.chapters)
+
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.
 
@@ -313,26 +333,16 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
             === Implementation Details
             == Evaluation Protocol
         """
-        return (
-            comment(
-                f"Title:{self.title}\n"
-                + (f"Desc:\n{self.description}\n" if self.description else "")
-                + f"Word Count:{self.expected_word_count}"
-                if self.expected_word_count
-                else ""
-            )
-            + "\n\n"
-            + "\n\n".join(a.to_typst_code() for a in self.chapters)
-        )
+        return self.to_typst_code()
 
-    def avg_chap_wordcount[S](self: S) -> S:
+    def avg_chap_wordcount[S: "ArticleBase"](self: S) -> S:
         """Set all chap have same word count sum up to be `self.expected_word_count`."""
         avg = int(self.expected_word_count / len(self.chapters))
         for c in self.chapters:
             c.expected_word_count = avg
         return self
 
-    def avg_sec_wordcount[S](self: S) -> S:
+    def avg_sec_wordcount[S: "ArticleBase"](self: S) -> S:
         """Set all sec have same word count sum up to be `self.expected_word_count`."""
         for c in self.chapters:
             avg = int(c.expected_word_count / len(c.sections))
@@ -340,7 +350,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                 s.expected_word_count = avg
         return self
 
-    def avg_subsec_wordcount[S](self: S) -> S:
+    def avg_subsec_wordcount[S: "ArticleBase"](self: S) -> S:
         """Set all subsec have same word count sum up to be `self.expected_word_count`."""
         for _, s in self.iter_sections():
             avg = int(s.expected_word_count / len(s.subsections))
@@ -348,6 +358,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, WordCount, Descri
                 ss.expected_word_count = avg
         return self
 
-    def avg_wordcount_recursive[S](self:S) -> S:
+    def avg_wordcount_recursive[S: "ArticleBase"](self: S) -> S:
         """Set all chap, sec, subsec have same word count sum up to be `self.expected_word_count`."""
         return self.avg_chap_wordcount().avg_sec_wordcount().avg_subsec_wordcount()
