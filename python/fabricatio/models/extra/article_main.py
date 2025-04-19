@@ -161,13 +161,20 @@ class Article(
             "Original Article": self.display(),
         }
 
-    def convert_tex(self) -> Self:
+    def convert_tex(self, paragraphs: bool = True, descriptions: bool = True) -> Self:
         """Convert tex to typst code."""
-        for _, _, subsec in self.iter_subsections():
-            for p in subsec.paragraphs:
-                p.content = fix_misplaced_labels(p.content)
-                p.content = convert_all_inline_tex(p.content)
-                p.content = convert_all_block_tex(p.content)
+        if descriptions:
+            for a in self.iter_dfs():
+                a.description = fix_misplaced_labels(a.description)
+                a.description = convert_all_inline_tex(a.description)
+                a.description = convert_all_block_tex(a.description)
+
+        if paragraphs:
+            for _, _, subsec in self.iter_subsections():
+                for p in subsec.paragraphs:
+                    p.content = fix_misplaced_labels(p.content)
+                    p.content = convert_all_inline_tex(p.content)
+                    p.content = convert_all_block_tex(p.content)
         return self
 
     @override
