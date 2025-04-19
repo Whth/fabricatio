@@ -21,6 +21,7 @@ class ArticleSectionOutline(SectionBase[ArticleSubsectionOutline]):
     """A slightly more detailed research component specification for academic paper generation, Must contain subsections."""
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Parse the given Typst code into an ArticleSectionOutline instance."""
         return super().from_typst_code(
             title,
             body,
@@ -37,6 +38,7 @@ class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Parse the given Typst code into an ArticleChapterOutline instance."""
         return super().from_typst_code(
             title,
             body,
@@ -44,11 +46,11 @@ class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
                 ArticleSectionOutline.from_typst_code(*pack)
                 for pack in extract_sections(body, level=2, section_char="=")
             ],
-            
+
         )
-    
-        
-        
+
+
+
 class ArticleOutline(
     WithRef[ArticleProposal],
     PersistentAble,
@@ -65,6 +67,7 @@ class ArticleOutline(
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Parse the given Typst code into an ArticleOutline instance."""
         return super().from_typst_code(
             title,
             body,

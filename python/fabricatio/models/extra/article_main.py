@@ -27,7 +27,7 @@ from fabricatio.rust import (
 )
 from pydantic import Field, NonNegativeInt
 
-PARAGRAPH_SEP = "// - - -"
+PARAGRAPH_SEP = "\n\n// - - -\n\n"
 
 
 class Paragraph(SketchedAble, WordCount, Described):
@@ -98,10 +98,11 @@ class ArticleSubsection(SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return super().to_typst_code() + f"\n\n{PARAGRAPH_SEP}\n\n".join(p.content for p in self.paragraphs)
+        return super().to_typst_code() + PARAGRAPH_SEP.join(p.content for p in self.paragraphs)
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Creates an Article object from the given Typst code."""
         _, para_body = split_out_metadata(body)
 
         return super().from_typst_code(

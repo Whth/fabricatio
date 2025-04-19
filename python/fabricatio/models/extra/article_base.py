@@ -313,6 +313,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
             yield subsec.title
 
     def to_typst_code(self) -> str:
+        """Generates the Typst code representation of the article."""
         return f"// #{super().to_typst_code()}\n\n" + "\n\n".join(a.to_typst_code() for a in self.chapters)
 
     def finalized_dump(self) -> str:

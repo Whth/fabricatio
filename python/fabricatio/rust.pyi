@@ -358,8 +358,7 @@ def uncomment(string: str) -> str:
     """
 
 def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
-    """
-    Split out metadata from a string.
+    """Split out metadata from a string.
 
     Args:
         string: The input string containing metadata.
@@ -369,8 +368,7 @@ def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
     """
 
 def to_metadata(data: JsonValue) -> str:
-    """
-    Convert a Python object to a YAML string.
+    """Convert a Python object to a YAML string.
 
     Args:
         data: The Python object to be converted to YAML.
