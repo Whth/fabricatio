@@ -162,6 +162,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         )
         for p in new_subsec.paragraphs:
             p.content = cm.apply(p.content)
+            p.description = cm.apply(p.description)
         subsec.update_from(new_subsec)
         logger.debug(f"{subsec.title}:rpl\n{subsec.display()}")
         return subsec
