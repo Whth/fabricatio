@@ -63,14 +63,14 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
         match tex2typst(tex_code) {
             Ok(converted) => {
                 if block {
-                    format!("$\n{}\n{}\n$", comment(tex_code.trim()), converted)
+                    format!("$\n{}\n$", converted)
                 } else {
                     format!(" ${}$ ", converted)
                 }
             }
 
             Err(e) => if block {
-                format!("$\n{}\n\"{}\"\n$", comment(tex_code), e)
+                format!("$\n{}\n\"{}\"\n$", comment(tex_code.trim()), e)
             } else {
                 format!(" ${}$ ", tex_code)
             },
@@ -83,7 +83,7 @@ fn convert_tex_with_pattern(pattern: &str, string: &str, block: bool) -> PyResul
 
 #[pyfunction]
 fn convert_all_inline_tex(string: &str) -> PyResult<String> {
-    convert_tex_with_pattern(r"\\\((.*?)\\\)", string, false)
+    convert_tex_with_pattern(r"(?s)\\\((.*?)\\\)", string, false)
 }
 
 

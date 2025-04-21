@@ -1982,9 +1982,11 @@ dependencies = [
  "clap",
  "dirs",
  "flate2",
+ "regex",
  "reqwest",
  "serde_json",
  "tar",
+ "tex2typst-rs",
 ]
 
 [[package]]
