@@ -2,8 +2,9 @@
 
 from abc import ABC
 from enum import StrEnum
-from typing import Generator, List, Optional, Self, Tuple
+from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
+from fabricatio.fs.readers import extract_sections
 from fabricatio.models.generic import (
     AsPrompt,
     Described,
@@ -105,12 +106,6 @@ class ArticleOutlineBase(
         self.description = other.description
         return self
 
-    def display_metadata(self) -> str:
-        """Displays the metadata of the current instance."""
-        return self.model_dump_json(
-            indent=1, include={"title", "writing_aim", "description", "support_to", "depend_on"}
-        )
-
     def update_from_inner(self, other: Self) -> Self:
         """Updates the current instance with the attributes of another instance."""
         return self.update_metadata(other)
@@ -140,6 +135,8 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
     subsections: List[T]
     """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
 
+    child_type: ClassVar[Type[SubSectionBase]]
+
     def to_typst_code(self) -> str:
         """Converts the section into a Typst formatted code snippet.
 
@@ -147,6 +144,17 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
             str: The formatted Typst code snippet.
         """
         return f"== {super().to_typst_code()}" + "\n\n".join(subsec.to_typst_code() for subsec in self.subsections)
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Creates an Article object from the given Typst code."""
+        return super().from_typst_code(
+            title,
+            body,
+            subsections=[
+                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=3, section_char="=")
+            ],
+        )
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -186,10 +194,22 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
     sections: List[T]
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
+    child_type: ClassVar[Type[SectionBase]]
 
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
         return f"= {super().to_typst_code()}" + "\n\n".join(sec.to_typst_code() for sec in self.sections)
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Creates an Article object from the given Typst code."""
+        return super().from_typst_code(
+            title,
+            body,
+            sections=[
+                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=2, section_char="=")
+            ],
+        )
 
     def resolve_update_conflict(self, other: Self) -> str:
         """Resolve update errors in the article outline."""
@@ -237,6 +257,19 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
 
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
+
+    child_type: ClassVar[Type[ChapterBase]]
+
+    @classmethod
+    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
+        """Generates an article from the given Typst code."""
+        return super().from_typst_code(
+            title,
+            body,
+            chapters=[
+                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
+            ],
+        )
 
     def iter_dfs_rev(
         self,
