@@ -5,9 +5,16 @@ from pathlib import Path
 
 import typer
 from fabricatio import Event, Role, WorkFlow, logger
-from fabricatio.actions.article import ExtractOutlineFromRaw, GenerateArticleProposal, GenerateInitialOutline
+from fabricatio.actions.article import (
+    ExtractOutlineFromRaw,
+    GenerateArticleProposal,
+    GenerateInitialOutline,
+    WriteChapterSummary,
+)
 from fabricatio.actions.article_rag import ArticleConsultRAG, WriteArticleContentRAG
 from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll, RenderedDump
+from fabricatio.fs import safe_text_read
+from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
 from fabricatio.utils import ok
@@ -18,7 +25,7 @@ from typer import Typer
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/deepseek-v3-250324",
+    llm_model="openai/qwen-plus",
     llm_temperature=0.45,
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
     llm_top_p=0.95,
@@ -74,7 +81,12 @@ Role(
         Event.quick_instantiate(ns4 := "consult"): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG(ref_q_model={"model":"openai/qwen-turbo"}).to_task_output(),),
+            steps=(ArticleConsultRAG(ref_q_model={"model": "openai/qwen-turbo"}).to_task_output(),),
+        ),
+        Event.quick_instantiate(ns5 := "chap-suma"): WorkFlow(
+            name="Chapter Summary",
+            description="Generate chapter summary based on given article outline. dump the outline to the given path. in typst format.",
+            steps=(WriteChapterSummary().to_task_output(),),
         ),
     },
 )
@@ -187,6 +199,33 @@ def write(
                 supervisor=supervisor,
             )
             .delegate(ns)
+        ),
+        "Failed to generate an article ",
+    )
+    logger.success(f"The outline is saved in:\n{path}")
+
+
+
+
+
+
+
+
+@app.command()
+def suma(
+    article_path: Path = typer.Option(  # noqa: B008
+        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
+    ),
+    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),  # noqa: B008
+) -> None:
+    path = ok(
+        asyncio.run(
+            Task(name="write an article")
+            .update_init_context(
+                article=Article.from_typst_code("article", body=safe_text_read(article_path)),
+                write_to=dump_path,
+            )
+            .delegate(ns5)
         ),
         "Failed to generate an article ",
     )
