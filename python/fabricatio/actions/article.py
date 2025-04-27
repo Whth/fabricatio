@@ -8,10 +8,12 @@ from more_itertools import filter_map
 from pydantic import Field
 from rich import print as r_print
 
+from fabricatio import TEMPLATE_MANAGER
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.extract import Extract
 from fabricatio.capabilities.propose import Propose
-from fabricatio.fs import safe_text_read
+from fabricatio.config import configs
+from fabricatio.fs import dump_text, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.article_essence import ArticleEssence
@@ -21,6 +23,7 @@ from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.task import Task
+from fabricatio.models.usages import LLMUsage
 from fabricatio.rust import BibManager, detect_language
 from fabricatio.utils import ok, wrapp_in_block
 
@@ -271,3 +274,48 @@ class LoadArticle(Action):
 
     async def _execute(self, article_outline: ArticleOutline, typst_code: str, **cxt) -> Article:
         return Article.from_mixed_source(article_outline, typst_code)
+
+
+class WriteChapterSummary(Action, LLMUsage):
+    """Write the chapter summary."""
+
+    output_key: str = "chapter_summaries"
+
+    paragraph_count: int = 1
+
+    summary_word_count: int = 200
+
+    summary_title: str = "Chapter Summary"
+    write_to: Optional[Path] = None
+
+    async def _execute(self, article: Article, write_to: Optional[Path] = None, **cxt) -> List[str]:
+        logger.info(";".join(a.title for a in article.chapters))
+
+        ret = [
+            f"== {self.summary_title}\n{raw}"
+            for raw in (
+                await self.aask(
+                    TEMPLATE_MANAGER.render_template(
+                        configs.templates.chap_summary_template,
+                        [
+                            {
+                                "chapter": a.to_typst_code(),
+                                "title": a.title,
+                                "language": a.language,
+                                "summary_word_count": self.summary_word_count,
+                                "paragraph_count": self.paragraph_count,
+                            }
+                            for a in article.chapters
+                        ],
+                    )
+                )
+            )
+        ]
+
+        if (to := (self.write_to or write_to)) is not None:
+            dump_text(
+                to,
+                "\n\n\n".join(f"//{a.title}\n\n{s}" for a, s in zip(article.chapters, ret, strict=True)),
+            )
+
+        return ret
