@@ -1,9 +1,8 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
-from typing import Dict, Generator, List, Self, Tuple, override
+from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
 from fabricatio.decorators import precheck_package
-from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
     ArticleBase,
@@ -115,31 +114,13 @@ class ArticleSubsection(SubSectionBase):
 class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
-    @classmethod
-    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
-        """Creates an Article object from the given Typst code."""
-        return super().from_typst_code(
-            title,
-            body,
-            subsections=[
-                ArticleSubsection.from_typst_code(*pack) for pack in extract_sections(body, level=3, section_char="=")
-            ],
-        )
+    child_type: ClassVar[Type[SubSectionBase]] = ArticleSubsection
 
 
 class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
-    @classmethod
-    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
-        """Creates an Article object from the given Typst code."""
-        return super().from_typst_code(
-            title,
-            body,
-            sections=[
-                ArticleSection.from_typst_code(*pack) for pack in extract_sections(body, level=2, section_char="=")
-            ],
-        )
+    child_type: ClassVar[Type[SectionBase]] = ArticleSection
 
 
 class Article(
@@ -152,6 +133,8 @@ class Article(
     This class integrates display, censorship processing, article structure referencing, and persistence capabilities,
     aiming to provide a comprehensive model for academic papers.
     """
+
+    child_type: ClassVar[Type[ChapterBase]] = ArticleChapter
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
@@ -260,17 +243,6 @@ class Article(
                 article_chapter.sections.append(article_section)
             article.chapters.append(article_chapter)
         return article
-
-    @classmethod
-    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
-        """Generates an article from the given Typst code."""
-        return super().from_typst_code(
-            title,
-            body,
-            chapters=[
-                ArticleChapter.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
-            ],
-        )
 
     @classmethod
     def from_mixed_source(cls, article_outline: ArticleOutline, typst_code: str) -> Self:
