@@ -312,11 +312,11 @@ class Language(Base):
     @property
     def language(self) -> str:
         """Get the language of the object."""
-        if isinstance(self, Described):
+        if isinstance(self, Described) and self.description:
             return detect_language(self.description)
-        if isinstance(self, Titled):
+        if isinstance(self, Titled) and self.title:
             return detect_language(self.title)
-        if isinstance(self, Named):
+        if isinstance(self, Named) and self.name:
             return detect_language(self.name)
 
         return detect_language(self.model_dump_json(by_alias=True))
