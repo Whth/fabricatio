@@ -86,10 +86,12 @@ class LLMConfig(BaseModel):
 
     tpm: Optional[PositiveInt] = Field(default=1000000)
     """The rate limit of the LLM model in tokens per minute. None means not checked."""
-    presence_penalty:Optional[PositiveFloat]=None
+    presence_penalty: Optional[PositiveFloat] = None
     """The presence penalty of the LLM model."""
-    frequency_penalty:Optional[PositiveFloat]=None
+    frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
+
+
 class EmbeddingConfig(BaseModel):
     """Embedding configuration class."""
 
@@ -252,9 +254,12 @@ class TemplateConfig(BaseModel):
     rule_requirement_template: str = Field(default="rule_requirement")
     """The name of the rule requirement template which will be used to generate a rule requirement."""
 
-
     extract_template: str = Field(default="extract")
     """The name of the extract template which will be used to extract model from string."""
+
+    chap_summary_template: str = Field(default="chap_summary")
+    """The name of the chap summary template which will be used to generate a chapter summary."""
+
 
 class MagikaConfig(BaseModel):
     """Magika configuration class."""
