@@ -51,6 +51,10 @@ class Paragraph(SketchedAble, WordCount, Described):
         """Create a Paragraph object from the given content."""
         return cls(elaboration="", aims=[], expected_word_count=word_count(content), content=content)
 
+    @property
+    def exact_wordcount(self) -> int:
+        return word_count(self.content)
+
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
     """Patch for `Paragraph` list of `ArticleSubsection`."""
@@ -264,3 +268,15 @@ class Article(
         for a in self.iter_dfs():
             a.title = await text(f"Edit `{a.title}`.", default=a.title).ask_async() or a.title
         return self
+
+    def check_short_paragraphs(self, threshold: int = 60) -> str:
+        """Checks for short paragraphs in the article."""
+        err = []
+        for chap, sec, subsec in self.iter_subsections():
+            for i, p in enumerate(subsec.paragraphs):
+                if p.exact_wordcount <= threshold:
+                    err.append(
+                        f"{chap.title}->{sec.title}->{subsec.title}-> Paragraph [{i}] is too short, {p.exact_wordcount} words."
+                    )
+
+        return "\n".join(err)
