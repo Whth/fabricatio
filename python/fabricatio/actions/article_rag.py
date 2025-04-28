@@ -2,7 +2,7 @@
 
 from asyncio import gather
 from pathlib import Path
-from typing import List, Optional
+from typing import ClassVar, List, Optional
 
 from pydantic import Field, PositiveInt
 
@@ -257,6 +257,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 class ArticleConsultRAG(Action, AdvancedRAG):
     """Write an article based on the provided outline."""
 
+    ctx_override: ClassVar[bool] = True
     output_key: str = "consult_count"
     search_increment_multiplier: float = 1.6
     """The multiplier to increase the limit of references to retrieve per query."""
@@ -270,6 +271,7 @@ class ArticleConsultRAG(Action, AdvancedRAG):
     """The model to use for refining query."""
     req: str = TYPST_CITE_USAGE
     """The request for the rag model."""
+    tei_endpoint: Optional[str] = None
 
     @precheck_package(
         "questionary", "`questionary` is required for supervisor mode, please install it by `fabricatio[qa]`"
@@ -300,6 +302,7 @@ class ArticleConsultRAG(Action, AdvancedRAG):
                 base_accepted=self.ref_limit,
                 result_per_query=self.ref_per_q,
                 similarity_threshold=self.similarity_threshold,
+                tei_endpoint=self.tei_endpoint,
             )
 
             ret = await self.aask(f"{cm.as_prompt()}\n{self.req}\n{req}")
