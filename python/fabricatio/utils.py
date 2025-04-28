@@ -1,11 +1,12 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, List, Mapping, Optional, Union, Unpack, overload
+from typing import Any, Dict, List, Mapping, Optional, TypedDict, Unpack, overload
 
 import aiohttp
 import requests
 
 from fabricatio.decorators import precheck_package
+from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import RerankOptions
 
 
@@ -98,6 +99,13 @@ def wrapp_in_block(string: str, title: str, style: str = "-") -> str:
     return f"--- Start of {title} ---\n{string}\n--- End of {title} ---".replace("-", style)
 
 
+class RerankResult(TypedDict):
+    """The rerank result."""
+
+    index: int
+    score: float
+
+
 class RerankerAPI:
     """A class to interact with the /rerank API for text reranking."""
 
@@ -106,7 +114,7 @@ class RerankerAPI:
 
         Args:
             base_url (str): The base URL of the TEI-deployed reranker model API.
-                Example: "http://localhost:8000/rerank".
+                Example: "http://localhost:8000".
         """
         self.base_url = base_url.rstrip("/")  # Ensure no trailing slashes
 
@@ -135,9 +143,7 @@ class RerankerAPI:
             return RuntimeError(f"Model overloaded: {error_message}")
         return RuntimeError(f"Unexpected error ({status_code}): {error_message}")
 
-    def rerank(
-        self, query: str, texts: List[str], **kwargs: Unpack[RerankOptions]
-    ) -> List[Dict[str, Union[int, float]]]:
+    def rerank(self, query: str, texts: List[str], **kwargs: Unpack[RerankOptions]) -> List[RerankResult]:
         """Call the /rerank API to rerank a list of texts based on a query (synchronous).
 
         Args:
@@ -149,7 +155,7 @@ class RerankerAPI:
                 - truncation_direction (Literal["left", "right"], optional): Direction of truncation. Defaults to "right".
 
         Returns:
-            List[Dict[str, Union[int, float]]]: A list of dictionaries containing the reranked results.
+            List[RerankResult]: A list of dictionaries containing the reranked results.
                 Each dictionary includes:
                 - "index" (int): The original index of the text.
                 - "score" (float): The relevance score.
@@ -173,7 +179,7 @@ class RerankerAPI:
 
         try:
             # Send POST request to the API
-            response = requests.post(self.base_url, json=payload)
+            response = requests.post(f"{self.base_url}/rerank", json=payload)
 
             # Handle non-200 status codes
             if response.ok:
@@ -185,15 +191,14 @@ class RerankerAPI:
                 raise self._map_error_code(response.status_code, error_data)
 
             # Parse the JSON response
-            data: List[Dict[str, Union[int, float]]] = response.json()
+            data: List[RerankResult] = response.json()
+            logger.debug(f"Rerank for `{query}` get {[s['score'] for s in data]}")
             return data
 
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"Failed to connect to the API: {e}") from e
 
-    async def arerank(
-        self, query: str, texts: List[str], **kwargs: Unpack[RerankOptions]
-    ) -> List[Dict[str, Union[int, float]]]:
+    async def arerank(self, query: str, texts: List[str], **kwargs: Unpack[RerankOptions]) -> List[RerankResult]:
         """Call the /rerank API to rerank a list of texts based on a query (asynchronous).
 
         Args:
@@ -205,7 +210,7 @@ class RerankerAPI:
                 - truncation_direction (Literal["left", "right"], optional): Direction of truncation. Defaults to "right".
 
         Returns:
-            List[Dict[str, Union[int, float]]]: A list of dictionaries containing the reranked results.
+            List[RerankResult]: A list of dictionaries containing the reranked results.
                 Each dictionary includes:
                 - "index" (int): The original index of the text.
                 - "score" (float): The relevance score.
@@ -229,7 +234,10 @@ class RerankerAPI:
 
         try:
             # Send POST request to the API using aiohttp
-            async with aiohttp.ClientSession() as session, session.post(self.base_url, json=payload) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(f"{self.base_url}/rerank", json=payload) as response,
+            ):
                 # Handle non-200 status codes
                 if response.ok:
                     if "application/json" in response.headers.get("Content-Type", ""):
@@ -239,7 +247,8 @@ class RerankerAPI:
                     raise self._map_error_code(response.status, error_data)
 
                 # Parse the JSON response
-                data: List[Dict[str, Union[int, float]]] = await response.json()
+                data: List[RerankResult] = await response.json()
+                logger.debug(f"Rerank for `{query}` get {[s['score'] for s in data]}")
                 return data
 
         except aiohttp.ClientError as e:
