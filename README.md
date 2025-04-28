@@ -119,6 +119,10 @@ max_tokens = 8192
     ```bash
     make test
     ```
+## TODO
+
+- Add an element based format strategy
+
 
 ## Contributing
 
