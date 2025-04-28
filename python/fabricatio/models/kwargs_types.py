@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Any, Dict, List, NotRequired, Optional, Required, TypedDict
+from typing import Any, Dict, List, NotRequired, Optional, Required, TypedDict, Literal
 
 from litellm.caching.caching import CacheMode
 from litellm.types.caching import CachingSupportedCallTypes
@@ -164,3 +164,11 @@ class CacheKwargs(TypedDict, total=False):
     qdrant_collection_name: str
     qdrant_quantization_config: str
     qdrant_semantic_cache_embedding_model: str
+
+
+class RerankOptions(TypedDict, total=False):
+    """Optional keyword arguments for the rerank method."""
+
+    raw_scores: bool
+    truncate: bool
+    truncation_direction: Literal["Left", "Right"]
