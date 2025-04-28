@@ -149,6 +149,7 @@ class RAG(EmbeddingUsage):
         similarity_threshold: float = 0.37,
         result_per_query: int = 10,
         tei_endpoint: Optional[str] = None,
+        reranker_threshold: float = 0.7,
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
@@ -160,6 +161,7 @@ class RAG(EmbeddingUsage):
            similarity_threshold (float): The similarity threshold for vector search. Defaults to 0.37.
            result_per_query (int): The maximum number of results to return per query. Defaults to 10.
            tei_endpoint (str): the endpoint of the TEI api.
+           reranker_threshold (float): The threshold used to filtered low relativity document.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
@@ -184,7 +186,9 @@ class RAG(EmbeddingUsage):
                 models = document_model.from_sequence([res["entity"] for res in g if res["id"] not in retrieved_id])
                 retrieved_id.update(res["id"] for res in g)
                 rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models])
-                raw_result.extend((models[s["index"]], s["score"]) for s in rank_scores)
+                raw_result.extend(
+                    (models[s["index"]], s["score"]) for s in rank_scores if s["score"] > reranker_threshold
+                )
 
             raw_result_sorted = sorted(raw_result, key=lambda x: x[1], reverse=True)
             return [r[0] for r in raw_result_sorted]

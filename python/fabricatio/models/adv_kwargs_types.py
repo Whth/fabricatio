@@ -59,3 +59,4 @@ if find_spec("pymilvus"):
         similarity_threshold: NotRequired[float]
         result_per_query: NotRequired[int]
         tei_endpoint: NotRequired[Optional[str]]
+        reranker_threshold: NotRequired[float]
