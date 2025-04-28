@@ -150,6 +150,7 @@ class RAG(EmbeddingUsage):
         result_per_query: int = 10,
         tei_endpoint: Optional[str] = None,
         reranker_threshold: float = 0.7,
+        filter_expr: str = "",
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
@@ -162,6 +163,7 @@ class RAG(EmbeddingUsage):
            result_per_query (int): The maximum number of results to return per query. Defaults to 10.
            tei_endpoint (str): the endpoint of the TEI api.
            reranker_threshold (float): The threshold used to filtered low relativity document.
+            filter_expr (str): filter_expression parsed into pymilvus search. 
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
@@ -172,6 +174,7 @@ class RAG(EmbeddingUsage):
             await self.vectorize(query),
             search_params={"radius": similarity_threshold},
             output_fields=list(document_model.model_fields),
+            filter=filter_expr,
             limit=result_per_query,
         )
         if tei_endpoint is not None:
