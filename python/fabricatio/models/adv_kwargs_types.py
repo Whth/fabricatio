@@ -1,7 +1,7 @@
 """A module containing kwargs types for content correction and checking operations."""
 
 from importlib.util import find_spec
-from typing import NotRequired, TypedDict
+from typing import NotRequired, Optional, TypedDict
 
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import RuleSet
@@ -58,3 +58,4 @@ if find_spec("pymilvus"):
         collection_name: NotRequired[str | None]
         similarity_threshold: NotRequired[float]
         result_per_query: NotRequired[int]
+        tei_endpoint: NotRequired[Optional[str]]
