@@ -2,6 +2,7 @@
 
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import typer
 from fabricatio import Event, Role, WorkFlow, logger
@@ -98,13 +99,12 @@ app = Typer()
 @app.command()
 def consult(
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    tei_endpoint: Optional[str] = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
 ) -> None:
     """Consult an article based on a given article outline."""
     _ = asyncio.run(
         Task(name="Answer Question")
-        .update_init_context(
-            collection_name=collection_name,
-        )
+        .update_init_context(collection_name=collection_name, tei_endpoint=tei_endpoint)
         .delegate(ns4)
     )
 
@@ -203,12 +203,6 @@ def write(
         "Failed to generate an article ",
     )
     logger.success(f"The outline is saved in:\n{path}")
-
-
-
-
-
-
 
 
 @app.command()
