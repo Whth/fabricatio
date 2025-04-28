@@ -12,7 +12,7 @@ Classes:
 import traceback
 from abc import abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, Dict, Self, Sequence, Tuple, Type, Union, final
+from typing import Any, ClassVar, Dict, Self, Sequence, Tuple, Type, Union, final
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
@@ -32,6 +32,9 @@ class Action(WithBriefing):
     Actions are the atomic units of work in a workflow. Each action performs
     a specific operation and can modify the shared context data.
     """
+
+    ctx_override: ClassVar[bool] = False
+    """Whether to override the instance attr by the context variable."""
 
     name: str = Field(default="")
     """The name of the action."""
@@ -157,6 +160,15 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             action.personality = personality
         return self
 
+    def override_action_variable(self, action: Action, ctx: Dict[str, Any]) -> Self:
+        """Override action variable with context values."""
+        if action.ctx_override:
+            for k, v in ctx.items():
+                if hasattr(action, k):
+                    setattr(action, k, v)
+
+        return self
+
     async def serve(self, task: Task) -> None:
         """Execute workflow to complete given task.
 
@@ -178,11 +190,12 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         try:
             # Process each action in sequence
             for i, step in enumerate(self._instances):
-                current_action = step.name
-                logger.info(f"Executing step [{i}] >> {current_action}")
+                logger.info(f"Executing step [{i}] >> {(current_action := step.name)}")
 
                 # Get current context and execute action
                 context = await self._context.get()
+
+                self.override_action_variable(step, context)
                 act_task = create_task(step.act(context))
                 # Handle task cancellation
                 if task.is_cancelled():
