@@ -143,21 +143,23 @@ class RAG(EmbeddingUsage):
 
     async def afetch_document[D: MilvusDataBase](
         self,
-        vecs: List[List[float]],
+        query: List[str],
         document_model: Type[D],
         collection_name: Optional[str] = None,
         similarity_threshold: float = 0.37,
         result_per_query: int = 10,
+        tei_endpoint: Optional[str] = None,
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
         Args:
-           vecs (List[List[float]]): A list of vectors to search for in the database.
+           query (List[str]): A list of vectors to search for in the database.
            document_model (Type[D]): The model class used to convert fetched data into document objects.
            collection_name (Optional[str]): The name of the collection to search within.
                                              If None, the currently viewed collection is used.
            similarity_threshold (float): The similarity threshold for vector search. Defaults to 0.37.
            result_per_query (int): The maximum number of results to return per query. Defaults to 10.
+           tei_endpoint (str): the endpoint of the TEI api.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
@@ -165,15 +167,32 @@ class RAG(EmbeddingUsage):
         # Step 1: Search for vectors
         search_results = self.check_client().client.search(
             collection_name or self.safe_target_collection,
-            vecs,
+            await self.vectorize(query),
             search_params={"radius": similarity_threshold},
             output_fields=list(document_model.model_fields),
             limit=result_per_query,
         )
+        if tei_endpoint is not None:
+            from fabricatio.utils import RerankerAPI
+
+            reranker = RerankerAPI(base_url=tei_endpoint)
+
+            retrieved_id = set()
+            raw_result = []
+
+            for q, g in zip(query, search_results, strict=True):
+                models = document_model.from_sequence([res["entity"] for res in g if res["id"] not in retrieved_id])
+                retrieved_id.update(res["id"] for res in g)
+                rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models])
+                raw_result.extend((models[s["index"]], s["score"]) for s in rank_scores)
+
+            raw_result_sorted = sorted(raw_result, key=lambda x: x[1], reverse=True)
+            return [r[0] for r in raw_result_sorted]
 
         # Step 2: Flatten the search results
         flattened_results = flatten(search_results)
         unique_results = unique(flattened_results, key=itemgetter("id"))
+
         # Step 3: Sort by distance (descending)
         sorted_results = sorted(unique_results, key=itemgetter("distance"), reverse=True)
 
@@ -205,15 +224,18 @@ class RAG(EmbeddingUsage):
         """
         if isinstance(query, str):
             query = [query]
+
         return (
             await self.afetch_document(
-                vecs=(await self.vectorize(query)),
+                query=query,
                 document_model=document_model,
                 **kwargs,
             )
         )[:max_accepted]
 
-    async def arefined_query(self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]) -> Optional[List[str]]:
+    async def arefined_query(
+        self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
+    ) -> Optional[List[str]]:
         """Refines the given question using a template.
 
         Args:
