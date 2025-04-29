@@ -7,6 +7,7 @@ from fabricatio.journal import logger
 from fabricatio.models.adv_kwargs_types import FetchKwargs
 from fabricatio.models.extra.aricle_rag import ArticleChunk, CitationManager
 from fabricatio.models.kwargs_types import ChooseKwargs
+from fabricatio.utils import fallback_kwargs
 
 
 class AdvancedRAG(RAG):
@@ -40,10 +41,13 @@ class AdvancedRAG(RAG):
                 f"\n\n{requirement}",
                 **refinery_kwargs,
             )
+
             if ref_q is None:
                 logger.error(f"At round [{i}/{max_round}] search, failed to refine the query, exit.")
                 return cm
-            refs = await self.aretrieve(ref_q, ArticleChunk, base_accepted, **kwargs)
+            refs = await self.aretrieve(
+                ref_q, ArticleChunk, base_accepted, **fallback_kwargs(kwargs, filter_expr=cm.as_milvus_filter_expr())
+            )
 
             if (max_capacity := max_capacity - len(refs)) < 0:
                 cm.add_chunks(refs[0:max_capacity])
