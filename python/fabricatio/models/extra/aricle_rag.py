@@ -263,3 +263,7 @@ class CitationManager(AsPrompt):
         """Unpack citation sequence into a string."""
         chunk_seq = [a for a in self.article_chunks if a.cite_number in citation_seq]
         return "".join(a.as_typst_cite() for a in chunk_seq)
+
+    def as_milvus_filter_expr(self, blacklist: bool = True) -> str:
+        if blacklist:
+            return " and ".join(f'bibtex_cite_key != "{a.bibtex_cite_key}"' for a in self.article_chunks)
