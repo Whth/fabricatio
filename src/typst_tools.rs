@@ -161,20 +161,32 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
         )
 }
 
-
+// 修改返回类型为Option<String>
 #[pyfunction]
-fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> String {
+fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
     // Escape the wrapper string to handle special regex characters safely
     let escaped_wrapper = regex::escape(wrapper);
+
+    // Count wrapper occurrences
+    let count_re = Regex::new(&escaped_wrapper).unwrap();
+    let count = count_re.find_iter(string).count();
+    if count != 2 {  // Return None when wrapper count is not exactly 2
+        return None;
+    }
+
     // Construct the regex pattern to find content enclosed by the wrapper
     let pattern = format!(r"(?s){}(.*?){}", escaped_wrapper, escaped_wrapper);
     let re = Regex::new(&pattern).unwrap();
 
-    // Replace the old content with the new content, maintaining the wrapper and any content after
-    re.replace_all(string, |_caps: &regex::Captures| {
+    // Replace the old content with the new content
+    let result = re.replace_all(string, |_caps: &regex::Captures| {
         format!("{}{}{}", wrapper, new_body, wrapper)
-    }).into_owned()
+    }).into_owned();
+
+    Some(result)  // Wrap result in Some
 }
+
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;

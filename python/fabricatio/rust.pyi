@@ -421,7 +421,7 @@ def convert_to_block_formula(string: str) -> str:
     r"""Convert `$$...$$` to block formula `\[...\]` and trim spaces."""
 
 
-def inplace_update(string: str, wrapper: str, new_body: str) -> str:
+def inplace_update(string: str, wrapper: str, new_body: str) -> Optional[str]:
     """Replace content between wrapper strings.
 
     Args:
