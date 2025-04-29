@@ -163,7 +163,7 @@ class RAG(EmbeddingUsage):
            result_per_query (int): The maximum number of results to return per query. Defaults to 10.
            tei_endpoint (str): the endpoint of the TEI api.
            reranker_threshold (float): The threshold used to filtered low relativity document.
-            filter_expr (str): filter_expression parsed into pymilvus search. 
+            filter_expr (str): filter_expression parsed into pymilvus search.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
@@ -187,8 +187,11 @@ class RAG(EmbeddingUsage):
 
             for q, g in zip(query, search_results, strict=True):
                 models = document_model.from_sequence([res["entity"] for res in g if res["id"] not in retrieved_id])
+                logger.debug(f"Retrived {len(g)} raw document, filtered out {len(models)}.")
                 retrieved_id.update(res["id"] for res in g)
-                rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models])
+                if not models:
+                    continue
+                rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models], truncate=True)
                 raw_result.extend(
                     (models[s["index"]], s["score"]) for s in rank_scores if s["score"] > reranker_threshold
                 )
