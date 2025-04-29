@@ -110,8 +110,6 @@ pub fn convert_to_block_formula(string: &str) -> String {
         format!("\\[{}\\]", caps[1].trim())
     }).into_owned()
 }
-
-
 #[pyfunction]
 /// A func to fix labels in a string.
 pub fn fix_misplaced_labels(string: &str) -> String {
@@ -161,7 +159,6 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
         )
 }
 
-// 修改返回类型为Option<String>
 #[pyfunction]
 fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
     // Escape the wrapper string to handle special regex characters safely
@@ -187,6 +184,30 @@ fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> Option<String>
 }
 
 
+// Implement extract_body to find content enclosed by exactly two wrappers
+#[pyfunction]
+fn extract_body(string: &str, wrapper: &str) -> Option<String> {
+    // Escape the wrapper string for regex safety
+    let escaped_wrapper = regex::escape(wrapper);
+
+    // Count wrapper occurrences
+    let count_re = Regex::new(&escaped_wrapper).unwrap();
+    let count = count_re.find_iter(string).count();
+    if count != 2 {  // Return None when wrapper count is not exactly 2
+        return None;
+    }
+
+    // Construct regex pattern to capture content between wrappers
+    let pattern = format!(r"(?s){}(.*?){}", escaped_wrapper, escaped_wrapper);
+    let re = Regex::new(&pattern).unwrap();
+
+    // Extract and return the first captured group (the body content)
+    re.captures_iter(string)
+        .filter_map(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+        .next()
+}
+
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;
@@ -204,6 +225,8 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convert_to_block_formula, m)?)?;
 
     m.add_function(wrap_pyfunction!(inplace_update, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_body, m)?)?;
     Ok(())
 }
+
 

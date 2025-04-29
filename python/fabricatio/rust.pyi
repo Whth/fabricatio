@@ -433,3 +433,16 @@ def inplace_update(string: str, wrapper: str, new_body: str) -> Optional[str]:
         A new string with the content between wrappers replaced.
         
     """
+
+
+def extract_body(string: str, wrapper: str) -> Optional[str]:
+    """
+    Extract the content between two occurrences of a wrapper string.
+
+    Args:
+        string: The input string containing content wrapped by delimiter strings.
+        wrapper: The delimiter string that marks the beginning and end of the content to extract.
+
+    Returns:
+        The content between the first two occurrences of the wrapper string if found, otherwise None.
+    """
