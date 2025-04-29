@@ -162,6 +162,19 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
 }
 
 
+#[pyfunction]
+fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> String {
+    // Escape the wrapper string to handle special regex characters safely
+    let escaped_wrapper = regex::escape(wrapper);
+    // Construct the regex pattern to find content enclosed by the wrapper
+    let pattern = format!(r"(?s){}(.*?){}", escaped_wrapper, escaped_wrapper);
+    let re = Regex::new(&pattern).unwrap();
+
+    // Replace the old content with the new content, maintaining the wrapper and any content after
+    re.replace_all(string, |_caps: &regex::Captures| {
+        format!("{}{}{}", wrapper, new_body, wrapper)
+    }).into_owned()
+}
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;
@@ -177,6 +190,8 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(convert_to_inline_formula, m)?)?;
     m.add_function(wrap_pyfunction!(convert_to_block_formula, m)?)?;
+
+    m.add_function(wrap_pyfunction!(inplace_update, m)?)?;
     Ok(())
 }
 

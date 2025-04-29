@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, overload
 
 from pydantic import JsonValue
 
+
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -26,7 +27,7 @@ class TemplateManager:
     """
 
     def __init__(
-        self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
+            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
     ) -> None:
         """Initialize the template manager.
 
@@ -58,8 +59,10 @@ class TemplateManager:
 
     @overload
     def render_template(self, name: str, data: Dict[str, Any]) -> str: ...
+
     @overload
     def render_template(self, name: str, data: List[Dict[str, Any]]) -> List[str]: ...
+
     def render_template(self, name: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -76,8 +79,10 @@ class TemplateManager:
 
     @overload
     def render_template_raw(self, template: str, data: Dict[str, Any]) -> str: ...
+
     @overload
     def render_template_raw(self, template: str, data: List[Dict[str, Any]]) -> List[str]: ...
+
     def render_template_raw(self, template: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -88,6 +93,7 @@ class TemplateManager:
         Returns:
             Rendered template content as string or list of strings
         """
+
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
@@ -197,6 +203,7 @@ class BibManager:
             Field value if found, None otherwise
         """
 
+
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
 
@@ -207,8 +214,10 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
+
 def detect_language(string: str) -> str:
     """Detect the language of a given string."""
+
 
 def split_word_bounds(string: str) -> List[str]:
     """Split the string into words based on word boundaries.
@@ -220,6 +229,7 @@ def split_word_bounds(string: str) -> List[str]:
         A list of words extracted from the string.
     """
 
+
 def split_sentence_bounds(string: str) -> List[str]:
     """Split the string into sentences based on sentence boundaries.
 
@@ -229,6 +239,7 @@ def split_sentence_bounds(string: str) -> List[str]:
     Returns:
         A list of sentences extracted from the string.
     """
+
 
 def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: float = 0.3) -> List[str]:
     """Split the string into chunks of a specified size.
@@ -242,6 +253,7 @@ def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: fl
         A list of chunks extracted from the string.
     """
 
+
 def word_count(string: str) -> int:
     """Count the number of words in the string.
 
@@ -252,50 +264,66 @@ def word_count(string: str) -> int:
         The number of words in the string.
     """
 
+
 def is_chinese(string: str) -> bool:
     """Check if the given string is in Chinese."""
+
 
 def is_english(string: str) -> bool:
     """Check if the given string is in English."""
 
+
 def is_japanese(string: str) -> bool:
     """Check if the given string is in Japanese."""
+
 
 def is_korean(string: str) -> bool:
     """Check if the given string is in Korean."""
 
+
 def is_arabic(string: str) -> bool:
     """Check if the given string is in Arabic."""
+
 
 def is_russian(string: str) -> bool:
     """Check if the given string is in Russian."""
 
+
 def is_german(string: str) -> bool:
     """Check if the given string is in German."""
+
 
 def is_french(string: str) -> bool:
     """Check if the given string is in French."""
 
+
 def is_hindi(string: str) -> bool:
     """Check if the given string is in Hindi."""
+
 
 def is_italian(string: str) -> bool:
     """Check if the given string is in Italian."""
 
+
 def is_dutch(string: str) -> bool:
     """Check if the given string is in Dutch."""
+
 
 def is_portuguese(string: str) -> bool:
     """Check if the given string is in Portuguese."""
 
+
 def is_swedish(string: str) -> bool:
     """Check if the given string is in Swedish."""
+
 
 def is_turkish(string: str) -> bool:
     """Check if the given string is in Turkish."""
 
+
 def is_vietnamese(string: str) -> bool:
     """Check if the given string is in Vietnamese."""
+
 
 def tex_to_typst(string: str) -> str:
     """Convert TeX to Typst.
@@ -307,6 +335,7 @@ def tex_to_typst(string: str) -> str:
         The converted Typst string.
     """
 
+
 def convert_all_inline_tex(string: str) -> str:
     """Convert all inline TeX code in the string.
 
@@ -316,6 +345,7 @@ def convert_all_inline_tex(string: str) -> str:
     Returns:
         The converted string with inline TeX code replaced.
     """
+
 
 def convert_all_block_tex(string: str) -> str:
     """Convert all block TeX code in the string.
@@ -327,6 +357,7 @@ def convert_all_block_tex(string: str) -> str:
         The converted string with block TeX code replaced.
     """
 
+
 def fix_misplaced_labels(string: str) -> str:
     """A func to fix labels in a string.
 
@@ -336,6 +367,7 @@ def fix_misplaced_labels(string: str) -> str:
     Returns:
         The fixed string with labels properly placed.
     """
+
 
 def comment(string: str) -> str:
     """Add comment to the string.
@@ -347,6 +379,7 @@ def comment(string: str) -> str:
         The string with each line prefixed by '// '.
     """
 
+
 def uncomment(string: str) -> str:
     """Remove comment from the string.
 
@@ -356,6 +389,7 @@ def uncomment(string: str) -> str:
     Returns:
         The string with comments (lines starting with '// ' or '//') removed.
     """
+
 
 def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
     """Split out metadata from a string.
@@ -367,6 +401,7 @@ def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
         A tuple containing the metadata as a Python object (if parseable) and the remaining string.
     """
 
+
 def to_metadata(data: JsonValue) -> str:
     """Convert a Python object to a YAML string.
 
@@ -377,8 +412,24 @@ def to_metadata(data: JsonValue) -> str:
         The YAML string representation of the input data.
     """
 
+
 def convert_to_inline_formula(string: str) -> str:
     r"""Convert `$...$` to inline formula `\(...\)` and trim spaces."""
 
+
 def convert_to_block_formula(string: str) -> str:
     r"""Convert `$$...$$` to block formula `\[...\]` and trim spaces."""
+
+
+def inplace_update(string: str, wrapper: str, new_body: str) -> str:
+    """Replace content between wrapper strings.
+
+    Args:
+        string: The input string containing content wrapped by delimiter strings.
+        wrapper: The delimiter string that marks the beginning and end of the content to replace.
+        new_body: The new content to place between the wrapper strings.
+
+    Returns:
+        A new string with the content between wrappers replaced.
+        
+    """
