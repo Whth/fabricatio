@@ -1,6 +1,7 @@
 """A Module containing the article rag models."""
 
 import re
+from itertools import groupby
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
@@ -10,12 +11,13 @@ from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
 from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
-from fabricatio.utils import ok
+from fabricatio.utils import ok, wrapp_in_block
+from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
 
 
-class ArticleChunk(MilvusDataBase, AsPrompt):
+class ArticleChunk(MilvusDataBase):
     """The chunk of an article."""
 
     etc_word: ClassVar[str] = "等"
@@ -51,10 +53,9 @@ class ArticleChunk(MilvusDataBase, AsPrompt):
     bibtex_cite_key: str
     """The bibtex cite key of the article"""
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
-        return {
-            f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}` from {self.as_auther_seq()}": self.chunk
-        }
+    @property
+    def reference_header(self) -> str:
+        return f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}` from {self.as_auther_seq()}"
 
     @property
     def cite_number(self) -> int:
@@ -204,13 +205,23 @@ class CitationManager(AsPrompt):
 
     def set_cite_number_all(self) -> Self:
         """Set citation numbers for all article chunks."""
-        for i, a in enumerate(self.article_chunks, 1):
-            a.update_cite_number(i)
+        number_mapping = {a.bibtex_cite_key: 0 for a in self.article_chunks}
+
+        for i, k in enumerate(number_mapping.keys()):
+            number_mapping[k] = i
+
+        for a in self.article_chunks:
+            a.update_cite_number(number_mapping[a.bibtex_cite_key])
         return self
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         """Generate prompt inner representation."""
-        return {"References": "\n".join(r.as_prompt() for r in self.article_chunks)}
+        seg = []
+        for k, g in groupby(self.article_chunks, key=lambda a: a.bibtex_cite_key):
+            g = list(g)
+            logger.debug(f"Group [{k}]: {len(g)}")
+            seg.append(wrapp_in_block("\n\n".join(a.chunk for a in g), first(g).reference_header))
+        return {"References": "\n".join(seg)}
 
     def apply(self, string: str) -> str:
         """Apply citation replacements to the input string."""
