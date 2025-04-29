@@ -21,13 +21,14 @@ from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.kwargs_types import ChooseKwargs, LLMKwargs
 from fabricatio.rust import convert_to_block_formula, convert_to_inline_formula
-from fabricatio.utils import ask_retain, ok
+from fabricatio.utils import ok
 
 TYPST_CITE_USAGE = (
     "citation number is REQUIRED to cite any reference!,for example in Auther Pattern: 'Doe et al.[[1]], Jack et al.[[2]]' or in Sentence Suffix Sattern: 'Global requirement is incresing[[1]].'\n"
     "Everything is build upon the typst language, which is similar to latex, \n"
     "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
     "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
+    "You SHALL not cite a single reference more than once!"
     "Those reference mark shall not be omitted during the extraction\n"
     "It's recommended to cite multiple references that supports your conclusion at a time.\n"
     "Wrap inline expression with '\\(' and '\\)',like '\\(>5m\\)' '\\(89%\\)', and wrap block equation with '\\[' and '\\]'.\n"
@@ -47,6 +48,7 @@ TYPST_CITE_USAGE = (
 class WriteArticleContentRAG(Action, RAG, Extract):
     """Write an article based on the provided outline."""
 
+    ctx_override: ClassVar[bool] = True
     search_increment_multiplier: float = 1.6
     """The increment multiplier of the search increment."""
     ref_limit: int = 35
@@ -63,6 +65,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
     """The number of results to be returned per query."""
     req: str = TYPST_CITE_USAGE
     """The req of the write article content."""
+    tei_endpoint: Optional[str] = None
 
     async def _execute(
         self,
@@ -108,16 +111,7 @@ class WriteArticleContentRAG(Action, RAG, Extract):
 
         while not await confirm("Accept this version and continue?").ask_async():
             if inst := await text("Search for more refs for additional spec.").ask_async():
-                await self.search_database(
-                    article,
-                    article_outline,
-                    chap,
-                    sec,
-                    subsec,
-                    cm,
-                    supervisor=True,
-                    extra_instruction=inst,
-                )
+                await self.search_database(article, article_outline, chap, sec, subsec, cm, extra_instruction=inst)
 
             if instruction := await text("Enter the instructions to improve").ask_async():
                 raw = await self.write_raw(article, article_outline, chap, sec, subsec, cm, instruction)
@@ -200,7 +194,6 @@ class WriteArticleContentRAG(Action, RAG, Extract):
         subsec: ArticleSubsection,
         cm: CitationManager,
         extra_instruction: str = "",
-        supervisor: bool = False,
     ) -> None:
         """Search database for related references."""
         search_req = (
@@ -208,50 +201,19 @@ class WriteArticleContentRAG(Action, RAG, Extract):
             f"More specifically, i m witting the Chapter `{chap.title}` >> Section `{sec.title}` >> Subsection `{subsec.title}`.\n"
             f"I need to search related references to build up the content of the subsec mentioned above, which is `{subsec.title}`.\n"
             f"provide 10~16 queries as possible, to get best result!\n"
-            f"You should provide both English version and chinese version of the refined queries!\n{extra_instruction}\n"
+            f"You should provide both English version and chinese version of the refined queries!\n{extra_instruction}"
         )
 
-        ref_q = ok(
-            await self.arefined_query(
-                search_req,
-                **self.query_model,
-            ),
-            "Failed to refine query.",
+        await self.clued_search(
+            search_req,
+            cm,
+            refinery_kwargs=self.ref_q_model,
+            expand_multiplier=self.search_increment_multiplier,
+            base_accepted=self.ref_limit,
+            result_per_query=self.ref_per_q,
+            similarity_threshold=self.similarity_threshold,
+            tei_endpoint=self.tei_endpoint,
         )
-
-        if supervisor:
-            ref_q = await ask_retain(ref_q)
-        ret = await self.aretrieve(
-            ref_q,
-            ArticleChunk,
-            max_accepted=self.ref_limit,
-            result_per_query=self.result_per_query,
-            similarity_threshold=self.threshold,
-        )
-
-        cm.add_chunks(ok(ret))
-        ref_q = await self.arefined_query(
-            f"{cm.as_prompt()}\n\nAbove is the retrieved references in the first RAG, now we need to perform the second RAG.\n\n{search_req}",
-            **self.query_model,
-        )
-
-        if ref_q is None:
-            logger.warning("Second refine query is None, skipping.")
-            return
-        if supervisor:
-            ref_q = await ask_retain(ref_q)
-
-        ret = await self.aretrieve(
-            ref_q,
-            ArticleChunk,
-            max_accepted=int(self.ref_limit * self.search_increment_multiplier),
-            result_per_query=int(self.result_per_query * self.search_increment_multiplier),
-            similarity_threshold=self.threshold,
-        )
-        if ret is None:
-            logger.warning("Second retrieve is None, skipping.")
-            return
-        cm.add_chunks(ret)
 
 
 class ArticleConsultRAG(Action, AdvancedRAG):
@@ -261,9 +223,9 @@ class ArticleConsultRAG(Action, AdvancedRAG):
     output_key: str = "consult_count"
     search_increment_multiplier: float = 1.6
     """The multiplier to increase the limit of references to retrieve per query."""
-    ref_limit: int = 20
+    ref_limit: int = 26
     """The final limit of references."""
-    ref_per_q: int = 3
+    ref_per_q: int = 13
     """The limit of references to retrieve per query."""
     similarity_threshold: float = 0.62
     """The similarity threshold of references to retrieve."""
