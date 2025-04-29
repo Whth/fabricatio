@@ -2,9 +2,12 @@
 
 from abc import ABC
 from enum import StrEnum
+from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
+from fabricatio.fs import dump_text, safe_text_read
 from fabricatio.fs.readers import extract_sections
+from fabricatio.journal import logger
 from fabricatio.models.generic import (
     AsPrompt,
     Described,
@@ -19,9 +22,11 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
-from fabricatio.rust import split_out_metadata, to_metadata, word_count
-from fabricatio.utils import fallback_kwargs
+from fabricatio.rust import extract_body, inplace_update, split_out_metadata, to_metadata, word_count
+from fabricatio.utils import fallback_kwargs, ok
 from pydantic import Field
+
+ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="
 
 
 class ReferringType(StrEnum):
@@ -397,3 +402,23 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     def avg_wordcount_recursive[S: "ArticleBase"](self: S) -> S:
         """Set all chap, sec, subsec have same word count sum up to be `self.expected_word_count`."""
         return self.avg_chap_wordcount().avg_sec_wordcount().avg_subsec_wordcount()
+
+    def update_article_file(self, file: str | Path) -> Self:
+        """Update the article file."""
+        file = Path(file)
+        string = safe_text_read(file)
+        if updated := inplace_update(string, ARTICLE_WRAPPER, self.to_typst_code()):
+            dump_text(file, updated)
+            logger.success(f"Successfully updated {file.as_posix()}.")
+        else:
+            logger.warning(f"Failed to update {file.as_posix()}. Please make sure there are paired `{ARTICLE_WRAPPER}`")
+        return self
+
+    @classmethod
+    def from_article_file(cls, file: str | Path, title: str) -> Self:
+        """Load article from file."""
+        file = Path(file)
+        string = safe_text_read(file)
+        return cls.from_typst_code(
+            title, ok(extract_body(string, ARTICLE_WRAPPER), "Failed to extract body from file.")
+        )
