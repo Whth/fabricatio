@@ -182,7 +182,7 @@ class RerankerAPI:
             response = requests.post(f"{self.base_url}/rerank", json=payload)
 
             # Handle non-200 status codes
-            if response.ok:
+            if not response.ok:
                 error_data = None
                 if "application/json" in response.headers.get("Content-Type", ""):
                     error_data = response.json()
@@ -239,7 +239,7 @@ class RerankerAPI:
                 session.post(f"{self.base_url}/rerank", json=payload) as response,
             ):
                 # Handle non-200 status codes
-                if response.ok:
+                if not response.ok:
                     if "application/json" in response.headers.get("Content-Type", ""):
                         error_data = await response.json()
                     else:
