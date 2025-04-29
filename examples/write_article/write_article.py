@@ -26,10 +26,8 @@ from typer import Typer
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/qwen-plus",
-    llm_temperature=0.45,
+    llm_model="openai/qwen3-235b-a22b",
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
-    llm_top_p=0.95,
     llm_max_tokens=8191,
     llm_rpm=600,
     llm_tpm=900000,
@@ -49,7 +47,7 @@ Role(
                         threshold=0.58,
                         result_per_query=2,
                         extractor_model={"model": "openai/qwen-max"},
-                        query_model={"model": "openai/qwen-turbo", "temperature": 0.3, "top_p": 0.85},
+                        query_model={"model": "openai/qwen-turbo"},
                     )
                 ),
                 PersistentAll,
