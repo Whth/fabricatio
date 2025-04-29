@@ -28,6 +28,7 @@ Role(
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen3-235b-a22b",
     # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+    llm_stream=True,
     llm_max_tokens=8191,
     llm_rpm=600,
     llm_tpm=900000,
