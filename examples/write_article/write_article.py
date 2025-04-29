@@ -211,6 +211,7 @@ def suma(
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),  # noqa: B008
 ) -> None:
+    """Write chap summary based on given article."""
     path = ok(
         asyncio.run(
             Task(name="write an article")

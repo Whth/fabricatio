@@ -53,6 +53,7 @@ class Paragraph(SketchedAble, WordCount, Described):
 
     @property
     def exact_wordcount(self) -> int:
+        """Calculates the exact word count of the content."""
         return word_count(self.content)
 
 
