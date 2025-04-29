@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.13.dev0"
+version = "0.2.13.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -1111,7 +1111,7 @@ wheels = [
 [[package]]
 name = "pymilvus"
 version = "2.5.8"
-source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" }
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "grpcio" },
     { name = "milvus-lite", marker = "sys_platform != 'win32'" },
@@ -1121,9 +1121,9 @@ dependencies = [
     { name = "setuptools" },
     { name = "ujson" },
 ]
-sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/3b/64/3bc30ab75104a21b9622915b93ffe42f6d250d5d16113624407fcfd42a12/pymilvus-2.5.8.tar.gz", hash = "sha256:48923e7efeebcc366d32b644772796f60484e0ca1a5afc1606d21a10ed98133c", size = 1260355, upload_time = "2025-04-28T09:27:55.256Z" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/3b/64/3bc30ab75104a21b9622915b93ffe42f6d250d5d16113624407fcfd42a12/pymilvus-2.5.8.tar.gz", hash = "sha256:48923e7efeebcc366d32b644772796f60484e0ca1a5afc1606d21a10ed98133c" }
 wheels = [
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/6f/96/2ce2a0b601d95e373897eb2334f83dba615bd5647b0e4908ff30959920d2/pymilvus-2.5.8-py3-none-any.whl", hash = "sha256:6f33c9e78c041373df6a94724c90ca83448fd231aa33d6298a7a84ed2a5a0236", size = 227647, upload_time = "2025-04-28T09:27:53.403Z" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/6f/96/2ce2a0b601d95e373897eb2334f83dba615bd5647b0e4908ff30959920d2/pymilvus-2.5.8-py3-none-any.whl", hash = "sha256:6f33c9e78c041373df6a94724c90ca83448fd231aa33d6298a7a84ed2a5a0236" },
 ]
 
 [[package]]
