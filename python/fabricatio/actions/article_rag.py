@@ -24,8 +24,7 @@ from fabricatio.rust import convert_to_block_formula, convert_to_inline_formula
 from fabricatio.utils import ok
 
 TYPST_CITE_USAGE = (
-    "citation number is REQUIRED to cite any reference!,for example in Auther Pattern: 'Doe et al.[[1]], Jack et al.[[2]]' or in Sentence Suffix Sattern: 'Global requirement is incresing[[1]].'\n"
-    "Everything is build upon the typst language, which is similar to latex, \n"
+    "citation number is REQUIRED to cite any reference!'\n"
     "Legal citing syntax examples(seperated by |): [[1]]|[[1,2]]|[[1-3]]|[[12,13-15]]|[[1-3,5-7]]\n"
     "Illegal citing syntax examples(seperated by |): [[1],[2],[3]]|[[1],[1-2]]\n"
     "You SHALL not cite a single reference more than once!"
