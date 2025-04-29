@@ -31,7 +31,7 @@ TYPST_CITE_USAGE = (
     "Those reference mark shall not be omitted during the extraction\n"
     "It's recommended to cite multiple references that supports your conclusion at a time.\n"
     "Wrap inline expression with '\\(' and '\\)',like '\\(>5m\\)' '\\(89%\\)', and wrap block equation with '\\[' and '\\]'.\n"
-    "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled.\n"
+    "In addition to that, you can add a label outside the block equation which can be used as a cross reference identifier, the label is a string wrapped in `<` and `>` like `<energy-release-rate-equation>`.Note that the label string should be a summarizing title for the equation being labeled and should never be written within the formula block.\n"
     "you can refer to that label by using the syntax with prefix of `@eqt:`, which indicate that this notation is citing a label from the equations. For example ' @eqt:energy-release-rate-equation ' DO remember that the notation shall have both suffixed and prefixed space char which enable the compiler to distinguish the notation from the plaintext."
     "Below is two usage example:\n"
     "```typst\n"
