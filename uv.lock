@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.2.13.dev2"
+version = "0.2.13.dev3"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
@@ -583,11 +583,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.43.0"
+version = "0.44.0"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/c0/99/4606ae4e88a1766841744eb1b81b952af64a04c3f2604882db3c5a843b21/json_repair-0.43.0.tar.gz", hash = "sha256:77cc6eda6f407ff5fe9544f962e42b332cca1e8c9f3f9f9dc660327028e0d651" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/c7/57/1e619c9993458d856f7ca55f01ea3417ecfdcb3726fd8c94c6c962b55ea1/json_repair-0.44.0.tar.gz", hash = "sha256:732469762471e535de8aadcb4ec5a4b47e96c677d036cbc1c78ab396925c6a71" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/67/02/64b29ec0544658487cfba8420a595b15e816741e2224bd61a2ab810b9ced/json_repair-0.43.0-py3-none-any.whl", hash = "sha256:3f2b66819c9f5e29edd5dd4851223b72d10ed816b6423b3c92e424090c3ffc1d" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/63/02/c9c9f38f2a81907effc6a9d5a8a04aa27050005ec880df7859a2b4592383/json_repair-0.44.0-py3-none-any.whl", hash = "sha256:4646b59decf8763c20cd218079a12e334202d658d760ddd999f23812f07bb9cd" },
 ]
 
 [[package]]
