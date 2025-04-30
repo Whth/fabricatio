@@ -415,7 +415,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         return self
 
     @classmethod
-    def from_article_file(cls, file: str | Path, title: str) -> Self:
+    def from_article_file[S: "ArticleBase"](cls: Type[S], file: str | Path, title: str) -> S:
         """Load article from file."""
         file = Path(file)
         string = safe_text_read(file)
