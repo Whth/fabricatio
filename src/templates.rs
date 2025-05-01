@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::hbs_helpers::{block, getlang, hash, len, word_count};
 use handlebars::{no_escape, Handlebars};
 use log::debug;
@@ -9,7 +10,6 @@ use rayon::prelude::*;
 use serde_json::Value;
 use std::path::PathBuf;
 use walkdir::WalkDir;
-
 
 /// Python bindings for the TemplateManager struct.
 #[pyclass]
@@ -23,29 +23,6 @@ pub struct TemplateManager {
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
-    #[new]
-    #[pyo3(signature = (template_dirs, suffix=None, active_loading=None))]
-    fn new(template_dirs: Vec<Bound<'_, PyAny>>, suffix: Option<String>, active_loading: Option<bool>) -> PyResult<Self> {
-        // Convert Python paths to Rust PathBufs
-        let templates_dir = template_dirs.into_iter()
-            .map(|dir| dir.call_method0("as_posix")?.extract::<String>().map(PathBuf::from))
-            .collect::<PyResult<Vec<PathBuf>>>()?;
-
-        let mut handlebars = Handlebars::new();
-        handlebars.set_dev_mode(active_loading.unwrap_or(false));
-        handlebars.register_escape_fn(no_escape);
-
-        let mut manager = Self {
-            templates_dir,
-            handlebars,
-            suffix: suffix.unwrap_or_else(|| "hbs".to_string()),
-        };
-
-        manager.discover_templates();
-        manager.register_builtin_helper();
-
-        Ok(manager)
-    }
 
     #[getter]
     fn template_count(&self) -> usize {
@@ -131,6 +108,26 @@ impl TemplateManager {
 }
 
 impl TemplateManager {
+    fn new(template_dir: Vec<PathBuf>, suffix: Option<String>, active_loading: Option<bool>) -> Self {
+        // Convert Python paths to Rust PathBufs
+
+        let mut handlebars = Handlebars::new();
+        handlebars.set_dev_mode(active_loading.unwrap_or(false));
+        handlebars.register_escape_fn(no_escape);
+
+
+        let mut manager = Self {
+            templates_dir: template_dir,
+            handlebars,
+            suffix: suffix.unwrap_or_else(|| "hbs".to_string()),
+        };
+
+        manager.discover_templates();
+        manager.register_builtin_helper();
+
+        manager
+    }
+
     /// Returns a list of all discovered templates.
     fn discovered_templates_raw(&self) -> Vec<PathBuf> {
         self.templates_dir.iter().rev()
@@ -159,5 +156,11 @@ impl TemplateManager {
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
+    let conf = m.getattr("CONFIG")?.extract::<Config>()?;
+    m.add("TEMPLATE_MANAGER", TemplateManager::new(
+        conf.template_manager.template_dir,
+        conf.template_manager.template_suffix,
+        conf.template_manager.active_loading,
+    ))?;
     Ok(())
 }
