@@ -1,50 +1,86 @@
-use directories_next::ProjectDirs;
+use directories_next::BaseDirs;
 use dotenvy::dotenv_override;
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
+use macro_utils::TemplateDefault;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::de::Visitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use validator::Validate;
+
 fn get_roaming_config_dir(app_name: &str) -> Option<PathBuf> {
-    #[cfg(target_os = "windows")]
+    BaseDirs::new().map(|dirs| dirs.config_dir().join(app_name))
+}
+
+
+#[pyclass]
+#[derive(Clone)]
+pub struct SecretStr {
+    source: String,
+}
+
+struct SecStrVisitor;
+
+
+impl<'de> Visitor<'de> for SecStrVisitor {
+    type Value = SecretStr;
+
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        formatter.write_str("A string containing a secret value.")
+    }
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
     {
-        // Windows with AppData\Roaming
-        ProjectDirs::from("", "", app_name).map(|dirs| dirs.config_dir().to_path_buf())
+        Ok(v.into())
     }
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
     {
-        // Linux with XDG_CONFIG_HOME or ~/.config
-        ProjectDirs::from("", "", app_name).map(|dirs| dirs.config_dir().to_path_buf())
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        // macOS with ~/Library/Application Support/
-        AppDirs::new(Some(app_name), false).map(|dirs| dirs.config_dir().to_path_buf())
+        Ok(v.into())
     }
 }
 
 
-/// 安全字符串封装，防止敏感内容意外泄露到日志/调试/序列化输出中
-#[pyclass]
-#[derive(Clone, Deserialize, Serialize)]
-pub struct SecretStr {
-    source: String,
+impl<S: AsRef<str>> From<S> for SecretStr {
+    fn from(source: S) -> Self {
+        Self {
+            source: source.as_ref().to_string(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SecretStr {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(SecStrVisitor)
+    }
+}
+
+
+impl Serialize for SecretStr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str("SecretStr(REDACTED)")
+    }
 }
 
 #[pymethods]
 impl SecretStr {
     #[new]
     pub fn new(source: &str) -> Self {
-        Self {
-            source: source.to_string(),
-        }
+        source.into()
     }
     fn expose(&self) -> &str {
         self.source.as_str()
@@ -178,14 +214,149 @@ pub struct EmbeddingConfig {
     #[validate(range(min = 1, message = "timeout must be at least 1 second"))]
     pub timeout: Option<u32>,
 
-    pub max_sequence_length: u32,
+    pub max_sequence_length: Option<u32>,
 
-    pub caching: bool,
+    pub caching: Option<bool>,
 
     #[validate(url)]
     pub api_endpoint: Option<String>,
 
     pub api_key: Option<SecretStr>,
+}
+
+
+/// RAG configuration structure
+#[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
+#[pyclass(get_all, set_all)]
+pub struct RagConfig {
+    #[validate(url)]
+    pub milvus_uri: Option<String>,
+
+    #[validate(range(min = 1.0, message = "milvus_timeout must be at least 1.0 second"))]
+    pub milvus_timeout: Option<f64>,
+
+    pub milvus_token: Option<SecretStr>,
+
+    pub milvus_dimensions: Option<u32>,
+}
+
+
+#[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
+#[pyclass(get_all, set_all)]
+pub struct DebugConfig {
+    log_level: Option<String>,
+}
+
+
+#[derive(Debug, Clone, Validate, Deserialize, Serialize)]
+#[pyclass(get_all, set_all)]
+pub struct TemplateManagerConfig {
+    /// The directory containing the templates.
+    pub template_dir: Vec<PathBuf>,
+
+    /// Whether to enable active loading of templates.
+    pub active_loading: bool,
+
+    /// The suffix of the templates.
+    pub template_suffix: String,
+
+}
+
+impl Default for TemplateManagerConfig {
+    fn default() -> Self {
+        TemplateManagerConfig {
+            template_dir: vec![PathBuf::from("templates"), ],
+            active_loading: true,
+            template_suffix: ".html".to_string(),
+        }
+    }
+}
+
+
+/// Template configuration structure
+#[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
+#[pyclass(get_all, set_all)]
+pub struct TemplateConfig {
+    /// The name of the create json object template which will be used to create a json object.
+    pub create_json_obj_template: String,
+
+    /// The name of the draft tool usage code template which will be used to draft tool usage code.
+    pub draft_tool_usage_code_template: String,
+
+    /// The name of the make choice template which will be used to make a choice.
+    pub make_choice_template: String,
+
+    /// The name of the make judgment template which will be used to make a judgment.
+    pub make_judgment_template: String,
+
+    /// The name of the dependencies template which will be used to manage dependencies.
+    pub dependencies_template: String,
+
+    /// The name of the task briefing template which will be used to brief a task.
+    pub task_briefing_template: String,
+
+    /// The name of the rate fine grind template which will be used to rate fine grind.
+    pub rate_fine_grind_template: String,
+
+    /// The name of the draft rating manual template which will be used to draft rating manual.
+    pub draft_rating_manual_template: String,
+
+    /// The name of the draft rating criteria template which will be used to draft rating criteria.
+    pub draft_rating_criteria_template: String,
+
+    /// The name of the extract reasons from examples template which will be used to extract reasons from examples.
+    pub extract_reasons_from_examples_template: String,
+
+    /// The name of the extract criteria from reasons template which will be used to extract criteria from reasons.
+    pub extract_criteria_from_reasons_template: String,
+
+    /// The name of the draft rating weights klee template which will be used to draft rating weights with Klee method.
+    pub draft_rating_weights_klee_template: String,
+
+    /// The name of the retrieved display template which will be used to display retrieved documents.
+    pub retrieved_display_template: String,
+
+    /// The name of the liststr template which will be used to display a list of strings.
+    pub liststr_template: String,
+
+    /// The name of the refined query template which will be used to refine a query.
+    pub refined_query_template: String,
+
+    /// The name of the pathstr template which will be used to acquire a path of strings.
+    pub pathstr_template: String,
+
+    /// The name of the review string template which will be used to review a string.
+    pub review_string_template: String,
+
+    /// The name of the generic string template which will be used to review a string.
+    pub generic_string_template: String,
+
+    /// The name of the co-validation template which will be used to co-validate a string.
+    pub co_validation_template: String,
+
+    /// The name of the as prompt template which will be used to convert a string to a prompt.
+    pub as_prompt_template: String,
+
+    /// The name of the check string template which will be used to check a string.
+    pub check_string_template: String,
+
+    /// The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement.
+    pub ruleset_requirement_breakdown_template: String,
+
+    /// The name of the fix troubled object template which will be used to fix a troubled object.
+    pub fix_troubled_obj_template: String,
+
+    /// The name of the fix troubled string template which will be used to fix a troubled string.
+    pub fix_troubled_string_template: String,
+
+    /// The name of the rule requirement template which will be used to generate a rule requirement.
+    pub rule_requirement_template: String,
+
+    /// The name of the extract template which will be used to extract model from string.
+    pub extract_template: String,
+
+    /// The name of the chap summary template which will be used to generate a chapter summary.
+    pub chap_summary_template: String,
 }
 
 /// Configuration structure containing all system components
@@ -198,6 +369,14 @@ pub struct Config {
     pub embedding: EmbeddingConfig,
 
     pub llm: LLMConfig,
+
+    pub debug: DebugConfig,
+
+    pub rag: RagConfig,
+
+    pub template: TemplateConfig,
+
+    pub template_manager: TemplateManagerConfig,
 }
 
 
@@ -223,6 +402,7 @@ impl Config {
             .join(Toml::file(get_roaming_config_dir("fabricatio")
                 .expect("Failed to get roaming config dir")
                 .join("fabricatio.toml")))
+            .join(Config::default())
     }
 
 
@@ -293,5 +473,7 @@ impl Provider for Config {
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Config>()?;
+    m.add("CONFIG", Config::new()?)?;
+
     Ok(())
 }

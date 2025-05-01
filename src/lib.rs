@@ -8,6 +8,7 @@ mod typst_tools;
 mod config;
 
 use pyo3::prelude::*;
+use pyo3_log::init;
 
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -15,17 +16,16 @@ use pyo3::prelude::*;
 /// import the module.
 #[pymodule]
 #[pyo3(name = "rust")]
-fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    init();
+
+    config::register(python, m)?;
     templates::register(python, m)?;
     hash::register(python, m)?;
     bib_tools::register(python, m)?;
     language::register(python, m)?;
     word_split::register(python, m)?;
     typst_tools::register(python, m)?;
-    config::register(python, m)?;
     Ok(())
 }
-
-
-
 

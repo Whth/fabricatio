@@ -25,9 +25,11 @@ serde = { version = "1.0.219", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
 dotenvy = "0.15.7"
 directories-next = "2.0.0"
-
+log = "0.4.27"
+pyo3-log = "0.12.3"
+macro_utils = { path = "src/macro_utils" }
 [workspace]
-members = ["src/tools"]
+members = ["src/macro_utils", "src/tools"]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]
