@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self,
 
 import ujson
 from fabricatio.config import configs
+from fabricatio.fs import dump_text
 from fabricatio.fs.readers import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.parser import JsonCapture
@@ -117,7 +118,7 @@ class WordCount(Base):
     """Expected word count of this research component."""
 
 
-class FromMapping(Base):
+class FromMapping:
     """Class that provides a method to generate a list of objects from a mapping."""
 
     @classmethod
@@ -126,7 +127,7 @@ class FromMapping(Base):
         """Generate a list of objects from a mapping."""
 
 
-class AsPrompt(Base):
+class AsPrompt:
     """Class that provides a method to generate a prompt from the model.
 
     This class includes a method to generate a prompt based on the model's attributes.
@@ -200,19 +201,6 @@ class WithRef[T](Base):
         else:
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
-
-    def derive[S: WithRef](self: S, reference: Any) -> S:
-        """Derive a new object from the current object.
-
-        Args:
-            reference (Any): The reference for the new object.
-
-        Returns:
-            S: A new instance derived from the current object with the provided reference.
-        """
-        new = self.model_copy()
-        new._reference = reference
-        return new
 
 
 class PersistentAble(Base):
@@ -306,7 +294,7 @@ class PersistentAble(Base):
         return cls.model_validate_json(safe_text_read(path))
 
 
-class Language(Base):
+class Language:
     """Class that provides a language attribute."""
 
     @property
@@ -318,8 +306,7 @@ class Language(Base):
             return detect_language(self.title)
         if isinstance(self, Named) and self.name:
             return detect_language(self.name)
-
-        return detect_language(self.model_dump_json(by_alias=True))
+        raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
 
 
 class ModelHash(Base):
@@ -337,7 +324,7 @@ class ModelHash(Base):
         return hash(self.model_dump_json())
 
 
-class UpdateFrom(Base):
+class UpdateFrom:
     """Class that provides a method to update the object from another object.
 
     This class includes methods to update the current object with the attributes of another object.
@@ -386,25 +373,7 @@ class UpdateFrom(Base):
         return self.update_pre_check(other).update_from_inner(other)
 
 
-class ResolveUpdateConflict(Base):
-    """Class that provides a method to update the object from another object.
-
-    This class includes a method to resolve conflicts when updating the object from another object.
-    """
-
-    @abstractmethod
-    def resolve_update_conflict(self, other: Self) -> str:
-        """Resolve the update conflict between two objects.
-
-        Args:
-            other (Self): The other object to resolve the update conflict with.
-
-        Returns:
-            str: The resolved update conflict.
-        """
-
-
-class Introspect(Base):
+class Introspect:
     """Class that provides a method to introspect the object.
 
     This class includes a method to perform internal introspection of the object.
@@ -575,7 +544,7 @@ class FinalizedDumpAble(Base):
         Returns:
             Self: The current instance of the object.
         """
-        Path(path).write_text(self.finalized_dump(), encoding="utf-8")
+        dump_text(path, self.finalized_dump())
         return self
 
 
@@ -672,7 +641,7 @@ class WithDependency(Base):
         )
 
 
-class Vectorizable(Base):
+class Vectorizable:
     """Class that prepares the vectorization of the model.
 
     This class includes methods to prepare the model for vectorization, ensuring it fits within a specified token length.
