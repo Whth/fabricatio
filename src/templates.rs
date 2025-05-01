@@ -1,5 +1,6 @@
 use crate::hbs_helpers::{block, getlang, hash, len, word_count};
 use handlebars::{no_escape, Handlebars};
+use log::debug;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -122,7 +123,7 @@ impl TemplateManager {
                                      self
                                          .handlebars
                                          .render_template(template, &json_data)
-                                         .expect(format!("Rendering error for {template} when rendering {json_data}").as_str())
+                                         .unwrap_or_else(|_| panic!("Rendering error for {template} when rendering {json_data}"))
                                          .as_str())
                         .as_any()).cloned())
         }
@@ -141,6 +142,8 @@ impl TemplateManager {
                     .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some(self.suffix.as_str()))
                     .map(|e| e.path().to_path_buf())
             })
+            .inspect(|path| debug!("Discovered template: {}=>{}"
+                , path.file_stem().unwrap_or_default().to_string_lossy(),path.display()))
             .collect()
     }
 
