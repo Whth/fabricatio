@@ -129,7 +129,6 @@ pub struct LlmConfig {
 // The library's required configuration.
 #[derive(Debug, Deserialize, Serialize, Default)]
 #[pyclass(get_all, set_all)]
-
 struct Config {
     /* the library's required/expected values */
 
@@ -202,10 +201,10 @@ impl Provider for PyprojectToml {
                             let mut body: Option<&Dict> = Some(&dict);
 
                             for &h in self.header.iter() {
-                                body = body.unwrap().get(h).unwrap().as_dict();
-                                if body.is_none() {
+                                if !body.unwrap().contains_key(h) {
                                     return (profile, Dict::new());
                                 }
+                                body = body.unwrap().get(h).unwrap().as_dict();
                             }
                             (profile, body.unwrap().to_owned())
                         })
