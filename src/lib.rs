@@ -5,6 +5,7 @@ mod bib_tools;
 mod language;
 mod word_split;
 mod typst_tools;
+mod config;
 
 use pyo3::prelude::*;
 
@@ -21,6 +22,7 @@ fn _rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     language::register(python, m)?;
     word_split::register(python, m)?;
     typst_tools::register(python, m)?;
+    config::register(python, m)?;
     Ok(())
 }
 
