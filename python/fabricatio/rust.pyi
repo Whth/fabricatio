@@ -436,8 +436,268 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
     """
 
 
+class LLMConfig:
+    """LLM configuration structure.
+    
+    Contains parameters for configuring Language Learning Models.
+    """
+    api_endpoint: Optional[str]
+    """API endpoint URL for the LLM service."""
+
+    api_key: Optional[SecretStr]
+    """Authentication key for the LLM service."""
+
+    timeout: Optional[int]
+    """Maximum time in seconds to wait for a response."""
+
+    max_retries: Optional[int]
+    """Number of retry attempts for failed requests."""
+
+    model: Optional[str]
+    """Name of the LLM model to use."""
+
+    temperature: Optional[float]
+    """Controls randomness in response generation (0.0-2.0)."""
+
+    stop_sign: Optional[List[str]]
+    """Sequence(s) that signal the LLM to stop generating tokens."""
+
+    top_p: Optional[float]
+    """Controls diversity via nucleus sampling (0.0-1.0)."""
+
+    generation_count: Optional[int]
+    """Number of completions to generate for each prompt."""
+
+    stream: Optional[bool]
+    """When true, responses are streamed as they're generated."""
+
+    max_tokens: Optional[int]
+    """Maximum number of tokens to generate in the response."""
+
+    rpm: Optional[int]
+    """Rate limit in requests per minute."""
+
+    tpm: Optional[int]
+    """Rate limit in tokens per minute."""
+
+    presence_penalty: Optional[float]
+    """Penalizes new tokens based on their presence in text so far (-2.0-2.0)."""
+
+    frequency_penalty: Optional[float]
+    """Penalizes new tokens based on their frequency in text so far (-2.0-2.0)."""
+
+
+class EmbeddingConfig:
+    """Embedding configuration structure."""
+
+    model: Optional[str]
+    """The embedding model name."""
+
+    dimensions: Optional[int]
+    """The dimensions of the embedding."""
+
+    timeout: Optional[int]
+    """The timeout of the embedding model in seconds."""
+
+    max_sequence_length: Optional[int]
+    """The maximum sequence length of the embedding model."""
+
+    caching: Optional[bool]
+    """Whether to cache the embedding."""
+
+    api_endpoint: Optional[str]
+    """The API endpoint URL."""
+
+    api_key: Optional[SecretStr]
+    """The API key."""
+
+
+class RagConfig:
+    """RAG (Retrieval Augmented Generation) configuration structure."""
+
+    milvus_uri: Optional[str]
+    """The URI of the Milvus server."""
+
+    milvus_timeout: Optional[float]
+    """The timeout of the Milvus server in seconds."""
+
+    milvus_token: Optional[SecretStr]
+    """The token for Milvus authentication."""
+
+    milvus_dimensions: Optional[int]
+    """The dimensions for Milvus vectors."""
+
+
+class DebugConfig:
+    """Debug configuration structure."""
+
+    log_level: Optional[str]
+    """The logging level to use."""
+
+
+class TemplateManagerConfig:
+    """Template manager configuration structure."""
+
+    template_dir: List[str]
+    """The directories containing the templates."""
+
+    active_loading: Optional[bool]
+    """Whether to enable active loading of templates."""
+
+    template_suffix: Optional[str]
+    """The suffix of the templates."""
+
+
+class TemplateConfig:
+    """Template configuration structure."""
+
+    create_json_obj_template: str
+    """The name of the create json object template which will be used to create a json object."""
+
+    draft_tool_usage_code_template: str
+    """The name of the draft tool usage code template which will be used to draft tool usage code."""
+
+    make_choice_template: str
+    """The name of the make choice template which will be used to make a choice."""
+
+    make_judgment_template: str
+    """The name of the make judgment template which will be used to make a judgment."""
+
+    dependencies_template: str
+    """The name of the dependencies template which will be used to manage dependencies."""
+
+    task_briefing_template: str
+    """The name of the task briefing template which will be used to brief a task."""
+
+    rate_fine_grind_template: str
+    """The name of the rate fine grind template which will be used to rate fine grind."""
+
+    draft_rating_manual_template: str
+    """The name of the draft rating manual template which will be used to draft rating manual."""
+
+    draft_rating_criteria_template: str
+    """The name of the draft rating criteria template which will be used to draft rating criteria."""
+
+    extract_reasons_from_examples_template: str
+    """The name of the extract reasons from examples template which will be used to extract reasons from examples."""
+
+    extract_criteria_from_reasons_template: str
+    """The name of the extract criteria from reasons template which will be used to extract criteria from reasons."""
+
+    draft_rating_weights_klee_template: str
+    """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
+
+    retrieved_display_template: str
+    """The name of the retrieved display template which will be used to display retrieved documents."""
+
+    liststr_template: str
+    """The name of the liststr template which will be used to display a list of strings."""
+
+    refined_query_template: str
+    """The name of the refined query template which will be used to refine a query."""
+
+    pathstr_template: str
+    """The name of the pathstr template which will be used to acquire a path of strings."""
+
+    review_string_template: str
+    """The name of the review string template which will be used to review a string."""
+
+    generic_string_template: str
+    """The name of the generic string template which will be used to review a string."""
+
+    co_validation_template: str
+    """The name of the co-validation template which will be used to co-validate a string."""
+
+    as_prompt_template: str
+    """The name of the as prompt template which will be used to convert a string to a prompt."""
+
+    check_string_template: str
+    """The name of the check string template which will be used to check a string."""
+
+    ruleset_requirement_breakdown_template: str
+    """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
+
+    fix_troubled_obj_template: str
+    """The name of the fix troubled object template which will be used to fix a troubled object."""
+
+    fix_troubled_string_template: str
+    """The name of the fix troubled string template which will be used to fix a troubled string."""
+
+    rule_requirement_template: str
+    """The name of the rule requirement template which will be used to generate a rule requirement."""
+
+    extract_template: str
+    """The name of the extract template which will be used to extract model from string."""
+
+    chap_summary_template: str
+    """The name of the chap summary template which will be used to generate a chapter summary."""
+
+
+class RoutingConfig:
+    """Routing configuration structure for controlling request dispatching behavior."""
+
+    max_parallel_requests: Optional[int]
+    """The maximum number of parallel requests. None means not checked."""
+
+    allowed_fails: Optional[int]
+    """The number of allowed fails before the routing is considered failed."""
+
+    retry_after: int
+    """Minimum time to wait before retrying a failed request."""
+
+    cooldown_time: Optional[int]
+    """Time to cooldown a deployment after failure in seconds."""
+
+
+class GeneralConfig:
+    """General configuration structure for application-wide settings."""
+
+    confirm_on_ops: bool
+    """Whether to confirm operations before executing them."""
+
+    use_json_repair: bool
+    """Whether to automatically repair malformed JSON."""
+
+
+class ToolBoxConfig:
+    """Configuration for toolbox functionality."""
+
+    tool_module_name: str
+    """The name of the module containing the toolbox."""
+
+    data_module_name: str
+    """The name of the module containing the data."""
+
+
 class Config:
-    ...
+    """Configuration structure containing all system components."""
+
+    embedding: EmbeddingConfig
+    """Embedding configuration."""
+
+    llm: LLMConfig
+    """LLM configuration."""
+
+    debug: DebugConfig
+    """Debug configuration."""
+
+    rag: RagConfig
+    """RAG configuration."""
+
+    template: TemplateConfig
+    """Template configuration."""
+
+    template_manager: TemplateManagerConfig
+    """Template manager configuration."""
+
+    routing: RoutingConfig
+    """Routing configuration."""
+
+    general: GeneralConfig
+    """General configuration."""
+
+    toolbox: ToolBoxConfig
+    """Toolbox configuration."""
 
 
 CONFIG: Config
