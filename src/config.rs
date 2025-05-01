@@ -358,6 +358,34 @@ pub struct TemplateConfig {
     /// The name of the chap summary template which will be used to generate a chapter summary.
     pub chap_summary_template: String,
 }
+/// Routing configuration structure for controlling request dispatching behavior
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[pyclass(get_all, set_all)]
+pub struct RoutingConfig {
+    /// The maximum number of parallel requests. None means not checked.
+    pub max_parallel_requests: Option<u32>,
+
+    /// The number of allowed fails before the routing is considered failed.
+    pub allowed_fails: Option<u32>,
+
+    /// Minimum time to wait before retrying a failed request.
+    pub retry_after: u32,
+
+    /// Time to cooldown a deployment after failure in seconds.
+    pub cooldown_time: Option<u32>,
+}
+
+impl Default for RoutingConfig {
+    fn default() -> Self {
+        RoutingConfig {
+            max_parallel_requests: Some(60),
+            allowed_fails: Some(3),
+            retry_after: 15,
+            cooldown_time: Some(60),
+        }
+    }
+}
+
 
 /// Configuration structure containing all system components
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -377,6 +405,8 @@ pub struct Config {
     pub template: TemplateConfig,
 
     pub template_manager: TemplateManagerConfig,
+
+    pub routing: RoutingConfig,
 }
 
 
