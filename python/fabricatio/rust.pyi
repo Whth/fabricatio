@@ -446,3 +446,18 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
     Returns:
         The content between the first two occurrences of the wrapper string if found, otherwise None.
     """
+
+
+class Config:
+    ...
+    value: int
+
+
+class SecretStr:
+    """A string that should not be exposed."""
+
+    def __init__(self, source: str) -> None:
+        ...
+
+    def expose(self) -> str:
+        """Expose the secret string."""
