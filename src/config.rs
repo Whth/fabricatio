@@ -385,8 +385,25 @@ impl Default for RoutingConfig {
         }
     }
 }
+/// General configuration structure for application-wide settings
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[pyclass(get_all, set_all)]
+pub struct GeneralConfig {
+    /// Whether to confirm operations before executing them
+    pub confirm_on_ops: bool,
 
+    /// Whether to automatically repair malformed JSON
+    pub use_json_repair: bool,
+}
 
+impl Default for GeneralConfig {
+    fn default() -> Self {
+        GeneralConfig {
+            confirm_on_ops: true,
+            use_json_repair: true,
+        }
+    }
+}
 /// Configuration structure containing all system components
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[pyclass(get_all, set_all)]
@@ -407,6 +424,8 @@ pub struct Config {
     pub template_manager: TemplateManagerConfig,
 
     pub routing: RoutingConfig,
+
+    pub general: GeneralConfig,
 }
 
 
