@@ -40,25 +40,22 @@ pub struct SecretStr {
 
 #[pymethods]
 impl SecretStr {
-    /// 显式暴露内部字符串（谨慎使用）
+    #[new]
+    pub fn new(source: &str) -> Self {
+        Self {
+            source: source.to_string(),
+        }
+    }
     fn expose(&self) -> &str {
         self.source.as_str()
     }
 
     fn __str__(&self) -> &str {
-        "SecretStr(REDACTED)".as_ref()
+        "SecretStr(REDACTED)"
     }
 
     fn __repr__(&self) -> &str {
-        "SecretStr(REDACTED)".as_ref()
-    }
-}
-
-impl SecretStr {
-    pub fn new(source: &str) -> Self {
-        Self {
-            source: source.to_string(),
-        }
+        "SecretStr(REDACTED)"
     }
 }
 
