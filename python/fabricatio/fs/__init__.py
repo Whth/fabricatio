@@ -1,7 +1,6 @@
 """FileSystem manipulation module for Fabricatio."""
 from importlib.util import find_spec
 
-from fabricatio.config import configs
 from fabricatio.fs.curd import (
     absolute_path,
     copy_file,
@@ -32,5 +31,5 @@ __all__ = [
 if find_spec("magika"):
     from magika import Magika
 
-    MAGIKA = Magika(model_dir=configs.magika.model_dir)
+    MAGIKA = Magika()
     __all__ += ["MAGIKA"]

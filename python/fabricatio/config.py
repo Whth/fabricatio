@@ -261,20 +261,10 @@ class TemplateConfig(BaseModel):
     """The name of the chap summary template which will be used to generate a chapter summary."""
 
 
-class MagikaConfig(BaseModel):
-    """Magika configuration class."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
-    model_dir: Optional[DirectoryPath] = Field(default=None)
-    """The directory containing the models for magika."""
-
-
 class GeneralConfig(BaseModel):
     """Global configuration class."""
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    workspace: DirectoryPath = Field(default=Path())
-    """The workspace directory for the application."""
 
     confirm_on_ops: bool = Field(default=True)
     """Whether to confirm on operations."""
@@ -378,9 +368,6 @@ class Settings(BaseSettings):
     templates: TemplateConfig = Field(default_factory=TemplateConfig)
     """Template Configuration"""
 
-    magika: MagikaConfig = Field(default_factory=MagikaConfig)
-    """Magika Configuration"""
-
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     """General Configuration"""
 
@@ -395,12 +382,12 @@ class Settings(BaseSettings):
 
     @classmethod
     def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
+            cls,
+            settings_cls: type[BaseSettings],
+            init_settings: PydanticBaseSettingsSource,
+            env_settings: PydanticBaseSettingsSource,
+            dotenv_settings: PydanticBaseSettingsSource,
+            file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Customize settings sources.
 
