@@ -404,6 +404,28 @@ impl Default for GeneralConfig {
         }
     }
 }
+
+/// Configuration for toolbox functionality
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[pyclass(get_all, set_all)]
+pub struct ToolBoxConfig {
+    /// The name of the module containing the toolbox.
+    pub tool_module_name: String,
+
+    /// The name of the module containing the data.
+    pub data_module_name: String,
+}
+
+impl Default for ToolBoxConfig {
+    fn default() -> Self {
+        ToolBoxConfig {
+            tool_module_name: "Toolbox".to_string(),
+            data_module_name: "Data".to_string(),
+        }
+    }
+}
+
+
 /// Configuration structure containing all system components
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[pyclass(get_all, set_all)]
@@ -426,6 +448,8 @@ pub struct Config {
     pub routing: RoutingConfig,
 
     pub general: GeneralConfig,
+
+    pub toolbox: ToolBoxConfig,
 }
 
 
