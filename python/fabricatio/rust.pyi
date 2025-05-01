@@ -11,7 +11,6 @@ Key Features:
 - Text utilities: Word boundary splitting and word counting.
 """
 
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, overload
 
 from pydantic import JsonValue
@@ -25,17 +24,6 @@ class TemplateManager:
 
     See: https://crates.io/crates/handlebars
     """
-
-    def __init__(
-            self, template_dirs: List[Path], suffix: Optional[str] = None, active_loading: Optional[bool] = None
-    ) -> None:
-        """Initialize the template manager.
-
-        Args:
-            template_dirs: List of directories containing template files
-            suffix: File extension for templates (defaults to 'hbs')
-            active_loading: Whether to enable dev mode for reloading templates on change
-        """
 
     @property
     def template_count(self) -> int:
@@ -450,7 +438,9 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
 
 class Config:
     ...
-    value: int
+
+
+CONFIG: Config
 
 
 class SecretStr:
@@ -461,3 +451,6 @@ class SecretStr:
 
     def expose(self) -> str:
         """Expose the secret string."""
+
+
+TEMPLATE_MANAGER: TemplateManager
