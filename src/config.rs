@@ -13,7 +13,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use validator::Validate;
 
-fn get_roaming_config_dir(app_name: &str) -> Option<PathBuf> {
+fn get_roaming_dir(app_name: &str) -> Option<PathBuf> {
     BaseDirs::new().map(|dirs| dirs.config_dir().join(app_name))
 }
 
@@ -255,19 +255,19 @@ pub struct TemplateManagerConfig {
     pub template_dir: Vec<PathBuf>,
 
     /// Whether to enable active loading of templates.
-    pub active_loading: bool,
+    pub active_loading: Option<bool>,
 
     /// The suffix of the templates.
-    pub template_suffix: String,
+    pub template_suffix: Option<String>,
 
 }
 
 impl Default for TemplateManagerConfig {
     fn default() -> Self {
         TemplateManagerConfig {
-            template_dir: vec![PathBuf::from("templates"), ],
-            active_loading: true,
-            template_suffix: ".html".to_string(),
+            template_dir: vec![PathBuf::from("templates"), get_roaming_dir("fabricatio").unwrap().join("templates")],
+            active_loading: Some(true),
+            template_suffix: Some("hbs".to_string()),
         }
     }
 }
@@ -399,7 +399,7 @@ impl Config {
             })
             .join(Toml::file("fabricatio.toml"))
             .join(PyprojectToml::new("pyproject.toml", vec!["tool", "fabricatio"]))
-            .join(Toml::file(get_roaming_config_dir("fabricatio")
+            .join(Toml::file(get_roaming_dir("fabricatio")
                 .expect("Failed to get roaming config dir")
                 .join("fabricatio.toml")))
             .join(Config::default())
