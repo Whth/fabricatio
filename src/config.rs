@@ -6,10 +6,10 @@ use figment::{Error, Figment, Metadata, Profile, Provider};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use validator::Validate;
-
-
 fn get_roaming_config_dir(app_name: &str) -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
@@ -27,6 +27,51 @@ fn get_roaming_config_dir(app_name: &str) -> Option<PathBuf> {
     {
         // macOS with ~/Library/Application Support/
         AppDirs::new(Some(app_name), false).map(|dirs| dirs.config_dir().to_path_buf())
+    }
+}
+
+
+/// 安全字符串封装，防止敏感内容意外泄露到日志/调试/序列化输出中
+#[pyclass]
+#[derive(Clone, Deserialize, Serialize)]
+pub struct SecretStr {
+    source: String,
+}
+
+#[pymethods]
+impl SecretStr {
+    /// 显式暴露内部字符串（谨慎使用）
+    fn expose(&self) -> &str {
+        self.source.as_str()
+    }
+
+    fn __str__(&self) -> &str {
+        "SecretStr(REDACTED)".as_ref()
+    }
+
+    fn __repr__(&self) -> &str {
+        "SecretStr(REDACTED)".as_ref()
+    }
+}
+
+impl SecretStr {
+    pub fn new(source: &str) -> Self {
+        Self {
+            source: source.to_string(),
+        }
+    }
+}
+
+
+impl Debug for SecretStr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("SecretStr(REDACTED)")
+    }
+}
+
+impl Display for SecretStr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("REDACTED")
     }
 }
 
@@ -80,11 +125,11 @@ fn get_roaming_config_dir(app_name: &str) -> Option<PathBuf> {
 ///   Range from -2.0 to 2.0. Positive values discourage repetition.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
 #[pyclass(get_all, set_all)]
-pub struct LlmConfig {
+pub struct LLMConfig {
     #[validate(url)]
     pub api_endpoint: Option<String>,
 
-    pub api_key: Option<String>,
+    pub api_key: Option<SecretStr>,
 
     #[validate(range(min = 1, message = "timeout must be at least 1 second"))]
     pub timeout: Option<u64>,
@@ -125,16 +170,37 @@ pub struct LlmConfig {
     pub frequency_penalty: Option<f32>,
 }
 
-
-// The library's required configuration.
-#[derive(Debug, Deserialize, Serialize, Default)]
+/// Embedding configuration structure
+#[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
-struct Config {
-    /* the library's required/expected values */
+pub struct EmbeddingConfig {
+    pub model: Option<String>,
 
+    pub dimensions: Option<u32>,
 
+    #[validate(range(min = 1, message = "timeout must be at least 1 second"))]
+    pub timeout: Option<u32>,
 
-    pub llm: LlmConfig,
+    pub max_sequence_length: u32,
+
+    pub caching: bool,
+
+    #[validate(url)]
+    pub api_endpoint: Option<String>,
+
+    pub api_key: Option<SecretStr>,
+}
+
+/// Configuration structure containing all system components
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[pyclass(get_all, set_all)]
+pub struct Config {
+    /// LLM configuration
+
+    /// Embedding configuration
+    pub embedding: EmbeddingConfig,
+
+    pub llm: LLMConfig,
 }
 
 
