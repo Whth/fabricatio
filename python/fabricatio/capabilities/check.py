@@ -3,17 +3,16 @@
 from asyncio import gather
 from typing import List, Optional, Unpack
 
-from fabricatio import TEMPLATE_MANAGER
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, detect_language
+
 from fabricatio.capabilities.advanced_judge import AdvancedJudge
 from fabricatio.capabilities.propose import Propose
-from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.extra.patches import RuleSetMetadata
 from fabricatio.models.extra.problem import Improvement
 from fabricatio.models.extra.rule import Rule, RuleSet
 from fabricatio.models.generic import Display, WithBriefing
 from fabricatio.models.kwargs_types import ValidateKwargs
-from fabricatio.rust import detect_language
 from fabricatio.utils import override_kwargs
 
 
@@ -25,7 +24,7 @@ class Check(AdvancedJudge, Propose):
     """
 
     async def draft_ruleset(
-        self, ruleset_requirement: str, rule_count: int = 0, **kwargs: Unpack[ValidateKwargs[Rule]]
+            self, ruleset_requirement: str, rule_count: int = 0, **kwargs: Unpack[ValidateKwargs[Rule]]
     ) -> Optional[RuleSet]:
         """Generate rule set based on requirement description.
 
@@ -45,7 +44,7 @@ class Check(AdvancedJudge, Propose):
         rule_reqs = (
             await self.alist_str(
                 TEMPLATE_MANAGER.render_template(
-                    configs.templates.ruleset_requirement_breakdown_template,
+                    CONFIG.templates.ruleset_requirement_breakdown_template,
                     {"ruleset_requirement": ruleset_requirement},
                 ),
                 rule_count,
@@ -61,7 +60,7 @@ class Check(AdvancedJudge, Propose):
         rules = await self.propose(
             Rule,
             [
-                TEMPLATE_MANAGER.render_template(configs.templates.rule_requirement_template, {"rule_requirement": r})
+                TEMPLATE_MANAGER.render_template(CONFIG.templates.rule_requirement_template, {"rule_requirement": r})
                 for r in rule_reqs
             ],
             **kwargs,
@@ -81,11 +80,11 @@ class Check(AdvancedJudge, Propose):
         return RuleSet(rules=rules, **ruleset_patch.as_kwargs())
 
     async def check_string_against_rule(
-        self,
-        input_text: str,
-        rule: Rule,
-        reference: str = "",
-        **kwargs: Unpack[ValidateKwargs[Improvement]],
+            self,
+            input_text: str,
+            rule: Rule,
+            reference: str = "",
+            **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate text against specific rule.
 
@@ -104,15 +103,15 @@ class Check(AdvancedJudge, Propose):
             - Proposes Improvement only when violation is confirmed
         """
         if judge := await self.evidently_judge(
-            f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `{rule.name}` provided above?"
-            f"should I take some measure to fix that violation? true for I do need, false for I don't need.",
-            **override_kwargs(kwargs, default=None),
+                f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `{rule.name}` provided above?"
+                f"should I take some measure to fix that violation? true for I do need, false for I don't need.",
+                **override_kwargs(kwargs, default=None),
         ):
             logger.info(f"Rule `{rule.name}` violated: \n{judge.display()}")
             return await self.propose(
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
-                    configs.templates.check_string_template,
+                    CONFIG.templates.check_string_template,
                     {"to_check": input_text, "rule": rule.display(), "judge": judge.display(), "reference": reference},
                 ),
                 **kwargs,
@@ -120,11 +119,11 @@ class Check(AdvancedJudge, Propose):
         return None
 
     async def check_obj_against_rule[M: (Display, WithBriefing)](
-        self,
-        obj: M,
-        rule: Rule,
-        reference: str = "",
-        **kwargs: Unpack[ValidateKwargs[Improvement]],
+            self,
+            obj: M,
+            rule: Rule,
+            reference: str = "",
+            **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate object against rule using text representation.
 
@@ -152,11 +151,11 @@ class Check(AdvancedJudge, Propose):
         return await self.check_string_against_rule(input_text, rule, reference, **kwargs)
 
     async def check_string(
-        self,
-        input_text: str,
-        ruleset: RuleSet,
-        reference: str = "",
-        **kwargs: Unpack[ValidateKwargs[Improvement]],
+            self,
+            input_text: str,
+            ruleset: RuleSet,
+            reference: str = "",
+            **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[List[Improvement]]:
         """Validate text against full ruleset.
 
@@ -183,11 +182,11 @@ class Check(AdvancedJudge, Propose):
         return [imp for imp in imp_seq if imp]
 
     async def check_obj[M: (Display, WithBriefing)](
-        self,
-        obj: M,
-        ruleset: RuleSet,
-        reference: str = "",
-        **kwargs: Unpack[ValidateKwargs[Improvement]],
+            self,
+            obj: M,
+            ruleset: RuleSet,
+            reference: str = "",
+            **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[List[Improvement]]:
         """Validate object against full ruleset.
 

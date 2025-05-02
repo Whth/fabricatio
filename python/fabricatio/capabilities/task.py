@@ -4,16 +4,15 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import ujson
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 
 from fabricatio.capabilities.propose import Propose
-from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolExecutor
 from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.parser import JsonCapture, PythonCapture
-from fabricatio.rust_instances import TEMPLATE_MANAGER
 
 
 class ProposeTask(Propose):
@@ -67,10 +66,10 @@ class HandleTask(ToolBoxUsage):
             return None
 
         q = TEMPLATE_MANAGER.render_template(
-            configs.templates.draft_tool_usage_code_template,
+            CONFIG.templates.draft_tool_usage_code_template,
             {
-                "data_module_name": configs.toolbox.data_module_name,
-                "tool_module_name": configs.toolbox.tool_module_name,
+                "data_module_name": CONFIG.toolbox.data_module_name,
+                "tool_module_name": CONFIG.toolbox.tool_module_name,
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
