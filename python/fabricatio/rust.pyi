@@ -11,7 +11,7 @@ Key Features:
 - Text utilities: Word boundary splitting and word counting.
 """
 from enum import StrEnum
-from typing import Any, Dict, List, Optional, Self, Tuple, overload
+from typing import Any, Dict, List, Optional, Self, Tuple, overload, Union
 
 from pydantic import JsonValue
 
@@ -730,10 +730,6 @@ class SecretStr:
 
 TEMPLATE_MANAGER: TemplateManager
 
-from typing import Union
-
-type EventLike = Union[str, Event, List[str]]
-
 
 class Event:
     """Event class that represents a hierarchical event with segments.
@@ -750,7 +746,7 @@ class Event:
         """
 
     @staticmethod
-    def instantiate_from(event: EventLike) -> Event:
+    def instantiate_from(event: Union[str, Event, List[str]]) -> Event:
         """Create an Event from a string, list of strings, or another Event.
 
         Args:
@@ -765,7 +761,7 @@ class Event:
         """
 
     @staticmethod
-    def quick_instantiate(event: EventLike) -> Event:
+    def quick_instantiate(event: Union[str, Event, List[str]]) -> Event:
         """Create an Event and append wildcard and pending status.
 
         Args:
@@ -775,7 +771,7 @@ class Event:
             A new Event instance with wildcard and pending status appended
         """
 
-    def derive(self, event: EventLike) -> Event:
+    def derive(self, event: Union[str, Event, List[str]]) -> Event:
         """Create a new Event by extending this one with another.
 
         Args:
@@ -837,7 +833,7 @@ class Event:
     def clear(self) -> Self:
         """Remove all segments from the Event."""
 
-    def concat(self, event: EventLike) -> Self:
+    def concat(self, event: Union[str, Event, List[str]]) -> Self:
         """Append segments from another Event to this one.
 
         Args:
