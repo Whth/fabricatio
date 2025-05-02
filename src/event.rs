@@ -10,6 +10,7 @@ use strum::{Display, EnumString, IntoStaticStr};
 #[pyclass]
 #[derive(Clone)]
 struct Event {
+    #[pyo3(get)]
     segments: Vec<String>,
 }
 
