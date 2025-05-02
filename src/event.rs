@@ -77,7 +77,7 @@ impl Event {
         self.clone()
     }
 
-    fn push(&mut self, segment: String) -> PyResult<()> {
+    fn push(&mut self, segment: String) -> PyResult<Self> {
         if segment.is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "The segment must not be empty.",
@@ -90,30 +90,30 @@ impl Event {
             ));
         }
         self.segments.push(segment);
-        Ok(())
+        Ok(self.clone())
     }
 
-    fn push_wildcard(&mut self) -> PyResult<()> {
+    fn push_wildcard(&mut self) -> PyResult<Self> {
         self.push("*".to_string())
     }
 
-    fn push_pending(&mut self) -> PyResult<()> {
+    fn push_pending(&mut self) -> PyResult<Self> {
         self.push(TaskStatus::Pending.to_string())
     }
 
-    fn push_running(&mut self) -> PyResult<()> {
+    fn push_running(&mut self) -> PyResult<Self> {
         self.push(TaskStatus::Running.to_string())
     }
 
-    fn push_finished(&mut self) -> PyResult<()> {
+    fn push_finished(&mut self) -> PyResult<Self> {
         self.push(TaskStatus::Finished.to_string())
     }
 
-    fn push_failed(&mut self) -> PyResult<()> {
+    fn push_failed(&mut self) -> PyResult<Self> {
         self.push(TaskStatus::Failed.to_string())
     }
 
-    fn push_cancelled(&mut self) -> PyResult<()> {
+    fn push_cancelled(&mut self) -> PyResult<Self> {
         self.push(TaskStatus::Cancelled.to_string())
     }
 
@@ -125,11 +125,12 @@ impl Event {
         self.segments.clear();
     }
 
-    fn concat(&mut self, event: &Bound<'_, PyAny>) -> PyResult<()> {
+    fn concat(&mut self, event: &Bound<'_, PyAny>) -> PyResult<Self> {
         let other = Self::instantiate_from(event)?;
         self.segments.extend(other.segments);
-        Ok(())
+        Ok(self.clone())
     }
+
 
     fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
