@@ -2,8 +2,9 @@
 
 from typing import List, Optional
 
+from fabricatio.rust import CONFIG
+
 from fabricatio.capabilities.rag import RAG
-from fabricatio.config import configs
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.rag import MilvusClassicModel, MilvusDataBase
@@ -39,9 +40,9 @@ class InjectToDB(Action, RAG):
             schema=seq[0].as_milvus_schema(
                 ok(
                     self.milvus_dimensions
-                    or configs.rag.milvus_dimensions
+                    or CONFIG.rag.milvus_dimensions
                     or self.embedding_dimensions
-                    or configs.embedding.dimensions
+                    or CONFIG.embedding.dimensions
                 ),
             ),
             index_params=IndexParams(
