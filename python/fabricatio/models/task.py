@@ -33,7 +33,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     description: str = Field(default="")
     """A detailed explanation of the task that includes all necessary information. Should be clear and answer what, why, when, where, who, and how questions."""
 
-    goals: List[str] = Field(default=[])
+    goals: List[str] = Field(default_factory=list)
     """A list of objectives that the task aims to accomplish. Each goal should be clear and specific. Complex tasks should be broken into multiple smaller goals."""
 
     namespace: List[str] = Field(default_factory=list)

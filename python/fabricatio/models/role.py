@@ -3,7 +3,7 @@
 from typing import Any, Self, Set
 
 from fabricatio.rust import Event
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 from fabricatio.capabilities.propose import Propose
 from fabricatio.core import env
@@ -24,7 +24,8 @@ class Role(WithBriefing, Propose, ToolBoxUsage):
         registry: Mapping of events to workflows that handle them
         toolboxes: Set of toolboxes available to this role and its workflows
     """
-
+    # fixme: not use arbitrary_types_allowed
+    model_config = ConfigDict(use_attribute_docstrings=True, arbitrary_types_allowed=True)
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
