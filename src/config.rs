@@ -467,7 +467,7 @@ pub struct Config {
 
     pub rag: RagConfig,
 
-    pub template: TemplateConfig,
+    pub templates: TemplateConfig,
 
     pub template_manager: TemplateManagerConfig,
 

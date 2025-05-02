@@ -10,8 +10,8 @@ Key Features:
 - Cryptographic utilities: BLAKE3 hashing.
 - Text utilities: Word boundary splitting and word counting.
 """
-
-from typing import Any, Dict, List, Optional, Tuple, overload, Self
+from enum import StrEnum
+from typing import Any, Dict, List, Optional, Self, Tuple, overload
 
 from pydantic import JsonValue
 
@@ -697,7 +697,7 @@ class Config:
     rag: RagConfig
     """RAG configuration."""
 
-    template: TemplateConfig
+    templates: TemplateConfig
     """Template configuration."""
 
     template_manager: TemplateManagerConfig
@@ -732,12 +732,15 @@ TEMPLATE_MANAGER: TemplateManager
 
 from typing import Union
 
+type EventLike = Union[str, Event, List[str]]
+
 
 class Event:
     """Event class that represents a hierarchical event with segments.
 
     Events can be constructed from strings, lists of strings, or other Events.
     """
+    segments: List[str]
 
     def __init__(self, segments: Optional[List[str]] = None) -> None:
         """Initialize a new Event with optional segments.
@@ -747,7 +750,7 @@ class Event:
         """
 
     @staticmethod
-    def instantiate_from(event: Union[str, List[str], Event]) -> Event:
+    def instantiate_from(event: EventLike) -> Event:
         """Create an Event from a string, list of strings, or another Event.
 
         Args:
@@ -762,7 +765,7 @@ class Event:
         """
 
     @staticmethod
-    def quick_instantiate(event: Union[str, List[str], Event]) -> Event:
+    def quick_instantiate(event: EventLike) -> Event:
         """Create an Event and append wildcard and pending status.
 
         Args:
@@ -772,7 +775,7 @@ class Event:
             A new Event instance with wildcard and pending status appended
         """
 
-    def derive(self, event: Union[str, List[str], Event]) -> Event:
+    def derive(self, event: EventLike) -> Event:
         """Create a new Event by extending this one with another.
 
         Args:
@@ -834,7 +837,7 @@ class Event:
     def clear(self) -> Self:
         """Remove all segments from the Event."""
 
-    def concat(self, event: Union[str, List[str], Event]) -> Self:
+    def concat(self, event: EventLike) -> Self:
         """Append segments from another Event to this one.
 
         Args:
@@ -848,7 +851,7 @@ class Event:
     def __ne__(self, other: object) -> bool: ...
 
 
-class TaskStatus:
+class TaskStatus(StrEnum, str):
     """Enumeration of possible task statuses."""
 
     Pending: TaskStatus
