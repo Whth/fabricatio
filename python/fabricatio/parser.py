@@ -6,10 +6,10 @@ from re import Pattern, compile
 from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type
 
 import ujson
+from fabricatio.rust import CONFIG
 from json_repair import repair_json
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, PrivateAttr, ValidationError
 
-from fabricatio.config import configs
 from fabricatio.journal import logger
 
 
@@ -46,7 +46,7 @@ class Capture(BaseModel):
             str | List[str]: The fixed text with the same type as input.
         """
         match self.capture_type:
-            case "json" if configs.general.use_json_repair:
+            case "json" if CONFIG.general.use_json_repair:
                 logger.debug("Applying json repair to text.")
                 if isinstance(text, str):
                     return repair_json(text, ensure_ascii=False)  # pyright: ignore [reportReturnType]

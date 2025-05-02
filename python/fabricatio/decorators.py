@@ -8,7 +8,8 @@ from shutil import which
 from types import ModuleType
 from typing import Callable, Coroutine, List, Optional
 
-from fabricatio.config import configs
+from fabricatio.rust import CONFIG
+
 from fabricatio.journal import logger
 
 
@@ -24,7 +25,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
     """
 
     def _wrapper(
-        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+            func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
     ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
         if iscoroutinefunction(func):
 
@@ -48,7 +49,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
+        bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 
@@ -113,7 +114,7 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
     Returns:
         Callable: A decorator that wraps the function to confirm before execution.
     """
-    if not configs.general.confirm_on_ops:
+    if not CONFIG.general.confirm_on_ops:
         # Skip confirmation if the configuration is set to False
         return func
     from questionary import confirm
@@ -123,8 +124,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if await confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
-                instruction="Please input [Yes/No] to proceed (default: Yes):",
+                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
+                    instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask_async():
                 return await func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -135,8 +136,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
-                instruction="Please input [Yes/No] to proceed (default: Yes):",
+                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
+                    instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask():
                 return func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -218,7 +219,7 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
 
 
 def logging_exec_time[**P, R](
-    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
     """Decorator to log the execution time of a function.
 
@@ -231,7 +232,6 @@ def logging_exec_time[**P, R](
     from time import time
 
     if iscoroutinefunction(func):
-
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()
