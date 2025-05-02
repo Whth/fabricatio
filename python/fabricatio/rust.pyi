@@ -11,7 +11,7 @@ Key Features:
 - Text utilities: Word boundary splitting and word counting.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, overload
+from typing import Any, Dict, List, Optional, Tuple, overload, Self
 
 from pydantic import JsonValue
 
@@ -419,13 +419,12 @@ def inplace_update(string: str, wrapper: str, new_body: str) -> Optional[str]:
 
     Returns:
         A new string with the content between wrappers replaced.
-        
+
     """
 
 
 def extract_body(string: str, wrapper: str) -> Optional[str]:
-    """
-    Extract the content between two occurrences of a wrapper string.
+    """Extract the content between two occurrences of a wrapper string.
 
     Args:
         string: The input string containing content wrapped by delimiter strings.
@@ -438,9 +437,10 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
 
 class LLMConfig:
     """LLM configuration structure.
-    
+
     Contains parameters for configuring Language Learning Models.
     """
+
     api_endpoint: Optional[str]
     """API endpoint URL for the LLM service."""
 
@@ -669,6 +669,19 @@ class ToolBoxConfig:
     """The name of the module containing the data."""
 
 
+class PymitterConfig:
+    """Pymitter configuration structure for controlling event emission and listener behavior."""
+
+    delimiter: str
+    """The delimiter used to separate the event name into segments."""
+
+    new_listener_event: bool
+    """If set, a newListener event is emitted when a new listener is added."""
+
+    max_listeners: int
+    """The maximum number of listeners per event. -1 means unlimited."""
+
+
 class Config:
     """Configuration structure containing all system components."""
 
@@ -699,6 +712,9 @@ class Config:
     toolbox: ToolBoxConfig
     """Toolbox configuration."""
 
+    pymitter: PymitterConfig
+    """Pymitter configuration."""
+
 
 CONFIG: Config
 
@@ -706,11 +722,146 @@ CONFIG: Config
 class SecretStr:
     """A string that should not be exposed."""
 
-    def __init__(self, source: str) -> None:
-        ...
+    def __init__(self, source: str) -> None: ...
 
     def expose(self) -> str:
         """Expose the secret string."""
 
 
 TEMPLATE_MANAGER: TemplateManager
+
+from typing import Union
+
+
+class Event:
+    """Event class that represents a hierarchical event with segments.
+
+    Events can be constructed from strings, lists of strings, or other Events.
+    """
+
+    def __init__(self, segments: Optional[List[str]] = None) -> None:
+        """Initialize a new Event with optional segments.
+
+        Args:
+            segments: Optional list of string segments
+        """
+
+    @staticmethod
+    def instantiate_from(event: Union[str, List[str], Event]) -> Event:
+        """Create an Event from a string, list of strings, or another Event.
+
+        Args:
+            event: The source to create the Event from
+
+        Returns:
+            A new Event instance
+
+        Raises:
+            ValueError: If list elements are not strings
+            TypeError: If event is an invalid type
+        """
+
+    @staticmethod
+    def quick_instantiate(event: Union[str, List[str], Event]) -> Event:
+        """Create an Event and append wildcard and pending status.
+
+        Args:
+            event: The source to create the Event from
+
+        Returns:
+            A new Event instance with wildcard and pending status appended
+        """
+
+    def derive(self, event: Union[str, List[str], Event]) -> Event:
+        """Create a new Event by extending this one with another.
+
+        Args:
+            event: The Event to append
+
+        Returns:
+            A new Event that combines this Event with the provided one
+        """
+
+    def collapse(self) -> str:
+        """Convert the Event to a delimited string.
+
+        Returns:
+            String representation with segments joined by delimiter
+        """
+
+    def fork(self) -> Event:
+        """Create a copy of this Event.
+
+        Returns:
+            A new Event with the same segments
+        """
+
+    def push(self, segment: str) -> Self:
+        """Add a segment to the Event.
+
+        Args:
+            segment: String segment to add
+
+        Raises:
+            ValueError: If segment is empty or contains the delimiter
+        """
+
+    def push_wildcard(self) -> Self:
+        """Add a wildcard segment (*) to the Event."""
+
+    def push_pending(self) -> Self:
+        """Add a pending status segment to the Event."""
+
+    def push_running(self) -> Self:
+        """Add a running status segment to the Event."""
+
+    def push_finished(self) -> Self:
+        """Add a finished status segment to the Event."""
+
+    def push_failed(self) -> Self:
+        """Add a failed status segment to the Event."""
+
+    def push_cancelled(self) -> Self:
+        """Add a cancelled status segment to the Event."""
+
+    def pop(self) -> Optional[str]:
+        """Remove and return the last segment.
+
+        Returns:
+            The removed segment or None if the Event is empty
+        """
+
+    def clear(self) -> Self:
+        """Remove all segments from the Event."""
+
+    def concat(self, event: Union[str, List[str], Event]) -> Self:
+        """Append segments from another Event to this one.
+
+        Args:
+            event: The Event to append segments from
+        """
+
+    def __hash__(self) -> int: ...
+
+    def __eq__(self, other: object) -> bool: ...
+
+    def __ne__(self, other: object) -> bool: ...
+
+
+class TaskStatus:
+    """Enumeration of possible task statuses."""
+
+    Pending: TaskStatus
+    """Task is pending execution."""
+
+    Running: TaskStatus
+    """Task is currently running."""
+
+    Finished: TaskStatus
+    """Task has finished successfully."""
+
+    Failed: TaskStatus
+    """Task has failed."""
+
+    Cancelled: TaskStatus
+    """Task has been cancelled."""
