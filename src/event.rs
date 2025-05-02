@@ -70,14 +70,11 @@ impl Event {
     }
 
     fn collapse(&self) -> String {
-        let delimiter = DELIMITER.get().expect("Delimiter not set!");
-        self.segments.join(&delimiter)
+        self.segments.join(DELIMITER.get().expect("Delimiter not set!"))
     }
 
-    fn clone(&self) -> Self {
-        Event {
-            segments: self.segments.clone(),
-        }
+    fn fork(&self) -> Self {
+        self.clone()
     }
 
     fn push(&mut self, segment: String) -> PyResult<()> {
