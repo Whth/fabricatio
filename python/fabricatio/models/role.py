@@ -2,15 +2,16 @@
 
 from typing import Any, Self, Set
 
+from fabricatio.rust import Event
+from pydantic import Field
+
 from fabricatio.capabilities.propose import Propose
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
-from fabricatio.models.events import Event
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.tool import ToolBox
 from fabricatio.models.usages import ToolBoxUsage
-from pydantic import Field
 
 
 class Role(WithBriefing, Propose, ToolBoxUsage):

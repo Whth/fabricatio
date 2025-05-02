@@ -5,6 +5,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
+from fabricatio.rust import extract_body, inplace_update, split_out_metadata, to_metadata, word_count
+from pydantic import Field
+
 from fabricatio.fs import dump_text, safe_text_read
 from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
@@ -17,14 +20,11 @@ from fabricatio.models.generic import (
     ModelHash,
     PersistentAble,
     ProposedUpdateAble,
-    ResolveUpdateConflict,
     SketchedAble,
     Titled,
     WordCount,
 )
-from fabricatio.rust import extract_body, inplace_update, split_out_metadata, to_metadata, word_count
 from fabricatio.utils import fallback_kwargs, ok
-from pydantic import Field
 
 ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="
 
@@ -88,7 +88,6 @@ class ToTypstCode(ArticleMetaData):
 
 
 class ArticleOutlineBase(
-    ResolveUpdateConflict,
     ProposedUpdateAble,
     PersistentAble,
     ModelHash,
@@ -277,7 +276,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         )
 
     def iter_dfs_rev(
-        self,
+            self,
     ) -> Generator[ArticleOutlineBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure in reverse order.
 

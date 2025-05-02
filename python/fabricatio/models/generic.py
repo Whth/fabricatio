@@ -6,14 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Type, Union, final, overload
 
 import ujson
-from fabricatio.config import configs
-from fabricatio.fs import dump_text
-from fabricatio.fs.readers import safe_text_read
-from fabricatio.journal import logger
-from fabricatio.parser import JsonCapture
-from fabricatio.rust import blake3_hash, detect_language
-from fabricatio.rust_instances import TEMPLATE_MANAGER
-from fabricatio.utils import ok
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
 from litellm.utils import token_counter
 from pydantic import (
     BaseModel,
@@ -27,6 +20,12 @@ from pydantic import (
     SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
+
+from fabricatio.fs import dump_text
+from fabricatio.fs.readers import safe_text_read
+from fabricatio.journal import logger
+from fabricatio.parser import JsonCapture
+from fabricatio.utils import ok
 
 
 class Base(BaseModel):
@@ -75,9 +74,9 @@ class Display(Base):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -141,7 +140,7 @@ class AsPrompt:
             str: The generated prompt.
         """
         return TEMPLATE_MANAGER.render_template(
-            configs.templates.as_prompt_template,
+            CONFIG.templates.as_prompt_template,
             self._as_prompt_inner(),
         )
 
@@ -179,13 +178,16 @@ class WithRef[T](Base):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
+        ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
@@ -467,12 +469,12 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
         """
         if isinstance(requirement, str):
             return TEMPLATE_MANAGER.render_template(
-                configs.templates.create_json_obj_template,
+                CONFIG.templates.create_json_obj_template,
                 {"requirement": requirement, "json_schema": cls.formated_json_schema()},
             )
         return [
             TEMPLATE_MANAGER.render_template(
-                configs.templates.create_json_obj_template,
+                CONFIG.templates.create_json_obj_template,
                 {"requirement": r, "json_schema": cls.formated_json_schema()},
             )
             for r in requirement
@@ -624,7 +626,7 @@ class WithDependency(Base):
         from fabricatio.fs import MAGIKA
 
         return TEMPLATE_MANAGER.render_template(
-            configs.templates.dependencies_template,
+            CONFIG.templates.dependencies_template,
             {
                 (pth := Path(p)).name: {
                     "path": pth.as_posix(),
@@ -664,7 +666,7 @@ class Vectorizable:
         Raises:
             ValueError: If the chunk exceeds the maximum sequence length.
         """
-        max_length = max_length or configs.embedding.max_sequence_length
+        max_length = max_length or CONFIG.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
         if max_length and (length := token_counter(text=chunk)) > max_length:
             raise ValueError(f"Chunk exceeds maximum sequence length {max_length}, got {length}, see \n{chunk}")
@@ -852,7 +854,8 @@ class Patch[T](ProposedAble):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 

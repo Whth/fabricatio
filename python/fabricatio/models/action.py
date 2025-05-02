@@ -14,12 +14,13 @@ from abc import abstractmethod
 from asyncio import Queue, create_task
 from typing import Any, ClassVar, Dict, Self, Sequence, Tuple, Type, Union, final
 
+from pydantic import Field, PrivateAttr
+
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.utils import override_kwargs
-from pydantic import Field, PrivateAttr
 
 OUTPUT_KEY = "task_output"
 

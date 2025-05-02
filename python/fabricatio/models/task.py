@@ -6,14 +6,12 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 from asyncio import Queue
 from typing import Any, Dict, List, Optional, Self
 
-from fabricatio.config import configs
-from fabricatio.constants import TaskStatus
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, Event, EventLike, TaskStatus
+from pydantic import Field, PrivateAttr
+
 from fabricatio.core import env
 from fabricatio.journal import logger
-from fabricatio.models.events import Event, EventLike
 from fabricatio.models.generic import ProposedAble, WithBriefing, WithDependency
-from fabricatio.rust_instances import TEMPLATE_MANAGER
-from pydantic import Field, PrivateAttr
 
 
 class Task[T](WithBriefing, ProposedAble, WithDependency):
@@ -65,7 +63,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the task with a namespace event."""
-        self._namespace.segments.extend(self.namespace)
+        self._namespace.concat(self.namespace)
 
     def move_to(self, new_namespace: EventLike) -> Self:
         """Move the task to a new namespace.
@@ -266,7 +264,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
             str: The briefing of the task.
         """
         return TEMPLATE_MANAGER.render_template(
-            configs.templates.task_briefing_template,
+            CONFIG.templates.task_briefing_template,
             self.model_dump(),
         )
 
