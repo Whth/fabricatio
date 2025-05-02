@@ -1,6 +1,8 @@
 use crate::config::Config;
 use pyo3::prelude::*;
-use pyo3::types::PyList;
+use pyo3::types::{PyBytes, PyList};
+
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -59,8 +61,8 @@ impl Event {
     #[staticmethod]
     fn quick_instantiate(event: &Bound<'_, PyAny>) -> PyResult<Self> {
         let mut event = Self::instantiate_from(event)?;
-        event.push_wildcard()?;
-        event.push_pending()?;
+        event.push_wildcard();
+        event.push_pending();
         Ok(event)
     }
 
@@ -78,44 +80,59 @@ impl Event {
         self.clone()
     }
 
-    fn push(&mut self, segment: String) -> PyResult<Self> {
-        if segment.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "The segment must not be empty.",
-            ));
+    fn push(&mut self, segment: Bound<'_, PyAny>) -> PyResult<Self> {
+        if let Ok(status) = segment.extract::<TaskStatus>() {
+            self.segments.push(status.to_string());
+            Ok(self.clone())
+        } else if let Ok(string) = segment.extract::<String>() {
+            if string.is_empty() {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "The segment must not be empty.",
+                ));
+            }
+            let delimiter = DELIMITER.get().expect("Delimiter not set!");
+            if string.contains(delimiter) {
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    format!("The segment must not contain the delimiter '{}'", delimiter),
+                ));
+            }
+            self.segments.push(string);
+            Ok(self.clone())
+        } else {
+            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "The segment must be a string or TaskStatus".to_string(),
+            ))
         }
-        let delimiter = DELIMITER.get().expect("Delimiter not set!");
-        if segment.contains(delimiter) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("The segment must not contain the delimiter '{}'", delimiter),
-            ));
-        }
-        self.segments.push(segment);
-        Ok(self.clone())
     }
 
-    fn push_wildcard(&mut self) -> PyResult<Self> {
-        self.push("*".to_string())
+    fn push_wildcard(&mut self) -> Self {
+        self.segments.push("*".to_string());
+        self.clone()
     }
 
-    fn push_pending(&mut self) -> PyResult<Self> {
-        self.push(TaskStatus::Pending.to_string())
+    fn push_pending(&mut self) -> Self {
+        self.segments.push(TaskStatus::Pending.to_string());
+        self.clone()
     }
 
-    fn push_running(&mut self) -> PyResult<Self> {
-        self.push(TaskStatus::Running.to_string())
+    fn push_running(&mut self) -> Self {
+        self.segments.push(TaskStatus::Running.to_string());
+        self.clone()
     }
 
-    fn push_finished(&mut self) -> PyResult<Self> {
-        self.push(TaskStatus::Finished.to_string())
+    fn push_finished(&mut self) -> Self {
+        self.segments.push(TaskStatus::Finished.to_string());
+        self.clone()
     }
 
-    fn push_failed(&mut self) -> PyResult<Self> {
-        self.push(TaskStatus::Failed.to_string())
+    fn push_failed(&mut self) -> Self {
+        self.segments.push(TaskStatus::Failed.to_string());
+        self.clone()
     }
 
-    fn push_cancelled(&mut self) -> PyResult<Self> {
-        self.push(TaskStatus::Cancelled.to_string())
+    fn push_cancelled(&mut self) -> Self {
+        self.segments.push(TaskStatus::Cancelled.to_string());
+        self.clone()
     }
 
     fn pop(&mut self) -> Option<String> {
@@ -162,7 +179,8 @@ impl Event {
         }
     }
 }
-#[pyclass]
+
+
 #[derive(
     Clone,
     Copy,
@@ -175,13 +193,59 @@ impl Event {
     IntoStaticStr,
     Serialize,
     Deserialize,
+    Decode,
+    Encode
 )]
+#[pyclass]
 pub enum TaskStatus {
     Pending,
     Running,
     Finished,
     Failed,
     Cancelled,
+}
+
+#[pymethods]
+impl TaskStatus {
+    // Pickling support
+    #[new]
+    fn new_py(variant: u8) -> PyResult<TaskStatus> {
+        match variant {
+            0_u8 => Ok(TaskStatus::Pending),
+            1_u8 => Ok(TaskStatus::Running),
+            2_u8 => Ok(TaskStatus::Finished),
+            3_u8 => Ok(TaskStatus::Failed),
+            4_u8 => Ok(TaskStatus::Cancelled),
+            _ => Err(pyo3::exceptions::PyValueError::new_err("Invalid variant for TaskStatus pickle"))
+        }
+    }
+    fn __str__(&self) -> String {
+        self.to_string()
+    }
+
+    fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
+        (*self, _) = bincode::decode_from_slice(state.as_bytes(), bincode::config::standard())
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus"))?;
+        Ok(())
+    }
+
+
+    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        let bytes = bincode::encode_to_vec(&self, bincode::config::standard())
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus"))?;
+        Ok(PyBytes::new(py, &bytes))
+    }
+
+
+    fn __getnewargs__(&self) -> PyResult<(u8,)> {
+        match self {
+            TaskStatus::Pending => Ok((0_u8,)),
+            TaskStatus::Running => Ok((1_u8,)),
+            TaskStatus::Finished => Ok((2_u8,)),
+            TaskStatus::Failed => Ok((3_u8,)),
+            TaskStatus::Cancelled => Ok((4_u8,)),
+        }
+    }
 }
 
 
