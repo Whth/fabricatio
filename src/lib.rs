@@ -6,6 +6,7 @@ mod language;
 mod word_split;
 mod typst_tools;
 mod config;
+mod event;
 
 use pyo3::prelude::*;
 use pyo3_log::init;
@@ -26,6 +27,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     language::register(python, m)?;
     word_split::register(python, m)?;
     typst_tools::register(python, m)?;
+    event::register(python, m)?;
     Ok(())
 }
 
