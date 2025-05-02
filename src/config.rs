@@ -426,6 +426,32 @@ impl Default for ToolBoxConfig {
 }
 
 
+/// Pymitter configuration structure
+///
+/// Contains settings for controlling event emission and listener behavior
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[pyclass(get_all, set_all)]
+pub struct PymitterConfig {
+    /// The delimiter used to separate the event name into segments
+    pub delimiter: String,
+
+    /// If set, a newListener event is emitted when a new listener is added
+    pub new_listener_event: bool,
+
+    /// The maximum number of listeners per event. -1 means unlimited
+    pub max_listeners: i32,
+}
+
+impl Default for PymitterConfig {
+    fn default() -> Self {
+        PymitterConfig {
+            delimiter: "::".to_string(),
+            new_listener_event: false,
+            max_listeners: -1,
+        }
+    }
+}
+
 /// Configuration structure containing all system components
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[pyclass(get_all, set_all)]
@@ -450,6 +476,8 @@ pub struct Config {
     pub general: GeneralConfig,
 
     pub toolbox: ToolBoxConfig,
+
+    pub pymitter: PymitterConfig,
 }
 
 
@@ -546,6 +574,20 @@ impl Provider for Config {
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Config>()?;
+    m.add_class::<TemplateManagerConfig>()?;
+
+
+    m.add_class::<LLMConfig>()?;
+    m.add_class::<EmbeddingConfig>()?;
+    m.add_class::<DebugConfig>()?;
+    m.add_class::<RagConfig>()?;
+    m.add_class::<TemplateConfig>()?;
+    m.add_class::<RoutingConfig>()?;
+    m.add_class::<GeneralConfig>()?;
+    m.add_class::<ToolBoxConfig>()?;
+    m.add_class::<PymitterConfig>()?;
+    m.add_class::<SecretStr>()?;
+
     m.add("CONFIG", Config::new()?)?;
 
     Ok(())
