@@ -12,14 +12,13 @@ Classes:
 import traceback
 from abc import abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, ClassVar, Dict, Self, Sequence, Tuple, Type, Union, final
+from typing import Any, ClassVar, Dict, Self, Sequence, Tuple, Type, Union, final, Generator
 
 from pydantic import Field, PrivateAttr
 
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
-from fabricatio.models.usages import ToolBoxUsage
 from fabricatio.utils import override_kwargs
 
 OUTPUT_KEY = "task_output"
@@ -106,7 +105,7 @@ class Action(WithBriefing):
         return self
 
 
-class WorkFlow(WithBriefing, ToolBoxUsage):
+class WorkFlow(WithBriefing):
     """Manages sequences of actions to fulfill tasks.
 
     Handles context propagation between actions, error handling, and task lifecycle
@@ -147,6 +146,10 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
         """
         # Convert any action classes to instances
         self._instances = tuple(step if isinstance(step, Action) else step() for step in self.steps)
+
+    def iter_actions(self) -> Generator[Action, None, None]:
+        """Iterate over action instances."""
+        yield from self._instances
 
     def inject_personality(self, personality: str) -> Self:
         """Set personality for actions without existing personality.
@@ -248,24 +251,6 @@ class WorkFlow(WithBriefing, ToolBoxUsage):
             )
 
         await self._context.put({self.task_input_key: task, **ctx})
-
-    def steps_fallback_to_self(self) -> Self:
-        """Configure all steps to use this workflow's configuration as fallback.
-
-        Returns:
-            Self: The workflow instance for method chaining.
-        """
-        self.hold_to(self._instances)
-        return self
-
-    def steps_supply_tools_from_self(self) -> Self:
-        """Provide this workflow's tools to all steps in the workflow.
-
-        Returns:
-            Self: The workflow instance for method chaining.
-        """
-        self.provide_tools_to(i for i in self._instances if isinstance(i, ToolBoxUsage))
-        return self
 
     def update_init_context(self, /, **kwargs) -> Self:
         """Update the initial context with additional key-value pairs.
