@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self,
 
 import ujson
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
-from litellm.utils import token_counter
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -666,6 +665,8 @@ class Vectorizable:
         Raises:
             ValueError: If the chunk exceeds the maximum sequence length.
         """
+        from litellm.utils import token_counter
+
         max_length = max_length or CONFIG.embedding.max_sequence_length
         chunk = self._prepare_vectorization_inner()
         if max_length and (length := token_counter(text=chunk)) > max_length:

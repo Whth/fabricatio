@@ -1,9 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Any, Dict, List, Literal, NotRequired, Optional, Required, TypedDict
-
-from litellm.caching.caching import CacheMode
-from litellm.types.caching import CachingSupportedCallTypes
+from typing import Dict, List, Literal, NotRequired, Optional, Required, TypedDict
 
 
 class ChunkKwargs(TypedDict):
@@ -70,7 +67,6 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     max_validations: int
 
 
-
 class CompositeScoreKwargs(ValidateKwargs[List[Dict[str, float]]], total=False):
     """Arguments for composite score generation operations.
 
@@ -123,47 +119,6 @@ class ChooseKwargs[T](ValidateKwargs[T], total=False):
     """
 
     k: int
-
-
-class CacheKwargs(TypedDict, total=False):
-    """Configuration parameters for the caching system.
-
-    These arguments control the behavior of various caching backends,
-    including in-memory, Redis, S3, and vector database caching options.
-    """
-
-    mode: CacheMode  # when default_on cache is always on, when default_off cache is opt in
-    host: str
-    port: str
-    password: str
-    namespace: str
-    ttl: float
-    default_in_memory_ttl: float
-    default_in_redis_ttl: float
-    similarity_threshold: float
-    supported_call_types: list[CachingSupportedCallTypes]
-    # s3 Bucket, boto3 configuration
-    s3_bucket_name: str
-    s3_region_name: str
-    s3_api_version: str
-    s3_use_ssl: bool
-    s3_verify: bool | str
-    s3_endpoint_url: str
-    s3_aws_access_key_id: str
-    s3_aws_secret_access_key: str
-    s3_aws_session_token: str
-    s3_config: Any
-    s3_path: str
-    redis_semantic_cache_use_async: bool
-    redis_semantic_cache_embedding_model: str
-    redis_flush_size: int
-    redis_startup_nodes: list
-    disk_cache_dir: Any
-    qdrant_api_base: str
-    qdrant_api_key: str
-    qdrant_collection_name: str
-    qdrant_quantization_config: str
-    qdrant_semantic_cache_embedding_model: str
 
 
 class RerankOptions(TypedDict, total=False):
