@@ -22,7 +22,6 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from fabricatio.fs import dump_text
 from fabricatio.fs.readers import safe_text_read
 from fabricatio.journal import logger
-from fabricatio.parser import JsonCapture
 from fabricatio.utils import ok
 
 
@@ -495,6 +494,8 @@ class InstantiateFromString(Base):
         Returns:
             Self | None: The instance of the class or None if the string is not valid.
         """
+        from fabricatio.parser import JsonCapture
+
         obj = JsonCapture.convert_with(string, cls.model_validate_json)
         logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
         return obj

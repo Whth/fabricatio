@@ -3,8 +3,8 @@
 import asyncio
 
 from fabricatio import Action, Role, Task, WorkFlow
+from fabricatio import Event
 from fabricatio.journal import logger
-from fabricatio.models.events import Event
 from fabricatio.parser import PythonCapture
 
 
