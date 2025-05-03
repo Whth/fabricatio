@@ -11,7 +11,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    HttpUrl,
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
@@ -682,7 +681,7 @@ class ScopedConfig(Base):
     Allows configuration values to be overridden in a hierarchical manner.
     """
 
-    llm_api_endpoint: Optional[HttpUrl] = None
+    llm_api_endpoint: Optional[str] = None
     """The OpenAI API endpoint."""
 
     llm_api_key: Optional[SecretStr] = None
@@ -727,7 +726,7 @@ class ScopedConfig(Base):
     llm_frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
 
-    embedding_api_endpoint: Optional[HttpUrl] = None
+    embedding_api_endpoint: Optional[str] = None
     """The OpenAI API endpoint."""
 
     embedding_api_key: Optional[SecretStr] = None
@@ -748,7 +747,7 @@ class ScopedConfig(Base):
     embedding_caching: Optional[bool] = False
     """Whether to cache the embedding result."""
 
-    milvus_uri: Optional[HttpUrl] = Field(default=None)
+    milvus_uri: Optional[str] = Field(default=None)
     """The URI of the Milvus server."""
 
     milvus_token: Optional[SecretStr] = Field(default=None)
