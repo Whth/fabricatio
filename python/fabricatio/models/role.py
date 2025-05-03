@@ -1,39 +1,34 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
-
-from typing import Any, Self, Set
+from functools import partial
+from typing import Any, Self, Dict
 
 from fabricatio.rust import Event
 from pydantic import Field, ConfigDict
 
-from fabricatio.capabilities.propose import Propose
 from fabricatio.core import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.generic import WithBriefing
-from fabricatio.models.tool import ToolBox
-from fabricatio.models.usages import ToolBoxUsage
+from fabricatio.utils import is_subclass_of_base
+
+is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages",
+                           base_name="ToolBoxUsage")
+is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio.models.generic",
+                           base_name="ScopedConfig")
 
 
-class Role(WithBriefing, Propose, ToolBoxUsage):
+class Role(WithBriefing):
     """Class that represents a role with a registry of events and workflows.
 
     A Role serves as a container for workflows, managing their registration to events
     and providing them with shared configuration like tools and personality.
-
-    Attributes:
-        registry: Mapping of events to workflows that handle them
-        toolboxes: Set of toolboxes available to this role and its workflows
     """
-    # fixme: not use arbitrary_types_allowed
     model_config = ConfigDict(use_attribute_docstrings=True, arbitrary_types_allowed=True)
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
-    registry: dict[Event | str, WorkFlow] = Field(default_factory=dict)
+    registry: Dict[Event, WorkFlow] = Field(default_factory=dict)
     """The registry of events and workflows."""
-
-    toolboxes: Set[ToolBox] = Field(default_factory=set)
-    """Collection of tools available to this role."""
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -51,7 +46,7 @@ class Role(WithBriefing, Propose, ToolBoxUsage):
         """
         for event, workflow in self.registry.items():
             logger.debug(
-                f"Registering workflow: `{workflow.name}` for event: `{Event.instantiate_from(event).collapse()}`"
+                f"Registering workflow: `{workflow.name}` for event: `{Event.collapse()}`"
             )
             env.on(event, workflow.serve)
         return self
@@ -67,12 +62,35 @@ class Role(WithBriefing, Propose, ToolBoxUsage):
         """
         for workflow in self.registry.values():
             logger.debug(f"Resolving config for workflow: `{workflow.name}`")
-            (
-                workflow.fallback_to(self)
-                .steps_fallback_to_self()
-                .inject_personality(self.briefing)
-                .supply_tools_from(self)
-                .steps_supply_tools_from_self()
-            )
-
+            self._configure_scoped_config(workflow)
+            self._configure_toolbox_usage(workflow)
+            workflow.inject_personality(self.briefing)
         return self
+
+    def _configure_scoped_config(self, workflow) -> None:
+        """Configure scoped configuration for workflow and its actions."""
+
+        if not is_scoped_config(self.__class__):
+            return
+
+        fallback_target = self
+        if is_scoped_config(workflow):
+            workflow.fallback_to(self)
+            fallback_target = workflow
+
+        for action in (a for a in workflow.iter_actions() if is_scoped_config(a)):
+            action.fallback_to(fallback_target)
+
+    def _configure_toolbox_usage(self, workflow) -> None:
+        """Configure toolbox usage for workflow and its actions."""
+
+        if not is_toolbox_usage(self.__class__):
+            return
+
+        supply_target = self
+        if is_toolbox_usage(workflow):
+            workflow.supply_tools_from(self)
+            supply_target = workflow
+
+        for action in (a for a in workflow.iter_actions() if is_toolbox_usage(a)):
+            action.supply_tools_from(supply_target)
