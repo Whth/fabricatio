@@ -4,10 +4,11 @@ import asyncio
 from typing import Dict, List, Set, Unpack
 
 import ujson
-from fabricatio import Action, JsonCapture, Role, WorkFlow, logger
+
+from fabricatio import Action, Role, WorkFlow, logger, Event
 from fabricatio.capabilities.rating import Rating
-from fabricatio.models.events import Event
 from fabricatio.models.task import Task
+from fabricatio.parser import JsonCapture
 
 
 class Rate(Action, Rating):

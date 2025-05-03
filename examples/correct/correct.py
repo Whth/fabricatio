@@ -2,7 +2,12 @@
 
 import asyncio
 
-from fabricatio import Role, logger
+from fabricatio import Role as BaseRole, logger
+from fabricatio.capabilities.correct import Correct
+
+
+class Role(BaseRole, Correct):
+    ...
 
 
 async def main() -> None:

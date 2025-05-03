@@ -3,8 +3,10 @@
 import asyncio
 from typing import Any, Set, Unpack
 
-from fabricatio import Action, Event, PythonCapture, Role, Task, ToolBox, WorkFlow, logger, toolboxes
 from pydantic import Field
+
+from fabricatio import Action, Event, Role, Task, ToolBox, WorkFlow, logger, toolboxes
+from fabricatio.parser import PythonCapture
 
 
 class WriteCode(Action):
