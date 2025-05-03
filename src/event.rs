@@ -138,15 +138,18 @@ impl Event {
         self.segments.pop()
     }
 
-    fn clear(&mut self) {
-        self.segments.clear();
+    fn clear(mut slf: PyRefMut<Self>) -> PyRefMut<Self> {
+        slf.segments.clear();
+        slf
     }
+
 
     fn concat<'py>(mut slf: PyRefMut<'py, Self>, event: &Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         let other = Self::instantiate_from(event)?;
         slf.segments.extend(other.segments);
         Ok(slf)
     }
+
 
     fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
