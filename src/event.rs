@@ -57,18 +57,18 @@ impl Event {
             ))
         }
     }
-
     #[staticmethod]
     fn quick_instantiate(event: &Bound<'_, PyAny>) -> PyResult<Self> {
         let mut event = Self::instantiate_from(event)?;
-        event.push_wildcard();
-        event.push_pending();
+        event.segments.push("*".to_string());
+        event.segments.push(TaskStatus::Pending.to_string());
         Ok(event)
     }
 
     fn derive(&self, event: &Bound<'_, PyAny>) -> PyResult<Self> {
         let mut new_event = self.clone();
-        new_event.concat(event)?;
+        let sub = Event::instantiate_from(event)?;
+        new_event.segments.extend(sub.segments);
         Ok(new_event)
     }
 
@@ -80,10 +80,9 @@ impl Event {
         self.clone()
     }
 
-    fn push(&mut self, segment: Bound<'_, PyAny>) -> PyResult<Self> {
+    fn push<'py>(mut slf: PyRefMut<'py, Self>, segment: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         if let Ok(status) = segment.extract::<TaskStatus>() {
-            self.segments.push(status.to_string());
-            Ok(self.clone())
+            slf.segments.push(status.to_string());
         } else if let Ok(string) = segment.extract::<String>() {
             if string.is_empty() {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -96,43 +95,43 @@ impl Event {
                     format!("The segment must not contain the delimiter '{}'", delimiter),
                 ));
             }
-            self.segments.push(string);
-            Ok(self.clone())
+            slf.segments.push(string);
         } else {
-            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "The segment must be a string or TaskStatus".to_string(),
-            ))
+            ));
         }
+        Ok(slf)
     }
 
-    fn push_wildcard(&mut self) -> Self {
-        self.segments.push("*".to_string());
-        self.clone()
+    fn push_wildcard<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push("*".to_string());
+        slf
     }
 
-    fn push_pending(&mut self) -> Self {
-        self.segments.push(TaskStatus::Pending.to_string());
-        self.clone()
+    fn push_pending<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push(TaskStatus::Pending.to_string());
+        slf
     }
 
-    fn push_running(&mut self) -> Self {
-        self.segments.push(TaskStatus::Running.to_string());
-        self.clone()
+    fn push_running<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push(TaskStatus::Running.to_string());
+        slf
     }
 
-    fn push_finished(&mut self) -> Self {
-        self.segments.push(TaskStatus::Finished.to_string());
-        self.clone()
+    fn push_finished<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push(TaskStatus::Finished.to_string());
+        slf
     }
 
-    fn push_failed(&mut self) -> Self {
-        self.segments.push(TaskStatus::Failed.to_string());
-        self.clone()
+    fn push_failed<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push(TaskStatus::Failed.to_string());
+        slf
     }
 
-    fn push_cancelled(&mut self) -> Self {
-        self.segments.push(TaskStatus::Cancelled.to_string());
-        self.clone()
+    fn push_cancelled<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
+        slf.segments.push(TaskStatus::Cancelled.to_string());
+        slf
     }
 
     fn pop(&mut self) -> Option<String> {
@@ -143,12 +142,11 @@ impl Event {
         self.segments.clear();
     }
 
-    fn concat(&mut self, event: &Bound<'_, PyAny>) -> PyResult<Self> {
+    fn concat<'py>(mut slf: PyRefMut<'py, Self>, event: &Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         let other = Self::instantiate_from(event)?;
-        self.segments.extend(other.segments);
-        Ok(self.clone())
+        slf.segments.extend(other.segments);
+        Ok(slf)
     }
-
 
     fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
