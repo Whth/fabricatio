@@ -82,7 +82,7 @@ impl SecretStr {
     pub fn new(source: &str) -> Self {
         source.into()
     }
-    fn expose(&self) -> &str {
+    fn get_secret_value(&self) -> &str {
         self.source.as_str()
     }
 

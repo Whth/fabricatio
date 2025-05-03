@@ -724,7 +724,7 @@ class SecretStr:
 
     def __init__(self, source: str) -> None: ...
 
-    def expose(self) -> str:
+    def get_secret_value(self) -> str:
         """Expose the secret string."""
 
 
