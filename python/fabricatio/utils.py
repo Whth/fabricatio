@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, List, Mapping, Optional, TypedDict, Unpack, overload, Type, Tuple
+from typing import Any, Dict, List, Mapping, Optional, TypedDict, Unpack, overload, Type, Tuple, Iterable
 
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
@@ -114,6 +114,38 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     if val is None:
         raise ValueError(msg)
     return val
+
+
+def first_available[T](iterable: Iterable[T], msg: str = "No available item found in the iterable.") -> T:
+    """Return the first available item in the iterable that's not None.
+
+    This function searches through the provided iterable and returns the first
+    item that is not None. If all items are None or the iterable is empty,
+    it raises a ValueError.
+
+    Args:
+        iterable: The iterable collection to search through.
+        msg: The message to include in the ValueError if no non-None item is found.
+
+    Returns:
+        T: The first non-None item found in the iterable.
+        If no non-None item is found, it raises a ValueError.
+
+    Raises:
+        ValueError: If no non-None item is found in the iterable.
+
+    Examples:
+        >>> first_available([None, None, "value", "another"])
+        'value'
+        >>> first_available([1, 2, 3])
+        1
+        >>> assert (first_available([None, None]))
+        ValueError: No available item found in the iterable.
+    """
+
+    if (first := next((item for item in iterable if item is not None), None)) is not None:
+        return first
+    raise ValueError(msg)
 
 
 def wrapp_in_block(string: str, title: str, style: str = "-") -> str:
