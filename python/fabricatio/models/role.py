@@ -46,7 +46,7 @@ class Role(WithBriefing):
         """
         for event, workflow in self.registry.items():
             logger.debug(
-                f"Registering workflow: `{workflow.name}` for event: `{Event.collapse()}`"
+                f"Registering workflow: `{workflow.name}` for event: `{event.collapse()}`"
             )
             env.on(event, workflow.serve)
         return self
