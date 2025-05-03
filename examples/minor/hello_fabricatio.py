@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from fabricatio import Action, Role, Task, WorkFlow, logger
+from fabricatio import Action, Role, Task, WorkFlow, logger, Event
 
 task = Task(name="say hello")
 
@@ -21,9 +21,10 @@ class Hello(Action):
 
 async def main() -> None:
     """Main function."""
-    Role(name="talker", description="talker role", registry={task.pending_label: WorkFlow(name="talk", steps=(Hello,))})
+    Role(name="talker", description="talker role",
+         registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))})
 
-    logger.success(f"Result: {await task.delegate()}")
+    logger.success(f"Result: {await task.delegate("talk")}")
 
 
 if __name__ == "__main__":
