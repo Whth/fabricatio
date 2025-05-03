@@ -2,9 +2,6 @@
 
 from typing import Any, Dict, List, Mapping, Optional, TypedDict, Unpack, overload, Type, Tuple
 
-import aiohttp
-import requests
-
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import RerankOptions
@@ -198,6 +195,7 @@ class RerankerAPI:
             ValueError: If input parameters are invalid or the API returns a client-side error.
             RuntimeError: If the API call fails or returns a server-side error.
         """
+        import requests
         # Validate inputs
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Query must be a non-empty string.")
@@ -253,6 +251,8 @@ class RerankerAPI:
             ValueError: If input parameters are invalid or the API returns a client-side error.
             RuntimeError: If the API call fails or returns a server-side error.
         """
+        import aiohttp
+
         # Validate inputs
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Query must be a non-empty string.")
