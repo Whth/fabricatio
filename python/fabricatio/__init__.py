@@ -2,8 +2,7 @@
 
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, BibManager, Event
 
-from fabricatio import actions, capabilities, toolboxes, workflows
-from fabricatio import parser
+from fabricatio import actions, capabilities, parser, toolboxes, workflows
 from fabricatio.journal import logger
 from fabricatio.models import extra
 from fabricatio.models.action import Action, WorkFlow
@@ -16,7 +15,6 @@ __all__ = [
     "TEMPLATE_MANAGER",
     "Action",
     "BibManager",
-    "parser",
     "Event",
     "Role",
     "Task",
@@ -26,6 +24,7 @@ __all__ = [
     "capabilities",
     "extra",
     "logger",
+    "parser",
     "toolboxes",
     "workflows",
 ]

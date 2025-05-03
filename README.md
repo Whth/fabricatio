@@ -42,7 +42,7 @@ make bdist
 
 ```python
 import asyncio
-from fabricatio import Action, Role, Task, logger, WorkFlow
+from fabricatio import Action, Role, Task, logger, WorkFlow, Event
 from typing import Any
 
 
@@ -57,14 +57,14 @@ class Hello(Action):
 
 
 async def main() -> None:
-    role = Role(
+    Role(
         name="talker",
         description="talker role",
-        registry={Task.pending_label: WorkFlow(name="talk", steps=(Hello,))}
+        registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))}
     )
 
-    task = Task(name="say hello", goals="say hello", description="say hello to the world")
-    result = await task.delegate()
+    task = Task(name="say hello", goals=["say hello"], description="say hello to the world")
+    result = await task.delegate("talk")
     logger.success(f"Result: {result}")
 
 
@@ -119,10 +119,10 @@ max_tokens = 8192
     ```bash
     make test
     ```
+
 ## TODO
 
 - Add an element based format strategy
-
 
 ## Contributing
 

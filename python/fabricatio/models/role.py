@@ -1,9 +1,9 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 from functools import partial
-from typing import Any, Self, Dict
+from typing import Any, Dict, Self
 
 from fabricatio.rust import Event
-from pydantic import Field, ConfigDict
+from pydantic import ConfigDict, Field
 
 from fabricatio.core import env
 from fabricatio.journal import logger
@@ -69,7 +69,6 @@ class Role(WithBriefing):
 
     def _configure_scoped_config(self, workflow) -> None:
         """Configure scoped configuration for workflow and its actions."""
-
         if not is_scoped_config(self.__class__):
             return
 
@@ -83,7 +82,6 @@ class Role(WithBriefing):
 
     def _configure_toolbox_usage(self, workflow) -> None:
         """Configure toolbox usage for workflow and its actions."""
-
         if not is_toolbox_usage(self.__class__):
             return
 

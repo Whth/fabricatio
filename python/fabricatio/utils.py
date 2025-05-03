@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, List, Mapping, Optional, TypedDict, Unpack, overload, Type, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Type, TypedDict, Unpack, overload
 
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
@@ -142,7 +142,6 @@ def first_available[T](iterable: Iterable[T], msg: str = "No available item foun
         >>> assert (first_available([None, None]))
         ValueError: No available item found in the iterable.
     """
-
     if (first := next((item for item in iterable if item is not None), None)) is not None:
         return first
     raise ValueError(msg)

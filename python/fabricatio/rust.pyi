@@ -11,7 +11,7 @@ Key Features:
 - Text utilities: Word boundary splitting and word counting.
 """
 from enum import StrEnum
-from typing import Any, Dict, List, Optional, Self, Tuple, overload, Union
+from typing import Any, Dict, List, Optional, Self, Tuple, Union, overload
 
 from pydantic import JsonValue
 

@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from fabricatio import Action, Role, Task, WorkFlow, logger, Event
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
 task = Task(name="say hello")
 

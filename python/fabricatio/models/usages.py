@@ -26,7 +26,7 @@ from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.utils import ok, first_available
+from fabricatio.utils import first_available, ok
 
 ROUTER = Router(
     routing_strategy="usage-based-routing-v2",
