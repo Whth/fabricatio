@@ -26,7 +26,6 @@ from fabricatio.models.generic import ScopedConfig, WithBriefing
 from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.parser import GenericCapture, JsonCapture
 from fabricatio.utils import ok, first_available
 
 ROUTER = Router(
@@ -338,6 +337,8 @@ class LLMUsage(ScopedConfig):
         Returns:
             Optional[List[str]]: The validated response as a list of strings.
         """
+        from fabricatio.parser import JsonCapture
+
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.liststr_template,
@@ -394,6 +395,8 @@ class LLMUsage(ScopedConfig):
         Returns:
             Optional[str]: The generated string.
         """
+        from fabricatio.parser import GenericCapture
+
         return await self.aask_validate(  # pyright: ignore [reportReturnType]
             TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.generic_string_template,
@@ -421,6 +424,8 @@ class LLMUsage(ScopedConfig):
         Returns:
             Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
+        from fabricatio.parser import JsonCapture
+
         if dup := duplicates_everseen(choices, key=lambda x: x.name):
             logger.error(err := f"Redundant choices: {dup}")
             raise ValueError(err)
@@ -496,6 +501,8 @@ class LLMUsage(ScopedConfig):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
+        from fabricatio.parser import JsonCapture
+
         return await self.aask_validate(
             question=TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.make_judgment_template,
@@ -557,7 +564,6 @@ class EmbeddingUsage(LLMUsage):
                 or self.llm_api_endpoint
                 or CONFIG.llm.api_endpoint
             )
-            .unicode_string()
             .rstrip("/"),
             # seems embedding function takes no base_url end with a slash
         )
