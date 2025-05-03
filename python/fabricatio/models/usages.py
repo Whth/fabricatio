@@ -27,7 +27,7 @@ from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, Genera
 from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.parser import GenericCapture, JsonCapture
-from fabricatio.utils import ok
+from fabricatio.utils import ok, first_available
 
 ROUTER = Router(
     routing_strategy="usage-based-routing-v2",
@@ -91,7 +91,7 @@ class LLMUsage(ScopedConfig):
                         api_base=ok(
                             self.llm_api_endpoint or CONFIG.llm.api_endpoint,
                             "llm api endpoint is not set at any place",
-                        ).unicode_string(),
+                        ),
                         model=m_name,
                         tpm=self.llm_tpm or CONFIG.llm.tpm,
                         rpm=self.llm_rpm or CONFIG.llm.rpm,
@@ -109,7 +109,8 @@ class LLMUsage(ScopedConfig):
             stop=kwargs.get("stop") or self.llm_stop_sign or CONFIG.llm.stop_sign,
             top_p=kwargs.get("top_p") or self.llm_top_p or CONFIG.llm.top_p,
             max_tokens=kwargs.get("max_tokens") or self.llm_max_tokens or CONFIG.llm.max_tokens,
-            stream=ok(kwargs.get("stream") or self.llm_stream or CONFIG.llm.stream, "stream is not set at any place"),
+            stream=first_available((kwargs.get("stream"), self.llm_stream, CONFIG.llm.stream),
+                                   "stream is not set at any place"),
             cache={
                 "no-cache": kwargs.get("no_cache"),
                 "no-store": kwargs.get("no_store"),
