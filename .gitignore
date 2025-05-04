@@ -168,3 +168,4 @@ output/
 .vscode/
 templates/customed
 *.typ
+/src/tei.rs

@@ -30,6 +30,14 @@ pyo3-log = "0.12.3"
 macro_utils = { path = "src/macro_utils" }
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
+
+tonic = "0.13.0"
+tokio = "1.44.2"
+prost = "0.13.5"
+
+
+[build-dependencies]
+tonic-build = "0.13.0"
 [workspace]
 members = ["src/macro_utils", "src/tools"]
 

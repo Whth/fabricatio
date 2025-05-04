@@ -7,6 +7,7 @@ mod word_split;
 mod typst_tools;
 mod config;
 mod event;
+mod tei;
 
 use pyo3::prelude::*;
 use pyo3_log::init;
