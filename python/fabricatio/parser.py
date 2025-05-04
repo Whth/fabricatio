@@ -54,7 +54,7 @@ class Capture:
         groups = self.fix(match.groups())
         if self.target_groups:
             cap = tuple(groups[g - 1] for g in self.target_groups)
-            logger.debug(f"Captured text: {'\n\n'.join(cap)}")
+            logger.debug(f"Captured texts: {'\n==\n'.join(cap)}")
             return cap
         cap = groups[0]
         logger.debug(f"Captured text: \n{cap}")
@@ -80,7 +80,7 @@ class Capture:
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
-        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = ujson.loads,
+        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = lambda x: ujson.loads(x) if isinstance(x, str) else ujson.loads(x[0]),
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types."""
         judges = [lambda obj: isinstance(obj, target_type)]
