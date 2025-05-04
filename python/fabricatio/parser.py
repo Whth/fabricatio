@@ -103,7 +103,7 @@ class Capture:
     def capture_generic_block(cls, language: str) -> Self:
         """Capture a generic block of the given language."""
         return cls(
-            pattern=f"--- Start of {language} ---(.*?)--- end of {language} ---",
+            pattern=f"--- Start of {language} ---(.*?)--- End of {language} ---",
             capture_type=language,
         )
 
