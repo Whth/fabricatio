@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Dict, List, Literal, NotRequired, Optional, Required, TypedDict
+from typing import Dict, List, NotRequired, Optional, Required, TypedDict
 
 
 class ChunkKwargs(TypedDict):
@@ -119,11 +119,3 @@ class ChooseKwargs[T](ValidateKwargs[T], total=False):
     """
 
     k: int
-
-
-class RerankOptions(TypedDict, total=False):
-    """Optional keyword arguments for the rerank method."""
-
-    raw_scores: bool
-    truncate: bool
-    truncation_direction: Literal["Left", "Right"]

@@ -56,7 +56,7 @@ class RAG(EmbeddingUsage):
     ) -> Self:
         """Initialize the Milvus client."""
         self._client = create_client(
-            uri=milvus_uri or ok(self.milvus_uri or CONFIG.rag.milvus_uri).unicode_string(),
+            uri=milvus_uri or ok(self.milvus_uri or CONFIG.rag.milvus_uri),
             token=milvus_token
                   or (token.get_secret_value() if (token := (self.milvus_token or CONFIG.rag.milvus_token)) else ""),
             timeout=milvus_timeout or self.milvus_timeout or CONFIG.rag.milvus_timeout,
@@ -162,7 +162,7 @@ class RAG(EmbeddingUsage):
            result_per_query (int): The maximum number of results to return per query. Defaults to 10.
            tei_endpoint (str): the endpoint of the TEI api.
            reranker_threshold (float): The threshold used to filtered low relativity document.
-            filter_expr (str): filter_expression parsed into pymilvus search.
+           filter_expr (str) : The filter expression used to filter out unwanted documents.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
@@ -177,9 +177,9 @@ class RAG(EmbeddingUsage):
             limit=result_per_query,
         )
         if tei_endpoint is not None:
-            from fabricatio.utils import RerankerAPI
+            from fabricatio.rust import TEIClient
 
-            reranker = RerankerAPI(base_url=tei_endpoint)
+            reranker = TEIClient(base_url=tei_endpoint)
 
             retrieved_id = set()
             raw_result = []
@@ -192,7 +192,7 @@ class RAG(EmbeddingUsage):
                     continue
                 rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models], truncate=True)
                 raw_result.extend(
-                    (models[s["index"]], s["score"]) for s in rank_scores if s["score"] > reranker_threshold
+                    (models[idx], scr) for (idx, scr) in rank_scores if scr > reranker_threshold
                 )
 
             raw_result_sorted = sorted(raw_result, key=lambda x: x[1], reverse=True)

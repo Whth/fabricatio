@@ -32,8 +32,8 @@ strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 
 tonic = "0.13.0"
-tokio = "1.44.2"
 prost = "0.13.5"
+pyo3-async-runtimes = { version = "0.24.0", features = ["tokio-runtime"] }
 
 
 [build-dependencies]
