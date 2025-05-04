@@ -2,9 +2,8 @@
 
 import asyncio
 
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from questionary import text
-
-from fabricatio import Action, Role, Task, WorkFlow, logger, Event
 
 
 class Talk(Action):

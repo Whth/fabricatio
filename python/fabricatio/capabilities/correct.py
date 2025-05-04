@@ -1,9 +1,7 @@
 """A module containing the Correct capability for reviewing, validating, and improving objects."""
 
 from asyncio import gather
-from typing import Optional, Unpack, cast
-
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
+from typing import Optional, Type, Unpack, cast
 
 from fabricatio.capabilities.propose import Propose
 from fabricatio.capabilities.rating import Rating
@@ -15,6 +13,7 @@ from fabricatio.models.kwargs_types import (
     BestKwargs,
     ValidateKwargs,
 )
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import fallback_kwargs, ok, override_kwargs
 
 

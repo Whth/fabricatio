@@ -2,13 +2,12 @@
 
 from typing import List, Optional
 
-from fabricatio.rust import CONFIG
-
 from fabricatio.capabilities.rag import RAG
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.rag import MilvusClassicModel, MilvusDataBase
 from fabricatio.models.task import Task
+from fabricatio.rust import CONFIG
 from fabricatio.utils import ok
 
 
@@ -20,7 +19,7 @@ class InjectToDB(Action, RAG):
     """The name of the collection to inject data into."""
 
     async def _execute[T: MilvusDataBase](
-            self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
+        self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
     ) -> Optional[str]:
         from pymilvus.milvus_client import IndexParams
 

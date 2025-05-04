@@ -5,17 +5,16 @@ from itertools import groupby
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
-from more_itertools.more import first
-from more_itertools.recipes import flatten, unique
-from pydantic import Field
-
 from fabricatio.fs import safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
+from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
+from more_itertools.more import first
+from more_itertools.recipes import flatten, unique
+from pydantic import Field
 
 
 class ArticleChunk(MilvusDataBase):
@@ -56,6 +55,7 @@ class ArticleChunk(MilvusDataBase):
 
     @property
     def reference_header(self) -> str:
+        """Get the reference header."""
         return f"[[{ok(self._cite_number, 'You need to update cite number first.')}]] reference `{self.article_title}` from {self.as_auther_seq()}"
 
     @property
@@ -68,7 +68,7 @@ class ArticleChunk(MilvusDataBase):
 
     @classmethod
     def from_file[P: str | Path](
-            cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+        cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
     ) -> List[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
@@ -85,9 +85,9 @@ class ArticleChunk(MilvusDataBase):
         title_seg = path.stem.split(" - ").pop()
 
         key = (
-                bib_mgr.get_cite_key_by_title(title_seg)
-                or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
-                or bib_mgr.get_cite_key_fuzzy(path.stem)
+            bib_mgr.get_cite_key_by_title(title_seg)
+            or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
+            or bib_mgr.get_cite_key_fuzzy(path.stem)
         )
         if key is None:
             logger.warning(f"no cite key found for {path.as_posix()}, skip.")
@@ -179,7 +179,7 @@ class CitationManager(AsPrompt):
     """Separator for abbreviated citation numbers."""
 
     def update_chunks(
-            self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
+        self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
     ) -> Self:
         """Update article chunks."""
         self.article_chunks.clear()
@@ -218,8 +218,9 @@ class CitationManager(AsPrompt):
     def _as_prompt_inner(self) -> Dict[str, str]:
         """Generate prompt inner representation."""
         seg = []
-        for k, g in groupby(self.article_chunks, key=lambda a: a.bibtex_cite_key):
-            g = list(g)
+        for k, g_iter in groupby(self.article_chunks, key=lambda a: a.bibtex_cite_key):
+            g = list(g_iter)
+
             logger.debug(f"Group [{k}]: {len(g)}")
             seg.append(wrapp_in_block("\n\n".join(a.chunk for a in g), first(g).reference_header))
         return {"References": "\n".join(seg)}
@@ -277,5 +278,7 @@ class CitationManager(AsPrompt):
         return "".join(a.as_typst_cite() for a in chunk_seq.values())
 
     def as_milvus_filter_expr(self, blacklist: bool = True) -> str:
+        """Asynchronously fetches documents from a Milvus database based on input vectors."""
         if blacklist:
             return " and ".join(f'bibtex_cite_key != "{a.bibtex_cite_key}"' for a in self.article_chunks)
+        return " or ".join(f'bibtex_cite_key == "{a.bibtex_cite_key}"' for a in self.article_chunks)

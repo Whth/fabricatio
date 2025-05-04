@@ -1,9 +1,10 @@
 """Core module that contains the Env class for managing event handling."""
 from dataclasses import dataclass
-from typing import Callable, Optional, Self, overload, ClassVar
+from typing import Callable, ClassVar, Optional, Self, overload
+
+from pymitter import EventEmitter
 
 from fabricatio.rust import CONFIG, Event
-from pymitter import EventEmitter
 
 
 @dataclass

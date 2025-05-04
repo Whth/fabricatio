@@ -10,12 +10,11 @@ from inspect import iscoroutinefunction, signature
 from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, cast, overload
 
-from fabricatio.rust import CONFIG
-from pydantic import BaseModel, ConfigDict, Field
-
 from fabricatio.decorators import logging_execution_info, use_temp_module
 from fabricatio.journal import logger
 from fabricatio.models.generic import WithBriefing
+from fabricatio.rust import CONFIG
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Tool[**P, R](WithBriefing):
@@ -192,6 +191,7 @@ class ToolExecutor(BaseModel):
         candidates (List[Tool]): The sequence of tools to execute.
         data (Dict[str, Any]): The data that could be used when invoking the tools.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True)
     candidates: List[Tool] = Field(default_factory=list, frozen=True)
     """The sequence of tools to execute."""
@@ -230,7 +230,7 @@ class ToolExecutor(BaseModel):
             M: The module with injected data.
         """
         module = module or cast(
-            'M', module_from_spec(spec=ModuleSpec(name=CONFIG.toolbox.data_module_name, loader=None))
+            "M", module_from_spec(spec=ModuleSpec(name=CONFIG.toolbox.data_module_name, loader=None))
         )
         for key, value in self.data.items():
             logger.debug(f"Injecting data: {key}")

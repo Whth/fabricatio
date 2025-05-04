@@ -2,12 +2,13 @@
 
 import asyncio
 
-from fabricatio import Role as BaseRole, logger
+from fabricatio import Role as BaseRole
+from fabricatio import logger
 from fabricatio.capabilities.correct import Correct
 
 
 class Role(BaseRole, Correct):
-    ...
+    """Reviewer role."""
 
 
 async def main() -> None:

@@ -1,20 +1,18 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
+
 from functools import partial
 from typing import Any, Dict, Self
-
-from fabricatio.rust import Event
-from pydantic import ConfigDict, Field
 
 from fabricatio.emitter import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.generic import WithBriefing
+from fabricatio.rust import Event
 from fabricatio.utils import is_subclass_of_base
+from pydantic import ConfigDict, Field
 
-is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages",
-                           base_name="ToolBoxUsage")
-is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio.models.generic",
-                           base_name="ScopedConfig")
+is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages", base_name="ToolBoxUsage")
+is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio.models.generic", base_name="ScopedConfig")
 
 
 class Role(WithBriefing):
@@ -23,6 +21,7 @@ class Role(WithBriefing):
     A Role serves as a container for workflows, managing their registration to events
     and providing them with shared configuration like tools and personality.
     """
+
     model_config = ConfigDict(use_attribute_docstrings=True, arbitrary_types_allowed=True)
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
@@ -45,9 +44,7 @@ class Role(WithBriefing):
             Self: The role instance for method chaining
         """
         for event, workflow in self.registry.items():
-            logger.debug(
-                f"Registering workflow: `{workflow.name}` for event: `{event.collapse()}`"
-            )
+            logger.debug(f"Registering workflow: `{workflow.name}` for event: `{event.collapse()}`")
             env.on(event, workflow.serve)
         return self
 
@@ -67,7 +64,7 @@ class Role(WithBriefing):
             workflow.inject_personality(self.briefing)
         return self
 
-    def _configure_scoped_config(self, workflow) -> None:
+    def _configure_scoped_config(self, workflow: WorkFlow) -> None:
         """Configure scoped configuration for workflow and its actions."""
         if not is_scoped_config(self.__class__):
             return
@@ -80,7 +77,7 @@ class Role(WithBriefing):
         for action in (a for a in workflow.iter_actions() if is_scoped_config(a)):
             action.fallback_to(fallback_target)
 
-    def _configure_toolbox_usage(self, workflow) -> None:
+    def _configure_toolbox_usage(self, workflow: WorkFlow) -> None:
         """Configure toolbox usage for workflow and its actions."""
         if not is_toolbox_usage(self.__class__):
             return

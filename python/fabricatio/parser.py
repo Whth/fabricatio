@@ -1,19 +1,20 @@
+"""A module for capturing patterns in text using regular expressions."""
+
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Type, Union, Self
+from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type, Union
 
 import ujson
-from fabricatio.rust import CONFIG
 from json_repair import repair_json
 
 from fabricatio.journal import logger
+from fabricatio.rust import CONFIG
 
 
 @dataclass(frozen=True)
 class Capture:
-    """
-    A class to capture patterns in text using regular expressions.
+    """A class to capture patterns in text using regular expressions.
 
     Attributes:
         target_groups (Tuple[int, ...]): The target groups to extract from the match.
@@ -60,26 +61,26 @@ class Capture:
         return cap
 
     def convert_with(
-            self,
-            text: str,
-            convertor: Callable[[Union[str, Tuple[str, ...]]], Any],
+        self,
+        text: str,
+        convertor: Callable[[Union[str, Tuple[str, ...]]], Any],
     ) -> Optional[Any]:
         """Convert captured text using a provided function."""
         if (cap := self.capture(text)) is None:
             return None
         try:
             return convertor(cap)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to convert text using {convertor.__name__}: {e}\n{cap}")
             return None
 
     def validate_with[T, K, E](
-            self,
-            text: str,
-            target_type: Type[T],
-            elements_type: Optional[Type[E]] = None,
-            length: Optional[int] = None,
-            deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = ujson.loads,
+        self,
+        text: str,
+        target_type: Type[T],
+        elements_type: Optional[Type[E]] = None,
+        length: Optional[int] = None,
+        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = ujson.loads,
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types."""
         judges = [lambda obj: isinstance(obj, target_type)]
