@@ -1,5 +1,6 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
+from abc import ABC
 from typing import Dict, Optional, Set, Unpack
 
 from fabricatio.capabilities.propose import Propose
@@ -12,7 +13,7 @@ from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import ok
 
 
-class Review(Rating, Propose):
+class Review(Rating, Propose, ABC):
     """Class that provides functionality to review tasks and strings using a language model.
 
     This class extends GiveRating and Propose capabilities to analyze content,

@@ -1,5 +1,6 @@
 """Advanced RAG (Retrieval Augmented Generation) model."""
 
+from abc import ABC
 from typing import Optional, Unpack
 
 from fabricatio.capabilities.rag import RAG
@@ -10,7 +11,7 @@ from fabricatio.models.kwargs_types import ChooseKwargs
 from fabricatio.utils import fallback_kwargs
 
 
-class AdvancedRAG(RAG):
+class AdvancedRAG(RAG, ABC):
     """A class representing the Advanced RAG (Retrieval Augmented Generation) model."""
 
     async def clued_search(

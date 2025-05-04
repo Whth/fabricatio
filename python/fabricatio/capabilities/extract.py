@@ -1,5 +1,6 @@
 """A module that provide capabilities for extracting information from a given source to a model."""
 
+from abc import ABC
 from typing import List, Optional, Type, Unpack, overload
 
 from fabricatio import TEMPLATE_MANAGER
@@ -9,7 +10,7 @@ from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.rust import CONFIG
 
 
-class Extract(Propose):
+class Extract(Propose, ABC):
     """A class that extract information from a given source to a model."""
 
     @overload

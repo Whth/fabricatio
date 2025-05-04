@@ -4,6 +4,7 @@ This module includes the Censor class which inherits from both Correct and Check
 It provides methods to censor objects and strings by first checking them against a ruleset and then correcting them if necessary.
 """
 
+from abc import ABC
 from typing import Optional, Unpack
 
 from fabricatio.capabilities.check import Check
@@ -16,7 +17,7 @@ from fabricatio.models.kwargs_types import ReferencedKwargs
 from fabricatio.utils import override_kwargs
 
 
-class Censor(Correct, Check):
+class Censor(Correct, Check, ABC):
     """Class to censor objects and strings based on provided rulesets.
 
     Inherits from both Correct and Check classes.
@@ -46,7 +47,7 @@ class Censor(Correct, Check):
         if not imp:
             logger.info(f"No improvement found for `{obj.__class__.__name__}`.")
             return obj
-        logger.info(f'Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}')
+        logger.info(f"Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}")
         return await self.correct_obj(obj, Improvement.gather(*imp), **kwargs)
 
     async def censor_string(
@@ -72,7 +73,7 @@ class Censor(Correct, Check):
         if not imp:
             logger.info("No improvement found for string.")
             return input_text
-        logger.info(f'Generated {len(imp)} improvement(s) for string.')
+        logger.info(f"Generated {len(imp)} improvement(s) for string.")
         return await self.correct_string(input_text, Improvement.gather(*imp), **kwargs)
 
     async def censor_obj_inplace[M: ProposedUpdateAble](
@@ -100,5 +101,5 @@ class Censor(Correct, Check):
         if not imp:
             logger.info(f"No improvement found for `{obj.__class__.__name__}`.")
             return obj
-        logger.info(f'Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}')
+        logger.info(f"Generated {len(imp)} improvement(s) for `{obj.__class__.__name__}")
         return await self.correct_obj_inplace(obj, improvement=Improvement.gather(*imp), **kwargs)

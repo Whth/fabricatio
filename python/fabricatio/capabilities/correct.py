@@ -1,5 +1,6 @@
 """A module containing the Correct capability for reviewing, validating, and improving objects."""
 
+from abc import ABC
 from asyncio import gather
 from typing import Optional, Type, Unpack, cast
 
@@ -17,11 +18,11 @@ from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import fallback_kwargs, ok, override_kwargs
 
 
-class Correct(Rating, Propose):
+class Correct(Rating, Propose, ABC):
     """A class that provides the capability to correct objects."""
 
     async def decide_solution(
-            self, problem_solutions: ProblemSolutions, **kwargs: Unpack[BestKwargs]
+        self, problem_solutions: ProblemSolutions, **kwargs: Unpack[BestKwargs]
     ) -> ProblemSolutions:
         """Decide the best solution from a list of problem solutions.
 
@@ -71,11 +72,11 @@ class Correct(Rating, Propose):
         return improvement
 
     async def fix_troubled_obj[M: SketchedAble](
-            self,
-            obj: M,
-            problem_solutions: ProblemSolutions,
-            reference: str = "",
-            **kwargs: Unpack[ValidateKwargs[M]],
+        self,
+        obj: M,
+        problem_solutions: ProblemSolutions,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> Optional[M]:
         """Fix a troubled object based on problem solutions.
 
@@ -105,11 +106,11 @@ class Correct(Rating, Propose):
         )
 
     async def fix_troubled_string(
-            self,
-            input_text: str,
-            problem_solutions: ProblemSolutions,
-            reference: str = "",
-            **kwargs: Unpack[ValidateKwargs[str]],
+        self,
+        input_text: str,
+        problem_solutions: ProblemSolutions,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
         """Fix a troubled string based on problem solutions.
 
@@ -139,11 +140,11 @@ class Correct(Rating, Propose):
         )
 
     async def correct_obj[M: SketchedAble](
-            self,
-            obj: M,
-            improvement: Improvement,
-            reference: str = "",
-            **kwargs: Unpack[ValidateKwargs[M]],
+        self,
+        obj: M,
+        improvement: Improvement,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[M]],
     ) -> Optional[M]:
         """Review and correct an object based on defined criteria and templates.
 
@@ -177,7 +178,7 @@ class Correct(Rating, Propose):
         return obj
 
     async def correct_string(
-            self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]]
+        self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[str]:
         """Review and correct a string based on defined criteria and templates.
 
@@ -209,7 +210,7 @@ class Correct(Rating, Propose):
         return input_text
 
     async def correct_obj_inplace[M: ProposedUpdateAble](
-            self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]
+        self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]
     ) -> Optional[M]:
         """Correct an object in place based on defined criteria and templates.
 

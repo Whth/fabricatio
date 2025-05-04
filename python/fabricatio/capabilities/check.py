@@ -1,5 +1,6 @@
 """A class that provides the capability to check strings and objects against rules and guidelines."""
 
+from abc import ABC
 from asyncio import gather
 from typing import List, Optional, Unpack
 
@@ -15,7 +16,7 @@ from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, detect_language
 from fabricatio.utils import override_kwargs
 
 
-class Check(AdvancedJudge, Propose):
+class Check(AdvancedJudge, Propose, ABC):
     """Class for validating strings/objects against predefined rules and guidelines.
 
     This capability combines rule-based judgment and proposal generation to provide

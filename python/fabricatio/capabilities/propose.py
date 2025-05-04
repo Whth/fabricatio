@@ -1,5 +1,5 @@
 """A module for the task capabilities of the Fabricatio library."""
-
+from abc import ABC
 from typing import List, Optional, Type, Unpack, overload
 
 from fabricatio.models.generic import ProposedAble
@@ -7,7 +7,7 @@ from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.usages import LLMUsage
 
 
-class Propose(LLMUsage):
+class Propose(LLMUsage,ABC):
     """A class that proposes an Obj based on a prompt."""
 
     @overload

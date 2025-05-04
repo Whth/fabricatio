@@ -1,5 +1,7 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
+from abc import ABC
+
 try:
     from pymilvus import MilvusClient
 except ImportError as e:
@@ -32,7 +34,7 @@ def create_client(uri: str, token: str = "", timeout: Optional[float] = None) ->
     )
 
 
-class RAG(EmbeddingUsage):
+class RAG(EmbeddingUsage, ABC):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
     target_collection: Optional[str] = Field(default=None)

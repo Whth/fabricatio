@@ -1,5 +1,6 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
+from abc import ABC
 from itertools import permutations
 from random import sample
 from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
@@ -16,7 +17,7 @@ from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import ok, override_kwargs
 
 
-class Rating(Propose):
+class Rating(Propose, ABC):
     """A class that provides functionality to rate tasks based on a rating manual and score range.
 
     References:

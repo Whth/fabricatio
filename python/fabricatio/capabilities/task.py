@@ -1,5 +1,6 @@
 """A module for the task capabilities of the Fabricatio library."""
 
+from abc import ABC
 from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
@@ -15,7 +16,7 @@ from fabricatio.parser import JsonCapture, PythonCapture
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 
 
-class ProposeTask(Propose):
+class ProposeTask(Propose, ABC):
     """A class that proposes a task based on a prompt."""
 
     async def propose_task[T](
@@ -39,7 +40,7 @@ class ProposeTask(Propose):
         return await self.propose(Task, prompt, **kwargs)
 
 
-class HandleTask(ToolBoxUsage):
+class HandleTask(ToolBoxUsage,ABC):
     """A class that handles a task based on a task object."""
 
     async def draft_tool_usage_code(
