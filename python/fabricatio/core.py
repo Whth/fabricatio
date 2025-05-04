@@ -1,23 +1,20 @@
 """Core module that contains the Env class for managing event handling."""
-
-from typing import Callable, Optional, Self, overload
+from dataclasses import dataclass
+from typing import Callable, Optional, Self, overload, ClassVar
 
 from fabricatio.rust import CONFIG, Event
-from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymitter import EventEmitter
 
 
-class Env(BaseModel):
+@dataclass
+class Env:
     """Environment class that manages event handling using EventEmitter."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
-    _ee: EventEmitter = PrivateAttr(
-        default_factory=lambda: EventEmitter(
-            delimiter=CONFIG.pymitter.delimiter,
-            new_listener=CONFIG.pymitter.new_listener_event,
-            max_listeners=CONFIG.pymitter.max_listeners,
-            wildcard=True,
-        )
+    ee: ClassVar[EventEmitter] = EventEmitter(
+        delimiter=CONFIG.pymitter.delimiter,
+        new_listener=CONFIG.pymitter.new_listener_event,
+        max_listeners=CONFIG.pymitter.max_listeners,
+        wildcard=True,
     )
 
     @overload
@@ -75,8 +72,8 @@ class Env(BaseModel):
         if isinstance(event, Event):
             event = event.collapse()
         if func is None:
-            return self._ee.on(event, ttl=ttl)
-        self._ee.on(event, func, ttl=ttl)
+            return self.ee.on(event, ttl=ttl)
+        self.ee.on(event, func, ttl=ttl)
         return self
 
     @overload
@@ -130,9 +127,9 @@ class Env(BaseModel):
         if isinstance(event, Event):
             event = event.collapse()
         if func is None:
-            return self._ee.once(event)
+            return self.ee.once(event)
 
-        self._ee.once(event, func)
+        self.ee.once(event, func)
         return self
 
     def emit[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
@@ -146,7 +143,7 @@ class Env(BaseModel):
         if isinstance(event, Event):
             event = event.collapse()
 
-        self._ee.emit(event, *args, **kwargs)
+        self.ee.emit(event, *args, **kwargs)
 
     async def emit_async[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
         """Asynchronously emits an event to all registered listeners.
@@ -158,7 +155,7 @@ class Env(BaseModel):
         """
         if isinstance(event, Event):
             event = event.collapse()
-        return await self._ee.emit_async(event, *args, **kwargs)
+        return await self.ee.emit_async(event, *args, **kwargs)
 
     def emit_future[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
         """Emits an event to all registered listeners and returns a future object.
@@ -173,7 +170,7 @@ class Env(BaseModel):
         """
         if isinstance(event, Event):
             event = event.collapse()
-        return self._ee.emit_future(event, *args, **kwargs)
+        return self.ee.emit_future(event, *args, **kwargs)
 
 
 env = Env()
