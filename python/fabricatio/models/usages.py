@@ -1,6 +1,7 @@
 """This module contains classes that manage the usage of language models and tools in tasks."""
 
 import traceback
+from abc import ABC
 from asyncio import gather
 from typing import Callable, Dict, Iterable, List, Literal, Optional, Self, Sequence, Set, Union, Unpack, overload
 
@@ -37,7 +38,7 @@ ROUTER = Router(
 )
 
 
-class LLMUsage(ScopedConfig):
+class LLMUsage(ScopedConfig, ABC):
     """Class that manages LLM (Large Language Model) usage parameters and methods.
 
     This class provides methods to deploy LLMs, query them for responses, and handle various configurations
@@ -513,7 +514,7 @@ class LLMUsage(ScopedConfig):
         )
 
 
-class EmbeddingUsage(LLMUsage):
+class EmbeddingUsage(LLMUsage, ABC):
     """A class representing the embedding model.
 
     This class extends LLMUsage and provides methods to generate embeddings for input text using various models.
@@ -594,7 +595,7 @@ class EmbeddingUsage(LLMUsage):
         return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
 
 
-class ToolBoxUsage(LLMUsage):
+class ToolBoxUsage(LLMUsage, ABC):
     """A class representing the usage of tools in a task.
 
     This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.

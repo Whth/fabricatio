@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Self, Union
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 from pydantic import Field, PrivateAttr
 
-from fabricatio.core import env
+from fabricatio.emitter import env
 from fabricatio.journal import logger
 from fabricatio.models.generic import ProposedAble, WithBriefing, WithDependency
 

@@ -5,7 +5,7 @@ from typing import Any, Dict, Self
 from fabricatio.rust import Event
 from pydantic import ConfigDict, Field
 
-from fabricatio.core import env
+from fabricatio.emitter import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
 from fabricatio.models.generic import WithBriefing

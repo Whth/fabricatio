@@ -25,7 +25,7 @@ from fabricatio.journal import logger
 from fabricatio.utils import ok
 
 
-class Base(BaseModel):
+class Base(BaseModel, ABC):
     """Base class for all models with Pydantic configuration.
 
     This class sets up the basic Pydantic configuration for all models in the Fabricatio library.
@@ -36,7 +36,7 @@ class Base(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
 
-class Display(Base):
+class Display(Base, ABC):
     """Class that provides formatted JSON representation utilities.
 
     Provides methods to generate both pretty-printed and compact JSON representations of the model.
@@ -77,7 +77,7 @@ class Display(Base):
         )
 
 
-class Named(Base):
+class Named(Base, ABC):
     """Class that includes a name attribute.
 
     This class adds a name attribute to models, which is intended to be a unique identifier.
@@ -87,7 +87,7 @@ class Named(Base):
     """The name of this object,briefly and conclusively."""
 
 
-class Described(Base):
+class Described(Base, ABC):
     """Class that includes a description attribute.
 
     This class adds a description attribute to models, providing additional context or information.
@@ -100,18 +100,22 @@ class Described(Base):
     this object's intent and application."""
 
 
-class Titled(Base):
+class Titled(Base, ABC):
     """Class that includes a title attribute."""
 
     title: str
     """The title of this object, make it professional and concise.No prefixed heading number should be included."""
 
 
-class WordCount(Base):
+class WordCount(Base, ABC):
     """Class that includes a word count attribute."""
 
     expected_word_count: int
     """Expected word count of this research component."""
+
+    @property
+    def exact_word_count(self) -> int:
+        raise NotImplementedError(f"`expected_word_count` is not implemented for {self.__class__.__name__}")
 
 
 class FromMapping:
@@ -152,7 +156,7 @@ class AsPrompt:
         """
 
 
-class WithRef[T](Base):
+class WithRef[T](Base, ABC):
     """Class that provides a reference to another object.
 
     This class manages a reference to another object, allowing for easy access and updates.
@@ -202,7 +206,7 @@ class WithRef[T](Base):
         return self
 
 
-class PersistentAble(Base):
+class PersistentAble(Base, ABC):
     """Class providing file persistence capabilities.
 
     Enables saving model instances to disk with timestamped filenames and loading from persisted files.
@@ -293,7 +297,7 @@ class PersistentAble(Base):
         return cls.model_validate_json(safe_text_read(path))
 
 
-class Language:
+class Language(ABC):
     """Class that provides a language attribute."""
 
     @property
@@ -308,7 +312,7 @@ class Language:
         raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
 
 
-class ModelHash(Base):
+class ModelHash(Base, ABC):
     """Class that provides a hash value for the object.
 
     This class includes a method to calculate a hash value for the object based on its JSON representation.
@@ -323,7 +327,7 @@ class ModelHash(Base):
         return hash(self.model_dump_json())
 
 
-class UpdateFrom:
+class UpdateFrom(ABC):
     """Class that provides a method to update the object from another object.
 
     This class includes methods to update the current object with the attributes of another object.
@@ -372,7 +376,7 @@ class UpdateFrom:
         return self.update_pre_check(other).update_from_inner(other)
 
 
-class Introspect:
+class Introspect(ABC):
     """Class that provides a method to introspect the object.
 
     This class includes a method to perform internal introspection of the object.
@@ -387,7 +391,7 @@ class Introspect:
         """
 
 
-class WithBriefing(Named, Described):
+class WithBriefing(Named, Described, ABC):
     """Class that provides a briefing based on the name and description.
 
     This class combines the name and description attributes to provide a brief summary of the object.
@@ -422,7 +426,7 @@ class UnsortGenerate(GenerateJsonSchema):
         return value
 
 
-class WithFormatedJsonSchema(Base):
+class WithFormatedJsonSchema(Base, ABC):
     """Class that provides a formatted JSON schema of the model.
 
     This class includes a method to generate a formatted JSON schema of the model.
@@ -440,7 +444,7 @@ class WithFormatedJsonSchema(Base):
         )
 
 
-class CreateJsonObjPrompt(WithFormatedJsonSchema):
+class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
     """Class that provides a prompt for creating a JSON object.
 
     This class includes a method to create a prompt for creating a JSON object based on the model's schema and a requirement.
@@ -478,7 +482,7 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema):
         ]
 
 
-class InstantiateFromString(Base):
+class InstantiateFromString(Base, ABC):
     """Class that provides a method to instantiate the class from a string.
 
     This class includes a method to instantiate the class from a JSON string representation.
@@ -501,14 +505,14 @@ class InstantiateFromString(Base):
         return obj
 
 
-class ProposedAble(CreateJsonObjPrompt, InstantiateFromString):
+class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
     """Class that provides a method to propose a JSON object based on the requirement.
 
     This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
     """
 
 
-class SketchedAble(ProposedAble, Display):
+class SketchedAble(ProposedAble, Display, ABC):
     """Class that provides a method to scratch the object.
 
     This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
@@ -522,7 +526,7 @@ class ProposedUpdateAble(SketchedAble, UpdateFrom, ABC):
     """
 
 
-class FinalizedDumpAble(Base):
+class FinalizedDumpAble(Base, ABC):
     """Class that provides a method to finalize the dump of the object.
 
     This class includes methods to finalize the JSON representation of the object and dump it to a file.
@@ -549,7 +553,7 @@ class FinalizedDumpAble(Base):
         return self
 
 
-class WithDependency(Base):
+class WithDependency(Base, ABC):
     """Class that manages file dependencies.
 
     This class includes methods to manage file dependencies required for reading or writing.
@@ -642,7 +646,7 @@ class WithDependency(Base):
         )
 
 
-class Vectorizable:
+class Vectorizable(ABC):
     """Class that prepares the vectorization of the model.
 
     This class includes methods to prepare the model for vectorization, ensuring it fits within a specified token length.
@@ -675,7 +679,7 @@ class Vectorizable:
         return chunk
 
 
-class ScopedConfig(Base):
+class ScopedConfig(Base, ABC):
     """Configuration holder with hierarchical fallback mechanism.
 
     Manages LLM, embedding, and vector database configurations with fallback logic.
@@ -808,7 +812,7 @@ class ScopedConfig(Base):
         return self
 
 
-class Patch[T](ProposedAble):
+class Patch[T](ProposedAble, ABC):
     """Base class for patches.
 
     This class provides a base implementation for patches that can be applied to other objects.
@@ -863,7 +867,7 @@ class Patch[T](ProposedAble):
         return ujson.dumps(my_schema, indent=2, ensure_ascii=False, sort_keys=False)
 
 
-class SequencePatch[T](ProposedUpdateAble):
+class SequencePatch[T](ProposedUpdateAble, ABC):
     """Base class for patches.
 
     This class provides a base implementation for patches that can be applied to sequences of objects.
