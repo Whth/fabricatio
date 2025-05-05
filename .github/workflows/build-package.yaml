@@ -51,12 +51,15 @@ jobs:
         shell: bash
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6.0.1
         with:
           version: "latest"
       - name: Install nightly rust
         run: |
           rustup default nightly
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+
       - name: Install deps
         run: |
           uv sync --no-install-project  --all-extras --index https://pypi.org/simple
