@@ -1,12 +1,13 @@
 """Dump the finalized output to a file."""
 
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, Optional, Type
+from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
 
+from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.fs import dump_text
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.generic import FinalizedDumpAble, FromMapping, PersistentAble
+from fabricatio.models.generic import FinalizedDumpAble, FromMapping, FromSequence
 from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage
 from fabricatio.rust import TEMPLATE_MANAGER
@@ -211,3 +212,37 @@ class GatherAsList(Action):
         result = [cxt[k] for k in cxt if k.startswith(self.gather_prefix)]
         logger.debug(f"Gathered {len(result)} items with prefix {self.gather_prefix}")
         return result
+
+
+class Forward(Action, FromMapping, FromSequence):
+    """Forward the object from the context to the output."""
+
+    output_key: str = "forwarded"
+    """Gather the objects from the context as a list."""
+    original: str
+
+    async def _execute(self, *_: Any, **cxt) -> Any:
+        source = cxt.get(self.original)
+        if source is None:
+            logger.warning(f"Original object {self.original} not found in the context")
+        return source
+
+    @classmethod
+    def from_sequence(cls, sequence: Sequence[str], *, original: str, **kwargs: Any) -> List[Self]:
+        """Create a list of `Forward` from the sequence."""
+        return [cls(original=original, output_key=o, **kwargs) for o in sequence]
+
+    @classmethod
+    def from_mapping(cls, mapping: Mapping[str, str | Sequence[str]], **kwargs: Any) -> List[Self]:
+        """Create a list of `Forward` from the mapping."""
+        actions = []
+        for original_key, output_val in mapping.items():
+            if isinstance(output_val, str):
+                actions.append(cls(original=original_key, output_key=output_val, **kwargs))
+            elif isinstance(output_val, Sequence):
+                actions.extend(cls(original=original_key, output_key=output_key, **kwargs) for output_key in output_val)
+            else:
+                logger.warning(
+                    f"Invalid type for output key value in mapping: {type(output_val)} for original key {original_key}. Expected str or Sequence[str]."
+                )
+        return actions

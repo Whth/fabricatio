@@ -14,19 +14,18 @@ from abc import abstractmethod
 from asyncio import Queue, create_task
 from typing import Any, ClassVar, Dict, Generator, Self, Sequence, Tuple, Type, Union, final
 
-from pydantic import Field, PrivateAttr
-
 from fabricatio.journal import logger
-from fabricatio.models.generic import WithBriefing, With
+from fabricatio.models.generic import WithBriefing
 from fabricatio.models.task import Task
 from fabricatio.utils import override_kwargs
+from pydantic import Field, PrivateAttr
 
 OUTPUT_KEY = "task_output"
 
 INPUT_KEY = "task_input"
 
 
-class Action(WithBriefing, With):
+class Action(WithBriefing):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
@@ -99,24 +98,21 @@ class Action(WithBriefing, With):
             return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
         return f"# The action you are going to perform: \n{super().briefing}"
 
-    def to_task_output(self, task_output_key: str = OUTPUT_KEY) -> Self:
+    def to_task_output(self, to: Union[str, "WorkFlow"] = OUTPUT_KEY) -> Self:
         """Set the output key to OUTPUT_KEY and return the action instance."""
-        self.output_key = task_output_key
+        self.output_key = to.task_output_key if isinstance(to, WorkFlow) else to
         return self
 
 
-class WorkFlow(WithBriefing, With):
+class WorkFlow(WithBriefing):
     """Manages sequences of actions to fulfill tasks.
 
     Handles context propagation between actions, error handling, and task lifecycle
     events like cancellation and completion.
-
-    Attributes:
-        steps (Tuple): Sequence of Action instances or classes to execute.
-        task_input_key (str): Key for storing task instance in context.
-        task_output_key (str): Key to retrieve final result from context.
     """
 
+    name: str = "WorkFlow"
+    """The name of the workflow, which is used to identify and describe the workflow."""
     description: str = ""
     """The description of the workflow, which describes the workflow's purpose and requirements."""
 
@@ -129,10 +125,10 @@ class WorkFlow(WithBriefing, With):
     steps: Sequence[Union[Type[Action], Action]] = Field(frozen=True)
     """The sequence of actions to be executed, can be action classes or instances."""
 
-    task_input_key: str = Field(default=INPUT_KEY)
+    task_input_key: ClassVar[str] = Field(default=INPUT_KEY)
     """Key used to store the input task in the context dictionary."""
 
-    task_output_key: str = Field(default=OUTPUT_KEY)
+    task_output_key: ClassVar[str] = Field(default=OUTPUT_KEY)
     """Key used to extract the final result from the context dictionary."""
 
     extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)
@@ -143,7 +139,9 @@ class WorkFlow(WithBriefing, With):
 
         Args:
             __context: The context to be used for initialization.
+
         """
+        self.name = self.name or self.__class__.__name__
         # Convert any action classes to instances
         self._instances = tuple(step if isinstance(step, Action) else step() for step in self.steps)
 

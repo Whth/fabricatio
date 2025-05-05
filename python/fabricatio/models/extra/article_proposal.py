@@ -2,11 +2,11 @@
 
 from typing import Dict, List
 
+from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.models.generic import (
     AsPrompt,
     Described,
     Language,
-    PersistentAble,
     SketchedAble,
     Titled,
     WithRef,

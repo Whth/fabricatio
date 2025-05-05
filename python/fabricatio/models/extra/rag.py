@@ -5,7 +5,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence, Set
 
 from fabricatio.decorators import precheck_package
-from fabricatio.models.generic import Vectorizable
+from fabricatio.models.generic import Base, Vectorizable
 from fabricatio.utils import ok
 from pydantic import JsonValue
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
         from pymilvus import CollectionSchema
 
 
-class MilvusDataBase(Vectorizable, ABC):
+class MilvusDataBase(Base, Vectorizable, ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"

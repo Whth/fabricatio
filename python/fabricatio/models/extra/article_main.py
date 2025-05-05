@@ -2,6 +2,7 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
+from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
@@ -16,7 +17,7 @@ from fabricatio.models.extra.article_outline import (
     ArticleSectionOutline,
     ArticleSubsectionOutline,
 )
-from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
+from fabricatio.models.generic import Described, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import (
     convert_all_block_tex,
     convert_all_inline_tex,

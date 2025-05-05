@@ -5,6 +5,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
+from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.fs import dump_text, safe_text_read
 from fabricatio.fs.readers import extract_sections
 from fabricatio.journal import logger
@@ -15,7 +16,6 @@ from fabricatio.models.generic import (
     Introspect,
     Language,
     ModelHash,
-    PersistentAble,
     ProposedUpdateAble,
     SketchedAble,
     Titled,
@@ -275,7 +275,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         )
 
     def iter_dfs_rev(
-            self,
+        self,
     ) -> Generator[ArticleOutlineBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure in reverse order.
 
