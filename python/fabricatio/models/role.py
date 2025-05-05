@@ -3,19 +3,20 @@
 from functools import partial
 from typing import Any, Dict, Self
 
+from fabricatio.rust import Event
+from pydantic import ConfigDict, Field
+
 from fabricatio.emitter import env
 from fabricatio.journal import logger
 from fabricatio.models.action import WorkFlow
-from fabricatio.models.generic import WithBriefing
-from fabricatio.rust import Event
+from fabricatio.models.generic import WithBriefing, With
 from fabricatio.utils import is_subclass_of_base
-from pydantic import ConfigDict, Field
 
 is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages", base_name="ToolBoxUsage")
 is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio.models.generic", base_name="ScopedConfig")
 
 
-class Role(WithBriefing):
+class Role(WithBriefing, With):
     """Class that represents a role with a registry of events and workflows.
 
     A Role serves as a container for workflows, managing their registration to events

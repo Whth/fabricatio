@@ -6,11 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Type, Union, final, overload
 
 import ujson
-from fabricatio.fs import dump_text
-from fabricatio.fs.readers import safe_text_read
-from fabricatio.journal import logger
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
-from fabricatio.utils import ok
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -22,6 +18,11 @@ from pydantic import (
     SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
+
+from fabricatio.fs import dump_text
+from fabricatio.fs.readers import safe_text_read
+from fabricatio.journal import logger
+from fabricatio.utils import ok
 
 
 class Base(BaseModel, ABC):
@@ -70,9 +71,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -179,13 +180,16 @@ class WithRef[T](Base, ABC):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
+        ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
@@ -856,7 +860,8 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 
@@ -893,3 +898,23 @@ class SequencePatch[T](ProposedUpdateAble, ABC):
             Self: A new instance with an empty list of tweaks.
         """
         return cls(tweaked=[])
+
+
+class With:
+    """A class that provides a way to add capabilities to a class."""
+
+    @classmethod
+    def with_capabilities[T, S](cls: Type[S], *capabilities: Type[T]) -> Type[S]:
+        """Add capabilities to a class.
+
+        Args:
+            cls (Type[S]): The class to enhance.
+            *capabilities (T): The capabilities to add to the class.
+
+        Returns:
+            Type[S]: The enhanced class with the added capabilities.
+        """
+
+        class Enhanced(cls, *capabilities): ...
+
+        return Enhanced
