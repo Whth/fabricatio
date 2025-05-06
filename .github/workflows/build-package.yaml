@@ -66,9 +66,7 @@ jobs:
           uv sync --no-install-project  --all-extras --index https://pypi.org/simple
       - name: Build
         run: |
-          make
-        env:
-          PY: ${{ matrix.python-version }}
+          make PY=${{ matrix.python-version }}
 
       - name: Packing templates
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
@@ -93,8 +91,7 @@ jobs:
       - name: Upload to PyPI
         if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
         run: |
-          make publish
+          make publish PY=${{ matrix.python-version }}
         env:
-          PY: ${{ matrix.python-version }}
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
