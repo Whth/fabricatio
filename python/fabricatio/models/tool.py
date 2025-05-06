@@ -3,18 +3,18 @@
 This module provides classes for defining tools and toolboxes, which can be used to manage and execute callable functions
 with additional functionalities such as logging, execution info, and briefing.
 """
+
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
 from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, cast, overload
 
-from fabricatio.rust import CONFIG
-from pydantic import Field
-
 from fabricatio.decorators import logging_execution_info, use_temp_module
 from fabricatio.journal import logger
 from fabricatio.models.generic import Base, WithBriefing
+from fabricatio.rust import CONFIG
+from pydantic import Field
 
 
 class Tool[**P, R](WithBriefing):
