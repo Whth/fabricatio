@@ -6,7 +6,6 @@ from asyncio import gather
 from typing import Callable, Dict, Iterable, List, Literal, Optional, Self, Sequence, Set, Union, Unpack, overload
 
 import asyncstdlib
-import litellm
 from fabricatio.decorators import logging_exec_time
 from fabricatio.journal import logger
 from fabricatio.models.generic import ScopedConfig, WithBriefing
@@ -15,7 +14,12 @@ from fabricatio.models.task import Task
 from fabricatio.models.tool import Tool, ToolBox
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import first_available, ok
-from litellm import RateLimitError, Router, stream_chunk_builder  # pyright: ignore [reportPrivateImportUsage]
+from litellm import (  # pyright: ignore [reportPrivateImportUsage]
+    RateLimitError,
+    Router,
+    aembedding,
+    stream_chunk_builder,
+)
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import (
     Choices,
@@ -534,7 +538,7 @@ class EmbeddingUsage(LLMUsage, ABC):
             logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
             raise ValueError(err)
 
-        return await litellm.aembedding(
+        return await aembedding(
             input=input_text,
             caching=caching or self.embedding_caching or CONFIG.embedding.caching,
             dimensions=dimensions or self.embedding_dimensions or CONFIG.embedding.dimensions,

@@ -125,10 +125,10 @@ class WorkFlow(WithBriefing):
     steps: Sequence[Union[Type[Action], Action]] = Field(frozen=True)
     """The sequence of actions to be executed, can be action classes or instances."""
 
-    task_input_key: ClassVar[str] = Field(default=INPUT_KEY)
+    task_input_key: ClassVar[str] = INPUT_KEY
     """Key used to store the input task in the context dictionary."""
 
-    task_output_key: ClassVar[str] = Field(default=OUTPUT_KEY)
+    task_output_key: ClassVar[str] = OUTPUT_KEY
     """Key used to extract the final result from the context dictionary."""
 
     extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)
