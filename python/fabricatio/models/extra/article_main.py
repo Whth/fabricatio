@@ -2,6 +2,15 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
+from fabricatio.rust import (
+    convert_all_block_tex,
+    convert_all_inline_tex,
+    fix_misplaced_labels,
+    split_out_metadata,
+    word_count,
+)
+from pydantic import Field, NonNegativeInt
+
 from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
@@ -18,16 +27,8 @@ from fabricatio.models.extra.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import (
-    convert_all_block_tex,
-    convert_all_inline_tex,
-    fix_misplaced_labels,
-    split_out_metadata,
-    word_count,
-)
-from pydantic import Field, NonNegativeInt
 
-PARAGRAPH_SEP = "\n\n// - - -\n\n"
+PARAGRAPH_SEP = "// - - -"
 
 
 class Paragraph(SketchedAble, WordCount, Described):
@@ -50,7 +51,7 @@ class Paragraph(SketchedAble, WordCount, Described):
     @classmethod
     def from_content(cls, content: str) -> Self:
         """Create a Paragraph object from the given content."""
-        return cls(elaboration="", aims=[], expected_word_count=word_count(content), content=content)
+        return cls(elaboration="", aims=[], expected_word_count=word_count(content), content=content.strip())
 
     @property
     def exact_wordcount(self) -> int:
@@ -82,8 +83,8 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if (
-            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
-            > self._max_word_count_deviation
+                abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+                > self._max_word_count_deviation
         ):
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
@@ -103,7 +104,7 @@ class ArticleSubsection(SubSectionBase):
         Returns:
             str: Typst code snippet for rendering.
         """
-        return super().to_typst_code() + PARAGRAPH_SEP.join(p.content for p in self.paragraphs)
+        return super().to_typst_code() + f"\n\n{PARAGRAPH_SEP}\n\n".join(p.content for p in self.paragraphs)
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
