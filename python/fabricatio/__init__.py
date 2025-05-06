@@ -1,20 +1,17 @@
 """Fabricatio is a Python library for building llm app using event-based agent structure."""
 
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, BibManager, Event
-
-from fabricatio import actions, capabilities, parser, toolboxes, workflows
+from fabricatio import actions, capabilities, fs, models, parser, toolboxes, utils, workflows
 from fabricatio.journal import logger
-from fabricatio.models import extra, generic, kwargs_types, usages
 from fabricatio.models.action import Action, WorkFlow
 from fabricatio.models.role import Role
 from fabricatio.models.task import Task
 from fabricatio.models.tool import ToolBox
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, Event
 
 __all__ = [
     "CONFIG",
     "TEMPLATE_MANAGER",
     "Action",
-    "BibManager",
     "Event",
     "Role",
     "Task",
@@ -22,12 +19,11 @@ __all__ = [
     "WorkFlow",
     "actions",
     "capabilities",
-    "extra",
-    "generic",
-    "kwargs_types",
+    "fs",
     "logger",
+    "models",
     "parser",
     "toolboxes",
-    "usages",
-    "workflows"
+    "utils",
+    "workflows",
 ]
