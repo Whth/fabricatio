@@ -72,18 +72,12 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[calc,ftd,plot,qa,rag,cli]",
+    "fabricatio[ftd,qa,rag,cli]",
 ]
 rag = [
     "pymilvus>=2.5.4",
 ]
 
-calc = [
-    "sympy>=1.13.3",
-]
-plot = [
-    "matplotlib>=3.10.1",
-]
 qa = [
     "questionary>=2.1.0",
 ]
