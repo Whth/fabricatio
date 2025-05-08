@@ -2578,6 +2578,7 @@ dependencies = [
  "clap",
  "dirs",
  "flate2",
+ "log",
  "regex",
  "reqwest",
  "serde_json",

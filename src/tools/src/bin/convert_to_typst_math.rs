@@ -1,51 +1,31 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
+use log::{debug, error};
 use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
 use tex2typst_rs::tex2typst;
-
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
-enum WrapperType {
-    Normal,
-    Derived,
-}
+// WrapperType enum removed as per instructions
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Convert TeX content from a file
-    #[command(alias = "fc")]
+    /// Convert TeX math (e.g., $...$, $$...$$, \(...\), \[...\]) in a file to Typst's $ format
+    #[command(alias = "f")] // Shorter alias
     File {
         input: PathBuf,
-
-        /// Output file for converted Typst content
         #[arg(short, long)]
         output: Option<PathBuf>,
-
-        /// Type of wrapper for TeX math expressions
-        #[arg(short, long, value_enum, default_value_t = WrapperType::Normal)]
-        wrapper_type: WrapperType,
     },
-    /// Convert TeX content from a string
-    #[command(alias = "sc")]
+    /// Convert TeX math (e.g., $...$, $$...$$, \(...\), \[...\]) in a string to Typst's $ format
+    #[command(alias = "s")] // Shorter alias
     String {
-        /// Input string containing TeX content
         input_str: String,
-
-        /// Output file for converted Typst content
         #[arg(short, long)]
         output: Option<PathBuf>,
-
-        /// Type of wrapper for TeX math expressions
-        #[arg(short, long, value_enum, default_value_t = WrapperType::Normal)]
-        wrapper_type: WrapperType,
     },
-    /// Directly convert raw LaTeX code to Typst Math code
-    #[command(alias = "rc")]
+    /// Directly convert raw LaTeX code to Typst Math code (no wrapper detection)
+    #[command(alias = "r")] // Shorter alias
     Raw {
-        /// Input string containing raw LaTeX code
         input_str: String,
-
-        /// Output file for converted Typst Math content
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
@@ -55,108 +35,127 @@ enum Commands {
 #[command(
     author,
     version,
-    about = "Convert TeX math expressions to Typst format",
-    long_about = None
+    about = "Convert TeX math expressions (various delimiters) to Typst format (using $ delimiters).",
+    long_about = "This tool converts TeX math expressions, supporting $, $$, \\(, and \\[, \ninto Typst's standard $ delimiter format. Raw TeX code can also be converted directly."
 )]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
-fn convert_tex_with_pattern(
-    pattern: &str,
-    string: &str,
-    block: bool,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let re = Regex::new(pattern)?;
+// Unified function to convert all supported TeX math expressions to Typst format
+fn convert_all_tex_math(string: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // Regex to find TeX math expressions. Order matters: $$ before $, \[ before \(, etc.
+    // This captures:
+    // 1. $$...$$ (block) -> groups 1, 2, 3
+    // 2. \[...\] (block) -> groups 4, 5, 6
+    // 3. \(...\) (inline) -> groups 7, 8, 9
+    // 4. $...$ (inline) -> groups 10, 11, 12 (must be careful not to match parts of $$)
+    // The regex engine processes alternatives from left to right.
+    // By placing more specific/longer delimiters first (e.g., $$ before $),
+    // we ensure correct matching.
+    let re =
+        Regex::new(r"(?s)(\$\$)(.*?)(\$\$)|(\\\[)(.*?)(\\\])|(\\\()(.*?)(\\\))|(\$)(.*?)(\$)")?;
 
     let result = re.replace_all(string, |caps: &regex::Captures| {
-        let tex_code = caps.get(1).unwrap().as_str();
+        let (tex_code, is_block, original_wrapper_open, original_wrapper_close) =
+            if let (Some(open), Some(content), Some(close)) =
+                (caps.get(1), caps.get(2), caps.get(3))
+            {
+                (content.as_str(), true, open.as_str(), close.as_str()) // Matched $$...$$
+            } else if let (Some(open), Some(content), Some(close)) =
+                (caps.get(4), caps.get(5), caps.get(6))
+            {
+                (content.as_str(), true, open.as_str(), close.as_str()) // Matched \[...\]
+            } else if let (Some(open), Some(content), Some(close)) =
+                (caps.get(7), caps.get(8), caps.get(9))
+            {
+                (content.as_str(), false, open.as_str(), close.as_str()) // Matched \(...\)
+            } else if let (Some(open), Some(content), Some(close)) =
+                (caps.get(10), caps.get(11), caps.get(12))
+            {
+                (content.as_str(), false, open.as_str(), close.as_str()) // Matched $...$
+            } else {
+                // This case should ideally not be reached if the regex is comprehensive
+                // and correctly structured for the input.
+                // Return the original match if no known pattern is identified.
+                return caps.get(0).unwrap().as_str().to_string();
+            };
+
         match tex2typst(tex_code) {
             Ok(converted) => {
-                if block {
-                    format!("$\n{}\n$", converted)
+                let typst_math = if is_block {
+                    format!("$\n{}\n$", converted.trim())
                 } else {
-                    format!(" ${}$ ", converted)
-                }
+                    format!(" ${}$ ", converted.trim())
+                };
+                debug!(
+                    "Converting TeX: {}{}{} ==> Typst: {}",
+                    original_wrapper_open,
+                    tex_code,
+                    original_wrapper_close,
+                    typst_math.trim()
+                );
+                typst_math
             }
             Err(e) => {
-                if block {
-                    format!("$\n{}\n\"{}\"\n$", tex_code.trim(), e)
-                } else {
-                    format!(" ${}$ ", tex_code)
-                }
+                error!(
+                    "Error converting TeX content (preserving original {} {} {}): {} -> {}",
+                    original_wrapper_open, tex_code, original_wrapper_close, tex_code, e
+                );
+                // Preserve original TeX with original wrappers on error
+                format!(
+                    "{}{}{}",
+                    original_wrapper_open, tex_code, original_wrapper_close
+                )
             }
         }
     });
-
     Ok(result.into_owned())
 }
 
-fn convert_all_inline_tex(
-    string: &str,
-    wrapper_type: WrapperType,
-) -> Result<String, Box<dyn std::error::Error>> {
-    match wrapper_type {
-        WrapperType::Normal => convert_tex_with_pattern(r"(?s)\$(.*?)\$", string, false),
-        WrapperType::Derived => convert_tex_with_pattern(r"(?s)\\\((.*?)\\\)", string, false),
-    }
-}
-
-fn convert_all_block_tex(
-    string: &str,
-    wrapper_type: WrapperType,
-) -> Result<String, Box<dyn std::error::Error>> {
-    match wrapper_type {
-        WrapperType::Normal => convert_tex_with_pattern(r"(?s)\$\$(.*?)\$\$", string, true),
-        WrapperType::Derived => convert_tex_with_pattern(r"(?s)\\\[(.*?)\\\]", string, true),
-    }
-}
-
-fn process_file(
-    input: PathBuf,
-    output: Option<PathBuf>,
-    wrapper_type: WrapperType,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let content = fs::read_to_string(input)?;
-
-    let processed = convert_all_block_tex(&content, wrapper_type)
-        .and_then(|block_processed| convert_all_inline_tex(&block_processed, wrapper_type))?;
-
+// Simplified process_file function
+fn process_file(input: PathBuf, output: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(&input)
+        .map_err(|e| format!("Failed to read file {:?}: {}", input, e))?;
+    let processed = convert_all_tex_math(&content)?;
     match output {
-        Some(path) => fs::write(path, processed)?,
+        Some(path) => fs::write(&path, processed)
+            .map_err(|e| format!("Failed to write to file {:?}: {}", path, e))?,
         None => println!("{}", processed),
     }
-
     Ok(())
 }
 
+// Simplified process_string function
 fn process_string(
     input_str: String,
     output: Option<PathBuf>,
-    wrapper_type: WrapperType,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let processed = convert_all_block_tex(&input_str, wrapper_type)
-        .and_then(|block_processed| convert_all_inline_tex(&block_processed, wrapper_type))?;
-
+    let processed = convert_all_tex_math(&input_str)?;
     match output {
-        Some(path) => fs::write(path, processed)?,
+        Some(path) => fs::write(&path, processed)
+            .map_err(|e| format!("Failed to write to file {:?}: {}", path, e))?,
         None => println!("{}", processed),
     }
-
     Ok(())
 }
 
+// process_raw_latex remains largely the same, handling content without wrappers
 fn process_raw_latex(
     input_str: String,
     output: Option<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let converted = tex2typst(&input_str)
         .map_err(|e| format!("Failed to convert raw LaTeX code to Typst Math code: {}", e))?;
+    println!(
+        "[DEBUG] Converting Raw TeX: \n{}\n  ==> Typst Math (raw):\n{}",
+        input_str,
+        converted.trim()
+    );
     match output {
-        Some(path) => {
-            fs::write(path, converted).map_err(|e| format!("Failed to write to file: {}", e).into())
-        }
+        Some(path) => fs::write(path, &converted)
+            .map_err(|e| format!("Failed to write to file: {}", e).into()),
         None => {
             println!("{}", converted);
             Ok(())
@@ -168,16 +167,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::File {
-            input,
-            output,
-            wrapper_type,
-        } => process_file(input, output, wrapper_type),
-        Commands::String {
-            input_str,
-            output,
-            wrapper_type,
-        } => process_string(input_str, output, wrapper_type),
+        Commands::File { input, output } => process_file(input, output),
+        Commands::String { input_str, output } => process_string(input_str, output),
         Commands::Raw { input_str, output } => process_raw_latex(input_str, output),
     }
 }
