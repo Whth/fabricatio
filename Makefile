@@ -1,6 +1,6 @@
 DIST:=dist
 DATA:=extra
-PY:=3.12
+PY:=3.13
 
 
 all:bdist

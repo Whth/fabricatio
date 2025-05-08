@@ -262,7 +262,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.3.14.dev2"
+version = "0.3.14.dev4"
 source = { editable = "." }
 dependencies = [
     { name = "asyncio" },
