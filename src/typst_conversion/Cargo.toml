@@ -1,0 +1,11 @@
+[package]
+name = "typst_conversion"
+version = "0.1.0"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
+tex2typst-rs = "0.4.1"
+regex = "1.11.1"
+log = "0.4.27"

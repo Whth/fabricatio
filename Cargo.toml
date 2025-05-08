@@ -27,19 +27,21 @@ dotenvy = "0.15.7"
 directories-next = "2.0.0"
 log = "0.4.27"
 pyo3-log = "0.12.3"
-macro_utils = { path = "src/macro_utils" }
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 
 tonic = "0.13.0"
 prost = "0.13.5"
 pyo3-async-runtimes = { version = "0.24.0", features = ["tokio-runtime"] }
+macro_utils = { path = "src/macro_utils" }
+typst_conversion = { path = "src/typst_conversion" }
+
 
 
 [build-dependencies]
 tonic-build = "0.13.0"
 [workspace]
-members = ["src/macro_utils", "src/tools"]
+members = ["src/macro_utils", "src/tools", "src/typst_conversion"]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]
