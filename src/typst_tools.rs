@@ -119,7 +119,7 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
 }
 
 #[pyfunction]
-fn inplace_update(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
+fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
     // Escape the wrapper string to handle special regex characters safely
     let escaped_wrapper = regex::escape(wrapper);
 
@@ -180,7 +180,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(split_out_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(to_metadata, m)?)?;
 
-    m.add_function(wrap_pyfunction!(inplace_update, m)?)?;
+    m.add_function(wrap_pyfunction!(replace_thesis_body, m)?)?;
     m.add_function(wrap_pyfunction!(extract_body, m)?)?;
     Ok(())
 }

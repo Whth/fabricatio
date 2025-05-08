@@ -2,7 +2,9 @@
 
 from abc import ABC
 from enum import StrEnum
+from fabricatio.rust import extract_body, replace_thesis_body, split_out_metadata, to_metadata, word_count
 from pathlib import Path
+from pydantic import Field
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
 from fabricatio.capabilities.persist import PersistentAble
@@ -21,9 +23,7 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
-from fabricatio.rust import extract_body, inplace_update, split_out_metadata, to_metadata, word_count
 from fabricatio.utils import fallback_kwargs, ok
-from pydantic import Field
 
 ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="
 
@@ -275,7 +275,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         )
 
     def iter_dfs_rev(
-        self,
+            self,
     ) -> Generator[ArticleOutlineBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure in reverse order.
 
@@ -405,7 +405,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         """Update the article file."""
         file = Path(file)
         string = safe_text_read(file)
-        if updated := inplace_update(string, ARTICLE_WRAPPER, self.to_typst_code()):
+        if updated := replace_thesis_body(string, ARTICLE_WRAPPER, self.to_typst_code()):
             dump_text(file, updated)
             logger.success(f"Successfully updated {file.as_posix()}.")
         else:
