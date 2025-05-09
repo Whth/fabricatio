@@ -2,11 +2,6 @@
 
 from asyncio import gather
 
-from fabricatio.rust import (
-    BibManager,
-    convert_all_tex_math,
-    fix_misplaced_labels,
-)
 from pathlib import Path
 from pydantic import Field, PositiveInt
 from typing import ClassVar, List, Optional
@@ -24,6 +19,11 @@ from fabricatio.models.extra.article_main import Article, ArticleChapter, Articl
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.kwargs_types import ChooseKwargs, LLMKwargs
+from fabricatio.rust import (
+    BibManager,
+    convert_all_tex_math,
+    fix_misplaced_labels,
+)
 from fabricatio.utils import ok
 
 TYPST_CITE_USAGE = (

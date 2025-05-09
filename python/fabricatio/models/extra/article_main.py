@@ -1,11 +1,5 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
-from fabricatio.rust import (
-    convert_all_tex_math,
-    fix_misplaced_labels,
-    split_out_metadata,
-    word_count,
-)
 from pydantic import Field, NonNegativeInt
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
@@ -25,6 +19,12 @@ from fabricatio.models.extra.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, SequencePatch, SketchedAble, WithRef, WordCount
+from fabricatio.rust import (
+    convert_all_tex_math,
+    fix_misplaced_labels,
+    split_out_metadata,
+    word_count,
+)
 
 PARAGRAPH_SEP = "// - - -"
 

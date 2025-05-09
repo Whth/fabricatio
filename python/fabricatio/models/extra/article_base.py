@@ -2,7 +2,6 @@
 
 from abc import ABC
 from enum import StrEnum
-from fabricatio.rust import extract_body, replace_thesis_body, split_out_metadata, to_metadata, word_count
 from pathlib import Path
 from pydantic import Field
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
@@ -23,6 +22,7 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
+from fabricatio.rust import extract_body, replace_thesis_body, split_out_metadata, to_metadata, word_count
 from fabricatio.utils import fallback_kwargs, ok
 
 ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="

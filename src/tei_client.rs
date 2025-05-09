@@ -25,14 +25,14 @@ impl TEIClient {
         query: String,
         texts: Vec<String>,
         truncate: bool,
-        truncation_direction: String,
+        truncation_direction: Option<String>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let request = RerankRequest {
             query,
             texts,
             truncate,
             truncation_direction: {
-                match truncation_direction.as_str() {
+                match truncation_direction.unwrap_or("Left".to_string()).as_str() {
                     "Left" => i32::from(TruncationDirection::Left),
                     "Right" => i32::from(TruncationDirection::Right),
                     _ => {

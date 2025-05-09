@@ -4,7 +4,6 @@ from itertools import groupby
 
 import re
 from dataclasses import dataclass, field
-from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pathlib import Path
@@ -16,6 +15,7 @@ from fabricatio.journal import logger
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
+from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
 
 
