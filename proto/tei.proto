@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package tei;
+package tei.v1;
 
 service Info {
     rpc Info (InfoRequest) returns (InfoResponse) {
