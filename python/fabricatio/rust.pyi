@@ -325,9 +325,10 @@ def tex_to_typst(string: str) -> str:
 
 
 def convert_all_tex_math(string: str) -> str:
-    """Unified function to convert all supported TeX math expressions in a string to Typst format.
+    r"""Unified function to convert all supported TeX math expressions in a string to Typst format.
 
     Handles $...$, $$...$$, \\(...\\), and \\[...\\]
+
     Args:
         string: The input string containing TeX math expressions.
 
@@ -348,7 +349,7 @@ def fix_misplaced_labels(string: str) -> str:
 
 
 def comment(string: str) -> str:
-    """Add comment to the string.
+    r"""Add comment to the string.
 
     Args:
         string: The input string to which comments will be added.

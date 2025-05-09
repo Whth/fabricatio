@@ -1,5 +1,12 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
+from fabricatio.rust import (
+    convert_all_tex_math,
+    fix_misplaced_labels,
+    split_out_metadata,
+    word_count,
+)
+from pydantic import Field, NonNegativeInt
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
 from fabricatio.capabilities.persist import PersistentAble
@@ -18,14 +25,6 @@ from fabricatio.models.extra.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio.models.generic import Described, SequencePatch, SketchedAble, WithRef, WordCount
-from fabricatio.rust import (
-    convert_all_block_tex,
-    convert_all_inline_tex,
-    fix_misplaced_labels,
-    split_out_metadata,
-    word_count,
-)
-from pydantic import Field, NonNegativeInt
 
 PARAGRAPH_SEP = "// - - -"
 
@@ -82,8 +81,8 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if (
-            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
-            > self._max_word_count_deviation
+                abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+                > self._max_word_count_deviation
         ):
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
@@ -155,15 +154,13 @@ class Article(
         if descriptions:
             for a in self.iter_dfs():
                 a.description = fix_misplaced_labels(a.description)
-                a.description = convert_all_inline_tex(a.description)
-                a.description = convert_all_block_tex(a.description)
+                a.description = convert_all_tex_math(a.description)
 
         if paragraphs:
             for _, _, subsec in self.iter_subsections():
                 for p in subsec.paragraphs:
                     p.content = fix_misplaced_labels(p.content)
-                    p.content = convert_all_inline_tex(p.content)
-                    p.content = convert_all_block_tex(p.content)
+                    p.content = convert_all_tex_math(p.content)
         return self
 
     @override
