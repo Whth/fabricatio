@@ -169,3 +169,4 @@ output/
 templates/customed
 *.typ
 /src/tei.rs
+.python-version
