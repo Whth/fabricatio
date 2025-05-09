@@ -1,8 +1,14 @@
 """A Module containing the article rag models."""
 
-import re
 from itertools import groupby
+
+import re
+from dataclasses import dataclass, field
+from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
+from more_itertools.more import first
+from more_itertools.recipes import flatten, unique
 from pathlib import Path
+from pydantic import Field
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
 from fabricatio.fs import safe_text_read
@@ -10,11 +16,7 @@ from fabricatio.journal import logger
 from fabricatio.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
-from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
-from more_itertools.more import first
-from more_itertools.recipes import flatten, unique
-from pydantic import Field
 
 
 class ArticleChunk(MilvusDataBase):
@@ -68,7 +70,7 @@ class ArticleChunk(MilvusDataBase):
 
     @classmethod
     def from_file[P: str | Path](
-        cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+            cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
     ) -> List[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
@@ -85,9 +87,9 @@ class ArticleChunk(MilvusDataBase):
         title_seg = path.stem.split(" - ").pop()
 
         key = (
-            bib_mgr.get_cite_key_by_title(title_seg)
-            or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
-            or bib_mgr.get_cite_key_fuzzy(path.stem)
+                bib_mgr.get_cite_key_by_title(title_seg)
+                or bib_mgr.get_cite_key_by_title_fuzzy(title_seg)
+                or bib_mgr.get_cite_key_fuzzy(path.stem)
         )
         if key is None:
             logger.warning(f"no cite key found for {path.as_posix()}, skip.")
@@ -165,10 +167,11 @@ class ArticleChunk(MilvusDataBase):
         return self
 
 
+@dataclass
 class CitationManager(AsPrompt):
     """Citation manager."""
 
-    article_chunks: List[ArticleChunk] = Field(default_factory=list)
+    article_chunks: List[ArticleChunk] = field(default_factory=list)
     """Article chunks."""
 
     pat: str = r"(\[\[([\d\s,-]*)]])"
@@ -179,7 +182,7 @@ class CitationManager(AsPrompt):
     """Separator for abbreviated citation numbers."""
 
     def update_chunks(
-        self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
+            self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
     ) -> Self:
         """Update article chunks."""
         self.article_chunks.clear()

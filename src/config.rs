@@ -17,7 +17,6 @@ fn get_roaming_dir(app_name: &str) -> Option<PathBuf> {
     BaseDirs::new().map(|dirs| dirs.config_dir().join(app_name))
 }
 
-
 #[pyclass]
 #[derive(Clone)]
 pub struct SecretStr {
@@ -25,7 +24,6 @@ pub struct SecretStr {
 }
 
 struct SecStrVisitor;
-
 
 impl<'de> Visitor<'de> for SecStrVisitor {
     type Value = SecretStr;
@@ -48,7 +46,6 @@ impl<'de> Visitor<'de> for SecStrVisitor {
     }
 }
 
-
 impl<S: AsRef<str>> From<S> for SecretStr {
     fn from(source: S) -> Self {
         Self {
@@ -65,7 +62,6 @@ impl<'de> Deserialize<'de> for SecretStr {
         deserializer.deserialize_string(SecStrVisitor)
     }
 }
-
 
 impl Serialize for SecretStr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -95,7 +91,6 @@ impl SecretStr {
     }
 }
 
-
 impl Debug for SecretStr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("SecretStr(REDACTED)")
@@ -107,7 +102,6 @@ impl Display for SecretStr {
         f.write_str("REDACTED")
     }
 }
-
 
 /// Configuration for Language Learning Models (LLMs) like OpenAI's GPT.
 ///
@@ -172,7 +166,11 @@ pub struct LLMConfig {
 
     pub model: Option<String>,
 
-    #[validate(range(min = 0.0, max = 2.0, message = "temperature must be between 0.0 and 2.0"))]
+    #[validate(range(
+        min = 0.0,
+        max = 2.0,
+        message = "temperature must be between 0.0 and 2.0"
+    ))]
     pub temperature: Option<f32>,
 
     pub stop_sign: Option<Vec<String>>,
@@ -183,7 +181,7 @@ pub struct LLMConfig {
     #[validate(range(min = 1, message = "generation_count must be at least 1"))]
     pub generation_count: Option<u32>,
 
-    pub stream: Option<bool>,
+    pub stream: bool,
 
     #[validate(range(min = 1, message = "max_tokens must be at least 1 if set"))]
     pub max_tokens: Option<u32>,
@@ -224,7 +222,6 @@ pub struct EmbeddingConfig {
     pub api_key: Option<SecretStr>,
 }
 
-
 /// RAG configuration structure
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
 #[pyclass(get_all, set_all)]
@@ -240,13 +237,11 @@ pub struct RagConfig {
     pub milvus_dimensions: Option<u32>,
 }
 
-
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
     log_level: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
@@ -259,19 +254,20 @@ pub struct TemplateManagerConfig {
 
     /// The suffix of the templates.
     pub template_suffix: Option<String>,
-
 }
 
 impl Default for TemplateManagerConfig {
     fn default() -> Self {
         TemplateManagerConfig {
-            template_dir: vec![PathBuf::from("templates"), get_roaming_dir("fabricatio").unwrap().join("templates")],
+            template_dir: vec![
+                PathBuf::from("templates"),
+                get_roaming_dir("fabricatio").unwrap().join("templates"),
+            ],
             active_loading: Some(true),
             template_suffix: Some("hbs".to_string()),
         }
     }
 }
-
 
 /// Template configuration structure
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
@@ -425,7 +421,6 @@ impl Default for ToolBoxConfig {
     }
 }
 
-
 /// Pymitter configuration structure
 ///
 /// Contains settings for controlling event emission and listener behavior
@@ -480,7 +475,6 @@ pub struct Config {
     pub pymitter: PymitterConfig,
 }
 
-
 #[pymethods]
 impl Config {
     // Provide a default provider, a `Figment`.
@@ -490,7 +484,6 @@ impl Config {
     }
 }
 
-
 impl Config {
     fn figment() -> Figment {
         Figment::new()
@@ -499,13 +492,17 @@ impl Config {
                 Env::prefixed("FABRIK_").split("__")
             })
             .join(Toml::file("fabricatio.toml"))
-            .join(PyprojectToml::new("pyproject.toml", vec!["tool", "fabricatio"]))
-            .join(Toml::file(get_roaming_dir("fabricatio")
-                .expect("Failed to get roaming config dir")
-                .join("fabricatio.toml")))
+            .join(PyprojectToml::new(
+                "pyproject.toml",
+                vec!["tool", "fabricatio"],
+            ))
+            .join(Toml::file(
+                get_roaming_dir("fabricatio")
+                    .expect("Failed to get roaming config dir")
+                    .join("fabricatio.toml"),
+            ))
             .join(Config::default())
     }
-
 
     // Allow the configuration to be extracted from any `Provider`.
     fn from<T: Provider>(provider: T) -> Result<Config, String> {
@@ -519,7 +516,6 @@ struct PyprojectToml {
     header: Vec<&'static str>,
 }
 
-
 impl PyprojectToml {
     fn new<P: AsRef<Path>>(path: P, header: Vec<&'static str>) -> Self {
         Self {
@@ -529,35 +525,29 @@ impl PyprojectToml {
     }
 }
 
-
 impl Provider for PyprojectToml {
     fn metadata(&self) -> Metadata {
         Metadata::named("Pyproject Toml File")
     }
 
-
     fn data(&self) -> Result<Map<Profile, Dict>, Error> {
-        self.toml.data()
-            .map(
-                |map| {
-                    map.into_iter()
-                        .map(|(profile, dict)| {
-                            let mut body: Option<&Dict> = Some(&dict);
+        self.toml.data().map(|map| {
+            map.into_iter()
+                .map(|(profile, dict)| {
+                    let mut body: Option<&Dict> = Some(&dict);
 
-                            for &h in self.header.iter() {
-                                if !body.unwrap().contains_key(h) {
-                                    return (profile, Dict::new());
-                                }
-                                body = body.unwrap().get(h).unwrap().as_dict();
-                            }
-                            (profile, body.unwrap().to_owned())
-                        })
-                        .collect()
-                },
-            )
+                    for &h in self.header.iter() {
+                        if !body.unwrap().contains_key(h) {
+                            return (profile, Dict::new());
+                        }
+                        body = body.unwrap().get(h).unwrap().as_dict();
+                    }
+                    (profile, body.unwrap().to_owned())
+                })
+                .collect()
+        })
     }
 }
-
 
 // Make `Config` a provider itself for composability.
 impl Provider for Config {
@@ -570,12 +560,10 @@ impl Provider for Config {
     }
 }
 
-
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Config>()?;
     m.add_class::<TemplateManagerConfig>()?;
-
 
     m.add_class::<LLMConfig>()?;
     m.add_class::<EmbeddingConfig>()?;
