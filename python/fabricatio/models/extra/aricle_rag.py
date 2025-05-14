@@ -1,13 +1,9 @@
 """A Module containing the article rag models."""
 
-from itertools import groupby
-
 import re
 from dataclasses import dataclass, field
-from more_itertools.more import first
-from more_itertools.recipes import flatten, unique
+from itertools import groupby
 from pathlib import Path
-from pydantic import Field
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
 from fabricatio.fs import safe_text_read
@@ -17,6 +13,9 @@ from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
 from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
 from fabricatio.utils import ok, wrapp_in_block
+from more_itertools.more import first
+from more_itertools.recipes import flatten, unique
+from pydantic import Field
 
 
 class ArticleChunk(MilvusDataBase):

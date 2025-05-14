@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from fabricatio import Event, logger
-from fabricatio import Role as R
-from fabricatio import WorkFlow as W
+from fabricatio import Event, WorkFlow, logger
+from fabricatio import Role as RoleBase
 from fabricatio.actions.article import (
     ExtractOutlineFromRaw,
     GenerateArticleProposal,
@@ -27,10 +26,8 @@ from typer import Typer
 # from pydantic import HttpUrl
 
 
-class Role(R, LLMUsage): ...
-
-
-class WorkFlow(W, LLMUsage): ...
+class Role(RoleBase, LLMUsage):
+    """Role class for article writing."""
 
 
 Role(
