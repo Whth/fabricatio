@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::hbs_helpers::{block, getlang, hash, len, word_count};
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
 use log::debug;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -61,7 +61,7 @@ impl TemplateManager {
                 .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
                 .and_then(|seq| {
                     let rendered = seq
-                        .par_iter()
+                        .iter()
                         .map(|item| {
                             self.handlebars.render(name, item).expect(
                                 format!("Rendering error for {name} when rendering {item}")
@@ -73,7 +73,7 @@ impl TemplateManager {
                     Ok(PyList::new(py, rendered)
                         .expect("Failed to create PyList")
                         .as_any())
-                    .cloned()
+                        .cloned()
                 })
         } else {
             debug!("Rendering single template");
@@ -90,8 +90,8 @@ impl TemplateManager {
                             )
                             .as_str(),
                     )
-                    .as_any())
-                    .cloned()
+                        .as_any())
+                        .cloned()
                 })
         }
     }
@@ -120,7 +120,7 @@ impl TemplateManager {
                     Ok(PyList::new(py, &rendered)
                         .expect("Failed to create PyList")
                         .as_any())
-                    .cloned()
+                        .cloned()
                 })
         } else {
             depythonize::<Value>(data)
@@ -135,8 +135,8 @@ impl TemplateManager {
                             })
                             .as_str(),
                     )
-                    .as_any())
-                    .cloned()
+                        .as_any())
+                        .cloned()
                 })
         }
     }
