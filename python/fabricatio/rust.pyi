@@ -12,6 +12,8 @@ Key Features:
 """
 
 from enum import StrEnum
+from pathlib import Path
+
 from pydantic import JsonValue
 from typing import Any, Dict, List, Literal, Optional, Self, Tuple, Union, overload
 
@@ -521,7 +523,7 @@ class DebugConfig:
 class TemplateManagerConfig:
     """Template manager configuration structure."""
 
-    template_dir: List[str]
+    template_dir: List[Path]
     """The directories containing the templates."""
 
     active_loading: Optional[bool]

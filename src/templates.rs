@@ -14,6 +14,7 @@ use walkdir::WalkDir;
 /// Python bindings for the TemplateManager struct.
 #[pyclass]
 pub struct TemplateManager {
+    #[pyo3(get, set)]
     templates_dir: Vec<PathBuf>,
     handlebars: Handlebars<'static>,
     suffix: String,
@@ -54,17 +55,22 @@ impl TemplateManager {
     /// Render a template with the given data.
     fn render_template<'a>(&self, py: Python<'a>, name: &str, data: &Bound<'_, PyAny>) -> PyResult<Bound<'a, PyAny>> {
         if data.is_instance_of::<PyList>() {
+            debug!("Rendering list of templates");
+            println!("Rendering list of templates");
             depythonize::<Vec<Value>>(data)
                 .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
                 .and_then(|seq| {
-                    let rendered = seq.iter()
-                        .par_bridge()
+                    let rendered = seq
+                        .par_iter()
                         .map(|item| self.handlebars.render(name, item).expect(format!("Rendering error for {name} when rendering {item}").as_str()))
                         .collect::<Vec<String>>();
 
-                    Ok(PyList::new(py, &rendered).expect("Failed to create PyList").as_any()).cloned()
+
+                    Ok(PyList::new(py, rendered).expect("Failed to create PyList").as_any()).cloned()
                 })
         } else {
+            debug!("Rendering single template");
+            println!("Rendering single template");
             depythonize::<Value>(data)
                 .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
                 .and_then(|json_data|
