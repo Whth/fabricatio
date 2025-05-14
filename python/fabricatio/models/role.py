@@ -1,7 +1,7 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
 from functools import partial
-from typing import Any, Dict, Self
+from typing import Any, Callable, Dict, Self, Type
 
 from fabricatio.emitter import env
 from fabricatio.journal import logger
@@ -68,28 +68,32 @@ class Role(WithBriefing):
             workflow.inject_personality(self.briefing)
         return self
 
-    def _configure_scoped_config(self, workflow: WorkFlow) -> None:
-        """Configure scoped configuration for workflow and its actions."""
-        if not is_scoped_config(self.__class__):
+    def _propagate_config(
+        self,
+        workflow: WorkFlow,
+        has_capability: Callable[[Type], bool],
+        config_method_name: str,
+        capability_description: str,
+    ) -> None:
+        """Propagates configuration to workflow and its actions if they have a given capability."""
+        if not has_capability(self.__class__):
             return
 
-        fallback_target = self
-        if is_scoped_config(workflow):
-            workflow.fallback_to(self)
-            fallback_target = workflow
+        config_source_for_actions = self
+        if has_capability(workflow.__class__):
+            logger.debug(
+                f"Configuring {capability_description} inherited from `{self.name}` for workflow: `{workflow.name}`"
+            )
+            getattr(workflow, config_method_name)(self)
+            config_source_for_actions = workflow
 
-        for action in (a for a in workflow.iter_actions() if is_scoped_config(a)):
-            action.fallback_to(fallback_target)
+        for action in (act for act in workflow.iter_actions() if has_capability(act.__class__)):
+            getattr(action, config_method_name)(config_source_for_actions)
+
+    def _configure_scoped_config(self, workflow: WorkFlow) -> None:
+        """Configure scoped configuration for workflow and its actions."""
+        self._propagate_config(workflow, is_scoped_config, "fallback_to", "scoped config")
 
     def _configure_toolbox_usage(self, workflow: WorkFlow) -> None:
         """Configure toolbox usage for workflow and its actions."""
-        if not is_toolbox_usage(self.__class__):
-            return
-
-        supply_target = self
-        if is_toolbox_usage(workflow):
-            workflow.supply_tools_from(self)
-            supply_target = workflow
-
-        for action in (a for a in workflow.iter_actions() if is_toolbox_usage(a)):
-            action.supply_tools_from(supply_target)
+        self._propagate_config(workflow, is_toolbox_usage, "supply_tools_from", "toolbox usage")

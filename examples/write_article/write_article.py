@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from fabricatio import Event, Role, WorkFlow, logger
+from fabricatio import Event, logger
+from fabricatio import Role as R
+from fabricatio import WorkFlow as W
 from fabricatio.actions.article import (
     ExtractOutlineFromRaw,
     GenerateArticleProposal,
@@ -18,16 +20,23 @@ from fabricatio.fs import safe_text_read
 from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
+from fabricatio.models.usages import LLMUsage
 from fabricatio.utils import ok
 from typer import Typer
 
 # from pydantic import HttpUrl
 
+
+class Role(R, LLMUsage): ...
+
+
+class WorkFlow(W, LLMUsage): ...
+
+
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/qwen3-235b-a22b",
-    # llm_api_endpoint=HttpUrl("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+    llm_model="openai/qwen-plus",
     llm_stream=True,
     llm_max_tokens=8191,
     llm_rpm=600,
