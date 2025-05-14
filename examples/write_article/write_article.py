@@ -2,7 +2,7 @@
 
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import typer
 from fabricatio import Event, WorkFlow, logger
@@ -216,6 +216,10 @@ def suma(
     article_path: Path = typer.Option(  # noqa: B008
         Path("article.typ"), "-a", "--article-path", help="Path to the article file."
     ),
+    skip_chapters: List[str] = typer.Option(  # noqa: B008
+        [], "-s", "--skip-chapters", help="Chapters to skip."
+    ),
+    suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),  # noqa: B008
 ) -> None:
     """Write chap summary based on given article."""
@@ -224,6 +228,8 @@ def suma(
             Task(name="write an article")
             .update_init_context(
                 article=Article.from_typst_code("article", body=safe_text_read(article_path)),
+                summary_title=suma_title,
+                skip_chapters=skip_chapters,
                 write_to=dump_path,
             )
             .delegate(ns5)

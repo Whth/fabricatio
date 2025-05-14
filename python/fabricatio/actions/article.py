@@ -2,7 +2,7 @@
 
 from asyncio import gather
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, ClassVar, List, Optional
 
 from more_itertools import filter_map
 from pydantic import Field
@@ -277,17 +277,24 @@ class LoadArticle(Action):
 class WriteChapterSummary(Action, LLMUsage):
     """Write the chapter summary."""
 
+    ctx_override: ClassVar[bool] = True
+
     output_key: str = "chapter_summaries"
 
     paragraph_count: int = 1
 
-    summary_word_count: int = 200
+    summary_word_count: int = 120
 
     summary_title: str = "Chapter Summary"
+
+    skip_chapters: List[str] = Field(default_factory=list)
+
     write_to: Optional[Path] = None
 
     async def _execute(self, article: Article, write_to: Optional[Path] = None, **cxt) -> List[str]:
-        logger.info(";".join(a.title for a in article.chapters))
+        chaps = [a for a in article.chapters if a.title not in self.skip_chapters]
+
+        logger.info(";".join(a.title for a in chaps))
 
         ret = [
             f"== {self.summary_title}\n{raw}"
@@ -303,7 +310,7 @@ class WriteChapterSummary(Action, LLMUsage):
                                 "summary_word_count": self.summary_word_count,
                                 "paragraph_count": self.paragraph_count,
                             }
-                            for a in article.chapters
+                            for a in chaps
                         ],
                     )
                 )
@@ -313,7 +320,7 @@ class WriteChapterSummary(Action, LLMUsage):
         if (to := (self.write_to or write_to)) is not None:
             dump_text(
                 to,
-                "\n\n\n".join(f"//{a.title}\n\n{s}" for a, s in zip(article.chapters, ret, strict=True)),
+                "\n\n\n".join(f"//{a.title}\n\n{s}" for a, s in zip(chaps, ret, strict=True)),
             )
 
         return ret

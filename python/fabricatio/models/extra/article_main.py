@@ -52,10 +52,10 @@ class Paragraph(SketchedAble, WordCount, Described):
         return cls(elaboration="", aims=[], expected_word_count=word_count(content), content=content.strip())
 
     @property
-    def exact_wordcount(self) -> int:
+    def exact_word_count(self) -> int:
         """Calculates the exact word count of the content."""
         return word_count(self.content)
-
+    
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
     """Patch for `Paragraph` list of `ArticleSubsection`."""
@@ -69,6 +69,9 @@ class ArticleSubsection(SubSectionBase):
 
     _max_word_count_deviation: float = 0.3
     """Maximum allowed deviation from the expected word count, as a percentage."""
+    @property
+    def exact_word_count(self) -> int:
+        return sum(a.exact_word_count for a in self.paragraphs)
 
     @property
     def word_count(self) -> int:
@@ -273,9 +276,9 @@ class Article(
         err = []
         for chap, sec, subsec in self.iter_subsections():
             for i, p in enumerate(subsec.paragraphs):
-                if p.exact_wordcount <= threshold:
+                if p.exact_word_count <= threshold:
                     err.append(
-                        f"{chap.title}->{sec.title}->{subsec.title}-> Paragraph [{i}] is too short, {p.exact_wordcount} words."
+                        f"{chap.title}->{sec.title}->{subsec.title}-> Paragraph [{i}] is too short, {p.exact_word_count} words."
                     )
 
         return "\n".join(err)

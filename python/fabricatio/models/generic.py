@@ -114,7 +114,7 @@ class WordCount(Base, ABC):
     @property
     def exact_word_count(self) -> int:
         """Get the exact word count of this research component."""
-        raise NotImplementedError(f"`expected_word_count` is not implemented for {self.__class__.__name__}")
+        raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
 
 
 class FromMapping:

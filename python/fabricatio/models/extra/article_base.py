@@ -191,6 +191,10 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
             return f"Section `{self.title}` contains no subsections, expected at least one, but got 0, you can add one or more as needed."
         return ""
 
+    @property
+    def exact_word_count(self) -> int:
+        return sum(a.exact_word_count for a in self.subsections)
+
 
 class ChapterBase[T: SectionBase](ArticleOutlineBase):
     """Base class for article chapters."""
@@ -243,6 +247,10 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
             return f"Chapter `{self.title}` contains no sections, expected at least one, but got 0, you can add one or more as needed."
         return ""
 
+    @property
+    def exact_word_count(self) -> int:
+        return sum(a.exact_word_count for a in self.sections)
+
 
 class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, ToTypstCode, ABC):
     """Base class for article outlines."""
@@ -262,6 +270,10 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
 
     child_type: ClassVar[Type[ChapterBase]]
+
+    @property
+    def exact_word_count(self) -> int:
+        return sum(ch.exact_word_count for ch in self.chapters)
 
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
