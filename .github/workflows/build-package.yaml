@@ -110,11 +110,11 @@ jobs:
           make PY=${{ matrix.python-version }}
 
       - name: Upload to Release
-        uses: d1ceward/release-upload-action@v4
+        uses: jaywcjlove/github-action-upload-assets@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
-            dist/*.whl
+          asset-path: '["./dist/*.whl"]'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true'
