@@ -81,7 +81,9 @@ jobs:
 
   check-and-release:
     name: Build, Package, and Release
-    needs: create-release
+    needs:
+      - create-release
+      - determine_changes
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -112,6 +114,7 @@ jobs:
       - name: Upload to Release
         uses: jaywcjlove/github-action-upload-assets@main
         with:
+          tag: ${{ needs.determine_changes.outputs.current_version }}
           asset-path: '["./dist/*.whl"]'
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
