@@ -21,7 +21,15 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
-from fabricatio.rust import extract_body, replace_thesis_body, split_out_metadata, to_metadata, word_count
+from fabricatio.rust import (
+    comment,
+    extract_body,
+    replace_thesis_body,
+    split_out_metadata,
+    strip_comment,
+    to_metadata,
+    word_count,
+)
 from fabricatio.utils import fallback_kwargs, ok
 from pydantic import Field
 
@@ -52,6 +60,9 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     aims: List[str]
     """List of writing aims of the research component in academic style."""
 
+    unstructured_body: str = ""
+    """Store the source of the unknown information."""
+
     @property
     def typst_metadata_comment(self) -> str:
         """Generates a comment for the metadata of the article component."""
@@ -72,12 +83,7 @@ class FromTypstCode(ArticleMetaData):
 
         return cls(
             heading=title,
-            **fallback_kwargs(
-                data or {},
-                elaboration="",
-                expected_word_count=word_count(body),
-                aims=[],
-            ),
+            **fallback_kwargs(data or {}, elaboration="", expected_word_count=word_count(body), aims=[]),
             **kwargs,
         )
 
@@ -87,7 +93,7 @@ class ToTypstCode(ArticleMetaData):
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-        return f"{self.title}\n{self.typst_metadata_comment}\n"
+        return f"{self.title}\n{self.typst_metadata_comment}\n\n{self.unstructured_body}"
 
 
 class ArticleOutlineBase(
@@ -155,12 +161,12 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
+        raw_subsec = extract_sections(body, level=3, section_char="=")
         return super().from_typst_code(
             title,
             body,
-            subsections=[
-                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=3, section_char="=")
-            ],
+            subsections=[cls.child_type.from_typst_code(*pack) for pack in raw_subsec],
+            unstructured_body="" if raw_subsec else strip_comment(body),
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -214,12 +220,12 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
+        raw_sec = extract_sections(body, level=2, section_char="=")
         return super().from_typst_code(
             title,
             body,
-            sections=[
-                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=2, section_char="=")
-            ],
+            sections=[cls.child_type.from_typst_code(*pack) for pack in raw_sec],
+            unstructured_body="" if raw_sec else strip_comment(body),
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -282,12 +288,12 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Generates an article from the given Typst code."""
+        raw_chap = extract_sections(body, level=1, section_char="=")
         return super().from_typst_code(
             title,
             body,
-            chapters=[
-                cls.child_type.from_typst_code(*pack) for pack in extract_sections(body, level=1, section_char="=")
-            ],
+            chapters=[cls.child_type.from_typst_code(*pack) for pack in raw_chap],
+            unstructured_body="" if raw_chap else strip_comment(body),
         )
 
     def iter_dfs_rev(
@@ -366,7 +372,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
 
     def to_typst_code(self) -> str:
         """Generates the Typst code representation of the article."""
-        return f"// #{super().to_typst_code()}\n\n" + "\n\n".join(a.to_typst_code() for a in self.chapters)
+        return comment(f"#Title: {super().to_typst_code()}\n") + "\n\n".join(a.to_typst_code() for a in self.chapters)
 
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.

@@ -1,6 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
+use pyo3::{wrap_pyfunction, Bound, PyResult, Python};
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yml::Value;
@@ -52,6 +52,28 @@ fn comment(string: &str) -> String {
 fn uncomment(string: &str) -> String {
     string.uncomment()
 }
+
+/// Removes leading and trailing comment lines from a multi-line string.
+#[pyfunction]
+fn strip_comment(string: &str) -> String {
+    let lines: Vec<&str> = string.lines().collect();
+    let mut start = 0;
+    let mut end = lines.len();
+
+    // Find the first non-comment line
+    while start < lines.len() && lines[start].trim_start().starts_with("//") {
+        start += 1;
+    }
+
+    // Find the last non-comment line
+    while end > start && lines[end - 1].trim_start().starts_with("//") {
+        end -= 1;
+    }
+
+    // Join the relevant lines back into a single string
+    lines[start..end].join("\n")
+}
+
 
 /// Unified function to convert all supported TeX math expressions in a string to Typst format.
 /// Handles $...$, $$...$$, \(...\), and \[...\].
@@ -182,5 +204,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(replace_thesis_body, m)?)?;
     m.add_function(wrap_pyfunction!(extract_body, m)?)?;
+    m.add_function(wrap_pyfunction!(strip_comment, m)?)?;
     Ok(())
 }
+
