@@ -22,7 +22,7 @@ from fabricatio.models.extra.rule import RuleSet
 from fabricatio.models.kwargs_types import ValidateKwargs
 from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, BibManager, detect_language
+from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, BibManager, detect_language, word_count
 from fabricatio.utils import ok, wrapp_in_block
 
 
@@ -280,12 +280,17 @@ class WriteChapterSummary(Action, LLMUsage):
     ctx_override: ClassVar[bool] = True
 
     paragraph_count: int = 1
+    """The number of paragraphs to generate in the chapter summary."""
 
     summary_word_count: int = 120
+    """The number of words to use in each chapter summary."""
     output_key: str = "summarized_article"
+    """The key under which the summarized article will be stored in the output."""
     summary_title: str = "Chapter Summary"
+    """The title to be used for the generated chapter summary section."""
 
     skip_chapters: List[str] = Field(default_factory=list)
+    """A list of chapter titles to skip during summary generation."""
 
     async def _execute(self, article_path: Path, **cxt) -> Article:
         article = Article.from_article_file(article_path, article_path.stem)
@@ -342,15 +347,16 @@ class WriteChapterSummary(Action, LLMUsage):
             c: ArticleChapter
             n: ArticleSubsection
             if c.sections[-1].title == self.summary_title:
+                logger.debug(f"Removing old summary `{self.summary_title}` at {c.title}")
                 c.sections.pop()
 
             c.sections[-1].subsections.append(n)
 
         article.update_article_file(article_path)
 
-        article_string = safe_text_read(article_path)
-        article_string.replace(f"=== {self.summary_title}", f"== {self.summary_title}")
-        dump_text(article_path, article_string)
+        dump_text(
+            article_path, safe_text_read(article_path).replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+        )
         return article
 
 
@@ -358,7 +364,7 @@ class WriteResearchContentSummary(Action, LLMUsage):
     """Write the research content summary."""
 
     ctx_override: ClassVar[bool] = True
-    summary_word_count: int = 220
+    summary_word_count: int = 160
     """The number of words to use in the research content summary."""
 
     output_key: str = "summarized_article"
@@ -372,32 +378,38 @@ class WriteResearchContentSummary(Action, LLMUsage):
 
     async def _execute(self, article_path: Path, **cxt) -> Article:
         article = Article.from_article_file(article_path, article_path.stem)
-        outline = article.extrac_outline()
+        if not article.chapters:
+            raise ValueError("No chapters found in the article.")
+        chap_1 = article.chapters[0]
+        if not chap_1.sections:
+            raise ValueError("No sections found in the first chapter of the article.")
 
-        suma = await self.aask(
+        outline = article.extrac_outline()
+        suma: str = await self.aask(
             TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.research_content_summary_template,
                 {
                     "title": outline.title,
                     "outline": outline.to_typst_code(),
-                    "language": outline.language,
+                    "language": detect_language(self.summary_title),
                     "summary_word_count": self.summary_word_count,
                     "paragraph_count": self.paragraph_count,
                 },
             )
         )
+        logger.success(
+            f"{self.summary_title}|Wordcount: {word_count(suma)}|Expected: {self.summary_word_count}\n{suma}"
+        )
 
-        if not article.chapters:
-            raise ValueError("No chapters found in the article.")
-        if not article.chapters[0].sections:
-            raise ValueError("No sections found in the first chapter of the article.")
+        if chap_1.sections[-1].title == self.summary_title:
+            # remove old
+            logger.debug(f"Removing old summary `{self.summary_title}`")
+            chap_1.sections.pop()
 
-        target_sec = article.chapters[0].sections[0]
-        if target_sec.title == self.summary_title:
-            target_sec.subsections.pop()
-        target_sec.subsections.append(ArticleSubsection.from_typst_code(self.summary_title, suma))
+        chap_1.sections[-1].subsections.append(ArticleSubsection.from_typst_code(self.summary_title, suma))
 
-        article_string = safe_text_read(article_path)
-        article_string.replace(f"=== {self.summary_title}", f"== {self.summary_title}")
-        dump_text(article_path, article_string)
+        article.update_article_file(article_path)
+        dump_text(
+            article_path, safe_text_read(article_path).replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+        )
         return article
