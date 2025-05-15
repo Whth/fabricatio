@@ -22,7 +22,7 @@ from fabricatio.models.generic import (
     WordCount,
 )
 from fabricatio.rust import (
-    comment,
+    detect_language,
     extract_body,
     replace_thesis_body,
     split_out_metadata,
@@ -82,6 +82,10 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
         self._unstructured_body = body
         return self
 
+    @property
+    def language(self) -> str:
+        return detect_language(self.title)
+
 
 class FromTypstCode(ArticleMetaData):
     """Base class for article components that can be created from a Typst code snippet."""
@@ -92,7 +96,7 @@ class FromTypstCode(ArticleMetaData):
         data, body = split_out_metadata(body)
 
         return cls(
-            heading=title,
+            heading=title.strip(),
             **fallback_kwargs(data or {}, elaboration="", expected_word_count=word_count(body), aims=[]),
             **kwargs,
         )
@@ -171,16 +175,16 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
-        raw_subsec = extract_sections(body, level=3, section_char="=")
-        return super().from_typst_code(
-            title,
-            body,
-            subsections=[
-                cls.child_type.from_typst_code(*pack).update_unstructured_body(
-                    "" if raw_subsec else strip_comment(body)
-                )
-                for pack in raw_subsec
-            ],
+        raw = extract_sections(body, level=3, section_char="=")
+
+        return (
+            super()
+            .from_typst_code(
+                title,
+                body,
+                subsections=[cls.child_type.from_typst_code(*pack) for pack in raw],
+            )
+            .update_unstructured_body("" if raw else strip_comment(body))
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -236,13 +240,15 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Creates an Article object from the given Typst code."""
         raw_sec = extract_sections(body, level=2, section_char="=")
-        return super().from_typst_code(
-            title,
-            body,
-            sections=[
-                cls.child_type.from_typst_code(*pack).update_unstructured_body("" if raw_sec else strip_comment(body))
-                for pack in raw_sec
-            ],
+
+        return (
+            super()
+            .from_typst_code(
+                title,
+                body,
+                sections=[cls.child_type.from_typst_code(*pack) for pack in raw_sec],
+            )
+            .update_unstructured_body("" if raw_sec else strip_comment(body))
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -304,6 +310,12 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     child_type: ClassVar[Type[ChapterBase]]
 
     @property
+    def language(self) -> str:
+        if self.title:
+            return super().language
+        return self.chapters[0].language
+
+    @property
     def exact_word_count(self) -> int:
         """Calculates the total word count across all chapters in the article.
 
@@ -315,14 +327,15 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     @classmethod
     def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
         """Generates an article from the given Typst code."""
-        raw_chap = extract_sections(body, level=1, section_char="=")
-        return super().from_typst_code(
-            title,
-            body,
-            chapters=[
-                cls.child_type.from_typst_code(*pack).update_unstructured_body("" if raw_chap else strip_comment(body))
-                for pack in raw_chap
-            ],
+        raw = extract_sections(body, level=1, section_char="=")
+        return (
+            super()
+            .from_typst_code(
+                title,
+                body,
+                chapters=[cls.child_type.from_typst_code(*pack) for pack in raw],
+            )
+            .update_unstructured_body("" if raw else strip_comment(body))
         )
 
     def iter_dfs_rev(
@@ -401,7 +414,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
 
     def to_typst_code(self) -> str:
         """Generates the Typst code representation of the article."""
-        return comment(f"#Title: {super().to_typst_code()}\n") + "\n\n".join(a.to_typst_code() for a in self.chapters)
+        return f"// #Title: {super().to_typst_code()}\n" + "\n\n".join(a.to_typst_code() for a in self.chapters)
 
     def finalized_dump(self) -> str:
         """Generates standardized hierarchical markup for academic publishing systems.
@@ -464,7 +477,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         return self
 
     @classmethod
-    def from_article_file[S: "ArticleBase"](cls: Type[S], file: str | Path, title: str) -> S:
+    def from_article_file[S: "ArticleBase"](cls: Type[S], file: str | Path, title: str = "") -> S:
         """Load article from file."""
         file = Path(file)
         string = safe_text_read(file)
