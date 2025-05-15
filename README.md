@@ -145,3 +145,4 @@ Special thanks to the contributors and maintainers of:
 - [PyO3](https://github.com/PyO3/pyo3)
 - [Maturin](https://github.com/PyO3/maturin)
 - [Handlebars.rs](https://github.com/sunng87/handlebars-rust)
+- [LiteLLM](https://github.com/BerriAI/litellm)
