@@ -12,6 +12,7 @@ from fabricatio.actions.article import (
     GenerateArticleProposal,
     GenerateInitialOutline,
     WriteChapterSummary,
+    WriteResearchContentSummary,
 )
 from fabricatio.actions.article_rag import ArticleConsultRAG, WriteArticleContentRAG
 from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll, RenderedDump
@@ -32,6 +33,7 @@ Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
+    llm_api_endpoint="https://dashscope.aliyuncs.com/compatible-mode/v1",
     llm_stream=True,
     llm_max_tokens=8191,
     llm_rpm=600,
@@ -91,6 +93,11 @@ Role(
             name="Chapter Summary",
             description="Generate chapter summary based on given article outline. dump the outline to the given path. in typst format.",
             steps=(WriteChapterSummary().to_task_output(),),
+        ),
+        Event.quick_instantiate(ns6 := "resc-suma"): WorkFlow(
+            name="Research Content Summary",
+            description="Generate research content summary based on given article outline. dump the outline to the given path. in typst format.",
+            steps=(WriteResearchContentSummary().to_task_output(),),
         ),
     },
 )
@@ -217,6 +224,7 @@ def suma(
         [], "-s", "--skip-chapters", help="Chapters to skip."
     ),
     suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
+    summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
 ) -> None:
     """Write chap summary based on given article."""
     _ = ok(
@@ -226,8 +234,35 @@ def suma(
                 article_path=article_path,
                 summary_title=suma_title,
                 skip_chapters=skip_chapters,
+                summary_word_count=summary_word_count,
             )
             .delegate(ns5)
+        ),
+        "Failed to generate an article ",
+    )
+    logger.success(f"The outline is saved in:\n{article_path.as_posix()}")
+
+
+@app.command()
+def rcsuma(
+    article_path: Path = typer.Option(  # noqa: B008
+        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
+    ),
+    suma_title: str = typer.Option("Research Content", "-t", "--suma-title", help="Title of the summary."),
+    summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
+    paragraph_count: int = typer.Option(1, "-p", "--paragraph-count", help="Number of paragraphs for the summary."),
+) -> None:
+    """Write research summary based on given article."""
+    _ = ok(
+        asyncio.run(
+            Task(name="write an article")
+            .update_init_context(
+                article_path=article_path,
+                summary_title=suma_title,
+                summary_word_count=summary_word_count,
+                paragraph_count=paragraph_count,
+            )
+            .delegate(ns6)
         ),
         "Failed to generate an article ",
     )
