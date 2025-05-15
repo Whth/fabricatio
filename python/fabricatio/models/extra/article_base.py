@@ -60,7 +60,7 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     aims: List[str]
     """List of writing aims of the research component in academic style."""
 
-    unstructured_body: str = ""
+    _unstructured_body: str = ""
     """Store the source of the unknown information."""
 
     @property
@@ -71,6 +71,16 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
             by_alias=True,
         )
         return to_metadata({k: v for k, v in data.items() if v})
+
+    @property
+    def unstructured_body(self) -> str:
+        """Returns the unstructured body of the article component."""
+        return self._unstructured_body
+
+    def update_unstructured_body[S: "ArticleMetaData"](self: S, body: str) -> S:
+        """Update the unstructured body of the article component."""
+        self._unstructured_body = body
+        return self
 
 
 class FromTypstCode(ArticleMetaData):
@@ -93,7 +103,7 @@ class ToTypstCode(ArticleMetaData):
 
     def to_typst_code(self) -> str:
         """Converts the component into a Typst code snippet for rendering."""
-        return f"{self.title}\n{self.typst_metadata_comment}\n\n{self.unstructured_body}"
+        return f"{self.title}\n{self.typst_metadata_comment}\n\n{self._unstructured_body}"
 
 
 class ArticleOutlineBase(
@@ -165,8 +175,12 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
         return super().from_typst_code(
             title,
             body,
-            subsections=[cls.child_type.from_typst_code(*pack) for pack in raw_subsec],
-            unstructured_body="" if raw_subsec else strip_comment(body),
+            subsections=[
+                cls.child_type.from_typst_code(*pack).update_unstructured_body(
+                    "" if raw_subsec else strip_comment(body)
+                )
+                for pack in raw_subsec
+            ],
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -225,8 +239,10 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
         return super().from_typst_code(
             title,
             body,
-            sections=[cls.child_type.from_typst_code(*pack) for pack in raw_sec],
-            unstructured_body="" if raw_sec else strip_comment(body),
+            sections=[
+                cls.child_type.from_typst_code(*pack).update_unstructured_body("" if raw_sec else strip_comment(body))
+                for pack in raw_sec
+            ],
         )
 
     def resolve_update_conflict(self, other: Self) -> str:
@@ -303,8 +319,10 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         return super().from_typst_code(
             title,
             body,
-            chapters=[cls.child_type.from_typst_code(*pack) for pack in raw_chap],
-            unstructured_body="" if raw_chap else strip_comment(body),
+            chapters=[
+                cls.child_type.from_typst_code(*pack).update_unstructured_body("" if raw_chap else strip_comment(body))
+                for pack in raw_chap
+            ],
         )
 
     def iter_dfs_rev(
