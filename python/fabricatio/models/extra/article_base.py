@@ -203,6 +203,7 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
 
     @property
     def exact_word_count(self) -> int:
+        """Returns the exact word count of the article section outline."""
         return sum(a.exact_word_count for a in self.subsections)
 
 
@@ -259,6 +260,11 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
     @property
     def exact_word_count(self) -> int:
+        """Calculates the total word count across all sections in the chapter.
+
+        Returns:
+            int: The cumulative word count of all sections.
+        """
         return sum(a.exact_word_count for a in self.sections)
 
 
@@ -283,6 +289,11 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
 
     @property
     def exact_word_count(self) -> int:
+        """Calculates the total word count across all chapters in the article.
+
+        Returns:
+            int: The cumulative word count of all chapters.
+        """
         return sum(ch.exact_word_count for ch in self.chapters)
 
     @classmethod

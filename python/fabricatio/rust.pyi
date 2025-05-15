@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Literal, Optional, Self, Tuple, Union, overl
 
 from pydantic import JsonValue
 
-
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
 
@@ -49,10 +48,8 @@ class TemplateManager:
 
     @overload
     def render_template(self, name: str, data: Dict[str, Any]) -> str: ...
-
     @overload
     def render_template(self, name: str, data: List[Dict[str, Any]]) -> List[str]: ...
-
     def render_template(self, name: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -69,10 +66,8 @@ class TemplateManager:
 
     @overload
     def render_template_raw(self, template: str, data: Dict[str, Any]) -> str: ...
-
     @overload
     def render_template_raw(self, template: str, data: List[Dict[str, Any]]) -> List[str]: ...
-
     def render_template_raw(self, template: str, data: Dict[str, Any] | List[Dict[str, Any]]) -> str | List[str]:
         """Render a template with context data.
 
@@ -83,7 +78,6 @@ class TemplateManager:
         Returns:
             Rendered template content as string or list of strings
         """
-
 
 class BibManager:
     """BibTeX bibliography manager for parsing and querying citation data."""
@@ -193,7 +187,6 @@ class BibManager:
             Field value if found, None otherwise
         """
 
-
 def blake3_hash(content: bytes) -> str:
     """Calculate the BLAKE3 cryptographic hash of data.
 
@@ -204,10 +197,8 @@ def blake3_hash(content: bytes) -> str:
         Hex-encoded BLAKE3 hash string
     """
 
-
 def detect_language(string: str) -> str:
     """Detect the language of a given string."""
-
 
 def split_word_bounds(string: str) -> List[str]:
     """Split the string into words based on word boundaries.
@@ -219,7 +210,6 @@ def split_word_bounds(string: str) -> List[str]:
         A list of words extracted from the string.
     """
 
-
 def split_sentence_bounds(string: str) -> List[str]:
     """Split the string into sentences based on sentence boundaries.
 
@@ -229,7 +219,6 @@ def split_sentence_bounds(string: str) -> List[str]:
     Returns:
         A list of sentences extracted from the string.
     """
-
 
 def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: float = 0.3) -> List[str]:
     """Split the string into chunks of a specified size.
@@ -243,7 +232,6 @@ def split_into_chunks(string: str, max_chunk_size: int, max_overlapping_rate: fl
         A list of chunks extracted from the string.
     """
 
-
 def word_count(string: str) -> int:
     """Count the number of words in the string.
 
@@ -254,66 +242,50 @@ def word_count(string: str) -> int:
         The number of words in the string.
     """
 
-
 def is_chinese(string: str) -> bool:
     """Check if the given string is in Chinese."""
-
 
 def is_english(string: str) -> bool:
     """Check if the given string is in English."""
 
-
 def is_japanese(string: str) -> bool:
     """Check if the given string is in Japanese."""
-
 
 def is_korean(string: str) -> bool:
     """Check if the given string is in Korean."""
 
-
 def is_arabic(string: str) -> bool:
     """Check if the given string is in Arabic."""
-
 
 def is_russian(string: str) -> bool:
     """Check if the given string is in Russian."""
 
-
 def is_german(string: str) -> bool:
     """Check if the given string is in German."""
-
 
 def is_french(string: str) -> bool:
     """Check if the given string is in French."""
 
-
 def is_hindi(string: str) -> bool:
     """Check if the given string is in Hindi."""
-
 
 def is_italian(string: str) -> bool:
     """Check if the given string is in Italian."""
 
-
 def is_dutch(string: str) -> bool:
     """Check if the given string is in Dutch."""
-
 
 def is_portuguese(string: str) -> bool:
     """Check if the given string is in Portuguese."""
 
-
 def is_swedish(string: str) -> bool:
     """Check if the given string is in Swedish."""
-
 
 def is_turkish(string: str) -> bool:
     """Check if the given string is in Turkish."""
 
-
 def is_vietnamese(string: str) -> bool:
     """Check if the given string is in Vietnamese."""
-
 
 def tex_to_typst(string: str) -> str:
     """Convert TeX to Typst.
@@ -324,7 +296,6 @@ def tex_to_typst(string: str) -> str:
     Returns:
         The converted Typst string.
     """
-
 
 def convert_all_tex_math(string: str) -> str:
     r"""Unified function to convert all supported TeX math expressions in a string to Typst format.
@@ -338,7 +309,6 @@ def convert_all_tex_math(string: str) -> str:
         The string with TeX math expressions converted to Typst format.
     """
 
-
 def fix_misplaced_labels(string: str) -> str:
     """A func to fix labels in a string.
 
@@ -348,7 +318,6 @@ def fix_misplaced_labels(string: str) -> str:
     Returns:
         The fixed string with labels properly placed.
     """
-
 
 def comment(string: str) -> str:
     r"""Add comment to the string.
@@ -360,7 +329,6 @@ def comment(string: str) -> str:
         The string with each line prefixed by '// '.
     """
 
-
 def uncomment(string: str) -> str:
     """Remove comment from the string.
 
@@ -370,7 +338,6 @@ def uncomment(string: str) -> str:
     Returns:
         The string with comments (lines starting with '// ' or '//') removed.
     """
-
 
 def strip_comment(string: str) -> str:
     """Remove leading and trailing comment lines from a multi-line string.
@@ -382,7 +349,6 @@ def strip_comment(string: str) -> str:
         str: A new string with leading and trailing comment lines removed
     """
 
-
 def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
     """Split out metadata from a string.
 
@@ -393,7 +359,6 @@ def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
         A tuple containing the metadata as a Python object (if parseable) and the remaining string.
     """
 
-
 def to_metadata(data: JsonValue) -> str:
     """Convert a Python object to a YAML string.
 
@@ -403,7 +368,6 @@ def to_metadata(data: JsonValue) -> str:
     Returns:
         The YAML string representation of the input data.
     """
-
 
 def replace_thesis_body(string: str, wrapper: str, new_body: str) -> Optional[str]:
     """Replace content between wrapper strings.
@@ -418,7 +382,6 @@ def replace_thesis_body(string: str, wrapper: str, new_body: str) -> Optional[st
 
     """
 
-
 def extract_body(string: str, wrapper: str) -> Optional[str]:
     """Extract the content between two occurrences of a wrapper string.
 
@@ -429,7 +392,6 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
     Returns:
         The content between the first two occurrences of the wrapper string if found, otherwise None.
     """
-
 
 class LLMConfig:
     """LLM configuration structure.
@@ -482,7 +444,6 @@ class LLMConfig:
     frequency_penalty: Optional[float]
     """Penalizes new tokens based on their frequency in text so far (-2.0-2.0)."""
 
-
 class EmbeddingConfig:
     """Embedding configuration structure."""
 
@@ -507,7 +468,6 @@ class EmbeddingConfig:
     api_key: Optional[SecretStr]
     """The API key."""
 
-
 class RagConfig:
     """RAG (Retrieval Augmented Generation) configuration structure."""
 
@@ -523,13 +483,11 @@ class RagConfig:
     milvus_dimensions: Optional[int]
     """The dimensions for Milvus vectors."""
 
-
 class DebugConfig:
     """Debug configuration structure."""
 
     log_level: Optional[str]
     """The logging level to use."""
-
 
 class TemplateManagerConfig:
     """Template manager configuration structure."""
@@ -542,7 +500,6 @@ class TemplateManagerConfig:
 
     template_suffix: Optional[str]
     """The suffix of the templates."""
-
 
 class TemplateConfig:
     """Template configuration structure."""
@@ -628,7 +585,6 @@ class TemplateConfig:
     chap_summary_template: str
     """The name of the chap summary template which will be used to generate a chapter summary."""
 
-
 class RoutingConfig:
     """Routing configuration structure for controlling request dispatching behavior."""
 
@@ -644,7 +600,6 @@ class RoutingConfig:
     cooldown_time: Optional[int]
     """Time to cooldown a deployment after failure in seconds."""
 
-
 class GeneralConfig:
     """General configuration structure for application-wide settings."""
 
@@ -654,7 +609,6 @@ class GeneralConfig:
     use_json_repair: bool
     """Whether to automatically repair malformed JSON."""
 
-
 class ToolBoxConfig:
     """Configuration for toolbox functionality."""
 
@@ -663,7 +617,6 @@ class ToolBoxConfig:
 
     data_module_name: str
     """The name of the module containing the data."""
-
 
 class PymitterConfig:
     """Pymitter configuration structure for controlling event emission and listener behavior."""
@@ -676,7 +629,6 @@ class PymitterConfig:
 
     max_listeners: int
     """The maximum number of listeners per event. -1 means unlimited."""
-
 
 class Config:
     """Configuration structure containing all system components."""
@@ -711,21 +663,16 @@ class Config:
     pymitter: PymitterConfig
     """Pymitter configuration."""
 
-
 CONFIG: Config
-
 
 class SecretStr:
     """A string that should not be exposed."""
 
     def __init__(self, source: str) -> None: ...
-
     def get_secret_value(self) -> str:
         """Expose the secret string."""
 
-
 TEMPLATE_MANAGER: TemplateManager
-
 
 class Event:
     """Event class that represents a hierarchical event with segments.
@@ -838,11 +785,8 @@ class Event:
         """
 
     def __hash__(self) -> int: ...
-
     def __eq__(self, other: object) -> bool: ...
-
     def __ne__(self, other: object) -> bool: ...
-
 
 class TaskStatus(StrEnum, str):
     """Enumeration of possible task statuses."""
@@ -862,7 +806,6 @@ class TaskStatus(StrEnum, str):
     Cancelled: TaskStatus
     """Task has been cancelled."""
 
-
 class TEIClient:
     """Client for TEI reranking service.
 
@@ -878,11 +821,11 @@ class TEIClient:
         """
 
     async def arerank(
-            self,
-            query: str,
-            texts: List[str],
-            truncate: bool = False,
-            truncation_direction: Literal["Left", "Right"] = "Left",
+        self,
+        query: str,
+        texts: List[str],
+        truncate: bool = False,
+        truncation_direction: Literal["Left", "Right"] = "Left",
     ) -> List[Tuple[int, float]]:
         """Rerank texts based on relevance to query.
 

@@ -55,7 +55,7 @@ class Paragraph(SketchedAble, WordCount, Described):
     def exact_word_count(self) -> int:
         """Calculates the exact word count of the content."""
         return word_count(self.content)
-    
+
 
 class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
     """Patch for `Paragraph` list of `ArticleSubsection`."""
@@ -69,8 +69,10 @@ class ArticleSubsection(SubSectionBase):
 
     _max_word_count_deviation: float = 0.3
     """Maximum allowed deviation from the expected word count, as a percentage."""
+
     @property
     def exact_word_count(self) -> int:
+        """Calculates the exact word count of all paragraphs in the subsection."""
         return sum(a.exact_word_count for a in self.paragraphs)
 
     @property
