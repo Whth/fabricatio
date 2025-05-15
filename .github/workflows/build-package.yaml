@@ -9,7 +9,52 @@ on:
       - master
 
 jobs:
-  check-and-release:
+  determine_changes:
+    name: Determine Release Necessity & Version Details
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check_version_change.outputs.VERSION_CHANGED }}
+      current_version: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+      is_prerelease: ${{ steps.check_prerelease.outputs.IS_PRERELEASE }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Get current version from pyproject.toml
+        id: get_version
+        run: |
+          CURRENT_VERSION_RAW=$(grep '^version' pyproject.toml | cut -d '"' -f 2)
+          echo "CURRENT_VERSION=v$CURRENT_VERSION_RAW" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Get latest git tag
+        uses: JinoArch/get-latest-tag@latest
+        id: tag
+      - name: Check if version has changed against latest tag
+        id: check_version_change
+        run: |
+          LATEST_TAG=${{ steps.tag.outputs.latestTag }}
+          VERSION_FROM_PYPROJECT=${{ steps.get_version.outputs.CURRENT_VERSION }}
+          echo "Latest git tag is $LATEST_TAG"
+          echo "Current version (from pyproject.toml, prefixed with 'v') is $VERSION_FROM_PYPROJECT"
+          if [ "$LATEST_TAG" != "$VERSION_FROM_PYPROJECT" ]; then
+              echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+            else
+              echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+      - name: Check if current version is a prerelease
+        id: check_prerelease
+        run: |
+          VERSION_FROM_PYPROJECT=${{ steps.get_version.outputs.CURRENT_VERSION }}
+          if [[ "$VERSION_FROM_PYPROJECT" == *"-"* ]]; then # e.g., v1.0.0-alpha
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+  check-and-release: # Original job name, now modified
+    name: Build, Package, and Release
+    needs: determine_changes
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -18,38 +63,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Get current version
-        id: get_version
-        run: |
-          CURRENT_VERSION=$(grep '^version' pyproject.toml | cut -d '"' -f 2)
-          echo "CURRENT_VERSION=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        shell: bash
-      - name: Get latest tag
-        uses: JinoArch/get-latest-tag@latest
-        id: tag
-
-      - name: Check if version has changed
-        id: check_version_change
-        run: |
-          LATEST_TAG=${{ steps.tag.outputs.latestTag  }}
-          echo "Latest tag is $LATEST_TAG"
-          echo "Current version is ${{ steps.get_version.outputs.CURRENT_VERSION }}"
-          if [ "$LATEST_TAG" != "${{ steps.get_version.outputs.CURRENT_VERSION }}" ]; then
-              echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
-            else
-              echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-
-      - name: check if is prerelease
-        id: check_prerelease
-        run: |
-          if [[ "${{ steps.get_version.outputs.CURRENT_VERSION }}" == *"-"* ]]; then
-            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
-          else
-            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
+      # Steps for Get current version, Get latest tag, Check if version has changed, and check if is prerelease are now in the 'determine_changes' job
 
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6.0.1
@@ -69,27 +83,27 @@ jobs:
           make PY=${{ matrix.python-version }}
 
       - name: Packing templates
-        if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
+        if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
           tar -czf templates.tar.gz templates
 
       - name: Create Release and upload assets
-        if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
+        if: needs.determine_changes.outputs.version_changed == 'true'
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.get_version.outputs.CURRENT_VERSION }}
-          name: ${{ steps.get_version.outputs.CURRENT_VERSION }}
+          tag_name: ${{ needs.determine_changes.outputs.current_version }}
+          name: ${{ needs.determine_changes.outputs.current_version }}
           files: |
             dist/*
             templates.tar.gz
-          prerelease: ${{ steps.check_prerelease.outputs.IS_PRERELEASE }}
+          prerelease: ${{ needs.determine_changes.outputs.is_prerelease }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Upload to PyPI
-        if: ${{ steps.check_version_change.outputs.VERSION_CHANGED == 'true' }}
+        if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
           make publish PY=${{ matrix.python-version }}
         env:
