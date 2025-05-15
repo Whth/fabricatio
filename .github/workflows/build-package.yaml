@@ -52,43 +52,17 @@ jobs:
           fi
         shell: bash
 
-  check-and-release: # Original job name, now modified
-    name: Build, Package, and Release
+
+  create-release:
+    if: needs.determine_changes.outputs.version_changed == 'true'
+    name: Create Release
     needs: determine_changes
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest, ubuntu-latest ]
-        python-version: [ "3.12", "3.13" ]
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      # Steps for Get current version, Get latest tag, Check if version has changed, and check if is prerelease are now in the 'determine_changes' job
-
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v6.0.1
-        with:
-          version: "latest"
-      - name: Install nightly rust
-        run: |
-          rustup default nightly
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-
-      - name: Install deps
-        run: |
-          uv sync --no-install-project  --all-extras --index https://pypi.org/simple
-      - name: Build
-        run: |
-          make PY=${{ matrix.python-version }}
-
       - name: Packing templates
-        if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
           tar -czf templates.tar.gz templates
-
       - name: Create Release and upload assets
-        if: needs.determine_changes.outputs.version_changed == 'true'
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
@@ -102,6 +76,54 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
+  install-deps:
+    name: Install Dependencies
+    needs: determine_changes
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+        python-version: [ "3.12", "3.13" ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6.0.1
+        with:
+          version: "latest"
+      - name: Install nightly rust
+        run: |
+          rustup default nightly
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+
+      - name: Install deps
+        run: |
+          uv sync --no-install-project  --all-extras --index https://pypi.org/simple -p ${{ matrix.python-version }} 
+
+  check-and-release:
+    name: Build, Package, and Release
+    needs: install-deps
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+        python-version: [ "3.12", "3.13" ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          make PY=${{ matrix.python-version }}
+
+      - name: Upload to Release
+        uses: d1ceward/release-upload-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            dist/*.whl
+
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
@@ -109,3 +131,4 @@ jobs:
         env:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
