@@ -15,7 +15,7 @@ from fabricatio.fs import dump_text, safe_text_read
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
 from fabricatio.models.extra.article_essence import ArticleEssence
-from fabricatio.models.extra.article_main import Article
+from fabricatio.models.extra.article_main import Article, ArticleChapter, ArticleSubsection
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.extra.article_proposal import ArticleProposal
 from fabricatio.models.extra.rule import RuleSet
@@ -279,48 +279,78 @@ class WriteChapterSummary(Action, LLMUsage):
 
     ctx_override: ClassVar[bool] = True
 
-    output_key: str = "chapter_summaries"
-
     paragraph_count: int = 1
 
     summary_word_count: int = 120
-
+    output_key: str = "summarized_article"
     summary_title: str = "Chapter Summary"
 
     skip_chapters: List[str] = Field(default_factory=list)
 
-    write_to: Optional[Path] = None
+    async def _execute(self, article_path: Path, **cxt) -> Article:
+        article = Article.from_article_file(article_path, article_path.stem)
 
-    async def _execute(self, article: Article, write_to: Optional[Path] = None, **cxt) -> List[str]:
-        chaps = [a for a in article.chapters if a.title not in self.skip_chapters]
+        chaps = [c for c in article.chapters if c.title not in self.skip_chapters]
 
+        retained_chapters = []
+        # Count chapters before filtering based on section presence,
+        # chaps at this point has already been filtered by self.skip_chapters
+        initial_chaps_for_summary_step_count = len(chaps)
+
+        for chapter_candidate in chaps:
+            if chapter_candidate.sections:  # Check if the sections list is non-empty
+                retained_chapters.append(chapter_candidate)
+            else:
+                # Log c warning for each chapter skipped due to lack of sections
+                logger.warning(
+                    f"Chapter '{chapter_candidate.title}' has no sections and will be skipped for summary generation."
+                )
+
+        chaps = retained_chapters  # Update chaps to only include chapters with sections
+
+        # If chaps is now empty, but there were chapters to consider at the start of this step,
+        # log c specific warning.
+        if not chaps and initial_chaps_for_summary_step_count > 0:
+            logger.warning(
+                "All chapters considered for summary were skipped as they lack sections. No summaries will be generated for these."
+            )
+
+        # This line was part of the original selection.
+        # It will now log the titles of the chapters that are actually being processed (those with sections).
+        # If 'chaps' is empty, this will result in logger.info(""), which is acceptable.
         logger.info(";".join(a.title for a in chaps))
-
         ret = [
-            f"== {self.summary_title}\n{raw}"
+            ArticleSubsection.from_typst_code(self.summary_title, raw)
             for raw in (
                 await self.aask(
                     TEMPLATE_MANAGER.render_template(
                         CONFIG.templates.chap_summary_template,
                         [
                             {
-                                "chapter": a.to_typst_code(),
-                                "title": a.title,
-                                "language": a.language,
+                                "chapter": c.to_typst_code(),
+                                "title": c.title,
+                                "language": c.language,
                                 "summary_word_count": self.summary_word_count,
                                 "paragraph_count": self.paragraph_count,
                             }
-                            for a in chaps
+                            for c in chaps
                         ],
                     )
                 )
             )
         ]
 
-        if (to := (self.write_to or write_to)) is not None:
-            dump_text(
-                to,
-                "\n\n\n".join(f"//{a.title}\n\n{s}" for a, s in zip(chaps, ret, strict=True)),
-            )
+        for c, n in zip(chaps, ret, strict=True):
+            c: ArticleChapter
+            n: ArticleSubsection
+            if c.sections[-1].title == self.summary_title:
+                c.sections.pop()
 
-        return ret
+            c.sections[-1].subsections.append(n)
+
+        article.update_article_file(article_path)
+
+        article_string = safe_text_read(article_path)
+        article_string.replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+        dump_text(article_path, article_string)
+        return article

@@ -15,8 +15,6 @@ from fabricatio.actions.article import (
 )
 from fabricatio.actions.article_rag import ArticleConsultRAG, WriteArticleContentRAG
 from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll, RenderedDump
-from fabricatio.fs import safe_text_read
-from fabricatio.models.extra.article_main import Article
 from fabricatio.models.extra.article_outline import ArticleOutline
 from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage
@@ -34,7 +32,6 @@ Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
     llm_model="openai/qwen-plus",
-    llm_api_endpoint="https://dashscope.aliyuncs.com/compatible-mode/v1",
     llm_stream=True,
     llm_max_tokens=8191,
     llm_rpm=600,
@@ -220,23 +217,21 @@ def suma(
         [], "-s", "--skip-chapters", help="Chapters to skip."
     ),
     suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
-    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),  # noqa: B008
 ) -> None:
     """Write chap summary based on given article."""
-    path = ok(
+    _ = ok(
         asyncio.run(
             Task(name="write an article")
             .update_init_context(
-                article=Article.from_typst_code("article", body=safe_text_read(article_path)),
+                article_path=article_path,
                 summary_title=suma_title,
                 skip_chapters=skip_chapters,
-                write_to=dump_path,
             )
             .delegate(ns5)
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.success(f"The outline is saved in:\n{article_path.as_posix()}")
 
 
 if __name__ == "__main__":

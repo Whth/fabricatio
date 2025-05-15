@@ -55,7 +55,11 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     @property
     def typst_metadata_comment(self) -> str:
         """Generates a comment for the metadata of the article component."""
-        return to_metadata(self.model_dump(include={"description", "aims", "expected_word_count"}, by_alias=True))
+        data = self.model_dump(
+            include={"description", "aims", "expected_word_count"},
+            by_alias=True,
+        )
+        return to_metadata({k: v for k, v in data.items() if v})
 
 
 class FromTypstCode(ArticleMetaData):
@@ -413,11 +417,11 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         """Set all chap, sec, subsec have same word count sum up to be `self.expected_word_count`."""
         return self.avg_chap_wordcount().avg_sec_wordcount().avg_subsec_wordcount()
 
-    def update_article_file(self, file: str | Path) -> Self:
+    def update_article_file[S: "ArticleBase"](self: S, file: str | Path) -> S:
         """Update the article file."""
         file = Path(file)
         string = safe_text_read(file)
-        if updated := replace_thesis_body(string, ARTICLE_WRAPPER, self.to_typst_code()):
+        if updated := replace_thesis_body(string, ARTICLE_WRAPPER, f"\n\n{self.to_typst_code()}\n\n"):
             dump_text(file, updated)
             logger.success(f"Successfully updated {file.as_posix()}.")
         else:
