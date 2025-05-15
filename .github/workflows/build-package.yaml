@@ -59,6 +59,8 @@ jobs:
     needs: determine_changes
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Packing templates
         run: |
           tar -czf templates.tar.gz templates
@@ -69,16 +71,17 @@ jobs:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
           name: ${{ needs.determine_changes.outputs.current_version }}
           files: |
-            dist/*
             templates.tar.gz
           prerelease: ${{ needs.determine_changes.outputs.is_prerelease }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
-  install-deps:
-    name: Install Dependencies
-    needs: determine_changes
+
+
+  check-and-release:
+    name: Build, Package, and Release
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -102,17 +105,6 @@ jobs:
         run: |
           uv sync --no-install-project  --all-extras --index https://pypi.org/simple -p ${{ matrix.python-version }} 
 
-  check-and-release:
-    name: Build, Package, and Release
-    needs: install-deps
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest, ubuntu-latest ]
-        python-version: [ "3.12", "3.13" ]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
       - name: Build
         run: |
           make PY=${{ matrix.python-version }}
