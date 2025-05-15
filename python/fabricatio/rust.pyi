@@ -504,6 +504,9 @@ class TemplateManagerConfig:
 class TemplateConfig:
     """Template configuration structure."""
 
+    research_content_summary_template: str
+    """The name of the research content summary template which will be used to generate a summary of research content."""
+
     create_json_obj_template: str
     """The name of the create json object template which will be used to create a json object."""
 

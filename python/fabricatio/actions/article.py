@@ -311,9 +311,7 @@ class WriteChapterSummary(Action, LLMUsage):
         # If chaps is now empty, but there were chapters to consider at the start of this step,
         # log c specific warning.
         if not chaps and initial_chaps_for_summary_step_count > 0:
-            logger.warning(
-                "All chapters considered for summary were skipped as they lack sections. No summaries will be generated for these."
-            )
+            raise ValueError("No chapters with sections were found. Please check your input data.")
 
         # This line was part of the original selection.
         # It will now log the titles of the chapters that are actually being processed (those with sections).
@@ -349,6 +347,55 @@ class WriteChapterSummary(Action, LLMUsage):
             c.sections[-1].subsections.append(n)
 
         article.update_article_file(article_path)
+
+        article_string = safe_text_read(article_path)
+        article_string.replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+        dump_text(article_path, article_string)
+        return article
+
+
+class WriteResearchContentSummary(Action, LLMUsage):
+    """Write the research content summary."""
+
+    ctx_override: ClassVar[bool] = True
+    summary_word_count: int = 220
+    """The number of words to use in the research content summary."""
+
+    output_key: str = "summarized_article"
+    """The key under which the summarized article will be stored in the output."""
+
+    summary_title: str = "Research Content"
+    """The title to be used for the generated research content summary section."""
+
+    paragraph_count: int = 1
+    """The number of paragraphs to generate in the research content summary."""
+
+    async def _execute(self, article_path: Path, **cxt) -> Article:
+        article = Article.from_article_file(article_path, article_path.stem)
+        outline = article.extrac_outline()
+
+        suma = await self.aask(
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.research_content_summary_template,
+                {
+                    "title": outline.title,
+                    "outline": outline.to_typst_code(),
+                    "language": outline.language,
+                    "summary_word_count": self.summary_word_count,
+                    "paragraph_count": self.paragraph_count,
+                },
+            )
+        )
+
+        if not article.chapters:
+            raise ValueError("No chapters found in the article.")
+        if not article.chapters[0].sections:
+            raise ValueError("No sections found in the first chapter of the article.")
+
+        target_sec = article.chapters[0].sections[0]
+        if target_sec.title == self.summary_title:
+            target_sec.subsections.pop()
+        target_sec.subsections.append(ArticleSubsection.from_typst_code(self.summary_title, suma))
 
         article_string = safe_text_read(article_path)
         article_string.replace(f"=== {self.summary_title}", f"== {self.summary_title}")
