@@ -111,13 +111,15 @@ jobs:
         run: |
           make PY=${{ matrix.python-version }}
 
-      - name: Upload to Release
-        uses: alexellis/upload-assets@0.4.0
+      - name: Upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.determine_changes.outputs.current_version }}
+          files: |
+            dist/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-        with:
-          asset_paths: '["./dist/*.whl"]'
-                
+
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
