@@ -1,20 +1,10 @@
 use clap::{Parser, Subcommand};
+use constants::{ROAMING, TEMPLATES};
 use flate2::read::GzDecoder;
 use reqwest::blocking::Client;
 use std::fs::{self, File};
 use std::path::PathBuf;
 use tar::Archive;
-
-use dirs::config_dir;
-
-fn get_dir() -> String {
-    config_dir().unwrap().join("fabricatio").to_string_lossy().to_string()
-}
-fn get_template_dir() -> String {
-    let mut s=get_dir();
-    s.push_str("templates");
-    s
-}
 
 /// A command-line interface for downloading templates.
 #[derive(Parser)]
@@ -29,16 +19,16 @@ enum Commands {
     /// Download the latest templates release.
     Download {
         /// The directory to output the templates to.
-        #[arg(short, long, default_value_t = get_dir())]
-        output_dir: String,
+        #[arg(short, long, default_value = ROAMING.as_os_str())]
+        output_dir: PathBuf,
     },
     /// Copy a specified hbs file to the template directory.
     Copy {
         /// The source hbs file to copy.
         source: PathBuf,
         /// The directory to copy the hbs file to.
-        #[arg( default_value_t = get_template_dir())]
-        output_dir: String,
+        #[arg( default_value = TEMPLATES.as_os_str())]
+        output_dir: PathBuf,
     },
 }
 
@@ -53,7 +43,11 @@ fn retrieve_release(client: &Client) -> Result<serde_json::Value, Box<dyn std::e
     Ok(response.json()?)
 }
 
-fn download_release(client: &Client, download_url: &str, output_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn download_release(
+    client: &Client,
+    download_url: &str,
+    output_path: &PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("Downloading {}...", download_url);
     let mut response = client.get(download_url).send()?;
     let mut file = File::create(output_path)?;
@@ -61,7 +55,10 @@ fn download_release(client: &Client, download_url: &str, output_path: &PathBuf) 
     Ok(())
 }
 
-fn extract_release(tar_gz_path: &PathBuf, output_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn extract_release(
+    tar_gz_path: &PathBuf,
+    output_dir: &PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("Extracting to {}...", output_dir.display());
     let tar_gz = File::open(tar_gz_path)?;
     let decoder = GzDecoder::new(tar_gz);
@@ -90,7 +87,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Retrieve release information
             let latest_release = retrieve_release(&client)?;
             let assets = latest_release["assets"].as_array().unwrap();
-            let tar_gz_asset = assets.iter().find(|asset| asset["name"] == "templates.tar.gz");
+            let tar_gz_asset = assets
+                .iter()
+                .find(|asset| asset["name"] == "templates.tar.gz");
 
             if let Some(asset) = tar_gz_asset {
                 let download_url = asset["browser_download_url"].as_str().unwrap();

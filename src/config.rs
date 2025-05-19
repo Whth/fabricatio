@@ -1,4 +1,4 @@
-use directories_next::BaseDirs;
+use constants::ROAMING;
 use dotenvy::dotenv_override;
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
@@ -12,10 +12,6 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use validator::Validate;
-
-fn get_roaming_dir(app_name: &str) -> Option<PathBuf> {
-    BaseDirs::new().map(|dirs| dirs.config_dir().join(app_name))
-}
 
 #[pyclass]
 #[derive(Clone)]
@@ -259,10 +255,7 @@ pub struct TemplateManagerConfig {
 impl Default for TemplateManagerConfig {
     fn default() -> Self {
         TemplateManagerConfig {
-            template_dir: vec![
-                PathBuf::from("templates"),
-                get_roaming_dir("fabricatio").unwrap().join("templates"),
-            ],
+            template_dir: vec![PathBuf::from("templates"), ROAMING.join("templates")],
             active_loading: Some(true),
             template_suffix: Some("hbs".to_string()),
         }
@@ -497,11 +490,7 @@ impl Config {
                 "pyproject.toml",
                 vec!["tool", "fabricatio"],
             ))
-            .join(Toml::file(
-                get_roaming_dir("fabricatio")
-                    .expect("Failed to get roaming config dir")
-                    .join("fabricatio.toml"),
-            ))
+            .join(Toml::file(ROAMING.join("fabricatio.toml")))
             .join(Config::default())
     }
 

@@ -24,7 +24,6 @@ whichlang = "0.1.1"
 serde = { version = "1.0.219", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
 dotenvy = "0.15.7"
-directories-next = "2.0.0"
 log = "0.4.27"
 pyo3-log = "0.12.3"
 strum = { version = "0.27.1", features = ["derive"] }
@@ -35,13 +34,13 @@ prost = "0.13.5"
 pyo3-async-runtimes = { version = "0.24.0", features = ["tokio-runtime"] }
 macro_utils = { path = "src/macro_utils" }
 typst_conversion = { path = "src/typst_conversion" }
-
+constants = { path = "src/constants" }
 
 
 [build-dependencies]
 tonic-build = "0.13.0"
 [workspace]
-members = ["src/macro_utils", "src/tools", "src/typst_conversion"]
+members = ["src/constants", "src/macro_utils", "src/tools", "src/typst_conversion"]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]

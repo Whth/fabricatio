@@ -8,11 +8,10 @@ tar = "0.4.43"
 flate2 = "1.0.35"
 serde_json = "1.0.138"
 clap = { version = "4.5.29", features = ["derive"] }
-dirs = "6.0.0"
 tex2typst-rs = "0.4.1"
 
 typst_conversion = { path = "../typst_conversion" }
-
+constants = { path = "../constants" }
 
 [[bin]]
 name = "tdown"
