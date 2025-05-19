@@ -2,10 +2,10 @@
 
 from typing import List
 
-from fabricatio.capabilities.persist import PersistentAble
-from fabricatio.models.extra.rag import MilvusDataBase
-from fabricatio.models.generic import SketchedAble
 from pydantic import BaseModel
+
+from fabricatio.models.extra.rag import MilvusDataBase
+from fabricatio.models.generic import PersistentAble, SketchedAble
 
 
 class Equation(BaseModel):
@@ -97,5 +97,3 @@ class ArticleEssence(SketchedAble, PersistentAble, MilvusDataBase):
 
     def _prepare_vectorization_inner(self) -> str:
         return self.compact()
-
-

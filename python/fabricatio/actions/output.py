@@ -3,11 +3,10 @@
 from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
 
-from fabricatio.capabilities.persist import PersistentAble
 from fabricatio.fs import dump_text
 from fabricatio.journal import logger
 from fabricatio.models.action import Action
-from fabricatio.models.generic import FinalizedDumpAble, FromMapping, FromSequence
+from fabricatio.models.generic import FinalizedDumpAble, FromMapping, FromSequence, PersistentAble
 from fabricatio.models.task import Task
 from fabricatio.models.usages import LLMUsage
 from fabricatio.rust import TEMPLATE_MANAGER
@@ -21,11 +20,11 @@ class DumpFinalizedOutput(Action, LLMUsage):
     dump_path: Optional[str] = None
 
     async def _execute(
-        self,
-        to_dump: FinalizedDumpAble,
-        task_input: Optional[Task] = None,
-        dump_path: Optional[str | Path] = None,
-        **_,
+            self,
+            to_dump: FinalizedDumpAble,
+            task_input: Optional[Task] = None,
+            dump_path: Optional[str | Path] = None,
+            **_,
     ) -> str:
         dump_path = Path(
             dump_path
@@ -52,11 +51,11 @@ class RenderedDump(Action, LLMUsage):
     """The template name to render the data."""
 
     async def _execute(
-        self,
-        to_dump: FinalizedDumpAble,
-        task_input: Optional[Task] = None,
-        dump_path: Optional[str | Path] = None,
-        **_,
+            self,
+            to_dump: FinalizedDumpAble,
+            task_input: Optional[Task] = None,
+            dump_path: Optional[str | Path] = None,
+            **_,
     ) -> str:
         dump_path = Path(
             dump_path
@@ -91,10 +90,10 @@ class PersistentAll(Action, LLMUsage):
     """Whether to remove the existing dir before dumping."""
 
     async def _execute(
-        self,
-        task_input: Optional[Task] = None,
-        persist_dir: Optional[str | Path] = None,
-        **cxt,
+            self,
+            task_input: Optional[Task] = None,
+            persist_dir: Optional[str | Path] = None,
+            **cxt,
     ) -> int:
         persist_dir = Path(
             persist_dir
@@ -124,7 +123,7 @@ class PersistentAll(Action, LLMUsage):
                 v.persist(final_dir)
                 count += 1
             if isinstance(v, Iterable) and any(
-                persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
+                    persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
             ):
                 logger.info(f"Persisting collection {k} to {final_dir}")
                 final_dir.mkdir(parents=True, exist_ok=True)
@@ -174,11 +173,11 @@ class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMappi
 
     @classmethod
     def from_mapping(
-        cls,
-        mapping: Mapping[str, str | Path],
-        *,
-        retrieve_cls: Type[T],
-        **kwargs,
+            cls,
+            mapping: Mapping[str, str | Path],
+            *,
+            retrieve_cls: Type[T],
+            **kwargs,
     ) -> List["RetrieveFromLatest[T]"]:
         """Create a list of `RetrieveFromLatest` from the mapping."""
         return [

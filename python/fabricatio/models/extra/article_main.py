@@ -2,7 +2,8 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
-from fabricatio.capabilities.persist import PersistentAble
+from pydantic import Field, NonNegativeInt
+
 from fabricatio.decorators import precheck_package
 from fabricatio.journal import logger
 from fabricatio.models.extra.article_base import (
@@ -17,14 +18,13 @@ from fabricatio.models.extra.article_outline import (
     ArticleSectionOutline,
     ArticleSubsectionOutline,
 )
-from fabricatio.models.generic import Described, SequencePatch, SketchedAble, WithRef, WordCount
+from fabricatio.models.generic import Described, PersistentAble, SequencePatch, SketchedAble, WithRef, WordCount
 from fabricatio.rust import (
     convert_all_tex_math,
     fix_misplaced_labels,
     split_out_metadata,
     word_count,
 )
-from pydantic import Field, NonNegativeInt
 
 PARAGRAPH_SEP = "// - - -"
 
@@ -86,8 +86,8 @@ class ArticleSubsection(SubSectionBase):
         if len(self.paragraphs) == 0:
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have no paragraphs, You should add some!\n"
         if (
-            abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
-            > self._max_word_count_deviation
+                abs((wc := self.word_count) - self.expected_word_count) / self.expected_word_count
+                > self._max_word_count_deviation
         ):
             summary += f"`{self.__class__.__name__}` titled `{self.title}` have {wc} words, expected {self.expected_word_count} words!"
 
