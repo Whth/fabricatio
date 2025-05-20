@@ -163,7 +163,7 @@ cython_debug/
 .idea/
 *playground*
 
-extra/scripts/*
+*.exe
 output/
 .vscode/
 templates/customed

@@ -255,6 +255,9 @@ qa = [
 rag = [
     { name = "pymilvus" },
 ]
+typst = [
+    { name = "fabricatio-typst" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -278,12 +281,13 @@ requires-dist = [
     { name = "fabricatio", extras = ["ftd", "qa", "rag", "cli"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
     { name = "magika", marker = "extra == 'ftd'", specifier = ">=0.6.1" },
     { name = "pymilvus", marker = "extra == 'rag'", specifier = ">=2.5.4" },
     { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "rag", "qa", "ftd", "cli"]
+provides-extras = ["full", "rag", "qa", "ftd", "cli", "typst"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -379,8 +383,17 @@ dependencies = [
     { name = "fabricatio-core" },
 ]
 
+[package.optional-dependencies]
+rag = [
+    { name = "fabricatio-rag" },
+]
+
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-rag", marker = "extra == 'rag'", virtual = "packages/fabricatio-rag" },
+]
+provides-extras = ["rag"]
 
 [[package]]
 name = "filelock"
@@ -617,11 +630,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.44.1"
+version = "0.45.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/a8/6b/ed6e92efc5acfbc9c35ccae1676b70e4adb1552421e64f838c2a3f097d9a/json_repair-0.44.1.tar.gz", hash = "sha256:1130eb9733b868dac1340b43cb2effebb519ae6d52dd2d0728c6cca517f1e0b4", size = 32886, upload-time = "2025-04-30T16:09:38.54Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/93/37/f1b4166d0968f1c6a195bfb579c6bd466680f66c8460d6dd664d08472dc2/json_repair-0.45.0.tar.gz", hash = "sha256:152b1d9e5096b761a50e3616536a0d10babc1d9957be5b75de789bfbd52c4fa4", size = 33099, upload-time = "2025-05-20T08:41:57.356Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/82/b4/3cbd27a3240b2962c3b87bbb1c20eb6c56e5b26cde61f141f86ca98e2f68/json_repair-0.44.1-py3-none-any.whl", hash = "sha256:51d82532c3b8263782a301eb7904c75dce5fee8c0d1aba490287fc0ab779ac50", size = 22478, upload-time = "2025-04-30T16:09:37.303Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c2/15/78602a6ccc4b5a9dd3fa031c8ae89ce1ccd89ae09d043b4d0838ddb553c0/json_repair-0.45.0-py3-none-any.whl", hash = "sha256:3e2e00e9634183276fd5250d334051b2ef37c90a7fb376818da7a1404f3393a3", size = 22065, upload-time = "2025-05-20T08:41:55.597Z" },
 ]
 
 [[package]]
@@ -1451,11 +1464,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "80.7.1"
+version = "80.8.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9e/8b/dc1773e8e5d07fd27c1632c45c1de856ac3dbf09c0147f782ca6d990cf15/setuptools-80.7.1.tar.gz", hash = "sha256:f6ffc5f0142b1bd8d0ca94ee91b30c0ca862ffd50826da1ea85258a06fd94552", size = 1319188, upload-time = "2025-05-15T02:41:00.955Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8d/d2/ec1acaaff45caed5c2dedb33b67055ba9d4e96b091094df90762e60135fe/setuptools-80.8.0.tar.gz", hash = "sha256:49f7af965996f26d43c8ae34539c8d99c5042fbff34302ea151eaa9c207cd257", size = 1319720, upload-time = "2025-05-20T14:02:53.503Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/a1/18/0e835c3a557dc5faffc8f91092f62fc337c1dab1066715842e7a4b318ec4/setuptools-80.7.1-py3-none-any.whl", hash = "sha256:ca5cc1069b85dc23070a6628e6bcecb3292acac802399c7f8edc0100619f9009", size = 1200776, upload-time = "2025-05-15T02:40:58.887Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/58/29/93c53c098d301132196c3238c312825324740851d77a8500a2462c0fd888/setuptools-80.8.0-py3-none-any.whl", hash = "sha256:95a60484590d24103af13b686121328cc2736bee85de8936383111e421b9edc0", size = 1201470, upload-time = "2025-05-20T14:02:51.348Z" },
 ]
 
 [[package]]

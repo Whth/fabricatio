@@ -19,7 +19,7 @@ typst_conversion = { path = "src/typst_conversion" }
 
 
 [workspace]
-members = ["src/typst_conversion"]
+members = ["src/typst_conversion", "src/tools"]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]

@@ -6,9 +6,7 @@ from itertools import groupby
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio.fs import safe_text_read
-from fabricatio.journal import logger
-from fabricatio.models.extra.rag import MilvusDataBase
+from fa.models.extra.rag import MilvusDataBase
 from fabricatio.models.generic import AsPrompt
 from fabricatio.models.kwargs_types import ChunkKwargs
 from fabricatio.rust import BibManager, blake3_hash, split_into_chunks
@@ -16,6 +14,9 @@ from fabricatio.utils import ok, wrapp_in_block
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
+
+from fabricatio_core.fs import safe_text_read
+from fabricatio_core.journal import logger
 
 
 class ArticleChunk(MilvusDataBase):

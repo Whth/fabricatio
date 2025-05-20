@@ -4,8 +4,6 @@ from asyncio import gather
 from pathlib import Path
 from typing import ClassVar, List, Optional
 
-from pydantic import Field, PositiveInt
-
 from fabricatio.capabilities.advanced_rag import AdvancedRAG
 from fabricatio.capabilities.censor import Censor
 from fabricatio.capabilities.extract import Extract
@@ -25,6 +23,7 @@ from fabricatio.rust import (
     fix_misplaced_labels,
 )
 from fabricatio.utils import ok
+from pydantic import Field, PositiveInt
 
 TYPST_CITE_USAGE = (
     "citation number is REQUIRED to cite any reference!'\n"
@@ -75,11 +74,11 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
     tei_endpoint: Optional[str] = None
 
     async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        collection_name: Optional[str] = None,
-        supervisor: Optional[bool] = None,
-        **cxt,
+            self,
+            article_outline: ArticleOutline,
+            collection_name: Optional[str] = None,
+            supervisor: Optional[bool] = None,
+            **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline).update_ref(article_outline)
         self.target_collection = collection_name or self.safe_target_collection
@@ -100,12 +99,12 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         "questionary", "`questionary` is required for supervisor mode, please install it by `fabricatio[qa]`"
     )
     async def _supervisor_inner(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        chap: ArticleChapter,
-        sec: ArticleSection,
-        subsec: ArticleSubsection,
+            self,
+            article: Article,
+            article_outline: ArticleOutline,
+            chap: ArticleChapter,
+            sec: ArticleSection,
+            subsec: ArticleSubsection,
     ) -> ArticleSubsection:
         from questionary import confirm, text
         from rich import print as r_print
@@ -133,12 +132,12 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def _inner(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        chap: ArticleChapter,
-        sec: ArticleSection,
-        subsec: ArticleSubsection,
+            self,
+            article: Article,
+            article_outline: ArticleOutline,
+            chap: ArticleChapter,
+            sec: ArticleSection,
+            subsec: ArticleSubsection,
     ) -> ArticleSubsection:
         cm = CitationManager()
 
@@ -154,7 +153,7 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def extract_new_subsec(
-        self, subsec: ArticleSubsection, raw_paras: str, cm: CitationManager
+            self, subsec: ArticleSubsection, raw_paras: str, cm: CitationManager
     ) -> ArticleSubsection:
         """Extract the new subsec."""
         new_subsec = ok(
@@ -177,14 +176,14 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         return subsec
 
     async def write_raw(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        chap: ArticleChapter,
-        sec: ArticleSection,
-        subsec: ArticleSubsection,
-        cm: CitationManager,
-        extra_instruction: str = "",
+            self,
+            article: Article,
+            article_outline: ArticleOutline,
+            chap: ArticleChapter,
+            sec: ArticleSection,
+            subsec: ArticleSubsection,
+            cm: CitationManager,
+            extra_instruction: str = "",
     ) -> str:
         """Write the raw paragraphs of the subsec."""
         return await self.aask(
@@ -200,14 +199,14 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         )
 
     async def search_database(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        chap: ArticleChapter,
-        sec: ArticleSection,
-        subsec: ArticleSubsection,
-        cm: CitationManager,
-        extra_instruction: str = "",
+            self,
+            article: Article,
+            article_outline: ArticleOutline,
+            chap: ArticleChapter,
+            sec: ArticleSection,
+            subsec: ArticleSubsection,
+            cm: CitationManager,
+            extra_instruction: str = "",
     ) -> None:
         """Search database for related references."""
         search_req = (
@@ -312,12 +311,12 @@ class TweakArticleRAG(Action, RAG, Censor):
     """The limit of references to be retrieved"""
 
     async def _execute(
-        self,
-        article: Article,
-        collection_name: str = "article_essence",
-        twk_rag_ruleset: Optional[RuleSet] = None,
-        parallel: bool = False,
-        **cxt,
+            self,
+            article: Article,
+            collection_name: str = "article_essence",
+            twk_rag_ruleset: Optional[RuleSet] = None,
+            parallel: bool = False,
+            **cxt,
     ) -> Article:
         """Write an article based on the provided outline.
 
@@ -372,10 +371,10 @@ class TweakArticleRAG(Action, RAG, Censor):
             subsec,
             ruleset=ruleset,
             reference=f"{'\n\n'.join(d.display() for d in await self.aretrieve(refind_q, document_model=ArticleEssence, max_accepted=self.ref_limit))}\n\n"
-            f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
-            f"You should Always use `{subsec.language}` as written language, "
-            f"which is the original language of the `{subsec.title}`. "
-            f"since rewrite a `{subsec.__class__.__name__}` in a different language is usually a bad choice",
+                      f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
+                      f"You should Always use `{subsec.language}` as written language, "
+                      f"which is the original language of the `{subsec.title}`. "
+                      f"since rewrite a `{subsec.__class__.__name__}` in a different language is usually a bad choice",
         )
 
 
@@ -390,12 +389,12 @@ class ChunkArticle(Action):
     """The maximum overlapping rate between chunks."""
 
     async def _execute(
-        self,
-        article_path: str | Path,
-        bib_manager: BibManager,
-        max_chunk_size: Optional[int] = None,
-        max_overlapping_rate: Optional[float] = None,
-        **_,
+            self,
+            article_path: str | Path,
+            bib_manager: BibManager,
+            max_chunk_size: Optional[int] = None,
+            max_overlapping_rate: Optional[float] = None,
+            **_,
     ) -> List[ArticleChunk]:
         return ArticleChunk.from_file(
             article_path,

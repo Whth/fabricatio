@@ -81,6 +81,11 @@ cli = [
     "typer-slim[standard]>=0.15.2",
 ]
 
+
+typst = [
+    "fabricatio-typst"
+]
+
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py"]
 line-length = 120
@@ -143,6 +148,9 @@ asyncio_default_fixture_loop_scope = "function"
 fabricatio = { workspace = true }
 fabricatio-core = { workspace = true }
 fabricatio-capabilities = { workspace = true }
+fabricatio-typst = { workspace = true }
+
+
 
 [[tool.uv.index]]
 url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
