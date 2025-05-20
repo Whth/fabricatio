@@ -1,8 +1,9 @@
 """Store article essence in the database."""
 
-from fabricatio.actions.article import GenerateArticleProposal, GenerateInitialOutline
 from fabricatio.actions.output import DumpFinalizedOutput
 from fabricatio_core.models.action import WorkFlow
+
+from fabricatio_typst.actions.article import GenerateArticleProposal, GenerateInitialOutline
 
 WriteOutlineWorkFlow = WorkFlow(
     name="Generate Article Outline",

@@ -5,10 +5,10 @@ from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
-from fabricatio.fs import dump_text, safe_text_read
-from fabricatio.fs.readers import extract_sections
-from fabricatio.journal import logger
-from fabricatio.models.generic import (
+from fabricatio_core.fs import dump_text, safe_text_read
+from fabricatio_core.fs.readers import extract_sections
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import (
     AsPrompt,
     Described,
     FinalizedDumpAble,
@@ -21,17 +21,20 @@ from fabricatio.models.generic import (
     Titled,
     WordCount,
 )
-from fabricatio.rust import (
+from fabricatio_core.rust import (
     detect_language,
+    word_count,
+)
+from fabricatio_core.utils import fallback_kwargs, ok
+from pydantic import Field
+
+from fabricatio_typst.rust import (
     extract_body,
     replace_thesis_body,
     split_out_metadata,
     strip_comment,
     to_metadata,
-    word_count,
 )
-from fabricatio.utils import fallback_kwargs, ok
-from pydantic import Field
 
 ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="
 

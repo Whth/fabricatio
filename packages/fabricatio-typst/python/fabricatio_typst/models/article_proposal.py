@@ -2,7 +2,7 @@
 
 from typing import Dict, List
 
-from fabricatio.models.generic import (
+from fabricatio_core.models.generic import (
     AsPrompt,
     Described,
     Language,

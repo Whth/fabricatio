@@ -2,14 +2,15 @@
 
 from typing import ClassVar, Dict, Type
 
-from fabricatio.models.extra.article_base import (
+from fabricatio_core.models.generic import PersistentAble, WithRef
+
+from fabricatio_typst.models.article_base import (
     ArticleBase,
     ChapterBase,
     SectionBase,
     SubSectionBase,
 )
-from fabricatio.models.extra.article_proposal import ArticleProposal
-from fabricatio.models.generic import PersistentAble, WithRef
+from fabricatio_typst.models.article_proposal import ArticleProposal
 
 
 class ArticleSubsectionOutline(SubSectionBase):

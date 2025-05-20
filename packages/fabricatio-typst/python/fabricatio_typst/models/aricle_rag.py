@@ -12,7 +12,7 @@ from fabricatio_core.models.generic import AsPrompt
 from fabricatio_core.models.kwargs_types import ChunkKwargs
 from fabricatio_core.rust import blake3_hash, split_into_chunks
 from fabricatio_core.utils import ok, wrapp_in_block
-from fabricatio_rag.models.extra.rag import MilvusDataBase
+from fabricatio_rag.models.rag import MilvusDataBase
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
