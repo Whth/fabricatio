@@ -1,8 +1,9 @@
 """The workflow for extracting the essence of an article and storing it in the database."""
 
+from fabricatio_core.models.action import WorkFlow
+
 from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.rag import InjectToDB
-from fabricatio_core.models.action import WorkFlow
 
 StoreArticle = WorkFlow(
     name="Extract Article Essence",

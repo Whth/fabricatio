@@ -291,7 +291,7 @@ requires-dist = [
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "fabricatio-judge", marker = "extra == 'judge'", editable = "packages/fabricatio-judge" },
-    { name = "fabricatio-rag", marker = "extra == 'rag'", virtual = "packages/fabricatio-rag" },
+    { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
     { name = "fabricatio-rule", marker = "extra == 'rule'", editable = "packages/fabricatio-rule" },
     { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
     { name = "magika", marker = "extra == 'ftd'", specifier = ">=0.6.1" },
@@ -373,7 +373,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 [[package]]
 name = "fabricatio-rag"
 version = "0.1.0"
-source = { virtual = "packages/fabricatio-rag" }
+source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "pymilvus" },
 ]
@@ -408,7 +408,7 @@ rag = [
 [package.metadata]
 requires-dist = [
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
-    { name = "fabricatio-rag", marker = "extra == 'rag'", virtual = "packages/fabricatio-rag" },
+    { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
 ]
 provides-extras = ["rag"]
 
