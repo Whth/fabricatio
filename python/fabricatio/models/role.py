@@ -63,8 +63,8 @@ class Role(WithBriefing):
         """
         for workflow in self.registry.values():
             logger.debug(f"Resolving config for workflow: `{workflow.name}`")
-            self._configure_scoped_config(workflow)
-            self._configure_toolbox_usage(workflow)
+            self._configure_scoped_config(workflow)._configure_toolbox_usage(workflow)
+
             workflow.inject_personality(self.briefing)
         return self
 
@@ -74,26 +74,70 @@ class Role(WithBriefing):
         has_capability: Callable[[Type], bool],
         config_method_name: str,
         capability_description: str,
-    ) -> None:
-        """Propagates configuration to workflow and its actions if they have a given capability."""
-        if not has_capability(self.__class__):
-            return
+    ) -> Self:
+        """Propagates configuration from the Role to a Workflow and its Actions.
 
-        config_source_for_actions = self
+        This method checks if the Role, Workflow, or its Actions possess a specific
+        capability (e.g., being a ScopedConfig or ToolBoxUsage). If they do,
+        a specified configuration method is called on them to apply or inherit
+        settings.
+
+        The configuration flows hierarchically:
+        1. If the Role has the capability, it's the initial source.
+        2. If the Workflow also has the capability, it can inherit from the Role
+           and then becomes the source for its Actions.
+        3. Actions with the capability inherit from the determined source (either
+           Workflow or Role).
+
+        Args:
+            workflow: The WorkFlow instance to configure.
+            has_capability: A callable that takes a Type and returns True if
+                            the type possesses the specific capability, False otherwise.
+            config_method_name: The name of the method to call on an object
+                                (Role, Workflow, Action) to apply the configuration.
+                                For example, "fallback_to" or "supply_tools_from".
+            capability_description: A string describing the capability, used for
+                                    logging purposes (e.g., "scoped config", "toolbox usage").
+        """
+        # This variable will hold the object from which Actions should inherit their configuration.
+        # It could be the Role itself or the Workflow, depending on their capabilities.
+        config_source_for_actions = None
+
+        # Check if the Role itself has the capability.
+        if has_capability(self.__class__):
+            # If the Role has the capability, it becomes the initial source for configuration.
+            config_source_for_actions = self
+
+        # Check if the Workflow has the capability.
         if has_capability(workflow.__class__):
             logger.debug(
                 f"Configuring {capability_description} inherited from `{self.name}` for workflow: `{workflow.name}`"
             )
-            getattr(workflow, config_method_name)(self)
+            # If the Role was already identified as a config source,
+            # the Workflow an inherit its configuration directly from the Role.
+            if config_source_for_actions is not None:
+                # Call the specified configuration method on the workflow, passing the Role (self) as the source.
+                getattr(workflow, config_method_name)(config_source_for_actions)
+
+            # After potentially inheriting from the Role, the Workflow itself becomes
+            # the source of configuration for its Actions.
             config_source_for_actions = workflow
 
-        for action in (act for act in workflow.iter_actions() if has_capability(act.__class__)):
-            getattr(action, config_method_name)(config_source_for_actions)
+        # If a configuration source (either Role or Workflow) has been established:
+        if config_source_for_actions is not None:
+            # Iterate over all actions within the workflow.
+            # Filter for actions that possess the specified capability.
+            for action in (act for act in workflow.iter_actions() if has_capability(act.__class__)):
+                # Call the specified configuration method on the action,
+                # passing the determined config_source_for_actions.
+                getattr(action, config_method_name)(config_source_for_actions)
 
-    def _configure_scoped_config(self, workflow: WorkFlow) -> None:
+        return self
+
+    def _configure_scoped_config(self, workflow: WorkFlow) -> Self:
         """Configure scoped configuration for workflow and its actions."""
-        self._propagate_config(workflow, is_scoped_config, "fallback_to", "scoped config")
+        return self._propagate_config(workflow, is_scoped_config, "fallback_to", "scoped config")
 
-    def _configure_toolbox_usage(self, workflow: WorkFlow) -> None:
+    def _configure_toolbox_usage(self, workflow: WorkFlow) -> Self:
         """Configure toolbox usage for workflow and its actions."""
-        self._propagate_config(workflow, is_toolbox_usage, "supply_tools_from", "toolbox usage")
+        return self._ropagate_config(workflow, is_toolbox_usage, "supply_tools_from", "toolbox usage")
