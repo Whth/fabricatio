@@ -9,10 +9,9 @@ dependencies = [
     "pymilvus>=2.5.4",
     "pydantic>= 2.7.4"
 ]
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-sources = ["python"]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_rag.rust"

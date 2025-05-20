@@ -12,13 +12,13 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import List, Optional, Self, Type, Unpack
 
-from fabricatio.journal import logger
-from fabricatio.models.adv_kwargs_types import CollectionConfigKwargs, FetchKwargs
-from fabricatio.models.extra.rag import MilvusDataBase
-from fabricatio.models.kwargs_types import ChooseKwargs
-from fabricatio.models.usages import EmbeddingUsage
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
-from fabricatio.utils import ok
+from fabricatio_core.journal import logger
+from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.models.usages import EmbeddingUsage
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.utils import ok
+from fabricatio_rag.models.kwargs_types import CollectionConfigKwargs, FetchKwargs
+from fabricatio_rag.models.rag import MilvusDataBase
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
 

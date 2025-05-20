@@ -3,27 +3,27 @@
 from abc import ABC
 from typing import Optional, Unpack
 
-from fabricatio.capabilities.rag import RAG
-from fabricatio.journal import logger
-from fabricatio.models.adv_kwargs_types import FetchKwargs
-from fabricatio.models.extra.aricle_rag import ArticleChunk, CitationManager
-from fabricatio.models.kwargs_types import ChooseKwargs
-from fabricatio.utils import fallback_kwargs
+from fabricatio_core.journal import logger
+from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.utils import fallback_kwargs
+from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.models.kwargs_types import FetchKwargs
+from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 
 
-class AdvancedRAG(RAG, ABC):
+class CitationRAG(RAG, ABC):
     """A class representing the Advanced RAG (Retrieval Augmented Generation) model."""
 
     async def clued_search(
-        self,
-        requirement: str,
-        cm: CitationManager,
-        max_capacity: int = 40,
-        max_round: int = 3,
-        expand_multiplier: float = 1.4,
-        base_accepted: int = 12,
-        refinery_kwargs: Optional[ChooseKwargs] = None,
-        **kwargs: Unpack[FetchKwargs],
+            self,
+            requirement: str,
+            cm: CitationManager,
+            max_capacity: int = 40,
+            max_round: int = 3,
+            expand_multiplier: float = 1.4,
+            base_accepted: int = 12,
+            refinery_kwargs: Optional[ChooseKwargs] = None,
+            **kwargs: Unpack[FetchKwargs],
     ) -> CitationManager:
         """Asynchronously performs a clued search based on a given requirement and citation manager."""
         if max_round <= 0:
