@@ -140,4 +140,4 @@ class Role(WithBriefing):
 
     def _configure_toolbox_usage(self, workflow: WorkFlow) -> Self:
         """Configure toolbox usage for workflow and its actions."""
-        return self._ropagate_config(workflow, is_toolbox_usage, "supply_tools_from", "toolbox usage")
+        return self._propagate_config(workflow, is_toolbox_usage, "supply_tools_from", "toolbox usage")
