@@ -27,6 +27,9 @@ cd fabricatio
 
 # Install the package in development mode with uvx
 uvx --with-editable . maturin develop --uv -r
+
+# Or, with make
+make dev
 ```
 
 ### Building Distribution
@@ -113,7 +116,7 @@ max_tokens = 8192
     ```
 2. **Install Dependencies**:
     ```bash
-    uvx --with-editable . maturin develop --uv -r
+    make dev
     ```
 3. **Run Tests**:
     ```bash
