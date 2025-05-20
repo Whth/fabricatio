@@ -65,10 +65,19 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[ftd,qa,rag,cli]",
+    "fabricatio[ftd,qa,rag,cli,typst,rule,judge]",
 ]
 rag = [
-    "pymilvus>=2.5.4",
+    "fabricatio-rag",
+]
+
+judge = [
+    "fabricatio-judge",
+]
+
+
+rule = [
+    "fabricatio-rule",
 ]
 
 qa = [
@@ -85,6 +94,8 @@ cli = [
 typst = [
     "fabricatio-typst"
 ]
+
+
 
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py"]
@@ -149,6 +160,9 @@ fabricatio = { workspace = true }
 fabricatio-core = { workspace = true }
 fabricatio-capabilities = { workspace = true }
 fabricatio-typst = { workspace = true }
+fabricatio-rag = { workspace = true }
+fabricatio-rule = { workspace = true }
+fabricatio-judge = { workspace = true }
 
 
 
