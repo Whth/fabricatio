@@ -5,6 +5,7 @@ requires-python = "==3.13.*"
 [manifest]
 members = [
     "fabricatio",
+    "fabricatio-actions",
     "fabricatio-capabilities",
     "fabricatio-core",
     "fabricatio-improve",
@@ -233,11 +234,16 @@ name = "fabricatio"
 version = "0.4.0"
 source = { editable = "." }
 dependencies = [
-    { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
 ]
 
 [package.optional-dependencies]
+actions = [
+    { name = "fabricatio-actions" },
+]
+capabilities = [
+    { name = "fabricatio-capabilities" },
+]
 cli = [
     { name = "typer-slim", extra = ["standard"] },
 ]
@@ -245,6 +251,8 @@ ftd = [
     { name = "magika" },
 ]
 full = [
+    { name = "fabricatio-actions" },
+    { name = "fabricatio-capabilities" },
     { name = "fabricatio-judge" },
     { name = "fabricatio-rag" },
     { name = "fabricatio-rule" },
@@ -291,8 +299,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["ftd", "qa", "rag", "cli", "typst", "rule", "judge"], marker = "extra == 'full'", editable = "." },
-    { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
+    { name = "fabricatio", extras = ["ftd", "qa", "rag", "cli", "typst", "rule", "judge", "capabilities", "actions"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
+    { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "fabricatio-improve", marker = "extra == 'improve'", editable = "packages/fabricatio-improve" },
     { name = "fabricatio-judge", marker = "extra == 'judge'", editable = "packages/fabricatio-judge" },
@@ -303,7 +312,7 @@ requires-dist = [
     { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "rag", "judge", "rule", "qa", "ftd", "cli", "typst", "improve"]
+provides-extras = ["full", "rag", "judge", "rule", "qa", "ftd", "cli", "typst", "improve", "capabilities", "actions"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -321,6 +330,17 @@ dev = [
     { name = "uv", specifier = ">=0.5.29" },
     { name = "viztracer", specifier = ">=1.0.2" },
 ]
+
+[[package]]
+name = "fabricatio-actions"
+version = "0.1.0"
+source = { editable = "packages/fabricatio-actions" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
 
 [[package]]
 name = "fabricatio-capabilities"

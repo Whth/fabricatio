@@ -64,7 +64,7 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[ftd,qa,rag,cli,typst,rule,judge]",
+    "fabricatio[ftd,qa,rag,cli,typst,rule,judge,capabilities,actions]",
 ]
 rag = [
     "fabricatio-rag",
@@ -103,6 +103,9 @@ capabilities = [
     "fabricatio-capabilities",
 ]
 
+actions = [
+    "fabricatio-actions"
+]
 
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py", "packages/*.py"]
@@ -166,6 +169,7 @@ asyncio_default_fixture_loop_scope = "function"
 fabricatio = { workspace = true }
 fabricatio-core = { workspace = true }
 fabricatio-capabilities = { workspace = true }
+fabricatio-actions = { workspace = true }
 fabricatio-typst = { workspace = true }
 fabricatio-rag = { workspace = true }
 fabricatio-rule = { workspace = true }
