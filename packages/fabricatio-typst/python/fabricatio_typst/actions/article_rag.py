@@ -4,8 +4,6 @@ from asyncio import gather
 from pathlib import Path
 from typing import ClassVar, List, Optional
 
-from fabricatio_capabilities.capabilities.advanced_rag import AdvancedRAG
-from fabricatio_capabilities.capabilities.rag import RAG
 from fabricatio_typst.rust import (
     BibManager,
     convert_all_tex_math,
@@ -19,8 +17,10 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ChooseKwargs, LLMKwargs
 from fabricatio_core.utils import ok
+from fabricatio_rag.capabilities.rag import RAG
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
+from fabricatio_typst.capabilities.citation_rag import CitationRAG
 from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
@@ -49,7 +49,7 @@ TYPST_MATH_USAGE = (
 )
 
 
-class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
+class WriteArticleContentRAG(Action, Extract, CitationRAG):
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -230,7 +230,7 @@ class WriteArticleContentRAG(Action, Extract, AdvancedRAG):
         )
 
 
-class ArticleConsultRAG(Action, AdvancedRAG):
+class ArticleConsultRAG(Action, CitationRAG):
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True

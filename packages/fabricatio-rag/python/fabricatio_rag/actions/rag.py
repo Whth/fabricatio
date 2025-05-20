@@ -2,13 +2,13 @@
 
 from typing import List, Optional
 
-from fabricatio.capabilities.rag import RAG
-from fabricatio.journal import logger
-from fabricatio.models.action import Action
-from fabricatio.models.extra.rag import MilvusClassicModel, MilvusDataBase
-from fabricatio.models.task import Task
-from fabricatio.rust import CONFIG
-from fabricatio.utils import ok
+from fabricatio_core.journal import logger
+from fabricatio_core.models.action import Action
+from fabricatio_core.models.task import Task
+from fabricatio_core.rust import CONFIG
+from fabricatio_core.utils import ok
+from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.models.rag import MilvusClassicModel, MilvusDataBase
 
 
 class InjectToDB(Action, RAG):

@@ -24,15 +24,10 @@ pyo3-log = "0.12.3"
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 
-tonic = "0.13.0"
-prost = "0.13.5"
-pyo3-async-runtimes = { version = "0.24.0", features = ["tokio-runtime"] }
 macro_utils = { path = "src/macro_utils" }
 constants = { path = "src/constants" }
 
 
-[build-dependencies]
-tonic-build = "0.13.0"
 [workspace]
 members = ["src/constants", "src/macro_utils", ]
 

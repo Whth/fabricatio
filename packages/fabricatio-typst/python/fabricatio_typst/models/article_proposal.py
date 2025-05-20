@@ -2,17 +2,21 @@
 
 from typing import Dict, List
 
-from fabricatio_core.models.generic import (
+from pydantic import Field
+
+from fabricatio_capabilities.models.generic import (
     AsPrompt,
+    SketchedAble,
+    WithRef,
+    WordCount,
+
+)
+from fabricatio_core.models.generic import (
     Described,
     Language,
     PersistentAble,
-    SketchedAble,
     Titled,
-    WithRef,
-    WordCount,
 )
-from pydantic import Field
 
 
 class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, WordCount, Described, Titled, Language):

@@ -2,9 +2,10 @@
 
 from typing import List
 
-from fabricatio_core.models.generic import PersistentAble, SketchedAble
-from fabricatio_rag.models.rag import MilvusDataBase
 from pydantic import BaseModel
+
+from fabricatio_capabilities.models.generic import PersistentAble, SketchedAble
+from fabricatio_rag.models.rag import MilvusDataBase
 
 
 class Equation(BaseModel):

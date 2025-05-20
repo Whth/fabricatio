@@ -2,12 +2,12 @@
 
 from typing import Any, List, Mapping, Optional, Self, Tuple
 
-from fabricatio.capabilities.check import Check
-from fabricatio.journal import logger
-from fabricatio.models.action import Action
-from fabricatio.models.extra.rule import RuleSet
-from fabricatio.models.generic import FromMapping
-from fabricatio.utils import ok
+from fabricatio_actions.models.generic import FromMapping
+from fabricatio_core.journal import logger
+from fabricatio_core.models.action import Action
+from fabricatio_core.utils import ok
+from fabricatio_rule.capabilities.check import Check
+from fabricatio_rule.models.rule import RuleSet
 
 
 class DraftRuleSet(Action, Check, FromMapping):

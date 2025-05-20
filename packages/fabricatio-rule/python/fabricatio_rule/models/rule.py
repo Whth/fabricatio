@@ -10,8 +10,10 @@ complex rule management systems.
 
 from typing import List, Self, Tuple, Unpack
 
-from fabricatio_core.models.generic import Language, PersistentAble, SketchedAble, WithBriefing
 from more_itertools import flatten
+
+from fabricatio_capabilities.models.generic import SketchedAble
+from fabricatio_core.models.generic import Language, PersistentAble, WithBriefing
 
 
 class Rule(WithBriefing, Language, SketchedAble, PersistentAble):
