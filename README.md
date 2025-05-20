@@ -25,8 +25,8 @@ pip install uv
 git clone https://github.com/Whth/fabricatio.git
 cd fabricatio
 
-# Install the package in development mode with uv
-uv --with-editable . maturin develop --uv -r
+# Install the package in development mode with uvx
+uvx --with-editable . maturin develop --uv -r
 ```
 
 ### Building Distribution
@@ -113,7 +113,7 @@ max_tokens = 8192
     ```
 2. **Install Dependencies**:
     ```bash
-    uv --with-editable . maturin develop --uv -r
+    uvx --with-editable . maturin develop --uv -r
     ```
 3. **Run Tests**:
     ```bash
