@@ -4,9 +4,9 @@ from abc import ABC
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence, Set
 
-from fabricatio.decorators import precheck_package
-from fabricatio.models.generic import Base, Vectorizable
-from fabricatio.utils import ok
+from fabricatio_core.decorators import precheck_package
+from fabricatio_core.models.generic import Base, Vectorizable
+from fabricatio_core.utils import ok
 from pydantic import JsonValue
 
 if TYPE_CHECKING:
