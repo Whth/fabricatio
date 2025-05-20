@@ -3,12 +3,11 @@
 from abc import ABC
 from typing import List, Optional, Type, Unpack, overload
 
-from fabricatio.models.kwargs_types import ValidateKwargs
-from fabricatio.rust import CONFIG
-
 from fabricatio import TEMPLATE_MANAGER
 from fabricatio_capabilities.capabilities.propose import Propose
-from fabricatio_core.models.generic import ProposedAble
+from fabricatio_capabilities.models.generic import ProposedAble
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import CONFIG
 
 
 class Extract(Propose, ABC):
