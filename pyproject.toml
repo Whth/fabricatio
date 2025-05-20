@@ -98,7 +98,7 @@ typst = [
 
 
 [tool.ruff]
-include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py"]
+include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py", "packages/*.py"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]
