@@ -6,8 +6,8 @@ from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from fabricatio.decorators import depend_on_external_cmd
-from fabricatio.journal import logger
+from fabricatio_core.decorators import depend_on_external_cmd
+from fabricatio_core.journal import logger
 
 
 def dump_text(path: Union[str, Path], text: str) -> None:

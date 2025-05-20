@@ -393,6 +393,111 @@ class ScopedConfig(Base, ABC):
         return self
 
 
+class UnsortGenerate(GenerateJsonSchema):
+    """Class that provides a reverse JSON schema of the model.
+
+    This class overrides the sorting behavior of the JSON schema generation to maintain the original order.
+    """
+
+    def sort(self, value: JsonSchemaValue, parent_key: str | None = None) -> JsonSchemaValue:
+        """Not sort.
+
+        Args:
+            value (JsonSchemaValue): The JSON schema value to sort.
+            parent_key (str | None): The parent key of the JSON schema value.
+
+        Returns:
+            JsonSchemaValue: The JSON schema value without sorting.
+        """
+        return value
+
+
+class WithFormatedJsonSchema(Base, ABC):
+    """Class that provides a formatted JSON schema of the model.
+
+    This class includes a method to generate a formatted JSON schema of the model.
+    """
+
+    @classmethod
+    def formated_json_schema(cls) -> str:
+        """Get the JSON schema of the model in a formatted string.
+
+        Returns:
+            str: The JSON schema of the model in a formatted string.
+        """
+        return ujson.dumps(
+            cls.model_json_schema(schema_generator=UnsortGenerate), indent=2, ensure_ascii=False, sort_keys=False
+        )
+
+
+class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
+    """Class that provides a prompt for creating a JSON object.
+
+    This class includes a method to create a prompt for creating a JSON object based on the model's schema and a requirement.
+    """
+
+    @classmethod
+    @overload
+    def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
+
+    @classmethod
+    @overload
+    def create_json_prompt(cls, requirement: str) -> str: ...
+
+    @classmethod
+    def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
+        """Create the prompt for creating a JSON object with given requirement.
+
+        Args:
+            requirement (str | List[str]): The requirement for the JSON object.
+
+        Returns:
+            str | List[str]: The prompt for creating a JSON object with given requirement.
+        """
+        if isinstance(requirement, str):
+            return TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.create_json_obj_template,
+                {"requirement": requirement, "json_schema": cls.formated_json_schema()},
+            )
+        return [
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.create_json_obj_template,
+                {"requirement": r, "json_schema": cls.formated_json_schema()},
+            )
+            for r in requirement
+        ]
+
+
+class InstantiateFromString(Base, ABC):
+    """Class that provides a method to instantiate the class from a string.
+
+    This class includes a method to instantiate the class from a JSON string representation.
+    """
+
+    @classmethod
+    def instantiate_from_string(cls, string: str) -> Self | None:
+        """Instantiate the class from a string.
+
+        Args:
+            string (str): The string to instantiate the class from.
+
+        Returns:
+            Self | None: The instance of the class or None if the string is not valid.
+        """
+        from fabricatio.parser import JsonCapture
+
+        obj = JsonCapture.convert_with(string, cls.model_validate_json)
+        logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
+        return obj
+
+
+class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
+    """Class that provides a method to propose a JSON object based on the requirement.
+
+    This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
+    """
+
+
 class Patch[T](ProposedAble, ABC):
     """Base class for patches.
 
