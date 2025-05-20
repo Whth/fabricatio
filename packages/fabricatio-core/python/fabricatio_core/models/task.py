@@ -6,11 +6,12 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 from asyncio import Queue
 from typing import Any, Dict, List, Optional, Self, Union
 
+from pydantic import Field, PrivateAttr
+
 from fabricatio_core.emitter import env
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
-from pydantic import Field, PrivateAttr
 
 type EventLike = Union[str, Event, List[str]]
 
