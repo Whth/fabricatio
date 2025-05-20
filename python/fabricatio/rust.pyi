@@ -350,13 +350,29 @@ def strip_comment(string: str) -> str:
     """
 
 def split_out_metadata(string: str) -> Tuple[Optional[JsonValue], str]:
-    """Split out metadata from a string.
+    """Extracts and parses a YAML metadata block from the beginning of a string.
+
+    The function identifies metadata as a contiguous block of lines at the
+    beginning of the input string, where each line must start with `//`.
+    The comment prefix (`// ` or `//`) is removed from each of these lines.
+    The resulting content, formed by joining these uncommented lines,
+    is then parsed as YAML.
 
     Args:
-        string: The input string containing metadata.
+        string: The input string. If it contains metadata, this metadata must
+                be at the very beginning, with each line of the metadata
+                block starting with `//`.
 
     Returns:
-        A tuple containing the metadata as a Python object (if parseable) and the remaining string.
+        A tuple `(metadata, remaining_string)`:
+        - `metadata (Optional[JsonValue])`: The parsed YAML data as a Python object
+          (e.g., dict, list) if a valid metadata block was successfully
+          identified and parsed. This is `None` if no lines at the start of
+          the string begin with `//`, or if the uncommented block is not
+          valid YAML.
+        - `remaining_string (str)`: The portion of the input string that follows
+          the metadata block. If no metadata block was processed (either not
+          found or not parsable), this is the original input string.
     """
 
 def to_metadata(data: JsonValue) -> str:
