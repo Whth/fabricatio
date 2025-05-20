@@ -3,16 +3,17 @@
 from functools import partial
 from typing import Any, Callable, Dict, Self, Type
 
+from pydantic import ConfigDict, Field
+
 from fabricatio_core.emitter import env
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import WorkFlow
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.rust import Event
 from fabricatio_core.utils import is_subclass_of_base
-from pydantic import ConfigDict, Field
 
-is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages", base_name="ToolBoxUsage")
-is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio.models.generic", base_name="ScopedConfig")
+is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio_core.models.usages", base_name="ToolBoxUsage")
+is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio_core.models.generic", base_name="ScopedConfig")
 
 
 class Role(WithBriefing):
@@ -82,11 +83,11 @@ class Role(WithBriefing):
         return self
 
     def _propagate_config(
-        self,
-        workflow: WorkFlow,
-        has_capability: Callable[[Type], bool],
-        config_method_name: str,
-        capability_description: str,
+            self,
+            workflow: WorkFlow,
+            has_capability: Callable[[Type], bool],
+            config_method_name: str,
+            capability_description: str,
     ) -> Self:
         """Propagates configuration from the Role to a Workflow and its Actions.
 
