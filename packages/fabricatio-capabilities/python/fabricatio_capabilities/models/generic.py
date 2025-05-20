@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Self, Sequence, Type, Union, final, overload
+from typing import Any, Dict, Iterable, List, Optional, Self, Type, Union, final, overload
 
 import ujson
 from fabricatio.fs import dump_text
@@ -33,24 +33,6 @@ class WordCount(Base, ABC):
     def exact_word_count(self) -> int:
         """Get the exact word count of this research component."""
         raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
-
-
-class FromMapping:
-    """Class that provides a method to generate a list of objects from a mapping."""
-
-    @classmethod
-    @abstractmethod
-    def from_mapping[S](cls: S, mapping: Mapping[str, Any], **kwargs: Any) -> List[S]:
-        """Generate a list of objects from a mapping."""
-
-
-class FromSequence:
-    """Class that provides a method to generate a list of objects from a sequence."""
-
-    @classmethod
-    @abstractmethod
-    def from_sequence[S](cls: S, sequence: Sequence[Any], **kwargs: Any) -> List[S]:
-        """Generate a list of objects from a sequence."""
 
 
 class AsPrompt:

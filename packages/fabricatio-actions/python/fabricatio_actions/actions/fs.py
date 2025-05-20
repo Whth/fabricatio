@@ -3,10 +3,11 @@
 from pathlib import Path
 from typing import Any, List, Mapping, Self
 
-from fabricatio.fs import safe_text_read
-from fabricatio.journal import logger
-from fabricatio.models.action import Action
 from fabricatio.models.generic import FromMapping
+
+from fabricatio_core.fs import safe_text_read
+from fabricatio_core.journal import logger
+from fabricatio_core.models.action import Action
 
 
 class ReadText(Action, FromMapping):

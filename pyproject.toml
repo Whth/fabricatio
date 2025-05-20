@@ -29,7 +29,6 @@ keywords = [
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "fabricatio-core",
-    "fabricatio-capabilities"
 ]
 
 [project.urls]
@@ -98,6 +97,10 @@ typst = [
 improve = [
     "fabricatio-improve"
 
+]
+
+capabilities = [
+    "fabricatio-capabilities",
 ]
 
 
