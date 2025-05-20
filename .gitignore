@@ -168,5 +168,5 @@ output/
 .vscode/
 templates/customed
 *.typ
-/src/tei.rs
+tei.rs
 .python-version

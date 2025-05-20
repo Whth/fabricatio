@@ -28,16 +28,8 @@ keywords = [
 
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "asyncio>=3.4.3",
-    "asyncstdlib>=3.13.0",
-    "json-repair>=0.39.1",
-    "litellm>=1.60.0",
-    "loguru>=0.7.3",
-    "more-itertools>=10.6.0",
-    "pydantic>=2.10.6",
-    "pymitter>=1.0.0",
-    "rich>=13.9.4",
-    "ujson>=5.10.0",
+    "fabricatio-core",
+    "fabricatio-capabilities"
 ]
 
 [project.urls]
@@ -149,6 +141,8 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.uv.sources]
 fabricatio = { workspace = true }
+fabricatio-core = { workspace = true }
+fabricatio-capabilities = { workspace = true }
 
 [[tool.uv.index]]
 url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
@@ -162,4 +156,9 @@ url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
+
+[tool.uv.workspace]
+members = [
+    "packages/*",
+]
 

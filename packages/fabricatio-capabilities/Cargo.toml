@@ -1,0 +1,16 @@
+[package]
+name = "fabricatio-capabilities"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+pyo3 = { version = "0.24.2", features = ["extension-module"] }
+
+
+
+
+
+[workspace]

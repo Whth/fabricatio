@@ -1,0 +1,13 @@
+[package]
+name = "macro_utils"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
+quote = "1.0.40"
+syn = "2.0.101"
+
+
+[lib]
+proc-macro = true

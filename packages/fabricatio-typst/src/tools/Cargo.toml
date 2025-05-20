@@ -10,8 +10,8 @@ serde_json = "1.0.138"
 clap = { version = "4.5.29", features = ["derive"] }
 tex2typst-rs = "0.4.1"
 
-typst_conversion = { path = "../../packages/fabricatio-typst/src/typst_conversion" }
-constants = { path = "../../packages/fabricatio-core/src/constants" }
+typst_conversion = { path = "../typst_conversion" }
+constants = { path = "../constants" }
 
 [[bin]]
 name = "tdown"

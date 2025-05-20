@@ -8,8 +8,8 @@ from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type, U
 import ujson
 from json_repair import repair_json
 
-from fabricatio.journal import logger
-from fabricatio.rust import CONFIG
+from fabricatio_core.journal import logger
+from fabricatio_core.rust import CONFIG
 
 
 @dataclass(frozen=True)
@@ -80,7 +80,9 @@ class Capture:
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
-        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = lambda x: ujson.loads(x) if isinstance(x, str) else ujson.loads(x[0]),
+        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = lambda x: ujson.loads(x)
+        if isinstance(x, str)
+        else ujson.loads(x[0]),
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types."""
         judges = [lambda obj: isinstance(obj, target_type)]

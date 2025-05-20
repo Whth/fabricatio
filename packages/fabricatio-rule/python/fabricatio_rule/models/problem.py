@@ -3,9 +3,9 @@
 from itertools import chain
 from typing import Any, List, Optional, Self, Tuple, Unpack
 
-from fabricatio.journal import logger
-from fabricatio.models.generic import SketchedAble, WithBriefing
-from fabricatio.utils import ask_edit
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import SketchedAble, WithBriefing
+from fabricatio_core.utils import ask_edit
 from pydantic import Field
 from rich import print as r_print
 

@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 
 import ujson
 
-from fabricatio.journal import logger
+from fabricatio_core.journal import logger
 
 
 def safe_text_read(path: Path | str) -> str:
