@@ -375,6 +375,12 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 name = "fabricatio-typst"
 version = "0.1.0"
 source = { editable = "packages/fabricatio-typst" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
 
 [[package]]
 name = "filelock"
