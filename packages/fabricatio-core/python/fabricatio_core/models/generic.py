@@ -3,14 +3,9 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Sequence, Type, Union, final, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Type, Union, final
 
 import ujson
-from fabricatio_core.fs import dump_text
-from fabricatio_core.fs.readers import safe_text_read
-from fabricatio_core.journal import logger
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
-from fabricatio_core.utils import ok
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -18,10 +13,12 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
-    PrivateAttr,
     SecretStr,
 )
-from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
+
+from fabricatio_core.fs.readers import safe_text_read
+from fabricatio_core.journal import logger
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
 
 
 class Base(BaseModel, ABC):
@@ -70,9 +67,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -106,112 +103,6 @@ class Titled(Base, ABC):
     """The title of this object, make it professional and concise.No prefixed heading number should be included."""
 
 
-class WordCount(Base, ABC):
-    """Class that includes a word count attribute."""
-
-    expected_word_count: int
-    """Expected word count of this research component."""
-
-    @property
-    def exact_word_count(self) -> int:
-        """Get the exact word count of this research component."""
-        raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
-
-
-class FromMapping:
-    """Class that provides a method to generate a list of objects from a mapping."""
-
-    @classmethod
-    @abstractmethod
-    def from_mapping[S](cls: S, mapping: Mapping[str, Any], **kwargs: Any) -> List[S]:
-        """Generate a list of objects from a mapping."""
-
-
-class FromSequence:
-    """Class that provides a method to generate a list of objects from a sequence."""
-
-    @classmethod
-    @abstractmethod
-    def from_sequence[S](cls: S, sequence: Sequence[Any], **kwargs: Any) -> List[S]:
-        """Generate a list of objects from a sequence."""
-
-
-class AsPrompt:
-    """Class that provides a method to generate a prompt from the model.
-
-    This class includes a method to generate a prompt based on the model's attributes.
-    """
-
-    @final
-    def as_prompt(self) -> str:
-        """Generate a prompt from the model.
-
-        Returns:
-            str: The generated prompt.
-        """
-        return TEMPLATE_MANAGER.render_template(
-            CONFIG.templates.as_prompt_template,
-            self._as_prompt_inner(),
-        )
-
-    @abstractmethod
-    def _as_prompt_inner(self) -> Dict[str, str]:
-        """Generate the inner part of the prompt.
-
-        This method should be implemented by subclasses to provide the specific data for the prompt.
-
-        Returns:
-            Dict[str, str]: The data for the prompt.
-        """
-
-
-class WithRef[T](Base, ABC):
-    """Class that provides a reference to another object.
-
-    This class manages a reference to another object, allowing for easy access and updates.
-    """
-
-    _reference: Optional[T] = PrivateAttr(None)
-
-    @property
-    def referenced(self) -> T:
-        """Get the referenced object.
-
-        Returns:
-            T: The referenced object.
-
-        Raises:
-            ValueError: If the reference is not set.
-        """
-        return ok(
-            self._reference, f"`{self.__class__.__name__}`'s `_reference` field is None. Have you called `update_ref`?"
-        )
-
-    @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
-
-    @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
-
-    @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
-
-    def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
-        """Update the reference of the object.
-
-        Args:
-            reference (Union[T, WithRef[T], None]): The new reference to set.
-
-        Returns:
-            S: The current instance with the updated reference.
-        """
-        if isinstance(reference, self.__class__):
-            self._reference = reference.referenced
-        else:
-            self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
-        return self
-
-
 class Language:
     """Class that provides a language attribute."""
 
@@ -225,85 +116,6 @@ class Language:
         if isinstance(self, Named) and self.name:
             return detect_language(self.name)
         raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
-
-
-class ModelHash(Base, ABC):
-    """Class that provides a hash value for the object.
-
-    This class includes a method to calculate a hash value for the object based on its JSON representation.
-    """
-
-    def __hash__(self) -> int:
-        """Calculates a hash value for the object based on its model_dump_json representation.
-
-        Returns:
-            int: The hash value of the object.
-        """
-        return hash(self.model_dump_json())
-
-
-class UpdateFrom(ABC):
-    """Class that provides a method to update the object from another object.
-
-    This class includes methods to update the current object with the attributes of another object.
-    """
-
-    def update_pre_check(self, other: Self) -> Self:
-        """Pre-check for updating the object from another object.
-
-        Args:
-            other (Self): The other object to update from.
-
-        Returns:
-            Self: The current instance after pre-check.
-
-        Raises:
-            TypeError: If the other object is not of the same type.
-        """
-        if not isinstance(other, self.__class__):
-            raise TypeError(f"Cannot update from a non-{self.__class__.__name__} instance.")
-
-        return self
-
-    @abstractmethod
-    def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance.
-
-        This method should be implemented by subclasses to provide the specific update logic.
-
-        Args:
-            other (Self): The other instance to update from.
-
-        Returns:
-            Self: The current instance with updated attributes.
-        """
-
-    @final
-    def update_from(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance.
-
-        Args:
-            other (Self): The other instance to update from.
-
-        Returns:
-            Self: The current instance with updated attributes.
-        """
-        return self.update_pre_check(other).update_from_inner(other)
-
-
-class Introspect(ABC):
-    """Class that provides a method to introspect the object.
-
-    This class includes a method to perform internal introspection of the object.
-    """
-
-    @abstractmethod
-    def introspect(self) -> str:
-        """Internal introspection of the object.
-
-        Returns:
-            str: The internal introspection of the object.
-        """
 
 
 class WithBriefing(Named, Described, ABC):
@@ -320,152 +132,6 @@ class WithBriefing(Named, Described, ABC):
             str: The briefing of the object.
         """
         return f"{self.name}: {self.description}" if self.description else self.name
-
-
-class UnsortGenerate(GenerateJsonSchema):
-    """Class that provides a reverse JSON schema of the model.
-
-    This class overrides the sorting behavior of the JSON schema generation to maintain the original order.
-    """
-
-    def sort(self, value: JsonSchemaValue, parent_key: str | None = None) -> JsonSchemaValue:
-        """Not sort.
-
-        Args:
-            value (JsonSchemaValue): The JSON schema value to sort.
-            parent_key (str | None): The parent key of the JSON schema value.
-
-        Returns:
-            JsonSchemaValue: The JSON schema value without sorting.
-        """
-        return value
-
-
-class WithFormatedJsonSchema(Base, ABC):
-    """Class that provides a formatted JSON schema of the model.
-
-    This class includes a method to generate a formatted JSON schema of the model.
-    """
-
-    @classmethod
-    def formated_json_schema(cls) -> str:
-        """Get the JSON schema of the model in a formatted string.
-
-        Returns:
-            str: The JSON schema of the model in a formatted string.
-        """
-        return ujson.dumps(
-            cls.model_json_schema(schema_generator=UnsortGenerate), indent=2, ensure_ascii=False, sort_keys=False
-        )
-
-
-class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
-    """Class that provides a prompt for creating a JSON object.
-
-    This class includes a method to create a prompt for creating a JSON object based on the model's schema and a requirement.
-    """
-
-    @classmethod
-    @overload
-    def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
-
-    @classmethod
-    @overload
-    def create_json_prompt(cls, requirement: str) -> str: ...
-
-    @classmethod
-    def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
-        """Create the prompt for creating a JSON object with given requirement.
-
-        Args:
-            requirement (str | List[str]): The requirement for the JSON object.
-
-        Returns:
-            str | List[str]: The prompt for creating a JSON object with given requirement.
-        """
-        if isinstance(requirement, str):
-            return TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.create_json_obj_template,
-                {"requirement": requirement, "json_schema": cls.formated_json_schema()},
-            )
-        return [
-            TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.create_json_obj_template,
-                {"requirement": r, "json_schema": cls.formated_json_schema()},
-            )
-            for r in requirement
-        ]
-
-
-class InstantiateFromString(Base, ABC):
-    """Class that provides a method to instantiate the class from a string.
-
-    This class includes a method to instantiate the class from a JSON string representation.
-    """
-
-    @classmethod
-    def instantiate_from_string(cls, string: str) -> Self | None:
-        """Instantiate the class from a string.
-
-        Args:
-            string (str): The string to instantiate the class from.
-
-        Returns:
-            Self | None: The instance of the class or None if the string is not valid.
-        """
-        from fabricatio_core.parser import JsonCapture
-
-        obj = JsonCapture.convert_with(string, cls.model_validate_json)
-        logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
-        return obj
-
-
-class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
-    """Class that provides a method to propose a JSON object based on the requirement.
-
-    This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
-    """
-
-
-class SketchedAble(ProposedAble, Display, ABC):
-    """Class that provides a method to scratch the object.
-
-    This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
-    """
-
-
-class ProposedUpdateAble(SketchedAble, UpdateFrom, ABC):
-    """Make the obj can be updated from the proposed obj in place.
-
-    This class provides the ability to update an object in place from a proposed object.
-    """
-
-
-class FinalizedDumpAble(Base, ABC):
-    """Class that provides a method to finalize the dump of the object.
-
-    This class includes methods to finalize the JSON representation of the object and dump it to a file.
-    """
-
-    def finalized_dump(self) -> str:
-        """Finalize the dump of the object.
-
-        Returns:
-            str: The finalized dump of the object.
-        """
-        return self.model_dump_json(indent=1, by_alias=True)
-
-    def finalized_dump_to(self, path: str | Path) -> Self:
-        """Finalize the dump of the object to a file.
-
-        Args:
-            path (str | Path): The path to save the finalized dump.
-
-        Returns:
-            Self: The current instance of the object.
-        """
-        dump_text(path, self.finalized_dump())
-        return self
 
 
 class WithDependency(Base, ABC):
@@ -774,7 +440,8 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 

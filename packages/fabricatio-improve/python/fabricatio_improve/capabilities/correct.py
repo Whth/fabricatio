@@ -4,19 +4,19 @@ from abc import ABC
 from asyncio import gather
 from typing import Optional, Unpack, cast
 
-from fabricatio.capabilities.propose import Propose
-from fabricatio.capabilities.rating import Rating
-from fabricatio.journal import logger
-from fabricatio_rule.models.problem import Improvement, ProblemSolutions
-
-from fabricatio_core.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_capabilities.capabilities.rating import Rating
+from fabricatio_capabilities.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
     BestKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.models.kwargs_types import CorrectKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
+from fabricatio_improve.models.improve import Improvement
+from fabricatio_improve.models.problem import ProblemSolutions
+from fabricatio_rule.models.kwargs_types import CorrectKwargs
 
 
 class Correct(Rating, Propose, ABC):

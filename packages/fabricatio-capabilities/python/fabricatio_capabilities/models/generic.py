@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Self, Sequence, Type, Union, final, overload
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Self, Sequence, Type, Union, final, overload
 
 import ujson
 from fabricatio.fs import dump_text
@@ -13,7 +13,6 @@ from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_langua
 from fabricatio.utils import ok
 from pydantic import (
     BaseModel,
-    ConfigDict,
     Field,
     NonNegativeFloat,
     PositiveFloat,
@@ -22,88 +21,6 @@ from pydantic import (
     SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
-
-
-class Base(BaseModel, ABC):
-    """Base class for all models with Pydantic configuration.
-
-    This class sets up the basic Pydantic configuration for all models in the Fabricatio library.
-    The `model_config` uses `use_attribute_docstrings=True` to ensure field descriptions are
-    pulled from the attribute's docstring instead of the default Pydantic behavior.
-    """
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
-
-
-class Display(Base, ABC):
-    """Class that provides formatted JSON representation utilities.
-
-    Provides methods to generate both pretty-printed and compact JSON representations of the model.
-    Used for debugging and logging purposes.
-    """
-
-    def display(self) -> str:
-        """Generate pretty-printed JSON representation.
-
-        Returns:
-            str: JSON string with 1-level indentation for readability
-        """
-        return self.model_dump_json(indent=1, by_alias=True)
-
-    def compact(self) -> str:
-        """Generate compact JSON representation.
-
-        Returns:
-            str: Minified JSON string without whitespace
-        """
-        return self.model_dump_json(by_alias=True)
-
-    @staticmethod
-    def seq_display(seq: Iterable["Display"], compact: bool = False) -> str:
-        """Generate formatted display for sequence of Display objects.
-
-        Args:
-            seq (Iterable[Display]): Sequence of objects to display
-            compact (bool): Use compact format instead of pretty print
-
-        Returns:
-            str: Combined display output with boundary markers
-        """
-        return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
-        )
-
-
-class Named(Base, ABC):
-    """Class that includes a name attribute.
-
-    This class adds a name attribute to models, which is intended to be a unique identifier.
-    """
-
-    name: str
-    """The name of this object,briefly and conclusively."""
-
-
-class Described(Base, ABC):
-    """Class that includes a description attribute.
-
-    This class adds a description attribute to models, providing additional context or information.
-    """
-
-    description: str
-    """A comprehensive description of this object, including its purpose, scope, and context.
-    This should clearly explain what this object is about, why it exists, and in what situations
-    it applies. The description should be detailed enough to provide full understanding of
-    this object's intent and application."""
-
-
-class Titled(Base, ABC):
-    """Class that includes a title attribute."""
-
-    title: str
-    """The title of this object, make it professional and concise.No prefixed heading number should be included."""
 
 
 class WordCount(Base, ABC):
@@ -188,13 +105,16 @@ class WithRef[T](Base, ABC):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
+        ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
@@ -289,37 +209,6 @@ class UpdateFrom(ABC):
             Self: The current instance with updated attributes.
         """
         return self.update_pre_check(other).update_from_inner(other)
-
-
-class Introspect(ABC):
-    """Class that provides a method to introspect the object.
-
-    This class includes a method to perform internal introspection of the object.
-    """
-
-    @abstractmethod
-    def introspect(self) -> str:
-        """Internal introspection of the object.
-
-        Returns:
-            str: The internal introspection of the object.
-        """
-
-
-class WithBriefing(Named, Described, ABC):
-    """Class that provides a briefing based on the name and description.
-
-    This class combines the name and description attributes to provide a brief summary of the object.
-    """
-
-    @property
-    def briefing(self) -> str:
-        """Get the briefing of the object.
-
-        Returns:
-            str: The briefing of the object.
-        """
-        return f"{self.name}: {self.description}" if self.description else self.name
 
 
 class UnsortGenerate(GenerateJsonSchema):
@@ -466,99 +355,6 @@ class FinalizedDumpAble(Base, ABC):
         """
         dump_text(path, self.finalized_dump())
         return self
-
-
-class WithDependency(Base, ABC):
-    """Class that manages file dependencies.
-
-    This class includes methods to manage file dependencies required for reading or writing.
-    """
-
-    dependencies: List[str] = Field(default_factory=list)
-    """The file dependencies which is needed to read or write to meet a specific requirement, a list of file paths."""
-
-    def add_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
-        """Add a file dependency to the task.
-
-        Args:
-            dependency (str | Path | List[str | Path]): The file dependency to add to the task.
-
-        Returns:
-            Self: The current instance of the task.
-        """
-        if not isinstance(dependency, list):
-            dependency = [dependency]
-        self.dependencies.extend(Path(d).as_posix() for d in dependency)
-        return self
-
-    def remove_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
-        """Remove a file dependency from the task.
-
-        Args:
-            dependency (str | Path | List[str | Path]): The file dependency to remove from the task.
-
-        Returns:
-            Self: The current instance of the task.
-        """
-        if not isinstance(dependency, list):
-            dependency = [dependency]
-        for d in dependency:
-            self.dependencies.remove(Path(d).as_posix())
-        return self
-
-    def clear_dependencies(self) -> Self:
-        """Clear all file dependencies from the task.
-
-        Returns:
-            Self: The current instance of the task.
-        """
-        self.dependencies.clear()
-        return self
-
-    def override_dependencies[P: str | Path](self, dependencies: List[P] | P) -> Self:
-        """Override the file dependencies of the task.
-
-        Args:
-            dependencies (List[str | Path] | str | Path): The file dependencies to override the task's dependencies.
-
-        Returns:
-            Self: The current instance of the task.
-        """
-        return self.clear_dependencies().add_dependency(dependencies)
-
-    def pop_dependence[T](self, idx: int = -1, reader: Callable[[str], T] = safe_text_read) -> T:
-        """Pop the file dependencies from the task.
-
-        Returns:
-            str: The popped file dependency
-        """
-        return reader(self.dependencies.pop(idx))
-
-    @property
-    def dependencies_prompt(self) -> str:
-        """Generate a prompt for the task based on the file dependencies.
-
-        Returns:
-            str: The generated prompt for the task.
-        """
-        from fabricatio.fs import MAGIKA
-
-        return TEMPLATE_MANAGER.render_template(
-            CONFIG.templates.dependencies_template,
-            {
-                (pth := Path(p)).name: {
-                    "path": pth.as_posix(),
-                    "exists": pth.exists(),
-                    "description": (identity := MAGIKA.identify_path(pth)).output.description,
-                    "size": f"{pth.stat().st_size / (1024 * 1024) if pth.exists() and pth.is_file() else 0:.3f} MB",
-                    "content": (text := safe_text_read(pth)),
-                    "lines": len(text.splitlines()),
-                    "language": identity.output.ct_label,
-                    "checksum": blake3_hash(pth.read_bytes()) if pth.exists() and pth.is_file() else "unknown",
-                }
-                for p in self.dependencies
-            },
-        )
 
 
 class Vectorizable(ABC):
@@ -774,7 +570,8 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 

@@ -1,7 +1,9 @@
 """A module containing kwargs types for content correction and checking operations."""
-from typing import List
+from itertools import chain
+from typing import List, Self, Unpack, Tuple
 
-from fabricatio_core.models.generic import SketchedAble
+from fabricatio_capabilities.models.generic import SketchedAble
+from fabricatio_improve.models.problem import ProblemSolutions
 
 
 class Improvement(SketchedAble):
