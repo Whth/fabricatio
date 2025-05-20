@@ -7,6 +7,7 @@ members = [
     "fabricatio",
     "fabricatio-capabilities",
     "fabricatio-core",
+    "fabricatio-improve",
     "fabricatio-judge",
     "fabricatio-rag",
     "fabricatio-rule",
@@ -252,6 +253,9 @@ full = [
     { name = "questionary" },
     { name = "typer-slim", extra = ["standard"] },
 ]
+improve = [
+    { name = "fabricatio-improve" },
+]
 judge = [
     { name = "fabricatio-judge" },
 ]
@@ -290,6 +294,7 @@ requires-dist = [
     { name = "fabricatio", extras = ["ftd", "qa", "rag", "cli", "typst", "rule", "judge"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-improve", marker = "extra == 'improve'", editable = "packages/fabricatio-improve" },
     { name = "fabricatio-judge", marker = "extra == 'judge'", editable = "packages/fabricatio-judge" },
     { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
     { name = "fabricatio-rule", marker = "extra == 'rule'", editable = "packages/fabricatio-rule" },
@@ -298,7 +303,7 @@ requires-dist = [
     { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "rag", "judge", "rule", "qa", "ftd", "cli", "typst"]
+provides-extras = ["full", "rag", "judge", "rule", "qa", "ftd", "cli", "typst", "improve"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -360,6 +365,17 @@ requires-dist = [
 ]
 
 [[package]]
+name = "fabricatio-improve"
+version = "0.1.0"
+source = { editable = "packages/fabricatio-improve" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+
+[[package]]
 name = "fabricatio-judge"
 version = "0.1.0"
 source = { editable = "packages/fabricatio-judge" }
@@ -391,10 +407,14 @@ version = "0.1.0"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-core" },
+    { name = "fabricatio-improve" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-improve", editable = "packages/fabricatio-improve" },
+]
 
 [[package]]
 name = "fabricatio-typst"

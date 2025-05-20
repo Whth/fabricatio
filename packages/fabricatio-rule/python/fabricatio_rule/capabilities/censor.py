@@ -7,14 +7,14 @@ It provides methods to censor objects and strings by first checking them against
 from abc import ABC
 from typing import Optional, Unpack
 
-from fabricatio.capabilities.check import Check
-from fabricatio.capabilities.correct import Correct
-from fabricatio.journal import logger
-from fabricatio.models.extra.problem import Improvement
-from fabricatio.models.extra.rule import RuleSet
-from fabricatio.models.generic import ProposedUpdateAble, SketchedAble
-from fabricatio.models.kwargs_types import ReferencedKwargs
-from fabricatio.utils import override_kwargs
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_core.models.kwargs_types import ReferencedKwargs
+from fabricatio_core.utils import override_kwargs
+from fabricatio_improve.capabilities.correct import Correct
+from fabricatio_improve.models.improve import Improvement
+from fabricatio_rule.capabilities.check import Check
+from fabricatio_rule.models.rule import RuleSet
 
 
 class Censor(Correct, Check, ABC):

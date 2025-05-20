@@ -95,6 +95,10 @@ typst = [
     "fabricatio-typst"
 ]
 
+improve = [
+    "fabricatio-improve"
+
+]
 
 
 [tool.ruff]
@@ -163,6 +167,7 @@ fabricatio-typst = { workspace = true }
 fabricatio-rag = { workspace = true }
 fabricatio-rule = { workspace = true }
 fabricatio-judge = { workspace = true }
+fabricatio-improve = { workspace = true }
 
 
 
