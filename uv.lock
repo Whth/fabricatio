@@ -369,11 +369,15 @@ name = "fabricatio-improve"
 version = "0.1.0"
 source = { editable = "packages/fabricatio-improve" }
 dependencies = [
+    { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+]
 
 [[package]]
 name = "fabricatio-judge"
@@ -406,14 +410,18 @@ name = "fabricatio-rule"
 version = "0.1.0"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
+    { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
     { name = "fabricatio-improve" },
+    { name = "fabricatio-judge" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "fabricatio-improve", editable = "packages/fabricatio-improve" },
+    { name = "fabricatio-judge", editable = "packages/fabricatio-judge" },
 ]
 
 [[package]]

@@ -3,14 +3,14 @@
 from abc import ABC
 from typing import Dict, Optional, Set, Unpack
 
-from fabricatio.capabilities.propose import Propose
-from fabricatio.capabilities.rating import Rating
-from fabricatio.models.extra.problem import Improvement
-from fabricatio.models.generic import Display, WithBriefing
-from fabricatio.models.kwargs_types import ReviewKwargs, ValidateKwargs
-from fabricatio.models.task import Task
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
-from fabricatio.utils import ok
+from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_capabilities.capabilities.rating import Rating
+from fabricatio_core.models.generic import Display, WithBriefing
+from fabricatio_core.models.task import Task
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.utils import ok
+from fabricatio_improve.models.improve import Improvement
+from fabricatio_improve.models.kwargs_types import ReviewKwargs, ValidateKwargs
 
 
 class Review(Rating, Propose, ABC):
@@ -41,12 +41,12 @@ class Review(Rating, Propose, ABC):
         return await self.review_obj(task, **kwargs)
 
     async def review_string(
-        self,
-        input_text: str,
-        topic: str,
-        criteria: Optional[Set[str]] = None,
-        rating_manual: Optional[Dict[str, str]] = None,
-        **kwargs: Unpack[ValidateKwargs[Improvement]],
+            self,
+            input_text: str,
+            topic: str,
+            criteria: Optional[Set[str]] = None,
+            rating_manual: Optional[Dict[str, str]] = None,
+            **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Review a string based on specified topic and criteria.
 
@@ -85,7 +85,7 @@ class Review(Rating, Propose, ABC):
         )
 
     async def review_obj[M: (Display, WithBriefing)](
-        self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]
+            self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]
     ) -> Optional[Improvement]:
         """Review an object that implements Display or WithBriefing interface.
 
