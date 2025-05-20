@@ -30,6 +30,8 @@ class Role(WithBriefing):
 
     registry: Dict[Event, WorkFlow] = Field(default_factory=dict)
     """The registry of events and workflows."""
+    dispatch_on_init: bool = True
+    """Whether to dispatch registered workflows on initialization."""
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -39,9 +41,20 @@ class Role(WithBriefing):
         """
         self.name = self.name or self.__class__.__name__
 
-        self.resolve_configuration().register_workflows()
+        if self.dispatch_on_init:
+            self.resolve_configuration().dispatch()
 
-    def register_workflows(self) -> Self:
+    def register_workflow(self, event: Event, workflow: WorkFlow) -> Self:
+        """Register a workflow to the role's registry."""
+        if event in self.registry:
+            logger.warning(
+                f"Event `{event.collapse()}` is already registered with workflow "
+                f"`{self.registry[event].name}`. It will be overwritten by `{workflow.name}`."
+            )
+        self.registry[event] = workflow
+        return self
+
+    def dispatch(self) -> Self:
         """Register each workflow in the registry to its corresponding event in the event bus.
 
         Returns:
