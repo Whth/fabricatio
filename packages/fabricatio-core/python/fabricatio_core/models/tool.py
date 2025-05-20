@@ -10,10 +10,10 @@ from inspect import iscoroutinefunction, signature
 from types import CodeType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Self, cast, overload
 
-from fabricatio.decorators import logging_execution_info, use_temp_module
-from fabricatio.journal import logger
-from fabricatio.models.generic import Base, WithBriefing
-from fabricatio.rust import CONFIG
+from fabricatio_core.decorators import logging_execution_info, use_temp_module
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, WithBriefing
+from fabricatio_core.rust import CONFIG
 from pydantic import Field
 
 

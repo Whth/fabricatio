@@ -3,12 +3,12 @@
 from functools import partial
 from typing import Any, Callable, Dict, Self, Type
 
-from fabricatio.emitter import env
-from fabricatio.journal import logger
-from fabricatio.models.action import WorkFlow
-from fabricatio.models.generic import WithBriefing
-from fabricatio.rust import Event
-from fabricatio.utils import is_subclass_of_base
+from fabricatio_core.emitter import env
+from fabricatio_core.journal import logger
+from fabricatio_core.models.action import WorkFlow
+from fabricatio_core.models.generic import WithBriefing
+from fabricatio_core.rust import Event
+from fabricatio_core.utils import is_subclass_of_base
 from pydantic import ConfigDict, Field
 
 is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio.models.usages", base_name="ToolBoxUsage")

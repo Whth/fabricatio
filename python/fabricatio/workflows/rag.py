@@ -2,7 +2,7 @@
 
 from fabricatio.actions.article import ExtractArticleEssence
 from fabricatio.actions.rag import InjectToDB
-from fabricatio.models.action import WorkFlow
+from fabricatio_core.models.action import WorkFlow
 
 StoreArticle = WorkFlow(
     name="Extract Article Essence",

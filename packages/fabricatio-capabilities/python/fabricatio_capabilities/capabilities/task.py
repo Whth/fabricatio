@@ -5,7 +5,6 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import ujson
-
 from fabricatio.capabilities.propose import Propose
 from fabricatio.journal import logger
 from fabricatio.models.kwargs_types import ChooseKwargs, ValidateKwargs
@@ -40,7 +39,7 @@ class ProposeTask(Propose, ABC):
         return await self.propose(Task, prompt, **kwargs)
 
 
-class HandleTask(ToolBoxUsage,ABC):
+class HandleTask(ToolBoxUsage, ABC):
     """A class that handles a task based on a task object."""
 
     async def draft_tool_usage_code(

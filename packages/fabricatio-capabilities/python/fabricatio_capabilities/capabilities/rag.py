@@ -12,9 +12,6 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import List, Optional, Self, Type, Unpack
 
-from more_itertools.recipes import flatten, unique
-from pydantic import Field, PrivateAttr
-
 from fabricatio.journal import logger
 from fabricatio.models.adv_kwargs_types import CollectionConfigKwargs, FetchKwargs
 from fabricatio.models.extra.rag import MilvusDataBase
@@ -22,6 +19,8 @@ from fabricatio.models.kwargs_types import ChooseKwargs
 from fabricatio.models.usages import EmbeddingUsage
 from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio.utils import ok
+from more_itertools.recipes import flatten, unique
+from pydantic import Field, PrivateAttr
 
 
 @lru_cache(maxsize=None)
@@ -51,16 +50,16 @@ class RAG(EmbeddingUsage, ABC):
         return self._client
 
     def init_client(
-            self,
-            milvus_uri: Optional[str] = None,
-            milvus_token: Optional[str] = None,
-            milvus_timeout: Optional[float] = None,
+        self,
+        milvus_uri: Optional[str] = None,
+        milvus_token: Optional[str] = None,
+        milvus_timeout: Optional[float] = None,
     ) -> Self:
         """Initialize the Milvus client."""
         self._client = create_client(
             uri=milvus_uri or ok(self.milvus_uri or CONFIG.rag.milvus_uri),
             token=milvus_token
-                  or (token.get_secret_value() if (token := (self.milvus_token or CONFIG.rag.milvus_token)) else ""),
+            or (token.get_secret_value() if (token := (self.milvus_token or CONFIG.rag.milvus_token)) else ""),
             timeout=milvus_timeout or self.milvus_timeout or CONFIG.rag.milvus_timeout,
         )
         return self
@@ -74,7 +73,7 @@ class RAG(EmbeddingUsage, ABC):
         return self
 
     def view(
-            self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
+        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
     ) -> Self:
         """View the specified collection.
 
@@ -116,7 +115,7 @@ class RAG(EmbeddingUsage, ABC):
         return ok(self.target_collection, "No collection is being viewed. Have you called `self.view()`?")
 
     async def add_document[D: MilvusDataBase](
-            self, data: List[D] | D, collection_name: Optional[str] = None, flush: bool = False
+        self, data: List[D] | D, collection_name: Optional[str] = None, flush: bool = False
     ) -> Self:
         """Adds a document to the specified collection.
 
@@ -143,15 +142,15 @@ class RAG(EmbeddingUsage, ABC):
         return self
 
     async def afetch_document[D: MilvusDataBase](
-            self,
-            query: List[str],
-            document_model: Type[D],
-            collection_name: Optional[str] = None,
-            similarity_threshold: float = 0.37,
-            result_per_query: int = 10,
-            tei_endpoint: Optional[str] = None,
-            reranker_threshold: float = 0.7,
-            filter_expr: str = "",
+        self,
+        query: List[str],
+        document_model: Type[D],
+        collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
+        result_per_query: int = 10,
+        tei_endpoint: Optional[str] = None,
+        reranker_threshold: float = 0.7,
+        filter_expr: str = "",
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
@@ -192,8 +191,9 @@ class RAG(EmbeddingUsage, ABC):
                 retrieved_id.update(res["id"] for res in g)
                 if not models:
                     continue
-                rank_scores = await reranker.arerank(q, [m.prepare_vectorization() for m in models], truncate=True,
-                                                     truncation_direction="Left")
+                rank_scores = await reranker.arerank(
+                    q, [m.prepare_vectorization() for m in models], truncate=True, truncation_direction="Left"
+                )
                 raw_result.extend((models[idx], scr) for (idx, scr) in rank_scores if scr > reranker_threshold)
 
             raw_result_sorted = sorted(raw_result, key=lambda x: x[1], reverse=True)
@@ -215,11 +215,11 @@ class RAG(EmbeddingUsage, ABC):
         return document_model.from_sequence(resp)
 
     async def aretrieve[D: MilvusDataBase](
-            self,
-            query: List[str] | str,
-            document_model: Type[D],
-            max_accepted: int = 20,
-            **kwargs: Unpack[FetchKwargs],
+        self,
+        query: List[str] | str,
+        document_model: Type[D],
+        max_accepted: int = 20,
+        **kwargs: Unpack[FetchKwargs],
     ) -> List[D]:
         """Retrieve data from the collection.
 
@@ -236,15 +236,15 @@ class RAG(EmbeddingUsage, ABC):
             query = [query]
 
         return (
-                   await self.afetch_document(
-                       query=query,
-                       document_model=document_model,
-                       **kwargs,
-                   )
-               )[:max_accepted]
+            await self.afetch_document(
+                query=query,
+                document_model=document_model,
+                **kwargs,
+            )
+        )[:max_accepted]
 
     async def arefined_query(
-            self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
+        self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 

@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Type, overload
 
-from fabricatio.decorators import precheck_package
+from fabricatio_core.decorators import precheck_package
 
 
 def is_subclass_of_base(cls: Type, base_module: str, base_name: str) -> bool:

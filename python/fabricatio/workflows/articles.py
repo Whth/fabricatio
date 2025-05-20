@@ -2,7 +2,7 @@
 
 from fabricatio.actions.article import GenerateArticleProposal, GenerateInitialOutline
 from fabricatio.actions.output import DumpFinalizedOutput
-from fabricatio.models.action import WorkFlow
+from fabricatio_core.models.action import WorkFlow
 
 WriteOutlineWorkFlow = WorkFlow(
     name="Generate Article Outline",

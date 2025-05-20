@@ -6,14 +6,14 @@ from asyncio import gather
 from typing import Callable, Dict, Iterable, List, Literal, Optional, Self, Sequence, Set, Union, Unpack, overload
 
 import asyncstdlib
-from fabricatio.decorators import logging_exec_time
-from fabricatio.journal import logger
-from fabricatio.models.generic import ScopedConfig, WithBriefing
-from fabricatio.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
-from fabricatio.models.task import Task
-from fabricatio.models.tool import Tool, ToolBox
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER
-from fabricatio.utils import first_available, ok
+from fabricatio_core.decorators import logging_exec_time
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import ScopedConfig, WithBriefing
+from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.task import Task
+from fabricatio_core.models.tool import Tool, ToolBox
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.utils import first_available, ok
 from litellm import (  # pyright: ignore [reportPrivateImportUsage]
     RateLimitError,
     Router,
@@ -330,7 +330,7 @@ class LLMUsage(ScopedConfig, ABC):
         Returns:
             Optional[List[str]]: The validated response as a list of strings.
         """
-        from fabricatio.parser import JsonCapture
+        from fabricatio_core.parser import JsonCapture
 
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
@@ -388,7 +388,7 @@ class LLMUsage(ScopedConfig, ABC):
         Returns:
             Optional[str]: The generated string.
         """
-        from fabricatio.parser import GenericCapture
+        from fabricatio_core.parser import GenericCapture
 
         return await self.aask_validate(  # pyright: ignore [reportReturnType]
             TEMPLATE_MANAGER.render_template(
@@ -417,7 +417,7 @@ class LLMUsage(ScopedConfig, ABC):
         Returns:
             Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
-        from fabricatio.parser import JsonCapture
+        from fabricatio_core.parser import JsonCapture
 
         if dup := duplicates_everseen(choices, key=lambda x: x.name):
             logger.error(err := f"Redundant choices: {dup}")
@@ -494,7 +494,7 @@ class LLMUsage(ScopedConfig, ABC):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
-        from fabricatio.parser import JsonCapture
+        from fabricatio_core.parser import JsonCapture
 
         return await self.aask_validate(
             question=TEMPLATE_MANAGER.render_template(

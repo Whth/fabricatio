@@ -8,8 +8,8 @@ from shutil import which
 from types import ModuleType
 from typing import Callable, Coroutine, List, Optional
 
-from fabricatio.journal import logger
-from fabricatio.rust import CONFIG
+from fabricatio_core.journal import logger
+from fabricatio_core.rust import CONFIG
 
 
 def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
