@@ -77,6 +77,16 @@ def process_project(entry: Path) -> None:
     command = build_command(project_name, entry, build_backend)
     run_build_command(command, project_name, entry, build_backend)
 
+    for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
+        if package_file.suffix in ('.whl', '.tar.gz'):
+            publish_command = ["uv", "publish", package_file.as_posix()]
+            print(f"🚀 Publishing: {' '.join(publish_command)}")
+            try:
+                subprocess.run(publish_command, check=True)
+                print(f"✅ Successfully published {package_file.name}")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to publish {package_file.name}: {e}")
+
 
 def main():
     root_dir = get_root_dir()

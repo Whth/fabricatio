@@ -22,18 +22,10 @@ clean:
 	rm -rf $(DIST)/* $(DATA)/*
 
 
-publish:
-	uvx -p $(PY) --project . maturin publish --skip-existing
-	uvx -p $(PY) --project . maturin upload --skip-existing $(DIST)/*
-
 test:dev
 	uvx -p  $(PY) --project . pytest tests
 
-packages:
+publish:
 	uv run publish_subpackages.py
 
-publish_packages: packages
-	uv publish dist/*
-
-
-.PHONY:  dev bdist clean publish test publish_packages packages
+.PHONY:  dev bdist clean publish test
