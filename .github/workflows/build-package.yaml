@@ -105,7 +105,7 @@ jobs:
 
       - name: Install deps
         run: |
-          uv sync --no-install-project  --all-extras --index https://pypi.org/simple -p ${{ matrix.python-version }} 
+          uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
 
       - name: Build
         run: |

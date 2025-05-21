@@ -1,16 +1,11 @@
+import argparse
 import subprocess
-import sys
 import tomllib
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 
 ROOT_DIR = Path("packages").resolve()  # Default root directory
 DIST = Path("dist").resolve()
-
-
-def get_root_dir() -> Path:
-    """Gets the root directory from command line arguments or uses the default."""
-    return Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT_DIR
 
 
 def parse_pyproject(pyproject_path: Path) -> Optional[Tuple[str, str, Dict[str, Any]]]:
@@ -56,13 +51,41 @@ def run_build_command(command: List[str], project_name: str, entry: Path, build_
         print(f"❌ Command '{command[0]}' not found. Make sure it's installed and in your PATH.")
 
 
-def process_project(entry: Path) -> None:
-    """Processes a single project directory."""
+def _validate_project_entry(entry: Path) -> Optional[Path]:
+    """Validates if the entry is a directory and contains pyproject.toml."""
     if not entry.is_dir():
-        return
-
+        return None
     pyproject_path = entry / "pyproject.toml"
     if not pyproject_path.is_file():
+        return None
+    return pyproject_path
+
+
+def _build_project(project_name: str, entry: Path, build_backend: str) -> None:
+    """Builds the specified project."""
+    command = build_command(project_name, entry, build_backend)
+    run_build_command(command, project_name, entry, build_backend)
+
+
+def _publish_project(project_name: str) -> None:
+    """Publishes the built packages for the project."""
+    for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
+        if package_file.suffix in ('.whl', '.tar.gz'):
+            publish_command = ["uv", "publish", package_file.as_posix()]
+            print(f"🚀 Publishing: {' '.join(publish_command)}")
+            try:
+                subprocess.run(publish_command, check=True)
+                print(f"✅ Successfully published {package_file.name}")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to publish {package_file.name}: {e}")
+            except FileNotFoundError:
+                print(f"❌ Command 'uv' not found. Make sure it's installed and in your PATH.")
+
+
+def process_project(entry: Path, publish_enabled: bool) -> None:
+    """Processes a single project directory: validates, builds, and optionally publishes it."""
+    pyproject_path = _validate_project_entry(entry)
+    if not pyproject_path:
         return
 
     print(f"\n🔍 Checking project: {entry.name}")
@@ -74,26 +97,43 @@ def process_project(entry: Path) -> None:
     build_backend, project_name, _ = parsed_info
     print(f"📦 Project: {project_name}, Build backend: {build_backend}")
 
-    command = build_command(project_name, entry, build_backend)
-    run_build_command(command, project_name, entry, build_backend)
+    _build_project(project_name, entry, build_backend)
 
-    for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
-        if package_file.suffix in ('.whl', '.tar.gz'):
-            publish_command = ["uv", "publish", package_file.as_posix()]
-            print(f"🚀 Publishing: {' '.join(publish_command)}")
-            try:
-                subprocess.run(publish_command, check=True)
-                print(f"✅ Successfully published {package_file.name}")
-            except subprocess.CalledProcessError as e:
-                print(f"❌ Failed to publish {package_file.name}: {e}")
+    if publish_enabled:
+        _publish_project(project_name)
+    else:
+        print(f"📦 Skipping publish for {project_name} as per configuration.")
 
 
 def main():
-    root_dir = get_root_dir()
+    parser = argparse.ArgumentParser(description="Build and optionally publish Python subpackages.")
+    parser.add_argument(
+        "--root-dir",
+        type=Path,
+        default=ROOT_DIR,
+        help="The root directory containing the subpackages.",
+    )
+    parser.add_argument(
+        "--no-publish",
+        action="store_false",
+        dest="publish",
+        help="Disable publishing of the built packages.",
+    )
+    parser.set_defaults(publish=True)
+
+    args = parser.parse_args()
+
+    root_dir = args.root_dir.resolve()
+    publish_enabled = args.publish
+
     DIST.mkdir(parents=True, exist_ok=True)
 
+    if not root_dir.is_dir():
+        print(f"❌ Root directory '{root_dir}' not found.")
+        return
+
     for entry in root_dir.iterdir():
-        process_project(entry)
+        process_project(entry, publish_enabled)
 
 
 if __name__ == "__main__":

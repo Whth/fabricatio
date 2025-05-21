@@ -17,6 +17,7 @@ dev:
 
 bdist: dirs clean dev
 	uvx -p $(PY) --project . maturin build --sdist -r -o $(DIST)
+	uv run publish_subpackages.py --no-publish
 
 clean:
 	rm -rf $(DIST)/* $(DATA)/*
@@ -27,5 +28,6 @@ test:dev
 
 publish:
 	uv run publish_subpackages.py
+
 
 .PHONY:  dev bdist clean publish test
