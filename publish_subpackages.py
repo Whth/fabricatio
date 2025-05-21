@@ -1,179 +1,423 @@
+"""Builds and optionally publishes Python subpackages found in a directory structure.
+
+This script automates the process of building multiple Python packages (e.g., Maturin-based
+or standard Python packages) and publishing them to a package index using 'uv'.
+It expects each subpackage to be in its own directory containing a 'pyproject.toml' file.
+"""
+
 import argparse
+import logging
 import subprocess
-import tomllib
+import tomllib  # Use tomllib for TOML parsing (Python 3.11+)
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-ROOT_DIR = Path("packages").resolve()  # Default root directory
-DIST = Path("dist").resolve()
+# --- Configuration ---
+DEFAULT_ROOT_DIR = Path("packages").resolve()
+DEFAULT_DIST_DIR = Path("dist").resolve()
 
-
-def parse_pyproject(pyproject_path: Path) -> Optional[Tuple[str, str, Dict[str, Any]]]:
-    """Parses the pyproject.toml file and returns build backend and project name."""
-    try:
-        with pyproject_path.open("rb") as f:
-            config = tomllib.load(f)
-            build_system = config.get("build-system", {})
-            build_backend = build_system.get("build-backend", "")
-            project_name = config.get("project", {}).get("name")
-            if not project_name:
-                print(f"Project name not found in {pyproject_path.parent.name}")
-                return None
-            return build_backend, project_name, config
-    except Exception as e:
-        print(f"Failed to parse pyproject.toml in {pyproject_path.parent.name}: {e}")
-        return None
+# --- Logging Setup ---
+# Configure logging for clear and informative output
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+logger = logging.getLogger(__name__)
 
 
-def build_command(
-    project_name: str,
-    entry: Path,
-    build_backend: str,
-    pyversion: str,
-) -> List[List[str]]:
-    """Builds the command list based on the build backend."""
-    if build_backend == "maturin":
-        # The following line was present in the original code but is not valid Python.
-        # It appears to be a comment or a command meant for manual execution for a specific package.
-        # uvx --directory .\packages\fabricatio-core\ maturin publish --skip-existing
-        return [
-            [
-                "uvx",
-                "-p",
-                pyversion,
-                "--project",
-                project_name,
-                "--directory",
-                entry.as_posix(),
-                "maturin",
-                "develop",
-                "--uv",
-                "-r",
-            ],
-            [
-                "uvx",
-                "-p",
-                pyversion,
-                "--project",
-                project_name,
-                "--directory",
-                entry.as_posix(),
-                "maturin",
-                "build",
-                "-r",
-                "--sdist",
-                "-o",
-                DIST.as_posix(),
-            ],
-        ]
-    # uvx --project fabricatio-judge --directory .\packages\fabricatio-judge\ uv build
-    return [
-        ["uvx", "--project", project_name, "--directory", entry.as_posix(), "uv", "build"]
-    ]  # Assuming uv publish expects the path to the package dir
+class Project:
+    """Represents a single Python project to be built and/or published.
 
+    Encapsulates project-specific metadata, build, and publish logic.
+    After initialization, the `is_valid` property indicates if the project
+    could be successfully parsed from its `pyproject.toml`.
 
-def run_build_command(command: List[List[str]], project_name: str, entry: Path, build_backend: str) -> None:
-    """Runs the build command."""
-    for c in command:
-        print(f"Running command: {' '.join(c)}")
+    Args:
+        entry_path (Path): The file system path to the project's root directory.
+        dist_dir (Path): The common directory where built packages will be placed.
+        pyversion (Optional[str]): The target Python version for the build, if applicable.
+
+    Attributes:
+        entry_path (Path): The file system path to the project's root directory.
+        dist_dir (Path): The common directory where built packages will be placed.
+        pyversion (Optional[str]): The target Python version for the build.
+        name (Optional[str]): The name of the project, loaded from `pyproject.toml`.
+        build_backend (Optional[str]): The build backend specified in `pyproject.toml`.
+        config (Optional[Dict[str, Any]]): The parsed content of `pyproject.toml`.
+    """
+
+    def __init__(self, entry_path: Path, dist_dir: Path, pyversion: Optional[str]):
+        """Initializes a Project instance."""
+        self.entry_path: Path = entry_path
+        self.dist_dir: Path = dist_dir
+        self.pyversion: Optional[str] = pyversion
+        self.name: Optional[str] = None
+        self.build_backend: Optional[str] = None
+        self.config: Optional[Dict[str, Any]] = None
+        self._is_valid_project: bool = self._load_project_metadata()
+
+    def _load_project_metadata(self) -> bool:
+        """Loads and validates project metadata from its pyproject.toml file.
+
+        Returns:
+            bool: True if metadata is successfully loaded, False otherwise.
+        """
+        if not self.entry_path.is_dir():
+            logger.warning(f"Skipping '{self.entry_path.name}': Not a directory.")
+            return False
+
+        pyproject_file = self.entry_path / "pyproject.toml"
+        if not pyproject_file.is_file():
+            logger.warning(f"Skipping '{self.entry_path.name}': 'pyproject.toml' not found.")
+            return False
+
         try:
-            subprocess.run(c, check=True)
-            print(f"Successfully built {project_name}")
+            with pyproject_file.open("rb") as f:
+                config_data = tomllib.load(f)
+
+            project_info = config_data.get("project", {})
+            self.name = project_info.get("name")
+            if not self.name:
+                logger.error(f"Project name not found in '{pyproject_file}'. Cannot process this project.")
+                return False
+
+            build_system_info = config_data.get("build-system", {})
+            self.build_backend = build_system_info.get("build-backend")
+            # If build_backend is not specified, uv build usually handles it.
+            # We specifically check for "maturin" due to its different command structure.
+
+            self.config = config_data
+            logger.info(
+                f"Successfully loaded metadata for project: {self.name} (Entry: '{self.entry_path.name}', Backend: {self.build_backend or 'default/uv'})"
+            )
+            return True
+        except tomllib.TOMLDecodeError as e:
+            logger.error(f"Failed to parse 'pyproject.toml' in '{self.entry_path.name}': {e}")
+            return False
+        except Exception as e:
+            logger.error(
+                f"An unexpected error occurred while parsing 'pyproject.toml' in '{self.entry_path.name}': {e}"
+            )
+            return False
+
+    @property
+    def is_valid(self) -> bool:
+        """Checks if the project metadata was loaded successfully.
+
+        Returns:
+            bool: True if the project metadata was loaded successfully, False otherwise.
+        """
+        return self._is_valid_project
+
+    def _execute_subprocess(self, command: List[str], operation_description: str) -> bool:
+        """Executes a subprocess command within the project's directory.
+
+        Logs the command and its outcome.
+
+        Args:
+            command: A list of strings representing the command and its arguments.
+            operation_description: A string describing the operation being performed (e.g., "build step 1/2").
+
+        Returns:
+            bool: True if the command executes successfully, False otherwise.
+        """
+        if not self.name:  # Should not happen if is_valid is checked
+            logger.error(f"Cannot execute command for project at '{self.entry_path.name}' due to missing name.")
+            return False
+
+        logger.info(f"Running {operation_description} for '{self.name}': {' '.join(command)}")
+        try:
+            # Run the command from the project's directory
+            process = subprocess.run(command, check=True, cwd=self.entry_path, capture_output=True, text=True)
+            if process.stdout:
+                logger.debug(f"Stdout for '{self.name}' ({operation_description}):\n{process.stdout}")
+            if process.stderr:
+                logger.debug(f"Stderr for '{self.name}' ({operation_description}):\n{process.stderr}")
+            logger.info(f"{operation_description.capitalize()} successful for '{self.name}'.")
+            return True
         except subprocess.CalledProcessError as e:
-            print(f"Build failed for {project_name}: {e}")
+            logger.error(f"{operation_description.capitalize()} failed for '{self.name}'. Return code: {e.returncode}")
+            if e.stdout:
+                logger.error(f"Stdout:\n{e.stdout}")
+            if e.stderr:
+                logger.error(f"Stderr:\n{e.stderr}")
+            return False
         except FileNotFoundError:
-            print(f"Command '{c[0]}' not found. Make sure it's installed and in your PATH.")
+            logger.error(f"Command '{command[0]}' not found. Ensure it's installed and in your PATH.")
+            return False
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during {operation_description} for '{self.name}': {e}")
+            return False
+
+    def _get_build_commands(self) -> List[List[str]]:
+        """Generates the list of build commands for the project.
+
+        The commands are determined based on the project's build backend (e.g., Maturin, uv).
+        Assumes commands will be run with the current working directory set to the project's entry_path.
+
+        Returns:
+            List[List[str]]: A list of command lists, where each inner list represents a build command
+            and its arguments. Returns an empty list if commands cannot be generated (e.g., missing
+            project name or required parameters like pyversion for Maturin).
+        """
+        if not self.name:  # Should be caught by is_valid check before calling
+            logger.error(f"Project name not available for '{self.entry_path.name}'. Cannot generate build commands.")
+            return []
+
+        resolved_dist_dir = self.dist_dir.resolve().as_posix()
+
+        if self.build_backend == "maturin":
+            if not self.pyversion:
+                logger.error(f"Python version (--pyversion) is required for Maturin project '{self.name}'.")
+                return []
+            return [
+                ["uvx", "-p", self.pyversion, "maturin", "develop", "--uv", "-r"],
+                ["uvx", "-p", self.pyversion, "maturin", "build", "-r", "--sdist", "-o", resolved_dist_dir],
+            ]
+        # Default to 'uv build' for other backends or if backend is not 'maturin'
+        # This covers standard Python packages (setuptools, hatchling, etc.)
+        return [["uvx", "uv", "build", "--out", resolved_dist_dir, "--sdist", "--wheel"]]
+
+    def build(self) -> bool:
+        """Builds the project by executing its configured build commands.
+
+        Returns:
+            bool: True if all build steps are successful, False otherwise.
+        """
+        if not self.is_valid or not self.name:
+            logger.warning(f"Skipping build for invalid or unnamed project at '{self.entry_path.name}'.")
+            return False
+
+        logger.info(f"Starting build for project: {self.name}...")
+        build_commands = self._get_build_commands()
+
+        if not build_commands:
+            logger.error(f"No build commands generated for '{self.name}'. Build cannot proceed.")
+            return False
+
+        for i, cmd in enumerate(build_commands):
+            operation_name = f"build step {i + 1}/{len(build_commands)}"
+            if not self._execute_subprocess(cmd, operation_name):
+                logger.error(f"Build failed for project '{self.name}' at {operation_name}.")
+                return False
+
+        logger.info(f"Project '{self.name}' built successfully.")
+        return True
+
+    def publish(self) -> bool:
+        """Publishes the built artifacts of the project.
+
+        Searches for distributable files (.whl, .tar.gz) in the `dist_dir`
+        and attempts to publish them using `uv publish`.
+
+        Returns:
+            bool: True if all found artifacts are published successfully or if no artifacts
+                  are found. False if any artifact fails to publish.
+        """
+        if not self.is_valid or not self.name:
+            logger.warning(f"Skipping publish for invalid or unnamed project at '{self.entry_path.name}'.")
+            return False
+
+        logger.info(f"Attempting to publish project: {self.name}...")
+
+        normalized_name = self.name.replace("-", "_")
+        artifacts_found = False
+        all_published_successfully = True
+
+        for package_file in self.dist_dir.glob(f"{normalized_name}*"):
+            if package_file.is_file() and package_file.suffix in (".whl", ".tar.gz"):
+                artifacts_found = True
+                publish_command = ["uv", "publish", package_file.resolve().as_posix()]
+                if not self._execute_subprocess(publish_command, f"publishing {package_file.name}"):
+                    all_published_successfully = False
+                    # Continue trying to publish other artifacts even if one fails
+
+        if not artifacts_found:
+            logger.warning(
+                f"No distributable artifacts (.whl, .tar.gz) found in '{self.dist_dir}' for project '{self.name}'. Nothing to publish."
+            )
+            return True  # Arguably, not finding artifacts isn't a "failure" of publish itself.
+
+        if all_published_successfully:
+            logger.info(f"All found artifacts for project '{self.name}' published successfully.")
+        else:
+            logger.error(f"Some artifacts for project '{self.name}' failed to publish.")
+
+        return all_published_successfully
 
 
-def _validate_project_entry(entry: Path) -> Optional[Path]:
-    """Validates if the entry is a directory and contains pyproject.toml."""
-    if not entry.is_dir():
-        return None
-    pyproject_path = entry / "pyproject.toml"
-    if not pyproject_path.is_file():
-        return None
-    return pyproject_path
+class PackageManager:
+    """Manages the discovery, building, and publishing of Python projects.
 
+    This class scans a specified root directory for subprojects,
+    initializes them, and then processes each one by building and
+    optionally publishing the resulting artifacts.
 
-def _build_project(project_name: str, entry: Path, build_backend: str, pyversion: str) -> None:
-    """Builds the specified project."""
-    command = build_command(project_name, entry, build_backend, pyversion)
-    run_build_command(command, project_name, entry, build_backend)
+    Args:
+        root_dir (Path): The root directory to scan for subpackage projects.
+        dist_dir (Path): The common directory where built packages will be placed.
+        pyversion (Optional[str]): The target Python version for builds, passed to projects.
+        publish_enabled (bool): Whether to publish packages after building.
 
+    Attributes:
+        root_dir (Path): The root directory to scan for subpackage projects.
+        dist_dir (Path): The common directory where built packages will be placed.
+        pyversion (Optional[str]): The target Python version for builds.
+        publish_enabled (bool): Whether to publish packages after building.
+        projects (List[Project]): A list of discovered and valid `Project` instances.
+    """
 
-def _publish_project(project_name: str) -> None:
-    """Publishes the built packages for the project."""
-    for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
-        if package_file.suffix in (".whl", ".tar.gz"):
-            publish_command = ["uv", "publish", package_file.as_posix()]
-            print(f"Publishing: {' '.join(publish_command)}")
-            try:
-                subprocess.run(publish_command, check=True)
-                print(f"Successfully published {package_file.name}")
-            except subprocess.CalledProcessError as e:
-                print(f"Failed to publish {package_file.name}: {e}")
-            except FileNotFoundError:
-                print("Command 'uv' not found. Make sure it's installed and in your PATH.")
+    def __init__(self, root_dir: Path, dist_dir: Path, pyversion: Optional[str], publish_enabled: bool) -> None:
+        """Initializes the PackageManager."""
+        self.root_dir: Path = root_dir
+        self.dist_dir: Path = dist_dir
+        self.pyversion: Optional[str] = pyversion
+        self.publish_enabled: bool = publish_enabled
+        self.projects: List[Project] = []
 
+    def discover_projects(self) -> None:
+        """Scans the root directory for project subdirectories.
 
-def process_project(entry: Path, publish_enabled: bool, pyversion: str) -> None:
-    """Processes a single project directory: validates, builds, and optionally publishes it."""
-    pyproject_path = _validate_project_entry(entry)
-    if not pyproject_path:
-        return
+        For each subdirectory found, it attempts to initialize a `Project` object.
+        Valid projects (those with a parseable `pyproject.toml` and a project name)
+        are added to the internal list of projects to be processed.
+        """
+        if not self.root_dir.is_dir():
+            logger.error(f"Root directory '{self.root_dir}' not found or is not a directory. Cannot discover projects.")
+            return
 
-    print(f"\nChecking project: {entry.name}")
+        logger.info(f"Scanning for projects in '{self.root_dir}'...")
+        for entry in self.root_dir.iterdir():
+            if entry.is_dir():  # Only consider directories as potential projects
+                project = Project(entry, self.dist_dir, self.pyversion)
+                if project.is_valid:
+                    self.projects.append(project)
+                # else: Logging about invalid project structure is handled within Project._load_project_metadata
 
-    parsed_info = parse_pyproject(pyproject_path)
-    if not parsed_info:
-        return
+        if not self.projects:
+            logger.info("No valid projects found in the specified root directory.")
+        else:
+            logger.info(f"Discovered {len(self.projects)} valid project(s).")
 
-    build_backend, project_name, _ = parsed_info
-    print(f"Project: {project_name}, Build backend: {build_backend}")
+    def process_all_projects(self):
+        """Processes all discovered and valid projects.
 
-    _build_project(project_name, entry, build_backend, pyversion)
+        This involves building each project and, if `publish_enabled` is True,
+        attempting to publish the built artifacts. It logs a summary of
+        successful and failed operations.
+        """
+        if not self.projects:
+            logger.info("No projects to process.")
+            return
 
-    if publish_enabled:
-        _publish_project(project_name)
-    else:
-        print(f"Skipping publish for {project_name} as per configuration.")
+        # Ensure the common distribution directory exists
+        self.dist_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Using distribution directory: '{self.dist_dir.resolve()}'")
+
+        total_projects = len(self.projects)
+        success_count = 0
+        failure_count = 0
+
+        for i, project in enumerate(self.projects):
+            # Ensure project.name is available, fallback to entry_path.name for logging if necessary
+            project_identifier = project.name or project.entry_path.name
+            logger.info(f"\n--- Processing project {i + 1}/{total_projects}: {project_identifier} ---")
+
+            build_successful = project.build()
+
+            if build_successful:
+                if self.publish_enabled:
+                    if project.name:  # Ensure project name is available for logging
+                        logger.info(f"Publishing is enabled for '{project.name}'.")
+                        publish_successful = project.publish()
+                        if publish_successful:
+                            success_count += 1
+                        else:
+                            failure_count += 1
+                    else:  # Should ideally not happen if build was successful and project is valid
+                        logger.error(
+                            f"Cannot publish project from '{project.entry_path.name}' due to missing project name."
+                        )
+                        failure_count += 1
+                else:
+                    if project.name:
+                        logger.info(f"Skipping publish for '{project.name}' as per --no-publish flag.")
+                    else:  # Should ideally not happen
+                        logger.info(
+                            f"Skipping publish for project at '{project.entry_path.name}' as per --no-publish flag (project name missing)."
+                        )
+                    success_count += 1  # Build was successful
+            else:
+                if project.name:
+                    logger.error(f"Build failed for '{project.name}'. Skipping any subsequent publish step.")
+                else:  # Should ideally not happen
+                    logger.error(
+                        f"Build failed for project at '{project.entry_path.name}'. Skipping any subsequent publish step."
+                    )
+                failure_count += 1
+
+        logger.info("\n--- Summary ---")
+        logger.info(f"Total projects processed: {total_projects}")
+        logger.info(f"Successfully built/published: {success_count}")
+        logger.info(f"Failed to build/publish: {failure_count}")
+        logger.info("--- All projects processed. ---")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build and optionally publish Python subpackages.")
+    """Parses command-line arguments and orchestrates the package building and publishing process.
+
+    Initializes a `PackageManager` with settings derived from command-line arguments,
+    then discovers and processes all subprojects found in the specified root directory.
+    """
+    parser = argparse.ArgumentParser(
+        description="Build and optionally publish Python subpackages located in a root directory.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--root-dir",
         type=Path,
-        default=ROOT_DIR,
-        help="The root directory containing the subpackages.",
+        default=DEFAULT_ROOT_DIR,
+        help="The root directory containing subpackage directories.",
+    )
+    parser.add_argument(
+        "--dist-dir",
+        type=Path,
+        default=DEFAULT_DIST_DIR,
+        help="The common directory to output built packages (wheels, sdist).",
     )
     parser.add_argument(
         "--no-publish",
-        action="store_false",
+        action="store_false",  # Sets args.publish to False if flag is present
         dest="publish",
-        help="Disable publishing of the built packages.",
+        default=True,  # Default is to publish
+        help="Disable publishing of the built packages to a package index.",
     )
     parser.add_argument(
         "--pyversion",
         type=str,
-        dest="pyversion",
-        help="Python version to build for.",
+        default=None,
+        help="Specify Python version (e.g., '3.12') for builders like Maturin that require it. "
+        "If not provided, Maturin projects may fail to build.",
     )
-    parser.set_defaults(publish=True)
 
     args = parser.parse_args()
 
-    root_dir = args.root_dir.resolve()
-    publish_enabled = args.publish
-    pyversion = args.pyversion
-    DIST.mkdir(parents=True, exist_ok=True)
+    # Resolve paths to be absolute
+    resolved_root_dir = args.root_dir.resolve()
+    resolved_dist_dir = args.dist_dir.resolve()
 
-    if not root_dir.is_dir():
-        print(f"Root directory '{root_dir}' not found.")
-        return
+    logger.info("Initializing Package Manager...")
+    logger.info(f"Root directory: {resolved_root_dir}")
+    logger.info(f"Distribution directory: {resolved_dist_dir}")
+    logger.info(f"Python version target: {args.pyversion or 'Not specified'}")
+    logger.info(f"Publishing enabled: {args.publish}")
 
-    for entry in root_dir.iterdir():
-        process_project(entry, publish_enabled, pyversion)
+    manager = PackageManager(
+        root_dir=resolved_root_dir,
+        dist_dir=resolved_dist_dir,
+        pyversion=args.pyversion,
+        publish_enabled=args.publish,
+    )
+
+    manager.discover_projects()
+    manager.process_all_projects()
 
 
 if __name__ == "__main__":
