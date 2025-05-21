@@ -115,7 +115,7 @@ jobs:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
           UV_INDEX: https://pypi.org/simple
-
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
       - name: Upload assets
         uses: softprops/action-gh-release@v2

@@ -192,7 +192,7 @@ class Project:
                 "-o",
                 resolved_dist_dir,
             ]
-            return [develop_command, build_sdist_command]
+            return [build_sdist_command]
 
         # Default to 'uv build' for other backends or if backend is not 'maturin'
         # This covers standard Python packages (setuptools, hatchling, etc.)
