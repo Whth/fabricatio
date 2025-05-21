@@ -2,18 +2,13 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
-from fabricatio_typst.rust import (
-    convert_all_tex_math,
-    fix_misplaced_labels,
-    split_out_metadata,
-)
-from pydantic import Field, NonNegativeInt
-
 from fabricatio_capabilities.models.generic import SketchedAble, WithRef, WordCount
 from fabricatio_core.decorators import precheck_package
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Described, PersistentAble, SequencePatch
 from fabricatio_core.rust import word_count
+from pydantic import Field, NonNegativeInt
+
 from fabricatio_typst.models.article_base import (
     ArticleBase,
     ChapterBase,
@@ -25,6 +20,11 @@ from fabricatio_typst.models.article_outline import (
     ArticleOutline,
     ArticleSectionOutline,
     ArticleSubsectionOutline,
+)
+from fabricatio_typst.rust import (
+    convert_all_tex_math,
+    fix_misplaced_labels,
+    split_out_metadata,
 )
 
 PARAGRAPH_SEP = "// - - -"

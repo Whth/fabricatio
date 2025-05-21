@@ -6,6 +6,7 @@ from fabricatio_actions.models.generic import FromMapping
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.utils import ok
+
 from fabricatio_rule.capabilities.check import Check
 from fabricatio_rule.models.rule import RuleSet
 
@@ -22,9 +23,9 @@ class DraftRuleSet(Action, Check, FromMapping):
     """The number of rules to generate in the ruleset (0 for no restriction)."""
 
     async def _execute(
-            self,
-            ruleset_requirement: Optional[str] = None,
-            **_,
+        self,
+        ruleset_requirement: Optional[str] = None,
+        **_,
     ) -> Optional[RuleSet]:
         """Draft a ruleset based on the requirement description.
 

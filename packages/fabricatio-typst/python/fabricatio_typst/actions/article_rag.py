@@ -4,13 +4,6 @@ from asyncio import gather
 from pathlib import Path
 from typing import ClassVar, List, Optional
 
-from fabricatio_typst.rust import (
-    BibManager,
-    convert_all_tex_math,
-    fix_misplaced_labels,
-)
-from pydantic import Field, PositiveInt
-
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.decorators import precheck_package
 from fabricatio_core.journal import logger
@@ -20,11 +13,18 @@ from fabricatio_core.utils import ok
 from fabricatio_rag.capabilities.rag import RAG
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
+from pydantic import Field, PositiveInt
+
 from fabricatio_typst.capabilities.citation_rag import CitationRAG
 from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
+from fabricatio_typst.rust import (
+    BibManager,
+    convert_all_tex_math,
+    fix_misplaced_labels,
+)
 
 TYPST_CITE_USAGE = (
     "citation number is REQUIRED to cite any reference!'\n"

@@ -3,14 +3,16 @@
 from pathlib import Path
 from typing import Any, List, Mapping, Self
 
-from fabricatio_actions.models.generic import FromMapping
 from fabricatio_core.fs import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 
+from fabricatio_actions.models.generic import FromMapping
+
 
 class ReadText(Action, FromMapping):
     """Read text from a file."""
+
     output_key: str = "read_text"
     read_path: str | Path
     """Path to the file to read."""

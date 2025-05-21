@@ -2,9 +2,9 @@
 
 from typing import Optional, Type
 
+from fabricatio_core.models.generic import Patch, WithBriefing
 from pydantic import BaseModel
 
-from fabricatio_core.models.generic import Patch, WithBriefing
 from fabricatio_rule.models.rule import RuleSet
 
 

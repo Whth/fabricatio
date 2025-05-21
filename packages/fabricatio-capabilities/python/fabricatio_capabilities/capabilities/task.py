@@ -5,8 +5,6 @@ from types import CodeType
 from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 import ujson
-
-from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio_core.models.task import Task
@@ -15,14 +13,16 @@ from fabricatio_core.models.usages import ToolBoxUsage
 from fabricatio_core.parser import JsonCapture, PythonCapture
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 
+from fabricatio_capabilities.capabilities.propose import Propose
+
 
 class ProposeTask(Propose, ABC):
     """A class that proposes a task based on a prompt."""
 
     async def propose_task[T](
-            self,
-            prompt: str,
-            **kwargs: Unpack[ValidateKwargs[Task[T]]],
+        self,
+        prompt: str,
+        **kwargs: Unpack[ValidateKwargs[Task[T]]],
     ) -> Optional[Task[T]]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
@@ -44,11 +44,11 @@ class HandleTask(ToolBoxUsage, ABC):
     """A class that handles a task based on a task object."""
 
     async def draft_tool_usage_code(
-            self,
-            task: Task,
-            tools: List[Tool],
-            data: Dict[str, Any],
-            **kwargs: Unpack[ValidateKwargs],
+        self,
+        task: Task,
+        tools: List[Tool],
+        data: Dict[str, Any],
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Optional[Tuple[CodeType, List[str]]]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
         logger.info(f"Drafting tool usage code for task: {task.briefing}")
@@ -60,7 +60,7 @@ class HandleTask(ToolBoxUsage, ABC):
 
         def _validator(response: str) -> Tuple[CodeType, List[str]] | None:
             if (source := PythonCapture.convert_with(response, lambda resp: compile(resp, "<string>", "exec"))) and (
-                    to_extract := JsonCapture.convert_with(response, ujson.loads)
+                to_extract := JsonCapture.convert_with(response, ujson.loads)
             ):
                 return source, to_extract
 
@@ -85,12 +85,12 @@ class HandleTask(ToolBoxUsage, ABC):
         )
 
     async def handle_fine_grind(
-            self,
-            task: Task,
-            data: Dict[str, Any],
-            box_choose_kwargs: Optional[ChooseKwargs] = None,
-            tool_choose_kwargs: Optional[ChooseKwargs] = None,
-            **kwargs: Unpack[ValidateKwargs],
+        self,
+        task: Task,
+        data: Dict[str, Any],
+        box_choose_kwargs: Optional[ChooseKwargs] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs] = None,
+        **kwargs: Unpack[ValidateKwargs],
     ) -> Optional[Tuple]:
         """Asynchronously handles a task based on a given task object and parameters."""
         logger.info(f"Handling task: \n{task.briefing}")

@@ -3,6 +3,7 @@
 from typing import ClassVar, Dict, Type
 
 from fabricatio_capabilities.models.generic import PersistentAble, WithRef
+
 from fabricatio_typst.models.article_base import (
     ArticleBase,
     ChapterBase,

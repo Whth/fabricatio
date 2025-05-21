@@ -7,6 +7,7 @@ from fabricatio_core.models.action import Action
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
+
 from fabricatio_rag.capabilities.rag import RAG
 from fabricatio_rag.models.rag import MilvusClassicModel, MilvusDataBase
 
@@ -19,7 +20,7 @@ class InjectToDB(Action, RAG):
     """The name of the collection to inject data into."""
 
     async def _execute[T: MilvusDataBase](
-            self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
+        self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
     ) -> Optional[str]:
         from pymilvus.milvus_client import IndexParams
 
