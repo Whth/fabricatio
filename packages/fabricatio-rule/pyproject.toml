@@ -2,6 +2,10 @@
 name = "fabricatio-rule"
 version = "0.1.0"
 description = "Add your description here"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 
@@ -25,3 +29,9 @@ fabricatio-core = { workspace = true }
 fabricatio-improve = { workspace = true }
 fabricatio-judge = { workspace = true }
 fabricatio-capabilities = { workspace = true }
+
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"

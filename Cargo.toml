@@ -17,4 +17,3 @@ members = ["src/tools"]
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]
 license-file = "LICENSE"
-

@@ -3,6 +3,10 @@ name = "fabricatio-typst"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
 requires-python = ">=3.12,<3.14"
 dependencies = [
 
@@ -32,3 +36,8 @@ build-backend = "maturin"
 python-source = "python"
 module-name = "fabricatio_typst.rust"
 data = "extra"
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"

@@ -3,6 +3,10 @@ name = "fabricatio_capabilities"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+license = { file = "LICENSE" }
 requires-python = ">=3.12,<3.14"
 dependencies = [
 
@@ -16,3 +20,8 @@ build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
