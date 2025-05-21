@@ -275,7 +275,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.4.0.dev2"
+version = "0.4.0.dev5"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -388,7 +388,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -399,7 +399,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },

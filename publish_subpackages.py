@@ -25,7 +25,12 @@ def parse_pyproject(pyproject_path: Path) -> Optional[Tuple[str, str, Dict[str, 
         return None
 
 
-def build_command(project_name: str, entry: Path, build_backend: str) -> List[str]:
+def build_command(
+    project_name: str,
+    entry: Path,
+    build_backend: str,
+    pyversion: str,
+) -> List[List[str]]:
     """Builds the command list based on the build backend."""
     if build_backend == "maturin":
         # The following line was present in the original code but is not valid Python.
@@ -34,6 +39,8 @@ def build_command(project_name: str, entry: Path, build_backend: str) -> List[st
         return [
             [
                 "uvx",
+                "-p",
+                pyversion,
                 "--project",
                 project_name,
                 "--directory",
@@ -45,6 +52,8 @@ def build_command(project_name: str, entry: Path, build_backend: str) -> List[st
             ],
             [
                 "uvx",
+                "-p",
+                pyversion,
                 "--project",
                 project_name,
                 "--directory",
@@ -86,9 +95,9 @@ def _validate_project_entry(entry: Path) -> Optional[Path]:
     return pyproject_path
 
 
-def _build_project(project_name: str, entry: Path, build_backend: str) -> None:
+def _build_project(project_name: str, entry: Path, build_backend: str, pyversion: str) -> None:
     """Builds the specified project."""
-    command = build_command(project_name, entry, build_backend)
+    command = build_command(project_name, entry, build_backend, pyversion)
     run_build_command(command, project_name, entry, build_backend)
 
 
@@ -107,7 +116,7 @@ def _publish_project(project_name: str) -> None:
                 print("Command 'uv' not found. Make sure it's installed and in your PATH.")
 
 
-def process_project(entry: Path, publish_enabled: bool) -> None:
+def process_project(entry: Path, publish_enabled: bool, pyversion: str) -> None:
     """Processes a single project directory: validates, builds, and optionally publishes it."""
     pyproject_path = _validate_project_entry(entry)
     if not pyproject_path:
@@ -122,7 +131,7 @@ def process_project(entry: Path, publish_enabled: bool) -> None:
     build_backend, project_name, _ = parsed_info
     print(f"Project: {project_name}, Build backend: {build_backend}")
 
-    _build_project(project_name, entry, build_backend)
+    _build_project(project_name, entry, build_backend, pyversion)
 
     if publish_enabled:
         _publish_project(project_name)
@@ -144,13 +153,19 @@ def main():
         dest="publish",
         help="Disable publishing of the built packages.",
     )
+    parser.add_argument(
+        "--pyversion",
+        type=str,
+        dest="pyversion",
+        help="Python version to build for.",
+    )
     parser.set_defaults(publish=True)
 
     args = parser.parse_args()
 
     root_dir = args.root_dir.resolve()
     publish_enabled = args.publish
-
+    pyversion = args.pyversion
     DIST.mkdir(parents=True, exist_ok=True)
 
     if not root_dir.is_dir():
@@ -158,7 +173,7 @@ def main():
         return
 
     for entry in root_dir.iterdir():
-        process_project(entry, publish_enabled)
+        process_project(entry, publish_enabled, pyversion)
 
 
 if __name__ == "__main__":
