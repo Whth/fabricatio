@@ -3,8 +3,7 @@
 import asyncio
 
 from fabricatio import Event, Role, WorkFlow, logger
-from fabricatio.actions.article import GenerateArticleProposal, GenerateInitialOutline
-from fabricatio.actions.output import DumpFinalizedOutput
+from fabricatio.actions import DumpFinalizedOutput, GenerateArticleProposal, GenerateInitialOutline
 
 
 async def main() -> None:

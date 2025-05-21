@@ -21,3 +21,11 @@ if find_spec("fabricatio_typst"):
         "ArticleOutline",
         "ArticleProposal",
     ]
+
+    if find_spec("fabricatio_typst"):
+        from fabricatio_typst.models.aricle_rag import ArticleChunk
+
+        __all__ += [
+            "ArticleChunk"
+
+        ]

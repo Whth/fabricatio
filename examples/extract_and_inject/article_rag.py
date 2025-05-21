@@ -3,7 +3,7 @@
 import asyncio
 
 from fabricatio import Event, Role, Task, WorkFlow, logger
-from fabricatio.actions.rag import RAGTalk
+from fabricatio.actions import RAGTalk
 
 
 async def main() -> None:

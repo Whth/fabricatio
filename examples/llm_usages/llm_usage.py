@@ -2,9 +2,8 @@
 
 import asyncio
 
-from fabricatio import Action, Event, Role, Task, WorkFlow
-from fabricatio.journal import logger
-from fabricatio.parser import PythonCapture
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio_core.parser import PythonCapture
 
 
 class WriteCode(Action):

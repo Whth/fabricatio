@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Optional
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.models.usages import LLMUsage
+from fabricatio.models import LLMUsage
 
 
 class WritePoem(Action, LLMUsage):

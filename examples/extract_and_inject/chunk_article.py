@@ -2,11 +2,12 @@
 
 import asyncio
 
-from fabricatio import BibManager, Event, Role, Task, WorkFlow, logger
-from fabricatio.actions.article_rag import ChunkArticle
-from fabricatio.actions.rag import InjectToDB
-from fabricatio.fs import gather_files
-from fabricatio.utils import ok
+from fabricatio_typst.rust import BibManager
+
+from fabricatio import Event, Role, Task, WorkFlow, logger
+from fabricatio.actions import ChunkArticle, InjectToDB
+from fabricatio_core.fs import gather_files
+from fabricatio_core.utils import ok
 
 
 async def main() -> None:

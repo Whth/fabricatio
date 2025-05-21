@@ -2,10 +2,9 @@
 
 import asyncio
 
-from fabricatio import Event, Role, logger
-from fabricatio.models.task import Task
-from fabricatio.utils import ok
-from fabricatio.workflows.articles import WriteOutlineCorrectedWorkFlow
+from fabricatio import Event, Role, Task, logger
+from fabricatio.workflows import WriteOutlineCorrectedWorkFlow
+from fabricatio_core.utils import ok
 
 
 async def main() -> None:

@@ -6,6 +6,7 @@ if find_spec("fabricatio_typst"):
     from fabricatio_typst.actions.article import (
         ExtractArticleEssence,
         ExtractOutlineFromRaw,
+        FixArticleEssence,
         GenerateArticle,
         GenerateArticleProposal,
         GenerateInitialOutline,
@@ -16,6 +17,7 @@ if find_spec("fabricatio_typst"):
     __all__ += [
         "ExtractArticleEssence",
         "ExtractOutlineFromRaw",
+        "FixArticleEssence",
         "GenerateArticle",
         "GenerateArticleProposal",
         "GenerateInitialOutline",
@@ -25,14 +27,28 @@ if find_spec("fabricatio_typst"):
     ]
 
     if find_spec("fabricatio_rag"):
-        from fabricatio_typst.actions.article_rag import ArticleConsultRAG, TweakArticleRAG, WriteArticleContentRAG
+        from fabricatio_typst.actions.article_rag import (
+            ArticleConsultRAG,
+            ChunkArticle,
+            TweakArticleRAG,
+            WriteArticleContentRAG,
+        )
 
         __all__ += [
 
             "ArticleConsultRAG",
+            "ChunkArticle",
             "TweakArticleRAG",
             "WriteArticleContentRAG"
+
         ]
+if find_spec("fabricatio_rag"):
+    from fabricatio_rag.actions.rag import InjectToDB, RAGTalk
+
+    __all__ += [
+        "InjectToDB",
+        "RAGTalk"
+    ]
 
 if find_spec("fabricatio_actions"):
     from fabricatio_actions.actions.output import (

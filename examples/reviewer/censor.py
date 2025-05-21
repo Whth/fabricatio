@@ -3,7 +3,7 @@
 import asyncio
 
 from fabricatio import Role, logger
-from fabricatio.capabilities.censor import Censor
+from fabricatio.capabilities import Censor
 
 
 class Coder(Role, Censor):

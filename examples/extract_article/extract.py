@@ -4,10 +4,10 @@ import asyncio
 from typing import TYPE_CHECKING, List
 
 from fabricatio import Event, Role, Task, WorkFlow, logger
-from fabricatio.actions.article import ExtractArticleEssence
+from fabricatio.actions import ExtractArticleEssence
 
 if TYPE_CHECKING:
-    from fabricatio.models.extra.article_essence import ArticleEssence
+    from fabricatio.models import ArticleEssence
 
 
 async def main() -> None:

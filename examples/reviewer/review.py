@@ -3,11 +3,12 @@
 import asyncio
 
 from fabricatio import Role, logger
-from fabricatio.capabilities.review import Review
+from fabricatio.capabilities import Review
 
 
 class Reviewer(Role, Review):
     """Reviewer role."""
+
 
 async def main() -> None:
     """Main function."""

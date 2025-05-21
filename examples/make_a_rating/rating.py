@@ -4,10 +4,10 @@ import asyncio
 from typing import Dict, List, Set, Unpack
 
 import ujson
-from fabricatio import Action, Event, Role, WorkFlow, logger
-from fabricatio.capabilities.rating import Rating
-from fabricatio.models.task import Task
-from fabricatio.parser import JsonCapture
+
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio.capabilities import Rating
+from fabricatio_core.parser import JsonCapture
 
 
 class Rate(Action, Rating):
@@ -33,9 +33,9 @@ class WhatToRate(Action):
     async def _execute(self, task_input: Task, rate_topic: str, **cxt: Unpack) -> List[str]:
         def _validate(resp: str) -> List[str] | None:
             if (
-                (cap := JsonCapture.convert_with(resp, ujson.loads)) is not None
-                and isinstance(cap, list)
-                and all(isinstance(i, str) for i in cap)
+                    (cap := JsonCapture.convert_with(resp, ujson.loads)) is not None
+                    and isinstance(cap, list)
+                    and all(isinstance(i, str) for i in cap)
             ):
                 return cap
             return None

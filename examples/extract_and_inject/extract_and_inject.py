@@ -3,26 +3,28 @@
 import asyncio
 from typing import Optional
 
-from fabricatio import BibManager, Event, Role, Task, WorkFlow, logger
-from fabricatio.actions.article import ExtractArticleEssence, FixArticleEssence
-from fabricatio.actions.output import PersistentAll
-from fabricatio.actions.rag import InjectToDB
-from fabricatio.fs import safe_text_read
-from fabricatio.fs.curd import gather_files
+from fabricatio_typst.rust import BibManager
 from litellm.utils import token_counter
+
+from fabricatio import Event, Role, Task, WorkFlow, logger
+from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
+from fabricatio_core.fs import safe_text_read
+from fabricatio_core.fs.curd import gather_files
 
 MAX_TOKEN = 64000
 
 
-def _reader(path:str)->Optional[str]:
-    string=safe_text_read(path)
-    string=string.split("References\n")[0]
-    string=string.split("参考文献\n")[0]
-    if (leng:=token_counter(text=string))> MAX_TOKEN:
+def _reader(path: str) -> Optional[str]:
+    string = safe_text_read(path)
+    string = string.split("References\n")[0]
+    string = string.split("参考文献\n")[0]
+    if (leng := token_counter(text=string)) > MAX_TOKEN:
         logger.warning(f'{path} is too long, got {leng} tokens, skip.')
         return None
     logger.info(f'Read {path} get {leng} tokens.')
     return string
+
+
 async def main() -> None:
     """Main function."""
     Role(

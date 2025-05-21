@@ -4,11 +4,11 @@ import asyncio
 from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.actions.output import PersistentAll
-from fabricatio.capabilities.propose import Propose
-from fabricatio.fs import safe_text_read
-from fabricatio.models.extra.article_outline import ArticleOutline
-from fabricatio.utils import ok
+from fabricatio.actions import PersistentAll
+from fabricatio.capabilities import Propose
+from fabricatio.models import ArticleOutline
+from fabricatio_core.fs import safe_text_read
+from fabricatio_core.utils import ok
 
 
 class ProposeObj(Action, Propose):
@@ -23,6 +23,7 @@ class ProposeObj(Action, Propose):
             f"I need you to create an `ArticleOutline` obj against it."
             f"Note the heading shall not contain any heading numbers.",
         )
+
 
 async def main() -> None:
     """Main function."""
