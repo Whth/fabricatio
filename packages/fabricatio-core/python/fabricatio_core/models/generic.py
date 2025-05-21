@@ -1,9 +1,8 @@
 """This module defines generic classes for models in the Fabricatio library, providing a foundation for various model functionalities."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Type, Union, final
+from typing import Any, Callable, Iterable, List, Optional, Self, Union, final, overload
 
 import ujson
 from pydantic import (
@@ -15,6 +14,7 @@ from pydantic import (
     PositiveInt,
     SecretStr,
 )
+from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
@@ -67,9 +67,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-                "--- Start of Extra Info Sequence ---"
-                + "\n".join(d.compact() if compact else d.display() for d in seq)
-                + "--- End of Extra Info Sequence ---"
+            "--- Start of Extra Info Sequence ---"
+            + "\n".join(d.compact() if compact else d.display() for d in seq)
+            + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -484,7 +484,7 @@ class InstantiateFromString(Base, ABC):
         Returns:
             Self | None: The instance of the class or None if the string is not valid.
         """
-        from fabricatio.parser import JsonCapture
+        from fabricatio_core.parser import JsonCapture
 
         obj = JsonCapture.convert_with(string, cls.model_validate_json)
         logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
@@ -496,181 +496,3 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
 
     This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
     """
-
-
-class Patch[T](ProposedAble, ABC):
-    """Base class for patches.
-
-    This class provides a base implementation for patches that can be applied to other objects.
-    """
-
-    def apply(self, other: T) -> T:
-        """Apply the patch to another instance.
-
-        Args:
-            other (T): The instance to apply the patch to.
-
-        Returns:
-            T: The instance with the patch applied.
-
-        Raises:
-            ValueError: If a field in the patch is not found in the target instance.
-        """
-        for field in self.__class__.model_fields:
-            if not hasattr(other, field):
-                raise ValueError(f"{field} not found in {other}, are you applying to the wrong type?")
-            setattr(other, field, getattr(self, field))
-        return other
-
-    def as_kwargs(self) -> Dict[str, Any]:
-        """Get the kwargs of the patch."""
-        return self.model_dump()
-
-    @staticmethod
-    def ref_cls() -> Optional[Type[BaseModel]]:
-        """Get the reference class of the model."""
-        return None
-
-    @classmethod
-    def formated_json_schema(cls) -> str:
-        """Get the JSON schema of the model in a formatted string.
-
-        Returns:
-            str: The JSON schema of the model in a formatted string.
-        """
-        my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
-
-        ref_cls = cls.ref_cls()
-        if ref_cls is not None:
-            # copy the desc info of each corresponding fields from `ref_cls`
-            for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
-                my_schema["properties"][field_name]["description"] = (
-                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
-                    "description"]
-                )
-            my_schema["description"] = ref_cls.__doc__
-
-        return ujson.dumps(my_schema, indent=2, ensure_ascii=False, sort_keys=False)
-
-
-class SequencePatch[T](ProposedUpdateAble, ABC):
-    """Base class for patches.
-
-    This class provides a base implementation for patches that can be applied to sequences of objects.
-    """
-
-    tweaked: List[T]
-    """Tweaked content list"""
-
-    def update_from_inner(self, other: Self) -> Self:
-        """Updates the current instance with the attributes of another instance.
-
-        Args:
-            other (Self): The other instance to update from.
-
-        Returns:
-            Self: The current instance with updated attributes.
-        """
-        self.tweaked.clear()
-        self.tweaked.extend(other.tweaked)
-        return self
-
-    @classmethod
-    def default(cls) -> Self:
-        """Defaults to empty list.
-
-        Returns:
-            Self: A new instance with an empty list of tweaks.
-        """
-        return cls(tweaked=[])
-
-
-class PersistentAble(Base, ABC):
-    """Class providing file persistence capabilities.
-
-    Enables saving model instances to disk with timestamped filenames and loading from persisted files.
-    Implements basic versioning through filename hashing and timestamping.
-    """
-
-    def persist(self, path: str | Path) -> Self:
-        """Save model instance to disk with versioned filename.
-
-        Args:
-            path (str | Path): Target directory or file path. If directory, filename is auto-generated.
-
-        Returns:
-            Self: Current instance for method chaining
-
-        Notes:
-            - Filename format: <ClassName>_<YYYYMMDD_HHMMSS>_<6-char_hash>.json
-            - Hash generated from JSON content ensures uniqueness
-        """
-        p = Path(path)
-        out = self.model_dump_json(indent=1, by_alias=True)
-
-        # Generate a timestamp in the format YYYYMMDD_HHMMSS
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Generate the hash
-        file_hash = blake3_hash(out.encode())[:6]
-
-        # Construct the file name with timestamp and hash
-        file_name = f"{self.__class__.__name__}_{timestamp}_{file_hash}.json"
-
-        if p.is_dir():
-            p.joinpath(file_name).write_text(out, encoding="utf-8")
-        else:
-            p.mkdir(exist_ok=True, parents=True)
-            p.write_text(out, encoding="utf-8")
-
-        logger.info(f"Persisted `{self.__class__.__name__}` to {p.as_posix()}")
-        return self
-
-    @classmethod
-    def from_latest_persistent(cls, dir_path: str | Path) -> Optional[Self]:
-        """Load most recent persisted instance from directory.
-
-        Args:
-            dir_path (str | Path): Directory containing persisted files
-
-        Returns:
-            Self: Most recently modified instance
-
-        Raises:
-            NotADirectoryError: If path is not a valid directory
-            FileNotFoundError: If no matching files found
-        """
-        dir_path = Path(dir_path)
-        if not dir_path.is_dir():
-            return None
-
-        pattern = f"{cls.__name__}_*.json"
-        files = list(dir_path.glob(pattern))
-
-        if not files:
-            return None
-
-        def _get_timestamp(file_path: Path) -> datetime:
-            stem = file_path.stem
-            parts = stem.split("_")
-            return datetime.strptime(f"{parts[1]}_{parts[2]}", "%Y%m%d_%H%M%S")
-
-        files.sort(key=lambda f: _get_timestamp(f), reverse=True)
-
-        return cls.from_persistent(files.pop(0))
-
-    @classmethod
-    def from_persistent(cls, path: str | Path) -> Self:
-        """Load an instance from a specific persisted file.
-
-        Args:
-            path (str | Path): Path to the JSON file.
-
-        Returns:
-            Self: The loaded instance from the file.
-
-        Raises:
-            FileNotFoundError: If the specified file does not exist.
-            ValueError: If the file content is invalid for the model.
-        """
-        return cls.model_validate_json(safe_text_read(path))

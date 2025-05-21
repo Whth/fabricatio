@@ -2,7 +2,8 @@
 
 from typing import Set
 
-from fabricatio.models.tool import ToolBox
+from fabricatio_core.models.tool import ToolBox
+
 from fabricatio.toolboxes.arithmetic import arithmetic_toolbox
 from fabricatio.toolboxes.fs import fs_toolbox
 

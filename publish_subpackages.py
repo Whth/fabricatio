@@ -2,7 +2,7 @@ import argparse
 import subprocess
 import tomllib
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 ROOT_DIR = Path("packages").resolve()  # Default root directory
 DIST = Path("dist").resolve()
@@ -31,24 +31,49 @@ def build_command(project_name: str, entry: Path, build_backend: str) -> List[st
         # The following line was present in the original code but is not valid Python.
         # It appears to be a comment or a command meant for manual execution for a specific package.
         # uvx --directory .\packages\fabricatio-core\ maturin publish --skip-existing
-        return ["uvx", "--project", project_name, "--directory", entry.as_posix(), "maturin", "build", "-r",
-                "--sdist", "-o", DIST.as_posix()]
-    else:
-        # uvx --project fabricatio-judge --directory .\packages\fabricatio-judge\ uv build
-        return ["uvx", "--project", project_name, "--directory", entry.as_posix(), "uv",
-                "build"]  # Assuming uv publish expects the path to the package dir
+        return [
+            [
+                "uvx",
+                "--project",
+                project_name,
+                "--directory",
+                entry.as_posix(),
+                "maturin",
+                "develop",
+                "--uv",
+                "-r",
+            ],
+            [
+                "uvx",
+                "--project",
+                project_name,
+                "--directory",
+                entry.as_posix(),
+                "maturin",
+                "build",
+                "-r",
+                "--sdist",
+                "-o",
+                DIST.as_posix(),
+            ],
+        ]
+    # uvx --project fabricatio-judge --directory .\packages\fabricatio-judge\ uv build
+    return [
+        ["uvx", "--project", project_name, "--directory", entry.as_posix(), "uv", "build"]
+    ]  # Assuming uv publish expects the path to the package dir
 
 
-def run_build_command(command: List[str], project_name: str, entry: Path, build_backend: str) -> None:
+def run_build_command(command: List[List[str]], project_name: str, entry: Path, build_backend: str) -> None:
     """Runs the build command."""
-    print(f"🚀 Running command: {' '.join(str(c) for c in command)}")
-    try:
-        subprocess.run(command, check=True, cwd=entry if build_backend != "maturin" else None)
-        print(f"✅ Successfully built {project_name}")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Build failed for {project_name}: {e}")
-    except FileNotFoundError:
-        print(f"❌ Command '{command[0]}' not found. Make sure it's installed and in your PATH.")
+    for c in command:
+        print(f"🚀 Running command: {' '.join(c)}")
+        try:
+            subprocess.run(c, check=True)
+            print(f"✅ Successfully built {project_name}")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Build failed for {project_name}: {e}")
+        except FileNotFoundError:
+            print(f"❌ Command '{c[0]}' not found. Make sure it's installed and in your PATH.")
 
 
 def _validate_project_entry(entry: Path) -> Optional[Path]:
@@ -70,7 +95,7 @@ def _build_project(project_name: str, entry: Path, build_backend: str) -> None:
 def _publish_project(project_name: str) -> None:
     """Publishes the built packages for the project."""
     for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
-        if package_file.suffix in ('.whl', '.tar.gz'):
+        if package_file.suffix in (".whl", ".tar.gz"):
             publish_command = ["uv", "publish", package_file.as_posix()]
             print(f"🚀 Publishing: {' '.join(publish_command)}")
             try:
@@ -79,7 +104,7 @@ def _publish_project(project_name: str) -> None:
             except subprocess.CalledProcessError as e:
                 print(f"❌ Failed to publish {package_file.name}: {e}")
             except FileNotFoundError:
-                print(f"❌ Command 'uv' not found. Make sure it's installed and in your PATH.")
+                print("❌ Command 'uv' not found. Make sure it's installed and in your PATH.")
 
 
 def process_project(entry: Path, publish_enabled: bool) -> None:
