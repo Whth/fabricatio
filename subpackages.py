@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 # --- Configuration ---
 DEFAULT_ROOT_DIR = Path("packages").resolve()
 DEFAULT_DIST_DIR = Path("dist").resolve()
+DEFAULT_DATA_DIR = Path("extra")
 
 # --- Logging Setup ---
 # Configure logging for clear and informative output
@@ -171,15 +172,29 @@ class Project:
             if not self.pyversion:
                 logger.error(f"Python version (--pyversion) is required for Maturin project '{self.name}'.")
                 return []
-
             develop_command = [
                 "uvx", "-p", self.pyversion, "--project", self.entry_path.as_posix(), "maturin", "develop", "--uv",
                 "-r",
+
             ]
+
+            # cargo build --workspace --bins -r -Z unstable-options --artifact-dir
+            scripts_dir = self.entry_path / DEFAULT_DATA_DIR / "scripts"
+            cargo_bins = [
+                "cargo", "build", "--workspace", "--bins", "-r", "-Z", "unstable-options", "--artifact-dir",
+                scripts_dir.as_posix()
+
+            ]
+
+            clean = [[
+                "rm", (scripts_dir / "*.pdb").as_posix(), "||", "true"
+            ], [
+                "rm", (scripts_dir / "*.drawf").as_posix(), "||", "true"
+            ]]
 
             if self.dev_mode:
                 logger.info(f"Dev mode enabled for Maturin project '{self.name}'. Only running develop command.")
-                return [develop_command]
+                return [cargo_bins, *clean, develop_command]
 
             build_sdist_command = [
                 "uvx",
@@ -192,7 +207,7 @@ class Project:
                 "-o",
                 resolved_dist_dir,
             ]
-            return [develop_command, build_sdist_command]
+            return [cargo_bins, *clean, develop_command, build_sdist_command]
 
         # Default to 'uv build' for other backends or if backend is not 'maturin'
         # This covers standard Python packages (setuptools, hatchling, etc.)
