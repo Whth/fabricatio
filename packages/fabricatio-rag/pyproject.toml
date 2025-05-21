@@ -7,7 +7,8 @@ requires-python = ">=3.12,<3.14"
 
 dependencies = [
     "pymilvus>=2.5.4",
-    "pydantic>= 2.7.4"
+    "pydantic>= 2.7.4",
+    "fabricatio-core"
 ]
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
@@ -15,3 +16,10 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_rag.rust"
+
+
+
+[tool.uv.sources]
+
+fabricatio-core = { workspace = true }
+
