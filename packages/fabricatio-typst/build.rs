@@ -13,13 +13,26 @@ fn main() {
     if artifact_dir.exists() {
         match fs::read_dir(&artifact_dir) {
             Ok(mut entries) => {
-                if entries.next().is_some() {
-                    println!("Scripts directory is not empty, exiting...");
+                if let Some(Ok(first_entry)) = entries.next() {
+                    let first_file_name = first_entry.file_name();
+                    println!(
+                        "cargo:warning=Scripts directory {} is not empty (e.g., found {}), exiting build script.",
+                        artifact_dir.display(),
+                        first_file_name.to_string_lossy()
+                    );
                     return;
                 }
             }
-            Err(_) => {
-                panic!("Failed to read scripts directory");
+            Err(e) => {
+                // It's probably better to panic here if we can't read the directory,
+                // as it might indicate a permissions issue or other problem.
+                // However, if the goal is just to rebuild if unsure, one might choose to proceed.
+                // Given the context of a build script, panicking on unexpected errors is safer.
+                panic!(
+                    "Failed to read artifact directory {}: {}",
+                    artifact_dir.display(),
+                    e
+                );
             }
         }
     }
@@ -32,6 +45,7 @@ fn main() {
             e
         );
     }
+    println!("cargo:warning=Start building tools");
 
     // Execute the cargo build command
     let output = Command::new("cargo")
