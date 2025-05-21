@@ -4,7 +4,7 @@ import asyncio
 
 from fabricatio import Role as BaseRole
 from fabricatio import logger
-from fabricatio.capabilities.correct import Correct
+from fabricatio.capabilities import Correct
 
 
 class Role(BaseRole, Correct):

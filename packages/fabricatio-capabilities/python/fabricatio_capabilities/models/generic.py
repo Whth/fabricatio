@@ -21,6 +21,8 @@ from pydantic import (
     SecretStr,
 )
 
+from fabricatio_core.models.generic import Base, Described, Display, Named, ProposedAble, Titled, UnsortGenerate
+
 
 class WordCount(Base, ABC):
     """Class that includes a word count attribute."""
@@ -231,39 +233,6 @@ class FinalizedDumpAble(Base, ABC):
         """
         dump_text(path, self.finalized_dump())
         return self
-
-
-class Vectorizable(ABC):
-    """Class that prepares the vectorization of the model.
-
-    This class includes methods to prepare the model for vectorization, ensuring it fits within a specified token length.
-    """
-
-    @abstractmethod
-    def _prepare_vectorization_inner(self) -> str:
-        """Prepare the model for vectorization."""
-
-    @final
-    def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
-        """Prepare the vectorization of the model.
-
-        Args:
-            max_length (Optional[int]): The maximum token length for the vectorization. Defaults to the configuration.
-
-        Returns:
-            str: The prepared vectorization of the model.
-
-        Raises:
-            ValueError: If the chunk exceeds the maximum sequence length.
-        """
-        from litellm.utils import token_counter
-
-        max_length = max_length or CONFIG.embedding.max_sequence_length
-        chunk = self._prepare_vectorization_inner()
-        if max_length and (length := token_counter(text=chunk)) > max_length:
-            raise ValueError(f"Chunk exceeds maximum sequence length {max_length}, got {length}, see \n{chunk}")
-
-        return chunk
 
 
 class ScopedConfig(Base, ABC):
