@@ -3,6 +3,7 @@ mod event;
 mod hash;
 mod hbs_helpers;
 
+mod language;
 mod templates;
 mod word_split;
 use pyo3::prelude::*;
@@ -17,6 +18,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     init();
 
     config::register(python, m)?;
+    language::register(python, m)?;
     templates::register(python, m)?;
     hash::register(python, m)?;
     word_split::register(python, m)?;

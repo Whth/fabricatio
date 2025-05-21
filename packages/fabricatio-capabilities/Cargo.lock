@@ -19,7 +19,6 @@ name = "fabricatio-capabilities"
 version = "0.0.0"
 dependencies = [
  "pyo3",
- "whichlang",
 ]
 
 [[package]]
@@ -170,9 +169,3 @@ name = "unindent"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
-
-[[package]]
-name = "whichlang"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9aa3ad29c3d08283ac6b769e3ec15ad1ddb88af7d2e9bc402c574973b937e7"

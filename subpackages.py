@@ -33,21 +33,24 @@ class Project:
         entry_path (Path): The file system path to the project's root directory.
         dist_dir (Path): The common directory where built packages will be placed.
         pyversion (Optional[str]): The target Python version for the build, if applicable.
+        dev_mode (bool): Whether to run in development mode (e.g., only 'maturin develop').
 
     Attributes:
         entry_path (Path): The file system path to the project's root directory.
         dist_dir (Path): The common directory where built packages will be placed.
         pyversion (Optional[str]): The target Python version for the build.
+        dev_mode (bool): Whether the project is in development mode.
         name (Optional[str]): The name of the project, loaded from `pyproject.toml`.
         build_backend (Optional[str]): The build backend specified in `pyproject.toml`.
         config (Optional[Dict[str, Any]]): The parsed content of `pyproject.toml`.
     """
 
-    def __init__(self, entry_path: Path, dist_dir: Path, pyversion: Optional[str]):
+    def __init__(self, entry_path: Path, dist_dir: Path, pyversion: Optional[str], dev_mode: bool):
         """Initializes a Project instance."""
         self.entry_path: Path = entry_path
         self.dist_dir: Path = dist_dir
         self.pyversion: Optional[str] = pyversion
+        self.dev_mode: bool = dev_mode
         self.name: Optional[str] = None
         self.build_backend: Optional[str] = None
         self.config: Optional[Dict[str, Any]] = None
@@ -149,7 +152,8 @@ class Project:
     def _get_build_commands(self) -> List[List[str]]:
         """Generates the list of build commands for the project.
 
-        The commands are determined based on the project's build backend (e.g., Maturin, uv).
+        The commands are determined based on the project's build backend (e.g., Maturin, uv)
+        and whether dev_mode is enabled.
         Assumes commands will be run with the current working directory set to the project's entry_path.
 
         Returns:
@@ -167,13 +171,44 @@ class Project:
             if not self.pyversion:
                 logger.error(f"Python version (--pyversion) is required for Maturin project '{self.name}'.")
                 return []
-            return [
-                ["uvx", "-p", self.pyversion, "maturin", "develop", "--uv", "-r"],
-                ["uvx", "-p", self.pyversion, "maturin", "build", "-r", "--sdist", "-o", resolved_dist_dir],
+
+            develop_command = [
+                "uvx", "-p", self.pyversion, "--project", self.entry_path.as_posix(), "maturin", "develop", "--uv",
+                "-r",
             ]
+
+            if self.dev_mode:
+                logger.info(f"Dev mode enabled for Maturin project '{self.name}'. Only running develop command.")
+                return [develop_command]
+
+            build_sdist_command = [
+                "uvx",
+                "-p",
+                self.pyversion,
+                "maturin",
+                "build",
+                "-r",
+                "--sdist",
+                "-o",
+                resolved_dist_dir,
+            ]
+            return [develop_command, build_sdist_command]
+
         # Default to 'uv build' for other backends or if backend is not 'maturin'
         # This covers standard Python packages (setuptools, hatchling, etc.)
-        return [["uvx", "uv", "build", "--out", resolved_dist_dir, "--sdist", "--wheel"]]
+        if self.dev_mode:
+            logger.info(
+                f"Dev mode enabled for non-Maturin project '{self.name}'. Build step will be skipped if publish is not enabled.")
+            # For non-Maturin projects in dev mode, we might not want to build sdist/wheel
+            # unless publishing is also intended. If only `build()` is called without `publish()`,
+            # this could be an empty list or a specific dev install command if applicable.
+            # For now, if dev_mode is on and not publishing, let's assume we don't need to build sdist/wheel.
+            # The `build` method will handle this based on the commands generated.
+            # If the intention of --dev is *only* to affect Maturin, this part might need adjustment.
+            # For now, let's assume --dev means skip full build for all if not publishing.
+            return []  # Or a specific dev install command if one exists for `uv build` equivalent.
+
+        return [["uvx", "uv", "build", "-o", resolved_dist_dir, "--sdist", "--wheel"]]
 
     def build(self) -> bool:
         """Builds the project by executing its configured build commands.
@@ -189,6 +224,10 @@ class Project:
         build_commands = self._get_build_commands()
 
         if not build_commands:
+            if self.dev_mode and self.build_backend != "maturin":
+                logger.info(
+                    f"Dev mode enabled for '{self.name}', and no explicit build commands for this mode (e.g. not publishing). Skipping build.")
+                return True  # Considered success in dev mode if no build commands are needed
             logger.error(f"No build commands generated for '{self.name}'. Build cannot proceed.")
             return False
 
@@ -220,6 +259,12 @@ class Project:
         normalized_name = self.name.replace("-", "_")
         artifacts_found = False
         all_published_successfully = True
+
+        # Ensure dist_dir exists before globbing
+        if not self.dist_dir.exists():
+            logger.warning(
+                f"Distribution directory '{self.dist_dir}' does not exist. Cannot find artifacts for '{self.name}'.")
+            return True  # No artifacts to publish because dist_dir doesn't exist.
 
         for package_file in self.dist_dir.glob(f"{normalized_name}*"):
             if package_file.is_file() and package_file.suffix in (".whl", ".tar.gz"):
@@ -255,21 +300,25 @@ class PackageManager:
         dist_dir (Path): The common directory where built packages will be placed.
         pyversion (Optional[str]): The target Python version for builds, passed to projects.
         publish_enabled (bool): Whether to publish packages after building.
+        dev_mode (bool): Whether to run in development mode.
 
     Attributes:
         root_dir (Path): The root directory to scan for subpackage projects.
         dist_dir (Path): The common directory where built packages will be placed.
         pyversion (Optional[str]): The target Python version for builds.
         publish_enabled (bool): Whether to publish packages after building.
+        dev_mode (bool): Whether to run in development mode.
         projects (List[Project]): A list of discovered and valid `Project` instances.
     """
 
-    def __init__(self, root_dir: Path, dist_dir: Path, pyversion: Optional[str], publish_enabled: bool) -> None:
+    def __init__(self, root_dir: Path, dist_dir: Path, pyversion: Optional[str], publish_enabled: bool,
+                 dev_mode: bool) -> None:
         """Initializes the PackageManager."""
         self.root_dir: Path = root_dir
         self.dist_dir: Path = dist_dir
         self.pyversion: Optional[str] = pyversion
         self.publish_enabled: bool = publish_enabled
+        self.dev_mode: bool = dev_mode
         self.projects: List[Project] = []
 
     def discover_projects(self) -> None:
@@ -286,7 +335,7 @@ class PackageManager:
         logger.info(f"Scanning for projects in '{self.root_dir}'...")
         for entry in self.root_dir.iterdir():
             if entry.is_dir():  # Only consider directories as potential projects
-                project = Project(entry, self.dist_dir, self.pyversion)
+                project = Project(entry, self.dist_dir, self.pyversion, self.dev_mode)
                 if project.is_valid:
                     self.projects.append(project)
                 # else: Logging about invalid project structure is handled within Project._load_project_metadata
@@ -324,6 +373,18 @@ class PackageManager:
 
             if build_successful:
                 if self.publish_enabled:
+                    # If in dev_mode and it's a non-Maturin project, build might have been skipped.
+                    # We might need to explicitly build sdist/wheel here before publishing.
+                    if self.dev_mode and project.build_backend != "maturin":
+                        logger.info(f"Dev mode: Explicitly building '{project_identifier}' for publishing.")
+                        # Force a standard build if dev_mode skipped it and we want to publish
+                        standard_build_cmd = ["uvx", "uv", "build", "-o", self.dist_dir.resolve().as_posix(), "--sdist",
+                                              "--wheel"]
+                        if not project._execute_subprocess(standard_build_cmd, "dev mode publish build"):
+                            logger.error(f"Failed to build '{project_identifier}' for publishing in dev mode.")
+                            failure_count += 1
+                            continue  # Skip publishing this one
+
                     if project.name:  # Ensure project name is available for logging
                         logger.info(f"Publishing is enabled for '{project.name}'.")
                         publish_successful = project.publish()
@@ -394,7 +455,13 @@ def main():
         type=str,
         default=None,
         help="Specify Python version (e.g., '3.12') for builders like Maturin that require it. "
-        "If not provided, Maturin projects may fail to build.",
+             "If not provided, Maturin projects may fail to build.",
+    )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Enable development mode. For Maturin projects, this will only run 'maturin develop'. "
+             "For other projects, build steps might be altered or skipped if not publishing.",
     )
 
     args = parser.parse_args()
@@ -408,12 +475,14 @@ def main():
     logger.info(f"Distribution directory: {resolved_dist_dir}")
     logger.info(f"Python version target: {args.pyversion or 'Not specified'}")
     logger.info(f"Publishing enabled: {args.publish}")
+    logger.info(f"Development mode: {args.dev}")
 
     manager = PackageManager(
         root_dir=resolved_root_dir,
         dist_dir=resolved_dist_dir,
         pyversion=args.pyversion,
         publish_enabled=args.publish,
+        dev_mode=args.dev,
     )
 
     manager.discover_projects()
