@@ -17,11 +17,11 @@ def parse_pyproject(pyproject_path: Path) -> Optional[Tuple[str, str, Dict[str, 
             build_backend = build_system.get("build-backend", "")
             project_name = config.get("project", {}).get("name")
             if not project_name:
-                print(f"⚠️ Project name not found in {pyproject_path.parent.name}")
+                print(f"Project name not found in {pyproject_path.parent.name}")
                 return None
             return build_backend, project_name, config
     except Exception as e:
-        print(f"⚠️ Failed to parse pyproject.toml in {pyproject_path.parent.name}: {e}")
+        print(f"Failed to parse pyproject.toml in {pyproject_path.parent.name}: {e}")
         return None
 
 
@@ -66,14 +66,14 @@ def build_command(project_name: str, entry: Path, build_backend: str) -> List[st
 def run_build_command(command: List[List[str]], project_name: str, entry: Path, build_backend: str) -> None:
     """Runs the build command."""
     for c in command:
-        print(f"🚀 Running command: {' '.join(c)}")
+        print(f"Running command: {' '.join(c)}")
         try:
             subprocess.run(c, check=True)
-            print(f"✅ Successfully built {project_name}")
+            print(f"Successfully built {project_name}")
         except subprocess.CalledProcessError as e:
-            print(f"❌ Build failed for {project_name}: {e}")
+            print(f"Build failed for {project_name}: {e}")
         except FileNotFoundError:
-            print(f"❌ Command '{c[0]}' not found. Make sure it's installed and in your PATH.")
+            print(f"Command '{c[0]}' not found. Make sure it's installed and in your PATH.")
 
 
 def _validate_project_entry(entry: Path) -> Optional[Path]:
@@ -97,14 +97,14 @@ def _publish_project(project_name: str) -> None:
     for package_file in DIST.glob(f"{project_name.replace('-', '_')}*.*"):
         if package_file.suffix in (".whl", ".tar.gz"):
             publish_command = ["uv", "publish", package_file.as_posix()]
-            print(f"🚀 Publishing: {' '.join(publish_command)}")
+            print(f"Publishing: {' '.join(publish_command)}")
             try:
                 subprocess.run(publish_command, check=True)
-                print(f"✅ Successfully published {package_file.name}")
+                print(f"Successfully published {package_file.name}")
             except subprocess.CalledProcessError as e:
-                print(f"❌ Failed to publish {package_file.name}: {e}")
+                print(f"Failed to publish {package_file.name}: {e}")
             except FileNotFoundError:
-                print("❌ Command 'uv' not found. Make sure it's installed and in your PATH.")
+                print("Command 'uv' not found. Make sure it's installed and in your PATH.")
 
 
 def process_project(entry: Path, publish_enabled: bool) -> None:
@@ -113,21 +113,21 @@ def process_project(entry: Path, publish_enabled: bool) -> None:
     if not pyproject_path:
         return
 
-    print(f"\n🔍 Checking project: {entry.name}")
+    print(f"\nChecking project: {entry.name}")
 
     parsed_info = parse_pyproject(pyproject_path)
     if not parsed_info:
         return
 
     build_backend, project_name, _ = parsed_info
-    print(f"📦 Project: {project_name}, Build backend: {build_backend}")
+    print(f"Project: {project_name}, Build backend: {build_backend}")
 
     _build_project(project_name, entry, build_backend)
 
     if publish_enabled:
         _publish_project(project_name)
     else:
-        print(f"📦 Skipping publish for {project_name} as per configuration.")
+        print(f"Skipping publish for {project_name} as per configuration.")
 
 
 def main():
@@ -154,7 +154,7 @@ def main():
     DIST.mkdir(parents=True, exist_ok=True)
 
     if not root_dir.is_dir():
-        print(f"❌ Root directory '{root_dir}' not found.")
+        print(f"Root directory '{root_dir}' not found.")
         return
 
     for entry in root_dir.iterdir():
