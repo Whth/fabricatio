@@ -3,26 +3,21 @@
 import asyncio
 from pathlib import Path
 
-from fabricatio import Event, Role, WorkFlow, logger
-from fabricatio.actions.article_rag import TweakArticleRAG
-from fabricatio.actions.output import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent
-from fabricatio.models.action import Action
-from fabricatio.models.extra.article_main import Article
-from fabricatio.models.extra.article_outline import ArticleOutline
-from fabricatio.models.extra.article_proposal import ArticleProposal
-from fabricatio.models.task import Task
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleRAG
+from fabricatio.models import Article, ArticleOutline, ArticleProposal
 
 
 class Connect(Action):
     """Connect the article to the outline."""
 
     async def _execute(
-        self,
-        article_briefing: str,
-        article_proposal: ArticleProposal,
-        article_outline: ArticleOutline,
-        article: Article,
-        **cxt,
+            self,
+            article_briefing: str,
+            article_proposal: ArticleProposal,
+            article_outline: ArticleOutline,
+            article: Article,
+            **cxt,
     ) -> None:
         article.update_ref(article_outline.update_ref(article_proposal.update_ref(article_briefing)))
 

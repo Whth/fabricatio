@@ -9,7 +9,6 @@ from fabricatio_capabilities.models.generic import (
     SketchedAble,
     WithRef,
     WordCount,
-
 )
 from fabricatio_core.models.generic import (
     Described,

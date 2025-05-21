@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Mapping, Any, List, Sequence
+from typing import Any, List, Mapping, Sequence
 
 
 class FromMapping:

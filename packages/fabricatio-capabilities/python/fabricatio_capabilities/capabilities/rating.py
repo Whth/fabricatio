@@ -10,8 +10,7 @@ from pydantic import Field, NonNegativeInt, PositiveInt, create_model
 
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Display
-from fabricatio_core.models.generic import ProposedAble
+from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import CompositeScoreKwargs, ValidateKwargs
 from fabricatio_core.parser import JsonCapture
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER

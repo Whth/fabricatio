@@ -1,6 +1,6 @@
 """Fabricatio is a Python library for building llm app using event-based agent structure."""
 
-from fabricatio_judge import models, capabilities
+from fabricatio_judge import capabilities, models
 
 __all__ = [
     "capabilities",
