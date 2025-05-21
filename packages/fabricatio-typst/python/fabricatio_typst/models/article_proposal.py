@@ -4,14 +4,14 @@ from typing import Dict, List
 
 from fabricatio_capabilities.models.generic import (
     AsPrompt,
+    Language,
+    PersistentAble,
     SketchedAble,
     WithRef,
     WordCount,
 )
 from fabricatio_core.models.generic import (
     Described,
-    Language,
-    PersistentAble,
     Titled,
 )
 from pydantic import Field

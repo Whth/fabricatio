@@ -6,9 +6,10 @@ from typing import List, Optional, Unpack
 
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.models.kwargs_types import ValidateKwargs
+from fabricatio_capabilities.rust import detect_language
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, WithBriefing
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, detect_language
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import override_kwargs
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge

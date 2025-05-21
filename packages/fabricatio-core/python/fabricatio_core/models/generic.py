@@ -18,7 +18,7 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
 
 
 class Base(BaseModel, ABC):
@@ -101,21 +101,6 @@ class Titled(Base, ABC):
 
     title: str
     """The title of this object, make it professional and concise.No prefixed heading number should be included."""
-
-
-class Language:
-    """Class that provides a language attribute."""
-
-    @property
-    def language(self) -> str:
-        """Get the language of the object."""
-        if isinstance(self, Described) and self.description:
-            return detect_language(self.description)
-        if isinstance(self, Titled) and self.title:
-            return detect_language(self.title)
-        if isinstance(self, Named) and self.name:
-            return detect_language(self.name)
-        raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
 
 
 class WithBriefing(Named, Described, ABC):

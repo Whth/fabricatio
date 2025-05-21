@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from typer import Typer
-
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
 from fabricatio.actions import (
@@ -23,7 +21,7 @@ from fabricatio.actions import (
 )
 from fabricatio.models import ArticleOutline, LLMUsage
 from fabricatio_core.utils import ok
-
+from typer import Typer
 
 # from pydantic import HttpUrl
 
@@ -110,9 +108,8 @@ app = Typer()
 
 @app.command()
 def consult(
-        collection_name: str = typer.Option("article_chunks", "-c", "--collection-name",
-                                            help="Name of the collection."),
-        tei_endpoint: Optional[str] = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    tei_endpoint: Optional[str] = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
 ) -> None:
     """Consult an article based on a given article outline."""
     _ = asyncio.run(
@@ -126,16 +123,15 @@ def consult(
 
 @app.command()
 def finish(
-        article_outline_path: Path = typer.Argument(  # noqa: B008
-            help="Path to the article outline raw file."
-        ),
-        dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-        persist_dir: Path = typer.Option(  # noqa: B008
-            Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
-        ),
-        collection_name: str = typer.Option("article_chunks", "-c", "--collection-name",
-                                            help="Name of the collection."),
-        supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
+    article_outline_path: Path = typer.Argument(  # noqa: B008
+        help="Path to the article outline raw file."
+    ),
+    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
+    persist_dir: Path = typer.Option(  # noqa: B008
+        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
+    ),
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Finish an article based on a given article outline."""
     path = ok(
@@ -157,16 +153,15 @@ def finish(
 
 @app.command()
 def completion(
-        article_outline_raw_path: Path = typer.Option(  # noqa: B008
-            Path("article_outline_raw.txt"), "-a", "--article-outline-raw", help="Path to the article outline raw file."
-        ),
-        dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-        persist_dir: Path = typer.Option(  # noqa: B008
-            Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
-        ),
-        collection_name: str = typer.Option("article_chunks", "-c", "--collection-name",
-                                            help="Name of the collection."),
-        supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
+    article_outline_raw_path: Path = typer.Option(  # noqa: B008
+        Path("article_outline_raw.txt"), "-a", "--article-outline-raw", help="Path to the article outline raw file."
+    ),
+    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
+    persist_dir: Path = typer.Option(  # noqa: B008
+        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
+    ),
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Write an article based on a raw article outline."""
     path = ok(
@@ -188,16 +183,15 @@ def completion(
 
 @app.command()
 def write(
-        article_briefing: Path = typer.Option(  # noqa: B008
-            Path("article_briefing.txt"), "-a", "--article-briefing", help="Path to the article briefing file."
-        ),
-        dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-        persist_dir: Path = typer.Option(  # noqa: B008
-            Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
-        ),
-        collection_name: str = typer.Option("article_chunks", "-c", "--collection-name",
-                                            help="Name of the collection."),
-        supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
+    article_briefing: Path = typer.Option(  # noqa: B008
+        Path("article_briefing.txt"), "-a", "--article-briefing", help="Path to the article briefing file."
+    ),
+    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
+    persist_dir: Path = typer.Option(  # noqa: B008
+        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
+    ),
+    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Write an article based on a briefing.
 
@@ -223,14 +217,14 @@ def write(
 
 @app.command()
 def suma(
-        article_path: Path = typer.Option(  # noqa: B008
-            Path("article.typ"), "-a", "--article-path", help="Path to the article file."
-        ),
-        skip_chapters: List[str] = typer.Option(  # noqa: B008
-            [], "-s", "--skip-chapters", help="Chapters to skip."
-        ),
-        suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
-        summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
+    article_path: Path = typer.Option(  # noqa: B008
+        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
+    ),
+    skip_chapters: List[str] = typer.Option(  # noqa: B008
+        [], "-s", "--skip-chapters", help="Chapters to skip."
+    ),
+    suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
+    summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
 ) -> None:
     """Write chap summary based on given article."""
     _ = ok(
@@ -251,12 +245,12 @@ def suma(
 
 @app.command()
 def rcsuma(
-        article_path: Path = typer.Option(  # noqa: B008
-            Path("article.typ"), "-a", "--article-path", help="Path to the article file."
-        ),
-        suma_title: str = typer.Option("Research Content", "-t", "--suma-title", help="Title of the summary."),
-        summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
-        paragraph_count: int = typer.Option(1, "-p", "--paragraph-count", help="Number of paragraphs for the summary."),
+    article_path: Path = typer.Option(  # noqa: B008
+        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
+    ),
+    suma_title: str = typer.Option("Research Content", "-t", "--suma-title", help="Title of the summary."),
+    summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
+    paragraph_count: int = typer.Option(1, "-p", "--paragraph-count", help="Number of paragraphs for the summary."),
 ) -> None:
     """Write research summary based on given article."""
     _ = ok(

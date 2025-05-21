@@ -3,25 +3,20 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Self, Type, Union, final, overload
+from typing import Any, Dict, List, Optional, Self, Type, Union, final, overload
 
 import ujson
-from fabricatio.fs import dump_text
-from fabricatio.fs.readers import safe_text_read
-from fabricatio.journal import logger
-from fabricatio.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
-from fabricatio.utils import ok
+from fabricatio_capabilities.rust import detect_language
+from fabricatio_core.fs import dump_text
+from fabricatio_core.fs.readers import safe_text_read
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, Described, Display, Named, ProposedAble, Titled, UnsortGenerate
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
+from fabricatio_core.utils import ok
 from pydantic import (
     BaseModel,
-    Field,
-    NonNegativeFloat,
-    PositiveFloat,
-    PositiveInt,
     PrivateAttr,
-    SecretStr,
 )
-
-from fabricatio_core.models.generic import Base, Described, Display, Named, ProposedAble, Titled, UnsortGenerate
 
 
 class WordCount(Base, ABC):
@@ -88,16 +83,13 @@ class WithRef[T](Base, ABC):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
@@ -235,139 +227,6 @@ class FinalizedDumpAble(Base, ABC):
         return self
 
 
-class ScopedConfig(Base, ABC):
-    """Configuration holder with hierarchical fallback mechanism.
-
-    Manages LLM, embedding, and vector database configurations with fallback logic.
-    Allows configuration values to be overridden in a hierarchical manner.
-    """
-
-    llm_api_endpoint: Optional[str] = None
-    """The OpenAI API endpoint."""
-
-    llm_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
-
-    llm_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    llm_max_retries: Optional[PositiveInt] = None
-    """The maximum number of retries."""
-
-    llm_model: Optional[str] = None
-    """The LLM model name."""
-
-    llm_temperature: Optional[NonNegativeFloat] = None
-    """The temperature of the LLM model."""
-
-    llm_stop_sign: Optional[str | List[str]] = None
-    """The stop sign of the LLM model."""
-
-    llm_top_p: Optional[NonNegativeFloat] = None
-    """The top p of the LLM model."""
-
-    llm_generation_count: Optional[PositiveInt] = None
-    """The number of generations to generate."""
-
-    llm_stream: Optional[bool] = None
-    """Whether to stream the LLM model's response."""
-
-    llm_max_tokens: Optional[PositiveInt] = None
-    """The maximum number of tokens to generate."""
-
-    llm_tpm: Optional[PositiveInt] = None
-    """The tokens per minute of the LLM model."""
-
-    llm_rpm: Optional[PositiveInt] = None
-    """The requests per minute of the LLM model."""
-
-    llm_presence_penalty: Optional[PositiveFloat] = None
-    """The presence penalty of the LLM model."""
-
-    llm_frequency_penalty: Optional[PositiveFloat] = None
-    """The frequency penalty of the LLM model."""
-
-    embedding_api_endpoint: Optional[str] = None
-    """The OpenAI API endpoint."""
-
-    embedding_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
-
-    embedding_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    embedding_model: Optional[str] = None
-    """The LLM model name."""
-
-    embedding_max_sequence_length: Optional[PositiveInt] = None
-    """The maximum sequence length."""
-
-    embedding_dimensions: Optional[PositiveInt] = None
-    """The dimensions of the embedding."""
-
-    embedding_caching: Optional[bool] = False
-    """Whether to cache the embedding result."""
-
-    milvus_uri: Optional[str] = Field(default=None)
-    """The URI of the Milvus server."""
-
-    milvus_token: Optional[SecretStr] = Field(default=None)
-    """The token for the Milvus server."""
-
-    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
-    """The timeout for the Milvus server."""
-
-    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
-    """The dimensions of the Milvus server."""
-
-    @final
-    def fallback_to(self, other: Union["ScopedConfig", Any]) -> Self:
-        """Merge configuration values with fallback priority.
-
-        Copies non-null values from 'other' to self where current values are None.
-
-        Args:
-            other (ScopedConfig): Configuration to fallback to
-
-        Returns:
-            Self: Current instance with merged values
-        """
-        if not isinstance(other, ScopedConfig):
-            return self
-
-        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
-        # noinspection PydanticTypeChecker,PyTypeChecker
-        for attr_name in ScopedConfig.model_fields:
-            # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
-            if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
-                setattr(self, attr_name, attr)
-
-        # Return the current instance to allow for method chaining
-        return self
-
-    @final
-    def hold_to(self, others: Union[Union["ScopedConfig", Any], Iterable[Union["ScopedConfig", Any]]]) -> Self:
-        """Propagate non-null values to other configurations.
-
-        Copies current non-null values to target configurations where they are None.
-
-        Args:
-            others (ScopedConfig|Iterable): Target configurations to update
-
-        Returns:
-            Self: Current instance unchanged
-        """
-        if not isinstance(others, Iterable):
-            others = [others]
-
-        for other in (o for o in others if isinstance(o, ScopedConfig)):
-            # noinspection PyTypeChecker,PydanticTypeChecker
-            for attr_name in ScopedConfig.model_fields:
-                if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
-                    setattr(other, attr_name, attr)
-        return self
-
-
 class Patch[T](ProposedAble, ABC):
     """Base class for patches.
 
@@ -415,8 +274,7 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
-                    "description"]
+                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 
