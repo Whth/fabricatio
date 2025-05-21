@@ -107,9 +107,15 @@ jobs:
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
 
-      - name: Build
+      - name: Upload to PyPI
+        if: needs.determine_changes.outputs.version_changed == 'true'
         run: |
-          make PY=${{ matrix.python-version }}
+          make publish PY=${{ matrix.python-version }}
+        env:
+          MATURIN_USERNAME: __token__
+          MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          UV_INDEX: https://pypi.org/simple
+
 
       - name: Upload assets
         uses: softprops/action-gh-release@v2
@@ -119,12 +125,3 @@ jobs:
             dist/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
-
-      - name: Upload to PyPI
-        if: needs.determine_changes.outputs.version_changed == 'true'
-        run: |
-          make publish PY=${{ matrix.python-version }}
-        env:
-          MATURIN_USERNAME: __token__
-          MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-
