@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-typst"
 version = "0.1.2-dev0"
-description = "Add your description here"
+description = "A Python library for generating, validating and converting academic content using Typst format."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

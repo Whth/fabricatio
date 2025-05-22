@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio_capabilities"
 version = "0.1.3-dev0"
-description = "Add your description here"
+description = "A foundational Python library providing core capabilities for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }

@@ -60,9 +60,11 @@ if find_spec("fabricatio_actions"):
         RetrieveFromLatest,
         RetrieveFromPersistent,
     )
+    from fabricatio_actions.actions.fs import ReadText
 
     __all__ += [
 
+        "ReadText",
         "DumpFinalizedOutput",
         "Forward",
         "GatherAsList",
