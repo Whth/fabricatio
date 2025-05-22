@@ -1,21 +1,8 @@
+"""base classes for all research components."""
+
 from abc import ABC, abstractmethod
 
 from fabricatio_core.models.generic import Base
-
-
-class ModelHash(Base, ABC):
-    """Class that provides a hash value for the object.
-
-    This class includes a method to calculate a hash value for the object based on its JSON representation.
-    """
-
-    def __hash__(self) -> int:
-        """Calculates a hash value for the object based on its model_dump_json representation.
-
-        Returns:
-            int: The hash value of the object.
-        """
-        return hash(self.model_dump_json())
 
 
 class Introspect(ABC):
@@ -31,3 +18,15 @@ class Introspect(ABC):
         Returns:
             str: The internal introspection of the object.
         """
+
+
+class WordCount(Base, ABC):
+    """Class that includes a word count attribute."""
+
+    expected_word_count: int
+    """Expected word count of this research component."""
+
+    @property
+    def exact_word_count(self) -> int:
+        """Get the exact word count of this research component."""
+        raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")

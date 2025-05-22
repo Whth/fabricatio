@@ -6,29 +6,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Type, Union, final, overload
 
 import ujson
-from fabricatio_capabilities.rust import detect_language
-from fabricatio_core.fs import dump_text
-from fabricatio_core.fs.readers import safe_text_read
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, Described, Display, Named, ProposedAble, Titled, UnsortGenerate
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
-from fabricatio_core.utils import ok
 from pydantic import (
     BaseModel,
     PrivateAttr,
 )
 
-
-class WordCount(Base, ABC):
-    """Class that includes a word count attribute."""
-
-    expected_word_count: int
-    """Expected word count of this research component."""
-
-    @property
-    def exact_word_count(self) -> int:
-        """Get the exact word count of this research component."""
-        raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
+from fabricatio_core.fs import dump_text
+from fabricatio_core.fs.readers import safe_text_read
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, Display, ProposedAble, UnsortGenerate
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
+from fabricatio_core.utils import ok
 
 
 class AsPrompt:
@@ -83,13 +71,16 @@ class WithRef[T](Base, ABC):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
+        ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
+        ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.
@@ -105,21 +96,6 @@ class WithRef[T](Base, ABC):
         else:
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
-
-
-class Language:
-    """Class that provides a language attribute."""
-
-    @property
-    def language(self) -> str:
-        """Get the language of the object."""
-        if isinstance(self, Described) and self.description:
-            return detect_language(self.description)
-        if isinstance(self, Titled) and self.title:
-            return detect_language(self.title)
-        if isinstance(self, Named) and self.name:
-            return detect_language(self.name)
-        raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
 
 
 class ModelHash(Base, ABC):
@@ -274,7 +250,8 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from `ref_cls`
             for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
 

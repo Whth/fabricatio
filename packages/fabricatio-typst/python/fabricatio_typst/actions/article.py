@@ -6,26 +6,25 @@ from typing import Callable, ClassVar, List, Optional
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_capabilities.capabilities.propose import Propose
-from fabricatio_capabilities.rust import detect_language
+from fabricatio_rule.capabilities.censor import Censor
+from fabricatio_rule.models.rule import RuleSet
+from fabricatio_typst.models.article_essence import ArticleEssence
+from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
+from fabricatio_typst.models.article_outline import ArticleOutline
+from fabricatio_typst.models.article_proposal import ArticleProposal
+from fabricatio_typst.rust import BibManager
+from more_itertools import filter_map
+from pydantic import Field
+from rich import print as r_print
+
 from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.models.usages import LLMUsage
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, word_count
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok, wrapp_in_block
-from fabricatio_rule.capabilities.censor import Censor
-from fabricatio_rule.models.rule import RuleSet
-from more_itertools import filter_map
-from pydantic import Field
-from rich import print as r_print
-
-from fabricatio_typst.models.article_essence import ArticleEssence
-from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
-from fabricatio_typst.models.article_outline import ArticleOutline
-from fabricatio_typst.models.article_proposal import ArticleProposal
-from fabricatio_typst.rust import BibManager
 
 
 class ExtractArticleEssence(Action, Propose):
@@ -40,10 +39,10 @@ class ExtractArticleEssence(Action, Propose):
     """The key of the output data."""
 
     async def _execute(
-        self,
-        task_input: Task,
-        reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
-        **_,
+            self,
+            task_input: Task,
+            reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
+            **_,
     ) -> List[ArticleEssence]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
@@ -56,11 +55,11 @@ class ExtractArticleEssence(Action, Propose):
         out = []
 
         for ess in await self.propose(
-            ArticleEssence,
-            [
-                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
-                for c in contents
-            ],
+                ArticleEssence,
+                [
+                    f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
+                    for c in contents
+                ],
         ):
             if ess is None:
                 logger.warning("Could not extract article essence")
@@ -77,10 +76,10 @@ class FixArticleEssence(Action):
     """The key of the output data."""
 
     async def _execute(
-        self,
-        bib_mgr: BibManager,
-        article_essence: List[ArticleEssence],
-        **_,
+            self,
+            bib_mgr: BibManager,
+            article_essence: List[ArticleEssence],
+            **_,
     ) -> List[ArticleEssence]:
         out = []
         count = 0
@@ -107,11 +106,11 @@ class GenerateArticleProposal(Action, Propose):
     """The key of the output data."""
 
     async def _execute(
-        self,
-        task_input: Optional[Task] = None,
-        article_briefing: Optional[str] = None,
-        article_briefing_path: Optional[str] = None,
-        **_,
+            self,
+            task_input: Optional[Task] = None,
+            article_briefing: Optional[str] = None,
+            article_briefing_path: Optional[str] = None,
+            **_,
     ) -> Optional[ArticleProposal]:
         if article_briefing is None and article_briefing_path is None and task_input is None:
             logger.error("Task not approved, since all inputs are None.")
@@ -150,10 +149,10 @@ class GenerateInitialOutline(Action, Extract):
     """The kwargs to extract the outline."""
 
     async def _execute(
-        self,
-        article_proposal: ArticleProposal,
-        supervisor: Optional[bool] = None,
-        **_,
+            self,
+            article_proposal: ArticleProposal,
+            supervisor: Optional[bool] = None,
+            **_,
     ) -> Optional[ArticleOutline]:
         req = (
             f"Design each chapter of a proper and academic and ready for release manner.\n"
@@ -208,10 +207,10 @@ class FixIntrospectedErrors(Action, Censor):
     """The maximum number of errors to fix."""
 
     async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        intro_fix_ruleset: Optional[RuleSet] = None,
-        **_,
+            self,
+            article_outline: ArticleOutline,
+            intro_fix_ruleset: Optional[RuleSet] = None,
+            **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
         origin = article_outline
@@ -243,10 +242,10 @@ class GenerateArticle(Action, Censor):
     ruleset: Optional[RuleSet] = None
 
     async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        article_gen_ruleset: Optional[RuleSet] = None,
-        **_,
+            self,
+            article_outline: ArticleOutline,
+            article_gen_ruleset: Optional[RuleSet] = None,
+            **_,
     ) -> Optional[Article]:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
             article_outline

@@ -18,7 +18,7 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
 
 
 class Base(BaseModel, ABC):
@@ -67,9 +67,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -481,3 +481,18 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
 
     This class combines the functionality to create a prompt for a JSON object and instantiate it from a string.
     """
+
+
+class Language:
+    """Class that provides a language attribute."""
+
+    @property
+    def language(self) -> str:
+        """Get the language of the object."""
+        if isinstance(self, Described) and self.description:
+            return detect_language(self.description)
+        if isinstance(self, Titled) and self.title:
+            return detect_language(self.title)
+        if isinstance(self, Named) and self.name:
+            return detect_language(self.name)
+        raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
