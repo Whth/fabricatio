@@ -1,13 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Dict, List, NotRequired, Optional, TypedDict
-
-
-class ChunkKwargs(TypedDict):
-    """Configuration parameters for chunking operations."""
-
-    max_chunk_size: int
-    max_overlapping_rate: NotRequired[float]
+from typing import Dict, List, Optional, TypedDict
 
 
 class EmbeddingKwargs(TypedDict, total=False):
