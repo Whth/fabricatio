@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
 
-from fabricatio_core.emitter import env
+from fabricatio_core.emitter import ENV
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
@@ -189,7 +189,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self._status = TaskStatus.Finished
         await self._output.put(output)
         logger.debug(f"Output set for task {self.name}")
-        await env.emit_async(self.finished_label, self)
+        await ENV.emit_async(self.finished_label, self)
         logger.debug(f"Emitted finished event for task {self.name}")
         return self
 
@@ -201,7 +201,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         logger.info(f"Starting task `{self.name}`")
         self._status = TaskStatus.Running
-        await env.emit_async(self.running_label, self)
+        await ENV.emit_async(self.running_label, self)
         return self
 
     async def cancel(self) -> Self:
@@ -213,7 +213,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         logger.info(f"Cancelling task `{self.name}`")
         self._status = TaskStatus.Cancelled
         await self._output.put(None)
-        await env.emit_async(self.cancelled_label, self)
+        await ENV.emit_async(self.cancelled_label, self)
         return self
 
     async def fail(self) -> Self:
@@ -225,7 +225,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         logger.info(f"Failing task `{self.name}`")
         self._status = TaskStatus.Failed
         await self._output.put(None)
-        await env.emit_async(self.failed_label, self)
+        await ENV.emit_async(self.failed_label, self)
         return self
 
     def publish(self, new_namespace: Optional[EventLike] = None) -> Self:
@@ -240,7 +240,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         if new_namespace:
             self.move_to(new_namespace)
         logger.info(f"Publishing task `{(label := self.pending_label)}`")
-        env.emit_future(label, self)
+        ENV.emit_future(label, self)
         return self
 
     async def delegate(self, new_namespace: Optional[EventLike] = None) -> T | None:
@@ -255,7 +255,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         if new_namespace:
             self.move_to(new_namespace)
         logger.info(f"Delegating task `{(label := self.pending_label)}`")
-        env.emit_future(label, self)
+        ENV.emit_future(label, self)
         return await self.get_output()
 
     @property

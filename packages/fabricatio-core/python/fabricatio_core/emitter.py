@@ -35,11 +35,11 @@ class Env:
 
     @overload
     def on[**P, R](
-        self,
-        event: str | Event,
-        func: Optional[Callable[P, R]] = None,
-        /,
-        ttl: int = -1,
+            self,
+            event: str | Event,
+            func: Optional[Callable[P, R]] = None,
+            /,
+            ttl: int = -1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """
         Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
@@ -55,11 +55,11 @@ class Env:
         ...
 
     def on[**P, R](
-        self,
-        event: str | Event,
-        func: Optional[Callable[P, R]] = None,
-        /,
-        ttl=-1,
+            self,
+            event: str | Event,
+            func: Optional[Callable[P, R]] = None,
+            /,
+            ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
         """Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
 
@@ -80,8 +80,8 @@ class Env:
 
     @overload
     def once[**P, R](
-        self,
-        event: str | Event,
+            self,
+            event: str | Event,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """
         Registers an event listener that listens only once.
@@ -96,9 +96,9 @@ class Env:
 
     @overload
     def once[**P, R](
-        self,
-        event: str | Event,
-        func: Callable[[Callable[P, R]], Callable[P, R]],
+            self,
+            event: str | Event,
+            func: Callable[[Callable[P, R]], Callable[P, R]],
     ) -> Self:
         """
         Registers an event listener with a specific function that listens only once.
@@ -113,9 +113,9 @@ class Env:
         ...
 
     def once[**P, R](
-        self,
-        event: str | Event,
-        func: Optional[Callable[P, R]] = None,
+            self,
+            event: str | Event,
+            func: Optional[Callable[P, R]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
         """Registers an event listener with a specific function that listens only once.
 
@@ -175,4 +175,8 @@ class Env:
         return self.ee.emit_future(event, *args, **kwargs)
 
 
-env = Env()
+ENV = Env()
+
+__all__ = [
+    "ENV"
+]
