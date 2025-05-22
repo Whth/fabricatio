@@ -190,7 +190,9 @@ class Project:
                 "rm", (scripts_dir / "*.pdb").as_posix(), "-f"
             ], [
                 "rm", (scripts_dir / "*.dwarf").as_posix(), "-f"
-            ]]
+            ],
+                ["rm", ".\packages\*\python\*\*.pyd", "-f"]
+            ]
 
             if self.dev_mode:
                 logger.info(f"Dev mode enabled for Maturin project '{self.name}'. Only running develop command.")
