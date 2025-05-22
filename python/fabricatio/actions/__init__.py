@@ -51,6 +51,7 @@ if find_spec("fabricatio_rag"):
     ]
 
 if find_spec("fabricatio_actions"):
+    from fabricatio_actions.actions.fs import ReadText
     from fabricatio_actions.actions.output import (
         DumpFinalizedOutput,
         Forward,
@@ -60,15 +61,14 @@ if find_spec("fabricatio_actions"):
         RetrieveFromLatest,
         RetrieveFromPersistent,
     )
-    from fabricatio_actions.actions.fs import ReadText
 
     __all__ += [
 
-        "ReadText",
         "DumpFinalizedOutput",
         "Forward",
         "GatherAsList",
         "PersistentAll",
+        "ReadText",
         "RenderedDump",
         "RetrieveFromLatest",
         "RetrieveFromPersistent"
