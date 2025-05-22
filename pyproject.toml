@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.4.1-dev4"
+version = "0.4.1-dev5"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -64,7 +64,7 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[ftd,qa,rag,cli,typst,rule,judge,capabilities,actions]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions]",
 ]
 rag = [
     "fabricatio-rag",
@@ -79,12 +79,7 @@ rule = [
     "fabricatio-rule",
 ]
 
-qa = [
-    "questionary>=2.1.0",
-]
-ftd = [
-    "magika>=0.6.1",
-]
+
 cli = [
     "typer-slim[standard]>=0.15.2",
 ]

@@ -291,9 +291,6 @@ capabilities = [
 cli = [
     { name = "typer-slim", extra = ["standard"] },
 ]
-ftd = [
-    { name = "magika" },
-]
 full = [
     { name = "fabricatio-actions" },
     { name = "fabricatio-capabilities" },
@@ -301,8 +298,6 @@ full = [
     { name = "fabricatio-rag" },
     { name = "fabricatio-rule" },
     { name = "fabricatio-typst" },
-    { name = "magika" },
-    { name = "questionary" },
     { name = "typer-slim", extra = ["standard"] },
 ]
 improve = [
@@ -310,9 +305,6 @@ improve = [
 ]
 judge = [
     { name = "fabricatio-judge" },
-]
-qa = [
-    { name = "questionary" },
 ]
 rag = [
     { name = "fabricatio-rag" },
@@ -343,7 +335,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["ftd", "qa", "rag", "cli", "typst", "rule", "judge", "capabilities", "actions"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
@@ -352,11 +344,9 @@ requires-dist = [
     { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
     { name = "fabricatio-rule", marker = "extra == 'rule'", editable = "packages/fabricatio-rule" },
     { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
-    { name = "magika", marker = "extra == 'ftd'", specifier = ">=0.6.1" },
-    { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "rag", "judge", "rule", "qa", "ftd", "cli", "typst", "improve", "capabilities", "actions"]
+provides-extras = ["full", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -388,7 +378,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.3.dev0"
+version = "0.1.3.dev2"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -399,7 +389,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.3.dev2"
+version = "0.1.3.dev4"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -414,19 +404,35 @@ dependencies = [
     { name = "ujson" },
 ]
 
+[package.optional-dependencies]
+ftd = [
+    { name = "magika" },
+]
+full = [
+    { name = "magika" },
+    { name = "questionary" },
+]
+qa = [
+    { name = "questionary" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "asyncstdlib", specifier = ">=3.13.0" },
+    { name = "fabricatio-core", extras = ["ftd", "qa"], marker = "extra == 'full'", editable = "packages/fabricatio-core" },
     { name = "json-repair", specifier = ">=0.39.1" },
     { name = "litellm", specifier = ">=1.60.0" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "magika", marker = "extra == 'ftd'", specifier = ">=0.6.1" },
     { name = "more-itertools", specifier = ">=10.6.0" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pymitter", specifier = ">=1.0.0" },
+    { name = "questionary", marker = "extra == 'qa'", specifier = ">=2.1.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "ujson", specifier = ">=5.10.0" },
 ]
+provides-extras = ["full", "qa", "ftd"]
 
 [[package]]
 name = "fabricatio-improve"
@@ -473,7 +479,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.2.dev0"
+version = "0.1.2.dev2"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -492,7 +498,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.2.dev1"
+version = "0.1.2.dev3"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -783,11 +789,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.45.1"
+version = "0.46.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/fb/f6/caf31ebba06e90f1e5ba17fdda911ba30dc10b7f3c46b7b6074d9655f10e/json_repair-0.45.1.tar.gz", hash = "sha256:7ee439d044e4525aebc57f05666ddfbbd7230c68a1fae94ad036f05c0307943f", size = 33129, upload-time = "2025-05-21T02:29:38.353Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/79/5a/5c14f14735438eb27fd4eb9bb4eb273c996c0d1d959182382cbc618f99dd/json_repair-0.46.0.tar.gz", hash = "sha256:abc751162baf8e384685558acba978478e833c1207be31468d9babfaf8029ab6", size = 33321, upload-time = "2025-05-22T06:22:07.305Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ae/ad/7d79c5a9fa8246b3fcedaa338f9fab46c8a6796590d6f1a98f4b98777099/json_repair-0.45.1-py3-none-any.whl", hash = "sha256:a5e53cf65e875ddc36c804aa6cf5899a1472319ab832578ebf5efc47f8dbc336", size = 22128, upload-time = "2025-05-21T02:29:36.866Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/33/ea/8ca71883f10acf4449720b86dd85cea51d7a71bec2558d5275ae0dcc66e4/json_repair-0.46.0-py3-none-any.whl", hash = "sha256:54d6a9889fba0846b80befb2b1aca619103ad3ed74612fb3fedd965a4a3b1653", size = 22255, upload-time = "2025-05-22T06:22:06.206Z" },
 ]
 
 [[package]]
@@ -1872,14 +1878,14 @@ wheels = [
 
 [[package]]
 name = "typing-inspection"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/82/5c/e6082df02e215b846b4b8c0b887a64d7d08ffaba30605502639d44c06b82/typing_inspection-0.4.0.tar.gz", hash = "sha256:9765c87de36671694a67904bf2c96e395be9c6439bb6c87b5142569dcdd65122", size = 76222, upload-time = "2025-02-25T17:27:59.638Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f8/b1/0c11f5058406b3af7609f121aaa6b609744687f1d158b3c3a5bf4cc94238/typing_inspection-0.4.1.tar.gz", hash = "sha256:6ae134cc0203c33377d43188d4064e9b357dba58cff3185f22924610e70a9d28", size = 75726, upload-time = "2025-05-21T18:55:23.885Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/31/08/aa4fdfb71f7de5176385bd9e90852eaf6b5d622735020ad600f2bab54385/typing_inspection-0.4.0-py3-none-any.whl", hash = "sha256:50e72559fcd2a6367a19f7a7e610e6afcb9fac940c650290eed893d61386832f", size = 14125, upload-time = "2025-02-25T17:27:57.754Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/17/69/cd203477f944c353c31bade965f880aa1061fd6bf05ded0726ca845b6ff7/typing_inspection-0.4.1-py3-none-any.whl", hash = "sha256:389055682238f53b04f7badcb49b989835495a96700ced5dab2d8feae4b26f51", size = 14552, upload-time = "2025-05-21T18:55:22.152Z" },
 ]
 
 [[package]]
