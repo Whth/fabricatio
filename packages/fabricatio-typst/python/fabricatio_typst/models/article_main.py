@@ -3,6 +3,12 @@
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
 from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, SketchedAble, WithRef
+from fabricatio_core.decorators import precheck_package
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Described
+from fabricatio_core.rust import word_count
+from pydantic import Field, NonNegativeInt
+
 from fabricatio_typst.models.article_base import (
     ArticleBase,
     ChapterBase,
@@ -21,12 +27,6 @@ from fabricatio_typst.rust import (
     fix_misplaced_labels,
     split_out_metadata,
 )
-from pydantic import Field, NonNegativeInt
-
-from fabricatio_core.decorators import precheck_package
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Described
-from fabricatio_core.rust import word_count
 
 PARAGRAPH_SEP = "// - - -"
 

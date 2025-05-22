@@ -8,14 +8,14 @@ from fabricatio_capabilities.models.generic import (
     SketchedAble,
     WithRef,
 )
-from fabricatio_typst.models.generic import WordCount
-from pydantic import Field
-
 from fabricatio_core.models.generic import (
     Described,
     Language,
     Titled,
 )
+from pydantic import Field
+
+from fabricatio_typst.models.generic import WordCount
 
 
 class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, WordCount, Described, Titled, Language):

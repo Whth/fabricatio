@@ -11,17 +11,14 @@ handlebars_helper!(len: |v: Value| match v {
     _ => 0
 });
 
-
-
 handlebars_helper!(getlang: |v:String| convert_to_string_respectively(detect_language(v.as_str())));
-
 
 handlebars_helper!(hash: |v:String| blake3_hash(v.as_bytes()).to_string());
 
 handlebars_helper!(word_count: |v:String| wc(v.as_str()));
 
-
 handlebars_helper!(block: |v:String,title:String| format!(
     "--- Start of `{title}` ---\n{v}\n--- End of `{title}` ---\n",
 ));
 
+handlebars_helper!(list_out_string: |v:Vec<String>| v.iter().map(|s| format!("- {s}\n")).collect::<String>());

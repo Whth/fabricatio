@@ -266,6 +266,8 @@ impl Default for TemplateManagerConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
+    pub dispatch_task_template: String,
+    /// Template that will be used to dispatch a task.
     pub research_content_summary_template: String,
     /// The name of the create json object template which will be used to create a json object.
     pub create_json_obj_template: String,

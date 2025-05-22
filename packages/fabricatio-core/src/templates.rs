@@ -1,6 +1,6 @@
 use crate::config::Config;
-use crate::hbs_helpers::{block, getlang, hash, len, word_count};
-use handlebars::{no_escape, Handlebars};
+use crate::hbs_helpers::{block, getlang, hash, len, list_out_string, word_count};
+use handlebars::{Handlebars, no_escape};
 use log::debug;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -73,7 +73,7 @@ impl TemplateManager {
                     Ok(PyList::new(py, rendered)
                         .expect("Failed to create PyList")
                         .as_any())
-                        .cloned()
+                    .cloned()
                 })
         } else {
             debug!("Rendering single template");
@@ -90,8 +90,8 @@ impl TemplateManager {
                             )
                             .as_str(),
                     )
-                        .as_any())
-                        .cloned()
+                    .as_any())
+                    .cloned()
                 })
         }
     }
@@ -120,7 +120,7 @@ impl TemplateManager {
                     Ok(PyList::new(py, &rendered)
                         .expect("Failed to create PyList")
                         .as_any())
-                        .cloned()
+                    .cloned()
                 })
         } else {
             depythonize::<Value>(data)
@@ -135,8 +135,8 @@ impl TemplateManager {
                             })
                             .as_str(),
                     )
-                        .as_any())
-                        .cloned()
+                    .as_any())
+                    .cloned()
                 })
         }
     }
@@ -199,6 +199,8 @@ impl TemplateManager {
         self.handlebars
             .register_helper("word_count", Box::new(word_count));
         self.handlebars.register_helper("block", Box::new(block));
+        self.handlebars
+            .register_helper("ls", Box::new(list_out_string));
     }
 }
 

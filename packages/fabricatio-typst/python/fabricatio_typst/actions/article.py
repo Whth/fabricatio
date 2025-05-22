@@ -6,17 +6,6 @@ from typing import Callable, ClassVar, List, Optional
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_capabilities.capabilities.propose import Propose
-from fabricatio_rule.capabilities.censor import Censor
-from fabricatio_rule.models.rule import RuleSet
-from fabricatio_typst.models.article_essence import ArticleEssence
-from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
-from fabricatio_typst.models.article_outline import ArticleOutline
-from fabricatio_typst.models.article_proposal import ArticleProposal
-from fabricatio_typst.rust import BibManager
-from more_itertools import filter_map
-from pydantic import Field
-from rich import print as r_print
-
 from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
@@ -25,6 +14,17 @@ from fabricatio_core.models.task import Task
 from fabricatio_core.models.usages import LLMUsage
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok, wrapp_in_block
+from fabricatio_rule.capabilities.censor import Censor
+from fabricatio_rule.models.rule import RuleSet
+from more_itertools import filter_map
+from pydantic import Field
+from rich import print as r_print
+
+from fabricatio_typst.models.article_essence import ArticleEssence
+from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
+from fabricatio_typst.models.article_outline import ArticleOutline
+from fabricatio_typst.models.article_proposal import ArticleProposal
+from fabricatio_typst.rust import BibManager
 
 
 class ExtractArticleEssence(Action, Propose):

@@ -4,7 +4,6 @@ import asyncio
 from typing import Dict, List, Set, Unpack
 
 import ujson
-
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import Rating
 from fabricatio_core.parser import JsonCapture

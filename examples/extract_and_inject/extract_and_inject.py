@@ -3,13 +3,12 @@
 import asyncio
 from typing import Optional
 
-from fabricatio_typst.rust import BibManager
-from litellm.utils import token_counter
-
 from fabricatio import Event, Role, Task, WorkFlow, logger
 from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
 from fabricatio_core.fs import safe_text_read
 from fabricatio_core.fs.curd import gather_files
+from fabricatio_typst.rust import BibManager
+from litellm.utils import token_counter
 
 MAX_TOKEN = 64000
 

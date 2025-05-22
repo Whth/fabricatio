@@ -6,17 +6,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Type, Union, final, overload
 
 import ujson
-from pydantic import (
-    BaseModel,
-    PrivateAttr,
-)
-
 from fabricatio_core.fs import dump_text
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Base, Display, ProposedAble, UnsortGenerate
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash
 from fabricatio_core.utils import ok
+from pydantic import (
+    BaseModel,
+    PrivateAttr,
+)
 
 
 class AsPrompt:

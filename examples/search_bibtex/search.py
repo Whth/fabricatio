@@ -1,7 +1,6 @@
 """Example of using BibManager."""
-from fabricatio_typst.rust import BibManager
-
 from fabricatio import logger
+from fabricatio_typst.rust import BibManager
 
 b = BibManager("Exported Items.bib")
 logger.success(
