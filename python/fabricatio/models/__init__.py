@@ -29,3 +29,10 @@ if find_spec("fabricatio_typst"):
             "ArticleChunk"
 
         ]
+
+if find_spec():
+    from fabricatio_judge.models.advanced_judge import JudgeMent
+
+    __all__ += [
+        "JudgeMent"
+    ]

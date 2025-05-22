@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-judge"
 version = "0.1.1-dev0"
-description = "Add your description here"
+description = "The fabricatio-judge library is an extension of the Fabricatio ecosystem designed to provide advanced judgment capabilities within LLM-driven applications. It enables structured decision-making based on evidence, allowing agents to evaluate truth claims using both affirmative and denying clues.This package integrates seamlessly with Fabricatio’s event-based agent architecture and supports asynchronous execution. It is ideal for use cases such as fact-checking, logical reasoning, content validation, and policy enforcement in AI workflows."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
