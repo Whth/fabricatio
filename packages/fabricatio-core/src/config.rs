@@ -234,10 +234,18 @@ pub struct RagConfig {
     pub milvus_dimensions: Option<u32>,
 }
 
-#[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
+#[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
-    log_level: Option<String>,
+    log_level: String,
+}
+
+impl Default for DebugConfig {
+    fn default() -> Self {
+        DebugConfig {
+            log_level: "INFO".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
