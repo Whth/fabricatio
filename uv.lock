@@ -534,7 +534,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.2.dev9"
+version = "0.1.2.dev10"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
