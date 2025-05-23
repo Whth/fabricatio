@@ -27,7 +27,7 @@ clean:
 
 
 test:dev
-	uvx -p  $(PY) --project . pytest python/tests packages/*/python/tests
+	uv run pytest python/tests packages/*/python/tests
 
 publish: bdist
 	uv run subpackages.py --pyversion $(PY)
