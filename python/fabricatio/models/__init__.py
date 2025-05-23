@@ -30,9 +30,17 @@ if find_spec("fabricatio_typst"):
 
         ]
 
-if find_spec():
+if find_spec("fabricatio_judge"):
     from fabricatio_judge.models.advanced_judge import JudgeMent
 
     __all__ += [
         "JudgeMent"
     ]
+
+if find_spec("fabricatio_digest"):
+    from fabricatio_digest.models.tasklist import TaskList
+
+    __all__ += [
+        "TaskList"
+    ]
+

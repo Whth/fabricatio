@@ -37,7 +37,12 @@ if find_spec("fabricatio_improve"):
                 "Review",
                 ]
 
-if find_spec():
+if find_spec("fabricatio_judge"):
     from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
 
     __all__ += ["AdvancedJudge"]
+
+if find_spec("fabricatio_digest"):
+    from fabricatio_digest.capabilities.digest import Digest
+
+    __all__ += ["Digest"]
