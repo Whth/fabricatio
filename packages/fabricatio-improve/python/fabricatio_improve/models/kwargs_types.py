@@ -2,7 +2,8 @@
 from typing import Dict, Required
 
 from fabricatio_capabilities.models.generic import SketchedAble
-from fabricatio_core.models.kwargs_types import ReferencedKwargs, ValidateKwargs
+from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_improve.models.improve import Improvement
 
 

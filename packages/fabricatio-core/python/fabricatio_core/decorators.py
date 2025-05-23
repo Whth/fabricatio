@@ -24,7 +24,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
     """
 
     def _wrapper(
-        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+            func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
     ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
         if iscoroutinefunction(func):
 
@@ -48,7 +48,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
+        bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 
@@ -123,8 +123,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if await confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
-                instruction="Please input [Yes/No] to proceed (default: Yes):",
+                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
+                    instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask_async():
                 return await func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -135,8 +135,8 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
-                instruction="Please input [Yes/No] to proceed (default: Yes):",
+                    f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
+                    instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask():
                 return func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
@@ -204,13 +204,14 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
                         f"Module '{module.__name__}' is already present in sys.modules and cannot be overridden."
                     )
                 sys.modules[module.__name__] = module
-
+            res = None
             try:
-                return func(*args, **kwargs)
+                res = func(*args, **kwargs)
             finally:
                 # Restore original state
                 for module in module_list:
                     del sys.modules[module.__name__]
+                return res
 
         return _wrapper
 
@@ -218,7 +219,7 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
 
 
 def logging_exec_time[**P, R](
-    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
     """Decorator to log the execution time of a function.
 
@@ -231,7 +232,6 @@ def logging_exec_time[**P, R](
     from time import time
 
     if iscoroutinefunction(func):
-
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()

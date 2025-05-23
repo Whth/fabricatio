@@ -8,8 +8,8 @@ from abc import ABC
 from typing import Optional, Unpack
 
 from fabricatio_capabilities.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import ReferencedKwargs
 from fabricatio_core.utils import override_kwargs
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
@@ -27,7 +27,7 @@ class Censor(Correct, Check, ABC):
     """
 
     async def censor_obj[M: SketchedAble](
-        self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
+            self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
     ) -> Optional[M]:
         """Censors an object based on the provided ruleset.
 
@@ -52,7 +52,7 @@ class Censor(Correct, Check, ABC):
         return await self.correct_obj(obj, Improvement.gather(*imp), **kwargs)
 
     async def censor_string(
-        self, input_text: str, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[str]]
+            self, input_text: str, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[str]]
     ) -> Optional[str]:
         """Censors a string based on the provided ruleset.
 
@@ -78,7 +78,7 @@ class Censor(Correct, Check, ABC):
         return await self.correct_string(input_text, Improvement.gather(*imp), **kwargs)
 
     async def censor_obj_inplace[M: ProposedUpdateAble](
-        self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
+            self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
     ) -> Optional[M]:
         """Censors an object in-place based on the provided ruleset.
 

@@ -1,7 +1,7 @@
 """Module for the TaskList class, which represents a sequence of tasks designed to achieve an ultimate target.
 
-This module contains the definition of the TaskList class, which is used to model a series 
-of tasks aimed at achieving a specific ultimate target. It inherits from the ProposedAble 
+This module contains the definition of the TaskList class, which is used to model a series
+of tasks aimed at achieving a specific ultimate target. It inherits from the ProposedAble
 interface and provides implementations for task sequence generation.
 """
 from typing import List

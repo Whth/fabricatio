@@ -7,9 +7,9 @@ from typing import Optional, Unpack, cast
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_capabilities.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_capabilities.models.kwargs_types import BestKwargs
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
-    BestKwargs,
     ValidateKwargs,
 )
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER

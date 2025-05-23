@@ -2,9 +2,10 @@
 from abc import ABC
 from typing import List, Optional, Unpack
 
-from fabricatio_core import TEMPLATE_MANAGER, Role, CONFIG
+from fabricatio_core import CONFIG, TEMPLATE_MANAGER, Role
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+
 from fabricatio_digest.models.tasklist import TaskList
 
 
