@@ -27,6 +27,7 @@ clean:
 
 
 test:dev
+	uv sync --extra full
 	uv run pytest python/tests packages/*/python/tests
 
 publish: bdist
