@@ -29,10 +29,24 @@ class Role(WithBriefing):
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
-    registry: Dict[Event, WorkFlow] = Field(default_factory=dict)
+    registry: Dict[Event, WorkFlow] = Field(default_factory=dict, frozen=True)
     """The registry of events and workflows."""
-    dispatch_on_init: bool = True
+    dispatch_on_init: bool = Field(True, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
+
+    @property
+    def briefing(self) -> str:
+        """Get the briefing of the role.
+
+        Returns:
+            str: The briefing of the role.
+        """
+
+        base = super().briefing
+
+        abilities = "\n".join(w.briefing for w in self.registry.values())
+
+        return f"{base}\n\nAbilities:\n{abilities}"
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -53,6 +67,16 @@ class Role(WithBriefing):
                 f"`{self.registry[event].name}`. It will be overwritten by `{workflow.name}`."
             )
         self.registry[event] = workflow
+        return self
+
+    def unregister_workflow(self, event: Event) -> Self:
+        """Unregister a workflow from the role's registry for the given event."""
+        if event in self.registry:
+            logger.debug(f"Unregistering workflow `{self.registry[event].name}` for event `{event.collapse()}`")
+            del self.registry[event]
+            
+        else:
+            logger.warning(f"No workflow registered for event `{event.collapse()}` to unregister.")
         return self
 
     def dispatch(self) -> Self:
@@ -79,7 +103,6 @@ class Role(WithBriefing):
             logger.debug(f"Resolving config for workflow: `{workflow.name}`")
             self._configure_scoped_config(workflow)._configure_toolbox_usage(workflow)
 
-            workflow.inject_personality(self.briefing)
         return self
 
     def _propagate_config(

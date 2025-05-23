@@ -42,9 +42,6 @@ class Action(WithBriefing):
     description: str = Field(default="")
     """The description of the action."""
 
-    personality: str = Field(default="")
-    """The personality traits or context for the action executor."""
-
     output_key: str = Field(default="")
     """The key used to store this action's output in the context dictionary."""
 
@@ -87,17 +84,6 @@ class Action(WithBriefing):
             cxt[self.output_key] = ret
 
         return cxt
-
-    @property
-    def briefing(self) -> str:
-        """Generate formatted action description with personality context.
-
-        Returns:
-            Briefing text combining personality and action description.
-        """
-        if self.personality:
-            return f"## Your personality: \n{self.personality}\n# The action you are going to perform: \n{super().briefing}"
-        return f"# The action you are going to perform: \n{super().briefing}"
 
     def to_task_output(self, to: Union[str, "WorkFlow"] = OUTPUT_KEY) -> Self:
         """Set the output key to OUTPUT_KEY and return the action instance."""
@@ -149,19 +135,6 @@ class WorkFlow(WithBriefing):
     def iter_actions(self) -> Generator[Action, None, None]:
         """Iterate over action instances."""
         yield from self._instances
-
-    def inject_personality(self, personality: str) -> Self:
-        """Set personality for actions without existing personality.
-
-        Args:
-            personality (str): Shared personality context
-
-        Returns:
-            Workflow instance with updated actions
-        """
-        for action in filter(lambda a: not a.personality, self._instances):
-            action.personality = personality
-        return self
 
     def override_action_variable(self, action: Action, ctx: Dict[str, Any]) -> Self:
         """Override action variable with context values."""
