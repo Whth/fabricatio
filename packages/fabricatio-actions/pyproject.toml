@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-actions"
-version = "0.1.1-dev0"
+version = "0.1.1-dev1"
 description = "A Python library providing foundational actions for file system operations and output management in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -11,7 +11,8 @@ requires-python = ">=3.12,<3.14"
 
 dependencies = [
 
-    "fabricatio-core"
+    "fabricatio-core",
+    "fabricatio-capabilities"
 
 ]
 

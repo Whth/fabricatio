@@ -554,20 +554,7 @@ impl Provider for Config {
 
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<Config>()?;
-    m.add_class::<TemplateManagerConfig>()?;
-
-    m.add_class::<LLMConfig>()?;
-    m.add_class::<EmbeddingConfig>()?;
-    m.add_class::<DebugConfig>()?;
-    m.add_class::<RagConfig>()?;
-    m.add_class::<TemplateConfig>()?;
-    m.add_class::<RoutingConfig>()?;
-    m.add_class::<GeneralConfig>()?;
-    m.add_class::<ToolBoxConfig>()?;
-    m.add_class::<PymitterConfig>()?;
     m.add_class::<SecretStr>()?;
-
     m.add("CONFIG", Config::new()?)?;
 
     Ok(())
