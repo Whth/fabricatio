@@ -2,7 +2,7 @@
 
 from abc import ABC
 from asyncio import gather
-from typing import Optional, Unpack, cast
+from typing import Optional, Unpack
 
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
@@ -91,7 +91,7 @@ class Correct(Rating, Propose, ABC):
             Optional[M]: The fixed object, or None if fixing fails.
         """
         return await self.propose(
-            cast("Type[M]", obj.__class__),
+            obj.__class__,
             TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.fix_troubled_obj_template,
                 {

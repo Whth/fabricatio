@@ -9,8 +9,18 @@ from fabricatio_core.rust import CONFIG
 
 
 class InterceptHandler(logging.Handler):
-    def emit(self, record) -> None:
-        # 获取 loguru 对应的 level
+    """A logging handler that intercepts standard logging messages and forwards them to Loguru."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Emit a log record.
+
+        Forwards the log record to the Loguru logger, attempting to match
+        the log level and including any exception information.
+
+        Args:
+            record: The log record to emit.
+        """
+        # Get the corresponding Loguru level.
         try:
             level = logger.level(record.levelname).name
         except ValueError:

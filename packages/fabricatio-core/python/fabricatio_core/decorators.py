@@ -211,7 +211,8 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
                 # Restore original state
                 for module in module_list:
                     del sys.modules[module.__name__]
-                return res
+
+            return res
 
         return _wrapper
 

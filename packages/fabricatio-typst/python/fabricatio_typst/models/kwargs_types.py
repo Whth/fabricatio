@@ -1,3 +1,4 @@
+"""This module defines the `ChunkKwargs` TypedDict, which is used to hold configuration parameters for chunking operations."""
 from typing import NotRequired, TypedDict
 
 

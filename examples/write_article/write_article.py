@@ -123,11 +123,11 @@ def consult(
 
 @app.command()
 def finish(
-    article_outline_path: Path = typer.Argument(  # noqa: B008
+    article_outline_path: Path = typer.Argument(
         help="Path to the article outline raw file."
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-    persist_dir: Path = typer.Option(  # noqa: B008
+    persist_dir: Path = typer.Option(
         Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
@@ -153,11 +153,11 @@ def finish(
 
 @app.command()
 def completion(
-    article_outline_raw_path: Path = typer.Option(  # noqa: B008
+    article_outline_raw_path: Path = typer.Option(
         Path("article_outline_raw.txt"), "-a", "--article-outline-raw", help="Path to the article outline raw file."
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-    persist_dir: Path = typer.Option(  # noqa: B008
+    persist_dir: Path = typer.Option(
         Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
@@ -183,11 +183,11 @@ def completion(
 
 @app.command()
 def write(
-    article_briefing: Path = typer.Option(  # noqa: B008
+    article_briefing: Path = typer.Option(
         Path("article_briefing.txt"), "-a", "--article-briefing", help="Path to the article briefing file."
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-    persist_dir: Path = typer.Option(  # noqa: B008
+    persist_dir: Path = typer.Option(
         Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
@@ -217,10 +217,10 @@ def write(
 
 @app.command()
 def suma(
-    article_path: Path = typer.Option(  # noqa: B008
+    article_path: Path = typer.Option(
         Path("article.typ"), "-a", "--article-path", help="Path to the article file."
     ),
-    skip_chapters: List[str] = typer.Option(  # noqa: B008
+    skip_chapters: List[str] = typer.Option(
         [], "-s", "--skip-chapters", help="Chapters to skip."
     ),
     suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
@@ -245,7 +245,7 @@ def suma(
 
 @app.command()
 def rcsuma(
-    article_path: Path = typer.Option(  # noqa: B008
+    article_path: Path = typer.Option(
         Path("article.typ"), "-a", "--article-path", help="Path to the article file."
     ),
     suma_title: str = typer.Option("Research Content", "-t", "--suma-title", help="Title of the summary."),

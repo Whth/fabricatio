@@ -1,3 +1,9 @@
+"""This module defines two abstract base classes, `FromMapping` and `FromSequence`.
+
+`FromMapping` provides a method to generate a list of objects from a mapping,
+while `FromSequence` provides a method to generate a list of objects from a sequence.
+"""
+
 from abc import abstractmethod
 from typing import Any, List, Mapping, Sequence
 

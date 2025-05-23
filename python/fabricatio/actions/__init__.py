@@ -1,3 +1,9 @@
+"""This is the initialization file for the 'fabricatio.actions' package.
+
+It imports various action classes from different modules based on the availability of certain packages.
+The imported classes are then added to the '__all__' list, making them accessible when the package is imported.
+"""
+
 from importlib.util import find_spec
 
 __all__ = []
@@ -22,8 +28,7 @@ if find_spec("fabricatio_typst"):
         "GenerateArticleProposal",
         "GenerateInitialOutline",
         "WriteChapterSummary",
-        "WriteResearchContentSummary"
-
+        "WriteResearchContentSummary",
     ]
 
     if find_spec("fabricatio_rag"):
@@ -34,21 +39,11 @@ if find_spec("fabricatio_typst"):
             WriteArticleContentRAG,
         )
 
-        __all__ += [
-
-            "ArticleConsultRAG",
-            "ChunkArticle",
-            "TweakArticleRAG",
-            "WriteArticleContentRAG"
-
-        ]
+        __all__ += ["ArticleConsultRAG", "ChunkArticle", "TweakArticleRAG", "WriteArticleContentRAG"]
 if find_spec("fabricatio_rag"):
     from fabricatio_rag.actions.rag import InjectToDB, RAGTalk
 
-    __all__ += [
-        "InjectToDB",
-        "RAGTalk"
-    ]
+    __all__ += ["InjectToDB", "RAGTalk"]
 
 if find_spec("fabricatio_actions"):
     from fabricatio_actions.actions.fs import ReadText
@@ -63,7 +58,6 @@ if find_spec("fabricatio_actions"):
     )
 
     __all__ += [
-
         "DumpFinalizedOutput",
         "Forward",
         "GatherAsList",
@@ -71,5 +65,5 @@ if find_spec("fabricatio_actions"):
         "ReadText",
         "RenderedDump",
         "RetrieveFromLatest",
-        "RetrieveFromPersistent"
+        "RetrieveFromPersistent",
     ]
