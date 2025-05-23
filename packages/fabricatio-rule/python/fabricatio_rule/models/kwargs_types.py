@@ -1,7 +1,7 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
 from fabricatio_capabilities.models.generic import SketchedAble
-from fabricatio_core.models.kwargs_types import ReferencedKwargs
+from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
 from fabricatio_improve.models.improve import Improvement
 
 from fabricatio_rule.models.rule import RuleSet

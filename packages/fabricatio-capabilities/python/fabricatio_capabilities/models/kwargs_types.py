@@ -2,6 +2,8 @@
 
 from typing import Dict, List, Required
 
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+
 
 class CompositeScoreKwargs(ValidateKwargs[List[Dict[str, float]]], total=False):
     """Arguments for composite score generation operations.
