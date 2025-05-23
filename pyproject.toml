@@ -59,6 +59,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-rerunfailures>=15.0",
     "pytest-xdist>=3.6.1",
+    "pytest-loguru>=0.4.0",
     "viztracer>=1.0.2",
 ]
 

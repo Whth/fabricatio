@@ -1,7 +1,5 @@
 """Example of a simple hello world program using fabricatio as a pytest integration test."""
 
-from typing import Any
-
 import pytest
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
@@ -18,10 +16,9 @@ class Hello(Action):
 
     output_key: str = "task_output"
 
-    async def _execute(self, **_) -> Any:
-        ret = "Hello fabricatio!"
+    async def _execute(self, **_) -> str:
         logger.info("executing talk action")
-        return ret
+        return "Hello fabricatio!"
 
 
 @pytest.mark.asyncio
@@ -49,7 +46,7 @@ async def test_hello_fabricatio_workflow(caplog):
     assert "executing talk action" in caplog.text
     # logger.success is not standard, assuming it's a custom level or alias for info/debug
     # If logger.success logs at INFO level or above:
-    assert f"Result: Hello fabricatio!" in caplog.text  # This might be an actual log from your main
+    assert f"Emitted finished event for task say hello" in caplog.text  # This might be an actual log from your main
     # but here we are asserting the result directly.
     # The original logger.success call is removed from the test logic itself
     # and replaced by an assertion.
