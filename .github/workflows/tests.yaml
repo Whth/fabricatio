@@ -27,13 +27,16 @@ jobs:
         run: |
           rustup default nightly
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+
       - name: Install deps
         run: |
-          uv sync --no-install-project  --all-extras --index https://pypi.org/simple
+          uv sync --no-install-project  --only-dev --index https://pypi.org/simple
           make dev
       - name: Test
         run: |
-          uvx --with-editable . pytest tests
+          make test
 
 
 

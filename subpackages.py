@@ -362,6 +362,73 @@ class PackageManager:
         else:
             logger.info(f"Discovered {len(self.projects)} valid project(s).")
 
+    def process_one_project(self, project: Project) -> bool:
+        """
+        Builds and, if enabled, publishes a single project.
+
+        Args:
+            project: The project to process.
+
+        Returns:
+            bool: True if all steps (build and optional publish) were successful, False otherwise.
+        """
+        project_identifier = project.name or project.entry_path.name
+
+        if not project.build():
+            logger.error(f"Build failed for '{project_identifier}'. Skipping any subsequent publish step.")
+            return False
+
+        # Build was successful
+        if self.publish_enabled:
+            return self.handle_project_publication(project, project_identifier)
+        else:
+            logger.info(f"Skipping publish for '{project_identifier}' as per --no-publish flag.")
+            return True  # Build successful, publish skipped as requested
+
+    def handle_project_publication(self, project: Project, project_identifier: str) -> bool:
+        """
+        Handles the publication process for a given project.
+
+        This includes any pre-publication steps like special builds in dev mode.
+
+        Args:
+            project: The project to publish.
+            project_identifier: Identifier for logging (name or path).
+
+        Returns:
+            bool: True if publication was successful or not applicable, False on failure.
+        """
+        # If in dev_mode and it's a non-Maturin project, build might have been skipped by project.build().
+        # We need to explicitly build sdist/wheel here before publishing.
+        if self.dev_mode and project.build_backend != "maturin":
+            logger.info(f"Dev mode: Explicitly building '{project_identifier}' for publishing.")
+            standard_build_cmd = [
+                "uvx", "uv", "build", "-o", self.dist_dir.resolve().as_posix(),
+                "--sdist", "--wheel"
+            ]
+            # project._execute_subprocess is a method of the Project class, not one defined here.
+            if not project._execute_subprocess(standard_build_cmd, "dev mode publish build"):
+                logger.error(f"Failed to build '{project_identifier}' for publishing in dev mode.")
+                return False
+
+        if not project.name:  # Ensure project name is available for publishing
+            logger.error(
+                f"Cannot publish project from '{project.entry_path.name}' due to missing project name."
+            )
+            return False
+
+        logger.info(f"Publishing is enabled for '{project.name}'.")
+        return project.publish()
+
+    @staticmethod
+    def log_processing_summary(total_projects: int, success_count: int, failure_count: int) -> None:
+        """Logs the summary of project processing operations."""
+        logger.info("\n--- Summary ---")
+        logger.info(f"Total projects processed: {total_projects}")
+        logger.info(f"Successfully built/published: {success_count}")
+        logger.info(f"Failed to build/publish: {failure_count}")
+        logger.info("--- All projects processed. ---")
+
     def process_all_projects(self):
         """Processes all discovered and valid projects.
 
@@ -381,61 +448,17 @@ class PackageManager:
         success_count = 0
         failure_count = 0
 
-        for i, project in enumerate(self.projects):
+        for i, project_to_process in enumerate(self.projects):
             # Ensure project.name is available, fallback to entry_path.name for logging if necessary
-            project_identifier = project.name or project.entry_path.name
+            project_identifier = project_to_process.name or project_to_process.entry_path.name
             logger.info(f"\n--- Processing project {i + 1}/{total_projects}: {project_identifier} ---")
 
-            build_successful = project.build()
-
-            if build_successful:
-                if self.publish_enabled:
-                    # If in dev_mode and it's a non-Maturin project, build might have been skipped.
-                    # We might need to explicitly build sdist/wheel here before publishing.
-                    if self.dev_mode and project.build_backend != "maturin":
-                        logger.info(f"Dev mode: Explicitly building '{project_identifier}' for publishing.")
-                        # Force a standard build if dev_mode skipped it and we want to publish
-                        standard_build_cmd = ["uvx", "uv", "build", "-o", self.dist_dir.resolve().as_posix(), "--sdist",
-                                              "--wheel"]
-                        if not project._execute_subprocess(standard_build_cmd, "dev mode publish build"):
-                            logger.error(f"Failed to build '{project_identifier}' for publishing in dev mode.")
-                            failure_count += 1
-                            continue  # Skip publishing this one
-
-                    if project.name:  # Ensure project name is available for logging
-                        logger.info(f"Publishing is enabled for '{project.name}'.")
-                        publish_successful = project.publish()
-                        if publish_successful:
-                            success_count += 1
-                        else:
-                            failure_count += 1
-                    else:  # Should ideally not happen if build was successful and project is valid
-                        logger.error(
-                            f"Cannot publish project from '{project.entry_path.name}' due to missing project name."
-                        )
-                        failure_count += 1
-                else:
-                    if project.name:
-                        logger.info(f"Skipping publish for '{project.name}' as per --no-publish flag.")
-                    else:  # Should ideally not happen
-                        logger.info(
-                            f"Skipping publish for project at '{project.entry_path.name}' as per --no-publish flag (project name missing)."
-                        )
-                    success_count += 1  # Build was successful
+            if self.process_one_project(project_to_process):
+                success_count += 1
             else:
-                if project.name:
-                    logger.error(f"Build failed for '{project.name}'. Skipping any subsequent publish step.")
-                else:  # Should ideally not happen
-                    logger.error(
-                        f"Build failed for project at '{project.entry_path.name}'. Skipping any subsequent publish step."
-                    )
                 failure_count += 1
 
-        logger.info("\n--- Summary ---")
-        logger.info(f"Total projects processed: {total_projects}")
-        logger.info(f"Successfully built/published: {success_count}")
-        logger.info(f"Failed to build/publish: {failure_count}")
-        logger.info("--- All projects processed. ---")
+        self.log_processing_summary(total_projects, success_count, failure_count)
 
 
 def main():
