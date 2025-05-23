@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-judge"
-version = "0.1.1-dev0"
+version = "0.1.2-dev1"
 description = "fabricatio-judge extends the Fabricatio ecosystem to provide advanced judgment capabilities for LLM-driven applications."
 readme = "README.md"
 license = { file = "LICENSE" }
