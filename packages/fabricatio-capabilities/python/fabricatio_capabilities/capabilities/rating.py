@@ -5,17 +5,17 @@ from itertools import permutations
 from random import sample
 from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
 
-from more_itertools import flatten, windowed
-from pydantic import Field, NonNegativeInt, PositiveInt, create_model
-
-from fabricatio_capabilities.capabilities.propose import Propose
-from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.parser import JsonCapture
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok, override_kwargs
+from more_itertools import flatten, windowed
+from pydantic import Field, NonNegativeInt, PositiveInt, create_model
+
+from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs
 
 
 class Rating(Propose, ABC):
