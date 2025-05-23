@@ -46,7 +46,7 @@ class Project:
         config (Optional[Dict[str, Any]]): The parsed content of `pyproject.toml`.
     """
 
-    def __init__(self, entry_path: Path, dist_dir: Path, pyversion: Optional[str], dev_mode: bool):
+    def __init__(self, entry_path: Path, dist_dir: Path, pyversion: Optional[str], dev_mode: bool) -> None:
         """Initializes a Project instance."""
         self.entry_path: Path = entry_path
         self.dist_dir: Path = dist_dir
@@ -191,7 +191,7 @@ class Project:
             ], [
                 "rm", (scripts_dir / "*.dwarf").as_posix(), "-f"
             ],
-                ["rm", ".\packages\*\python\*\*.pyd", "-f"]
+                ["rm", r".\packages\*\python\*\*.pyd", "-f"]
             ]
 
             if self.dev_mode:
@@ -363,8 +363,7 @@ class PackageManager:
             logger.info(f"Discovered {len(self.projects)} valid project(s).")
 
     def process_one_project(self, project: Project) -> bool:
-        """
-        Builds and, if enabled, publishes a single project.
+        """Builds and, if enabled, publishes a single project.
 
         Args:
             project: The project to process.
@@ -381,13 +380,11 @@ class PackageManager:
         # Build was successful
         if self.publish_enabled:
             return self.handle_project_publication(project, project_identifier)
-        else:
-            logger.info(f"Skipping publish for '{project_identifier}' as per --no-publish flag.")
-            return True  # Build successful, publish skipped as requested
+        logger.info(f"Skipping publish for '{project_identifier}' as per --no-publish flag.")
+        return True  # Build successful, publish skipped as requested
 
     def handle_project_publication(self, project: Project, project_identifier: str) -> bool:
-        """
-        Handles the publication process for a given project.
+        """Handles the publication process for a given project.
 
         This includes any pre-publication steps like special builds in dev mode.
 
@@ -429,7 +426,7 @@ class PackageManager:
         logger.info(f"Failed to build/publish: {failure_count}")
         logger.info("--- All projects processed. ---")
 
-    def process_all_projects(self):
+    def process_all_projects(self) -> None:
         """Processes all discovered and valid projects.
 
         This involves building each project and, if `publish_enabled` is True,
@@ -461,7 +458,7 @@ class PackageManager:
         self.log_processing_summary(total_projects, success_count, failure_count)
 
 
-def main():
+def main() -> None:
     """Parses command-line arguments and orchestrates the package building and publishing process.
 
     Initializes a `PackageManager` with settings derived from command-line arguments,
