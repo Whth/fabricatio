@@ -64,7 +64,11 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest]",
+]
+
+digest = [
+    "fabricatio-digest",
 ]
 rag = [
     "fabricatio-rag",
@@ -86,12 +90,11 @@ cli = [
 
 
 typst = [
-    "fabricatio-typst"
+    "fabricatio-typst",
 ]
 
 improve = [
-    "fabricatio-improve"
-
+    "fabricatio-improve",
 ]
 
 capabilities = [
@@ -99,7 +102,7 @@ capabilities = [
 ]
 
 actions = [
-    "fabricatio-actions"
+    "fabricatio-actions",
 ]
 
 [tool.ruff]
@@ -170,6 +173,7 @@ fabricatio-rag = { workspace = true }
 fabricatio-rule = { workspace = true }
 fabricatio-judge = { workspace = true }
 fabricatio-improve = { workspace = true }
+fabricatio-digest = { workspace = true }
 
 
 

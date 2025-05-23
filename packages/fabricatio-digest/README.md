@@ -1,6 +1,6 @@
-# `fabricatio-consume`
+# `fabricatio-digest`
 
-A extension for fabricatio, providing capabilities to handle raw requirment.
+A extension for fabricatio, providing capabilities to handle raw requirment, digesting it into a task list.
 
 ---
 
@@ -9,7 +9,7 @@ A extension for fabricatio, providing capabilities to handle raw requirment.
 This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
 
 ```bash
-pip install fabricatio[consume]
+pip install fabricatio[digest]
 ```
 
 Or install all components:

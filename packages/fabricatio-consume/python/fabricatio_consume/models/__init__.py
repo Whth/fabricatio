@@ -1,1 +1,0 @@
-"""Models defined in consume."""

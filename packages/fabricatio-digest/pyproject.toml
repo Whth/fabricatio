@@ -1,7 +1,7 @@
 [project]
-name = "fabricatio-consume"
+name = "fabricatio-digest"
 version = "0.1.0-dev0"
-description = "A extension for fabricatio, providing capabilities to handle raw requirment"
+description = "A extension for fabricatio, providing capabilities to handle raw requirment, digesting it into a task list"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

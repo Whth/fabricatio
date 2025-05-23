@@ -41,10 +41,9 @@ class Role(WithBriefing):
         Returns:
             str: The briefing of the role.
         """
-
         base = super().briefing
 
-        abilities = "\n".join(w.briefing for w in self.registry.values())
+        abilities = "\n".join(f'`{k.collapse()}`:{w.briefing}' for (k, w) in self.registry.items())
 
         return f"{base}\n\nAbilities:\n{abilities}"
 
@@ -74,7 +73,7 @@ class Role(WithBriefing):
         if event in self.registry:
             logger.debug(f"Unregistering workflow `{self.registry[event].name}` for event `{event.collapse()}`")
             del self.registry[event]
-            
+
         else:
             logger.warning(f"No workflow registered for event `{event.collapse()}` to unregister.")
         return self

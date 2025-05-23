@@ -1,1 +1,0 @@
-"""Actions defined in consume."""

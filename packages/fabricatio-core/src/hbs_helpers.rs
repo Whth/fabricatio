@@ -21,4 +21,24 @@ handlebars_helper!(block: |v:String,title:String| format!(
     "--- Start of `{title}` ---\n{v}\n--- End of `{title}` ---\n",
 ));
 
-handlebars_helper!(list_out_string: |v:Vec<String>| v.iter().map(|s| format!("- {s}\n")).collect::<String>());
+handlebars_helper!(list_out_string: |v: Vec<String>| {
+    v.iter()
+        .map(|s_item| {
+            let mut lines_iter = s_item.lines();
+            if let Some(first_line) = lines_iter.next() {
+                let mut item_output = format!("- {first_line}");
+                for subsequent_line in lines_iter {
+                    item_output.push_str("\n  "); // Indent for subsequent lines
+                    item_output.push_str(subsequent_line);
+                }
+                item_output.push('\n'); // Each list item ends with a newline
+                item_output
+            } else {
+                // This handles cases where s_item is an empty string.
+                // The original behavior for an empty string s was format!("- {s}\n"), resulting in "- \n".
+                // "".lines() yields an empty iterator, so this branch is taken.
+                "- \n".to_string()
+            }
+        })
+        .collect::<String>()
+});
