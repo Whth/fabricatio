@@ -3,6 +3,7 @@ use dotenvy::dotenv_override;
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
+use log::debug;
 use macro_utils::TemplateDefault;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -488,7 +489,9 @@ impl Config {
     fn figment() -> Figment {
         Figment::new()
             .join({
-                dotenv_override().expect("Failed to load .env file");
+                if let Ok(env_file) = dotenv_override() {
+                    debug!("Using env file: {}", env_file.display())
+                }
                 Env::prefixed("FABRIK_").split("__")
             })
             .join(Toml::file("fabricatio.toml"))
