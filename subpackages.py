@@ -9,6 +9,7 @@ import argparse
 import logging
 import subprocess
 import tomllib  # Use tomllib for TOML parsing (Python 3.11+)
+from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -427,7 +428,7 @@ class PackageManager:
         logger.info("--- All projects processed. ---")
 
     def process_all_projects(self) -> None:
-        """Processes all discovered and valid projects.
+        """Processes all discovered and valid projects concurrently.
 
         This involves building each project and, if `publish_enabled` is True,
         attempting to publish the built artifacts. It logs a summary of
@@ -445,15 +446,47 @@ class PackageManager:
         success_count = 0
         failure_count = 0
 
-        for i, project_to_process in enumerate(self.projects):
-            # Ensure project.name is available, fallback to entry_path.name for logging if necessary
-            project_identifier = project_to_process.name or project_to_process.entry_path.name
-            logger.info(f"\n--- Processing project {i + 1}/{total_projects}: {project_identifier} ---")
+        # The 'Future' type hint below assumes 'from concurrent.futures import Future'
+        # The 'ThreadPoolExecutor' and 'as_completed' also from 'concurrent.futures'
+        # These imports are omitted as per instruction.
+        future_to_project_identifier: Dict[Future, str] = {}
 
-            if self.process_one_project(project_to_process):
-                success_count += 1
-            else:
-                failure_count += 1
+        with ThreadPoolExecutor() as executor:
+            logger.info(f"Submitting {total_projects} project(s) for concurrent processing...")
+            for i, project_to_process in enumerate(self.projects):
+                project_identifier = project_to_process.name or project_to_process.entry_path.name
+                # Log the submission of the project for processing.
+                # The actual start of processing for this specific project will depend on thread availability.
+                logger.info(f"\n--- Submitting project {i + 1}/{total_projects}: {project_identifier} ---")
+
+                future = executor.submit(self.process_one_project, project_to_process)
+                future_to_project_identifier[future] = project_identifier
+
+            logger.info("All projects submitted. Waiting for results...")
+
+            processed_count = 0
+            for future in as_completed(future_to_project_identifier):
+                project_id_for_log = future_to_project_identifier[future]
+                try:
+                    # process_one_project is expected to handle its own errors and return bool
+                    was_successful = future.result()
+                    if was_successful:
+                        success_count += 1
+                        # Detailed success is logged by process_one_project or its callees
+                    else:
+                        failure_count += 1
+                        # Detailed failure is logged by process_one_project or its callees
+                except Exception as e:
+                    # This case should ideally not be reached if process_one_project is robust.
+                    logger.error(
+                        f"Unexpected error while processing project '{project_id_for_log}': {e}",
+                        exc_info=True
+                    )
+                    failure_count += 1
+                finally:
+                    processed_count += 1
+                    logger.info(
+                        f"Finished processing for: {project_id_for_log}. ({processed_count}/{total_projects} completed)")
 
         self.log_processing_summary(total_projects, success_count, failure_count)
 
