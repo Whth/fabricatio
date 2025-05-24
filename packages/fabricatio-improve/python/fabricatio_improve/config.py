@@ -14,6 +14,10 @@ class ImproveConfig:
     """The name of the fix troubled string template which will be used to fix a troubled string."""
 
 
+    fix_troubled_obj_template: str
+    """The name of the fix troubled object template which will be used to fix a troubled object."""
+
+
 improve_config = CONFIG.load("improve",  ImproveConfig)
 __all__ = [
     "improve_config"

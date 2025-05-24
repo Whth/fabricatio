@@ -6,7 +6,6 @@ from itertools import groupby
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.fs import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import blake3_hash, split_into_chunks
@@ -16,6 +15,7 @@ from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
 
+from fabricatio_typst.models.generic import AsPrompt
 from fabricatio_typst.models.kwargs_types import ChunkKwargs
 from fabricatio_typst.rust import BibManager
 

@@ -272,7 +272,6 @@ class TemplateConfig:
     make_judgment_template: str
     """The name of the make judgment template which will be used to make a judgment."""
 
-
     # String Processing Templates
 
     generic_string_template: str
@@ -281,12 +280,6 @@ class TemplateConfig:
     co_validation_template: str
     """The name of the co-validation template which will be used to co-validate a string."""
 
-    as_prompt_template: str
-    """The name of the as prompt template which will be used to convert a string to a prompt."""
-
-    # Display and Formatting Templates
-    retrieved_display_template: str
-    """The name of the retrieved display template which will be used to display retrieved documents."""
 
     liststr_template: str
     """The name of the liststr template which will be used to display a list of strings."""
@@ -294,26 +287,13 @@ class TemplateConfig:
     pathstr_template: str
     """The name of the pathstr template which will be used to acquire a path of strings."""
 
-    # Query and Search Templates
-    refined_query_template: str
-    """The name of the refined query template which will be used to refine a query."""
 
     # Object and Data Templates
     create_json_obj_template: str
     """The name of the create json object template which will be used to create a json object."""
 
-    fix_troubled_obj_template: str
-    """The name of the fix troubled object template which will be used to fix a troubled object."""
 
 
-
-
-    # Content Summary Templates
-    chap_summary_template: str
-    """The name of the chap summary template which will be used to generate a chapter summary."""
-
-    research_content_summary_template: str
-    """The name of the research content summary template which will be used to generate a summary of research content."""
 
 
 class RoutingConfig:

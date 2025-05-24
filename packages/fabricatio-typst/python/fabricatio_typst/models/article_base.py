@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
 from fabricatio_capabilities.models.generic import (
-    AsPrompt,
     FinalizedDumpAble,
     ModelHash,
     PersistentAble,
@@ -28,7 +27,7 @@ from fabricatio_core.rust import (
 from fabricatio_core.utils import fallback_kwargs, ok
 from pydantic import Field
 
-from fabricatio_typst.models.generic import Introspect, WordCount
+from fabricatio_typst.models.generic import AsPrompt, Introspect, WordCount
 from fabricatio_typst.rust import (
     extract_body,
     replace_thesis_body,

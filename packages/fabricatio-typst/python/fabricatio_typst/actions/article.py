@@ -12,7 +12,7 @@ from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.models.usages import LLMUsage
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, detect_language, word_count
+from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok, wrapp_in_block
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
@@ -20,6 +20,7 @@ from more_itertools import filter_map
 from pydantic import Field
 from rich import print as r_print
 
+from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
@@ -328,7 +329,7 @@ class WriteChapterSummary(Action, LLMUsage):
             for raw in (
                 await self.aask(
                     TEMPLATE_MANAGER.render_template(
-                        CONFIG.templates.chap_summary_template,
+                        typst_config.chap_summary_template,
                         [
                             {
                                 "chapter": c.to_typst_code(),
@@ -388,7 +389,7 @@ class WriteResearchContentSummary(Action, LLMUsage):
         outline = article.extrac_outline()
         suma: str = await self.aask(
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.research_content_summary_template,
+                typst_config.research_content_summary_template,
                 {
                     "title": outline.title,
                     "outline": outline.to_typst_code(),

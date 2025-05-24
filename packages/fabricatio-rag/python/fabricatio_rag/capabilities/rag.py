@@ -2,6 +2,8 @@
 
 from abc import ABC
 
+from fabricatio_rag.config import rag_config
+
 try:
     from pymilvus import MilvusClient
 except ImportError as e:
@@ -257,7 +259,7 @@ class RAG(EmbeddingUsage, ABC):
         """
         return await self.alist_str(
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.refined_query_template,
+                rag_config.refined_query_template,
                 {"question": [question] if isinstance(question, str) else question},
             ),
             **kwargs,
