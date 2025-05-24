@@ -102,9 +102,8 @@ class Capture:
         )
     @classmethod
     @lru_cache(32)
-    def capture_content(cls, left_delimiter: str, right_delimiter: str = None) -> Self:
+    def capture_content(cls, left_delimiter: str, right_delimiter: str | None = None) -> Self:
         """Capture content between delimiters."""
-
         return cls(pattern=f"{left_delimiter}(.*?){right_delimiter or left_delimiter}")
 
 JsonCapture = Capture.capture_code_block("json")
