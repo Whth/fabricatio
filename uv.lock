@@ -394,7 +394,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.4.dev1"
+version = "0.1.4.dev3"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -405,7 +405,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.4.dev5"
+version = "0.1.4.dev9"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -743,6 +743,19 @@ wheels = [
 ]
 
 [[package]]
+name = "httpx-aiohttp"
+version = "0.1.4"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "httpx" },
+]
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/83/34/07ee45949f76701c4327d95bbaf31c6d62d72c74677ba6a2087b13df7743/httpx_aiohttp-0.1.4.tar.gz", hash = "sha256:61030eed28deeac26286d2e872b7c167f5450b7b0eec5a617ae7d3f7da9c8684", size = 8375, upload-time = "2025-05-23T20:33:20.09Z" }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/ec/77/04b416a0b6e351edf4a0a7a5ff18e9b0ab5dd59d3614cf41030fb86ccaaf/httpx_aiohttp-0.1.4-py3-none-any.whl", hash = "sha256:740a8725af7b7a03d12f21ccd48a83457baa037304646589b87595746c05c87e", size = 4977, upload-time = "2025-05-23T20:33:19.306Z" },
+]
+
+[[package]]
 name = "huggingface-hub"
 version = "0.32.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -888,12 +901,13 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.70.4"
+version = "1.71.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "click" },
     { name = "httpx" },
+    { name = "httpx-aiohttp" },
     { name = "importlib-metadata" },
     { name = "jinja2" },
     { name = "jsonschema" },
@@ -903,9 +917,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/60/d7/d0d76ba896a1e8978550dcc76157d1c50910ba9ade4ef3981a34f01f4fa6/litellm-1.70.4.tar.gz", hash = "sha256:ef6749a091faaaf88313afe4111cdd95736e1e60f21ba894e74f7c5bab2870bd", size = 7813817, upload-time = "2025-05-23T00:05:24.47Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f5/b2/3675e0c7efdec151f5dde63cd4d0422f687e41630ff6a817ebde3f3946b5/litellm-1.71.0.tar.gz", hash = "sha256:1908ebb61e6f2909a092648c5243adae8f60a9ce24d71530be91e2e727eb43b0", size = 7826195, upload-time = "2025-05-24T14:19:21.787Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/cc/8f/0b26ecb08b8282ae0fdfa2223b5df8263579c9e3c75ca96bb7fb7cbc632c/litellm-1.70.4-py3-none-any.whl", hash = "sha256:4d14d04bf5e2bd49336b4abc59193352c731ff371022e4fcf590208f41f644f7", size = 7903749, upload-time = "2025-05-23T00:05:21.017Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/8b/32/7e4a97b127947613d6c8ac95221d01144a6992d5ec29c3e562549a1fddf2/litellm-1.71.0-py3-none-any.whl", hash = "sha256:caae99df64ddc27057d20d63aa2ef4931547ca4cc95fc9d3896081226422ccb2", size = 7916718, upload-time = "2025-05-24T14:19:18.49Z" },
 ]
 
 [[package]]
