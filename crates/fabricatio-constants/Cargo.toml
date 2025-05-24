@@ -11,5 +11,4 @@ readme = "README.md"
 directories-next = "2.0.0"
 once_cell = "1.21.3"
 
-[workspace]
 

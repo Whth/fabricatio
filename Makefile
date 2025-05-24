@@ -10,9 +10,9 @@ dirs:
 
 
 dev:
-	cargo build --workspace --bins -r -Z unstable-options --artifact-dir $(DATA)/scripts
-	rm $(DATA)/scripts/*.pdb |true
-	rm $(DATA)/scripts/*.dwarf |true
+	cargo build -p fabricatio --bins -r -Z unstable-options --artifact-dir $(DATA)/scripts
+	rm $(DATA)/scripts/*.pdb -f
+	rm $(DATA)/scripts/*.dwarf -f
 	uvx -p $(PY) --project . maturin develop --uv -r
 	uv run subpackages.py --no-publish --pyversion $(PY) --dev
 

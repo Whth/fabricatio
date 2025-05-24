@@ -182,7 +182,7 @@ class Project:
             # cargo build --workspace --bins -r -Z unstable-options --artifact-dir
             scripts_dir = self.entry_path / DEFAULT_DATA_DIR / "scripts"
             cargo_bins = [
-                "cargo", "build", "--workspace", "--bins", "-r", "-Z", "unstable-options", "--artifact-dir",
+                "cargo", "build", "-p",self.name, "--bins", "-r", "-Z", "unstable-options", "--artifact-dir",
                 scripts_dir.as_posix()
 
             ]

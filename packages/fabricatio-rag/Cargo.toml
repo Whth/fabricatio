@@ -18,9 +18,5 @@ pyo3-async-runtimes = { version = "0.24.0", features = ["tokio-runtime"] }
 
 [build-dependencies]
 tonic-build = "0.13.0"
-[workspace]
 
-[workspace.package]
-authors = ["Whth <zettainspector@foxmail.com>"]
-license-file = "LICENSE"
 

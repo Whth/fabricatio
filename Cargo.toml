@@ -9,11 +9,30 @@ crate-type = ["cdylib"]
 
 pyo3 = { version = "0.24.2", features = ["extension-module"] }
 
+reqwest = { version = "0.12.12", features = ["blocking", "json"] }
+tar = "0.4.43"
+flate2 = "1.0.35"
+serde_json = "1.0.138"
+clap = { version = "4.5.29", features = ["derive"] }
+fabricatio-constants = "0.1.0"
+
+
+
+
 
 
 [workspace]
-members = ["src/tools"]
+members = [
+    "packages/fabricatio-typst",
+    "packages/fabricatio-typst/src/typst_conversion",
+    "packages/fabricatio-rag",
+    "packages/fabricatio-core",
+    "packages/fabricatio-core/src/macro_utils",
+    "packages/fabricatio-capabilities",
+    "crates/fabricatio-constants"
+]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]
 license-file = "LICENSE"
+

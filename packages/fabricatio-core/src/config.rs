@@ -1,3 +1,6 @@
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use dotenvy::dotenv_override;
 use fabricatio_constants::ROAMING;
 use figment::providers::{Data, Env, Format, Toml};
@@ -5,9 +8,7 @@ use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
 use log::debug;
 use macro_utils::TemplateDefault;
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
+
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -15,6 +16,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
+use pythonize::pythonize;
 use validator::Validate;
 
 #[pyclass]
@@ -497,8 +499,19 @@ impl Config {
         Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }
 
-    fn load<'a>(&self, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
-        Ok(cls)
+    fn load<'a>(&self,python: Python, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
+
+        if  let Some(data) = self.extension.get(name){
+
+        cls.call((),None)
+        }else {
+        cls.call((),None)
+        }
+
+
+
+
+
     }
 }
 

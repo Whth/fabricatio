@@ -1,7 +1,6 @@
 [package]
 name = "fabricatio-typst"
 edition = "2024"
-
 [lib]
 crate-type = ["cdylib"]
 
@@ -17,11 +16,6 @@ tex2typst-rs = "0.4.1"
 pyo3-log = "0.12.3"
 typst_conversion = { path = "src/typst_conversion" }
 
+clap = { version = "4.5.29", features = ["derive"] }
 
-[workspace]
-members = ["src/typst_conversion", "src/tools"]
-
-[workspace.package]
-authors = ["Whth <zettainspector@foxmail.com>"]
-license-file = "LICENSE"
 

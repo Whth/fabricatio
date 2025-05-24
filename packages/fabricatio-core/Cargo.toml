@@ -27,10 +27,5 @@ whichlang = "0.1.1"
 macro_utils = { path = "src/macro_utils" }
 fabricatio-constants = "0.1.0"
 
-[workspace]
-members = ["src/macro_utils"]
 
-[workspace.package]
-authors = ["Whth <zettainspector@foxmail.com>"]
-license-file = "LICENSE"
 
