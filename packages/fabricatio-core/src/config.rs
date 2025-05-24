@@ -19,8 +19,8 @@ use std::path::{Path, PathBuf};
 use pythonize::pythonize;
 use validator::Validate;
 
-#[pyclass]
 #[derive(Clone)]
+#[pyclass]
 pub struct SecretStr {
     source: String,
 }
@@ -461,61 +461,169 @@ impl Default for PymitterConfig {
     }
 }
 
+
+
 /// Configuration structure containing all system components
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[pyclass]
 pub struct Config {
     /// Embedding configuration
+    ///
+    /// Configuration parameters for embedding models, including:
+    /// - [model](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L25-L25): Optional model name/identifier
+    /// - [dimensions](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L13-L13): Vector dimensions for embeddings
+    /// - [timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L31-L31): Request timeout in seconds (min 1)
+    /// - `max_sequence_length`: Maximum input sequence length
+    /// - [caching](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L15-L15): Enable/disable result caching
+    /// - `api_endpoint`: API service URL endpoint
+    /// - `api_key`: Authentication key (secure storage)
     #[pyo3(get)]
     pub embedding: EmbeddingConfig,
 
     /// LLM configuration
+    ///
+    /// Language Learning Model settings with validation rules:
+    /// - `api_endpoint`: Valid URL for API service
+    /// - `api_key`: Secure authentication token
+    /// - [timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L31-L31): Minimum 1 second
+    /// - [max_retries](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L32-L32): Minimum 1 retry attempt
+    /// - [model](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L25-L25): Model identifier string
+    /// - [temperature](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L26-L26): Range 0.0-2.0 for response randomness
+    /// - `stop_sign`: Token generation stop sequence(s)
+    /// - [top_p](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L28-L28): Nucleus sampling threshold (0.0-1.0)
+    /// - `generation_count`: Minimum 1 completion per prompt
+    /// - [stream](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L30-L30): Streaming response flag
+    /// - [max_tokens](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29): Minimum 1 generated tokens
+    /// - `rpm`: Requests per minute limit (≥1)
+    /// - `tpm`: Tokens per minute limit (≥1)
+    /// - [presence_penalty](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L37-L37): Repetition penalty (-2.0-2.0)
+    /// - [frequency_penalty](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L38-L38): Frequency-based penalty (-2.0-2.0)
     #[pyo3(get)]
     pub llm: LLMConfig,
+
+    /// Debugging configuration
+    ///
+    /// Debug settings containing:
+    /// - `log_level`: Logging verbosity level (default: "INFO")
     #[pyo3(get)]
     pub debug: DebugConfig,
+
+    /// RAG (Retrieval Augmented Generation) configuration
+    ///
+    /// Settings for vector database integration:
+    /// - [milvus_uri](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L320-L320): Database connection URI (valid URL)
+    /// - [milvus_timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L326-L326): Connection timeout (≥1.0s)
+    /// - [milvus_token](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L323-L323): Authentication token
+    /// - [milvus_dimensions](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L329-L329): Vector dimensionality
     #[pyo3(get)]
     pub rag: RagConfig,
+
+    /// Template configuration
+    ///
+    /// Template paths/names for various operations:
+    /// - `digest_template`: Task list creation template
+    /// - `dispatch_task_template`: Task dispatching template
+    /// - `research_content_summary_template`: Research summary template
+    /// - `create_json_obj_template`: JSON object creation template
+    /// - `draft_tool_usage_code_template`: Tool usage code template
+    /// - `make_choice_template`: Decision-making template
+    /// - `make_judgment_template`: Judgment evaluation template
+    /// - `dependencies_template`: Dependency management template
+    /// - `task_briefing_template`: Task description template
+    /// - `rate_fine_grind_template`: Rating criteria refinement template
+    /// - `draft_rating_manual_template`: Rating manual template
+    /// - `draft_rating_criteria_template`: Rating criteria template
+    /// - `extract_reasons_from_examples_template`: Example analysis template
+    /// - `extract_criteria_from_reasons_template`: Criteria extraction template
+    /// - `draft_rating_weights_klee_template`: Klee rating weights template
+    /// - `retrieved_display_template`: Document display template
+    /// - `liststr_template`: String list display template
+    /// - `refined_query_template`: Query optimization template
+    /// - `pathstr_template`: Path string acquisition template
+    /// - `review_string_template`: String evaluation template
+    /// - `generic_string_template`: General string review template
+    /// - `co_validation_template`: String co-validation template
+    /// - `as_prompt_template`: String-to-prompt conversion template
+    /// - `check_string_template`: String validation template
+    /// - `ruleset_requirement_breakdown_template`: Ruleset breakdown template
+    /// - `fix_troubled_obj_template`: Object repair template
+    /// - `fix_troubled_string_template`: String repair template
+    /// - `rule_requirement_template`: Rule requirement generation template
+    /// - `extract_template`: Model extraction template
+    /// - `chap_summary_template`: Chapter summary generation template
     #[pyo3(get)]
     pub templates: TemplateConfig,
+
+    /// Template manager configuration
+    ///
+    /// Template loading and management settings:
+    /// - `template_dir`: Directories to search for templates
+    /// - `active_loading`: Flag to enable template pre-loading
+    /// - `template_suffix`: File extension for templates
     #[pyo3(get)]
     pub template_manager: TemplateManagerConfig,
+
+    /// Routing configuration
+    ///
+    /// Request routing and load balancing settings:
+    /// - `max_parallel_requests`: Max concurrent requests
+    /// - `allowed_fails`: Failures before circuit breaking
+    /// - `retry_after`: Seconds to wait between retries
+    /// - `cooldown_time`: Failure cooldown period
     #[pyo3(get)]
     pub routing: RoutingConfig,
+
+    /// General application settings
+    ///
+    /// Global behavior configuration:
+    /// - `confirm_on_ops`: Require operation confirmation
+    /// - `use_json_repair`: Auto-repair malformed JSON
     #[pyo3(get)]
     pub general: GeneralConfig,
+
+    /// Toolbox configuration
+    ///
+    /// Module naming configuration:
+    /// - `tool_module_name`: Name of toolbox module
+    /// - `data_module_name`: Name of data module
     #[pyo3(get)]
     pub toolbox: ToolBoxConfig,
+
+    /// Pymitter event system configuration
+    ///
+    /// Event emission control settings:
+    /// - `delimiter`: Event name segment separator
+    /// - `new_listener_event`: Emit on listener add
+    /// - `max_listeners`: Listener limit (-1 = unlimited)
     #[pyo3(get)]
     pub pymitter: PymitterConfig,
+
+    /// Extension configuration store
+    ///
+    /// Additional configuration values as key-value pairs.
+    /// Used for storing arbitrary extra configuration data.
     pub extension: HashMap<String, Value>,
 }
 
 #[pymethods]
 impl Config {
-    // Provide a default provider, a `Figment`.
-    #[new]
-    fn new() -> PyResult<Self> {
-        Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
 
-    fn load<'a>(&self,python: Python, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
+    fn load<'a>(&self,python: Python<'a>, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
 
         if  let Some(data) = self.extension.get(name){
-
-        cls.call((),None)
+        let any = pythonize(python, data)?;
+        cls.call((),Some(&any.downcast_into_exact::<PyDict>()?))
         }else {
         cls.call((),None)
         }
-
-
-
-
-
     }
 }
 
 impl Config {
+
+    fn new() -> PyResult<Self> {
+        Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
     fn figment() -> Figment {
         Figment::new()
             .join({

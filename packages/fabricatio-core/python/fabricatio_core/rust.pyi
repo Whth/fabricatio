@@ -13,7 +13,7 @@ Key Features:
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Self, Union, overload
+from typing import Any, Dict, List, Optional, Self, Union, overload, Type
 
 
 class TemplateManager:
@@ -427,7 +427,18 @@ class Config:
 
     pymitter: PymitterConfig
     """Pymitter configuration."""
+    
+    
+    def load[C](self, name: str, cls: Type[C]) -> C:
+        """Load configuration data for a given name and instantiate it with the provided class.
 
+        Args:
+            name: The name of the configuration section to load
+            cls: The class to instantiate with the configuration data, typically a subclass of configuration structures
+        Returns:
+            An instance of the provided class, either populated with loaded data or initialized with default values
+
+        """
 
 CONFIG: Config
 
