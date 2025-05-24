@@ -274,15 +274,9 @@ class TemplateConfig:
 
 
     # String Processing Templates
-    review_string_template: str
-    """The name of the review string template which will be used to review a string."""
 
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
-
-
-    fix_troubled_string_template: str
-    """The name of the fix troubled string template which will be used to fix a troubled string."""
 
     co_validation_template: str
     """The name of the co-validation template which will be used to co-validate a string."""

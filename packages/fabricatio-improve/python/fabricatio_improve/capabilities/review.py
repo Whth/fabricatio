@@ -7,8 +7,9 @@ from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.task import Task
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
+from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_improve.models.kwargs_types import ReviewKwargs, ValidateKwargs
 
@@ -78,7 +79,7 @@ class Review(Rating, Propose, ABC):
         return await self.propose(
             Improvement,
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.review_string_template,
+                improve_config.review_string_template,
                 {"text": input_text, "topic": topic, "criteria_manual": manual},
             ),
             **kwargs,

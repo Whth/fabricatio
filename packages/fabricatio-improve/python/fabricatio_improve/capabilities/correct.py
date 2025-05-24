@@ -12,8 +12,9 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
+from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_improve.models.problem import ProblemSolutions
 from fabricatio_rule.models.kwargs_types import CorrectKwargs
@@ -93,7 +94,7 @@ class Correct(Rating, Propose, ABC):
         return await self.propose(
             obj.__class__,
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.fix_troubled_obj_template,
+                improve_config.fix_troubled_obj_template,
                 {
                     "problem": problem_solutions.problem.display(),
                     "solution": ok(
@@ -126,7 +127,7 @@ class Correct(Rating, Propose, ABC):
         """
         return await self.ageneric_string(
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.fix_troubled_string_template,
+                improve_config.fix_troubled_string_template,
                 {
                     "problem": problem_solutions.problem.display(),
                     "solution": ok(
