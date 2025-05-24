@@ -28,7 +28,7 @@ members = [
     "packages/fabricatio-rag",
     "packages/fabricatio-core",
     "packages/fabricatio-core/src/macro_utils",
-    "packages/fabricatio-capabilities",
+    "packages/fabricatio-capabilitiesa",
     "crates/fabricatio-constants"
 ]
 

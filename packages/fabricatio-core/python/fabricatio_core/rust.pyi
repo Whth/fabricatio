@@ -258,8 +258,6 @@ class TemplateConfig:
 
     # Task Management Templates
 
-    dispatch_task_template: str
-    """The name of the dispatch task template which will be used to dispatch a task."""
 
     task_briefing_template: str
     """The name of the task briefing template which will be used to brief a task."""
@@ -274,24 +272,6 @@ class TemplateConfig:
     make_judgment_template: str
     """The name of the make judgment template which will be used to make a judgment."""
 
-    # Rating and Evaluation Templates
-    rate_fine_grind_template: str
-    """The name of the rate fine grind template which will be used to rate fine grind."""
-
-    draft_rating_manual_template: str
-    """The name of the draft rating manual template which will be used to draft rating manual."""
-
-    draft_rating_criteria_template: str
-    """The name of the draft rating criteria template which will be used to draft rating criteria."""
-
-    extract_reasons_from_examples_template: str
-    """The name of the extract reasons from examples template which will be used to extract reasons from examples."""
-
-    extract_criteria_from_reasons_template: str
-    """The name of the extract criteria from reasons template which will be used to extract criteria from reasons."""
-
-    draft_rating_weights_klee_template: str
-    """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
 
     # String Processing Templates
     review_string_template: str
@@ -333,8 +313,6 @@ class TemplateConfig:
     fix_troubled_obj_template: str
     """The name of the fix troubled object template which will be used to fix a troubled object."""
 
-    extract_template: str
-    """The name of the extract template which will be used to extract model from string."""
 
     # Rule and Requirement Templates
     ruleset_requirement_breakdown_template: str
@@ -343,9 +321,6 @@ class TemplateConfig:
     rule_requirement_template: str
     """The name of the rule requirement template which will be used to generate a rule requirement."""
 
-    # Code Generation Templates
-    draft_tool_usage_code_template: str
-    """The name of the draft tool usage code template which will be used to draft tool usage code."""
 
     # Content Summary Templates
     chap_summary_template: str
