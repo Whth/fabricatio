@@ -280,16 +280,15 @@ impl Default for TemplateManagerConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
+    // Task Management Templates
 
-    /// Template that will be used to dispatch a task.
-    pub dispatch_task_template: String,
-    /// Template that will be used to dispatch a task.
-    pub research_content_summary_template: String,
-    /// The name of the create json object template which will be used to create a json object.
-    pub create_json_obj_template: String,
+    /// The name of the task briefing template which will be used to brief a task.
+    pub task_briefing_template: String,
 
-    /// The name of the draft tool usage code template which will be used to draft tool usage code.
-    pub draft_tool_usage_code_template: String,
+    /// The name of the dependencies template which will be used to manage dependencies.
+    pub dependencies_template: String,
+
+    // Decision Making Templates
 
     /// The name of the make choice template which will be used to make a choice.
     pub make_choice_template: String,
@@ -297,44 +296,7 @@ pub struct TemplateConfig {
     /// The name of the make judgment template which will be used to make a judgment.
     pub make_judgment_template: String,
 
-    /// The name of the dependencies template which will be used to manage dependencies.
-    pub dependencies_template: String,
-
-    /// The name of the task briefing template which will be used to brief a task.
-    pub task_briefing_template: String,
-
-    /// The name of the rate fine grind template which will be used to rate fine grind.
-    pub rate_fine_grind_template: String,
-
-    /// The name of the draft rating manual template which will be used to draft rating manual.
-    pub draft_rating_manual_template: String,
-
-    /// The name of the draft rating criteria template which will be used to draft rating criteria.
-    pub draft_rating_criteria_template: String,
-
-    /// The name of the extract reasons from examples template which will be used to extract reasons from examples.
-    pub extract_reasons_from_examples_template: String,
-
-    /// The name of the extract criteria from reasons template which will be used to extract criteria from reasons.
-    pub extract_criteria_from_reasons_template: String,
-
-    /// The name of the draft rating weights klee template which will be used to draft rating weights with Klee method.
-    pub draft_rating_weights_klee_template: String,
-
-    /// The name of the retrieved display template which will be used to display retrieved documents.
-    pub retrieved_display_template: String,
-
-    /// The name of the liststr template which will be used to display a list of strings.
-    pub liststr_template: String,
-
-    /// The name of the refined query template which will be used to refine a query.
-    pub refined_query_template: String,
-
-    /// The name of the pathstr template which will be used to acquire a path of strings.
-    pub pathstr_template: String,
-
-    /// The name of the review string template which will be used to review a string.
-    pub review_string_template: String,
+    // String Processing Templates
 
     /// The name of the generic string template which will be used to review a string.
     pub generic_string_template: String,
@@ -342,29 +304,16 @@ pub struct TemplateConfig {
     /// The name of the co-validation template which will be used to co-validate a string.
     pub co_validation_template: String,
 
-    /// The name of the as prompt template which will be used to convert a string to a prompt.
-    pub as_prompt_template: String,
+    /// The name of the liststr template which will be used to display a list of strings.
+    pub liststr_template: String,
 
-    /// The name of the check string template which will be used to check a string.
-    pub check_string_template: String,
+    /// The name of the pathstr template which will be used to acquire a path of strings.
+    pub pathstr_template: String,
 
-    /// The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement.
-    pub ruleset_requirement_breakdown_template: String,
+    // Object and Data Templates
 
-    /// The name of the fix troubled object template which will be used to fix a troubled object.
-    pub fix_troubled_obj_template: String,
-
-    /// The name of the fix troubled string template which will be used to fix a troubled string.
-    pub fix_troubled_string_template: String,
-
-    /// The name of the rule requirement template which will be used to generate a rule requirement.
-    pub rule_requirement_template: String,
-
-    /// The name of the extract template which will be used to extract model from string.
-    pub extract_template: String,
-
-    /// The name of the chap summary template which will be used to generate a chapter summary.
-    pub chap_summary_template: String,
+    /// The name of the create json object template which will be used to create a json object.
+    pub create_json_obj_template: String,
 }
 /// Routing configuration structure for controlling request dispatching behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
