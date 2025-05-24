@@ -65,9 +65,12 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory]",
 ]
 
+memory = [
+    "fabricatio-memory",
+]
 digest = [
     "fabricatio-digest",
 ]
