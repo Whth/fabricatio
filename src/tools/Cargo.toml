@@ -8,8 +8,7 @@ tar = "0.4.43"
 flate2 = "1.0.35"
 serde_json = "1.0.138"
 clap = { version = "4.5.29", features = ["derive"] }
-
-constants = { path = "../../packages/fabricatio-core/src/constants" }
+fabricatio-constants = "0.1.0"
 
 [[bin]]
 name = "tdown"

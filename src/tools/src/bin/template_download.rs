@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use constants::{ROAMING, TEMPLATES};
+use fabricatio_constants::{ROAMING, TEMPLATES};
 use flate2::read::GzDecoder;
 use reqwest::blocking::Client;
 use std::fs::{self, File};

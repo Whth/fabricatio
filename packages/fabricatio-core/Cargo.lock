@@ -120,14 +120,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
-name = "constants"
-version = "0.1.0"
-dependencies = [
- "directories-next",
- "lazy_static",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -298,13 +290,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "fabricatio-constants"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af9da5d4af1e418c9ab6f91f217b2c8fd41c312a699e2e1a805cc411a625342a"
+dependencies = [
+ "directories-next",
+ "once_cell",
+]
+
+[[package]]
 name = "fabricatio-core"
 version = "0.0.0"
 dependencies = [
  "bincode",
  "blake3",
- "constants",
  "dotenvy",
+ "fabricatio-constants",
  "figment",
  "handlebars",
  "log",
@@ -540,12 +542,6 @@ name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"

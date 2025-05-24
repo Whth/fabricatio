@@ -25,11 +25,10 @@ bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
 
 macro_utils = { path = "src/macro_utils" }
-constants = { path = "src/constants" }
-
+fabricatio-constants = "0.1.0"
 
 [workspace]
-members = ["src/constants", "src/macro_utils", ]
+members = ["src/macro_utils"]
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]

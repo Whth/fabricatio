@@ -1,5 +1,5 @@
-use constants::ROAMING;
 use dotenvy::dotenv_override;
+use fabricatio_constants::ROAMING;
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};

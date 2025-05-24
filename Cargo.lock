@@ -180,14 +180,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
-name = "constants"
-version = "0.1.0"
-dependencies = [
- "directories-next",
- "lazy_static",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -274,6 +266,16 @@ name = "fabricatio"
 version = "0.0.0"
 dependencies = [
  "pyo3",
+]
+
+[[package]]
+name = "fabricatio-constants"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af9da5d4af1e418c9ab6f91f217b2c8fd41c312a699e2e1a805cc411a625342a"
+dependencies = [
+ "directories-next",
+ "once_cell",
 ]
 
 [[package]]
@@ -707,12 +709,6 @@ dependencies = [
  "once_cell",
  "wasm-bindgen",
 ]
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
@@ -1434,7 +1430,7 @@ name = "tools"
 version = "0.0.0"
 dependencies = [
  "clap",
- "constants",
+ "fabricatio-constants",
  "flate2",
  "reqwest",
  "serde_json",
