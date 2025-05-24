@@ -279,7 +279,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.4.2.dev0"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -394,7 +394,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.4.dev7"
+version = "0.1.4.dev8"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -405,7 +405,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.4.dev19"
+version = "0.1.4.dev20"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -472,7 +472,7 @@ provides-extras = ["tests"]
 
 [[package]]
 name = "fabricatio-improve"
-version = "0.1.2.dev5"
+version = "0.1.2.dev6"
 source = { editable = "packages/fabricatio-improve" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -498,7 +498,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.2.dev5"
+version = "0.1.2.dev6"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -515,7 +515,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.3.dev3"
+version = "0.1.3.dev4"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -534,7 +534,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.3.dev3"
+version = "0.1.3.dev4"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
