@@ -405,7 +405,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.4.dev17"
+version = "0.1.4.dev19"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -498,7 +498,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.2.dev3"
+version = "0.1.2.dev5"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },

@@ -12,12 +12,13 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
+    SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, SecretStr, blake3_hash, detect_language
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
 
 
 class Base(BaseModel, ABC):
