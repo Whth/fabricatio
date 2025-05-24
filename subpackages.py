@@ -130,7 +130,7 @@ class Project:
         logger.info(f"Running {operation_description} for '{self.name}': {' '.join(command)}")
         try:
             # Run the command from the project's directory
-            process = subprocess.run(command, check=True, cwd=self.entry_path, capture_output=True, text=True)
+            process = subprocess.run(command, check=True, cwd=self.entry_path, capture_output=True, text=True, encoding="utf-8", )
             if process.stdout:
                 logger.debug(f"Stdout for '{self.name}' ({operation_description}):\n{process.stdout}")
             if process.stderr:
