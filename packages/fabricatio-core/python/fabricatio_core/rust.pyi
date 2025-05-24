@@ -280,8 +280,6 @@ class TemplateConfig:
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
 
-    check_string_template: str
-    """The name of the check string template which will be used to check a string."""
 
     fix_troubled_string_template: str
     """The name of the fix troubled string template which will be used to fix a troubled string."""
@@ -314,12 +312,6 @@ class TemplateConfig:
     """The name of the fix troubled object template which will be used to fix a troubled object."""
 
 
-    # Rule and Requirement Templates
-    ruleset_requirement_breakdown_template: str
-    """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
-
-    rule_requirement_template: str
-    """The name of the rule requirement template which will be used to generate a rule requirement."""
 
 
     # Content Summary Templates

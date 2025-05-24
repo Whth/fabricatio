@@ -8,11 +8,12 @@ from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, detect_language
+from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language
 from fabricatio_core.utils import override_kwargs
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
 
+from fabricatio_rule.config import rule_config
 from fabricatio_rule.models.patch import RuleSetMetadata
 from fabricatio_rule.models.rule import Rule, RuleSet
 
@@ -45,7 +46,7 @@ class Check(AdvancedJudge, Propose, ABC):
         rule_reqs = (
             await self.alist_str(
                 TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.ruleset_requirement_breakdown_template,
+                    rule_config.ruleset_requirement_breakdown_template,
                     {"ruleset_requirement": ruleset_requirement},
                 ),
                 rule_count,
@@ -61,7 +62,7 @@ class Check(AdvancedJudge, Propose, ABC):
         rules = await self.propose(
             Rule,
             [
-                TEMPLATE_MANAGER.render_template(CONFIG.templates.rule_requirement_template, {"rule_requirement": r})
+                TEMPLATE_MANAGER.render_template(rule_config.rule_requirement_template, {"rule_requirement": r})
                 for r in rule_reqs
             ],
             **kwargs,
@@ -112,7 +113,7 @@ class Check(AdvancedJudge, Propose, ABC):
             return await self.propose(
                 Improvement,
                 TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.check_string_template,
+                    rule_config.check_string_template,
                     {"to_check": input_text, "rule": rule.display(), "judge": judge.display(), "reference": reference},
                 ),
                 **kwargs,
