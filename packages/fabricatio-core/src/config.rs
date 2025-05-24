@@ -7,8 +7,11 @@ use log::debug;
 use macro_utils::TemplateDefault;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
@@ -457,31 +460,33 @@ impl Default for PymitterConfig {
 }
 
 /// Configuration structure containing all system components
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[pyclass(get_all, set_all)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[pyclass]
 pub struct Config {
-    /// LLM configuration
-
     /// Embedding configuration
+    #[pyo3(get)]
     pub embedding: EmbeddingConfig,
 
+    /// LLM configuration
+    #[pyo3(get)]
     pub llm: LLMConfig,
-
+    #[pyo3(get)]
     pub debug: DebugConfig,
-
+    #[pyo3(get)]
     pub rag: RagConfig,
-
+    #[pyo3(get)]
     pub templates: TemplateConfig,
-
+    #[pyo3(get)]
     pub template_manager: TemplateManagerConfig,
-
+    #[pyo3(get)]
     pub routing: RoutingConfig,
-
+    #[pyo3(get)]
     pub general: GeneralConfig,
-
+    #[pyo3(get)]
     pub toolbox: ToolBoxConfig,
-
+    #[pyo3(get)]
     pub pymitter: PymitterConfig,
+    pub extension: HashMap<String, Value>,
 }
 
 #[pymethods]
@@ -490,6 +495,10 @@ impl Config {
     #[new]
     fn new() -> PyResult<Self> {
         Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    }
+
+    fn load<'a>(&self, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
+        Ok(cls)
     }
 }
 
