@@ -7,9 +7,9 @@ from fabricatio import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 
-
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.config import capabilities_config
+
 
 class Extract(Propose, ABC):
     """A class that extract information from a given source to a model."""

@@ -1,9 +1,12 @@
 """Module containing configuration classes for fabricatio-capabilities."""
 from dataclasses import dataclass
+
 from fabricatio_core import CONFIG
+
+
 @dataclass
 class CapabilitiesConfig:
-    """ Configuration for fabricatio-capabilities"""
+    """Configuration for fabricatio-capabilities."""
     extract_template: str
     """The name of the extract template which will be used to extract model from string."""
     # Code Generation Templates

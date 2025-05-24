@@ -1,9 +1,12 @@
 """Module containing configuration classes for fabricatio-digest."""
 from dataclasses import dataclass
+
 from fabricatio_core import CONFIG
+
+
 @dataclass
 class DigestConfig:
-    """ Configuration for fabricatio-digest"""
+    """Configuration for fabricatio-digest."""
 
 
     digest_template:str="digest"

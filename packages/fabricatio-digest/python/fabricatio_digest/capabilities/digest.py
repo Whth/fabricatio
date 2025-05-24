@@ -2,12 +2,12 @@
 from abc import ABC
 from typing import List, Optional, Unpack
 
-from fabricatio_core import  TEMPLATE_MANAGER, Role
+from fabricatio_core import TEMPLATE_MANAGER, Role
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 
-from fabricatio_digest.models.tasklist import TaskList
 from fabricatio_digest.config import digest_config
+from fabricatio_digest.models.tasklist import TaskList
 
 
 class Digest(Propose, ABC):
