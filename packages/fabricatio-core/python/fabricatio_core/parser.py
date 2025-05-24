@@ -1,9 +1,9 @@
 """A module for capturing patterns in text using regular expressions."""
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Callable, Iterable, List, Optional, Self, Tuple, Type, Union
+from typing import Any, Callable, Optional, Self, Type
 
 import ujson
 from json_repair import repair_json
@@ -17,33 +17,28 @@ class Capture:
     """A class to capture patterns in text using regular expressions.
 
     Attributes:
-        target_groups (Tuple[int, ...]): The target groups to extract from the match.
         pattern (str): The regex pattern to search for.
         flags (int): Flags to apply when compiling the regex.
         capture_type (Optional[str]): Optional hint for post-processing (e.g., 'json').
     """
 
-    pattern: str = field()
+    pattern: str
     """The regular expression pattern to search for."""
     flags: int = re.DOTALL | re.MULTILINE | re.IGNORECASE
     """Flags to control regex behavior (DOTALL, MULTILINE, IGNORECASE by default)."""
     capture_type: Optional[str] = None
     """Optional type identifier for post-processing (e.g., 'json' for JSON repair)."""
-    target_groups: Tuple[int, ...] = field(default_factory=tuple)
-    """Tuple of group indices to extract from the match (1-based indexing)."""
 
-    def fix(self, text: Union[str, Iterable[str], Any]) -> Union[str, List[str], Any]:
+    def fix(self, text: str) -> str:
         """Fix the text based on capture_type (e.g., JSON repair)."""
         match self.capture_type:
             case "json" if CONFIG.general.use_json_repair:
                 logger.debug("Applying JSON repair to text.")
-                if isinstance(text, str):
-                    return repair_json(text, ensure_ascii=False)
-                return [repair_json(item, ensure_ascii=False) for item in text]
+                return repair_json(text, ensure_ascii=False)
             case _:
                 return text
 
-    def capture(self, text: str) -> Optional[Union[str, Tuple[str, ...]]]:
+    def capture(self, text: str) -> Optional[str]:
         """Capture the first match of the pattern in the text."""
         compiled = re.compile(self.pattern, self.flags)
         match = compiled.match(text) or compiled.search(text)
@@ -51,19 +46,17 @@ class Capture:
             logger.debug(f"Capture Failed: {text}")
             return None
 
-        groups = self.fix(match.groups())
-        if self.target_groups:
-            cap = tuple(groups[g - 1] for g in self.target_groups)
-            logger.debug(f"Captured texts: {'\n==\n'.join(cap)}")
+        # Only consider the first group
+        if match.groups():
+            cap = self.fix(match.groups()[0])
+            logger.debug(f"Captured text: \n{cap}")
             return cap
-        cap = groups[0]
-        logger.debug(f"Captured text: \n{cap}")
-        return cap
+        return None
 
     def convert_with(
         self,
         text: str,
-        convertor: Callable[[Union[str, Tuple[str, ...]]], Any],
+        convertor: Callable[[str], Any],
     ) -> Optional[Any]:
         """Convert captured text using a provided function."""
         if (cap := self.capture(text)) is None:
@@ -80,9 +73,7 @@ class Capture:
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
-        deserializer: Callable[[Union[str, Tuple[str, ...]]], K] = lambda x: ujson.loads(x)
-        if isinstance(x, str)
-        else ujson.loads(x[0]),
+        deserializer: Callable[[str], K] = lambda x: ujson.loads(x),
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types."""
         judges = [lambda obj: isinstance(obj, target_type)]

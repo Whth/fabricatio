@@ -1,3 +1,5 @@
+extern crate core;
+
 mod config;
 mod event;
 mod hash;
@@ -6,6 +8,7 @@ mod hbs_helpers;
 mod language;
 mod templates;
 mod word_split;
+
 use pyo3::prelude::*;
 use pyo3_log::init;
 

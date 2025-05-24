@@ -18,11 +18,15 @@ dependencies = [
 
 [project.optional-dependencies]
 
-full = ["fabricatio-typst[rag,workflows]"]
+full = ["fabricatio-typst[rag,workflows,qa]"]
 
 rag = [
     "fabricatio-rag"
 
+]
+
+qa=[
+    "questionary"
 ]
 
 workflows = ["fabricatio-actions", "fabricatio-rag"]
