@@ -256,32 +256,25 @@ class TemplateManagerConfig:
 class TemplateConfig:
     """Template configuration structure."""
 
-    digest_template: str
-    """The name of the consume template which will be used to consume a requirement to a task."""
+    # Task Management Templates
 
     dispatch_task_template: str
     """The name of the dispatch task template which will be used to dispatch a task."""
-    research_content_summary_template: str
-    """The name of the research content summary template which will be used to generate a summary of research content."""
 
-    create_json_obj_template: str
-    """The name of the create json object template which will be used to create a json object."""
+    task_briefing_template: str
+    """The name of the task briefing template which will be used to brief a task."""
 
-    draft_tool_usage_code_template: str
-    """The name of the draft tool usage code template which will be used to draft tool usage code."""
+    dependencies_template: str
+    """The name of the dependencies template which will be used to manage dependencies."""
 
+    # Decision Making Templates
     make_choice_template: str
     """The name of the make choice template which will be used to make a choice."""
 
     make_judgment_template: str
     """The name of the make judgment template which will be used to make a judgment."""
 
-    dependencies_template: str
-    """The name of the dependencies template which will be used to manage dependencies."""
-
-    task_briefing_template: str
-    """The name of the task briefing template which will be used to brief a task."""
-
+    # Rating and Evaluation Templates
     rate_fine_grind_template: str
     """The name of the rate fine grind template which will be used to rate fine grind."""
 
@@ -300,23 +293,18 @@ class TemplateConfig:
     draft_rating_weights_klee_template: str
     """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
 
-    retrieved_display_template: str
-    """The name of the retrieved display template which will be used to display retrieved documents."""
-
-    liststr_template: str
-    """The name of the liststr template which will be used to display a list of strings."""
-
-    refined_query_template: str
-    """The name of the refined query template which will be used to refine a query."""
-
-    pathstr_template: str
-    """The name of the pathstr template which will be used to acquire a path of strings."""
-
+    # String Processing Templates
     review_string_template: str
     """The name of the review string template which will be used to review a string."""
 
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
+
+    check_string_template: str
+    """The name of the check string template which will be used to check a string."""
+
+    fix_troubled_string_template: str
+    """The name of the fix troubled string template which will be used to fix a troubled string."""
 
     co_validation_template: str
     """The name of the co-validation template which will be used to co-validate a string."""
@@ -324,26 +312,47 @@ class TemplateConfig:
     as_prompt_template: str
     """The name of the as prompt template which will be used to convert a string to a prompt."""
 
-    check_string_template: str
-    """The name of the check string template which will be used to check a string."""
+    # Display and Formatting Templates
+    retrieved_display_template: str
+    """The name of the retrieved display template which will be used to display retrieved documents."""
 
-    ruleset_requirement_breakdown_template: str
-    """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
+    liststr_template: str
+    """The name of the liststr template which will be used to display a list of strings."""
+
+    pathstr_template: str
+    """The name of the pathstr template which will be used to acquire a path of strings."""
+
+    # Query and Search Templates
+    refined_query_template: str
+    """The name of the refined query template which will be used to refine a query."""
+
+    # Object and Data Templates
+    create_json_obj_template: str
+    """The name of the create json object template which will be used to create a json object."""
 
     fix_troubled_obj_template: str
     """The name of the fix troubled object template which will be used to fix a troubled object."""
 
-    fix_troubled_string_template: str
-    """The name of the fix troubled string template which will be used to fix a troubled string."""
+    extract_template: str
+    """The name of the extract template which will be used to extract model from string."""
+
+    # Rule and Requirement Templates
+    ruleset_requirement_breakdown_template: str
+    """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
 
     rule_requirement_template: str
     """The name of the rule requirement template which will be used to generate a rule requirement."""
 
-    extract_template: str
-    """The name of the extract template which will be used to extract model from string."""
+    # Code Generation Templates
+    draft_tool_usage_code_template: str
+    """The name of the draft tool usage code template which will be used to draft tool usage code."""
 
+    # Content Summary Templates
     chap_summary_template: str
     """The name of the chap summary template which will be used to generate a chapter summary."""
+
+    research_content_summary_template: str
+    """The name of the research content summary template which will be used to generate a summary of research content."""
 
 
 class RoutingConfig:

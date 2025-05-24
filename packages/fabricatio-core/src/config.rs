@@ -280,8 +280,6 @@ impl Default for TemplateManagerConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
-    ///  Template that will be used to digest a raw request into a task list.
-    pub digest_template: String,
 
     /// Template that will be used to dispatch a task.
     pub dispatch_task_template: String,
