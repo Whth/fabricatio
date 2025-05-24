@@ -59,10 +59,10 @@ class RAG(EmbeddingUsage, ABC):
     ) -> Self:
         """Initialize the Milvus client."""
         self._client = create_client(
-            uri=milvus_uri or ok(self.milvus_uri or CONFIG.rag.milvus_uri),
+            uri=milvus_uri or ok(self.milvus_uri or rag_config.milvus_uri),
             token=milvus_token
-                  or (token.get_secret_value() if (token := (self.milvus_token or CONFIG.rag.milvus_token)) else ""),
-            timeout=milvus_timeout or self.milvus_timeout or CONFIG.rag.milvus_timeout,
+                  or (token.get_secret_value() if (token := (self.milvus_token or rag_config.milvus_token)) else ""),
+            timeout=milvus_timeout or self.milvus_timeout or rag_config.milvus_timeout,
         )
         return self
 
@@ -88,7 +88,7 @@ class RAG(EmbeddingUsage, ABC):
             kwargs["dimension"] = ok(
                 kwargs.get("dimension")
                 or self.milvus_dimensions
-                or CONFIG.rag.milvus_dimensions
+                or rag_config.milvus_dimensions
                 or self.embedding_dimensions
                 or CONFIG.embedding.dimensions,
                 "`dimension` is not set at any level.",

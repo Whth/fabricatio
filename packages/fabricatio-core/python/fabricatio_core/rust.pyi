@@ -217,20 +217,6 @@ class EmbeddingConfig:
     """The API key."""
 
 
-class RagConfig:
-    """RAG (Retrieval Augmented Generation) configuration structure."""
-
-    milvus_uri: Optional[str]
-    """The URI of the Milvus server."""
-
-    milvus_timeout: Optional[float]
-    """The timeout of the Milvus server in seconds."""
-
-    milvus_token: Optional[SecretStr]
-    """The token for Milvus authentication."""
-
-    milvus_dimensions: Optional[int]
-    """The dimensions for Milvus vectors."""
 
 
 class DebugConfig:
@@ -356,9 +342,6 @@ class Config:
 
     debug: DebugConfig
     """Debug configuration."""
-
-    rag: RagConfig
-    """RAG configuration."""
 
     templates: TemplateConfig
     """Template configuration."""

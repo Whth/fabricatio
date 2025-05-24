@@ -417,11 +417,11 @@ pub struct Config {
     /// Embedding configuration
     ///
     /// Configuration parameters for embedding models, including:
-    /// - [model](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L25-L25): Optional model name/identifier
-    /// - [dimensions](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L13-L13): Vector dimensions for embeddings
-    /// - [timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L31-L31): Request timeout in seconds (min 1)
+    /// - `model`: Optional model name/identifier
+    /// - `dimensions`: Vector dimensions for embeddings
+    /// - `timeout`: Request timeout in seconds (min 1)
     /// - `max_sequence_length`: Maximum input sequence length
-    /// - [caching](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L15-L15): Enable/disable result caching
+    /// - `caching`: Enable/disable result caching
     /// - `api_endpoint`: API service URL endpoint
     /// - `api_key`: Authentication key (secure storage)
     #[pyo3(get)]
@@ -432,19 +432,19 @@ pub struct Config {
     /// Language Learning Model settings with validation rules:
     /// - `api_endpoint`: Valid URL for API service
     /// - `api_key`: Secure authentication token
-    /// - [timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L31-L31): Minimum 1 second
-    /// - [max_retries](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L32-L32): Minimum 1 retry attempt
-    /// - [model](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L25-L25): Model identifier string
-    /// - [temperature](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L26-L26): Range 0.0-2.0 for response randomness
+    /// - `timeout`: Minimum 1 second
+    /// - `max_retries`: Minimum 1 retry attempt
+    /// - `model`: Model identifier string
+    /// - `temperature`: Range 0.0-2.0 for response randomness
     /// - `stop_sign`: Token generation stop sequence(s)
-    /// - [top_p](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L28-L28): Nucleus sampling threshold (0.0-1.0)
+    /// - `top_p`: Nucleus sampling threshold (0.0-1.0)
     /// - `generation_count`: Minimum 1 completion per prompt
-    /// - [stream](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L30-L30): Streaming response flag
-    /// - [max_tokens](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29): Minimum 1 generated tokens
+    /// - `stream`: Streaming response flag
+    /// - `max_tokens`: Minimum 1 generated tokens
     /// - `rpm`: Requests per minute limit (≥1)
     /// - `tpm`: Tokens per minute limit (≥1)
-    /// - [presence_penalty](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L37-L37): Repetition penalty (-2.0-2.0)
-    /// - [frequency_penalty](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L38-L38): Frequency-based penalty (-2.0-2.0)
+    /// - `presence_penalty`: Repetition penalty (-2.0-2.0)
+    /// - `frequency_penalty`: Frequency-based penalty (-2.0-2.0)
     #[pyo3(get)]
     pub llm: LLMConfig,
 
@@ -455,49 +455,19 @@ pub struct Config {
     #[pyo3(get)]
     pub debug: DebugConfig,
 
-    /// RAG (Retrieval Augmented Generation) configuration
-    ///
-    /// Settings for vector database integration:
-    /// - [milvus_uri](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L320-L320): Database connection URI (valid URL)
-    /// - [milvus_timeout](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L326-L326): Connection timeout (≥1.0s)
-    /// - [milvus_token](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L323-L323): Authentication token
-    /// - [milvus_dimensions](file://L:\pycharm_projects\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\generic.py#L329-L329): Vector dimensionality
-    #[pyo3(get)]
-    pub rag: RagConfig,
 
     /// Template configuration
     ///
     /// Template paths/names for various operations:
-    /// - `digest_template`: Task list creation template
-    /// - `dispatch_task_template`: Task dispatching template
-    /// - `research_content_summary_template`: Research summary template
-    /// - `create_json_obj_template`: JSON object creation template
-    /// - `draft_tool_usage_code_template`: Tool usage code template
+    /// - `task_briefing_template`: Task description template
+    /// - `dependencies_template`: Dependency management template
     /// - `make_choice_template`: Decision-making template
     /// - `make_judgment_template`: Judgment evaluation template
-    /// - `dependencies_template`: Dependency management template
-    /// - `task_briefing_template`: Task description template
-    /// - `rate_fine_grind_template`: Rating criteria refinement template
-    /// - `draft_rating_manual_template`: Rating manual template
-    /// - `draft_rating_criteria_template`: Rating criteria template
-    /// - `extract_reasons_from_examples_template`: Example analysis template
-    /// - `extract_criteria_from_reasons_template`: Criteria extraction template
-    /// - `draft_rating_weights_klee_template`: Klee rating weights template
-    /// - `retrieved_display_template`: Document display template
-    /// - `liststr_template`: String list display template
-    /// - `refined_query_template`: Query optimization template
-    /// - `pathstr_template`: Path string acquisition template
-    /// - `review_string_template`: String evaluation template
     /// - `generic_string_template`: General string review template
     /// - `co_validation_template`: String co-validation template
-    /// - `as_prompt_template`: String-to-prompt conversion template
-    /// - `check_string_template`: String validation template
-    /// - `ruleset_requirement_breakdown_template`: Ruleset breakdown template
-    /// - `fix_troubled_obj_template`: Object repair template
-    /// - `fix_troubled_string_template`: String repair template
-    /// - `rule_requirement_template`: Rule requirement generation template
-    /// - `extract_template`: Model extraction template
-    /// - `chap_summary_template`: Chapter summary generation template
+    /// - `liststr_template`: String list display template
+    /// - `pathstr_template`: Path string acquisition template
+    /// - `create_json_obj_template`: JSON object creation template
     #[pyo3(get)]
     pub templates: TemplateConfig,
 
