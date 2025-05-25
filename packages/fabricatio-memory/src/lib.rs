@@ -1,3 +1,5 @@
+mod memory;
+
 use pyo3::prelude::*;
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -6,5 +8,6 @@ use pyo3::prelude::*;
 #[pymodule]
 #[pyo3(name = "rust")]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    memory::register(python, m)?;
     Ok(())
 }

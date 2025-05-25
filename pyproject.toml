@@ -179,6 +179,7 @@ fabricatio-rule = { workspace = true }
 fabricatio-judge = { workspace = true }
 fabricatio-improve = { workspace = true }
 fabricatio-digest = { workspace = true }
+fabricatio-memory = { workspace = true }
 
 
 

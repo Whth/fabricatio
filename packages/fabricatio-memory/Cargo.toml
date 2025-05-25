@@ -6,6 +6,9 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+chrono = "0.4.41"
+nucleo-matcher = "0.3.1"
+polars = { version = "0.48.1", features = ["lazy"] }
 
 pyo3 = { version = "0.24.2", features = ["extension-module"] }
 
