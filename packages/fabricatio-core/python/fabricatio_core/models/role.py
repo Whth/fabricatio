@@ -31,7 +31,7 @@ class Role(WithBriefing):
 
     registry: Dict[Event, WorkFlow] = Field(default_factory=dict, frozen=True)
     """The registry of events and workflows."""
-    dispatch_on_init: bool = Field(True, frozen=True)
+    dispatch_on_init: bool = Field(default=True, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
 
     @property
@@ -43,7 +43,7 @@ class Role(WithBriefing):
         """
         base = super().briefing
 
-        abilities = "\n".join(f'`{k.collapse()}`:{w.briefing}' for (k, w) in self.registry.items())
+        abilities = "\n".join(f"`{k.collapse()}`:{w.briefing}" for (k, w) in self.registry.items())
 
         return f"{base}\n\nAbilities:\n{abilities}"
 
@@ -105,11 +105,11 @@ class Role(WithBriefing):
         return self
 
     def _propagate_config(
-            self,
-            workflow: WorkFlow,
-            has_capability: Callable[[Type], bool],
-            config_method_name: str,
-            capability_description: str,
+        self,
+        workflow: WorkFlow,
+        has_capability: Callable[[Type], bool],
+        config_method_name: str,
+        capability_description: str,
     ) -> Self:
         """Propagates configuration from the Role to a Workflow and its Actions.
 

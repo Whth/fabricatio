@@ -3,7 +3,7 @@
 It includes methods to manage the task's lifecycle, such as starting, finishing, cancelling, and failing the task.
 """
 
-from asyncio import Queue
+from asyncio import Queue, run
 from typing import Any, Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
@@ -257,6 +257,17 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         logger.info(f"Delegating task `{(label := self.pending_label)}`")
         ENV.emit_future(label, self)
         return await self.get_output()
+
+    def delegate_blocking(self, new_namespace: Optional[EventLike] = None) -> T | None:
+        """Delegate the task to the event in a blocking manner.
+
+        Args:
+            new_namespace (EventLike, optional): The new namespace to move the task to.
+
+        Returns:
+            T|None: The output of the task.
+        """
+        return run(self.delegate(new_namespace))
 
     @property
     def briefing(self) -> str:
