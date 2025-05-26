@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-rag"
-version = "0.1.3-dev0"
+version = "0.1.3-dev1"
 description = "A Python library for Retrieval-Augmented Generation (RAG) capabilities in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
