@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Self, Union, final, overload
+from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
 
 import ujson
 from pydantic import (
@@ -67,9 +67,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-                "--- Start of Extra Info Sequence ---"
-                + "\n".join(d.compact() if compact else d.display() for d in seq)
-                + "--- End of Extra Info Sequence ---"
+            "--- Start of Extra Info Sequence ---"
+            + "\n".join(d.compact() if compact else d.display() for d in seq)
+            + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -246,11 +246,96 @@ class Vectorizable(ABC):
 
 
 class ScopedConfig(Base, ABC):
-    """Configuration holder with hierarchical fallback mechanism.
+    """Configuration holder with hierarchical fallback mechanism."""
 
-    Manages LLM, embedding, and vector database configurations with fallback logic.
-    Allows configuration values to be overridden in a hierarchical manner.
-    """
+    @final
+    def fallback_to(self, other: Union["ScopedConfig", Any], exclude: Optional[Set[str]] = None) -> Self:
+        """Merge configuration values with fallback priority.
+
+        Copies non-null values from 'other' to self where current values are None.
+
+        Args:
+            other (ScopedConfig): Configuration to fallback to
+            exclude (Optional[Set[str]]): Field names to exclude from fallback
+
+        Returns:
+            Self: Current instance with merged values
+        """
+        if not isinstance(other, ScopedConfig):
+            return self
+
+        exclude = exclude or set()
+
+        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
+        # noinspection PydanticTypeChecker,PyTypeChecker
+        for attr_name in self.__class__.model_fields:
+            if attr_name in exclude:
+                continue
+            # Check if both self and other have the attribute before accessing
+            if (
+                hasattr(other, attr_name)
+                and getattr(self, attr_name) is None
+                and (attr := getattr(other, attr_name)) is not None
+            ):
+                # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
+                setattr(self, attr_name, attr)
+
+        # Return the current instance to allow for method chaining
+        return self
+
+    @final
+    def hold_to(
+        self,
+        others: Union[Union["ScopedConfig", Any], Iterable[Union["ScopedConfig", Any]]],
+        exclude: Optional[Set[str]] = None,
+    ) -> Self:
+        """Propagate non-null values to other configurations.
+
+        Copies current non-null values to target configurations where they are None.
+
+        Args:
+            others (ScopedConfig|Iterable): Target configurations to update
+            exclude (Optional[Set[str]]): Field names to exclude from propagation
+
+        Returns:
+            Self: Current instance unchanged
+        """
+        if not isinstance(others, Iterable):
+            others = [others]
+
+        for other in others:
+            # noinspection PyTypeChecker,PydanticTypeChecker
+            other.fallback_to(self, exclude=exclude)
+        return self
+
+
+class EmbeddingScopedConfig(ScopedConfig):
+    """Configuration for embedding-related settings."""
+
+    embedding_api_endpoint: Optional[str] = None
+    """The OpenAI API endpoint."""
+
+    embedding_api_key: Optional[SecretStr] = None
+    """The OpenAI API key."""
+
+    embedding_timeout: Optional[PositiveInt] = None
+    """The timeout of the LLM model."""
+
+    embedding_model: Optional[str] = None
+    """The LLM model name."""
+
+    embedding_max_sequence_length: Optional[PositiveInt] = None
+    """The maximum sequence length."""
+
+    embedding_dimensions: Optional[PositiveInt] = None
+    """The dimensions of the embedding."""
+
+    embedding_caching: Optional[bool] = False
+    """Whether to cache the embedding result."""
+
+
+class LLMScopedConfig(ScopedConfig):
+    """Configuration for LLM-related settings."""
 
     llm_api_endpoint: Optional[str] = None
     """The OpenAI API endpoint."""
@@ -296,86 +381,6 @@ class ScopedConfig(Base, ABC):
 
     llm_frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
-
-    embedding_api_endpoint: Optional[str] = None
-    """The OpenAI API endpoint."""
-
-    embedding_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
-
-    embedding_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    embedding_model: Optional[str] = None
-    """The LLM model name."""
-
-    embedding_max_sequence_length: Optional[PositiveInt] = None
-    """The maximum sequence length."""
-
-    embedding_dimensions: Optional[PositiveInt] = None
-    """The dimensions of the embedding."""
-
-    embedding_caching: Optional[bool] = False
-    """Whether to cache the embedding result."""
-
-    milvus_uri: Optional[str] = Field(default=None)
-    """The URI of the Milvus server."""
-
-    milvus_token: Optional[SecretStr] = Field(default=None)
-    """The token for the Milvus server."""
-
-    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
-    """The timeout for the Milvus server."""
-
-    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
-    """The dimensions of the Milvus server."""
-
-    @final
-    def fallback_to(self, other: Union["ScopedConfig", Any]) -> Self:
-        """Merge configuration values with fallback priority.
-
-        Copies non-null values from 'other' to self where current values are None.
-
-        Args:
-            other (ScopedConfig): Configuration to fallback to
-
-        Returns:
-            Self: Current instance with merged values
-        """
-        if not isinstance(other, ScopedConfig):
-            return self
-
-        # Iterate over the attribute names and copy values from 'other' to 'self' where applicable
-        # noinspection PydanticTypeChecker,PyTypeChecker
-        for attr_name in ScopedConfig.model_fields:
-            # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
-            if getattr(self, attr_name) is None and (attr := getattr(other, attr_name)) is not None:
-                setattr(self, attr_name, attr)
-
-        # Return the current instance to allow for method chaining
-        return self
-
-    @final
-    def hold_to(self, others: Union[Union["ScopedConfig", Any], Iterable[Union["ScopedConfig", Any]]]) -> Self:
-        """Propagate non-null values to other configurations.
-
-        Copies current non-null values to target configurations where they are None.
-
-        Args:
-            others (ScopedConfig|Iterable): Target configurations to update
-
-        Returns:
-            Self: Current instance unchanged
-        """
-        if not isinstance(others, Iterable):
-            others = [others]
-
-        for other in (o for o in others if isinstance(o, ScopedConfig)):
-            # noinspection PyTypeChecker,PydanticTypeChecker
-            for attr_name in ScopedConfig.model_fields:
-                if (attr := getattr(self, attr_name)) is not None and getattr(other, attr_name) is None:
-                    setattr(other, attr_name, attr)
-        return self
 
 
 class UnsortGenerate(GenerateJsonSchema):

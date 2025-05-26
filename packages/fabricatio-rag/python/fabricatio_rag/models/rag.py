@@ -2,12 +2,12 @@
 
 from abc import ABC
 from functools import partial
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Self, Sequence, Set
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Sequence, Set
 
 from fabricatio_core.decorators import precheck_package
-from fabricatio_core.models.generic import Base, Vectorizable
+from fabricatio_core.models.generic import Base, ScopedConfig, Vectorizable
 from fabricatio_core.utils import ok
-from pydantic import JsonValue
+from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
 
 if TYPE_CHECKING:
     from importlib.util import find_spec
@@ -16,6 +16,22 @@ if TYPE_CHECKING:
 
     if find_spec("pymilvus"):
         from pymilvus import CollectionSchema
+
+
+class MilvusScopedConfig(ScopedConfig):
+    """A class representing the configuration for Milvus."""
+
+    milvus_uri: Optional[str] = Field(default=None)
+    """The URI of the Milvus server."""
+
+    milvus_token: Optional[SecretStr] = Field(default=None)
+    """The token for the Milvus server."""
+
+    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
+    """The timeout for the Milvus server."""
+
+    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
+    """The dimensions of the Milvus server."""
 
 
 class MilvusDataBase(Base, Vectorizable, ABC):
