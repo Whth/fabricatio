@@ -8,8 +8,6 @@ from fabricatio_core.models.task import Task
 from fabricatio_core.models.tool import ToolBox
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event
 
-from fabricatio import actions, models, toolboxes, workflows
-
 __all__ = [
     "CONFIG",
     "TEMPLATE_MANAGER",
