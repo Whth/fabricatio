@@ -1,92 +1,235 @@
-"""Rust bindings for the Rust API of fabricatio-memory."""
+from typing import List, Optional, Dict, Tuple
 
-from typing import List
+class Memory:
+    """
+    A memory item with metadata including importance, timestamps, and access patterns.
+    """
+    
+    id: int
+    content: str
+    timestamp: int
+    importance: float
+    tags: List[str]
+    access_count: int
+    last_accessed: int
+    
+    def __init__(self, id: int, content: str, importance: float, tags: List[str]) -> None:
+        """
+        Create a new memory with the given ID, content, importance score, and tags.
+        
+        Args:
+            id: Unique identifier for this memory
+            content: The memory content
+            importance: Importance score (0.0 to 1.0)
+            tags: List of tags associated with this memory
+        """
+        ...
+    
+    def update_access(self) -> None:
+        """
+        Update the access count and last accessed timestamp for this memory.
+        """
+        ...
+    
+    def calculate_relevance_score(self, decay_factor: float) -> float:
+        """
+        Calculate a relevance score based on importance, recency, and access frequency.
+        
+        Args:
+            decay_factor: Factor controlling how much recency affects the score
+            
+        Returns:
+            The calculated relevance score
+        """
+        ...
 
 class MemorySystem:
     """
-    A memory system that stores and manages memories with importance-based decay.
+    A full-text search memory system using Tantivy for indexing and retrieval.
     
-    This class implements a memory storage system with LSTM-like gates for managing
-    what to remember, what to recall, and what to forget. Memories are stored with
-    metadata including timestamps, importance scores, and access patterns.
+    This system provides comprehensive memory management with features like:
+    - Full-text search with Chinese language support (Jieba tokenization)
+    - Importance-based ranking
+    - Tag-based categorization
+    - Access pattern tracking
+    - Memory consolidation and cleanup
     """
     
     def __init__(self) -> None:
         """
-        Initialize a new MemorySystem with an empty memory storage.
-        
-        The storage schema includes:
-        - id: Unique identifier for each memory
-        - timestamp: When the memory was created
-        - content: The actual memory content
-        - importance: Initial importance score (0.0 to 1.0)
-        - last_accessed: Last time this memory was accessed
-        - access_count: Number of times this memory has been accessed
-        - decay_rate: Rate at which importance decays over time
+        Initialize a new MemorySystem with an empty in-memory search index.
         """
         ...
     
-    def remember(self, id: int, content: str, importance: float) -> None:
+    def add_memory(self, content: str, importance: float, tags: List[str]) -> int:
         """
-        Add a new memory to the storage system.
+        Add a new memory to the system.
         
         Args:
-            id: Unique identifier for this memory
-            content: The content to remember
-            importance: Initial importance score (0.0 to 1.0)
-        """
-        ...
-    
-    def input_gate(self, new_content: str, current_context: str) -> bool:
-        """
-        Determine whether new content should be remembered based on semantic similarity.
-        
-        The input gate filters incoming information to prevent storing redundant or
-        irrelevant memories. It uses semantic similarity to compare new content with
-        the current context.
-        
-        Args:
-            new_content: The new content to potentially remember
-            current_context: The current context for comparison
+            content: The content to store
+            importance: Importance score (0.0 to 1.0)
+            tags: List of tags to associate with this memory
             
         Returns:
-            True if the content should be remembered (similarity > 0.7), False otherwise
+            The unique ID assigned to this memory
         """
         ...
     
-    def output_gate(self, context: str, top_k: int) -> List[str]:
+    def get_memory(self, id: int) -> Optional[Memory]:
         """
-        Recall the most relevant memories based on the current context.
-        
-        The output gate retrieves memories that are most relevant to the given context,
-        ranked by a combination of semantic similarity and importance scores.
+        Retrieve a memory by its ID and update its access statistics.
         
         Args:
-            context: The current context to match against stored memories
-            top_k: Maximum number of memories to return
+            id: The unique identifier of the memory
             
         Returns:
-            List of the top-k most relevant memory contents
+            The Memory object if found, None otherwise
         """
         ...
     
-    def forget_gate(self) -> None:
+    def update_memory(self, id: int, content: Optional[str] = None, 
+                     importance: Optional[float] = None, 
+                     tags: Optional[List[str]] = None) -> bool:
         """
-        Remove low-value memories based on importance decay over time.
+        Update an existing memory's content, importance, or tags.
         
-        The forget gate implements a time-based decay mechanism where memories lose
-        importance over time. Memories with decayed importance below 0.2 are removed.
-        The decay formula is: importance * 0.95^(hours_since_creation)
+        Args:
+            id: The unique identifier of the memory to update
+            content: New content (if provided)
+            importance: New importance score (if provided)
+            tags: New tags list (if provided)
+            
+        Returns:
+            True if the memory was updated, False if not found
         """
         ...
     
-    def get_all_memories(self) -> List[str]:
+    def delete_memory_by_id(self, id: int) -> bool:
         """
-        Retrieve all stored memory contents.
+        Delete a memory by its ID.
         
-        This method is primarily intended for debugging and inspection purposes.
+        Args:
+            id: The unique identifier of the memory to delete
+            
+        Returns:
+            True if the memory was deleted
+        """
+        ...
+    
+    def search_memories(self, query_str: str, top_k: int, boost_recent: bool = False) -> List[Memory]:
+        """
+        Search for memories using full-text search.
+        
+        Args:
+            query_str: The search query string
+            top_k: Maximum number of results to return
+            boost_recent: Whether to boost recently accessed memories in ranking
+            
+        Returns:
+            List of matching Memory objects, ranked by relevance
+        """
+        ...
+    
+    def search_by_tags(self, tags: List[str], top_k: int) -> List[Memory]:
+        """
+        Search for memories by tags.
+        
+        Args:
+            tags: List of tags to search for
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of matching Memory objects
+        """
+        ...
+    
+    def get_memories_by_importance(self, min_importance: float, top_k: int) -> List[Memory]:
+        """
+        Get memories with importance above a threshold.
+        
+        Args:
+            min_importance: Minimum importance score threshold
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of Memory objects sorted by importance (descending)
+        """
+        ...
+    
+    def get_recent_memories(self, days: int, top_k: int) -> List[Memory]:
+        """
+        Get memories created within the specified number of days.
+        
+        Args:
+            days: Number of days to look back
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of Memory objects sorted by timestamp (most recent first)
+        """
+        ...
+    
+    def get_frequently_accessed(self, top_k: int) -> List[Memory]:
+        """
+        Get the most frequently accessed memories.
+        
+        Args:
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of Memory objects sorted by access count (descending)
+        """
+        ...
+    
+    def consolidate_memories(self, similarity_threshold: float) -> List[Tuple[int, int]]:
+        """
+        Find pairs of similar memories that could be consolidated.
+        
+        Args:
+            similarity_threshold: Minimum similarity score to consider memories similar
+            
+        Returns:
+            List of tuples containing pairs of memory IDs that are similar
+        """
+        ...
+    
+    def cleanup_old_memories(self, days_threshold: int, min_importance: float) -> List[int]:
+        """
+        Remove old, low-importance, rarely accessed memories.
+        
+        Args:
+            days_threshold: Age threshold in days
+            min_importance: Minimum importance threshold
+            
+        Returns:
+            List of IDs of memories that were removed
+        """
+        ...
+    
+    def get_all_memories(self) -> List[Memory]:
+        """
+        Retrieve all memories in the system.
         
         Returns:
-            List of all memory contents currently in storage
+            List of all Memory objects
+        """
+        ...
+    
+    def count_memories(self) -> int:
+        """
+        Get the total number of memories in the system.
+        
+        Returns:
+            Total count of memories
+        """
+        ...
+    
+    def get_memory_stats(self) -> Dict[str, float]:
+        """
+        Get statistical information about the memory system.
+        
+        Returns:
+            Dictionary containing statistics like total_memories, avg_importance, 
+            avg_access_count, and avg_age_days
         """
         ...
