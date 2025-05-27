@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Tuple
 
 class Memory:
     """
@@ -224,7 +224,7 @@ class MemorySystem:
         """
         ...
     
-    def get_memory_stats(self) -> Dict[str, float]:
+    def get_memory_stats(self) -> MemoryStats:
         """
         Get statistical information about the memory system.
         
@@ -233,3 +233,27 @@ class MemorySystem:
             avg_access_count, and avg_age_days
         """
         ...
+
+
+
+class MemoryStats:
+    """
+    Statistical information about the memory system.
+    """
+    total_memories: int
+    avg_importance: float
+    avg_access_count: float
+    avg_age_days: float
+
+    def display(self) -> str:
+        """
+        Generate a string representation of the memory statistics for display purposes.
+        
+        Returns:
+            A formatted string containing key memory statistics:
+            - Total number of memories
+            - Average importance score
+            - Average access count
+            - Average age in days
+        """
+        

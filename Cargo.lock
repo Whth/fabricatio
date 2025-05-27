@@ -783,6 +783,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "jieba-rs",
+ "once_cell",
  "pyo3",
  "serde",
  "serde_json",

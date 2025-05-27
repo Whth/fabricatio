@@ -1,15 +1,97 @@
 use chrono::Utc;
 use jieba_rs::Jieba;
+use once_cell::sync::Lazy;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
+use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 use tantivy::schema::*;
 use tantivy::tokenizer::TextAnalyzer;
-use tantivy::{doc, Index, IndexWriter, ReloadPolicy, TantivyDocument};
+use tantivy::{doc, Document, Index, IndexWriter, ReloadPolicy, TantivyDocument};
+
+use serde_json::value::Value;
+
+static SCHEMA: Lazy<Schema> = Lazy::new(|| {
+    let mut schema_builder = Schema::builder();
+
+    schema_builder.add_u64_field("id", STORED | INDEXED);
+    schema_builder.add_text_field("content", TEXT | STORED);
+    schema_builder.add_text_field("tags", TEXT | STORED);
+    schema_builder.add_i64_field("timestamp", STORED | INDEXED);
+    schema_builder.add_f64_field("importance", STORED | INDEXED);
+    schema_builder.add_u64_field("access_count", STORED | INDEXED);
+    schema_builder.add_i64_field("last_accessed", STORED | INDEXED);
+
+    schema_builder.build()
+});
+
+static FIELDS: Lazy<(Field, Field, Field, Field, Field, Field, Field)> = Lazy::new(|| {
+    let id_field = SCHEMA.get_field("id").unwrap();
+    let content_field = SCHEMA.get_field("content").unwrap();
+    let tags_field = SCHEMA.get_field("tags").unwrap();
+    let timestamp_field = SCHEMA.get_field("timestamp").unwrap();
+    let importance_field = SCHEMA.get_field("importance").unwrap();
+    let access_count_field = SCHEMA.get_field("access_count").unwrap();
+    let last_accessed_field = SCHEMA.get_field("last_accessed").unwrap();
+
+    (id_field, content_field, tags_field, timestamp_field, importance_field, access_count_field, last_accessed_field)
+});
+
+
+impl DocumentDeserialize for Memory {
+    fn deserialize<'de, D>(deserializer: D) -> Result<Self, DeserializeError>
+    where
+        D: DocumentDeserializer<'de>,
+    {
+        let o: String = TantivyDocument::deserialize(deserializer)?.to_json(&SCHEMA);
+
+        let v = serde_json::from_str::<Value>(o.as_str()).expect("Failed to deserialize JSON");
+
+        Ok(Memory {
+            id: v.get("id").expect("Field 'id' missing").as_array().unwrap().first().unwrap().as_u64().expect("Field 'id' is not a u64"),
+            content: v.get("content").expect("Field 'content' missing").as_array().unwrap().first().unwrap().as_str()
+                .expect("Field 'content' is not a string")
+                .to_string(),
+            timestamp: v.get("timestamp").expect("Field 'timestamp' missing").as_array().unwrap().first().unwrap().as_i64()
+                .expect("Field 'timestamp' is not an i64"),
+            importance: v.get("importance").expect("Field 'importance' missing").as_array().unwrap().first().unwrap().as_f64()
+                .expect("Field 'importance' is not an f64"),
+            tags: v.get("tags").expect("Field 'tags' missing").as_array().unwrap().first().unwrap().to_string()
+                .split_whitespace()
+                .map(|s| s.to_string())
+                .collect(),
+            access_count: v.get("access_count").expect("Field 'access_count' missing").as_array().unwrap().first().unwrap().as_u64()
+                .expect("Field 'access_count' is not a u64"),
+            last_accessed: v.get("last_accessed").expect("Field 'last_accessed' missing").as_array().unwrap().first().unwrap().as_i64()
+                .expect("Field 'last_accessed' is not an i64"),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[pyclass(get_all)]
+pub struct MemoryStats {
+    pub total_memories: u64,
+    pub avg_importance: f64,
+    pub avg_access_count: f64,
+    pub avg_age_days: f64,
+}
+
+
+#[pymethods]
+impl MemoryStats {
+    fn display(&self) -> String {
+        format!("Total Memories: {}\nAverage Importance: {}\nAverage Access Count: {}\nAverage Age (Days): {}",
+                self.total_memories,
+                self.avg_importance,
+                self.avg_access_count,
+                self.avg_age_days)
+    }
+}
+
 
 #[derive(Debug, Clone, Deserialize)]
 #[pyclass(get_all)]
@@ -55,37 +137,28 @@ impl Memory {
 #[pyclass]
 pub struct MemorySystem {
     index: Index,
-    id_field: Field,
-    content_field: Field,
-    timestamp_field: Field,
-    importance_field: Field,
-    tags_field: Field,
-    access_count_field: Field,
-    last_accessed_field: Field,
-    schema: Schema,
     jieba: Jieba,
     next_id: Arc<Mutex<u64>>,
+}
+
+impl MemorySystem {
+    // Helper method to convert search results to Memory vector
+    fn docs_to_memories(&self, top_docs: Vec<(f32, tantivy::DocAddress)>, searcher: &tantivy::Searcher) -> PyResult<Vec<Memory>> {
+        let mut memories: Vec<Memory> = Vec::new();
+        for (_, doc_address) in top_docs {
+            let memory = searcher.doc::<Memory>(doc_address).map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
+            memories.push(memory);
+        }
+        Ok(memories)
+    }
 }
 
 #[pymethods]
 impl MemorySystem {
     #[new]
     pub fn new() -> PyResult<Self> {
-        let mut schema_builder = Schema::builder();
-
-        // Define schema fields following tantivy basic example pattern
-        let id_field = schema_builder.add_u64_field("id", STORED | INDEXED);
-        let content_field = schema_builder.add_text_field("content", TEXT | STORED);
-        let tags_field = schema_builder.add_text_field("tags", TEXT | STORED);
-        let timestamp_field = schema_builder.add_i64_field("timestamp", STORED | INDEXED);
-        let importance_field = schema_builder.add_f64_field("importance", STORED | INDEXED);
-        let access_count_field = schema_builder.add_u64_field("access_count", STORED | INDEXED);
-        let last_accessed_field = schema_builder.add_i64_field("last_accessed", STORED | INDEXED);
-
-        let schema = schema_builder.build();
-
-        // Create index in RAM following basic example
-        let index = Index::create_in_ram(schema.clone());
+        // Create index in RAM using the static schema
+        let index = Index::create_in_ram(SCHEMA.clone());
 
         // Register Jieba tokenizer
         let jieba_tokenizer = JiebaTokenizer { jieba: Jieba::new() };
@@ -93,14 +166,6 @@ impl MemorySystem {
 
         Ok(MemorySystem {
             index,
-            id_field,
-            content_field,
-            timestamp_field,
-            importance_field,
-            tags_field,
-            access_count_field,
-            last_accessed_field,
-            schema,
             jieba: Jieba::new(),
             next_id: Arc::new(Mutex::new(1)),
         })
@@ -121,16 +186,17 @@ impl MemorySystem {
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
 
         let tags_text = tags.join(" ");
+        let (id_field, content_field, tags_field, timestamp_field, importance_field, access_count_field, last_accessed_field) = *FIELDS;
 
         // Add document using doc! macro following basic example
         index_writer.add_document(doc!(
-            self.id_field => id,
-            self.content_field => content,
-            self.timestamp_field => memory.timestamp,
-            self.importance_field => importance,
-            self.tags_field => tags_text,
-            self.access_count_field => memory.access_count as u64,
-            self.last_accessed_field => memory.last_accessed
+            id_field => id,
+            content_field => content,
+            timestamp_field => memory.timestamp,
+            importance_field => importance,
+            tags_field => tags_text,
+            access_count_field => memory.access_count as u64,
+            last_accessed_field => memory.last_accessed
         ))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to add document: {}", e)))?;
 
@@ -142,6 +208,8 @@ impl MemorySystem {
     }
 
     pub fn get_memory(&self, id: u64) -> PyResult<Option<Memory>> {
+        let (id_field, content_field, tags_field, timestamp_field, importance_field, access_count_field, last_accessed_field) = *FIELDS;
+
         // Create reader to search for memory by ID
         let reader = self.index
             .reader_builder()
@@ -150,18 +218,14 @@ impl MemorySystem {
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
 
         let searcher = reader.searcher();
-        let term = Term::from_field_u64(self.id_field, id);
+        let term = Term::from_field_u64(id_field, id);
         let term_query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
 
         let top_docs = searcher.search(&term_query, &TopDocs::with_limit(1))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
         if let Some((_, doc_address)) = top_docs.first() {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(*doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?
-                ;
+            let mut memory = searcher.doc::<Memory>(*doc_address).map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
 
             // Update access count and last accessed time
             memory.update_access();
@@ -171,19 +235,19 @@ impl MemorySystem {
                 .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
 
             // Delete old document
-            let term = Term::from_field_u64(self.id_field, id);
+            let term = Term::from_field_u64(id_field, id);
             index_writer.delete_term(term);
 
             // Add updated document
             let tags_text = memory.tags.join(" ");
             index_writer.add_document(doc!(
-                self.id_field => memory.id,
-                self.content_field => memory.content.as_str(),
-                self.timestamp_field => memory.timestamp,
-                self.importance_field => memory.importance,
-                self.tags_field => tags_text,
-                self.access_count_field => memory.access_count,
-                self.last_accessed_field => memory.last_accessed
+                id_field => memory.id,
+                content_field => memory.content.as_str(),
+                timestamp_field => memory.timestamp,
+                importance_field => memory.importance,
+                tags_field => tags_text,
+                access_count_field => memory.access_count,
+                last_accessed_field => memory.last_accessed
             ))
                 .map_err(|e| PyRuntimeError::new_err(format!("Failed to add document: {}", e)))?;
 
@@ -196,7 +260,10 @@ impl MemorySystem {
         }
     }
 
+    #[pyo3(signature = (id, content=None, importance=None, tags=None))]
     pub fn update_memory(&self, id: u64, content: Option<&str>, importance: Option<f64>, tags: Option<Vec<String>>) -> PyResult<bool> {
+        let (id_field, _, _, _, _, _, _) = *FIELDS;
+
         // First, get the existing memory
         let reader = self.index
             .reader_builder()
@@ -205,17 +272,14 @@ impl MemorySystem {
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
 
         let searcher = reader.searcher();
-        let term = Term::from_field_u64(self.id_field, id);
+        let term = Term::from_field_u64(id_field, id);
         let term_query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
 
         let top_docs = searcher.search(&term_query, &TopDocs::with_limit(1))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
         if let Some((_, doc_address)) = top_docs.first() {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(*doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
+            let mut memory = searcher.doc::<Memory>(*doc_address).map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
 
             let mut updated = false;
 
@@ -247,9 +311,11 @@ impl MemorySystem {
     }
 
     pub fn delete_memory_by_id(&self, id: u64) -> PyResult<bool> {
+        let (id_field, _, _, _, _, _, _) = *FIELDS;
+
         let mut index_writer: IndexWriter = self.index.writer(50_000_000)
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
-        let term = Term::from_field_u64(self.id_field, id);
+        let term = Term::from_field_u64(id_field, id);
         index_writer.delete_term(term);
         index_writer.commit()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to commit deletion: {}", e)))?;
@@ -257,7 +323,10 @@ impl MemorySystem {
         Ok(true)
     }
 
+    #[pyo3(signature = (query_str, top_k, boost_recent=false))]
     pub fn search_memories(&self, query_str: &str, top_k: usize, boost_recent: bool) -> PyResult<Vec<Memory>> {
+        let (_, content_field, tags_field, _, _, _, _) = *FIELDS;
+
         // Create reader following basic example pattern
         let reader = self.index
             .reader_builder()
@@ -269,7 +338,7 @@ impl MemorySystem {
         let searcher = reader.searcher();
 
         // Create query parser for content and tags fields following basic example
-        let query_parser = QueryParser::for_index(&self.index, vec![self.content_field, self.tags_field]);
+        let query_parser = QueryParser::for_index(&self.index, vec![content_field, tags_field]);
 
         // Parse query following basic example
         let query = query_parser.parse_query(query_str)
@@ -283,10 +352,7 @@ impl MemorySystem {
 
         // Retrieve documents following basic example pattern
         for (score, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
+            let memory = searcher.doc::<Memory>(doc_address).map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
 
             let combined_score: f64 = if boost_recent {
                 Into::<f64>::into(score) + memory.calculate_relevance_score(0.01)
@@ -321,17 +387,8 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut important: Vec<Memory> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
-
-            if memory.importance >= min_importance {
-                important.push(memory);
-            }
-        }
+        let mut important = self.docs_to_memories(top_docs, &searcher)?;
+        important.retain(|memory| memory.importance >= min_importance);
 
         // Sort by importance in descending order
         important.sort_by(|a, b| b.importance.partial_cmp(&a.importance).unwrap_or(std::cmp::Ordering::Equal));
@@ -354,17 +411,8 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut recent: Vec<Memory> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
-
-            if memory.timestamp >= cutoff {
-                recent.push(memory);
-            }
-        }
+        let mut recent = self.docs_to_memories(top_docs, &searcher)?;
+        recent.retain(|memory| memory.timestamp >= cutoff);
 
         // Sort by timestamp in descending order (most recent first)
         recent.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
@@ -385,14 +433,7 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut frequent: Vec<Memory> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
-            frequent.push(memory);
-        }
+        let mut frequent = self.docs_to_memories(top_docs, &searcher)?;
 
         frequent.sort_by(|a, b| b.access_count.cmp(&a.access_count));
         Ok(frequent.into_iter().take(top_k).collect())
@@ -412,14 +453,7 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut memories: Vec<Memory> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
-            memories.push(memory);
-        }
+        let memories = self.docs_to_memories(top_docs, &searcher)?;
 
         let mut consolidated_pairs = Vec::new();
         for i in 0..memories.len() {
@@ -450,17 +484,12 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut to_remove: Vec<u64> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
+        let memories = self.docs_to_memories(top_docs, &searcher)?;
 
-            if memory.timestamp < cutoff && memory.importance < min_importance && memory.access_count < 5 {
-                to_remove.push(memory.id);
-            }
-        }
+        let to_remove: Vec<u64> = memories.iter()
+            .filter(|memory| memory.timestamp < cutoff && memory.importance < min_importance && memory.access_count < 5)
+            .map(|memory| memory.id)
+            .collect();
 
         for id in &to_remove {
             self.delete_memory_by_id(*id)?;
@@ -482,16 +511,7 @@ impl MemorySystem {
         let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000))
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
-        let mut memories: Vec<Memory> = Vec::new();
-        for (_, doc_address) in top_docs {
-            let mut memory = serde_json::from_str::<Memory>(searcher.doc::<TantivyDocument>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e)))?
-                .to_json(&self.schema).as_str())
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to deserialize document: {}", e)))?;
-            memories.push(memory);
-        }
-
-        Ok(memories)
+        self.docs_to_memories(top_docs, &searcher)
     }
 
     pub fn count_memories(&self) -> PyResult<usize> {
@@ -510,26 +530,25 @@ impl MemorySystem {
         Ok(count)
     }
 
-    pub fn get_memory_stats(&self) -> PyResult<HashMap<String, f64>> {
+    pub fn get_memory_stats(&self) -> PyResult<MemoryStats> {
         let all_memories = self.get_all_memories()?;
-        let mut stats = HashMap::new();
 
         if all_memories.is_empty() {
-            return Ok(stats);
+            return Ok(MemoryStats::default());
         }
 
         let total_count = all_memories.len() as f64;
-        let avg_importance: f64 = all_memories.iter().map(|m| m.importance).sum::<f64>() / total_count;
-        let avg_access_count: f64 = all_memories.iter().map(|m| m.access_count as f64).sum::<f64>() / total_count;
+        let total_importance: f64 = all_memories.iter().map(|m| m.importance).sum();
+        let total_access_count: u64 = all_memories.iter().map(|m| m.access_count).sum();
         let now = Utc::now().timestamp();
-        let avg_age_days: f64 = all_memories.iter().map(|m| (now - m.timestamp) as f64 / 86400.0).sum::<f64>() / total_count;
+        let total_age: i64 = all_memories.iter().map(|m| now - m.timestamp).sum();
 
-        stats.insert("total_memories".to_string(), total_count);
-        stats.insert("avg_importance".to_string(), avg_importance);
-        stats.insert("avg_access_count".to_string(), avg_access_count);
-        stats.insert("avg_age_days".to_string(), avg_age_days);
-
-        Ok(stats)
+        Ok(MemoryStats {
+            total_memories: total_count as u64,
+            avg_importance: total_importance / total_count,
+            avg_access_count: total_access_count as f64 / total_count,
+            avg_age_days: (total_age as f64) / 86400.0 / total_count,
+        })
     }
 
     fn calculate_content_similarity(&self, content1: &str, content2: &str) -> f64 {
