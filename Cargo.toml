@@ -23,6 +23,7 @@ fabricatio-constants = "0.1.0"
 
 [workspace]
 members = [
+    "crates/fabricatio-constants",
     "packages/fabricatio-typst",
     "packages/fabricatio-typst/src/typst_conversion",
     "packages/fabricatio-rag",
@@ -30,7 +31,7 @@ members = [
     "packages/fabricatio-core/src/macro_utils",
     "packages/fabricatio-capabilities",
     "packages/fabricatio-memory",
-    "crates/fabricatio-constants"
+    "packages/fabricatio-anki",
 ]
 
 [workspace.package]

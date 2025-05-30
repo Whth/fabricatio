@@ -65,7 +65,11 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki]",
+]
+
+anki = [
+    "fabricatio-anki"
 ]
 
 memory = [
@@ -180,6 +184,7 @@ fabricatio-judge = { workspace = true }
 fabricatio-improve = { workspace = true }
 fabricatio-digest = { workspace = true }
 fabricatio-memory = { workspace = true }
+fabricatio-anki = { workspace = true }
 
 
 

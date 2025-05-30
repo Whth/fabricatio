@@ -1,0 +1,29 @@
+[project]
+name = "fabricatio-anki"
+version = "0.1.0-dev0"
+description = "An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package"
+readme = "README.md"
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.12,<3.14"
+dependencies = [
+
+    "fabricatio-core"
+]
+
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_anki.rust"
+
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
