@@ -127,7 +127,26 @@ impl AnkiDeckLoader {
         Ok(dirs)
     }
 
-    /// Load templates from the templates directory
+    /// Load templates from the specified templates directory path.
+    ///
+    /// This function reads all subdirectories in the provided `templates_path`, treating each as a template.
+    /// For each subdirectory, it loads three files: (`front.html`, `back.html`, and `style.css`.) to construct
+    /// a TemplateConfig object. If any file is missing, it will be filled with an empty string.
+    ///
+    /// # Arguments
+    /// - `templates_path`: A reference to the Path where the templates are stored.
+    ///
+    /// # Returns
+    /// - A vector of `TemplateConfig` structs representing the loaded templates.
+    ///
+    /// # Side Effects
+    /// - This method reads from the filesystem at the provided `templates_path`.
+    ///
+    /// # Usage Exampl
+    /// Typically used during model loading to gather all templates associated with a specific model.
+    /// ```rust
+    /// let templates = self.load_templates(templates_path);
+    /// ```
     fn load_templates(&self, templates_path: &Path) -> Vec<TemplateConfig> {
         let mut templates = Vec::new();
         if !templates_path.exists() {
@@ -284,17 +303,46 @@ impl AnkiDeckLoader {
         Ok(Self { project_path: path })
     }
 
+    /// Load deck configuration from deck.yaml file in the project root directory.
+    ///
+    /// # Returns
+    /// - A `DeckConfig` object containing deck metadata
+    ///
+    /// # Side Effects
+    /// - Reads from the filesystem at `project_path/deck.yaml`
+    ///
+    /// # Usage
+    /// Typically used during deck building to load deck-level metadata such as name, ID, and description.
     fn load_deck_config(&self) -> PyResult<DeckConfig> {
         let deck_config_path = self.project_path.join("deck.yaml");
         self.read_yaml(deck_config_path, "deck.yaml")
     }
 
+    /// Load model data including configuration, templates, and media files for a specific model.
+    ///
+    /// # Arguments
+    /// - `model_name`: Name of the model to load (corresponds to a subdirectory in `/models`)
+    ///
+    /// # Returns
+    /// - A `ModelData` object containing the loaded model's configuration, templates, and media files
+    ///
+    /// # Side Effects
+    /// - Reads from the filesystem:
+    ///   - `models/{model_name}/fields.yaml` for model field definitions
+    ///   - `models/{model_name}/templates/` for template files
+    ///   - `models/{model_name}/media/` for model-specific media resources
+    ///
+    /// # Usage
+    /// Used when constructing the Anki deck to load all necessary information about a specific card model.
     fn load_model_data(&self, model_name: &str) -> PyResult<ModelData> {
         let model_path = self.project_path.join("models").join(model_name);
 
         // Load model config
         let fields_path = model_path.join("fields.yaml");
-        let config: ModelConfig = self.read_yaml(fields_path, &format!("fields.yaml for model {}", model_name))?;
+        let config: ModelConfig = self.read_yaml(
+            fields_path,
+            &format!("fields.yaml for model {}", model_name),
+        )?;
 
         // Load templates
         let templates_path = model_path.join("templates");
@@ -310,11 +358,34 @@ impl AnkiDeckLoader {
         })
     }
 
+    /// Get list of available models from the `/models` directory.
+    ///
+    /// # Returns
+    /// - A vector of strings representing model names
+    ///
+    /// # Side Effects
+    /// - Reads from the filesystem at `project_path/models/`
+    ///
+    /// # Usage
+    /// Used to discover all available models when building the complete deck structure.
     fn get_available_models(&self) -> PyResult<Vec<String>> {
         let models_path = self.project_path.join("models");
         self.collect_dir_names(&models_path)
     }
 
+    /// Load CSV data for a specific model from the `/data` directory.
+    ///
+    /// # Arguments
+    /// - `model_name`: Name of the model whose CSV data should be loaded
+    ///
+    /// # Returns
+    /// - A 2D vector of strings representing the CSV content
+    ///
+    /// # Side Effects
+    /// - Reads from the filesystem at `project_path/data/{model_name}.csv`
+    ///
+    /// # Usage
+    /// Used to load user-provided data that will be injected into card templates for a specific model.
     fn load_csv_data(&self, model_name: &str) -> PyResult<Vec<Vec<String>>> {
         let csv_path = self.project_path.join("data").join(format!("{}.csv", model_name));
 
@@ -322,8 +393,9 @@ impl AnkiDeckLoader {
             return Ok(Vec::new());
         }
 
-        let content = fs::read_to_string(&csv_path)
-            .map_err(|e| Self::io_error(&format!("Failed to read CSV file for model {}", model_name), e))?;
+        let content = fs::read_to_string(&csv_path).map_err(|e| {
+            Self::io_error(&format!("Failed to read CSV file for model {}", model_name), e)
+        })?;
 
         let mut reader = csv::Reader::from_reader(content.as_bytes());
         let mut data = Vec::new();
@@ -336,11 +408,40 @@ impl AnkiDeckLoader {
         Ok(data)
     }
 
+    /// Build a complete deck without exporting it.
+    ///
+    /// # Returns
+    /// - Result indicating success or failure
+    ///
+    /// # Side Effects
+    /// - Builds the complete deck structure in memory by:
+    ///   - Loading deck configuration
+    ///   - Loading all available models
+    ///   - Loading CSV data for each model
+    ///   - Creating notes and adding them to the deck
+    ///
+    /// # Usage
+    /// Used when you only need to validate the deck structure without writing it to disk.
     fn build_deck(&self) -> PyResult<()> {
         let (_deck, _media_files) = self.build_complete_deck()?;
         Ok(())
     }
 
+    /// Export the built deck to a file.
+    ///
+    /// # Arguments
+    /// - `output_path`: Path where the exported deck file should be saved
+    ///
+    /// # Returns
+    /// - Result indicating success or failure
+    ///
+    /// # Side Effects
+    /// - Performs several I/O operations:
+    ///   - Reads and processes all source files to build the complete deck
+    ///   - Writes the final deck or package to disk at the specified output path
+    ///
+    /// # Usage
+    /// Used to generate the final .apkg file that can be imported into Anki.
     fn export_deck(&self, output_path: String) -> PyResult<()> {
         let (deck, media_files) = self.build_complete_deck()?;
         self.write_deck_to_file(deck, media_files, &output_path)
