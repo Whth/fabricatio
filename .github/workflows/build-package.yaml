@@ -121,6 +121,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
+          append_body: false
           files: |
             dist/*.whl
         env:
