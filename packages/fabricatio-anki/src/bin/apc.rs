@@ -53,7 +53,7 @@ fn main() -> Result<(), String> {
 
     match cli {
         Cli::Build { project_path, output } => {
-            let loader = CoreAnkiDeckLoader::new(project_path.to_string_lossy().to_string())
+            let loader = CoreAnkiDeckLoader::new(project_path.clone())
                 .map_err(|e| format!("Failed to create loader: {}", e))?;
 
             let output_path = output.unwrap_or_else(|| {
@@ -67,7 +67,7 @@ fn main() -> Result<(), String> {
 
             println!("Deck built successfully. Exporting to {}...", output_path.display());
 
-            loader.export_deck(output_path.to_string_lossy().to_string())
+            loader.export_deck(output_path)
                 .map_err(|e| format!("Failed to export deck: {}", e))?;
 
             println!("Deck exported successfully!");
@@ -75,7 +75,7 @@ fn main() -> Result<(), String> {
 
         Cli::New { project_path, name, description, author, model_name, fields } => {
             CoreAnkiDeckLoader::create_project_template(
-                project_path.to_string_lossy().to_string(),
+                project_path.clone(),
                 name,
                 description,
                 author,
@@ -87,7 +87,7 @@ fn main() -> Result<(), String> {
         }
 
         Cli::Validate { project_path } => {
-            let loader = CoreAnkiDeckLoader::new(project_path.to_string_lossy().to_string())
+            let loader = CoreAnkiDeckLoader::new(project_path)
                 .map_err(|e| format!("Failed to create loader: {}", e))?;
 
             loader.build_deck()
