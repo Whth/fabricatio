@@ -68,50 +68,17 @@ full = [
     "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki]",
 ]
 
-anki = [
-    "fabricatio-anki"
-]
-
-memory = [
-    "fabricatio-memory",
-]
-digest = [
-    "fabricatio-digest",
-]
-rag = [
-    "fabricatio-rag",
-]
-
-judge = [
-    "fabricatio-judge",
-]
-
-
-rule = [
-    "fabricatio-rule",
-]
-
-
-cli = [
-    "typer-slim[standard]>=0.15.2",
-]
-
-
-typst = [
-    "fabricatio-typst",
-]
-
-improve = [
-    "fabricatio-improve",
-]
-
-capabilities = [
-    "fabricatio-capabilities",
-]
-
-actions = [
-    "fabricatio-actions",
-]
+anki = ["fabricatio-anki"]
+memory = ["fabricatio-memory"]
+digest = ["fabricatio-digest"]
+rag = ["fabricatio-rag"]
+judge = ["fabricatio-judge"]
+rule = ["fabricatio-rule"]
+cli = ["typer-slim[standard]>=0.15.2"]
+typst = ["fabricatio-typst"]
+improve = ["fabricatio-improve"]
+capabilities = ["fabricatio-capabilities"]
+actions = ["fabricatio-actions"]
 
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py", "packages/*.py"]
