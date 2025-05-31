@@ -109,9 +109,5 @@ class AnkiDeckLoader:
             output_path (str): The path to export the deck to.
         """
 
-    def create_project_template(self, project_path: str) -> None:
-        """Create a new Anki deck project template at the specified path.
-
-        Args:
-            project_path (str): The path to create the project template at.
-        """
+    def create_project_template(self) -> None:
+        """Create a new Anki deck project template at the specified path."""
