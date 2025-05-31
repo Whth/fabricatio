@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-anki"
-version = "0.1.0-dev6"
+version = "0.1.0-dev7"
 description = "An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package"
 readme = "README.md"
 authors = [
@@ -21,7 +21,7 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_anki.rust"
-
+data = "extra"
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
