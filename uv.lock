@@ -283,7 +283,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.4.2"
+version = "0.4.4.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -408,7 +408,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.1.0.dev8"
+version = "0.1.0.dev11"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-core" },
