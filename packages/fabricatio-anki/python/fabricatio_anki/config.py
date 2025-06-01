@@ -8,7 +8,8 @@ from fabricatio_core import CONFIG
 class AnkiConfig:
     """Configuration for fabricatio-anki."""
 
-
+    ensure_fields_template:str="ensure_fields"
+    """Template name for ensuring fields."""
 
 anki_config = CONFIG.load("anki",  AnkiConfig)
 __all__ = [
