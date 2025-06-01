@@ -2,7 +2,8 @@
 
 from typing import List
 
-from fabricatio_capabilities.models.generic import PersistentAble, SketchedAble
+from fabricatio_capabilities.models.generic import PersistentAble
+from fabricatio_core.models.generic import SketchedAble
 from fabricatio_rag.models.rag import MilvusDataBase
 from pydantic import BaseModel
 

@@ -7,9 +7,10 @@ It provides methods to censor objects and strings by first checking them against
 from abc import ABC
 from typing import Optional, Unpack
 
-from fabricatio_capabilities.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_capabilities.models.generic import ProposedUpdateAble
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
 from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import override_kwargs
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement

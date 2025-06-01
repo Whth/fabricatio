@@ -1,8 +1,8 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 from typing import Dict, Required
 
-from fabricatio_capabilities.models.generic import SketchedAble
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
+from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_improve.models.improve import Improvement
 

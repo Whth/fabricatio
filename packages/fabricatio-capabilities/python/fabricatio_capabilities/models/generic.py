@@ -9,7 +9,7 @@ import ujson
 from fabricatio_core.fs import dump_text
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, Display, ProposedAble, UnsortGenerate
+from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
 from pydantic import (
     BaseModel,
@@ -78,13 +78,6 @@ class UpdateFrom(ABC):
             Self: The current instance with updated attributes.
         """
         return self.update_pre_check(other).update_from_inner(other)
-
-
-class SketchedAble(ProposedAble, Display, ABC):
-    """Class that provides a method to scratch the object.
-
-    This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
-    """
 
 
 class ProposedUpdateAble(SketchedAble, UpdateFrom, ABC):

@@ -6,9 +6,10 @@ from typing import Optional, Unpack
 
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
-from fabricatio_capabilities.models.generic import ProposedUpdateAble, SketchedAble
+from fabricatio_capabilities.models.generic import ProposedUpdateAble
 from fabricatio_capabilities.models.kwargs_types import BestKwargs
 from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import (
     ValidateKwargs,
 )

@@ -2,7 +2,7 @@
 from itertools import chain
 from typing import List, Self, Tuple, Unpack
 
-from fabricatio_capabilities.models.generic import SketchedAble
+from fabricatio_core.models.generic import SketchedAble
 from fabricatio_improve.models.problem import ProblemSolutions
 
 

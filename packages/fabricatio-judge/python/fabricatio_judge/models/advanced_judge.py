@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fabricatio_capabilities.models.generic import SketchedAble
+from fabricatio_core.models.generic import SketchedAble
 
 
 class JudgeMent(SketchedAble):

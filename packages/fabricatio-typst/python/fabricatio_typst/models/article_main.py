@@ -2,10 +2,10 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
-from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, SketchedAble
+from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch
 from fabricatio_core.decorators import precheck_package
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Described
+from fabricatio_core.models.generic import Described, SketchedAble
 from fabricatio_core.rust import word_count
 from pydantic import Field, NonNegativeInt
 

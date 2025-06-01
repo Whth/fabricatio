@@ -2,9 +2,8 @@
 
 from typing import Any, List, Optional, Self
 
-from fabricatio_capabilities.models.generic import SketchedAble
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import WithBriefing
+from fabricatio_core.models.generic import SketchedAble, WithBriefing
 from fabricatio_core.utils import ask_edit
 from pydantic import Field
 from rich import print as r_print

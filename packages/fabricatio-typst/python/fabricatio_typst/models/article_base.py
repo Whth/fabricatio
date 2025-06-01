@@ -10,7 +10,6 @@ from fabricatio_capabilities.models.generic import (
     ModelHash,
     PersistentAble,
     ProposedUpdateAble,
-    SketchedAble,
 )
 from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.fs.readers import extract_sections
@@ -18,6 +17,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import (
     Described,
     Language,
+    SketchedAble,
     Titled,
 )
 from fabricatio_core.rust import (

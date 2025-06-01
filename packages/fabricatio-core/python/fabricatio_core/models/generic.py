@@ -501,3 +501,10 @@ class Language:
         if isinstance(self, Named) and self.name:
             return detect_language(self.name)
         raise RuntimeError(f"Cannot determine language! class that not support language: {self.__class__.__name__}")
+
+
+class SketchedAble(ProposedAble, Display, ABC):
+    """Class that provides a method to scratch the object.
+
+    This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
+    """

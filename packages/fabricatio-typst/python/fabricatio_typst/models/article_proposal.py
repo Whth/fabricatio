@@ -4,11 +4,11 @@ from typing import Dict, List
 
 from fabricatio_capabilities.models.generic import (
     PersistentAble,
-    SketchedAble,
 )
 from fabricatio_core.models.generic import (
     Described,
     Language,
+    SketchedAble,
     Titled,
 )
 from pydantic import Field
