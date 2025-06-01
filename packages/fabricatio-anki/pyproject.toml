@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-anki"
-version = "0.1.0-dev14"
+version = "0.1.0-dev15"
 description = "An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package"
 readme = "README.md"
 authors = [

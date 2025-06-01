@@ -1,4 +1,5 @@
 """Module containing configuration classes for fabricatio-anki."""
+
 from dataclasses import dataclass
 
 from fabricatio_core import CONFIG
@@ -8,10 +9,9 @@ from fabricatio_core import CONFIG
 class AnkiConfig:
     """Configuration for fabricatio-anki."""
 
-    ensure_fields_template:str="ensure_fields"
-    """Template name for ensuring fields."""
+    make_deck_creation_proposal_template: str = "make_deck_creation_proposal"
+    """Template name for make deck creation proposal."""
 
-anki_config = CONFIG.load("anki",  AnkiConfig)
-__all__ = [
-    "anki_config"
-]
+
+anki_config = CONFIG.load("anki", AnkiConfig)
+__all__ = ["anki_config"]

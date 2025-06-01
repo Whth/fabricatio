@@ -1,4 +1,6 @@
 """Rust bindings for the Rust API of fabricatio-anki."""
+from pathlib import Path
+from typing import Any, Dict
 
 
 def compile_deck(path: str, output: str) -> None:
@@ -167,4 +169,31 @@ def create_deck_project(
           format for the current operating system.
         - The project structure is designed to be version-control friendly, with text-based
           configuration files and clear separation of content and presentation.
+    """
+def save_metadata(dir_path: Path, name: str, data: Dict) -> None: 
+    """Save metadata as a YAML file in the specified directory.
+    
+    This function takes a dictionary of metadata and saves it as a YAML file
+    in the given directory. The file will be named with the provided name
+    and automatically have a .yaml extension added.
+    
+    Args:
+        dir_path: The directory path where the YAML file should be saved.
+                 The directory must exist and be writable.
+        name: The base name for the YAML file (without extension).
+              The .yaml extension will be automatically appended.
+        data: A dictionary containing the metadata to be serialized to YAML.
+              The dictionary should contain serializable Python objects.
+
+    Raises:
+        Exception: If the directory path is invalid or not writable.
+        Exception: If the data cannot be serialized to YAML format.
+        Exception: If there are I/O errors during file writing.
+        Exception: If the file cannot be created due to permission issues.
+
+    Example:
+        >>> from pathlib import Path
+        >>> metadata = {"title": "My Deck", "author": "John Doe", "version": "1.0"}
+        >>> save_metadata(Path("/path/to/project"), "deck_info", metadata)
+        # Creates /path/to/project/deck_info.yaml with the metadata
     """

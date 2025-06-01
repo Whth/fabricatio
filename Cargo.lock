@@ -858,6 +858,8 @@ dependencies = [
  "clap",
  "deck_loader",
  "pyo3",
+ "pythonize",
+ "serde_yml",
 ]
 
 [[package]]

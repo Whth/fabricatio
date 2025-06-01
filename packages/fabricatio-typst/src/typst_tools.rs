@@ -1,6 +1,6 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yml::Value;
@@ -74,7 +74,6 @@ fn strip_comment(string: &str) -> String {
     lines[start..end].join("\n")
 }
 
-
 /// Unified function to convert all supported TeX math expressions in a string to Typst format.
 /// Handles $...$, $$...$$, \(...\), and \[...\].
 #[pyfunction]
@@ -142,29 +141,8 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
 
 #[pyfunction]
 fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
-    // Escape the wrapper string to handle special regex characters safely
-    let escaped_wrapper = regex::escape(wrapper);
-
-    // Count wrapper occurrences
-    let count_re = Regex::new(&escaped_wrapper).ok()?; // Return None if regex fails
-    let count = count_re.find_iter(string).count();
-    if count != 2 {
-        // Return None when wrapper count is not exactly 2
-        return None;
-    }
-
-    // Construct the regex pattern to find content enclosed by the wrapper
-    let pattern = format!(r"(?s){}(.*?){}", escaped_wrapper, escaped_wrapper);
-    let re = Regex::new(&pattern).ok()?; // Return None if regex fails
-
-    // Replace the old content with the new content
-    let result = re
-        .replace_all(string, |_caps: &regex::Captures| {
-            format!("{}{}{}", wrapper, new_body, wrapper)
-        })
-        .into_owned();
-
-    Some(result) // Wrap result in Some
+    // Perform direct string replacement
+    Some(string.replace(&extract_body(string, wrapper)?, &new_body))
 }
 
 // Implement extract_body to find content enclosed by exactly two wrappers
@@ -173,22 +151,21 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
     // Escape the wrapper string for regex safety
     let escaped_wrapper = regex::escape(wrapper);
 
-    // Count wrapper occurrences
-    let count_re = Regex::new(&escaped_wrapper).ok()?; // Return None if regex fails
-    let count = count_re.find_iter(string).count();
-    if count != 2 {
-        // Return None when wrapper count is not exactly 2
-        return None;
-    }
-
     // Construct regex pattern to capture content between wrappers
     let pattern = format!(r"(?s){}(.*?){}", escaped_wrapper, escaped_wrapper);
     let re = Regex::new(&pattern).ok()?; // Return None if regex fails
 
-    // Extract and return the first captured group (the body content)
-    re.captures_iter(string)
-        .filter_map(|caps| caps.get(1).map(|m| m.as_str().to_string()))
-        .next()
+    // Extract matches and return None if more than one match found
+    let mut matches = re.captures_iter(string);
+    let first_match = matches.next()?;
+
+    // If there's a second match, return None
+    if matches.next().is_some() {
+        return None;
+    }
+
+    // Return the first captured group (the body content)
+    first_match.get(1).map(|m| m.as_str().to_string())
 }
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -207,4 +184,3 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(strip_comment, m)?)?;
     Ok(())
 }
-
