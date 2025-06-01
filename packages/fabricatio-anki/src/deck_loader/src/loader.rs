@@ -256,7 +256,7 @@ impl AnkiDeckLoader {
         if !project_path.exists() {
             return Err(format!("Project path does not exist: {}", project_path.display()));
         }
-        Ok(Self { project_path: project_path })
+        Ok(Self { project_path })
     }
 
     pub fn load_deck_config(&self) -> Result<DeckConfig, String> {
