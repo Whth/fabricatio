@@ -242,6 +242,8 @@ class TemplateManagerConfig:
 class TemplateConfig:
     """Template configuration structure."""
 
+    mapping_template: str
+    """The name of the mapping template which will be used to map data."""
     # Task Management Templates
 
 

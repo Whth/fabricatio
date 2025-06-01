@@ -280,6 +280,8 @@ impl Default for TemplateManagerConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
+    pub mapping_template:  String,
+
     // Task Management Templates
 
     /// The name of the task briefing template which will be used to brief a task.

@@ -318,6 +318,37 @@ class LLMUsage(LLMScopedConfig, ABC):
 
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
+    async def amapping_str(
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    ) -> Optional[Dict[str, str]]:
+        """Asynchronously generates a mapping of strings based on a given requirement.
+
+        Args:
+            requirement (str): The requirement for the mapping of strings.
+            k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
+            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            Optional[Dict[str, str]]: The validated response as a mapping of strings.
+        """
+        from fabricatio_core.parser import JsonCapture
+
+        def _validate(resp: str) -> None | Dict[str, str]:
+            if (obj := JsonCapture.validate_with(resp, target_type=dict, elements_type=str, length=k)) and all(
+                isinstance(v, str) for v in obj.values()
+            ):
+                return obj
+            return None
+
+        return await self.aask_validate(
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.mapping_template,
+                {"requirement": requirement, "k": k},
+            ),
+            _validate,
+            **kwargs,
+        )
+
     async def alist_str(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> Optional[List[str]]:
