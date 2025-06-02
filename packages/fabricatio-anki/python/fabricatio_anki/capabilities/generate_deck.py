@@ -146,21 +146,15 @@ class GenerateDeck(Propose):
         self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Optional[Template]]]
     ) -> Template | List[Template] | None:
         if isinstance(requirement, str):
-            return await self.propose(
-                Template,
-                TEMPLATE_MANAGER.render_template(
-                    anki_config.generate_anki_card_template_template, {"fields": fields, "requirement": requirement}
-                ),
-                **kwargs,
-            )
-        if isinstance(requirement, list):
-            return await self.propose(
-                Template,
-                TEMPLATE_MANAGER.render_template(
-                    anki_config.generate_anki_card_template_template,
-                    [{"fields": fields, "requirement": r} for r in requirement],
-                ),
-                **kwargs,
+            rendered = TEMPLATE_MANAGER.render_template(
+                anki_config.generate_anki_card_template_template, {"fields": fields, "requirement": requirement}
             )
 
-        raise ValueError("requirement must be a string or a list of strings")
+        elif isinstance(requirement, list):
+            rendered = TEMPLATE_MANAGER.render_template(
+                anki_config.generate_anki_card_template_template,
+                [{"fields": fields, "requirement": r} for r in requirement],
+            )
+        else:
+            raise ValueError("requirement must be a string or a list of strings")
+        return await self.propose(Template, rendered, **kwargs)

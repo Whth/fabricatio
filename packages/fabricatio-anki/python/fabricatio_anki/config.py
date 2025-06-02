@@ -9,9 +9,6 @@ from fabricatio_core import CONFIG
 class AnkiConfig:
     """Configuration for fabricatio-anki."""
 
-    make_deck_creation_proposal_template: str = "make_deck_creation_proposal"
-    """Template name for make deck creation proposal."""
-
     generate_anki_card_template_template: str = "generate_anki_card_template"
     """Template name for generate anki card type."""
 
@@ -20,8 +17,6 @@ class AnkiConfig:
     generate_anki_card_template_generation_requirements_template: str = (
         "generate_anki_card_template_generation_requirements"
     )
-    generate_anki_deck_name_template: str = "generate_anki_deck_name"
-    """Template name for generate anki deck name."""
 
     generate_anki_deck_metadata_template: str = "generate_anki_deck_metadata"
     """Template name for generate anki deck metadata."""
