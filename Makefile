@@ -9,15 +9,17 @@ dirs:
 	mkdir -p $(DIST) $(DATA)
 
 
-dev: dirs
+bins: dirs
 	cargo build -p fabricatio --bins -r -Z unstable-options --artifact-dir $(DATA)/scripts
 	rm $(DATA)/scripts/*.pdb -f
 	rm $(DATA)/scripts/*.dwarf -f
+
+dev: dirs bins
 	uvx -p $(PY) --project . maturin develop --uv -r
 	uv run subpackages.py --no-publish --pyversion $(PY) --dev
 
 
-bdist: dirs
+bdist: dirs bins
 
 	uvx -p $(PY) --project . maturin build --sdist -r -o $(DIST)
 	uv run subpackages.py --no-publish --pyversion $(PY)
@@ -34,4 +36,4 @@ publish: bdist
 	uv run subpackages.py --pyversion $(PY)
 
 
-.PHONY:  dev bdist clean publish tests
+.PHONY:  dev bdist clean publish tests bins dirs all
