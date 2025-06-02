@@ -12,7 +12,8 @@ __all__ = [
 
 if find_spec("fabricatio_typst"):
     from fabricatio_typst.models.article_essence import ArticleEssence
-    from fabricatio_typst.models.article_main import Article, ArticleOutline
+    from fabricatio_typst.models.article_main import Article
+    from fabricatio_typst.models.article_outline import ArticleOutline
     from fabricatio_typst.models.article_proposal import ArticleProposal
 
     __all__ += [
@@ -36,3 +37,11 @@ if find_spec("fabricatio_digest"):
     from fabricatio_digest.models.tasklist import TaskList
 
     __all__ += ["TaskList"]
+
+
+if find_spec("fabricatio_anki"):
+    from fabricatio_anki.models.deck import Deck, Model
+    from fabricatio_anki.models.template import Template
+
+    __all__ += ["Deck","Model","Template"]
+

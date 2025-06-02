@@ -47,3 +47,13 @@ if find_spec("fabricatio_digest"):
     from fabricatio_digest.capabilities.digest import Digest
 
     __all__ += ["Digest"]
+
+if find_spec("fabricatio_anki"):
+    from fabricatio_anki.capabilities.generate_deck import GenerateDeck
+
+    __all__ += ["GenerateDeck"]
+
+if find_spec("fabricatio_tagging"):
+    from fabricatio_tagging.capabilities.tagging import Tagging
+
+    __all__ += ["Tagging"]
