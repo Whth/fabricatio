@@ -285,7 +285,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.4.4.dev2"
+version = "0.4.4.dev3"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },

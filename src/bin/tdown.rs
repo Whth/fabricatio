@@ -33,6 +33,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Download and install templates from GitHub releases
+    #[command(alias = "dl")]
     Download {
         /// The directory to output the templates to
         #[arg(short, long, default_value = ROAMING.as_os_str())]
@@ -52,6 +53,7 @@ enum Commands {
     },
 
     /// List available templates in the local directory
+    #[command(alias = "ls")]
     List {
         /// The directory to list templates from
         #[arg(short, long, default_value = TEMPLATES.as_os_str())]
@@ -67,6 +69,7 @@ enum Commands {
     },
 
     /// Remove templates from the local directory
+    #[command(alias = "rm")]
     Remove {
         /// Template names to remove
         #[arg(required = true)]
@@ -78,6 +81,7 @@ enum Commands {
     },
 
     /// Show information about available releases
+    #[command(alias = "info")]
     Info {
         /// Show information about a specific version
         #[arg(short, long)]
@@ -89,6 +93,7 @@ enum Commands {
     },
 
     /// Update templates to the latest version
+    #[command(alias = "up")]
     Update {
         /// The directory containing templates to update
         #[arg(short, long, default_value = ROAMING.as_os_str())]
@@ -216,6 +221,37 @@ fn extract_release(
     Ok(())
 }
 
+fn collect_templates_recursive(
+    dir: &PathBuf,
+    filter: Option<&str>,
+    base_dir: &PathBuf,
+) -> Result<Vec<(PathBuf, String)>, Box<dyn std::error::Error>> {
+    let mut templates = Vec::new();
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            // Recursively scan subdirectories
+            let mut sub_templates = collect_templates_recursive(&path, filter, base_dir)?;
+            templates.append(&mut sub_templates);
+        } else if path.is_file() && path.extension().map_or(false, |ext| ext == "hbs") {
+            // Get relative path from base directory for display
+            let relative_path = path
+                .strip_prefix(base_dir)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .to_string();
+
+            if filter.map_or(true, |f| relative_path.contains(f)) {
+                templates.push((path, relative_path));
+            }
+        }
+    }
+
+    Ok(templates)
+}
 fn list_templates(
     template_dir: &PathBuf,
     detailed: bool,
@@ -230,35 +266,26 @@ fn list_templates(
         return Ok(());
     }
 
-    let entries = fs::read_dir(template_dir)?;
-    let mut templates: Vec<_> = entries
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| {
-            let path = entry.path();
-            path.is_file()
-                && path.extension().map_or(false, |ext| ext == "hbs")
-                && filter.map_or(true, |f| entry.file_name().to_string_lossy().contains(f))
-        })
-        .collect();
-
-    templates.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+    let templates = collect_templates_recursive(template_dir, filter, template_dir)?;
 
     if templates.is_empty() {
         println!("{} No templates found", "ℹ".blue());
         return Ok(());
     }
 
+    // Sort by relative path for consistent ordering
+    let mut sorted_templates = templates;
+    sorted_templates.sort_by(|a, b| a.1.cmp(&b.1));
+
     println!(
         "{} Found {} templates:",
         "Templates".green().bold(),
-        templates.len()
+        sorted_templates.len()
     );
 
-    for entry in templates {
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
+    for (path, relative_path) in sorted_templates {
         if detailed {
-            let metadata = entry.metadata()?;
+            let metadata = path.metadata()?;
             let size = metadata.len();
             let modified = metadata
                 .modified()?
@@ -268,14 +295,14 @@ fn list_templates(
             println!(
                 "  {} {} ({} bytes, modified: {})",
                 "→".cyan(),
-                name,
+                relative_path,
                 size,
                 chrono::DateTime::from_timestamp(modified as i64, 0)
                     .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
                     .unwrap_or_else(|| "unknown".to_string())
             );
         } else {
-            println!("  {} {}", "→".cyan(), name);
+            println!("  {} {}", "→".cyan(), relative_path);
         }
     }
 
