@@ -138,10 +138,6 @@ max_tokens = 8192
     make test
     ```
 
-## TODO
-
-- Add an element based format strategy
-
 ## Contributing
 
 Contributions are welcome! Follow these steps:
