@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-anki"
-version = "0.1.0-dev20"
+version = "0.1.0-dev23"
 description = "An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package"
 readme = "README.md"
 authors = [
@@ -9,8 +9,8 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.12,<3.14"
 dependencies = [
-
-    "fabricatio-core"
+    "fabricatio-core",
+    "fabricatio-capabilities",
 ]
 
 

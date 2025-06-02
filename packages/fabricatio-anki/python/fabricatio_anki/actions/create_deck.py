@@ -1,4 +1,3 @@
-
 from typing import ClassVar
 
 from anyio import Path
@@ -20,11 +19,11 @@ class MakeDeckCreationProposal(Action, LLMUsage):
             header = (await f.readline()).split(self.csv_sep)
 
         return await self.ageneric_string(
-            TEMPLATE_MANAGER
-            .render_template(
+            TEMPLATE_MANAGER.render_template(
                 anki_config.make_deck_creation_proposal_template,
                 {
                     "requirement": self.requirement,
                     "fields": header,
                 },
-            ))
+            )
+        )

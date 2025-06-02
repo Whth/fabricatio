@@ -1,4 +1,5 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
+
 from typing import Dict, Required
 
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs

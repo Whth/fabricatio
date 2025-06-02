@@ -32,9 +32,9 @@ class WhatToRate(Action):
     async def _execute(self, task_input: Task, rate_topic: str, **cxt: Unpack) -> List[str]:
         def _validate(resp: str) -> List[str] | None:
             if (
-                    (cap := JsonCapture.convert_with(resp, ujson.loads)) is not None
-                    and isinstance(cap, list)
-                    and all(isinstance(i, str) for i in cap)
+                (cap := JsonCapture.convert_with(resp, ujson.loads)) is not None
+                and isinstance(cap, list)
+                and all(isinstance(i, str) for i in cap)
             ):
                 return cap
             return None

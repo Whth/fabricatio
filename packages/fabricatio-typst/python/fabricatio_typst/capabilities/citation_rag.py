@@ -15,15 +15,15 @@ class CitationRAG(RAG, ABC):
     """A class representing the Advanced RAG (Retrieval Augmented Generation) model."""
 
     async def clued_search(
-            self,
-            requirement: str,
-            cm: CitationManager,
-            max_capacity: int = 40,
-            max_round: int = 3,
-            expand_multiplier: float = 1.4,
-            base_accepted: int = 12,
-            refinery_kwargs: Optional[ChooseKwargs] = None,
-            **kwargs: Unpack[FetchKwargs],
+        self,
+        requirement: str,
+        cm: CitationManager,
+        max_capacity: int = 40,
+        max_round: int = 3,
+        expand_multiplier: float = 1.4,
+        base_accepted: int = 12,
+        refinery_kwargs: Optional[ChooseKwargs] = None,
+        **kwargs: Unpack[FetchKwargs],
     ) -> CitationManager:
         """Asynchronously performs a clued search based on a given requirement and citation manager."""
         if max_round <= 0:

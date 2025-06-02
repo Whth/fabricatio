@@ -12,12 +12,12 @@ class Connect(Action):
     """Connect the article to the outline."""
 
     async def _execute(
-            self,
-            article_briefing: str,
-            article_proposal: ArticleProposal,
-            article_outline: ArticleOutline,
-            article: Article,
-            **cxt,
+        self,
+        article_briefing: str,
+        article_proposal: ArticleProposal,
+        article_outline: ArticleOutline,
+        article: Article,
+        **cxt,
     ) -> None:
         article.update_ref(article_outline.update_ref(article_proposal.update_ref(article_briefing)))
 

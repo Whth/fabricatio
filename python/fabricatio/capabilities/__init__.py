@@ -33,9 +33,10 @@ if find_spec("fabricatio_improve"):
     from fabricatio_improve.capabilities.correct import Correct
     from fabricatio_improve.capabilities.review import Review
 
-    __all__ += ["Correct",
-                "Review",
-                ]
+    __all__ += [
+        "Correct",
+        "Review",
+    ]
 
 if find_spec("fabricatio_judge"):
     from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge

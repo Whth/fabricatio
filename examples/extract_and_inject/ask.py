@@ -25,7 +25,7 @@ class Talk(Action, RAG):
                 if user_say is None:
                     break
                 ref_q = ok(await self.arefined_query(user_say))
-                logger.info(f'refined query: \n{ref_q}')
+                logger.info(f"refined query: \n{ref_q}")
                 ret = await self.aretrieve(ref_q, document_model=ArticleChunk)
 
                 sys_msg = "\n".join(r.as_prompt() for r in ret)

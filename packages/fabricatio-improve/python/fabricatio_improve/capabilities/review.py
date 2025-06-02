@@ -42,12 +42,12 @@ class Review(Rating, Propose, ABC):
         return await self.review_obj(task, **kwargs)
 
     async def review_string(
-            self,
-            input_text: str,
-            topic: str,
-            criteria: Optional[Set[str]] = None,
-            rating_manual: Optional[Dict[str, str]] = None,
-            **kwargs: Unpack[ValidateKwargs[Improvement]],
+        self,
+        input_text: str,
+        topic: str,
+        criteria: Optional[Set[str]] = None,
+        rating_manual: Optional[Dict[str, str]] = None,
+        **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Review a string based on specified topic and criteria.
 
@@ -86,7 +86,7 @@ class Review(Rating, Propose, ABC):
         )
 
     async def review_obj[M: (Display, WithBriefing)](
-            self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]
+        self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]
     ) -> Optional[Improvement]:
         """Review an object that implements Display or WithBriefing interface.
 

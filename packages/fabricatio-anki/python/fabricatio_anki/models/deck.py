@@ -3,9 +3,11 @@
 from enum import StrEnum
 from pathlib import Path
 from time import perf_counter_ns
-from typing import List, Self
+from typing import List, Optional, Self, Set, Type
 
+from fabricatio_capabilities.models.generic import Patch
 from fabricatio_core.models.generic import Named, SketchedAble, WithBriefing
+from pydantic import BaseModel
 
 from fabricatio_anki.models.template import Template
 from fabricatio_anki.rust import save_metadata
@@ -13,6 +15,7 @@ from fabricatio_anki.rust import save_metadata
 
 class Constants(StrEnum):
     """Constants used across the module to represent various keys and directories."""
+
     MEDIA = "media"
     TEMPLATES = "templates"
     MODEL = "model"
@@ -51,8 +54,9 @@ class Model(SketchedAble, Named):
             Self: The instance of the model after saving.
         """
         model_root = Path(parent_dir) / self.name
-        save_metadata(model_root, Constants.FIELDS,
-                      {Constants.MODEL_ID: perf_counter_ns(), Constants.FIELDS: self.fields})
+        save_metadata(
+            model_root, Constants.FIELDS, {Constants.MODEL_ID: perf_counter_ns(), Constants.FIELDS: self.fields}
+        )
 
         for t in self.templates:
             t.save_to(model_root / Constants.TEMPLATES)
@@ -92,7 +96,21 @@ class Deck(SketchedAble, WithBriefing):
         for m in self.models:
             m.save_to(models_root)
 
-        save_metadata(models_root, Constants.DECK,
-                      {Constants.MODEL_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})})
+        save_metadata(
+            models_root, Constants.DECK, {Constants.MODEL_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})}
+        )
 
         return self
+
+
+class ModelMetaData(WithBriefing, Patch[Deck]):
+    """Patch class for updating metadata of a deck model."""
+
+    @staticmethod
+    def excluded_fields() -> Set[str]:
+        """Excludes models from being updated."""
+        return {"models", "author"}
+
+    @staticmethod
+    def ref_cls() -> Optional[Type[BaseModel]]:
+        return Deck

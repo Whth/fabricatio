@@ -17,8 +17,17 @@ class AnkiConfig:
 
     generate_anki_model_name_template: str = "generate_anki_model_name"
     """Template name for generate anki model name."""
-    generate_anki_card_template_generation_requirements_template: str = "generate_anki_card_template_generation_requirements"
-    """Template name for generate anki card template generation requirements."""
+    generate_anki_card_template_generation_requirements_template: str = (
+        "generate_anki_card_template_generation_requirements"
+    )
+    generate_anki_deck_name_template: str = "generate_anki_deck_name"
+    """Template name for generate anki deck name."""
+
+    generate_anki_deck_metadata_template: str = "generate_anki_deck_metadata"
+    """Template name for generate anki deck metadata."""
+
+    generate_anki_model_generation_requirements_template: str = "generate_anki_model_generation_requirements"
+    """ Template name for generate anki model generation requirements."""
 
 
 anki_config = CONFIG.load("anki", AnkiConfig)

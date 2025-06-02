@@ -123,9 +123,7 @@ def consult(
 
 @app.command()
 def finish(
-    article_outline_path: Path = typer.Argument(
-        help="Path to the article outline raw file."
-    ),
+    article_outline_path: Path = typer.Argument(help="Path to the article outline raw file."),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
     persist_dir: Path = typer.Option(
         Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output."
@@ -217,12 +215,8 @@ def write(
 
 @app.command()
 def suma(
-    article_path: Path = typer.Option(
-        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
-    ),
-    skip_chapters: List[str] = typer.Option(
-        [], "-s", "--skip-chapters", help="Chapters to skip."
-    ),
+    article_path: Path = typer.Option(Path("article.typ"), "-a", "--article-path", help="Path to the article file."),
+    skip_chapters: List[str] = typer.Option([], "-s", "--skip-chapters", help="Chapters to skip."),
     suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
     summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
 ) -> None:
@@ -245,9 +239,7 @@ def suma(
 
 @app.command()
 def rcsuma(
-    article_path: Path = typer.Option(
-        Path("article.typ"), "-a", "--article-path", help="Path to the article file."
-    ),
+    article_path: Path = typer.Option(Path("article.typ"), "-a", "--article-path", help="Path to the article file."),
     suma_title: str = typer.Option("Research Content", "-t", "--suma-title", help="Title of the summary."),
     summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
     paragraph_count: int = typer.Option(1, "-p", "--paragraph-count", help="Number of paragraphs for the summary."),

@@ -344,7 +344,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         )
 
     def iter_dfs_rev(
-            self,
+        self,
     ) -> Generator[ArticleOutlineBase, None, None]:
         """Performs a depth-first search (DFS) through the article structure in reverse order.
 

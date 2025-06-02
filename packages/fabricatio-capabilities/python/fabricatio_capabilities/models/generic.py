@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Self, Type, final
+from typing import Any, Dict, List, Optional, Self, Set, Type, final
 
 import ujson
 from fabricatio_core.fs import dump_text
@@ -115,13 +115,39 @@ class FinalizedDumpAble(Base, ABC):
 
 
 class Patch[T](ProposedAble, ABC):
-    """Base class for patches.
+    """A generic patch class that allows field-based updates to target objects.
 
-    This class provides a base implementation for patches that can be applied to other objects.
+    This class provides functionality to:
+    1. Apply patches to update object fields
+    2. Generate dictionary representations of patches
+    3. Handle JSON schema generation with reference class integration
+
+    The patch system works by comparing fields between the patch and target object,
+    ensuring type safety while enabling flexible data transformations.
+
+    Type Parameters:
+        T: The type of object this patch can be applied to (typically a Pydantic model)
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class MyModel(BaseModel):
+        ...     name: str
+        ...     value: int
+        ...
+        >>> class MyPatch(Patch[MyModel], BaseModel):
+        ...     name: str
+        ...
+        >>> target = MyModel(name="old", value=42)
+        >>> patch = MyPatch(name="new")
+        >>> updated = patch.apply(target)
+        >>> assert updated.name == "new" and updated.value == 42
     """
 
     def apply(self, other: T) -> T:
         """Apply the patch to another instance.
+
+        This method copies all fields from the patch to the target object,
+        ensuring that only existing fields are modified.
 
         Args:
             other (T): The instance to apply the patch to.
@@ -131,6 +157,19 @@ class Patch[T](ProposedAble, ABC):
 
         Raises:
             ValueError: If a field in the patch is not found in the target instance.
+
+        Example:
+            >>> class User(BaseModel):
+            ...     name: str
+            ...     age: int
+            ...
+            >>> class UserPatch(Patch[User], BaseModel):
+            ...     name: Optional[str] = None
+            ...
+            >>> user = User(name="Alice", age=30)
+            >>> patch = UserPatch(name="Bob")
+            >>> updated_user = patch.apply(user)
+            >>> print(updated_user.name)  # Output: Bob
         """
         for field in self.__class__.model_fields:
             if not hasattr(other, field):
@@ -139,30 +178,97 @@ class Patch[T](ProposedAble, ABC):
         return other
 
     def as_kwargs(self) -> Dict[str, Any]:
-        """Get the kwargs of the patch."""
+        """Get the kwargs of the patch.
+
+        Converts the patch into a dictionary suitable for use with **kwargs syntax.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the patch.
+
+        Example:
+            >>> class ConfigPatch(Patch[MyModel], BaseModel):
+            ...     timeout: int
+            ...     retries: int
+            ...
+            >>> patch = ConfigPatch(timeout=30, retries=3)
+            >>> kwargs = patch.as_kwargs()
+            >>> print(kwargs)  # {'timeout': 30, 'retries': 3}
+        """
         return self.model_dump()
 
     @staticmethod
     def ref_cls() -> Optional[Type[BaseModel]]:
-        """Get the reference class of the model."""
+        """Get the reference class of the model.
+
+        This can be overridden in subclasses to provide a reference model for schema documentation.
+
+        Returns:
+            Optional[Type[BaseModel]]: The reference class if available, None otherwise.
+        """
         return None
+
+    @staticmethod
+    def excluded_fields() -> Set[str]:
+        """Get a list of fields to exclude from the patch.
+
+        This can be overridden in subclasses to provide a list of fields that should be excluded from the patch.
+
+        Returns:
+            Set[str]: A list of fields to exclude from the patch.
+        """
+        return set()
 
     @classmethod
     def formated_json_schema(cls) -> str:
         """Get the JSON schema of the model in a formatted string.
 
+        Generates a JSON schema with optional documentation inherited from a reference class.
+        This is particularly useful for API documentation and validation systems.
+
         Returns:
             str: The JSON schema of the model in a formatted string.
+
+        Example:
+            >>> class MyBaseModel(BaseModel):
+            ...     id: int
+            ...     name: str
+            ...
+            >>> class MyPatch(Patch[MyBaseModel], BaseModel):
+            ...     @staticmethod
+            ...     def ref_cls():
+            ...         return MyBaseModel
+            ...
+            >>> print(MyPatch.formated_json_schema())
+            {
+              "title": "MyBaseModel",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "..."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "..."
+                }
+              },
+              "required": ["id", "name"]
+            }
         """
         my_schema = cls.model_json_schema(schema_generator=UnsortGenerate)
 
-        ref_cls = cls.ref_cls()
-        if ref_cls is not None:
-            # copy the desc info of each corresponding fields from `ref_cls`
-            for field_name in [f for f in cls.model_fields if f in ref_cls.model_fields]:
+        excluded_fields = cls.excluded_fields()
+
+        # drop excluded fields
+        for field_name in excluded_fields:
+            my_schema["properties"].pop(field_name)
+            my_schema["required"].remove(field_name) if field_name in my_schema["required"] else None
+
+        if (ref_cls := cls.ref_cls()) is not None:
+            # copy the desc info of each corresponding fields from ref_cls
+            for field_name in [f for f in cls.model_fields if f in (set(ref_cls.model_fields) - excluded_fields)]:
                 my_schema["properties"][field_name]["description"] = (
-                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
-                    "description"]
+                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
                 )
             my_schema["description"] = ref_cls.__doc__
             my_schema["title"] = ref_cls.__name__

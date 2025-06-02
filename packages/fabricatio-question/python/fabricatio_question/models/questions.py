@@ -21,6 +21,7 @@ class SelectionQuestion(SketchedAble):
             The selected option as a string.
         """
         return await questionary.select(self.q, choices=self.option).ask_async()
+
     async def multiple(self, k: int = 0) -> List[str]:
         """Present a multiple-choice selection question to the user.
 
@@ -32,13 +33,11 @@ class SelectionQuestion(SketchedAble):
         """
         # Use 'questionary.checkbox' with validation based on k value
         if k == 0:
-            selected_options = await questionary.checkbox(
-                self.q, choices=self.option
-            ).ask_async()
+            selected_options = await questionary.checkbox(self.q, choices=self.option).ask_async()
         else:
             selected_options = await questionary.checkbox(
-                self.q, choices=self.option,
-                validate=lambda selections: True if len(selections) == k
-                else f"Please select exactly {k} options."
+                self.q,
+                choices=self.option,
+                validate=lambda selections: True if len(selections) == k else f"Please select exactly {k} options.",
             ).ask_async()
         return selected_options

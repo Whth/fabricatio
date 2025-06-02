@@ -25,22 +25,14 @@ if find_spec("fabricatio_typst"):
     if find_spec("fabricatio_typst"):
         from fabricatio_typst.models.aricle_rag import ArticleChunk
 
-        __all__ += [
-            "ArticleChunk"
-
-        ]
+        __all__ += ["ArticleChunk"]
 
 if find_spec("fabricatio_judge"):
     from fabricatio_judge.models.advanced_judge import JudgeMent
 
-    __all__ += [
-        "JudgeMent"
-    ]
+    __all__ += ["JudgeMent"]
 
 if find_spec("fabricatio_digest"):
     from fabricatio_digest.models.tasklist import TaskList
 
-    __all__ += [
-        "TaskList"
-    ]
-
+    __all__ += ["TaskList"]

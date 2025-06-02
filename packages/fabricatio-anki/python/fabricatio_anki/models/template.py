@@ -8,6 +8,7 @@ the template to a specified directory.
 Classes:
     Template: Represents an Anki card template with front, back, and CSS content.
 """
+
 from pathlib import Path
 from typing import Self
 
@@ -16,7 +17,7 @@ from fabricatio_core.models.generic import Named, SketchedAble
 from fabricatio_anki.rust import save_template
 
 
-class Template(SketchedAble,Named):
+class Template(SketchedAble, Named):
     """Template model."""
 
     front: str
@@ -39,7 +40,7 @@ class Template(SketchedAble,Named):
     It enables precise control over the design and styling to match specific aesthetic
     preferences or functional requirements."""
 
-    def save_to(self, parent_dir: Path|str) -> Self:
+    def save_to(self, parent_dir: Path | str) -> Self:
         """Save the current card type to the specified directory.
 
         This method persists the card's front, back, and CSS content using
@@ -54,5 +55,3 @@ class Template(SketchedAble,Named):
         """
         save_template(Path(parent_dir) / self.name, self.front, self.back, self.css)
         return self
-
-

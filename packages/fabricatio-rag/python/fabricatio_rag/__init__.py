@@ -2,7 +2,4 @@
 
 from fabricatio_rag import capabilities, models
 
-__all__ = [
-    "capabilities",
-    "models"
-]
+__all__ = ["capabilities", "models"]

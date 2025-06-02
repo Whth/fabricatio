@@ -1,4 +1,5 @@
 """A module containing kwargs types for content correction and checking operations."""
+
 from itertools import chain
 from typing import List, Self, Tuple, Unpack
 

@@ -40,10 +40,10 @@ class ExtractArticleEssence(Action, Propose):
     """The key of the output data."""
 
     async def _execute(
-            self,
-            task_input: Task,
-            reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
-            **_,
+        self,
+        task_input: Task,
+        reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
+        **_,
     ) -> List[ArticleEssence]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
@@ -56,11 +56,11 @@ class ExtractArticleEssence(Action, Propose):
         out = []
 
         for ess in await self.propose(
-                ArticleEssence,
-                [
-                    f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
-                    for c in contents
-                ],
+            ArticleEssence,
+            [
+                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
+                for c in contents
+            ],
         ):
             if ess is None:
                 logger.warning("Could not extract article essence")
@@ -77,10 +77,10 @@ class FixArticleEssence(Action):
     """The key of the output data."""
 
     async def _execute(
-            self,
-            bib_mgr: BibManager,
-            article_essence: List[ArticleEssence],
-            **_,
+        self,
+        bib_mgr: BibManager,
+        article_essence: List[ArticleEssence],
+        **_,
     ) -> List[ArticleEssence]:
         out = []
         count = 0
@@ -107,11 +107,11 @@ class GenerateArticleProposal(Action, Propose):
     """The key of the output data."""
 
     async def _execute(
-            self,
-            task_input: Optional[Task] = None,
-            article_briefing: Optional[str] = None,
-            article_briefing_path: Optional[str] = None,
-            **_,
+        self,
+        task_input: Optional[Task] = None,
+        article_briefing: Optional[str] = None,
+        article_briefing_path: Optional[str] = None,
+        **_,
     ) -> Optional[ArticleProposal]:
         if article_briefing is None and article_briefing_path is None and task_input is None:
             logger.error("Task not approved, since all inputs are None.")
@@ -150,10 +150,10 @@ class GenerateInitialOutline(Action, Extract):
     """The kwargs to extract the outline."""
 
     async def _execute(
-            self,
-            article_proposal: ArticleProposal,
-            supervisor: Optional[bool] = None,
-            **_,
+        self,
+        article_proposal: ArticleProposal,
+        supervisor: Optional[bool] = None,
+        **_,
     ) -> Optional[ArticleOutline]:
         req = (
             f"Design each chapter of a proper and academic and ready for release manner.\n"
@@ -208,10 +208,10 @@ class FixIntrospectedErrors(Action, Censor):
     """The maximum number of errors to fix."""
 
     async def _execute(
-            self,
-            article_outline: ArticleOutline,
-            intro_fix_ruleset: Optional[RuleSet] = None,
-            **_,
+        self,
+        article_outline: ArticleOutline,
+        intro_fix_ruleset: Optional[RuleSet] = None,
+        **_,
     ) -> Optional[ArticleOutline]:
         counter = 0
         origin = article_outline
@@ -243,10 +243,10 @@ class GenerateArticle(Action, Censor):
     ruleset: Optional[RuleSet] = None
 
     async def _execute(
-            self,
-            article_outline: ArticleOutline,
-            article_gen_ruleset: Optional[RuleSet] = None,
-            **_,
+        self,
+        article_outline: ArticleOutline,
+        article_gen_ruleset: Optional[RuleSet] = None,
+        **_,
     ) -> Optional[Article]:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
             article_outline

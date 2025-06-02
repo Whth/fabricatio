@@ -33,7 +33,7 @@ async def main() -> None:
                         "4.to cover more references, we usually cite more than one articles that have similar opinions in a single sentence if possible.\n"
                         "5.when using `#cite()` notation, you must be aware of the cite key should be wrapped by `<` and `>`, compiler wont let it pass compilation otherwise.",
                         rule_count=5,
-                        output_key="en_ruleset"
+                        output_key="en_ruleset",
                     ),
                     DraftRuleSet(
                         ruleset_requirement="1. 当在文章中引用其他文章作为参考文献时, 应遵循`(作者1, 作者2等, 年份)#cite(<bibtex_cite_key>)`的格式进行标注。\n"
@@ -42,7 +42,7 @@ async def main() -> None:
                         "4. 为增加参考文献的覆盖率, 我们通常建议在可能的情况下, 将多个观点相似的文献合并引用于同一句子中。"
                         "5. 使用`#cite()`时需注意:BibTeX键必须用尖括号`<`和`>`包裹, 否则编译器将拒绝通过编译。",
                         rule_count=5,
-                        output_key="zh_ruleset"
+                        output_key="zh_ruleset",
                     ),
                     PersistentAll(persist_dir="persistent"),
                 ),

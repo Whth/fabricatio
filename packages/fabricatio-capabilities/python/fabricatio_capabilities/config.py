@@ -1,4 +1,5 @@
 """Module containing configuration classes for fabricatio-capabilities."""
+
 from dataclasses import dataclass
 
 from fabricatio_core import CONFIG
@@ -7,6 +8,7 @@ from fabricatio_core import CONFIG
 @dataclass
 class CapabilitiesConfig:
     """Configuration for fabricatio-capabilities."""
+
     extract_template: str = "extract"
     """The name of the extract template which will be used to extract model from string."""
     # Code Generation Templates
@@ -35,7 +37,6 @@ class CapabilitiesConfig:
     draft_rating_weights_klee_template: str = "draft_rating_weights_klee"
     """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
 
-capabilities_config = CONFIG.load("capabilities",  CapabilitiesConfig)
-__all__ = [
-    "capabilities_config"
-]
+
+capabilities_config = CONFIG.load("capabilities", CapabilitiesConfig)
+__all__ = ["capabilities_config"]

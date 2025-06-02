@@ -34,16 +34,13 @@ class WithRef[T](Base, ABC):
         )
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: T) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: T) -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: "WithRef[T]") -> S: ...
 
     @overload
-    def update_ref[S: WithRef](self: S, reference: None = None) -> S:
-        ...
+    def update_ref[S: WithRef](self: S, reference: None = None) -> S: ...
 
     def update_ref[S: WithRef](self: S, reference: Union[T, "WithRef[T]", None] = None) -> S:
         """Update the reference of the object.

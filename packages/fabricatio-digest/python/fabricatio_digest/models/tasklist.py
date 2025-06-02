@@ -4,6 +4,7 @@ This module contains the definition of the TaskList class, which is used to mode
 of tasks aimed at achieving a specific ultimate target. It inherits from the ProposedAble
 interface and provides implementations for task sequence generation.
 """
+
 from typing import List
 
 from fabricatio_core import Task

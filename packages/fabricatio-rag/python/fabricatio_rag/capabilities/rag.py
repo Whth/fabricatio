@@ -52,16 +52,16 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         return self._client
 
     def init_client(
-            self,
-            milvus_uri: Optional[str] = None,
-            milvus_token: Optional[str] = None,
-            milvus_timeout: Optional[float] = None,
+        self,
+        milvus_uri: Optional[str] = None,
+        milvus_token: Optional[str] = None,
+        milvus_timeout: Optional[float] = None,
     ) -> Self:
         """Initialize the Milvus client."""
         self._client = create_client(
             uri=milvus_uri or ok(self.milvus_uri or rag_config.milvus_uri),
             token=milvus_token
-                  or (token.get_secret_value() if (token := (self.milvus_token or rag_config.milvus_token)) else ""),
+            or (token.get_secret_value() if (token := (self.milvus_token or rag_config.milvus_token)) else ""),
             timeout=milvus_timeout or self.milvus_timeout or rag_config.milvus_timeout,
         )
         return self
@@ -75,7 +75,7 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         return self
 
     def view(
-            self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
+        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
     ) -> Self:
         """View the specified collection.
 
@@ -117,7 +117,7 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         return ok(self.target_collection, "No collection is being viewed. Have you called `self.view()`?")
 
     async def add_document[D: MilvusDataBase](
-            self, data: List[D] | D, collection_name: Optional[str] = None, flush: bool = False
+        self, data: List[D] | D, collection_name: Optional[str] = None, flush: bool = False
     ) -> Self:
         """Adds a document to the specified collection.
 
@@ -144,15 +144,15 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         return self
 
     async def afetch_document[D: MilvusDataBase](
-            self,
-            query: List[str],
-            document_model: Type[D],
-            collection_name: Optional[str] = None,
-            similarity_threshold: float = 0.37,
-            result_per_query: int = 10,
-            tei_endpoint: Optional[str] = None,
-            reranker_threshold: float = 0.7,
-            filter_expr: str = "",
+        self,
+        query: List[str],
+        document_model: Type[D],
+        collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
+        result_per_query: int = 10,
+        tei_endpoint: Optional[str] = None,
+        reranker_threshold: float = 0.7,
+        filter_expr: str = "",
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
@@ -217,11 +217,11 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         return document_model.from_sequence(resp)
 
     async def aretrieve[D: MilvusDataBase](
-            self,
-            query: List[str] | str,
-            document_model: Type[D],
-            max_accepted: int = 20,
-            **kwargs: Unpack[FetchKwargs],
+        self,
+        query: List[str] | str,
+        document_model: Type[D],
+        max_accepted: int = 20,
+        **kwargs: Unpack[FetchKwargs],
     ) -> List[D]:
         """Retrieve data from the collection.
 
@@ -238,15 +238,15 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
             query = [query]
 
         return (
-                   await self.afetch_document(
-                       query=query,
-                       document_model=document_model,
-                       **kwargs,
-                   )
-               )[:max_accepted]
+            await self.afetch_document(
+                query=query,
+                document_model=document_model,
+                **kwargs,
+            )
+        )[:max_accepted]
 
     async def arefined_query(
-            self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
+        self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 

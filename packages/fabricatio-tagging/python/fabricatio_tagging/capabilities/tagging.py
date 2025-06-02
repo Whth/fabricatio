@@ -3,6 +3,7 @@
 This module provides functionality for generating tags from text content
 using AI models through the Tagging class.
 """
+
 from asyncio import gather
 from typing import List, overload
 
@@ -22,8 +23,9 @@ class Tagging(Propose):
     """
 
     @overload
-    async def tagging(self, text: str, requirement: str = "", k: int = 0,
-                      **kwargs: Unpack[GenerateKwargs]) -> List[str] | None:
+    async def tagging(
+        self, text: str, requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+    ) -> List[str] | None:
         """Generate tags for a single text string.
 
         Args:
@@ -38,8 +40,9 @@ class Tagging(Propose):
         ...
 
     @overload
-    async def tagging(self, text: List[str], requirement: str = "", k: int = 0,
-                      **kwargs: Unpack[GenerateKwargs]) -> List[List[str]]:
+    async def tagging(
+        self, text: List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+    ) -> List[List[str]]:
         """Generate tags for multiple text strings.
 
         Args:
@@ -53,8 +56,9 @@ class Tagging(Propose):
         """
         ...
 
-    async def tagging(self, text: str | List[str], requirement: str = "", k: int = 0,
-                      **kwargs: Unpack[GenerateKwargs]) -> List[List[str]] | List[str] | None:
+    async def tagging(
+        self, text: str | List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+    ) -> List[List[str]] | List[str] | None:
         """Generate tags for text content.
 
         This method can handle both single text strings and lists of text strings,
@@ -77,30 +81,20 @@ class Tagging(Propose):
             TypeError: If text is neither a string nor a list of strings.
         """
         if isinstance(text, str):
-            return await  self.alist_str(
-                TEMPLATE_MANAGER.render_template(tagging_config.tagging_template, {
-                    "text": text,
-                    "requirement": requirement
-                }),
+            return await self.alist_str(
+                TEMPLATE_MANAGER.render_template(
+                    tagging_config.tagging_template, {"text": text, "requirement": requirement}
+                ),
                 k=k,
-                **kwargs
+                **kwargs,
             )
         if isinstance(text, list):
-
             rendered = TEMPLATE_MANAGER.render_template(
-                tagging_config.tagging_template, [{
-                    "text": t,
-                    "requirement": requirement
-                } for t in text]
+                tagging_config.tagging_template, [{"text": t, "requirement": requirement} for t in text]
             )
 
-            tags_seq = await gather(
-                *[self.alist_str(r, k=k, **kwargs) for r in rendered]
-            )
+            tags_seq = await gather(*[self.alist_str(r, k=k, **kwargs) for r in rendered])
 
-            return [
-                t or [] for t in tags_seq
-            ]
-
+            return [t or [] for t in tags_seq]
 
         raise TypeError("text must be str or List[str]")

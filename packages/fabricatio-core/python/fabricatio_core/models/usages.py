@@ -63,10 +63,10 @@ class LLMUsage(LLMScopedConfig, ABC):
 
     # noinspection PyTypeChecker,PydanticTypeChecker,t
     async def aquery(
-            self,
-            messages: List[Dict[str, str]],
-            n: PositiveInt | None = None,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        messages: List[Dict[str, str]],
+        n: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ModelResponse | CustomStreamWrapper:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
@@ -124,16 +124,16 @@ class LLMUsage(LLMScopedConfig, ABC):
             },
             presence_penalty=kwargs.get("presence_penalty") or self.llm_presence_penalty or CONFIG.llm.presence_penalty,
             frequency_penalty=kwargs.get("frequency_penalty")
-                              or self.llm_frequency_penalty
-                              or CONFIG.llm.frequency_penalty,
+            or self.llm_frequency_penalty
+            or CONFIG.llm.frequency_penalty,
         )
 
     async def ainvoke(
-            self,
-            question: str,
-            system_message: str = "",
-            n: PositiveInt | None = None,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        question: str,
+        system_message: str = "",
+        n: PositiveInt | None = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Sequence[TextChoices | Choices | StreamingChoices]:
         """Asynchronously invokes the language model with a question and optional system message.
 
@@ -160,46 +160,42 @@ class LLMUsage(LLMScopedConfig, ABC):
 
     @overload
     async def aask(
-            self,
-            question: List[str],
-            system_message: List[str],
-            **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]:
-        ...
+        self,
+        question: List[str],
+        system_message: List[str],
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[str]: ...
 
     @overload
     async def aask(
-            self,
-            question: str,
-            system_message: List[str],
-            **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]:
-        ...
+        self,
+        question: str,
+        system_message: List[str],
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[str]: ...
 
     @overload
     async def aask(
-            self,
-            question: List[str],
-            system_message: Optional[str] = None,
-            **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]:
-        ...
+        self,
+        question: List[str],
+        system_message: Optional[str] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> List[str]: ...
 
     @overload
     async def aask(
-            self,
-            question: str,
-            system_message: Optional[str] = None,
-            **kwargs: Unpack[LLMKwargs],
-    ) -> str:
-        ...
+        self,
+        question: str,
+        system_message: Optional[str] = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str: ...
 
     @logging_exec_time
     async def aask(
-            self,
-            question: str | List[str],
-            system_message: Optional[str | List[str]] = None,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        question: str | List[str],
+        system_message: Optional[str | List[str]] = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
@@ -227,8 +223,7 @@ class LLMUsage(LLMScopedConfig, ABC):
                 res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
                 out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
             case (str(q), str(sm)):
-                out = ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[
-                    0]).message.content  # pyright: ignore [reportAttributeAccessIssue]
+                out = ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportAttributeAccessIssue]
             case _:
                 raise RuntimeError("Should not reach here.")
 
@@ -240,55 +235,51 @@ class LLMUsage(LLMScopedConfig, ABC):
 
     @overload
     async def aask_validate[T](
-            self,
-            question: str,
-            validator: Callable[[str], T | None],
-            default: T = ...,
-            max_validations: PositiveInt = 2,
-            **kwargs: Unpack[GenerateKwargs],
-    ) -> T:
-        ...
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        default: T = ...,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> T: ...
 
     @overload
     async def aask_validate[T](
-            self,
-            question: List[str],
-            validator: Callable[[str], T | None],
-            default: T = ...,
-            max_validations: PositiveInt = 2,
-            **kwargs: Unpack[GenerateKwargs],
-    ) -> List[T]:
-        ...
+        self,
+        question: List[str],
+        validator: Callable[[str], T | None],
+        default: T = ...,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> List[T]: ...
 
     @overload
     async def aask_validate[T](
-            self,
-            question: str,
-            validator: Callable[[str], T | None],
-            default: None = None,
-            max_validations: PositiveInt = 2,
-            **kwargs: Unpack[GenerateKwargs],
-    ) -> Optional[T]:
-        ...
+        self,
+        question: str,
+        validator: Callable[[str], T | None],
+        default: None = None,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> Optional[T]: ...
 
     @overload
     async def aask_validate[T](
-            self,
-            question: List[str],
-            validator: Callable[[str], T | None],
-            default: None = None,
-            max_validations: PositiveInt = 2,
-            **kwargs: Unpack[GenerateKwargs],
-    ) -> List[Optional[T]]:
-        ...
+        self,
+        question: List[str],
+        validator: Callable[[str], T | None],
+        default: None = None,
+        max_validations: PositiveInt = 2,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> List[Optional[T]]: ...
 
     async def aask_validate[T](
-            self,
-            question: str | List[str],
-            validator: Callable[[str], T | None],
-            default: Optional[T] = None,
-            max_validations: PositiveInt = 3,
-            **kwargs: Unpack[GenerateKwargs],
+        self,
+        question: str | List[str],
+        validator: Callable[[str], T | None],
+        default: Optional[T] = None,
+        max_validations: PositiveInt = 3,
+        **kwargs: Unpack[GenerateKwargs],
     ) -> Optional[T] | List[Optional[T]] | List[T] | T:
         """Asynchronously asks a question and validates the response using a given validator.
 
@@ -328,7 +319,7 @@ class LLMUsage(LLMScopedConfig, ABC):
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
     async def amapping_str(
-            self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
     ) -> Optional[Dict[str, str]]:
         """Asynchronously generates a mapping of strings based on a given requirement.
 
@@ -344,7 +335,7 @@ class LLMUsage(LLMScopedConfig, ABC):
 
         def _validate(resp: str) -> None | Dict[str, str]:
             if (obj := JsonCapture.validate_with(resp, target_type=dict, elements_type=str, length=k)) and all(
-                    isinstance(v, str) for v in obj.values()
+                isinstance(v, str) for v in obj.values()
             ):
                 return obj
             return None
@@ -360,18 +351,16 @@ class LLMUsage(LLMScopedConfig, ABC):
 
     @overload
     async def alist_str(
-            self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[str] | None:
-        ...
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
+    ) -> List[str] | None: ...
 
     @overload
     async def alist_str(
-            self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[List[str] | None] | None:
-        ...
+        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
+    ) -> List[List[str] | None] | None: ...
 
     async def alist_str(
-            self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
+        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> List[str] | List[List[str] | None] | None:
         """Asynchronously generates a list of strings based on a given requirement.
 
@@ -384,6 +373,7 @@ class LLMUsage(LLMScopedConfig, ABC):
             Optional[List[str]]: The validated response as a list of strings.
         """
         from fabricatio_core.parser import JsonCapture
+
         if isinstance(requirement, str):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
@@ -433,32 +423,32 @@ class LLMUsage(LLMScopedConfig, ABC):
             Optional[str]: The validated response as a single string.
         """
         if paths := await self.apathstr(
-                requirement,
-                k=1,
-                **kwargs,
+            requirement,
+            k=1,
+            **kwargs,
         ):
             return paths.pop()
 
         return None
-
 
     @overload
     async def ageneric_string(
         self,
         requirement: str,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[str]:
-        ...
+    ) -> Optional[str]: ...
 
     @overload
     async def ageneric_string(
         self,
         requirement: List[str],
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[List[Optional[str]]]:
-        ...
-    async def ageneric_string(self, requirement: str | List[str],
-                              **kwargs: Unpack[ValidateKwargs[str]], ) -> None | str | List[str | None]:
+    ) -> Optional[List[Optional[str]]]: ...
+    async def ageneric_string(
+        self,
+        requirement: str | List[str],
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> None | str | List[str | None]:
         """Asynchronously generates a generic string based on a given requirement.
 
         Args:
@@ -469,6 +459,7 @@ class LLMUsage(LLMScopedConfig, ABC):
             Optional[str]: The generated string.
         """
         from fabricatio_core.parser import GenericCapture
+
         if isinstance(requirement, str):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
@@ -488,12 +479,13 @@ class LLMUsage(LLMScopedConfig, ABC):
                 **kwargs,
             )
         return None
+
     async def achoose[T: WithBriefing](
-            self,
-            instruction: str,
-            choices: List[T],
-            k: NonNegativeInt = 0,
-            **kwargs: Unpack[ValidateKwargs[List[T]]],
+        self,
+        instruction: str,
+        choices: List[T],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -538,10 +530,10 @@ class LLMUsage(LLMScopedConfig, ABC):
         )
 
     async def apick[T: WithBriefing](
-            self,
-            instruction: str,
-            choices: List[T],
-            **kwargs: Unpack[ValidateKwargs[List[T]]],
+        self,
+        instruction: str,
+        choices: List[T],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
@@ -566,11 +558,11 @@ class LLMUsage(LLMScopedConfig, ABC):
         )[0]
 
     async def ajudge(
-            self,
-            prompt: str,
-            affirm_case: str = "",
-            deny_case: str = "",
-            **kwargs: Unpack[ValidateKwargs[bool]],
+        self,
+        prompt: str,
+        affirm_case: str = "",
+        deny_case: str = "",
+        **kwargs: Unpack[ValidateKwargs[bool]],
     ) -> Optional[bool]:
         """Asynchronously judges a prompt using AI validation.
 
@@ -602,12 +594,12 @@ class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
     """
 
     async def aembedding(
-            self,
-            input_text: List[str],
-            model: Optional[str] = None,
-            dimensions: Optional[int] = None,
-            timeout: Optional[PositiveInt] = None,
-            caching: Optional[bool] = False,
+        self,
+        input_text: List[str],
+        model: Optional[str] = None,
+        dimensions: Optional[int] = None,
+        timeout: Optional[PositiveInt] = None,
+        caching: Optional[bool] = False,
     ) -> EmbeddingResponse:
         """Asynchronously generates embeddings for the given input text.
 
@@ -633,10 +625,10 @@ class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
             dimensions=dimensions or self.embedding_dimensions or CONFIG.embedding.dimensions,
             model=model or self.embedding_model or CONFIG.embedding.model or self.llm_model or CONFIG.llm.model,
             timeout=timeout
-                    or self.embedding_timeout
-                    or CONFIG.embedding.timeout
-                    or self.llm_timeout
-                    or CONFIG.llm.timeout,
+            or self.embedding_timeout
+            or CONFIG.embedding.timeout
+            or self.llm_timeout
+            or CONFIG.llm.timeout,
             api_key=ok(
                 self.embedding_api_key or CONFIG.embedding.api_key or self.llm_api_key or CONFIG.llm.api_key
             ).get_secret_value(),
@@ -650,15 +642,13 @@ class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
         )
 
     @overload
-    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]:
-        ...
+    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
 
     @overload
-    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]:
-        ...
+    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
 
     async def vectorize(
-            self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
     ) -> List[List[float]] | List[float]:
         """Asynchronously generates vector embeddings for the given input text.
 
@@ -685,9 +675,9 @@ class ToolBoxUsage(LLMUsage, ABC):
     """A set of toolboxes used by the instance."""
 
     async def choose_toolboxes(
-            self,
-            task: Task,
-            **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
+        self,
+        task: Task,
+        **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
     ) -> Optional[List[ToolBox]]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
@@ -708,10 +698,10 @@ class ToolBoxUsage(LLMUsage, ABC):
         )
 
     async def choose_tools(
-            self,
-            task: Task,
-            toolbox: ToolBox,
-            **kwargs: Unpack[ChooseKwargs[List[Tool]]],
+        self,
+        task: Task,
+        toolbox: ToolBox,
+        **kwargs: Unpack[ChooseKwargs[List[Tool]]],
     ) -> Optional[List[Tool]]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
@@ -733,10 +723,10 @@ class ToolBoxUsage(LLMUsage, ABC):
         )
 
     async def gather_tools_fine_grind(
-            self,
-            task: Task,
-            box_choose_kwargs: Optional[ChooseKwargs] = None,
-            tool_choose_kwargs: Optional[ChooseKwargs] = None,
+        self,
+        task: Task,
+        box_choose_kwargs: Optional[ChooseKwargs] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs] = None,
     ) -> List[Tool]:
         """Asynchronously gathers tools based on the provided task and toolbox and tool selection criteria.
 
