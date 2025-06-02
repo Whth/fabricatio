@@ -16,9 +16,10 @@ class AnkiConfig:
     """Template name for generate anki card type."""
 
     generate_anki_model_name_template: str = "generate_anki_model_name"
-
+    """Template name for generate anki model name."""
     generate_anki_card_template_generation_requirements_template: str = "generate_anki_card_template_generation_requirements"
-    
+    """Template name for generate anki card template generation requirements."""
+
 
 anki_config = CONFIG.load("anki", AnkiConfig)
 __all__ = ["anki_config"]
