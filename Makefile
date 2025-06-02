@@ -34,6 +34,7 @@ test:dev
 
 publish: bdist
 	uv run subpackages.py --pyversion $(PY)
+	uvx -p $(PY) --project . maturin publish
 
 
 .PHONY:  dev bdist clean publish tests bins dirs all
