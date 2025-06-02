@@ -165,7 +165,7 @@ class Patch[T](ProposedAble, ABC):
                     "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
-
+            my_schema["title"] = ref_cls.__name__
         return ujson.dumps(my_schema, indent=2, ensure_ascii=False, sort_keys=False)
 
 
