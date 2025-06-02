@@ -14,7 +14,11 @@ from fabricatio_anki.models.template import Template
 
 
 class GenerateDeck(Propose):
-    """Create a deck of cards."""
+    """Create a deck of cards with associated models and templates.
+
+    This class provides methods to generate full decks, individual models,
+    and card templates based on user requirements and field definitions.
+    """
 
     async def generate_deck(
         self,
@@ -24,7 +28,18 @@ class GenerateDeck(Propose):
         kt: int = 0,
         **kwargs: Unpack[ValidateKwargs[Optional[Deck]]],
     ) -> Deck | None:
-        """Create a deck with the given name and description."""
+        """Create a deck with the given name and description.
+
+        Args:
+            requirement: The requirement or theme for the deck
+            fields: List of fields to be included in the cards
+            km: Number of model generation attempts
+            kt: Number of template generation attempts
+            **kwargs: Additional validation keyword arguments
+
+        Returns:
+            A Deck object containing metadata and models
+        """
         ov_kwargs = override_kwargs(kwargs, defualt=None)
 
         metadata = ok(
@@ -54,12 +69,34 @@ class GenerateDeck(Propose):
     @overload
     async def generate_model(
         self, fields: List[str], requirement: str, k: int = 0, **kwargs: Unpack[ValidateKwargs[Optional[Model]]]
-    ) -> Model | None: ...
+    ) -> Model | None:
+        """Overloaded version for single string requirement.
+
+        Args:
+            fields: Fields for the model
+            requirement: Single requirement description
+            k: Number of generation attempts
+            **kwargs: Validation arguments
+
+        Returns:
+            A single Model instance
+        """
 
     @overload
     async def generate_model(
         self, fields: List[str], requirement: List[str], k: int = 0, **kwargs: Unpack[ValidateKwargs[Optional[Model]]]
-    ) -> List[Model] | None: ...
+    ) -> List[Model] | None:
+        """Overloaded version for multiple requirements.
+
+        Args:
+            fields: Fields for the model
+            requirement: List of requirement descriptions
+            k: Number of generation attempts
+            **kwargs: Validation arguments
+
+        Returns:
+            A list of Model instances
+        """
 
     async def generate_model(
         self,
@@ -68,6 +105,17 @@ class GenerateDeck(Propose):
         k: int = 0,
         **kwargs: Unpack[ValidateKwargs[Optional[Model]]],
     ) -> Model | List[Model] | None:
+        """Generate one or more Anki card models.
+
+        Args:
+            fields: Fields to be included in the model
+            requirement: Requirement(s) for model generation
+            k: Number of generation attempts
+            **kwargs: Validation keyword arguments
+
+        Returns:
+            One or more Model instances based on input type
+        """
         if isinstance(requirement, str):
             name = ok(
                 await self.ageneric_string(
@@ -135,16 +183,46 @@ class GenerateDeck(Propose):
     @overload
     async def generate_template(
         self, fields: List[str], requirement: str, **kwargs: Unpack[ValidateKwargs[Optional[Template]]]
-    ) -> Template | None: ...
+    ) -> Template | None:
+        """Overloaded version for single template generation.
+
+        Args:
+            fields: Fields for the template
+            requirement: Single requirement description
+            **kwargs: Validation arguments
+
+        Returns:
+            A single Template instance
+        """
 
     @overload
     async def generate_template(
         self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Optional[Template]]]
-    ) -> List[Template] | None: ...
+    ) -> List[Template] | None:
+        """Overloaded version for multiple template generation.
+
+        Args:
+            fields: Fields for the template
+            requirement: List of requirement descriptions
+            **kwargs: Validation arguments
+
+        Returns:
+            A list of Template instances
+        """
 
     async def generate_template(
         self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Optional[Template]]]
     ) -> Template | List[Template] | None:
+        """Generate one or more card templates.
+
+        Args:
+            fields: Fields used in the template
+            requirement: Requirement(s) for template generation
+            **kwargs: Validation keyword arguments
+
+        Returns:
+            One or more Template instances based on input type
+        """
         if isinstance(requirement, str):
             rendered = TEMPLATE_MANAGER.render_template(
                 anki_config.generate_anki_card_template_template, {"fields": fields, "requirement": requirement}

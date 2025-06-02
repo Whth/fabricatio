@@ -104,13 +104,30 @@ class Deck(SketchedAble, WithBriefing):
 
 
 class ModelMetaData(WithBriefing, Patch[Deck]):
-    """Patch class for updating metadata of a deck model."""
+    """Patch class for updating metadata of a deck model.
+
+    This class is used to apply metadata updates to a Deck instance,
+    while excluding specific fields from the update process.
+    """
 
     @staticmethod
     def excluded_fields() -> Set[str]:
-        """Excludes models from being updated."""
+        """Returns a set of fields that should be excluded from updates.
+
+        These fields are intentionally not modified when applying metadata patches.
+
+        Returns:
+            Set[str]: A set containing the names of excluded fields.
+        """
         return {"models", "author"}
 
     @staticmethod
     def ref_cls() -> Optional[Type[BaseModel]]:
+        """Returns the reference class for this patch.
+
+        Determines which class this patch can be applied to.
+
+        Returns:
+            Optional[Type[BaseModel]]: The Deck class.
+        """
         return Deck
