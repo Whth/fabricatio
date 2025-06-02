@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Whth/fabricatio/blob/master/LICENSE)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio)
-![PyPI Version](https://img.shields.io/pypi/v/fabricatio)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio)](https://pypi.org/project/fabricatio/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Whth/fabricatio)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio/week)](https://pepy.tech/projects/fabricatio)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio)](https://pepy.tech/projects/fabricatio)
