@@ -1,6 +1,7 @@
 # Fabricatio
 
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Whth/fabricatio/blob/master/LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Whth/fabricatio)
 
 ## Overview
 
