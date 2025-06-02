@@ -9,7 +9,7 @@ dirs:
 	mkdir -p $(DIST) $(DATA)
 
 
-dev:
+dev: dirs
 	cargo build -p fabricatio --bins -r -Z unstable-options --artifact-dir $(DATA)/scripts
 	rm $(DATA)/scripts/*.pdb -f
 	rm $(DATA)/scripts/*.dwarf -f
