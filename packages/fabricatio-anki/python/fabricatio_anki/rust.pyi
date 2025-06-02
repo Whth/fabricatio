@@ -197,3 +197,78 @@ def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
         >>> save_metadata(Path("/path/to/project"), "deck_info", metadata)
         # Creates /path/to/project/deck_info.yaml with the metadata
     """
+    
+    
+    
+
+
+def save_template(
+    dir_path: Path,
+    front: str,
+    back: str,
+    css: str | None = None,
+) -> None:
+    """Save card type template files (front.html, back.html, and optional style.css) to a directory.
+
+    This function creates the template files that define how cards will be displayed in Anki.
+    It writes the front and back HTML templates, and optionally a CSS stylesheet, to the
+    specified directory. These files are typically used within a model's templates subdirectory
+    to define different card layouts.
+
+    The function writes three potential files:
+    - front.html: Contains the HTML template for the front side of the card
+    - back.html: Contains the HTML template for the back side of the card  
+    - style.css: Contains CSS styling rules (only if css parameter is provided)
+
+    Args:
+        dir_path (Path): The directory path where the template files should be saved.
+                        This directory must already exist and be writable. Typically this
+                        would be a path like "models/model_name/templates/template_name/".
+        
+        front (str): The HTML content for the front side of the card template.
+                    This should be valid HTML that can include Anki field placeholders
+                    like {{FieldName}} which will be replaced with actual card data.
+                    Example: "<div class='front'>{{Question}}</div>"
+        
+        back (str): The HTML content for the back side of the card template.
+                   This should be valid HTML and typically includes {{FrontSide}} to
+                   show the front content plus additional fields for the answer.
+                   Example: "{{FrontSide}}<hr>{{Answer}}"
+        
+        css (str | None, optional): CSS styling rules to be applied to the card templates.
+                                   If provided, this will be written to a style.css file.
+                                   If None, no CSS file will be created. The CSS should be
+                                   valid stylesheet content that styles the HTML elements
+                                   in the front and back templates.
+
+    Raises:
+        Exception: If the directory path does not exist or is not accessible.
+        Exception: If any of the template files cannot be written due to permission issues.
+        Exception: If there are I/O errors during file writing operations.
+        Exception: If the directory path is invalid or points to a file instead of a directory.
+
+    Example:
+        Basic card template creation:
+        >>> from pathlib import Path
+        >>> save_template(
+        ...     Path("/path/to/models/basic/templates/card"),
+        ...     front="<div class='question'>{{Front}}</div>",
+        ...     back="{{FrontSide}}<hr><div class='answer'>{{Back}}</div>"
+        ... )
+        
+        Card template with custom CSS styling:
+        >>> save_template(
+        ...     Path("/path/to/models/vocab/templates/word_card"),
+        ...     front="<h2>{{Word}}</h2><p>{{Context}}</p>",
+        ...     back="{{FrontSide}}<hr><div class='definition'>{{Definition}}</div>",
+        ...     css=".question { font-size: 24px; color: blue; } .answer { background: #f0f0f0; }"
+        ... )
+
+    Note:
+        - The directory must exist before calling this function - it will not be created automatically.
+        - Existing template files in the directory will be overwritten without warning.
+        - The HTML content should be properly escaped if it contains special characters.
+        - Field placeholders in the format {{FieldName}} will be replaced by Anki with actual card data.
+        - The CSS file is optional but recommended for consistent card styling across different devices.
+        - Template files use standard HTML/CSS which allows for rich formatting and multimedia content.
+    """

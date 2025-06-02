@@ -1,10 +1,10 @@
-use deck_loader::loader::AnkiDeckLoader;
+use deck_loader::loader::{AnkiDeckLoader, constants};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pythonize::depythonize;
 use serde_yml::Value;
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::PathBuf;
 
 #[pyfunction]
 fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
@@ -38,6 +38,7 @@ fn create_deck_project(
 
 #[pyfunction]
 fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyResult<()> {
+    fs::create_dir_all(&dir_path)?;
     depythonize::<Value>(&data)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         .and_then(|value| {
@@ -50,10 +51,26 @@ fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyR
         })
 }
 
-fn save_card_type(dir_path: PathBuf) {}
+#[pyfunction]
+fn save_template(
+    dir_path: PathBuf,
+    front: String,
+    back: String,
+    css: Option<String>,
+) -> PyResult<()> {
+    fs::create_dir_all(&dir_path)?;
+    fs::write(dir_path.join(constants::TEMPLATE_FRONT), front)?;
+    fs::write(dir_path.join(constants::TEMPLATE_BACK), back)?;
+    if let Some(css) = css {
+        fs::write(dir_path.join(constants::TEMPLATE_CSS), css)?;
+    }
+
+    Ok(())
+}
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile_deck, m)?)?;
     m.add_function(wrap_pyfunction!(create_deck_project, m)?)?;
     m.add_function(wrap_pyfunction!(save_metadata, m)?)?;
+    m.add_function(wrap_pyfunction!(save_template, m)?)?;
     Ok(())
 }
