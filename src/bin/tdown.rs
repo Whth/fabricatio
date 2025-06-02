@@ -309,47 +309,82 @@ fn list_templates(
     Ok(())
 }
 
+fn find_matching_templates(
+    template_name: &str,
+    template_dir: &PathBuf,
+) -> Result<Vec<(PathBuf, String)>, Box<dyn std::error::Error>> {
+    let found_templates =
+        collect_templates_recursive(template_dir, Some(template_name), template_dir)?;
+
+    let matching_templates: Vec<_> = found_templates
+        .into_iter()
+        .filter(|(path, relative_path)| {
+            let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            file_stem == template_name || relative_path == template_name
+        })
+        .collect();
+
+    Ok(matching_templates)
+}
+
+fn confirm_removal(relative_path: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    print!(
+        "{} Remove template '{}'? [y/N]: ",
+        "?".yellow(),
+        relative_path
+    );
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    Ok(input.trim().to_lowercase().starts_with('y'))
+}
+
+fn remove_single_template(
+    template_path: &PathBuf,
+    relative_path: &str,
+    force: bool,
+    verbose: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !force {
+        if !confirm_removal(relative_path)? {
+            if verbose {
+                println!("{} Skipped {}", "→".yellow(), relative_path);
+            }
+            return Ok(());
+        }
+    }
+
+    fs::remove_file(template_path)?;
+
+    if verbose {
+        println!("{} Removed {}", "✓".green(), relative_path);
+    }
+
+    Ok(())
+}
+
 fn remove_templates(
     templates: &[String],
     template_dir: &PathBuf,
     force: bool,
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    for template_name in templates {
-        let template_path = template_dir.join(format!("{}.hbs", template_name));
+    templates.iter().try_for_each(|template_name| {
+        let matching_templates = find_matching_templates(template_name, template_dir)?;
 
-        if !template_path.exists() {
+        if matching_templates.is_empty() {
             eprintln!("{} Template not found: {}", "✗".red(), template_name);
-            continue;
+            return Ok(());
         }
 
-        if !force {
-            print!(
-                "{} Remove template '{}'? [y/N]: ",
-                "?".yellow(),
-                template_name
-            );
-            io::stdout().flush()?;
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-
-            if !input.trim().to_lowercase().starts_with('y') {
-                if verbose {
-                    println!("{} Skipped {}", "→".yellow(), template_name);
-                }
-                continue;
-            }
-        }
-
-        fs::remove_file(&template_path)?;
-
-        if verbose {
-            println!("{} Removed {}", "✓".green(), template_name);
-        }
-    }
-
-    Ok(())
+        matching_templates
+            .iter()
+            .try_for_each(|(template_path, relative_path)| {
+                remove_single_template(template_path, relative_path, force, verbose)
+            })
+    })
 }
 
 fn show_release_info(
