@@ -1,7 +1,21 @@
 # Fabricatio
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Whth/fabricatio/blob/master/LICENSE)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio)
+![PyPI Version](https://img.shields.io/pypi/v/fabricatio)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Whth/fabricatio)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio/week)](https://pepy.tech/projects/fabricatio)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio)](https://pepy.tech/projects/fabricatio)
+[![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
+[![Powered by LiteLLM](https://img.shields.io/badge/Powered%20by-LiteLLM-blue)](https://github.com/BerriAI/litellm)
+[![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
+![Build Package](https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml/badge.svg)
+![Ruff Lint](https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml/badge.svg)
+![Tests](https://github.com/Whth/fabricatio/actions/workflows/tests.yaml/badge.svg)
+![GitHub Issues](https://img.shields.io/github/issues/Whth/fabricatio)
+![GitHub Pull Requests](https://img.shields.io/github/issues-pr/Whth/fabricatio)
+![GitHub Stars](https://img.shields.io/github/stars/Whth/fabricatio)
+---
 
 ## Overview
 
