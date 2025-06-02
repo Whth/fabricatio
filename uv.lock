@@ -420,7 +420,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.1.0.dev16"
+version = "0.1.0.dev17"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -604,7 +604,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-tagging"
-version = "0.1.0"
+version = "0.1.0.dev0"
 source = { editable = "packages/fabricatio-tagging" }
 dependencies = [
     { name = "fabricatio-core" },
