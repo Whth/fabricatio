@@ -65,7 +65,7 @@ dev = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging]",
 ]
 
 anki = ["fabricatio-anki"]
@@ -80,6 +80,7 @@ improve = ["fabricatio-improve"]
 capabilities = ["fabricatio-capabilities"]
 actions = ["fabricatio-actions"]
 question = ["fabricatio-question"]
+tagging = ["fabricatio-tagging"]
 
 [tool.ruff]
 include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py", "packages/*.py"]
@@ -154,6 +155,7 @@ fabricatio-digest = { workspace = true }
 fabricatio-memory = { workspace = true }
 fabricatio-anki = { workspace = true }
 fabricatio-question = {workspace = true}
+fabricatio-tagging = {workspace = true}
 
 
 

@@ -1,7 +1,7 @@
-from csv import reader
-from pathlib import Path
+
 from typing import ClassVar
 
+from anyio import Path
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.usages import LLMUsage
@@ -16,15 +16,15 @@ class MakeDeckCreationProposal(Action, LLMUsage):
     requirement: str
 
     async def _execute(self, **cxt) -> str | None:
-        with Path(self.csv_file).open() as f:
-            header = next(reader(f, delimiter=self.csv_sep))
+        async with await Path(self.csv_file).open() as f:
+            header = (await f.readline()).split(self.csv_sep)
 
         return await self.ageneric_string(
-            TEMPLATE_MANAGER.render_template(anki_config.make_deck_creation_proposal_template,
-                                             {
-                                                 "requirement": self.requirement,
-                                                 "fields": header,
-                                             },
-                                             ),
-
-        )
+            TEMPLATE_MANAGER
+            .render_template(
+                anki_config.make_deck_creation_proposal_template,
+                {
+                    "requirement": self.requirement,
+                    "fields": header,
+                },
+            ))

@@ -20,6 +20,7 @@ members = [
     "fabricatio-question",
     "fabricatio-rag",
     "fabricatio-rule",
+    "fabricatio-tagging",
     "fabricatio-typst",
 ]
 
@@ -317,6 +318,7 @@ full = [
     { name = "fabricatio-question" },
     { name = "fabricatio-rag" },
     { name = "fabricatio-rule" },
+    { name = "fabricatio-tagging" },
     { name = "fabricatio-typst" },
     { name = "typer-slim", extra = ["standard"] },
 ]
@@ -337,6 +339,9 @@ rag = [
 ]
 rule = [
     { name = "fabricatio-rule" },
+]
+tagging = [
+    { name = "fabricatio-tagging" },
 ]
 typst = [
     { name = "fabricatio-typst" },
@@ -362,7 +367,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
     { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
@@ -374,10 +379,11 @@ requires-dist = [
     { name = "fabricatio-question", marker = "extra == 'question'", editable = "packages/fabricatio-question" },
     { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
     { name = "fabricatio-rule", marker = "extra == 'rule'", editable = "packages/fabricatio-rule" },
+    { name = "fabricatio-tagging", marker = "extra == 'tagging'", editable = "packages/fabricatio-tagging" },
     { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question"]
+provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question", "tagging"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -414,7 +420,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.1.0.dev13"
+version = "0.1.0.dev16"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -436,7 +442,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.5.dev4"
+version = "0.1.5.dev5"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -540,7 +546,7 @@ requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-cor
 
 [[package]]
 name = "fabricatio-question"
-version = "0.1.0"
+version = "0.1.0.dev0"
 source = { editable = "packages/fabricatio-question" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -597,8 +603,28 @@ requires-dist = [
 ]
 
 [[package]]
+name = "fabricatio-tagging"
+version = "0.1.0"
+source = { editable = "packages/fabricatio-tagging" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.optional-dependencies]
+tests = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "pytest", marker = "extra == 'tests'" },
+]
+provides-extras = ["tests"]
+
+[[package]]
 name = "fabricatio-typst"
-version = "0.1.4.dev1"
+version = "0.1.4.dev2"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -957,7 +983,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.71.2"
+version = "1.72.0"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -972,9 +998,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/73/ce/77843b37d874cc4c793a978c917ffd9aa8fe553824103bd0dc8b06189b44/litellm-1.71.2.tar.gz", hash = "sha256:b9f5682de3dbac45c09cddf132071518de7c4cd64726ad73195516a8f198a467", size = 7943008, upload-time = "2025-05-28T19:40:20.569Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/55/d3/f1a8c9c9ffdd3bab1bc410254c8140b1346f05a01b8c6b37c48b56abb4b0/litellm-1.72.0.tar.gz", hash = "sha256:135022b9b8798f712ffa84e71ac419aa4310f1d0a70f79dd2007f7ef3a381e43", size = 8082337, upload-time = "2025-06-01T02:12:54.203Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/b1/b2/7fc4bbda2af925b75a77aa506e6d94df70d4e1295a6db805cbff8a3fb8a6/litellm-1.71.2-py3-none-any.whl", hash = "sha256:2af27490ecce9824575e16e24767b4490c55875408df8a1ad058d65fde1e2888", size = 7933531, upload-time = "2025-05-28T19:40:16.232Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c2/98/bec08f5a3e504013db6f52b5fd68375bd92b463c91eb454d5a6460e957af/litellm-1.72.0-py3-none-any.whl", hash = "sha256:88360a7ae9aa9c96278ae1bb0a459226f909e711c5d350781296d0640386a824", size = 7979630, upload-time = "2025-06-01T02:12:50.458Z" },
 ]
 
 [[package]]
