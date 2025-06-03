@@ -13,10 +13,9 @@ build:
     post_create_environment:
       - pip install uv
     post_install:
-      - . $READTHEDOCS_VIRTUALENV_PATH/bin/activate
-      - uv sync --no-install-project --group docs --index https://pypi.org/simple --active
+      - . $READTHEDOCS_VIRTUALENV_PATH/bin/activate && uv sync --no-install-project --group docs --index https://pypi.org/simple --active
 
 
-# Build documentation in the "docs/" directory with Sphinx
+      # Build documentation in the "docs/" directory with Sphinx
 sphinx:
   configuration: docs/source/conf.py
