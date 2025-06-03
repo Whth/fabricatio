@@ -16,11 +16,11 @@ from litellm import (
     ModelResponse,
     RateLimitError,
     Router,
-    StreamingChoices,
     TextChoices,
     stream_chunk_builder,
     token_counter,
 )
+from litellm.utils import StreamingChoices
 from more_itertools import duplicates_everseen
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
 

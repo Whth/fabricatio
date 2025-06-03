@@ -25,17 +25,11 @@ rag = [
 
 ]
 
-qa=[
+qa = [
     "questionary"
 ]
 
 workflows = ["fabricatio-actions", "fabricatio-rag"]
-
-
-[tool.uv.sources]
-
-fabricatio-rag = { workspace = true }
-fabricatio-actions = { workspace = true }
 
 
 [build-system]

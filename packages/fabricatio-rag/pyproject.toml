@@ -14,18 +14,18 @@ dependencies = [
     "pydantic>= 2.7.4",
     "fabricatio-core"
 ]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_rag.rust"
-
-
-
-[tool.uv.sources]
-
-fabricatio-core = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"

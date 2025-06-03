@@ -21,8 +21,8 @@ dependencies = [
     "fabricatio-core",
     "questionary>=2.1.0",
 ]
-[project.optional-dependencies]
-tests = [
+[dependency-groups]
+dev = [
     "pytest",
 ]
 

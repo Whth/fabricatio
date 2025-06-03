@@ -20,8 +20,8 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "fabricatio-core",
 ]
-[project.optional-dependencies]
-tests = [
+[dependency-groups]
+dev = [
     "pytest",
 ]
 

@@ -13,6 +13,10 @@ dependencies = [
     "fabricatio-core"
 ]
 
+[dependency-groups]
+dev = [
+    "pytest",
+]
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
