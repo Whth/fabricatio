@@ -42,7 +42,7 @@ languages = {
 # Set gettext output directory (where .pot files are generated)
 gettext_compact = False  # Generate separate pot files for each document
 
-locale_dirs = ['locales/']
+locale_dirs = ["locales/"]
 templates_path = ["_templates"]
 
 # -- Options for HTML output -------------------------------------------------
@@ -116,4 +116,5 @@ autoapi_options = [
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
+    "special-members",
 ]

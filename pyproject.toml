@@ -94,7 +94,10 @@ question = ["fabricatio-question"]
 tagging = ["fabricatio-tagging"]
 
 [tool.ruff]
-include = ["pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py", "packages/*.py", "packages/*/pyproject.toml"]
+include = [
+    "docs/source/conf.py",
+    "pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py",
+    "packages/*.py", "packages/*/pyproject.toml"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]
@@ -158,10 +161,10 @@ fabricatio-core = { workspace = true }
 fabricatio-capabilities = { workspace = true }
 fabricatio-actions = { workspace = true }
 fabricatio-typst = { workspace = true }
-fabricatio-rag = {workspace = true}
+fabricatio-rag = { workspace = true }
 fabricatio-rule = { workspace = true }
 fabricatio-judge = { workspace = true }
-fabricatio-improve = {workspace = true}
+fabricatio-improve = { workspace = true }
 fabricatio-digest = { workspace = true }
 fabricatio-memory = { workspace = true }
 fabricatio-anki = { workspace = true }
