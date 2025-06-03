@@ -13,8 +13,7 @@ build:
     post_create_environment:
       - pip install uv
     post_install:
-      - uv sync --no-install-project --group docs --index https://pypi.org/simple
-      - export READTHEDOCS_VIRTUALENV_PATH="$(pwd)/.venv"
+      - uv sync --no-install-project --group docs --index https://pypi.org/simple --active
 
 
 # Build documentation in the "docs/" directory with Sphinx
