@@ -6,12 +6,23 @@
 fabricatio documentation
 ========================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+**Fabricatio**: Streamlined Python library for building LLM applications with event-based agent structure.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   installation
+   usage
+   configuration
+   development
+   examples/index
+   contributing
+   license
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
