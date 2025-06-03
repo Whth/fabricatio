@@ -14,7 +14,6 @@ build:
       - pip install uv
     post_install:
       - uv sync --no-install-project --group docs --index https://pypi.org/simple
-      - source .venv/bin/activate
       - export READTHEDOCS_VIRTUALENV_PATH="$(pwd)/.venv"
 
 
