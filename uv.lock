@@ -520,7 +520,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.6.dev0"
+version = "0.1.6.dev1"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -599,7 +599,6 @@ source = { editable = "packages/fabricatio-improve" }
 dependencies = [
     { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
-    { name = "fabricatio-rule" },
 ]
 
 [package.dev-dependencies]
@@ -611,7 +610,6 @@ dev = [
 requires-dist = [
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
-    { name = "fabricatio-rule", editable = "packages/fabricatio-rule" },
 ]
 
 [package.metadata.requires-dev]
@@ -2124,7 +2122,7 @@ wheels = [
 [[package]]
 name = "sphinx"
 version = "8.3.0"
-source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
 dependencies = [
     { name = "alabaster" },
     { name = "babel" },
@@ -2144,9 +2142,9 @@ dependencies = [
     { name = "sphinxcontrib-qthelp" },
     { name = "sphinxcontrib-serializinghtml" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e5/8d/012c6d6f0e9a3e70ddf68dec54f08c51e36cb64e81d70c77ed2d096a042c/sphinx-8.3.0.tar.gz", hash = "sha256:3bad4314a7fa72ce92344eaaa14c42ddf3177ee6a79c227e4ff8ae07d416f584", size = 8322107, upload-time = "2025-03-02T20:56:40.861Z" }
+sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/e5/8d/012c6d6f0e9a3e70ddf68dec54f08c51e36cb64e81d70c77ed2d096a042c/sphinx-8.3.0.tar.gz", hash = "sha256:3bad4314a7fa72ce92344eaaa14c42ddf3177ee6a79c227e4ff8ae07d416f584" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2f/72/9a437a9dc5393c0eabba447bdb6233a7b02bb23e84975f17ad9a9ca86677/sphinx-8.3.0-py3-none-any.whl", hash = "sha256:bd8fcf35ab2c4240b01c74a411c948350a3aebd6aa175579363754ed380d350a", size = 3589734, upload-time = "2025-03-02T20:56:35.431Z" },
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/2f/72/9a437a9dc5393c0eabba447bdb6233a7b02bb23e84975f17ad9a9ca86677/sphinx-8.3.0-py3-none-any.whl", hash = "sha256:bd8fcf35ab2c4240b01c74a411c948350a3aebd6aa175579363754ed380d350a" },
 ]
 
 [[package]]
