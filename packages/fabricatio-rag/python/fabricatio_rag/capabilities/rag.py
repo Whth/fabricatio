@@ -1,15 +1,6 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
 from abc import ABC
-
-from fabricatio_rag.config import rag_config
-
-try:
-    from pymilvus import MilvusClient
-except ImportError as e:
-    raise RuntimeError(
-        "pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`?"
-    ) from e
 from functools import lru_cache
 from operator import itemgetter
 from typing import List, Optional, Self, Type, Unpack
@@ -21,7 +12,9 @@ from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
+from pymilvus import MilvusClient
 
+from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.kwargs_types import CollectionConfigKwargs, FetchKwargs
 from fabricatio_rag.models.rag import MilvusDataBase, MilvusScopedConfig
 

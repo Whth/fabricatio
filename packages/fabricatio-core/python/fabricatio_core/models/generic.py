@@ -25,7 +25,7 @@ class Base(BaseModel, ABC):
     """Base class for all models with Pydantic configuration.
 
     This class sets up the basic Pydantic configuration for all models in the Fabricatio library.
-    The `model_config` uses `use_attribute_docstrings=True` to ensure field descriptions are
+    The ``model_config`` uses ``use_attribute_docstrings=True`` to ensure field descriptions are
     pulled from the attribute's docstring instead of the default Pydantic behavior.
     """
 

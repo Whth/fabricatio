@@ -9,6 +9,7 @@ from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
 
 from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.rag import MilvusClassicModel, MilvusDataBase
 
 
@@ -40,7 +41,7 @@ class InjectToDB(Action, RAG):
             schema=seq[0].as_milvus_schema(
                 ok(
                     self.milvus_dimensions
-                    or CONFIG.rag.milvus_dimensions
+                    or rag_config.milvus_dimensions
                     or self.embedding_dimensions
                     or CONFIG.embedding.dimensions
                 ),

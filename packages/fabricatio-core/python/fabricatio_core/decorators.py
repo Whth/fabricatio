@@ -153,42 +153,41 @@ def use_temp_module[**P, R](modules: ModuleType | List[ModuleType]) -> Callable[
     state of sys.modules.
 
     Args:
-        modules (ModuleType | List[ModuleType]): A single module or list of modules to
-            temporarily inject into sys.modules.
+        modules (ModuleType | List[ModuleType]): A single module or list of modules to temporarily inject into sys.modules.
 
     Returns:
-        Callable[[Callable[P, R]], Callable[P, R]]: A decorator that handles temporary
-            module injection.
+        Callable[[Callable[P, R]], Callable[P, R]]: A decorator that handles temporary module injection.
 
     Examples:
-        ```python
-        from types import ModuleSpec, ModuleType, module_from_spec
+        .. code-block:: python
 
-        # Create a temporary module
-        temp_module = module_from_spec(ModuleSpec("temp_math", None))
-        temp_module.pi = 3.14
+            from types import ModuleSpec, ModuleType, module_from_spec
 
-        # Use the decorator to temporarily inject the module
-        @use_temp_module(temp_module)
-        def calculate_area(radius: float) -> float:
-            from temp_math import pi
-            return pi * radius ** 2
+            # Create a temporary module
+            temp_module = module_from_spec(ModuleSpec("temp_math", None))
+            temp_module.pi = 3.14
 
-        # The temp_module is only available inside the function
-        result = calculate_area(5.0)  # Uses temp_module.pi
-        ```
+            # Use the decorator to temporarily inject the module
+            @use_temp_module(temp_module)
+            def calculate_area(radius: float) -> float:
+                from temp_math import pi
+                return pi * radius ** 2
+
+            # The temp_module is only available inside the function
+            result = calculate_area(5.0)  # Uses temp_module.pi
 
         Multiple modules can also be injected:
-        ```python
-        module1 = module_from_spec(ModuleSpec("mod1", None))
-        module2 = module_from_spec(ModuleSpec("mod2", None))
 
-        @use_temp_module([module1, module2])
-        def process_data():
-            import mod1, mod2
-            # Work with temporary modules
-            ...
-        ```
+        .. code-block:: python
+
+            module1 = module_from_spec(ModuleSpec("mod1", None))
+            module2 = module_from_spec(ModuleSpec("mod2", None))
+
+            @use_temp_module([module1, module2])
+            def process_data():
+                import mod1, mod2
+                # Work with temporary modules
+
     """
     module_list = [modules] if isinstance(modules, ModuleType) else modules
 

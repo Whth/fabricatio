@@ -19,18 +19,30 @@ extensions = [
     "myst_parser",  # Enable Markdown support
     "sphinx_rtd_theme",  # RTD theme integration
     "sphinx.ext.napoleon",  # Support for Google and NumPy style docstrings
-    'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.todo',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.graphviz",
     "sphinx_design",
     "sphinx_copybutton",
-    "sphinx_togglebutton"
+    "sphinx_togglebutton",
 ]
+# Enable multi-language support
+language = "en"  # Default language
 
+# Optional language list (for sphinx-intl)
+languages = {
+    "en": "English",
+    "zh_CN": "简体中文",
+}
+
+# Set gettext output directory (where .pot files are generated)
+gettext_compact = False  # Generate separate pot files for each document
+
+locale_dirs = ['locales/']
 templates_path = ["_templates"]
 
 # -- Options for HTML output -------------------------------------------------
@@ -41,18 +53,18 @@ html_static_path = ["_static"]
 
 # Modern UI configurations
 html_theme_options = {
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'navigation_depth': 4,
-    'includehidden': True,
-    'titles_only': False,
-    'style_external_links': True,
-    'style_nav_header_background': '#2980b9',
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
+    "style_external_links": True,
+    "style_nav_header_background": "#2980b9",
 }
 
 # Enable syntax highlighting for code blocks
-pygments_style = 'sphinx'
-pygments_dark_style = 'monokai'
+pygments_style = "sphinx"
+pygments_dark_style = "monokai"
 
 # Copy button configuration
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
@@ -78,8 +90,8 @@ myst_enable_extensions = [
 
 # Intersphinx mapping for cross-references
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'sphinx': ('https://www.sphinx-doc.org/en/master', None),
+    "python": ("https://docs.python.org/3", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
 
 # Add favicon and logo
@@ -87,10 +99,10 @@ html_favicon = "../../assets/logo/400.svg"
 html_logo = "../../assets/band.png"
 # Additional HTML context
 html_context = {
-    'display_github': True,
-    'github_user': 'Whth',
-    'github_repo': 'fabricatio',
-    'github_version': 'main/docs/source/',
+    "display_github": True,
+    "github_user": "Whth",
+    "github_repo": "fabricatio",
+    "github_version": "main/docs/source/",
 }
 
 # Show source link
@@ -102,4 +114,6 @@ autoapi_dirs = ["../../packages"]
 autoapi_options = [
     "members",
     "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
 ]

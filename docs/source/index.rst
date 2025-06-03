@@ -1,7 +1,7 @@
 .. fabricatio documentation master file, created by
-   sphinx-quickstart on Tue Jun  3 14:55:38 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+sphinx-quickstart on Tue Jun  3 14:55:38 2025.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive.
 
 fabricatio documentation
 ========================
@@ -16,7 +16,6 @@ fabricatio documentation
    usage
    configuration
    development
-   examples/index
    contributing
    license
 
