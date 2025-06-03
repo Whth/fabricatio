@@ -931,7 +931,6 @@ dependencies = [
  "log",
  "macro_utils",
  "pyo3",
- "pyo3-log",
  "pythonize",
  "rayon",
  "serde",

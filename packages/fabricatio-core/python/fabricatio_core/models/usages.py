@@ -6,21 +6,21 @@ from asyncio import gather
 from typing import Callable, Dict, List, Literal, Optional, Self, Sequence, Set, Unpack, overload
 
 import asyncstdlib
-from litellm import (  # pyright: ignore [reportPrivateImportUsage]
+from litellm import (
+    Choices,
+    CustomStreamWrapper,
+    Deployment,
+    EmbeddingResponse,
+    LiteLLM_Params,
+    ModelInfo,
+    ModelResponse,
     RateLimitError,
     Router,
-    aembedding,
-    stream_chunk_builder,
-)
-from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
-from litellm.types.utils import (
-    Choices,
-    EmbeddingResponse,
-    ModelResponse,
     StreamingChoices,
     TextChoices,
+    stream_chunk_builder,
+    token_counter,
 )
-from litellm.utils import CustomStreamWrapper, token_counter  # pyright: ignore [reportPrivateImportUsage]
 from more_itertools import duplicates_everseen
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
 
@@ -444,6 +444,7 @@ class LLMUsage(LLMScopedConfig, ABC):
         requirement: List[str],
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[List[Optional[str]]]: ...
+
     async def ageneric_string(
         self,
         requirement: str | List[str],
@@ -619,7 +620,7 @@ class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
             logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
             raise ValueError(err)
 
-        return await aembedding(
+        return await ROUTER.aembedding(
             input=input_text,
             caching=caching or self.embedding_caching or CONFIG.embedding.caching,
             dimensions=dimensions or self.embedding_dimensions or CONFIG.embedding.dimensions,

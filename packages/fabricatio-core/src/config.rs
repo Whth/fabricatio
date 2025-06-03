@@ -1,6 +1,3 @@
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use dotenvy::dotenv_override;
 use fabricatio_constants::ROAMING;
 use figment::providers::{Data, Env, Format, Toml};
@@ -8,7 +5,11 @@ use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
 use log::debug;
 use macro_utils::TemplateDefault;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
+use pythonize::pythonize;
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -16,7 +17,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
-use pythonize::pythonize;
 use validator::Validate;
 
 #[derive(Clone)]
@@ -224,21 +224,6 @@ pub struct EmbeddingConfig {
     pub api_key: Option<SecretStr>,
 }
 
-/// RAG configuration structure
-#[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
-#[pyclass(get_all, set_all)]
-pub struct RagConfig {
-    #[validate(url)]
-    pub milvus_uri: Option<String>,
-
-    #[validate(range(min = 1.0, message = "milvus_timeout must be at least 1.0 second"))]
-    pub milvus_timeout: Option<f64>,
-
-    pub milvus_token: Option<SecretStr>,
-
-    pub milvus_dimensions: Option<u32>,
-}
-
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
@@ -280,10 +265,9 @@ impl Default for TemplateManagerConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
-    pub mapping_template:  String,
+    pub mapping_template: String,
 
     // Task Management Templates
-
     /// The name of the task briefing template which will be used to brief a task.
     pub task_briefing_template: String,
 
@@ -291,7 +275,6 @@ pub struct TemplateConfig {
     pub dependencies_template: String,
 
     // Decision Making Templates
-
     /// The name of the make choice template which will be used to make a choice.
     pub make_choice_template: String,
 
@@ -299,7 +282,6 @@ pub struct TemplateConfig {
     pub make_judgment_template: String,
 
     // String Processing Templates
-
     /// The name of the generic string template which will be used to review a string.
     pub generic_string_template: String,
 
@@ -313,7 +295,6 @@ pub struct TemplateConfig {
     pub pathstr_template: String,
 
     // Object and Data Templates
-
     /// The name of the create json object template which will be used to create a json object.
     pub create_json_obj_template: String,
 }
@@ -410,8 +391,6 @@ impl Default for PymitterConfig {
     }
 }
 
-
-
 /// Configuration structure containing all system components
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[pyclass]
@@ -456,7 +435,6 @@ pub struct Config {
     /// - `log_level`: Logging verbosity level (default: "INFO")
     #[pyo3(get)]
     pub debug: DebugConfig,
-
 
     /// Template configuration
     ///
@@ -526,20 +504,22 @@ pub struct Config {
 
 #[pymethods]
 impl Config {
-
-    fn load<'a>(&self,python: Python<'a>, name: &str, cls: Bound<'a, PyAny>) -> PyResult<Bound<'a, PyAny>> {
-
-        if  let Some(data) = self.extension.get(name){
-        let any = pythonize(python, data)?;
-        cls.call((),Some(&any.downcast_into_exact::<PyDict>()?))
-        }else {
-        cls.call((),None)
+    fn load<'a>(
+        &self,
+        python: Python<'a>,
+        name: &str,
+        cls: Bound<'a, PyAny>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        if let Some(data) = self.extension.get(name) {
+            let any = pythonize(python, data)?;
+            cls.call((), Some(&any.downcast_into_exact::<PyDict>()?))
+        } else {
+            cls.call((), None)
         }
     }
 }
 
 impl Config {
-
     fn new() -> PyResult<Self> {
         Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
     }

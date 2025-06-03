@@ -217,12 +217,10 @@ class EmbeddingConfig:
     """The API key."""
 
 
-
-
 class DebugConfig:
     """Debug configuration structure."""
 
-    log_level: Optional[str]
+    log_level: str
     """The logging level to use."""
 
 
@@ -246,7 +244,6 @@ class TemplateConfig:
     """The name of the mapping template which will be used to map data."""
     # Task Management Templates
 
-
     task_briefing_template: str
     """The name of the task briefing template which will be used to brief a task."""
 
@@ -268,20 +265,15 @@ class TemplateConfig:
     co_validation_template: str
     """The name of the co-validation template which will be used to co-validate a string."""
 
-
     liststr_template: str
     """The name of the liststr template which will be used to display a list of strings."""
 
     pathstr_template: str
     """The name of the pathstr template which will be used to acquire a path of strings."""
 
-
     # Object and Data Templates
     create_json_obj_template: str
     """The name of the create json object template which will be used to create a json object."""
-
-
-
 
 
 class RoutingConfig:
@@ -362,8 +354,7 @@ class Config:
 
     pymitter: PymitterConfig
     """Pymitter configuration."""
-    
-    
+
     def load[C](self, name: str, cls: Type[C]) -> C:
         """Load configuration data for a given name and instantiate it with the provided class.
 
@@ -374,6 +365,7 @@ class Config:
             An instance of the provided class, either populated with loaded data or initialized with default values
 
         """
+
 
 CONFIG: Config
 

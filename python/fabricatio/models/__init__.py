@@ -43,5 +43,4 @@ if find_spec("fabricatio_anki"):
     from fabricatio_anki.models.deck import Deck, Model
     from fabricatio_anki.models.template import Template
 
-    __all__ += ["Deck","Model","Template"]
-
+    __all__ += ["Deck", "Model", "Template"]
