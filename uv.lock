@@ -405,12 +405,15 @@ docs = [
     { name = "sphinx" },
     { name = "sphinx-autoapi" },
     { name = "sphinx-autodoc-typehints" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-design" },
     { name = "sphinx-rtd-theme" },
+    { name = "sphinx-togglebutton" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "improve", "rag"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
     { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
@@ -450,12 +453,15 @@ docs = [
     { name = "sphinx", specifier = ">=8.2.3" },
     { name = "sphinx-autoapi", specifier = ">=3.6.0" },
     { name = "sphinx-autodoc-typehints", specifier = ">=3.2.0" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.6.1" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+    { name = "sphinx-togglebutton", specifier = ">=0.3.2" },
 ]
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.4.dev0"
+version = "0.1.4.dev1"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -501,7 +507,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.6.dev0"
+version = "0.1.6.dev1"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -520,7 +526,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.6.dev1"
+version = "0.1.6.dev2"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -594,7 +600,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-improve"
-version = "0.1.4.dev0"
+version = "0.1.4.dev2"
 source = { editable = "packages/fabricatio-improve" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -617,9 +623,10 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-judge"
-version = "0.1.4.dev0"
+version = "0.1.4.dev1"
 source = { editable = "packages/fabricatio-judge" }
 dependencies = [
+    { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
 ]
 
@@ -629,7 +636,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -678,7 +688,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.4.dev0"
+version = "0.1.4.dev4"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -703,7 +713,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.5.dev0"
+version = "0.1.5.dev1"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -741,7 +751,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.5.dev0"
+version = "0.1.5.dev1"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -956,7 +966,7 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "0.32.3"
+version = "0.32.4"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 dependencies = [
     { name = "filelock" },
@@ -968,9 +978,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/59/74/c4961b31e0f142a032ea24f477c3a7524dfabfd8126398a968b3cc6bf804/huggingface_hub-0.32.3.tar.gz", hash = "sha256:752c889ebf3a63cbd39803f6d87ccc135a463bbcb36abfa2faff0ccbf1cec087", size = 424525, upload-time = "2025-05-30T08:23:56.042Z" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/60/c8/4f7d270285c46324fd66f62159eb16739aa5696f422dba57678a8c6b78e9/huggingface_hub-0.32.4.tar.gz", hash = "sha256:f61d45cd338736f59fb0e97550b74c24ee771bcc92c05ae0766b9116abe720be", size = 424494, upload-time = "2025-06-03T09:59:46.105Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/df/dc/4f4d8080cbce7a38c1d0f1ba4932f9134480b9761af8ef4c65d49254b2bd/huggingface_hub-0.32.3-py3-none-any.whl", hash = "sha256:e46f7ea7fe2b5e5f67cc4e37eb201140091946a314d7c2b134a9673dadd80b6a", size = 512094, upload-time = "2025-05-30T08:23:54.091Z" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/67/8b/222140f3cfb6f17b0dd8c4b9a0b36bd4ebefe9fb0098ba35d6960abcda0f/huggingface_hub-0.32.4-py3-none-any.whl", hash = "sha256:37abf8826b38d971f60d3625229221c36e53fe58060286db9baf619cfbf39767", size = 512101, upload-time = "2025-06-03T09:59:44.099Z" },
 ]
 
 [[package]]
@@ -2175,6 +2185,30 @@ wheels = [
 ]
 
 [[package]]
+name = "sphinx-copybutton"
+version = "0.5.2"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "sphinx" },
+]
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/fc/2b/a964715e7f5295f77509e59309959f4125122d648f86b4fe7d70ca1d882c/sphinx-copybutton-0.5.2.tar.gz", hash = "sha256:4cf17c82fb9646d1bc9ca92ac280813a3b605d8c421225fd9913154103ee1fbd", size = 23039, upload-time = "2023-04-14T08:10:22.998Z" }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl", hash = "sha256:fb543fd386d917746c9a2c50360c7905b605726b9355cd26e9974857afeae06e", size = 13343, upload-time = "2023-04-14T08:10:20.844Z" },
+]
+
+[[package]]
+name = "sphinx-design"
+version = "0.6.1"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "sphinx" },
+]
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/2b/69/b34e0cb5336f09c6866d53b4a19d76c227cdec1bbc7ac4de63ca7d58c9c7/sphinx_design-0.6.1.tar.gz", hash = "sha256:b44eea3719386d04d765c1a8257caca2b3e6f8421d7b3a5e742c0fd45f84e632", size = 2193689, upload-time = "2024-08-02T13:48:44.277Z" }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl", hash = "sha256:b11f37db1a802a183d61b159d9a202314d4d2fe29c163437001324fe2f19549c", size = 2215338, upload-time = "2024-08-02T13:48:42.106Z" },
+]
+
+[[package]]
 name = "sphinx-rtd-theme"
 version = "3.0.2"
 source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
@@ -2186,6 +2220,22 @@ dependencies = [
 sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/91/44/c97faec644d29a5ceddd3020ae2edffa69e7d00054a8c7a6021e82f20335/sphinx_rtd_theme-3.0.2.tar.gz", hash = "sha256:b7457bc25dda723b20b086a670b9953c859eab60a2a03ee8eb2bb23e176e5f85", size = 7620463, upload-time = "2024-11-13T11:06:04.545Z" }
 wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/85/77/46e3bac77b82b4df5bb5b61f2de98637724f246b4966cfc34bc5895d852a/sphinx_rtd_theme-3.0.2-py2.py3-none-any.whl", hash = "sha256:422ccc750c3a3a311de4ae327e82affdaf59eb695ba4936538552f3b00f4ee13", size = 7655561, upload-time = "2024-11-13T11:06:02.094Z" },
+]
+
+[[package]]
+name = "sphinx-togglebutton"
+version = "0.3.2"
+source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "setuptools" },
+    { name = "sphinx" },
+    { name = "wheel", version = "0.46.0", source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "wheel", version = "0.46.1", source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }, marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f0/df/d151dfbbe588116e450ca7e898750cb218dca6b2e557ced8de6f9bd7242b/sphinx-togglebutton-0.3.2.tar.gz", hash = "sha256:ab0c8b366427b01e4c89802d5d078472c427fa6e9d12d521c34fa0442559dc7a", size = 8324, upload-time = "2022-07-15T12:08:50.286Z" }
+wheels = [
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/e9/18/267ce39f29d26cdc7177231428ba823fe5ca94db8c56d1bed69033b364c8/sphinx_togglebutton-0.3.2-py3-none-any.whl", hash = "sha256:9647ba7874b7d1e2d43413d8497153a85edc6ac95a3fea9a75ef9c1e08aaae2b", size = 8249, upload-time = "2022-07-15T12:08:48.8Z" },
 ]
 
 [[package]]
@@ -2477,6 +2527,36 @@ source = { registry = "https://mirrors.bfsu.edu.cn/pypi/web/simple" }
 sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/6c/63/53559446a878410fc5a5974feb13d31d78d752eb18aeba59c7fef1af7598/wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5" }
 wheels = [
     { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/fd/84/fd2ba7aafacbad3c4201d395674fc6348826569da3c0937e75505ead3528/wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859" },
+]
+
+[[package]]
+name = "wheel"
+version = "0.46.0"
+source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+resolution-markers = [
+    "python_full_version < '3.13'",
+]
+dependencies = [
+    { name = "packaging", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/11/d9/f16ef50f69f8b85961f8df7a2bdad08a98a32e79dfabf9f14f250fc0324d/wheel-0.46.0.tar.gz", hash = "sha256:bd9fadc35ff6a3624bdd00bc78437bcded40e2edc1fbb29076308de503fe9a4b" }
+wheels = [
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/f2/67/b488d1c2408bc619bdd9f8c929e67d7743087dfa00bbdc0c0c5db70161f9/wheel-0.46.0-py3-none-any.whl", hash = "sha256:8c1909305dc5a40979693cece1ec872eed10cc49af2038201213461b0688b7b4" },
+]
+
+[[package]]
+name = "wheel"
+version = "0.46.1"
+source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13'",
+]
+dependencies = [
+    { name = "packaging", marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/fb/62/e90918c4558b002726ab930863c0cbd3e7cf9a7befa1d4a1a240cecdb379/wheel-0.46.1.tar.gz", hash = "sha256:fd477efb5da0f7df1d3c76c73c14394002c844451bd63229d8570f376f5e6a38" }
+wheels = [
+    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/af/44/31d964a260fcda6bf2f59384231bbf4962ac796a5d36c554162b5411b8db/wheel-0.46.1-py3-none-any.whl", hash = "sha256:f796f65d72750ccde090663e466d0ca37cd72b62870f7520b96d34cdc07d86d8" },
 ]
 
 [[package]]

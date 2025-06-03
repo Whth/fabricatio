@@ -1,4 +1,11 @@
-# Fabricatio
+<p style="text-align: center;">   
+<picture>
+        <img src="./assets/band.png" width="80%" alt="Fabricatio Logo" loading="lazy">
+</picture>
+</p>
+
+
+
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio)](https://pypi.org/project/fabricatio/)
