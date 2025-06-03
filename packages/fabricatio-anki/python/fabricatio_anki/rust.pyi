@@ -72,32 +72,31 @@ def create_deck_project(
     - Media resources for multimedia content
 
     Project Structure:
-    
-    ```text
-    anki_deck_project/
-    ├── deck.yaml                # Metadata: Deck name, description, author, etc.
-    ├── models/                  # Each Model corresponds to a subdirectory
-    │   ├── vocab_card/          # Model name
-    │   │   ├── fields.yaml      # Field definitions (e.g., Word, Meaning)
-    │   │   ├── templates/       # Each template corresponds to a subdirectory
-    │   │   │   ├── word_to_meaning/
-    │   │   │   │   ├── front.html
-    │   │   │   │   ├── back.html
-    │   │   │   │   └── style.css
-    │   │   │   └── meaning_to_word/
-    │   │   │       ├── front.html
-    │   │   │       ├── back.html
-    │   │   │       └── style.css
-    │   │   └── media/            # Optional: Media resources specific to this model
-    │   └── grammar_card/
-    │       ├── fields.yaml
-    │       ├── templates/
-    │       └── media/
-    ├── data/                     # User data (for template injection)
-    │   ├── vocab_card.csv        # CSV format, each line represents a card
-    │   └── grammar_card.csv
-    └── media/                    # Global media resources (images, audio, etc.)
-    ```
+        .. code-block:: text
+        
+            anki_deck_project/
+            ├── deck.yaml                # Metadata: Deck name, description, author, etc.
+            ├── models/                  # Each Model corresponds to a subdirectory
+            │   ├── vocab_card/          # Model name
+            │   │   ├── fields.yaml      # Field definitions (e.g., Word, Meaning)
+            │   │   ├── templates/       # Each template corresponds to a subdirectory
+            │   │   │   ├── word_to_meaning/
+            │   │   │   │   ├── front.html
+            │   │   │   │   ├── back.html
+            │   │   │   │   └── style.css
+            │   │   │   └── meaning_to_word/
+            │   │   │       ├── front.html
+            │   │   │       ├── back.html
+            │   │   │       └── style.css
+            │   │   └── media/            # Optional: Media resources specific to this model
+            │   └── grammar_card/
+            │       ├── fields.yaml
+            │       ├── templates/        # Template directory for grammar cards
+            │       └── media/            # Media directory for grammar cards
+            ├── data/                     # User data (for template injection)
+            │   ├── vocab_card.csv        # CSV format, each line represents a card
+            │   └── grammar_card.csv      # CSV data for grammar flashcards
+            └── media/                    # Global media resources (images, audio, etc.)
 
     Args:
         path (str): The absolute or relative path where the new project directory should be created.

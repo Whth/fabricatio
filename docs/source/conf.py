@@ -16,13 +16,15 @@ release = "0.1.0"
 extensions = [
     "autoapi.extension",
     "sphinx_autodoc_typehints",
-    "myst_parser",  # 支持 Markdown
-    "sphinx_rtd_theme",
-    "sphinx.ext.napoleon",  # 支持 Google 和 NumPy 风格的 docstring
+    "myst_parser",  # Enable Markdown support
+    "sphinx_rtd_theme",  # RTD theme integration
+    "sphinx.ext.napoleon",  # Support for Google and NumPy style docstrings
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.todo',
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["rust.pyi"]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -32,7 +34,6 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 
-# 自动解析 Python 包
 
 autoapi_type = "python"
 autoapi_dirs = ["../../packages"]
