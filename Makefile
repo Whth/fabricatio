@@ -37,4 +37,6 @@ publish: bdist
 	uvx -p $(PY) --project . maturin publish || true
 
 
-.PHONY:  dev bdist clean publish tests bins dirs all
+docs:
+	make -C docs html
+.PHONY:  dev bdist clean publish tests bins dirs all docs
