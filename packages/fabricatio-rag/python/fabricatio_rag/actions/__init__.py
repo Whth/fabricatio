@@ -1,1 +1,1 @@
-"""A module containing some builtin actins."""
+"""Actions defined in fabricatio-rag."""

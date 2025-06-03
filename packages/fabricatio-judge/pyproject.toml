@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-judge"
-version = "0.1.4-dev0"
+version = "0.1.4-dev1"
 description = "fabricatio-judge extends the Fabricatio ecosystem to provide advanced judgment capabilities for LLM-driven applications."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -11,7 +11,8 @@ requires-python = ">=3.12,<3.14"
 
 dependencies = [
 
-    "fabricatio-core"
+    "fabricatio-core",
+    "fabricatio_capabilities"
 
 ]
 [dependency-groups]

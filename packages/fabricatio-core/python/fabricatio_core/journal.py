@@ -2,9 +2,11 @@
 
 import sys
 
-from loguru import logger
+from loguru import logger as _logger
 
 from fabricatio_core.rust import CONFIG
+
+logger = _logger
 
 logger.remove()
 logger.add(

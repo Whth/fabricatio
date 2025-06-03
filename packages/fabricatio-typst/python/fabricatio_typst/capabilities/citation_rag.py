@@ -8,6 +8,7 @@ from fabricatio_core.models.kwargs_types import ChooseKwargs
 from fabricatio_core.utils import fallback_kwargs
 from fabricatio_rag.capabilities.rag import RAG
 from fabricatio_rag.models.kwargs_types import FetchKwargs
+
 from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 
 

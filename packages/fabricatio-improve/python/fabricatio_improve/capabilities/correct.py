@@ -15,10 +15,11 @@ from fabricatio_core.models.kwargs_types import (
 )
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
+
 from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
-from fabricatio_improve.models.problem import ProblemSolutions
 from fabricatio_improve.models.kwargs_types import CorrectKwargs
+from fabricatio_improve.models.problem import ProblemSolutions
 
 
 class Correct(Rating, Propose, ABC):

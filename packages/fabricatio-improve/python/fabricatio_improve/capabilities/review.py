@@ -6,12 +6,14 @@ from typing import Dict, Optional, Set, Unpack
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_core.models.generic import Display, WithBriefing
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
+
 from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
-from fabricatio_improve.models.kwargs_types import ReviewKwargs, ValidateKwargs
+from fabricatio_improve.models.kwargs_types import ReviewKwargs
 
 
 class Review(Rating, Propose, ABC):

@@ -36,3 +36,7 @@ html_static_path = ["_static"]
 
 autoapi_type = "python"
 autoapi_dirs = ["../../packages"]
+autoapi_options = [
+    "members",
+    "undoc-members",
+]

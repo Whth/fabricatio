@@ -5,10 +5,10 @@ from types import CodeType
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Unpack
 
 import ujson
+from fabricatio_core import Task
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
-from fabricatio_core.models.task import Task
 from fabricatio_core.models.tool import Tool, ToolExecutor
 from fabricatio_core.models.usages import LLMUsage, ToolBoxUsage
 from fabricatio_core.parser import JsonCapture, PythonCapture
