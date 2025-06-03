@@ -1,5 +1,5 @@
 Development Setup
-================
+======================
 
 .. code-block:: bash
 
