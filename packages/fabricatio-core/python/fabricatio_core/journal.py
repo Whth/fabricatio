@@ -7,6 +7,7 @@ from loguru import logger as _logger
 from fabricatio_core.rust import CONFIG
 
 logger = _logger
+"""The logger instance for the fabricatio project."""
 
 logger.remove()
 logger.add(
