@@ -17,15 +17,7 @@ type EventLike = Union[str, Event, List[str]]
 
 
 class Task[T](WithBriefing, ProposedAble, WithDependency):
-    """A class representing a task with a status and output.
-
-    Attributes:
-        name (str): The name of the task.
-        description (str): The description of the task.
-        goals (str): The goal of the task.
-        dependencies (List[str]): The file dependencies of the task, a list of file paths.
-        namespace (List[str]): The namespace of the task, a list of namespace segment, as string.
-    """
+    """A class representing a task with a status and output."""
 
     name: str = Field(...)
     """The name of the task, which should be concise and descriptive."""

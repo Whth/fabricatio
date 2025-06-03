@@ -14,13 +14,7 @@ from fabricatio_core.rust import CONFIG
 
 @dataclass(frozen=True)
 class Capture:
-    """A class to capture patterns in text using regular expressions.
-
-    Attributes:
-        pattern (str): The regex pattern to search for.
-        flags (int): Flags to apply when compiling the regex.
-        capture_type (Optional[str]): Optional hint for post-processing (e.g., 'json').
-    """
+    """A class to capture patterns in text using regular expressions."""
 
     pattern: str
     """The regular expression pattern to search for."""

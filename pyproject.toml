@@ -97,7 +97,7 @@ tagging = ["fabricatio-tagging"]
 include = [
     "docs/source/conf.py",
     "pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py",
-    "packages/*.py", "packages/*/pyproject.toml"]
+    "packages/**/*.py", "packages/*/pyproject.toml"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]

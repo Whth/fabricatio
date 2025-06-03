@@ -296,10 +296,6 @@ class TweakArticleRAG(Action, RAG, Censor):
     This class inherits from `Action`, `RAG`, and `Censor` to provide capabilities for writing and refining articles
     using Retrieval-Augmented Generation (RAG) techniques. It processes an article outline, enhances subsections by
     searching for related references, and applies censoring rules to ensure compliance with the provided ruleset.
-
-    Attributes:
-        output_key (str): The key used to store the output of the action.
-        ruleset (Optional[RuleSet]): The ruleset to be used for censoring the article.
     """
 
     output_key: str = "rag_tweaked_article"

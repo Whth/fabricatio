@@ -10,7 +10,7 @@ project = "fabricatio"
 copyright = "2025, Whth"
 author = "Whth"
 release = "0.1.0"
-
+show_authors = True
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 extensions = [

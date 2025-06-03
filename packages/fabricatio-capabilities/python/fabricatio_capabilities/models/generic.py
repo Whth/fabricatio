@@ -118,6 +118,7 @@ class Patch[T](ProposedAble, ABC):
     """A generic patch class that allows field-based updates to target objects.
 
     This class provides functionality to:
+
     1. Apply patches to update object fields
     2. Generate dictionary representations of patches
     3. Handle JSON schema generation with reference class integration
@@ -180,7 +181,7 @@ class Patch[T](ProposedAble, ABC):
     def as_kwargs(self) -> Dict[str, Any]:
         """Get the kwargs of the patch.
 
-        Converts the patch into a dictionary suitable for use with **kwargs syntax.
+        Converts the patch into a dictionary suitable for use with kwargs syntax.
 
         Returns:
             Dict[str, Any]: A dictionary representation of the patch.
@@ -324,7 +325,7 @@ class PersistentAble(Base, ABC):
             Self: Current instance for method chaining
 
         Notes:
-            - Filename format: <ClassName>_<YYYYMMDD_HHMMSS>_<6-char_hash>.json
+            - Filename format: ClassName_YYYYMMDD_HHMMSS_6-char_hash.json
             - Hash generated from JSON content ensures uniqueness
         """
         p = Path(path)

@@ -25,21 +25,18 @@ class Constants(StrEnum):
 
 
 class Model(SketchedAble, Named):
-    """Represents a model in Anki which contains fields and templates.
-
-    Attributes:
-        fields (List[str]): The list of field names in the model.
-        templates (List[Template]): The list of templates associated with the model.
-    """
+    """Represents a model in Anki which contains fields and templates."""
 
     fields: List[str]
     """List of field names that define the data structure for this model.
+
     Each field represents a piece of information that can be filled in when creating cards,
     such as 'Front', 'Back', 'Extra', etc. These fields are used as placeholders
     in the template HTML and determine what data can be stored for each note."""
 
     templates: List[Template]
     """List of card templates associated with this model.
+
     Each template defines how the fields should be displayed on the front and back
     of a card, including the HTML structure and CSS styling. A model can have
     multiple templates to create different card variations from the same field data."""
@@ -64,20 +61,17 @@ class Model(SketchedAble, Named):
 
 
 class Deck(SketchedAble, WithBriefing):
-    """Represents an Anki deck which contains multiple models.
-
-    Attributes:
-        author (str): Author of the deck. Defaults to 'Anonymous'.
-        models (List[Model]): The list of models included in the deck.
-    """
+    """Represents an Anki deck which contains multiple models."""
 
     author: str = "Anonymous"
     """The author or creator of this Anki deck.
+
     This field identifies who created the deck and is displayed in the deck metadata.
     Defaults to 'Anonymous' if no author is specified."""
 
     models: List[Model]
     """List of card models that define the structure and appearance of cards in this deck.
+
     Each model contains fields and templates that determine how information is organized
     and displayed. A deck can contain multiple models to support different types of cards
     or study materials within the same deck."""

@@ -11,12 +11,7 @@ from fabricatio_memory.rust import Memory, MemorySystem
 
 
 class RememberScopedConfig(ScopedConfig):
-    """Configuration class for memory-related settings in the Remember capability.
-
-    Attributes:
-        memory_llm: Configuration for the LLM used in memory operations.
-        memory_system: The memory system implementation to use.
-    """
+    """Configuration class for memory-related settings in the Remember capability."""
 
     memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
     memory_system: MemorySystem = Field(default_factory=MemorySystem)
