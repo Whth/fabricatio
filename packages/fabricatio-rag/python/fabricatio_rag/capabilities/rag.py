@@ -19,10 +19,11 @@ from fabricatio_core.models.kwargs_types import ChooseKwargs
 from fabricatio_core.models.usages import EmbeddingUsage
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
-from fabricatio_rag.models.kwargs_types import CollectionConfigKwargs, FetchKwargs
-from fabricatio_rag.models.rag import MilvusDataBase, MilvusScopedConfig
 from more_itertools.recipes import flatten, unique
 from pydantic import Field, PrivateAttr
+
+from fabricatio_rag.models.kwargs_types import CollectionConfigKwargs, FetchKwargs
+from fabricatio_rag.models.rag import MilvusDataBase, MilvusScopedConfig
 
 
 @lru_cache(maxsize=None)
