@@ -13,14 +13,25 @@ from fabricatio_core.rust import CONFIG
 
 
 def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Check if a package exists in the current environment.
+    """
+    Decorator to check if a required package exists in the current environment before executing a function.
+
+    This decorator ensures that a specified package is available in the environment. If the package is not found,
+    it raises a `RuntimeError` with a custom error message.
 
     Args:
-        package_name (str): The name of the package to check.
-        msg (str): The message to display if the package is not found.
+        package_name (str): The name of the package to check for existence.
+        msg (str): Custom error message to be raised if the package is not found.
+
+    Raises:
+        RuntimeError: If the specified package is not found in the current environment.
+
+    Note:
+        - This decorator can be applied to both synchronous and asynchronous functions.
+        - It uses `importlib.util.find_spec` internally to determine package availability.
 
     Returns:
-        bool: True if the package exists, False otherwise.
+        Callable[[Callable[P, R]], Callable[P, R]]: A wrapped function that performs the package check before execution.
     """
 
     def _wrapper(

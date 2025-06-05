@@ -10,7 +10,16 @@ from fabricatio_core.rust import CONFIG, Event
 
 @dataclass
 class Env:
-    """Environment class that manages event handling using EventEmitter."""
+    """
+    Environment class that manages event handling using EventEmitter.
+
+    This class provides methods for registering event listeners, emitting events,
+    and handling asynchronous operations related to event management.
+
+    Note:
+        - The `ee` attribute is initialized with configuration settings such as delimiter,
+          new listener event, maximum listeners, and wildcard support.
+    """
 
     ee: ClassVar[EventEmitter] = EventEmitter(
         delimiter=CONFIG.pymitter.delimiter,
@@ -30,6 +39,12 @@ class Env:
 
         Returns:
             Self: The current instance of Env.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         ...
 
@@ -51,6 +66,12 @@ class Env:
 
         Returns:
             Callable[[Callable[P, R]], Callable[P, R]]: A decorator that registers the function as an event listener.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         ...
 
@@ -61,7 +82,8 @@ class Env:
         /,
         ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
+        """
+        Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
 
         Args:
             event (str | Event): The event to listen for.
@@ -70,6 +92,12 @@ class Env:
 
         Returns:
             Callable[[Callable[P, R]], Callable[P, R]] | Self: A decorator that registers the function as an event listener or the current instance of Env.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         if isinstance(event, Event):
             event = event.collapse()
@@ -91,6 +119,12 @@ class Env:
 
         Returns:
             Callable[[Callable[P, R]], Callable[P, R]]: A decorator that registers the function as an event listener.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         ...
 
@@ -109,6 +143,12 @@ class Env:
 
         Returns:
             Self: The current instance of Env.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         ...
 
@@ -117,14 +157,21 @@ class Env:
         event: str | Event,
         func: Optional[Callable[P, R]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """Registers an event listener with a specific function that listens only once.
+        """
+        Registers an event listener with a specific function that listens only once.
 
         Args:
             event (str | Event): The event to listen for.
             func (Callable[P, R]): The function to be called when the event is emitted.
 
         Returns:
-            Callable[[Callable[P, R]], Callable[P, R]] | Self: A decorator that registers the function as an event listener or the current instance
+            Callable[[Callable[P, R]], Callable[P, R]] | Self: A decorator that registers the function as an event listener or the current instance.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event registration.
         """
         if isinstance(event, Event):
             event = event.collapse()
@@ -135,12 +182,19 @@ class Env:
         return self
 
     def emit[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """Emits an event to all registered listeners.
+        """
+        Emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.
             *args: Positional arguments to pass to the listeners.
             **kwargs: Keyword arguments to pass to the listeners.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event emission.
         """
         if isinstance(event, Event):
             event = event.collapse()
@@ -148,19 +202,27 @@ class Env:
         self.ee.emit(event, *args, **kwargs)
 
     async def emit_async[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """Asynchronously emits an event to all registered listeners.
+        """
+        Asynchronously emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.
             *args: Positional arguments to pass to the listeners.
             **kwargs: Keyword arguments to pass to the listeners.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event emission.
         """
         if isinstance(event, Event):
             event = event.collapse()
         return await self.ee.emit_async(event, *args, **kwargs)
 
     def emit_future[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """Emits an event to all registered listeners and returns a future object.
+        """
+        Emits an event to all registered listeners and returns a future object.
 
         Args:
             event (str | Event): The event to emit.
@@ -169,6 +231,12 @@ class Env:
 
         Returns:
             None: The future object.
+
+        Raises:
+            TypeError: If the event type is not supported.
+
+        Note:
+            - This method supports both string and Event types for event emission.
         """
         if isinstance(event, Event):
             event = event.collapse()
