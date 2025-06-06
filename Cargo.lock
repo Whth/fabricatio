@@ -732,6 +732,7 @@ dependencies = [
  "genanki-rs",
  "serde",
  "serde_yml",
+ "walkdir",
 ]
 
 [[package]]

@@ -35,7 +35,7 @@ use genanki_rs::{Deck, Field, Model, Note, Package, Template};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-
+use walkdir::WalkDir;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeckConfig {
     name: String,
@@ -96,49 +96,51 @@ impl AnkiDeckLoader {
 
     // Helper function to collect files from a directory
     fn collect_files_from_dir(&self, dir_path: &Path) -> Vec<PathBuf> {
-        fs::read_dir(dir_path)
-            .ok()
+        if !dir_path.exists() {
+            return Vec::new();
+        }
+
+        WalkDir::new(dir_path)
+            .min_depth(1)
+            .max_depth(1)
             .into_iter()
-            .flatten()
-            .filter_map(|entry| entry.map(|e| e.path()).ok())
-            .filter(|path| path.is_file())
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
+            .map(|entry| entry.path().to_path_buf())
             .collect()
     }
 
     // Helper function to collect directory names from a path
+    // Helper function to get directory entries with WalkDir
+    fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item = walkdir::DirEntry> {
+        WalkDir::new(dir_path)
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_dir())
+    }
+
+    // Helper function to collect directory names from a path
     fn collect_dir_names(&self, dir_path: &Path) -> Result<Vec<String>, String> {
-        let mut dirs = Vec::new();
-        if dir_path.exists() {
-            dirs.extend(
-                fs::read_dir(dir_path)
-                    .map_err(|e| format!("Failed to read directory: {}", e))?
-                    .filter_map(|entry| {
-                        let entry = entry.ok()?;
-                        let file_type = entry.file_type().ok()?;
-                        if file_type.is_dir() {
-                            Some(entry.file_name().to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    }),
-            );
+        if !dir_path.exists() {
+            return Ok(Vec::new());
         }
-        Ok(dirs)
+
+        Ok(self
+            .get_directory_entries(dir_path)
+            .map(|entry| entry.file_name().to_string_lossy().to_string())
+            .collect::<Vec<String>>())
     }
 
     // Load templates from the specified templates directory path.
     fn load_templates(&self, templates_path: &Path) -> Vec<TemplateConfig> {
-        let mut templates = Vec::new();
         if !templates_path.exists() {
-            return templates;
+            return Vec::new();
         }
 
-        fs::read_dir(templates_path)
-            .into_iter()
-            .flatten()
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_type().map_or(false, |ft| ft.is_dir()))
-            .for_each(|entry| {
+        self.get_directory_entries(templates_path)
+            .map(|entry| {
                 let template_name = entry.file_name().to_string_lossy().to_string();
                 let template_path = entry.path();
 
@@ -149,14 +151,14 @@ impl AnkiDeckLoader {
                 let style_css =
                     fs::read_to_string(template_path.join(TEMPLATE_CSS)).unwrap_or_default();
 
-                templates.push(TemplateConfig {
+                TemplateConfig {
                     name: template_name,
                     front_html,
                     back_html,
                     style_css,
-                });
-            });
-        templates
+                }
+            })
+            .collect()
     }
 
     // Create a genanki Model from ModelData
@@ -359,12 +361,14 @@ impl AnkiDeckLoader {
             .map_err(|e| format!("Failed to read CSV file for model {}: {}", model_name, e))?;
 
         let mut reader = csv::Reader::from_reader(content.as_bytes());
-        let mut data = Vec::new();
-
-        for result in reader.records() {
-            let record = result.map_err(|e| format!("Failed to parse CSV record: {}", e))?;
-            data.push(record.iter().map(|s| s.to_string()).collect());
-        }
+        let data: Result<Vec<Vec<String>>, String> = reader
+            .records()
+            .map(|result| {
+                let record = result.map_err(|e| format!("Failed to parse CSV record: {}", e))?;
+                Ok(record.iter().map(|s| s.to_string()).collect())
+            })
+            .collect();
+        let data = data?;
 
         Ok(data)
     }
