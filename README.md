@@ -1,4 +1,4 @@
-<p style="text-align: center;">   
+<p align="center">   
 <picture>
         <img src="./assets/band.png" width="80%" alt="Fabricatio Logo" loading="lazy">
 </picture>
