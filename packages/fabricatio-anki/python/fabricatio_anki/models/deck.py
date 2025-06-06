@@ -20,7 +20,7 @@ class Constants(StrEnum):
     MEDIA = "media"
     DATA = "data"
     TEMPLATES = "templates"
-    MODEL = "model"
+    MODELS = "models"
     FIELDS = "fields"
     DECK = "deck"
     MODEL_ID = "model_id"
@@ -90,7 +90,7 @@ class Deck(SketchedAble, WithBriefing):
         Returns:
             Self: The instance of the deck after saving.
         """
-        models_root = Path(path) / Constants.MODEL
+        models_root = Path(path) / Constants.MODELS
         logger.info(f"Saving deck to {path}")
         logger.info(f"Models will be saved to {models_root}")
 

@@ -71,6 +71,7 @@ pub struct AnkiDeckLoader {
 
 pub mod constants {
     pub const MODELS_DIR: &str = "models";
+    pub const TEMPLATE_DIR: &str = "templates";
     pub const DATA_DIR: &str = "data";
     pub const MEDIA_DIR: &str = "media";
     pub const DECK_FILE: &str = "deck.yaml";
@@ -78,7 +79,6 @@ pub mod constants {
     pub const TEMPLATE_FRONT: &str = "front.html";
     pub const TEMPLATE_BACK: &str = "back.html";
     pub const TEMPLATE_CSS: &str = "style.css";
-    pub const TEMPLATE_DIR: &str = "templates";
 }
 use constants::*;
 impl AnkiDeckLoader {
