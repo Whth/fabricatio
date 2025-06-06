@@ -68,7 +68,7 @@ class Capture:
         compiled = re.compile(self.pattern, self.flags)
         match = compiled.match(text) or compiled.search(text)
         if match is None:
-            logger.debug(f"Capture Failed: {text}")
+            logger.debug(f"Capture Failed: {text!r}")
             raise ValueError(f"No match found for pattern {self.pattern} in text.")
 
         # Only consider the first group

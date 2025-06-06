@@ -246,9 +246,13 @@ def logging_exec_time[**P, R](
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()
-            logger.debug(f"Starting execution of {func.__name__}", )
+            logger.debug(
+                f"Starting execution of {func.__name__}",
+            )
             result = await func(*args, **kwargs)
-            logger.debug(f"Execution time of `{func.__name__}`: {time() - start_time:.2f} s", )
+            logger.debug(
+                f"Execution time of `{func.__name__}`: {time() - start_time:.2f} s",
+            )
             return result
 
         return _async_wrapper
@@ -256,9 +260,13 @@ def logging_exec_time[**P, R](
     @wraps(func)
     def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start_time = time()
-        logger.debug(f"Starting execution of {func.__name__}", )
+        logger.debug(
+            f"Starting execution of {func.__name__}",
+        )
         result = func(*args, **kwargs)
-        logger.debug(f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms", )
+        logger.debug(
+            f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms",
+        )
         return result
 
     return _wrapper
