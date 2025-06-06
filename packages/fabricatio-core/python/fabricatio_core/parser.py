@@ -153,7 +153,7 @@ class Capture:
         Note:
             - This method creates a Capture instance with a pattern specific to code blocks.
         """
-        return cls(pattern=f"```{language}(.*?)```", capture_type=language)
+        return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
 
     @classmethod
     @lru_cache(32)
@@ -170,7 +170,7 @@ class Capture:
             - This method creates a Capture instance with a pattern specific to generic blocks.
         """
         return cls(
-            pattern=f"--- Start of {language} ---(.*?)--- End of {language} ---",
+            pattern=f"--- Start of {language} ---\n(.*?)\n--- End of {language} ---",
             capture_type=language,
         )
 
