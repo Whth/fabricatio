@@ -82,7 +82,14 @@ pub mod constants {
 }
 use constants::*;
 impl AnkiDeckLoader {
-    // Helper function to read YAML file and deserialize
+    /// Reads and deserializes a YAML file into the specified type.
+    ///
+    /// # Arguments
+    /// * `file_path` - Path to the YAML file
+    /// * `context` - Context description for error messages
+    ///
+    /// # Returns
+    /// * `Result<T, String>` - Deserialized data or error message
     fn read_yaml<T: for<'de> Deserialize<'de>>(
         &self,
         file_path: PathBuf,
@@ -94,7 +101,13 @@ impl AnkiDeckLoader {
         serde_yml::from_str(&content).map_err(|e| format!("Failed to parse {}: {}", context, e))
     }
 
-    // Helper function to collect files from a directory
+    /// Collects all files from a directory (non-recursive, depth 1).
+    ///
+    /// # Arguments
+    /// * `dir_path` - Directory path to scan
+    ///
+    /// # Returns
+    /// * `Vec<PathBuf>` - Vector of file paths found in the directory
     fn collect_files_from_dir(&self, dir_path: &Path) -> Vec<PathBuf> {
         if !dir_path.exists() {
             return Vec::new();
@@ -110,7 +123,13 @@ impl AnkiDeckLoader {
             .collect()
     }
 
-    // Helper function to get directory entries with WalkDir
+    /// Gets directory entries from a path using WalkDir.
+    ///
+    /// # Arguments
+    /// * `dir_path` - Directory path to scan
+    ///
+    /// # Returns
+    /// * Iterator over directory entries (directories only, depth 1)
     fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item = walkdir::DirEntry> {
         WalkDir::new(dir_path)
             .min_depth(1)
@@ -120,7 +139,13 @@ impl AnkiDeckLoader {
             .filter(|entry| entry.file_type().is_dir())
     }
 
-    // Helper function to collect directory names from a path
+    /// Collects directory names from a given path.
+    ///
+    /// # Arguments
+    /// * `dir_path` - Directory path to scan for subdirectories
+    ///
+    /// # Returns
+    /// * `Result<Vec<String>, String>` - Vector of directory names or error message
     fn collect_dir_names(&self, dir_path: &Path) -> Result<Vec<String>, String> {
         if !dir_path.exists() {
             return Ok(Vec::new());
@@ -132,7 +157,13 @@ impl AnkiDeckLoader {
             .collect::<Vec<String>>())
     }
 
-    // Load templates from the specified templates directory path.
+    /// Loads template configurations from the specified templates directory.
+    ///
+    /// # Arguments
+    /// * `templates_path` - Path to the templates directory
+    ///
+    /// # Returns
+    /// * `Vec<TemplateConfig>` - Vector of loaded template configurations
     fn load_templates(&self, templates_path: &Path) -> Vec<TemplateConfig> {
         if !templates_path.exists() {
             return Vec::new();
@@ -160,7 +191,14 @@ impl AnkiDeckLoader {
             .collect()
     }
 
-    // Create a genanki Model from ModelData
+    /// Creates a genanki Model from ModelData.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model
+    /// * `model_data` - Model data containing configuration and templates
+    ///
+    /// # Returns
+    /// * `Model` - Configured genanki Model instance
     fn create_genanki_model(&self, model_name: &str, model_data: &ModelData) -> Model {
         let model_fields: Vec<Field> = model_data
             .config
@@ -198,7 +236,12 @@ impl AnkiDeckLoader {
         model
     }
 
-    // Add notes to deck from CSV data
+    /// Adds notes to a deck from CSV data.
+    ///
+    /// # Arguments
+    /// * `deck` - Mutable reference to the deck
+    /// * `model` - Model to use for creating notes
+    /// * `csv_data` - CSV data as a vector of string vectors
     fn add_notes_to_deck(&self, deck: &mut Deck, model: Model, csv_data: Vec<Vec<String>>) {
         csv_data
             .into_iter()
@@ -210,7 +253,13 @@ impl AnkiDeckLoader {
             .for_each(|note| deck.add_note(note));
     }
 
-    // Collect all media files (model-specific and global)
+    /// Collects all media files (model-specific and global).
+    ///
+    /// # Arguments
+    /// * `model_names` - Slice of model names to collect media files from
+    ///
+    /// # Returns
+    /// * `Result<Vec<String>, String>` - Vector of media file paths or error message
     fn collect_all_media_files(&self, model_names: &[String]) -> Result<Vec<String>, String> {
         let mut all_media_files = Vec::new();
 
@@ -236,7 +285,10 @@ impl AnkiDeckLoader {
         Ok(all_media_files)
     }
 
-    // Build complete deck with all models and notes
+    /// Builds a complete deck with all models and notes.
+    ///
+    /// # Returns
+    /// * `Result<(Deck, Vec<String>), String>` - Tuple of deck and media files or error message
     fn build_complete_deck(&self) -> Result<(Deck, Vec<String>), String> {
         let deck_config = self.load_deck_config()?;
         let mut deck = Deck::new(
@@ -258,7 +310,15 @@ impl AnkiDeckLoader {
         Ok((deck, all_media_files))
     }
 
-    // Write deck or package to file
+    /// Writes deck or package to file.
+    ///
+    /// # Arguments
+    /// * `deck` - Deck to write
+    /// * `media_files` - Vector of media file paths
+    /// * `output_path` - Output file path
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     fn write_deck_to_file(
         &self,
         deck: Deck,
@@ -279,7 +339,13 @@ impl AnkiDeckLoader {
         Ok(())
     }
 
-    // Create directory structure with error handling using try_for_each
+    /// Creates directory structure with error handling.
+    ///
+    /// # Arguments
+    /// * `path` - Base path to create directories in
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     fn create_dir_structure(&self, path: &Path) -> Result<(), String> {
         [MODELS_DIR, DATA_DIR, MEDIA_DIR]
             .iter()
@@ -289,7 +355,15 @@ impl AnkiDeckLoader {
             })
     }
 
-    // Write YAML file with error handling
+    /// Writes YAML file with error handling.
+    ///
+    /// # Arguments
+    /// * `path` - File path to write to
+    /// * `data` - Data to serialize and write
+    /// * `context` - Context description for error messages
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     fn write_yaml<T: Serialize>(
         &self,
         path: PathBuf,
@@ -301,7 +375,10 @@ impl AnkiDeckLoader {
         fs::write(path, yaml_content).map_err(|e| format!("Failed to write {}: {}", context, e))
     }
 
-    // Helper function to create timestamps
+    /// Creates a timestamp for unique ID generation.
+    ///
+    /// # Returns
+    /// * `i64` - Unix timestamp in seconds
     fn create_timestamp() -> i64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -309,7 +386,13 @@ impl AnkiDeckLoader {
             .as_secs() as i64
     }
 
-    // Public methods
+    /// Creates a new AnkiDeckLoader instance.
+    ///
+    /// # Arguments
+    /// * `project_path` - Path to the Anki deck project directory
+    ///
+    /// # Returns
+    /// * `Result<Self, String>` - New instance or error message
     pub fn new(project_path: PathBuf) -> Result<Self, String> {
         if !project_path.exists() {
             return Err(format!(
@@ -320,11 +403,22 @@ impl AnkiDeckLoader {
         Ok(Self { project_path })
     }
 
+    /// Loads deck configuration from deck.yaml file.
+    ///
+    /// # Returns
+    /// * `Result<DeckConfig, String>` - Deck configuration or error message
     pub fn load_deck_config(&self) -> Result<DeckConfig, String> {
         let deck_config_path = self.project_path.join(DECK_FILE);
         self.read_yaml(deck_config_path, DECK_FILE)
     }
 
+    /// Loads model data including configuration, templates, and media files.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model to load
+    ///
+    /// # Returns
+    /// * `Result<ModelData, String>` - Model data or error message
     pub fn load_model_data(&self, model_name: &str) -> Result<ModelData, String> {
         let model_path = self.project_path.join(MODELS_DIR).join(model_name);
 
@@ -349,11 +443,22 @@ impl AnkiDeckLoader {
         })
     }
 
+    /// Gets list of available model names from the models directory.
+    ///
+    /// # Returns
+    /// * `Result<Vec<String>, String>` - Vector of model names or error message
     pub fn get_available_models(&self) -> Result<Vec<String>, String> {
         let models_path = self.project_path.join(MODELS_DIR);
         self.collect_dir_names(&models_path)
     }
 
+    /// Loads CSV data for a specific model.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model to load CSV data for
+    ///
+    /// # Returns
+    /// * `Result<Vec<Vec<String>>, String>` - CSV data as vector of string vectors or error message
     pub fn load_csv_data(&self, model_name: &str) -> Result<Vec<Vec<String>>, String> {
         let csv_path = self
             .project_path
@@ -377,6 +482,14 @@ impl AnkiDeckLoader {
             .collect()
     }
 
+    /// Adds CSV data file to the project for a specific model.
+    ///
+    /// # Arguments
+    /// * `model_name` - Name of the model to add CSV data for
+    /// * `data` - Path to the CSV data file to copy
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     pub fn add_csv_data(&self, model_name: &str, data: &PathBuf) -> Result<(), String> {
         let data_dir = self.project_path.join(DATA_DIR);
         fs::create_dir_all(&data_dir)
@@ -390,11 +503,22 @@ impl AnkiDeckLoader {
         Ok(())
     }
 
+    /// Builds the deck (validation only, does not export).
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     pub fn build_deck(&self) -> Result<(), String> {
         let (_deck, _media_files) = self.build_complete_deck()?;
         Ok(())
     }
 
+    /// Exports the complete deck to an .apkg file.
+    ///
+    /// # Arguments
+    /// * `output_path` - Path where the .apkg file will be saved
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     pub fn export_deck(&self, output_path: PathBuf) -> Result<(), String> {
         let (deck, media_files) = self.build_complete_deck()?;
         self.write_deck_to_file(
@@ -404,6 +528,18 @@ impl AnkiDeckLoader {
         )
     }
 
+    /// Creates a new Anki deck project template with sample files.
+    ///
+    /// # Arguments
+    /// * `project_path` - Path where the project will be created
+    /// * `deck_name` - Optional deck name (defaults to "Sample Deck")
+    /// * `deck_description` - Optional deck description
+    /// * `author` - Optional author name
+    /// * `model_name` - Optional model name (defaults to "basic_card")
+    /// * `fields` - Optional field names (defaults to ["Front", "Back"])
+    ///
+    /// # Returns
+    /// * `Result<(), String>` - Success or error message
     pub fn create_project_template(
         project_path: PathBuf,
         deck_name: Option<String>,
