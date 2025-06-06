@@ -4,9 +4,18 @@ on:
   push:
     branches:
       - master
+    paths:
+      - "src/**"
+      - "python/**"
+      - "packages/*/python/**"
+      - "packages/*/src/**"
   pull_request:
     branches:
       - master
+    paths:
+      - "python/**"
+      - "packages/*/python/**"
+      - "packages/*/src/**"
 
 jobs:
   test:
