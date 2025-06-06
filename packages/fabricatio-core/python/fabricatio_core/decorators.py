@@ -13,8 +13,7 @@ from fabricatio_core.rust import CONFIG
 
 
 def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """
-    Decorator to check if a required package exists in the current environment before executing a function.
+    """Decorator to check if a required package exists in the current environment before executing a function.
 
     This decorator ensures that a specified package is available in the environment. If the package is not found,
     it raises a `RuntimeError` with a custom error message.
@@ -247,9 +246,9 @@ def logging_exec_time[**P, R](
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()
-            logger.debug(f"Starting execution of {func.__name__}", depth=6)
+            logger.debug(f"Starting execution of {func.__name__}", )
             result = await func(*args, **kwargs)
-            logger.debug(f"Execution time of `{func.__name__}`: {time() - start_time:.2f} s", depth=6)
+            logger.debug(f"Execution time of `{func.__name__}`: {time() - start_time:.2f} s", )
             return result
 
         return _async_wrapper
@@ -257,9 +256,9 @@ def logging_exec_time[**P, R](
     @wraps(func)
     def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start_time = time()
-        logger.debug(f"Starting execution of {func.__name__}", depth=6)
+        logger.debug(f"Starting execution of {func.__name__}", )
         result = func(*args, **kwargs)
-        logger.debug(f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms", depth=6)
+        logger.debug(f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms", )
         return result
 
     return _wrapper

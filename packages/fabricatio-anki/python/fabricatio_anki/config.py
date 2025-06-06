@@ -7,8 +7,7 @@ from fabricatio_core import CONFIG
 
 @dataclass(frozen=True)
 class AnkiConfig:
-    """
-    Configuration class for fabricatio-anki.
+    """Configuration class for fabricatio-anki.
 
     This class holds the configuration settings required for generating Anki cards, models,
     and decks. Each field corresponds to a template used in different stages of Anki object creation.

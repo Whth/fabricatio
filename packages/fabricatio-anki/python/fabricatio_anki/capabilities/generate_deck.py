@@ -11,6 +11,7 @@ from fabricatio_core.utils import ok, override_kwargs
 from fabricatio_anki.config import anki_config
 from fabricatio_anki.models.deck import Deck, Model, ModelMetaData
 from fabricatio_anki.models.template import Template
+from fabricatio_anki.rust import fname_santitize
 
 
 class GenerateDeck(Propose):
@@ -118,11 +119,14 @@ class GenerateDeck(Propose):
         """
         if isinstance(requirement, str):
             name = ok(
-                await self.ageneric_string(
-                    TEMPLATE_MANAGER.render_template(
-                        anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement}
-                    ),
-                    **override_kwargs(kwargs, defualt=None),
+                fname_santitize(
+                    await self.ageneric_string(
+                        TEMPLATE_MANAGER.render_template(
+                            anki_config.generate_anki_model_name_template,
+                            {"fields": fields, "requirement": requirement},
+                        ),
+                        **override_kwargs(kwargs, defualt=None),
+                    )
                 )
             )
             # draft card template generation requirements
@@ -154,6 +158,8 @@ class GenerateDeck(Propose):
                     **override_kwargs(kwargs, defualt=None),
                 )
             )
+
+            names = [fname_santitize(name) for name in names]
             template_generation_requirements_seq = ok(
                 await self.alist_str(
                     TEMPLATE_MANAGER.render_template(

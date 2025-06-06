@@ -10,8 +10,7 @@ from fabricatio_core.rust import CONFIG, Event
 
 @dataclass
 class Env:
-    """
-    Environment class that manages event handling using EventEmitter.
+    """Environment class that manages event handling using EventEmitter.
 
     This class provides methods for registering event listeners, emitting events,
     and handling asynchronous operations related to event management.
@@ -82,8 +81,7 @@ class Env:
         /,
         ttl=-1,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """
-        Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
+        """Registers an event listener with a specific function that listens indefinitely or for a specified number of times.
 
         Args:
             event (str | Event): The event to listen for.
@@ -157,8 +155,7 @@ class Env:
         event: str | Event,
         func: Optional[Callable[P, R]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Self:
-        """
-        Registers an event listener with a specific function that listens only once.
+        """Registers an event listener with a specific function that listens only once.
 
         Args:
             event (str | Event): The event to listen for.
@@ -182,8 +179,7 @@ class Env:
         return self
 
     def emit[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Emits an event to all registered listeners.
+        """Emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.
@@ -202,8 +198,7 @@ class Env:
         self.ee.emit(event, *args, **kwargs)
 
     async def emit_async[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Asynchronously emits an event to all registered listeners.
+        """Asynchronously emits an event to all registered listeners.
 
         Args:
             event (str | Event): The event to emit.
@@ -221,8 +216,7 @@ class Env:
         return await self.ee.emit_async(event, *args, **kwargs)
 
     def emit_future[**P](self, event: str | Event, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Emits an event to all registered listeners and returns a future object.
+        """Emits an event to all registered listeners and returns a future object.
 
         Args:
             event (str | Event): The event to emit.

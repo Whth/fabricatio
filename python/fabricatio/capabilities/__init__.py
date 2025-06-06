@@ -57,3 +57,7 @@ if find_spec("fabricatio_tagging"):
     from fabricatio_tagging.capabilities.tagging import Tagging
 
     __all__ += ["Tagging"]
+if find_spec("fabricatio_question"):
+    from fabricatio_question.capabilities.questioning import Questioning
+
+    __all__ += ["Questioning"]

@@ -12,6 +12,7 @@ pyo3 = { version = "0.24.2", features = ["extension-module"] }
 deck_loader = { path = "./src/deck_loader" }
 pythonize = "0.24"
 serde_yml = "0.0.12"
+sanitize-filename = "0.6.0"
 
 
 

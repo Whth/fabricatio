@@ -14,8 +14,7 @@ from fabricatio_core.rust import CONFIG
 
 @dataclass(frozen=True)
 class Capture:
-    """
-    A class to capture patterns in text using regular expressions.
+    """A class to capture patterns in text using regular expressions.
 
     This class provides methods for capturing specific patterns in text and performing
     additional processing such as fixing, converting, and validating the captured text.
@@ -32,8 +31,7 @@ class Capture:
     """Optional type identifier for post-processing (e.g., 'json' for JSON repair)."""
 
     def fix(self, text: str) -> str:
-        """
-        Fix the text based on capture_type (e.g., JSON repair).
+        """Fix the text based on capture_type (e.g., JSON repair).
 
         Args:
             text (str): The input text to be fixed.
@@ -52,8 +50,7 @@ class Capture:
                 return text
 
     def capture(self, text: str) -> Optional[str]:
-        """
-        Capture the first match of the pattern in the text.
+        """Capture the first match of the pattern in the text.
 
         Args:
             text (str): The input text to search within.
@@ -86,8 +83,7 @@ class Capture:
         text: str,
         convertor: Callable[[str], Any],
     ) -> Optional[Any]:
-        """
-        Convert captured text using a provided function.
+        """Convert captured text using a provided function.
 
         Args:
             text (str): The input text to capture and convert.
@@ -118,8 +114,7 @@ class Capture:
         length: Optional[int] = None,
         deserializer: Callable[[str], K] = lambda x: ujson.loads(x),
     ) -> Optional[T]:
-        """
-        Deserialize and validate the captured text against expected types.
+        """Deserialize and validate the captured text against expected types.
 
         Args:
             text (str): The input text to capture and validate.
@@ -147,8 +142,7 @@ class Capture:
     @classmethod
     @lru_cache(32)
     def capture_code_block(cls, language: str) -> Self:
-        """
-        Capture a code block of the given language.
+        """Capture a code block of the given language.
 
         Args:
             language (str): The programming language of the code block.
@@ -164,8 +158,7 @@ class Capture:
     @classmethod
     @lru_cache(32)
     def capture_generic_block(cls, language: str) -> Self:
-        """
-        Capture a generic block of the given language.
+        """Capture a generic block of the given language.
 
         Args:
             language (str): The language or identifier of the generic block.
@@ -184,8 +177,7 @@ class Capture:
     @classmethod
     @lru_cache(32)
     def capture_content(cls, left_delimiter: str, right_delimiter: str | None = None) -> Self:
-        """
-        Capture content between delimiters.
+        """Capture content between delimiters.
 
         Args:
             left_delimiter (str): The left delimiter marking the start of the content.

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 
-def compile_deck(path: str, output: str) -> None:
+def compile_deck(path: Path | str, output: Path | str) -> None:
     """Compile an Anki deck from a project directory and export it to the specified output path.
 
     This function serves as the main entry point for compiling Anki deck projects created with
@@ -19,14 +19,14 @@ def compile_deck(path: str, output: str) -> None:
     5. Generating the final .apkg file with proper Anki database structure
 
     Args:
-        path (str): The absolute or relative path to the Anki deck project directory.
+        path (Path): The absolute or relative path to the Anki deck project directory.
                    This directory should contain:
                    - deck.toml: Main deck configuration file
                    - models/: Directory containing model definitions and templates
                    - data/: Directory containing CSV files with card data
                    - media/: Directory containing any media files (images, audio, etc.)
 
-        output (str): The absolute or relative path where the compiled .apkg file should be saved.
+        output (Path): The absolute or relative path where the compiled .apkg file should be saved.
                      The file will be created if it doesn't exist, or overwritten if it does.
                      The path should include the desired filename with .apkg extension.
 
@@ -49,15 +49,13 @@ def compile_deck(path: str, output: str) -> None:
     """
 
 
-
-
 def create_deck_project(
-    path: str,
-    deck_name: str | None = None,
-    deck_description: str | None = None,
-    author: str | None = None,
-    model_name: str | None = None,
-    fields: list[str] | None = None,
+        path: str,
+        deck_name: str | None = None,
+        deck_description: str | None = None,
+        author: str | None = None,
+        model_name: str | None = None,
+        fields: list[str] | None = None,
 ) -> None:
     """Create a new Anki deck project template with the specified configuration.
 
@@ -169,7 +167,9 @@ def create_deck_project(
         - The project structure is designed to be version-control friendly, with text-based
           configuration files and clear separation of content and presentation.
     """
-def save_metadata(dir_path: Path, name: str, data: Dict) -> None: 
+
+
+def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
     """Save metadata as a YAML file in the specified directory.
     
     This function takes a dictionary of metadata and saves it as a YAML file
@@ -196,16 +196,13 @@ def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
         >>> save_metadata(Path("/path/to/project"), "deck_info", metadata)
         # Creates /path/to/project/deck_info.yaml with the metadata
     """
-    
-    
-    
 
 
 def save_template(
-    dir_path: Path,
-    front: str,
-    back: str,
-    css: str | None = None,
+        dir_path: Path,
+        front: str,
+        back: str,
+        css: str | None = None,
 ) -> None:
     """Save card type template files (front.html, back.html, and optional style.css) to a directory.
 
@@ -270,4 +267,52 @@ def save_template(
         - Field placeholders in the format {{FieldName}} will be replaced by Anki with actual card data.
         - The CSS file is optional but recommended for consistent card styling across different devices.
         - Template files use standard HTML/CSS which allows for rich formatting and multimedia content.
+    """
+
+
+def fname_santitize(filename: str) -> str:
+    """Sanitize a filename by removing or replacing invalid characters.
+    
+    Args:
+        filename: The filename to sanitize
+        
+    Returns:
+        A sanitized version of the filename safe for use on filesystems
+    """
+
+
+def add_csv_data(project_path: Path | str, model_name: str, data: Path | str) -> None:
+    """Add CSV data to an Anki deck project by copying a CSV file to the project's data directory.
+    
+    This function copies a CSV data file into the appropriate location within an Anki deck project
+    structure. The CSV file will be renamed to match the model name and placed in the project's
+    data directory where it can be used during deck compilation.
+    
+    Args:
+        project_path: The path to the root directory of the Anki deck project.
+                     This should contain the standard project structure with a 'data' subdirectory.
+        model_name: The name of the model that this CSV data corresponds to.
+                   The CSV file will be renamed to "{model_name}.csv" in the data directory.
+        data: The path to the source CSV file that contains the card data to be added.
+             This file should have a header row with column names that match the model's fields.
+    
+    Raises:
+        Exception: If the project path does not exist or is not accessible.
+        Exception: If the source CSV file cannot be read or does not exist.
+        Exception: If the data directory cannot be created or written to.
+        Exception: If the file copy operation fails due to I/O errors or permission issues.
+    
+    Example:
+        >>> from pathlib import Path
+        >>> add_csv_data(
+        ...     Path("/path/to/my-deck-project"),
+        ...     "vocabulary_cards",
+        ...     Path("/path/to/vocab_data.csv")
+        ... )
+        # Copies vocab_data.csv to /path/to/my-deck-project/data/vocabulary_cards.csv
+    
+    Note:
+        - The function will overwrite any existing CSV file with the same model name.
+        - The CSV file should have column headers that match the field names defined in the model.
+        - The data directory will be created if it doesn't exist within the project structure.
     """

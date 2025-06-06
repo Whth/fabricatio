@@ -5,6 +5,7 @@ from pathlib import Path
 from time import perf_counter_ns
 from typing import List, Optional, Self, Set, Type
 
+from fabricatio import logger
 from fabricatio_capabilities.models.generic import Patch
 from fabricatio_core.models.generic import Named, SketchedAble, WithBriefing
 from pydantic import BaseModel
@@ -17,11 +18,13 @@ class Constants(StrEnum):
     """Constants used across the module to represent various keys and directories."""
 
     MEDIA = "media"
+    DATA = "data"
     TEMPLATES = "templates"
     MODEL = "model"
     FIELDS = "fields"
     DECK = "deck"
     MODEL_ID = "model_id"
+    DECK_ID = "deck_id"
 
 
 class Model(SketchedAble, Named):
@@ -51,11 +54,13 @@ class Model(SketchedAble, Named):
             Self: The instance of the model after saving.
         """
         model_root = Path(parent_dir) / self.name
+        logger.info(f"Saving model metadata to {model_root}")
         save_metadata(
             model_root, Constants.FIELDS, {Constants.MODEL_ID: perf_counter_ns(), Constants.FIELDS: self.fields}
         )
 
         for t in self.templates:
+            logger.debug(f"Saving template {t.name} to {model_root / Constants.TEMPLATES}")
             t.save_to(model_root / Constants.TEMPLATES)
         return self
 
@@ -86,14 +91,19 @@ class Deck(SketchedAble, WithBriefing):
             Self: The instance of the deck after saving.
         """
         models_root = Path(path) / Constants.MODEL
+        logger.info(f"Saving deck to {path}")
+        logger.info(f"Models will be saved to {models_root}")
 
         for m in self.models:
+            logger.info(f"Saving model {m.name!r}")
             m.save_to(models_root)
 
+        logger.info("Writing deck metadata")
         save_metadata(
-            models_root, Constants.DECK, {Constants.MODEL_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})}
+            path, Constants.DECK, {Constants.DECK_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})}
         )
 
+        logger.info(f"Deck saved successfully with {len(self.models)} models")
         return self
 
 
@@ -113,6 +123,7 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
         Returns:
             Set[str]: A set containing the names of excluded fields.
         """
+        logger.debug("Getting excluded fields for ModelMetaData")
         return {"models", "author"}
 
     @staticmethod
@@ -124,4 +135,5 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
         Returns:
             Optional[Type[BaseModel]]: The Deck class.
         """
+        logger.debug("Getting reference class for ModelMetaData")
         return Deck

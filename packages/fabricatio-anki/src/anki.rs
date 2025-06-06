@@ -46,9 +46,17 @@ fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyR
                 serde_yml::to_string(&value).map_err(|e| PyRuntimeError::new_err(e.to_string()));
             content.and_then(|content| {
                 let path = dir_path.join(format!("{}.yaml", name));
-                std::fs::write(path, content).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+                fs::write(path, content).map_err(|e| PyRuntimeError::new_err(e.to_string()))
             })
         })
+}
+
+#[pyfunction]
+fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyResult<()> {
+    AnkiDeckLoader::new(project_path)
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+        .add_csv_data(model_name, &data)
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -72,5 +80,6 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(create_deck_project, m)?)?;
     m.add_function(wrap_pyfunction!(save_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(save_template, m)?)?;
+    m.add_function(wrap_pyfunction!(add_csv_data, m)?)?;
     Ok(())
 }

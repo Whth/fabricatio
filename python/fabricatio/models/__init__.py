@@ -44,3 +44,8 @@ if find_spec("fabricatio_anki"):
     from fabricatio_anki.models.template import Template
 
     __all__ += ["Deck", "Model", "Template"]
+
+if find_spec("fabricatio_question"):
+    from fabricatio_question.models.questions import SelectionQuestion
+
+    __all__ += ["SelectionQuestion"]

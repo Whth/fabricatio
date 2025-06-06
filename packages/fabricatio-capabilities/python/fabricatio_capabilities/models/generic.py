@@ -262,7 +262,7 @@ class Patch[T](ProposedAble, ABC):
 
         # drop excluded fields
         for field_name in excluded_fields:
-            my_schema["properties"].pop(field_name)
+            my_schema["properties"].pop(field_name) if field_name in my_schema["properties"] else None
             my_schema["required"].remove(field_name) if field_name in my_schema["required"] else None
 
         if (ref_cls := cls.ref_cls()) is not None:

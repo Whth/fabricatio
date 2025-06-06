@@ -368,6 +368,18 @@ impl AnkiDeckLoader {
 
         Ok(data)
     }
+    pub fn add_csv_data(&self, model_name: &str, data: &PathBuf) -> Result<(), String> {
+        let data_dir = self.project_path.join(DATA_DIR);
+        fs::create_dir_all(&data_dir)
+            .map_err(|e| format!("Failed to create data directory: {}", e))?;
+
+        let target_path = data_dir.join(format!("{}.csv", model_name));
+
+        fs::copy(data, &target_path)
+            .map_err(|e| format!("Failed to copy CSV data for model {}: {}", model_name, e))?;
+
+        Ok(())
+    }
 
     pub fn build_deck(&self) -> Result<(), String> {
         let (_deck, _media_files) = self.build_complete_deck()?;
