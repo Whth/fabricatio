@@ -9,13 +9,16 @@ on:
       - "python/**"
       - "packages/*/python/**"
       - "packages/*/src/**"
+      - "**/pyproject.toml"
   pull_request:
     branches:
       - master
     paths:
+      - "src/**"
       - "python/**"
       - "packages/*/python/**"
       - "packages/*/src/**"
+      - "**/pyproject.toml"
 
 jobs:
   test:
