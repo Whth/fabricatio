@@ -4,21 +4,13 @@ from fabricatio_core.models.generic import SketchedAble
 from pydantic import NonNegativeInt
 
 
-
-
-
-
-
-
 class Segment(SketchedAble):
-    duration:NonNegativeInt 
-    extra_genres:List[str]
-    lyrics:str = ""
-    
+    duration: NonNegativeInt
+    extra_genres: List[str]
+    lyrics: str = ""
+
 
 class Song(SketchedAble):
-    duration:NonNegativeInt 
-    genres:List[str]
-    segments:List[Segment]
-    
-    
+    duration: NonNegativeInt
+    genres: List[str]
+    segments: List[Segment]
