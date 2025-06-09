@@ -282,6 +282,9 @@ pub struct TemplateConfig {
     pub make_judgment_template: String,
 
     // String Processing Templates
+    ///  The name of the code string template which will be used to review a string.
+    pub code_string_template: String,
+
     /// The name of the generic string template which will be used to review a string.
     pub generic_string_template: String,
 

@@ -481,6 +481,45 @@ class LLMUsage(LLMScopedConfig, ABC):
             )
         return None
 
+    @overload
+    async def acode_string(
+        self, requirement: str, code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+    ) -> Optional[str]: ...
+
+    @overload
+    async def acode_string(
+        self, requirement: List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+    ) -> List[Optional[str]]: ...
+
+    async def acode_string(
+        self, requirement: str | List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+    ) -> None | str | List[str | None]:
+        """Asynchronously generates code strings based on given requirements and code language.
+
+        Args:
+            requirement (str | List[str]): The requirement(s) for generating code strings.
+            code_language (str): The programming language for the generated code.
+            **kwargs (Unpack[ValidateKwargs[str]]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            None | str | List[str | None]: The generated code string(s). Returns a single string if requirement
+            is a string, or a list of strings/None values if requirement is a list.
+        """
+        from fabricatio_core.parser import Capture
+
+        cap = Capture.capture_code_block(code_language)
+
+        return await self.aask_validate(
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.code_string_template,
+                {"requirement": requirement, "code_language": code_language}
+                if isinstance(requirement, str)
+                else [{"requirement": r, "code_language": code_language} for r in requirement],
+            ),
+            validator=lambda resp: cap.capture(resp),
+            **kwargs,
+        )
+
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
