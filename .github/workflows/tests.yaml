@@ -10,6 +10,7 @@ on:
       - "packages/*/python/**"
       - "packages/*/src/**"
       - "**/pyproject.toml"
+      - "**/cargo.toml"
   pull_request:
     branches:
       - master
@@ -19,6 +20,7 @@ on:
       - "packages/*/python/**"
       - "packages/*/src/**"
       - "**/pyproject.toml"
+      - "**/cargo.toml"
 
 jobs:
   test:
