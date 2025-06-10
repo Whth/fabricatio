@@ -322,7 +322,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.4.5.dev0"
+version = "0.4.5.dev4"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -492,7 +492,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.1.1"
+version = "0.1.2.dev1"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -534,7 +534,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.6.dev8"
+version = "0.1.6"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -795,7 +795,7 @@ provides-extras = ["full", "rag", "qa", "workflows"]
 
 [[package]]
 name = "fabricatio-yue"
-version = "0.1.0"
+version = "0.1.0.dev1"
 source = { editable = "packages/fabricatio-yue" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -2014,9 +2014,9 @@ dependencies = [
     { name = "idna" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760" }
+sdist = { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218, upload-time = "2024-05-29T15:37:49.536Z" }
 wheels = [
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6" },
+    { url = "https://mirrors.bfsu.edu.cn/pypi/web/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6", size = 64928, upload-time = "2024-05-29T15:37:47.027Z" },
 ]
 
 [[package]]
