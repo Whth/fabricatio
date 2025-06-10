@@ -21,6 +21,10 @@ handlebars_helper!(block: |v:String,title:String| format!(
     "--- Start of `{title}` ---\n{v}\n--- End of `{title}` ---\n",
 ));
 
+handlebars_helper!(code: |v:String,lang:String| format!(
+    "```{lang}\n{v}\n```"
+));
+
 handlebars_helper!(list_out_string: |v: Vec<String>| {
     v.iter()
         .map(|s_item| {

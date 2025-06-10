@@ -239,6 +239,7 @@ class TemplateManagerConfig:
 
 class TemplateConfig:
     """Template configuration structure."""
+    
 
     mapping_template: str
     """The name of the mapping template which will be used to map data."""
@@ -258,7 +259,8 @@ class TemplateConfig:
     """The name of the make judgment template which will be used to make a judgment."""
 
     # String Processing Templates
-
+    code_string_template:  str
+    """The name of the code string template which will be used to process a code string."""
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
 
