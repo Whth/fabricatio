@@ -17,6 +17,20 @@ class AnkiConfig:
         - Ensure all template names are correctly set according to your use case.
     """
 
+    generate_anki_card_front_side_template: str = "generate_anki_card_front_side"
+    """
+    The template name used for generating the front side of Anki cards.
+
+    If this value is incorrect or missing, Anki card front side generation will fail.
+    """
+
+    generate_anki_card_back_side_template: str = "generate_anki_card_back_side"
+    """
+    The template name used for generating the back side of Anki cards.
+
+    If this value is incorrect or missing, Anki card back side generation will fail.
+    """
+
     generate_anki_card_template_template: str = "generate_anki_card_template"
     """
     The template name used for generating Anki card types.

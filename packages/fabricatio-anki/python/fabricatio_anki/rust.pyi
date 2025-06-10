@@ -316,3 +316,30 @@ def add_csv_data(project_path: Path | str, model_name: str, data: Path | str) ->
         - The CSV file should have column headers that match the field names defined in the model.
         - The data directory will be created if it doesn't exist within the project structure.
     """
+
+
+
+def extract_html_component(html: str) -> tuple[str, str, str]:
+    """Extract HTML components by separating layout, JavaScript, and CSS content.
+    
+    This function parses an HTML string and extracts three distinct components:
+    - Layout HTML (remaining HTML after removing script and style tags)
+    - JavaScript content from <script> tags
+    - CSS content from <style> tags
+    
+    Args:
+        html: The HTML string to parse and extract components from.
+    
+    Returns:
+        A tuple containing (layout_html, javascript_content, css_content):
+        - layout_html: HTML content with script and style tags removed
+        - javascript_content: Combined JavaScript code from all script tags
+        - css_content: Combined CSS code from all style tags
+    
+    Example:
+        >>> html = '<div>Hello</div><script>alert("hi")</script><style>div{color:red}</style>'
+        >>> layout, js, css = extract_html_component(html)
+        >>> print(layout)  # '<div>Hello</div>'
+        >>> print(js)      # 'alert("hi")'
+        >>> print(css)     # 'div{color:red}'
+    """

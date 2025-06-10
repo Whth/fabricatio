@@ -891,6 +891,7 @@ dependencies = [
  "deck_loader",
  "pyo3",
  "pythonize",
+ "regex",
  "sanitize-filename",
  "serde_yml",
 ]

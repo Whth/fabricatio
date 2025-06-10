@@ -15,35 +15,47 @@ from typing import Self
 
 from fabricatio_core.models.generic import Named, SketchedAble
 
-from fabricatio_anki.rust import save_template
+from fabricatio_anki.rust import extract_html_component, save_template
+
+
+class Side(SketchedAble):
+    """Represents one side of an Anki card with layout, JavaScript, and CSS components."""
+
+    layout: str
+    """HTML content for the card side.
+    Contains text, images, and structure with support for dynamic placeholders."""
+    js: str
+    """JavaScript code for the card side.
+    Enables interactive behavior and dynamic functionality."""
+    css: str
+    """CSS styles specific to this card side.
+    Defines formatting, colors, spacing, and layout elements."""
+
+    def assemble(self) -> str:
+        """Combines HTML content and JavaScript code into a single string.
+
+        Returns:
+            str: The assembled HTML content with embedded JavaScript.
+        """
+        return f"{self.layout}\n<script>{self.js}</script>\n<style>{self.css}</style>"
+
+    @classmethod
+    def from_html(cls, source: str) -> Self:
+        """Create a Side instance from HTML source by extracting layout, JavaScript, and CSS components."""
+        layout, js, css = extract_html_component(source)
+        return cls(layout=layout, js=js, css=css)
 
 
 class Template(SketchedAble, Named):
     """Template model for Anki card templates with HTML, JavaScript, and CSS components."""
 
-    front: str
-    """HTML content for the front face of the card.
-    Contains text, images, and structure with support for dynamic placeholders.
-    Combined with front_js and wrapped in script tags when saved."""
+    front: Side
+    """The front side of the card.
+    Contains the question or prompt that will be shown to the user first."""
 
-    front_js: str
-    """JavaScript code for the front face of the card.
-    Enables interactive behavior and dynamic functionality.
-    Automatically embedded within the front HTML content when saved."""
-
-    back: str
-    """HTML content for the back face of the card.
-    Displays answer information with placeholders for dynamic content.
-    Combined with back_js and wrapped in script tags when saved."""
-
-    back_js: str
-    """JavaScript code for the back face of the card.
-    Provides interactive elements and dynamic content manipulation.
-    Automatically embedded within the back HTML content when saved."""
-
-    css: str
-    """Custom CSS styles controlling the card's visual presentation.
-    Defines formatting, fonts, colors, spacing, and layout for both card faces."""
+    back: Side
+    """The back side of the card.
+    Contains the answer or additional information revealed after the front side."""
 
     def save_to(self, parent_dir: Path | str) -> Self:
         """Save the current card template to the specified directory.
@@ -60,24 +72,7 @@ class Template(SketchedAble, Named):
         """
         save_template(
             Path(parent_dir) / self.name,
-            self.assemble(self.front, self.front_js),
-            self.assemble(self.back, self.back_js),
-            self.css,
+            self.front.assemble(),
+            self.back.assemble(),
         )
         return self
-
-    @staticmethod
-    def assemble(side: str, script: str) -> str:
-        """Combine HTML content and JavaScript code into a single string.
-
-        This helper method takes HTML content and JavaScript code and combines them by
-        appending the JavaScript within script tags at the end of the HTML content.
-
-        Args:
-            side (str): The HTML content for a card side (front or back).
-            script (str): The JavaScript code to be embedded in the HTML.
-
-        Returns:
-            str: The combined HTML content with embedded JavaScript.
-        """
-        return f"{side}<script>{script}</script>"

@@ -57,5 +57,4 @@ deck: Deck = ok(
     .delegate_blocking(ns)
 )
 
-
 compile_deck("here", f"{deck.name}.apkg")
