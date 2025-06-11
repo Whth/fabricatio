@@ -4,6 +4,7 @@ from typing import List, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
+from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import ok, override_kwargs
 
@@ -58,6 +59,7 @@ class Lyricize(Propose, SelectGenre):
         Returns:
             Song | None | List[Song | None]: Generated lyrics as Song object, list of Song objects, or None based on input type
         """
+        logger.debug(f"Lyricizing requirements: {requirement}")
         okwargs = override_kwargs(kwargs, default=None)
 
         async def lyricize_single(req: str) -> Song | None:
@@ -69,20 +71,29 @@ class Lyricize(Propose, SelectGenre):
             Returns:
                 Song | None: A Song object containing generated lyrics and metadata, or None if generation fails.
             """
+            logger.debug(f"Processing single lyricize requirement: {req}")
             genres = ok(await self.gather_genres(req, **okwargs))
+            logger.debug(f"Gathered genres for requirement: {genres}")
+
             prompt = TEMPLATE_MANAGER.render_template(
                 yue_config.lyricize_template,
                 {"requirement": req, "genres": genres, "section_types": yue_config.segment_types},
             )
+            logger.debug(f"Generated prompt for lyricize: {prompt}")
+
             return await self.propose(Song, prompt, **kwargs)
 
         if isinstance(requirement, str):
+            logger.debug("Processing single requirement string")
             return await lyricize_single(requirement)
 
         if isinstance(requirement, list):
+            logger.debug(f"Processing {len(requirement)} requirement strings")
             import asyncio
 
             tasks = [lyricize_single(req) for req in requirement]
             return await asyncio.gather(*tasks)
 
-        raise TypeError(f"Invalid requirement type: {type(requirement)}. Expected str or List[str].")
+        error_msg = f"Invalid requirement type: {type(requirement)}. Expected str or List[str]."
+        logger.error(error_msg)
+        raise TypeError(error_msg)

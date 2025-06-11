@@ -9,6 +9,7 @@ and lyrics.
 from pathlib import Path
 from typing import List, Self
 
+from fabricatio_core import logger
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
 from pydantic import NonNegativeInt, PrivateAttr
 
@@ -99,6 +100,8 @@ class Song(SketchedAble, WithBriefing):
 
         # Create filename from song name or use default
         file_path = parent_path / f"{self.name}.md"
+
+        logger.info(f"Saving song to {file_path.as_posix()}")
 
         out = f"{self.briefing}\n" + "\n".join(map(self._wrapp, self.segments))
 

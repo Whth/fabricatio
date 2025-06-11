@@ -3,6 +3,7 @@
 from typing import List, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
+from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.usages import LLMUsage
 from more_itertools import flatten
@@ -79,16 +80,20 @@ class SelectGenre(LLMUsage):
             For multiple requirements: List where each element is either a list of genres or None.
         """
         if isinstance(requirement, str):
-            return await self.alist_str(
+            logger.debug("Processing single requirement")
+            result = await self.alist_str(
                 TEMPLATE_MANAGER.render_template(
                     yue_config.select_genre_template,
                     {"requirement": requirement, "genre_classifier": genre_classifier, "genres": genres},
                 ),
                 **kwargs,
             )
+            logger.debug(f"Selected genres for single requirement: {result}")
+            return result
         if isinstance(requirement, list):
+            logger.debug(f"Processing {len(requirement)} requirements")
             # Handle list of requirements
-            return await self.alist_str(
+            result = await self.alist_str(
                 TEMPLATE_MANAGER.render_template(
                     yue_config.select_genre_template,
                     [
@@ -98,7 +103,12 @@ class SelectGenre(LLMUsage):
                 ),
                 **kwargs,
             )
-        raise TypeError(f"requirement must be str or List[str], got {type(requirement)}")
+            logger.debug(f"Selected genres for multiple requirements: {result}")
+            return result
+
+        error_msg = f"requirement must be str or List[str], got {type(requirement)}"
+        logger.error(error_msg)
+        raise TypeError(error_msg)
 
     @overload
     async def gather_genres(
@@ -154,6 +164,9 @@ class SelectGenre(LLMUsage):
         """
         import asyncio
 
+        logger.debug(f"Gathering genres for requirements: {requirements}")
+        logger.debug(f"Available genre categories: {list(yue_config.genre.keys())}")
+
         async def gather_for_single_requirement(req: str) -> List[str] | None:
             """Gather genres for a single requirement from all categories.
 
@@ -163,19 +176,37 @@ class SelectGenre(LLMUsage):
             Returns:
                 List[str] | None: A list of selected genres from all categories, or None if no genres are found.
             """
+            logger.debug(f"Gathering genres for single requirement: {req}")
+
             results = await asyncio.gather(
                 *[
                     self.select_genre(req, genre_classifier, genres, **kwargs)
                     for genre_classifier, genres in yue_config.genre.items()
                 ]
             )
+
+            logger.debug(f"Raw results from genre selection: {results}")
+
             # Flatten the results from all genre categories, filtering out any None responses
             selected_genres = list(flatten(result for result in results if result))
-            return selected_genres if selected_genres else None
+
+            logger.debug(f"Flattened selected genres: {selected_genres}")
+
+            final_result = selected_genres if selected_genres else None
+            logger.debug(f"Final result for requirement '{req}': {final_result}")
+
+            return final_result
 
         if isinstance(requirements, str):
+            logger.debug("Processing single requirement string")
             return await gather_for_single_requirement(requirements)
         if isinstance(requirements, list):
+            logger.debug(f"Processing {len(requirements)} requirement strings")
             tasks = [gather_for_single_requirement(req) for req in requirements]
-            return await asyncio.gather(*tasks)
-        raise TypeError(f"requirements must be str or List[str], got {type(requirements)}")
+            result = await asyncio.gather(*tasks)
+            logger.debug(f"Results for all requirements: {result}")
+            return result
+
+        error_msg = f"requirements must be str or List[str], got {type(requirements)}"
+        logger.error(error_msg)
+        raise TypeError(error_msg)
