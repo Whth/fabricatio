@@ -22,4 +22,4 @@ class Hello(Action):
 
 (Role().register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,))).dispatch())
 
-print(task.delegate_blocking("talk"))
+logger.success(task.delegate_blocking("talk"))
