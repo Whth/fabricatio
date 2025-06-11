@@ -15,6 +15,9 @@ from pydantic import NonNegativeInt
 class Segment(SketchedAble):
     """Represents a segment of a song with its attributes."""
 
+    section_type: str
+    """Type of section."""
+
     duration: NonNegativeInt
     """Duration of the segment in seconds"""
     extra_genres: List[str]
