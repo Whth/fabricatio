@@ -6,10 +6,10 @@ multiple segments, each with their own properties like duration, genre tags,
 and lyrics.
 """
 
-from typing import List
+from typing import List, Self
 
-from fabricatio_core.models.generic import SketchedAble
-from pydantic import NonNegativeInt
+from fabricatio_core.models.generic import SketchedAble, Named, WithBriefing
+from pydantic import NonNegativeInt, PrivateAttr
 
 
 class Segment(SketchedAble):
@@ -20,13 +20,30 @@ class Segment(SketchedAble):
 
     duration: NonNegativeInt
     """Duration of the segment in seconds"""
-    extra_genres: List[str]
-    """Additional genre tags for this segment"""
     lyrics: List[str]
     """Lyrics for this segment as a list of lines"""
+    _extra_genres: List[str] = PrivateAttr(default_factory=list)
+    """Additional genre tags for this segment"""
+
+    def override_extra_genres(self, genres: List[str]) -> Self:
+        """Override the genre tags for this segment.
+
+        Args:
+            genres (List[str]): New list of genre tags
+        """
+        self._extra_genres = genres
+
+    @property
+    def extra_genres(self) -> List[str]:
+        """Get the additional genre tags for this segment.
+
+        Returns:
+            List[str]: List of genre tags
+        """
+        return self._extra_genres
 
 
-class Song(SketchedAble):
+class Song(SketchedAble,WithBriefing):
     """Represents a complete song with its attributes and segments."""
 
     genres: List[str]
@@ -44,3 +61,13 @@ class Song(SketchedAble):
             NonNegativeInt: The total duration in seconds
         """
         return sum(segment.duration for segment in self.segments)
+
+    
+    def override_genres(self, genres: List[str]) -> Self:
+        """Override the primary genre tags for the entire song.
+
+        Args:
+            genres (List[str]): New list of genre tags
+        """        
+        self.genres.clear()
+        self.genres.extend(genres)

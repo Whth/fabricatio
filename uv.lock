@@ -534,7 +534,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.6"
+version = "0.1.6.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -795,11 +795,13 @@ provides-extras = ["full", "rag", "qa", "workflows"]
 
 [[package]]
 name = "fabricatio-yue"
-version = "0.1.0.dev1"
+version = "0.1.0.dev4"
 source = { editable = "packages/fabricatio-yue" }
 dependencies = [
     { name = "fabricatio-core" },
+    { name = "more-itertools" },
     { name = "pydantic" },
+    { name = "ujson" },
 ]
 
 [package.dev-dependencies]
@@ -810,7 +812,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "more-itertools", specifier = ">=10.7.0" },
     { name = "pydantic", specifier = ">=2.11.5" },
+    { name = "ujson", specifier = ">=5.10.0" },
 ]
 
 [package.metadata.requires-dev]

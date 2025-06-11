@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-yue"
-version = "0.1.0-dev2"
+version = "0.1.0-dev5"
 description = "An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -19,7 +19,9 @@ requires-python = ">=3.12,<3.14"
 
 dependencies = [
     "fabricatio-core",
+    "more-itertools>=10.7.0",
     "pydantic>=2.11.5",
+    "ujson>=5.10.0",
 ]
 
 [dependency-groups]
@@ -36,19 +38,19 @@ build-backend = "hatchling.build"
 sources = ["python"]
 
 [[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple/"
-
-[[tool.uv.index]]
-url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
