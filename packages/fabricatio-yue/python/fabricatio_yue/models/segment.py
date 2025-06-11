@@ -87,7 +87,7 @@ class Song(SketchedAble, WithBriefing):
     @property
     def briefing(self) -> str:
         """Generate a briefing of the song including its genre tags and duration."""
-        return f"# {self.name}\n>{self.description}\n> duration: {self.duration} s.---\n"
+        return f"# {self.name}\n>{self.description}\n\nDuration: {self.duration} s.\n\n{self.block(" ".join(self.genres), 'genres')} \n\n---\n"
 
     def save_to(self, parent_dir: str | Path) -> Self:
         """Save the song to a directory.
@@ -103,7 +103,7 @@ class Song(SketchedAble, WithBriefing):
 
         logger.info(f"Saving song to {file_path.as_posix()}")
 
-        out = f"{self.briefing}\n" + "\n".join(map(self._wrapp, self.segments))
+        out = f"{self.briefing}\n" + "\n".join(f'## Section {i}. {seg.section_type.capitalize()}\n\n{self._wrapp(seg)}' for i,seg in enumerate(self.segments))
 
         file_path.write_text(out, encoding="utf-8")
 
@@ -111,10 +111,13 @@ class Song(SketchedAble, WithBriefing):
 
     def _wrapp(self, segment: Segment) -> str:
         return (
-            f"Duration: {segment.duration} s.\n"
-            f"Extra Genres: {self.block(' '.join(segment.extra_genres), 'genres')}\n"
-            f"Assembled Genres: {self.block(' '.join(self.genres + segment.extra_genres), 'genres')}\n"
-            f"Lyrics:{self.block(segment.assemble, 'lyrics')}\n"
+            f"Duration: {segment.duration} s.\n\n"
+            
+            +
+            (f"Extra Genres: {self.block(' '.join(segment.extra_genres), 'genres')}\n"
+            f"Assembled Genres: {self.block(' '.join(self.genres + segment.extra_genres), 'genres')}") if segment.extra_genres else ""
+            +
+            f"Lyrics:{self.block(segment.assemble, 'lyrics')}"
         )
 
     @staticmethod
