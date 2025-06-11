@@ -31,7 +31,7 @@ class Role(WithBriefing):
 
     registry: Dict[Event, WorkFlow] = Field(default_factory=dict, frozen=True)
     """The registry of events and workflows."""
-    dispatch_on_init: bool = Field(default=True, frozen=True)
+    dispatch_on_init: bool = Field(default=False, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
 
     @property

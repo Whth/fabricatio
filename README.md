@@ -67,35 +67,32 @@ make bdist
 ### Basic Example
 
 ```python
-import asyncio
-from fabricatio import Action, Role, Task, logger, WorkFlow, Event
+"""Example of a simple hello world program using fabricatio."""
+
 from typing import Any
+
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
 
 class Hello(Action):
-    name: str = "hello"
+    """Action that says hello."""
+
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task[str], **_) -> Any:
+    async def _execute(self, **_) -> Any:
         ret = "Hello fabricatio!"
         logger.info("executing talk action")
         return ret
 
-
-async def main() -> None:
-    Role(
-        name="talker",
-        description="talker role",
-        registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))}
-    )
-
-    task = Task(name="say hello", goals=["say hello"], description="say hello to the world")
-    result = await task.delegate("talk")
-    logger.success(f"Result: {result}")
+    """Main function."""
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+(Role()
+ .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
+ .dispatch())
+
+assert Task(name="say hello").delegate_blocking("talk") == "Hello fabricatio!"
+
 ```
 
 ### Examples

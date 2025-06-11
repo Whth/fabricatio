@@ -20,12 +20,6 @@ class Hello(Action):
     """Main function."""
 
 
-Role(
-    name="talker",
-    description="talker role",
-    registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))},
-)
+(Role().register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,))).dispatch())
 
-
-if __name__ == "__main__":
-    task.delegate_blocking("talk")
+print(task.delegate_blocking("talk"))
