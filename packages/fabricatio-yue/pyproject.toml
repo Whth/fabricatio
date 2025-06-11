@@ -1,0 +1,56 @@
+[project]
+name = "fabricatio-yue"
+version = "0.1.0-dev7"
+description = "An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Typing :: Typed",
+]
+
+requires-python = ">=3.12,<3.14"
+
+dependencies = [
+    "fabricatio-core",
+    "more-itertools>=10.7.0",
+    "pydantic>=2.11.5",
+    "ujson>=5.10.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+sources = ["python"]
+
+[[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"

@@ -61,3 +61,12 @@ if find_spec("fabricatio_question"):
     from fabricatio_question.capabilities.questioning import Questioning
 
     __all__ += ["Questioning"]
+
+if find_spec("fabricatio_yue"):
+    from fabricatio_yue.capabilities.genre import SelectGenre
+    from fabricatio_yue.capabilities.lyricize import Lyricize
+
+    __all__ += [
+        "Lyricize",
+        "SelectGenre",
+    ]

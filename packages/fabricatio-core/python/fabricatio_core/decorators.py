@@ -270,3 +270,42 @@ def logging_exec_time[**P, R](
         return result
 
     return _wrapper
+
+
+def once[**P, R](
+    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
+    """Decorator to ensure a function is called only once.
+
+    Subsequent calls will return the cached result from the first call.
+
+    Args:
+        func (Callable): The function to be executed only once
+
+    Returns:
+        Callable: A decorator that wraps the function to execute it only once
+    """
+    _called = False
+    _result = None
+
+    if iscoroutinefunction(func):
+
+        @wraps(func)
+        async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            nonlocal _called, _result
+            if not _called:
+                _result = await func(*args, **kwargs)
+                _called = True
+            return _result
+
+        return _async_wrapper
+
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        nonlocal _called, _result
+        if not _called:
+            _result = func(*args, **kwargs)
+            _called = True
+        return _result
+
+    return _wrapper
