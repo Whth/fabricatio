@@ -24,13 +24,13 @@ class SelectGenre(LLMUsage):
         """Select genres for a single requirement.
 
         Args:
-            requirement: A single requirement string describing the desired music style.
-            genre_classifier: The type or category of genres to consider.
-            genres: List of available genres to choose from.
-            **kwargs: Additional validation parameters.
+            requirement (str): A single requirement string describing the desired music style.
+            genre_classifier (str): The type or category of genres to consider.
+            genres (List[str]): List of available genres to choose from.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
 
         Returns:
-            List of selected genres or None if no genres match the requirement.
+            None | List[str]: List of selected genres or None if no genres match the requirement.
         """
         ...
 
@@ -45,13 +45,13 @@ class SelectGenre(LLMUsage):
         """Select genres for multiple requirements.
 
         Args:
-            requirement: List of requirement strings describing desired music styles.
-            genre_classifier: The type or category of genres to consider.
-            genres: List of available genres to choose from.
-            **kwargs: Additional validation parameters.
+            requirement (List[str]): List of requirement strings describing desired music styles.
+            genre_classifier (str): The type or category of genres to consider.
+            genres (List[str]): List of available genres to choose from.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
 
         Returns:
-            List of genre selections, where each selection is either a list of genres or None.
+            List[List[str] | None]: List of genre selections, where each selection is either a list of genres or None.
         """
         ...
 
@@ -68,14 +68,14 @@ class SelectGenre(LLMUsage):
         list based on textual requirements and a genre classifier.
 
         Args:
-            requirement: Either a single requirement string or list of requirement strings
+            requirement (str | List[str]): Either a single requirement string or list of requirement strings
                         describing the desired music style or characteristics.
-            genre_classifier: The type or category of genres to consider (e.g., "pop", "electronic").
-            genres: List of available genres to choose from.
-            **kwargs: Additional validation parameters passed to the underlying validation system.
+            genre_classifier (str): The type or category of genres to consider (e.g., "pop", "electronic").
+            genres (List[str]): List of available genres to choose from.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters passed to the underlying validation system.
 
         Returns:
-            For single requirement: List of selected genres or None if no match.
+            None | List[str] | List[List[str] | None]: For single requirement: List of selected genres or None if no match.
             For multiple requirements: List where each element is either a list of genres or None.
         """
         if isinstance(requirement, str):
@@ -109,11 +109,11 @@ class SelectGenre(LLMUsage):
         """Gather genres for a single requirement.
 
         Args:
-            requirements: A single requirement string describing the desired music style.
-            **kwargs: Additional validation parameters.
+            requirements (str): A single requirement string describing the desired music style.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
 
         Returns:
-            List of all selected genres from all categories or None if no match.
+            None | List[str]: List of all selected genres from all categories or None if no match.
         """
         ...
 
@@ -126,11 +126,11 @@ class SelectGenre(LLMUsage):
         """Gather genres for multiple requirements.
 
         Args:
-            requirements: List of requirement strings describing desired music styles.
-            **kwargs: Additional validation parameters.
+            requirements (List[str]): List of requirement strings describing desired music styles.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
 
         Returns:
-            List where each element corresponds to gathered genres for each requirement.
+            List[List[str] | None]: List where each element corresponds to gathered genres for each requirement.
         """
         ...
 
@@ -145,17 +145,24 @@ class SelectGenre(LLMUsage):
         appropriate genres for each category based on the given requirements.
 
         Args:
-            requirements: Either a single requirement string or list of requirement strings.
-            **kwargs: Additional validation parameters.
+            requirements (str | List[str]): Either a single requirement string or list of requirement strings.
+            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
 
         Returns:
-            For single requirement: List of all selected genres from all categories or None.
+            None | List[str] | List[List[str] | None]: For single requirement: List of all selected genres from all categories or None.
             For multiple requirements: List where each element corresponds to gathered genres for each requirement.
         """
         import asyncio
 
         async def gather_for_single_requirement(req: str) -> List[str] | None:
-            """Gather genres for a single requirement from all categories."""
+            """Gather genres for a single requirement from all categories.
+
+            Args:
+                req (str): A single requirement string describing the desired song characteristics.
+
+            Returns:
+                List[str] | None: A list of selected genres from all categories, or None if no genres are found.
+            """
             results = await asyncio.gather(
                 *[
                     self.select_genre(req, genre_classifier, genres, **kwargs)
