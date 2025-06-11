@@ -21,7 +21,7 @@ class Lyricize(Propose, SelectGenre):
     """
 
     async def lyricize(
-            self, requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Song]]
+        self, requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Song]]
     ) -> None | Song | List[Song | None]:
         """Generate lyrics based on requirements.
 
@@ -36,16 +36,17 @@ class Lyricize(Propose, SelectGenre):
 
         async def lyricize_single(req: str) -> Song | None:
             """Generate a song with lyrics based on a single requirement.
-            
+
             Args:
                 req: A single requirement string describing the desired song characteristics.
-                
+
             Returns:
                 A Song object containing generated lyrics and metadata, or None if generation fails.
             """
             genres = ok(await self.gather_genres(req, **okwargs))
             prompt = TEMPLATE_MANAGER.render_template(
-                yue_config.lyricize_template, {"requirement": req, "genres": genres,"section_types":yue_config.segment_types}
+                yue_config.lyricize_template,
+                {"requirement": req, "genres": genres, "section_types": yue_config.segment_types},
             )
             return await self.propose(Song, prompt, **kwargs)
 
@@ -54,6 +55,7 @@ class Lyricize(Propose, SelectGenre):
 
         if isinstance(requirement, list):
             import asyncio
+
             tasks = [lyricize_single(req) for req in requirement]
             return await asyncio.gather(*tasks)
 

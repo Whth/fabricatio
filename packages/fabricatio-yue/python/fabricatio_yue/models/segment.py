@@ -8,7 +8,7 @@ and lyrics.
 
 from typing import List, Self
 
-from fabricatio_core.models.generic import SketchedAble, Named, WithBriefing
+from fabricatio_core.models.generic import SketchedAble, WithBriefing
 from pydantic import NonNegativeInt, PrivateAttr
 
 
@@ -43,7 +43,7 @@ class Segment(SketchedAble):
         return self._extra_genres
 
 
-class Song(SketchedAble,WithBriefing):
+class Song(SketchedAble, WithBriefing):
     """Represents a complete song with its attributes and segments."""
 
     genres: List[str]
@@ -62,12 +62,11 @@ class Song(SketchedAble,WithBriefing):
         """
         return sum(segment.duration for segment in self.segments)
 
-    
     def override_genres(self, genres: List[str]) -> Self:
         """Override the primary genre tags for the entire song.
 
         Args:
             genres (List[str]): New list of genre tags
-        """        
+        """
         self.genres.clear()
         self.genres.extend(genres)
