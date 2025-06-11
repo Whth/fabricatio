@@ -49,3 +49,9 @@ if find_spec("fabricatio_question"):
     from fabricatio_question.models.questions import SelectionQuestion
 
     __all__ += ["SelectionQuestion"]
+
+
+if find_spec("fabricatio_yue"):
+    from fabricatio_yue.models.segment import Segment, Song
+
+    __all__ += ["Segment", "Song"]
