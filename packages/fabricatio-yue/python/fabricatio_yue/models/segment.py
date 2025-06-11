@@ -6,6 +6,7 @@ multiple segments, each with their own properties like duration, genre tags,
 and lyrics.
 """
 
+from pathlib import Path
 from typing import List, Self
 
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
@@ -32,6 +33,7 @@ class Segment(SketchedAble):
             genres (List[str]): New list of genre tags
         """
         self._extra_genres = genres
+        return self
 
     @property
     def extra_genres(self) -> List[str]:
@@ -41,6 +43,15 @@ class Segment(SketchedAble):
             List[str]: List of genre tags
         """
         return self._extra_genres
+
+    @property
+    def assemble(self) -> str:
+        """Assemble the segment into a formatted string representation.
+
+        Returns:
+            str: A formatted string with section type header and lyrics
+        """
+        return f"[{self.section_type}]\n" + "\n".join(self.lyrics) + "\n"
 
 
 class Song(SketchedAble, WithBriefing):
@@ -70,3 +81,48 @@ class Song(SketchedAble, WithBriefing):
         """
         self.genres.clear()
         self.genres.extend(genres)
+        return self
+
+    @property
+    def briefing(self) -> str:
+        """Generate a briefing of the song including its genre tags and duration."""
+        return f"# {self.name}\n>{self.description}\n> duration: {self.duration} s.---\n"
+
+    def save_to(self, parent_dir: str | Path) -> Self:
+        """Save the song to a directory.
+
+        Args:
+            parent_dir (str): The directory to save the song to
+        """
+        parent_path = Path(parent_dir)
+        parent_path.mkdir(parents=True, exist_ok=True)
+
+        # Create filename from song name or use default
+        file_path = parent_path / f"{self.name}.md"
+
+        out = f"{self.briefing}\n" + "\n".join(map(self._wrapp, self.segments))
+
+        file_path.write_text(out, encoding="utf-8")
+
+        return self
+
+    def _wrapp(self, segment: Segment) -> str:
+        return (
+            f"Duration: {segment.duration} s.\n"
+            f"Extra Genres: {self.block(' '.join(segment.extra_genres), 'genres')}\n"
+            f"Assembled Genres: {self.block(' '.join(self.genres + segment.extra_genres), 'genres')}\n"
+            f"Lyrics:{self.block(segment.assemble, 'lyrics')}\n"
+        )
+
+    @staticmethod
+    def block(content: str, lang: str = "text") -> str:
+        """Create a markdown code block with the specified language.
+
+        Args:
+            content (str): The content to wrap in the code block
+            lang (str, optional): The language identifier for syntax highlighting. Defaults to 'text'
+
+        Returns:
+            str: A formatted markdown code block
+        """
+        return f"\n```{lang}\n{content}\n```\n"
