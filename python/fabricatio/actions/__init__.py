@@ -67,3 +67,8 @@ if find_spec("fabricatio_actions"):
         "RetrieveFromLatest",
         "RetrieveFromPersistent",
     ]
+
+if find_spec("fabricatio_yue"):
+    from fabricatio_yue.actions.compose import Compose
+
+    __all__ += ["Compose"]

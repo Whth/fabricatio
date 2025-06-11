@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-yue"
-version = "0.1.0-dev10"
+version = "0.2.0-dev1"
 description = "An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -29,6 +29,12 @@ dev = [
     "pytest",
 ]
 
+[project.optional-dependencies]
+cli = [
+    "questionary>=2.1.0",
+    "typer-slim[standard]>=0.15.2",
+]
+
 
 [build-system]
 requires = ["hatchling"]
@@ -41,11 +47,8 @@ sources = ["python"]
 url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
 default = true
 
-[[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
-[[tool.uv.index]]
-url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+[tool.uv.sources]
+fabricatio = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
@@ -53,4 +56,14 @@ Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
 
 [[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
+
+
+[project.scripts]
+yuek = "fabricatio_yue.cli:main"

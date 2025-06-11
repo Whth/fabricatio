@@ -1,19 +1,9 @@
 """Example of using the library."""
 
-from pathlib import Path
-
-from fabricatio import Action, Event, Role, Task, WorkFlow
-from fabricatio.capabilities import Lyricize
+from fabricatio import Event, Role, Task, WorkFlow
+from fabricatio.actions import Compose
+from fabricatio.models import Song
 from fabricatio_core.utils import ok
-from fabricatio_yue.models.segment import Song
-
-
-class Compose(Action, Lyricize):
-    """Compose a song."""
-
-    async def _execute(self, req: str, output: Path, **cxt) -> Song:
-        return ok(await self.lyricize(req)).save_to(output)
-
 
 (
     Role()
