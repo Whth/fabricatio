@@ -70,7 +70,7 @@ jobs:
 
 
   create-release:
-    if: needs.determine_changes.outputs.version_changed == 'true'
+    if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
     name: Create Release
     needs: determine_changes
     runs-on: ubuntu-latest
@@ -124,7 +124,7 @@ jobs:
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
 
       - name: Upload to PyPI
-        if: needs.determine_changes.outputs.version_changed == 'true'
+        if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
           make publish PY=${{ matrix.python-version }}
         env:
@@ -134,6 +134,7 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
       - name: Upload assets
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
