@@ -17,6 +17,9 @@ source =
     packages/fabricatio-yue/python/fabricatio_yue
 
 
+omit =
+    */__init__.py
+
 [report]
 show_missing = True
 precision = 2
