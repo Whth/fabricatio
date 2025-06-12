@@ -9,13 +9,13 @@ from fabricatio_memory.rust import MemorySystem
 
 
 @pytest.fixture
-def memory_system(tmpdir):
+def memory_system() -> MemorySystem:
     """Fixture to create a temporary MemorySystem instance with in-memory index."""
     # Use in-memory index for testing
     return MemorySystem()
 
 
-def test_add_and_get_memory(memory_system) -> None:
+def test_add_and_get_memory(memory_system: MemorySystem) -> None:
     """Test adding a memory and retrieving it by ID."""
     content = "Test memory content"
     importance = 0.75
@@ -31,7 +31,7 @@ def test_add_and_get_memory(memory_system) -> None:
     assert set(memory.tags) == set(tags)
 
 
-def test_update_memory(memory_system) -> None:
+def test_update_memory(memory_system: MemorySystem) -> None:
     """Test updating memory content, importance, and tags."""
     original_content = "Original content"
     updated_content = "Updated content"
@@ -54,7 +54,7 @@ def test_update_memory(memory_system) -> None:
     assert set(memory.tags) == set(updated_tags)
 
 
-def test_delete_memory_by_id(memory_system) -> None:
+def test_delete_memory_by_id(memory_system: MemorySystem) -> None:
     """Test deleting a memory by its ID."""
     memory_id = memory_system.add_memory("Test content", 0.5, ["test"])
     result = memory_system.delete_memory_by_id(memory_id)
@@ -64,7 +64,7 @@ def test_delete_memory_by_id(memory_system) -> None:
     assert memory_system.get_memory(memory_id) is None
 
 
-def test_search_memories(memory_system) -> None:
+def test_search_memories(memory_system: MemorySystem) -> None:
     """Test searching memories using a query string."""
     # Add test data
     memory_system.add_memory("apple banana orange", 0.5, ["fruit"])
@@ -80,7 +80,7 @@ def test_search_memories(memory_system) -> None:
     assert "tomato" in results_boosted[0].content
 
 
-def test_search_by_tags(memory_system) -> None:
+def test_search_by_tags(memory_system: MemorySystem) -> None:
     """Test searching memories by tags."""
     memory_system.add_memory("Document about AI", 0.7, ["AI", "technology"])
     memory_system.add_memory("Recipe for cake", 0.6, ["cooking", "baking"])
@@ -94,7 +94,7 @@ def test_search_by_tags(memory_system) -> None:
     assert "cake" in multiple_tag_results[0].content
 
 
-def test_get_memories_by_importance(memory_system) -> None:
+def test_get_memories_by_importance(memory_system: MemorySystem) -> None:
     """Test retrieving memories by minimum importance threshold."""
     memory_system.add_memory("High importance item", 0.9, ["important"])
     memory_system.add_memory("Low importance item", 0.3, ["not-important"])
@@ -104,7 +104,7 @@ def test_get_memories_by_importance(memory_system) -> None:
     assert results[0].importance >= 0.5
 
 
-def test_get_recent_memories(memory_system) -> None:
+def test_get_recent_memories(memory_system: MemorySystem) -> None:
     """Test retrieving memories created within a specified number of days."""
     # Add current memory
     current_id = memory_system.add_memory("Current memory", 0.5, ["recent"])
@@ -123,7 +123,7 @@ def test_get_recent_memories(memory_system) -> None:
     assert current_id in memory_ids
 
 
-def test_get_frequently_accessed(memory_system) -> None:
+def test_get_frequently_accessed(memory_system: MemorySystem) -> None:
     """Test retrieving most frequently accessed memories."""
     freq_id = memory_system.add_memory("Frequent access", 0.5, ["frequent"])
 
@@ -156,7 +156,7 @@ def test_cleanup_old_memories(memory_system: MemorySystem) -> None:
     assert not set(removed_ids) - {memory_id}
 
 
-def test_get_all_memories(memory_system) -> None:
+def test_get_all_memories(memory_system: MemorySystem) -> None:
     """Test retrieving all memories in the system."""
     memory_system.add_memory("First memory", 0.5, ["test"])
     memory_system.add_memory("Second memory", 0.6, ["example"])
@@ -165,14 +165,14 @@ def test_get_all_memories(memory_system) -> None:
     assert len(all_memories) == 2
 
 
-def test_count_memories(memory_system) -> None:
+def test_count_memories(memory_system: MemorySystem) -> None:
     """Test counting total memories in the system."""
     memory_system.add_memory("One", 0.5, ["test"])
     memory_system.add_memory("Two", 0.6, ["example"])
     assert memory_system.count_memories() == 2
 
 
-def test_get_memory_stats(memory_system) -> None:
+def test_get_memory_stats(memory_system: MemorySystem) -> None:
     """Test generating memory statistics."""
     memory_system.add_memory("Important memory", 0.9, ["important"])
     memory_system.add_memory("Another important one", 0.8, ["important"])
