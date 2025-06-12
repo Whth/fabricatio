@@ -29,7 +29,7 @@ clean:
 
 
 test_raw:
-	uv run pytest python/tests packages/*/python/tests --cov --cov-report=term --cov-report=html --cov-report=xml
+	uv run pytest python/tests packages/*/python/tests --cov
 test:dev
 	uv sync --extra full
 	make test_raw
