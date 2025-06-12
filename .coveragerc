@@ -1,4 +1,6 @@
 [run]
+branch = true
+
 source =
     python/fabricatio
     packages/fabricatio-core/python/fabricatio_core
