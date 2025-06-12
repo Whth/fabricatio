@@ -141,7 +141,8 @@ ignore = [
     "RUF001",
     "PYI019",
     "B008",
-    "S101"
+    "S101",
+    "PLR2004"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"

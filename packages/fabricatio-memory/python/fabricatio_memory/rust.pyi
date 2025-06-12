@@ -207,18 +207,6 @@ class MemorySystem:
         """
         
 
-    def consolidate_memories(self, similarity_threshold: float) -> List[Tuple[int, int]]:
-        """
-        Identifies pairs of memories whose content similarity exceeds a given threshold.
-        Similarity is calculated using Jaccard index on tokenized content.
-
-        Args:
-            similarity_threshold: The minimum similarity score (0.0 to 1.0) for two
-                                  memories to be considered for consolidation.
-
-        Returns:
-            A list of tuples, where each tuple contains the IDs of two similar memories.
-        """
         
 
     def cleanup_old_memories(self, days_threshold: int, min_importance: float) -> List[int]:

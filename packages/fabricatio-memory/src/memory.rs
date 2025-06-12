@@ -1,5 +1,4 @@
 use chrono::Utc;
-use once_cell::sync::Lazy;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use serde::Deserialize;
@@ -8,127 +7,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
-use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 use tantivy::schema::*;
-use tantivy::{Document, Index, IndexWriter, ReloadPolicy, TantivyDocument, doc};
+use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
 
-use serde_json::value::Value;
+pub(crate) use crate::constants::{FIELDS, SCHEMA};
 use tantivy::directory::MmapDirectory;
-
-static SCHEMA: Lazy<Schema> = Lazy::new(|| {
-    let mut schema_builder = Schema::builder();
-
-    schema_builder.add_u64_field("id", STORED | INDEXED);
-    schema_builder.add_text_field("content", TEXT | STORED);
-    schema_builder.add_text_field("tags", TEXT | STORED);
-    schema_builder.add_i64_field("timestamp", STORED | INDEXED);
-    schema_builder.add_f64_field("importance", STORED | INDEXED);
-    schema_builder.add_u64_field("access_count", STORED | INDEXED);
-    schema_builder.add_i64_field("last_accessed", STORED | INDEXED);
-
-    schema_builder.build()
-});
-
-static FIELDS: Lazy<(Field, Field, Field, Field, Field, Field, Field)> = Lazy::new(|| {
-    let id_field = SCHEMA.get_field("id").unwrap();
-    let content_field = SCHEMA.get_field("content").unwrap();
-    let tags_field = SCHEMA.get_field("tags").unwrap();
-    let timestamp_field = SCHEMA.get_field("timestamp").unwrap();
-    let importance_field = SCHEMA.get_field("importance").unwrap();
-    let access_count_field = SCHEMA.get_field("access_count").unwrap();
-    let last_accessed_field = SCHEMA.get_field("last_accessed").unwrap();
-
-    (
-        id_field,
-        content_field,
-        tags_field,
-        timestamp_field,
-        importance_field,
-        access_count_field,
-        last_accessed_field,
-    )
-});
-
-impl DocumentDeserialize for Memory {
-    fn deserialize<'de, D>(deserializer: D) -> Result<Self, DeserializeError>
-    where
-        D: DocumentDeserializer<'de>,
-    {
-        let o: String = TantivyDocument::deserialize(deserializer)?.to_json(&SCHEMA);
-
-        let v = serde_json::from_str::<Value>(o.as_str()).expect("Failed to deserialize JSON");
-
-        Ok(Memory {
-            id: v
-                .get("id")
-                .expect("Field 'id' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_u64()
-                .expect("Field 'id' is not a u64"),
-            content: v
-                .get("content")
-                .expect("Field 'content' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_str()
-                .expect("Field 'content' is not a string")
-                .to_string(),
-            timestamp: v
-                .get("timestamp")
-                .expect("Field 'timestamp' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_i64()
-                .expect("Field 'timestamp' is not an i64"),
-            importance: v
-                .get("importance")
-                .expect("Field 'importance' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_f64()
-                .expect("Field 'importance' is not an f64"),
-            tags: v
-                .get("tags")
-                .expect("Field 'tags' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_str()
-                .expect("Field 'tags' is not a string") // Changed from to_string() to as_str() then split
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .collect(),
-            access_count: v
-                .get("access_count")
-                .expect("Field 'access_count' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_u64()
-                .expect("Field 'access_count' is not a u64"),
-            last_accessed: v
-                .get("last_accessed")
-                .expect("Field 'last_accessed' missing")
-                .as_array()
-                .unwrap()
-                .first()
-                .unwrap()
-                .as_i64()
-                .expect("Field 'last_accessed' is not an i64"),
-        })
-    }
-}
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[pyclass(get_all)]
@@ -141,6 +24,7 @@ pub struct MemoryStats {
 
 #[pymethods]
 impl MemoryStats {
+    /// Display memory statistics in a formatted string
     fn display(&self) -> String {
         format!(
             "Total Memories: {}\nAverage Importance: {}\nAverage Access Count: {}\nAverage Age (Days): {}",
@@ -163,6 +47,7 @@ pub struct Memory {
 
 #[pymethods]
 impl Memory {
+    /// Create a new memory with the given parameters
     #[new]
     pub fn new(id: u64, content: String, importance: f64, tags: Vec<String>) -> Self {
         let now = Utc::now().timestamp();
@@ -177,11 +62,13 @@ impl Memory {
         }
     }
 
+    /// Update the access count and last accessed timestamp
     pub fn update_access(&mut self) {
         self.access_count += 1;
         self.last_accessed = Utc::now().timestamp();
     }
 
+    /// Calculate relevance score based on importance, recency, and access frequency
     pub fn calculate_relevance_score(&self, decay_factor: f64) -> f64 {
         let time_factor = (Utc::now().timestamp() - self.timestamp) as f64 / 86400.0; // days
         let recency_score = (-time_factor * decay_factor).exp();
@@ -198,7 +85,7 @@ pub struct MemorySystem {
 }
 
 impl MemorySystem {
-    // Helper method to convert search results to Memory vector
+    /// Helper method to convert search results to Memory vector
     fn docs_to_memories(
         &self,
         top_docs: Vec<(f32, tantivy::DocAddress)>,
@@ -214,7 +101,7 @@ impl MemorySystem {
         Ok(memories)
     }
 
-    // Helper method to add or update a document in the index
+    /// Helper method to add or update a document in the index
     fn add_or_update_document_in_index(
         &self,
         index_writer: &mut IndexWriter,
@@ -251,35 +138,34 @@ impl MemorySystem {
 
 #[pymethods]
 impl MemorySystem {
+    /// Create a new MemorySystem with optional index path and writer buffer size
     #[new]
     #[pyo3(signature = (index_path = None, writer_buffer_size = None))]
-    pub fn new(index_path: Option<String>, writer_buffer_size: Option<usize>) -> PyResult<Self> {
+    pub fn new(index_path: Option<PathBuf>, writer_buffer_size: Option<usize>) -> PyResult<Self> {
         let schema = SCHEMA.clone();
         let buffer_size = writer_buffer_size.unwrap_or(50_000_000); // Default 50MB
 
-        let index = match index_path {
-            Some(path_str) => {
-                let index_directory = PathBuf::from(path_str);
-                if !index_directory.exists() {
-                    fs::create_dir_all(&index_directory).map_err(|e| {
-                        PyRuntimeError::new_err(format!(
-                            "Failed to create index directory '{}': {}",
-                            index_directory.display(),
-                            e
-                        ))
-                    })?;
-                }
-                Index::open_or_create(
-                    MmapDirectory::open(index_directory).map_err(|e| {
-                        PyRuntimeError::new_err(format!("Failed to open index directory: {}", e))
-                    })?,
-                    schema,
-                )
-                .map_err(|e| {
-                    PyRuntimeError::new_err(format!("Failed to open or create index: {}", e))
-                })?
+        let index = if let Some(index_directory) = index_path {
+            if !index_directory.exists() {
+                fs::create_dir_all(&index_directory).map_err(|e| {
+                    PyRuntimeError::new_err(format!(
+                        "Failed to create index directory '{}': {}",
+                        index_directory.display(),
+                        e
+                    ))
+                })?;
             }
-            None => Index::create_in_ram(schema),
+            Index::open_or_create(
+                MmapDirectory::open(index_directory).map_err(|e| {
+                    PyRuntimeError::new_err(format!("Failed to open index directory: {}", e))
+                })?,
+                schema,
+            )
+            .map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to open or create index: {}", e))
+            })?
+        } else {
+            Index::create_in_ram(schema)
         };
 
         Ok(MemorySystem {
@@ -289,6 +175,7 @@ impl MemorySystem {
         })
     }
 
+    /// Add a new memory to the system and return its ID
     pub fn add_memory(&self, content: &str, importance: f64, tags: Vec<String>) -> PyResult<u64> {
         let id = {
             let mut next_id = self.next_id.lock().unwrap();
@@ -313,6 +200,7 @@ impl MemorySystem {
         Ok(id)
     }
 
+    /// Retrieve a memory by its ID and update its access count
     pub fn get_memory(&self, id: u64) -> PyResult<Option<Memory>> {
         let (id_field, ..) = *FIELDS; // Only id_field is needed here for the term query
 
@@ -356,6 +244,7 @@ impl MemorySystem {
         }
     }
 
+    /// Update an existing memory's content, importance, or tags
     #[pyo3(signature = (id, content=None, importance=None, tags=None))]
     pub fn update_memory(
         &self,
@@ -423,6 +312,7 @@ impl MemorySystem {
         }
     }
 
+    /// Delete a memory by its ID
     pub fn delete_memory_by_id(&self, id: u64) -> PyResult<bool> {
         let (id_field, _, _, _, _, _, _) = *FIELDS;
 
@@ -439,6 +329,7 @@ impl MemorySystem {
         Ok(true)
     }
 
+    /// Search memories by query string with optional recency boosting
     #[pyo3(signature = (query_str, top_k = Some(100), boost_recent=false))]
     pub fn search_memories(
         &self,
@@ -499,6 +390,7 @@ impl MemorySystem {
             .collect())
     }
 
+    /// Search memories by tags
     #[pyo3(signature = (tags, top_k = Some(100)))]
     pub fn search_by_tags(&self, tags: Vec<String>, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
         let top_k = top_k.unwrap_or(100);
@@ -510,6 +402,7 @@ impl MemorySystem {
         self.search_memories(&query_str, Some(top_k), false)
     }
 
+    /// Get memories filtered by minimum importance level
     #[pyo3(signature = (min_importance, top_k = Some(100)))]
     pub fn get_memories_by_importance(
         &self,
@@ -544,6 +437,7 @@ impl MemorySystem {
         Ok(important_memories.into_iter().take(top_k).collect())
     }
 
+    /// Get memories from the last N days
     #[pyo3(signature = (days, top_k = Some(100)))]
     pub fn get_recent_memories(&self, days: i64, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
         let top_k = top_k.unwrap_or(100);
@@ -572,6 +466,7 @@ impl MemorySystem {
         Ok(recent.into_iter().take(top_k).collect())
     }
 
+    /// Get memories sorted by access frequency
     #[pyo3(signature = (top_k = Some(100)))]
     pub fn get_frequently_accessed(&self, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
         let top_k = top_k.unwrap_or(100);
@@ -595,47 +490,35 @@ impl MemorySystem {
         frequent.sort_by(|a, b| b.access_count.cmp(&a.access_count));
         Ok(frequent.into_iter().take(top_k).collect())
     }
-    pub fn consolidate_memories(&self, similarity_threshold: f64) -> PyResult<Vec<(u64, u64)>> {
-        let all_memories = self.get_all_memories()?;
-        let mut consolidated_pairs = Vec::new();
 
-        for i in 0..all_memories.len() {
-            for j in (i + 1)..all_memories.len() {
-                let similarity = self.calculate_content_similarity(
-                    &all_memories[i].content,
-                    &all_memories[j].content,
-                );
-                if similarity > similarity_threshold {
-                    consolidated_pairs.push((all_memories[i].id, all_memories[j].id));
-                }
-            }
-        }
-        Ok(consolidated_pairs)
-    }
-
+    /// Clean up old memories based on age, importance, and access frequency
+    #[pyo3(signature = (days_threshold, min_importance=0.5, max_access_count=5))]
     pub fn cleanup_old_memories(
         &self,
         days_threshold: i64,
         min_importance: f64,
+        max_access_count: u64,
     ) -> PyResult<Vec<u64>> {
         let cutoff_timestamp = Utc::now().timestamp() - (days_threshold * 86400);
         let all_memories = self.get_all_memories()?; // Consider more targeted query if performance is an issue
 
-        let mut removed_ids = Vec::new();
-        for memory in all_memories {
-            if memory.timestamp < cutoff_timestamp
-                && memory.importance < min_importance
-                && memory.access_count < 5
-            // Consider making access_count threshold configurable
-            {
-                if self.delete_memory_by_id(memory.id)? {
-                    removed_ids.push(memory.id);
-                }
-            }
-        }
+        let removed_ids = all_memories
+            .into_iter()
+            .filter(|memory| {
+                memory.timestamp < cutoff_timestamp
+                    && memory.importance < min_importance
+                    && memory.access_count < max_access_count
+            })
+            .filter_map(|memory| {
+                self.delete_memory_by_id(memory.id)
+                    .ok()
+                    .and_then(|success| if success { Some(memory.id) } else { None })
+            })
+            .collect();
         Ok(removed_ids)
     }
 
+    /// Retrieve all memories from the system
     pub fn get_all_memories(&self) -> PyResult<Vec<Memory>> {
         let reader = self
             .index
@@ -651,6 +534,7 @@ impl MemorySystem {
         self.docs_to_memories(top_docs, &searcher)
     }
 
+    /// Count the total number of memories in the system
     pub fn count_memories(&self) -> PyResult<usize> {
         let reader = self
             .index
@@ -666,6 +550,7 @@ impl MemorySystem {
         Ok(count)
     }
 
+    /// Get aggregated statistics about all memories
     pub fn get_memory_stats(&self) -> PyResult<MemoryStats> {
         let all_memories = self.get_all_memories()?;
 
@@ -700,37 +585,9 @@ impl MemorySystem {
             },
         })
     }
-
-    fn calculate_content_similarity(&self, content1: &str, content2: &str) -> f64 {
-        let tokens1: std::collections::HashSet<_> = content1
-            .split_whitespace()
-            .map(|s| s.to_lowercase())
-            .collect();
-
-        let tokens2: std::collections::HashSet<_> = content2
-            .split_whitespace()
-            .map(|s| s.to_lowercase())
-            .collect();
-
-        if tokens1.is_empty() && tokens2.is_empty() {
-            return 1.0; // Both empty, consider them identical
-        }
-        if tokens1.is_empty() || tokens2.is_empty() {
-            return 0.0; // One empty, one not, no similarity
-        }
-
-        let intersection_size = tokens1.intersection(&tokens2).count() as f64;
-        let union_size = tokens1.union(&tokens2).count() as f64;
-
-        if union_size == 0.0 {
-            // Should not happen if any token set is non-empty due to checks above
-            0.0
-        } else {
-            intersection_size / union_size
-        }
-    }
 }
 
+/// Register Python classes with the module
 pub(crate) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Memory>()?;
     m.add_class::<MemorySystem>()?;

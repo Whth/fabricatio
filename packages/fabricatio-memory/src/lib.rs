@@ -1,4 +1,6 @@
+mod constants;
 mod memory;
+mod traits;
 
 use pyo3::prelude::*;
 

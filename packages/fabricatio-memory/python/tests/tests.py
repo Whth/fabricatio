@@ -1,11 +1,10 @@
 """Tests for the memory."""
-
-from datetime import datetime, timedelta
+from time import sleep
 
 import pytest
 
 # Assuming the module name is 'memory' and the classes are exposed at module level
-from fabricatio_memory.rust import Memory, MemorySystem
+from fabricatio_memory.rust import MemorySystem
 
 
 @pytest.fixture
@@ -103,6 +102,7 @@ def test_get_memories_by_importance(memory_system) -> None:
     assert len(results) == 1
     assert results[0].importance >= 0.5
 
+
 def test_get_recent_memories(memory_system) -> None:
     """Test retrieving memories created within a specified number of days."""
     # Add current memory
@@ -110,13 +110,13 @@ def test_get_recent_memories(memory_system) -> None:
 
     # Add an older memory by creating it with the memory system
     # Since we can't manipulate timestamp directly, we'll test with what we have
-    old_id = memory_system.add_memory("Old memory", 0.5, ["old"])
+    memory_system.add_memory("Old memory", 0.5, ["old"])
 
     # For this test, we'll just verify that get_recent_memories returns memories
     # In a real scenario, the timestamp would be set automatically when memories are created
     recent_memories = memory_system.get_recent_memories(days=365)  # Use a large range to include all memories
     assert len(recent_memories) >= 1  # At least the current memory should be included
-    
+
     # Verify that our current memory is in the results
     memory_ids = [memory.id for memory in recent_memories]
     assert current_id in memory_ids
@@ -135,31 +135,26 @@ def test_get_frequently_accessed(memory_system) -> None:
     assert frequent_memories[0].access_count == 10
 
 
-def test_consolidate_memories(memory_system) -> None:
-    """Test identifying similar memories based on content."""
-    memory_system.add_memory("Apple banana cherry date", 0.7, ["fruits"])
-    memory_system.add_memory("Banana cherry date elderberry", 0.6, ["more fruits"])
-
-    similar_pairs = memory_system.consolidate_memories(similarity_threshold=0.5)
-    assert len(similar_pairs) > 0
-    assert tuple(sorted(similar_pairs[0])) == (1, 2)  # Ordered pair
-
-def test_cleanup_old_memories(memory_system) -> None:
+def test_cleanup_old_memories(memory_system:MemorySystem) -> None:
     """Test cleaning up old, low-importance, infrequently accessed memories."""
     # Add a low-importance memory that will be eligible for cleanup
     memory_id = memory_system.add_memory("Old unimportant memory", 0.2, ["old"])
-
+    
+    
+    sleep(2)
+    
     # Since we can't directly manipulate timestamp, we'll test the cleanup function
     # with current memories and verify it works with importance threshold
     removed_ids = memory_system.cleanup_old_memories(days_threshold=0, min_importance=0.5)
-    
+
     # Verify that the low-importance memory was removed
     assert memory_id in removed_ids
     assert memory_system.get_memory(memory_id) is None
 
     # Additional verification: ensure no other memories were accidentally removed
-    all_memory_ids = [m.id for m in memory_system.get_all_memories()]
+    [m.id for m in memory_system.get_all_memories()]
     assert not set(removed_ids) - {memory_id}
+
 
 def test_get_all_memories(memory_system) -> None:
     """Test retrieving all memories in the system."""
