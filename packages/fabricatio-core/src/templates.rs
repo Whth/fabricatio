@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::hbs_helpers::{block, code, getlang, hash, len, list_out_string, word_count};
+use crate::hbs_helpers::*;
 use handlebars::{Handlebars, no_escape};
 use log::debug;
 use pyo3::exceptions::PyRuntimeError;
@@ -201,7 +201,10 @@ impl TemplateManager {
         self.handlebars.register_helper("block", Box::new(block));
         self.handlebars
             .register_helper("ls", Box::new(list_out_string));
-        self.handlebars.register_helper("code", Box::new(code))
+        self.handlebars.register_helper("code", Box::new(code));
+
+        self.handlebars
+            .register_helper("date", Box::new(timestamp_to_date))
     }
 }
 

@@ -1,4 +1,5 @@
 """Tests for the memory."""
+
 from time import sleep
 
 import pytest
@@ -135,14 +136,13 @@ def test_get_frequently_accessed(memory_system) -> None:
     assert frequent_memories[0].access_count == 10
 
 
-def test_cleanup_old_memories(memory_system:MemorySystem) -> None:
+def test_cleanup_old_memories(memory_system: MemorySystem) -> None:
     """Test cleaning up old, low-importance, infrequently accessed memories."""
     # Add a low-importance memory that will be eligible for cleanup
     memory_id = memory_system.add_memory("Old unimportant memory", 0.2, ["old"])
-    
-    
+
     sleep(2)
-    
+
     # Since we can't directly manipulate timestamp, we'll test the cleanup function
     # with current memories and verify it works with importance threshold
     removed_ids = memory_system.cleanup_old_memories(days_threshold=0, min_importance=0.5)

@@ -24,6 +24,7 @@ bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
 macro_utils = { path = "src/macro_utils" }
 fabricatio-constants = "0.1.0"
+chrono = "0.4.41"
 
 
 

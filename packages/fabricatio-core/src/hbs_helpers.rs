@@ -46,3 +46,9 @@ handlebars_helper!(list_out_string: |v: Vec<String>| {
         })
         .collect::<String>()
 });
+
+handlebars_helper!(timestamp_to_date: |v: u64| {
+    chrono::DateTime::from_timestamp(v as i64, 0)
+        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+        .unwrap_or_else(|| "Invalid timestamp".to_string())
+});

@@ -303,7 +303,7 @@ class Rating(Propose, ABC):
         Returns:
             Dict[str, float]: A dictionary representing the drafted rating weights for each criterion.
         """
-        if len(criteria) < 2:  # noqa: PLR2004
+        if len(criteria) < 2:
             raise ValueError("At least two criteria are required to draft rating weights")
 
         criteria_seq = list(criteria)  # freeze the order

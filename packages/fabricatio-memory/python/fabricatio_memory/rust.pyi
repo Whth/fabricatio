@@ -6,47 +6,26 @@ class Memory:
     """
     Represents a memory item with content, metadata, and access statistics.
     """
+    
     id: int
+    """Unique identifier for the memory item."""
+
     content: str
-    timestamp: int
+    """Textual content of the memory."""
+
+
     importance: float
+    """Numerical value representing the importance of the memory (0.0 to 1.0)."""
+
     tags: List[str]
+    """List of string tags associated with the memory for categorization and searching."""
+    timestamp: int
+    """Timestamp indicating when the memory was created (in seconds since epoch)."""
     access_count: int
+    """Number of times this memory has been accessed."""
     last_accessed: int
-
-    def __init__(self, id: int, content: str, importance: float, tags: List[str]) -> None:
-        """
-        Initializes a new Memory object.
-        Timestamp and last_accessed are set to the current time, access_count to 0.
-
-        Args:
-            id: The unique identifier for the memory.
-            content: The textual content of the memory.
-            importance: A numerical value representing the importance of the memory.
-            tags: A list of strings serving as tags for the memory.
-        """
-        
-
-    def update_access(self) -> None:
-        """
-        Increments the access_count and updates the last_accessed timestamp to the current time.
-        """
-        
-
-    def calculate_relevance_score(self, decay_factor: float) -> float:
-        """
-        Calculates a relevance score for the memory.
-        The score is based on its importance, recency (how long ago it was created),
-        and frequency (how often it has been accessed). The recency aspect is
-        influenced by the decay_factor.
-
-        Args:
-            decay_factor: A factor determining how quickly the score diminishes
-                          with the age of the memory.
-
-        Returns:
-            The calculated relevance score as a float.
-        """
+    """Timestamp indicating the last time the memory was accessed (in seconds since epoch)."""
+ 
         
 
 class MemoryStats:

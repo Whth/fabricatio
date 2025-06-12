@@ -45,10 +45,8 @@ pub struct Memory {
     pub last_accessed: i64,
 }
 
-#[pymethods]
 impl Memory {
     /// Create a new memory with the given parameters
-    #[new]
     pub fn new(id: u64, content: String, importance: f64, tags: Vec<String>) -> Self {
         let now = Utc::now().timestamp();
         Memory {
@@ -61,7 +59,6 @@ impl Memory {
             last_accessed: now,
         }
     }
-
     /// Update the access count and last accessed timestamp
     pub fn update_access(&mut self) {
         self.access_count += 1;

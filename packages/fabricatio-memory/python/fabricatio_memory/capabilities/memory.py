@@ -1,13 +1,17 @@
 """Provide a memory system to remember things."""
 
-from typing import List, Unpack
+from typing import Unpack
 
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
-from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.models.kwargs_types import GenerateKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.utils import fallback_kwargs, ok
 from pydantic import Field
 
-from fabricatio_memory.rust import Memory, MemorySystem
+from fabricatio_memory.config import memory_config
+from fabricatio_memory.models.note import Note
+from fabricatio_memory.rust import MemorySystem
 
 
 class RememberScopedConfig(ScopedConfig):
@@ -22,7 +26,7 @@ class RememberScopedConfig(ScopedConfig):
 class Remember(Propose, RememberScopedConfig):
     """Provide a memory system to remember things."""
 
-    async def record(self, raw: str, **kwargs: Unpack[GenerateKwargs]) -> Memory:
+    async def record(self, raw: str, **kwargs: Unpack[ValidateKwargs[Note]]) -> Note:
         """Record a piece of information into the memory system.
 
         Args:
@@ -32,16 +36,38 @@ class Remember(Propose, RememberScopedConfig):
         Returns:
             A Memory object representing the recorded information.
         """
-        ...
+        note = ok(
+            await self.propose(
+                Note,
+                TEMPLATE_MANAGER.render_template(memory_config.memory_record_template, {"raw": raw}),
+                **fallback_kwargs(kwargs, **self.memory_llm),
+            ),
+            "Fatal error: Note not found.",
+        )
 
-    async def recall(self, query: str, **kwargs: Unpack[GenerateKwargs]) -> List[Memory]:
-        """Recall information from the memory system based on a query.
+        mem_id = self.memory_system.add_memory(
+            note.content,
+            note.importance,
+            note.tags,
+        )
+        logger.debug(f"Memory recorded: {mem_id}")
+        return note
+
+    async def recall(self, query: str, **kwargs: Unpack[LLMKwargs]) -> str:
+        """Recall information from the memory system based on a query, Process with llm, which make a summary over memories.
 
         Args:
             query: The query string to search for relevant memories.
             **kwargs: Additional keyword arguments for generation.
 
         Returns:
-            A list of Memory objects matching the query.
+            A string containing the recalled information.
         """
-        ...
+        mem_seq = self.memory_system.search_memories(query)
+
+        return await self.aask(
+            TEMPLATE_MANAGER.render_template(
+                memory_config.memory_recall_template, {"query": query, "mem_seq": mem_seq}
+            ),
+            **fallback_kwargs(kwargs, **self.memory_llm),
+        )
