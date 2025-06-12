@@ -14,7 +14,9 @@ class RememberScopedConfig(ScopedConfig):
     """Configuration class for memory-related settings in the Remember capability."""
 
     memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
+    """Configuration for LLM generation parameters used in memory operations."""
     memory_system: MemorySystem = Field(default_factory=MemorySystem)
+    """The memory system instance used for storing and retrieving memories."""
 
 
 class Remember(Propose, RememberScopedConfig):

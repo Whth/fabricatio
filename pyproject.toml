@@ -140,7 +140,8 @@ ignore = [
     "ASYNC109",
     "RUF001",
     "PYI019",
-    "B008"
+    "B008",
+    "S101"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -171,7 +172,7 @@ fabricatio-memory = { workspace = true }
 fabricatio-anki = { workspace = true }
 fabricatio-question = { workspace = true }
 fabricatio-tagging = { workspace = true }
-fabricatio-yue = {workspace = true}
+fabricatio-yue = { workspace = true }
 
 
 

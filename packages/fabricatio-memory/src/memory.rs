@@ -1,5 +1,4 @@
 use chrono::Utc;
-use jieba_rs::Jieba;
 use once_cell::sync::Lazy;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -11,8 +10,7 @@ use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
 use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 use tantivy::schema::*;
-use tantivy::tokenizer::TextAnalyzer;
-use tantivy::{doc, Document, Index, IndexWriter, ReloadPolicy, TantivyDocument};
+use tantivy::{Document, Index, IndexWriter, ReloadPolicy, TantivyDocument, doc};
 
 use serde_json::value::Value;
 use tantivy::directory::MmapDirectory;
@@ -195,7 +193,6 @@ impl Memory {
 #[pyclass]
 pub struct MemorySystem {
     index: Index,
-    jieba: Jieba,
     next_id: Arc<Mutex<u64>>,
     writer_buffer_size: usize,
 }
@@ -245,7 +242,9 @@ impl MemorySystem {
                 access_count_field => memory.access_count,
                 last_accessed_field => memory.last_accessed
             ))
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to add/update document: {}", e)))?;
+            .map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to add/update document: {}", e))
+            })?;
         Ok(())
     }
 }
@@ -270,26 +269,21 @@ impl MemorySystem {
                         ))
                     })?;
                 }
-                Index::open_or_create(MmapDirectory::open(index_directory).map_err(
-                    |e| PyRuntimeError::new_err(format!("Failed to open index directory: {}", e)),
-                )?, schema).map_err(|e| {
+                Index::open_or_create(
+                    MmapDirectory::open(index_directory).map_err(|e| {
+                        PyRuntimeError::new_err(format!("Failed to open index directory: {}", e))
+                    })?,
+                    schema,
+                )
+                .map_err(|e| {
                     PyRuntimeError::new_err(format!("Failed to open or create index: {}", e))
                 })?
             }
             None => Index::create_in_ram(schema),
         };
 
-        // Register Jieba tokenizer
-        let jieba_tokenizer = JiebaTokenizer {
-            jieba: Jieba::new(),
-        };
-        index
-            .tokenizers()
-            .register("jieba", TextAnalyzer::from(jieba_tokenizer));
-
         Ok(MemorySystem {
             index,
-            jieba: Jieba::new(),
             next_id: Arc::new(Mutex::new(1)),
             writer_buffer_size: buffer_size,
         })
@@ -331,8 +325,7 @@ impl MemorySystem {
 
         let searcher = reader.searcher();
         let term = Term::from_field_u64(id_field, id);
-        let term_query =
-            tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
+        let term_query = tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
 
         let top_docs = searcher
             .search(&term_query, &TopDocs::with_limit(1))
@@ -345,18 +338,17 @@ impl MemorySystem {
 
             memory.update_access();
 
-            let mut index_writer = self
-                .index
-                .writer(self.writer_buffer_size)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
+            let mut index_writer = self.index.writer(self.writer_buffer_size).map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to get index writer: {}", e))
+            })?;
 
             index_writer.delete_term(term); // Delete the old document
 
             self.add_or_update_document_in_index(&mut index_writer, &memory)?; // Add the updated document
 
-            index_writer
-                .commit()
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to commit document update: {}", e)))?;
+            index_writer.commit().map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to commit document update: {}", e))
+            })?;
 
             Ok(Some(memory))
         } else {
@@ -383,8 +375,7 @@ impl MemorySystem {
 
         let searcher = reader.searcher();
         let term = Term::from_field_u64(id_field, id);
-        let term_query =
-            tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
+        let term_query = tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
 
         let top_docs = searcher
             .search(&term_query, &TopDocs::with_limit(1))
@@ -413,18 +404,17 @@ impl MemorySystem {
             }
 
             if updated {
-                let mut index_writer = self
-                    .index
-                    .writer(self.writer_buffer_size)
-                    .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
+                let mut index_writer = self.index.writer(self.writer_buffer_size).map_err(|e| {
+                    PyRuntimeError::new_err(format!("Failed to get index writer: {}", e))
+                })?;
 
                 index_writer.delete_term(term.clone()); // term for ID
 
                 self.add_or_update_document_in_index(&mut index_writer, &memory)?;
 
-                index_writer
-                    .commit()
-                    .map_err(|e| PyRuntimeError::new_err(format!("Failed to commit update: {}", e)))?;
+                index_writer.commit().map_err(|e| {
+                    PyRuntimeError::new_err(format!("Failed to commit update: {}", e))
+                })?;
             }
 
             Ok(updated)
@@ -450,12 +440,18 @@ impl MemorySystem {
     }
 
     #[pyo3(signature = (query_str, top_k = Some(100), boost_recent=false))]
-    pub fn search_memories(&self, query_str: &str, top_k: Option<usize>, boost_recent: bool) -> PyResult<Vec<Memory>> {
+    pub fn search_memories(
+        &self,
+        query_str: &str,
+        top_k: Option<usize>,
+        boost_recent: bool,
+    ) -> PyResult<Vec<Memory>> {
         let top_k = top_k.unwrap_or(100);
         let (_, content_field, tags_field, _, _, _, _) = *FIELDS;
 
         // Create reader following basic example pattern
-        let reader = self.index
+        let reader = self
+            .index
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
@@ -468,18 +464,22 @@ impl MemorySystem {
         let query_parser = QueryParser::for_index(&self.index, vec![content_field, tags_field]);
 
         // Parse query following basic example
-        let query = query_parser.parse_query(query_str)
+        let query = query_parser
+            .parse_query(query_str)
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to parse query: {}", e)))?;
 
         // Search with TopDocs collector following basic example
-        let top_docs = searcher.search(&query, &TopDocs::with_limit(top_k * 2)) // Use a larger limit for relevance scoring
+        let top_docs = searcher
+            .search(&query, &TopDocs::with_limit(top_k * 2)) // Use a larger limit for relevance scoring
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
         let mut results = Vec::new();
 
         // Retrieve documents following basic example pattern
         for (score, doc_address) in top_docs {
-            let memory = searcher.doc::<Memory>(doc_address).map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
+            let memory = searcher
+                .doc::<Memory>(doc_address)
+                .map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
 
             let combined_score: f64 = if boost_recent {
                 Into::<f64>::into(score) + memory.calculate_relevance_score(0.01) // decay_factor could be configurable
@@ -492,7 +492,11 @@ impl MemorySystem {
         // Sort results by combined score in descending order
         results.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
-        Ok(results.into_iter().take(top_k).map(|(_, memory)| memory).collect())
+        Ok(results
+            .into_iter()
+            .take(top_k)
+            .map(|(_, memory)| memory)
+            .collect())
     }
 
     #[pyo3(signature = (tags, top_k = Some(100)))]
@@ -548,14 +552,16 @@ impl MemorySystem {
         // Get all documents and filter by timestamp
         let all_query = tantivy::query::AllQuery;
 
-        let reader = self.index
+        let reader = self
+            .index
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
 
         let searcher = reader.searcher();
-        let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000)) // Consider if a more targeted query is possible
+        let top_docs = searcher
+            .search(&all_query, &TopDocs::with_limit(10000)) // Consider if a more targeted query is possible
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
         let mut recent = self.docs_to_memories(top_docs, &searcher)?;
@@ -572,14 +578,16 @@ impl MemorySystem {
         // Get all documents (no filter) and sort by access count
         let all_query = tantivy::query::AllQuery;
 
-        let reader = self.index
+        let reader = self
+            .index
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
 
         let searcher = reader.searcher();
-        let top_docs = searcher.search(&all_query, &TopDocs::with_limit(10000)) // Consider if a more targeted query is possible
+        let top_docs = searcher
+            .search(&all_query, &TopDocs::with_limit(top_k)) // Consider if a more targeted query is possible
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
 
         let mut frequent = self.docs_to_memories(top_docs, &searcher)?;
@@ -587,10 +595,7 @@ impl MemorySystem {
         frequent.sort_by(|a, b| b.access_count.cmp(&a.access_count));
         Ok(frequent.into_iter().take(top_k).collect())
     }
-    pub fn consolidate_memories(
-        &self,
-        similarity_threshold: f64,
-    ) -> PyResult<Vec<(u64, u64)>> {
+    pub fn consolidate_memories(&self, similarity_threshold: f64) -> PyResult<Vec<(u64, u64)>> {
         let all_memories = self.get_all_memories()?;
         let mut consolidated_pairs = Vec::new();
 
@@ -678,25 +683,33 @@ impl MemorySystem {
 
         Ok(MemoryStats {
             total_memories: total_len as u64,
-            avg_importance: if total_count_f64 > 0.0 { total_importance / total_count_f64 } else { 0.0 },
-            avg_access_count: if total_count_f64 > 0.0 { total_access_count as f64 / total_count_f64 } else { 0.0 },
-            avg_age_days: if total_count_f64 > 0.0 { (total_age_seconds as f64) / 86400.0 / total_count_f64 } else { 0.0 },
+            avg_importance: if total_count_f64 > 0.0 {
+                total_importance / total_count_f64
+            } else {
+                0.0
+            },
+            avg_access_count: if total_count_f64 > 0.0 {
+                total_access_count as f64 / total_count_f64
+            } else {
+                0.0
+            },
+            avg_age_days: if total_count_f64 > 0.0 {
+                (total_age_seconds as f64) / 86400.0 / total_count_f64
+            } else {
+                0.0
+            },
         })
     }
 
     fn calculate_content_similarity(&self, content1: &str, content2: &str) -> f64 {
-        let tokens1: std::collections::HashSet<_> = self
-            .jieba
-            .tokenize(content1, jieba_rs::TokenizeMode::Search, true)
-            .into_iter()
-            .map(|t| t.word)
+        let tokens1: std::collections::HashSet<_> = content1
+            .split_whitespace()
+            .map(|s| s.to_lowercase())
             .collect();
 
-        let tokens2: std::collections::HashSet<_> = self
-            .jieba
-            .tokenize(content2, jieba_rs::TokenizeMode::Search, true)
-            .into_iter()
-            .map(|t| t.word)
+        let tokens2: std::collections::HashSet<_> = content2
+            .split_whitespace()
+            .map(|s| s.to_lowercase())
             .collect();
 
         if tokens1.is_empty() && tokens2.is_empty() {
@@ -715,60 +728,6 @@ impl MemorySystem {
         } else {
             intersection_size / union_size
         }
-    }
-}
-
-// Custom Jieba Tokenizer for Tantivy
-#[derive(Clone)]
-struct JiebaTokenizer {
-    jieba: Jieba,
-}
-
-impl tantivy::tokenizer::Tokenizer for JiebaTokenizer {
-    type TokenStream<'a> = JiebaTokenStream;
-
-    fn token_stream<'a>(&'a mut self, text: &'a str) -> Self::TokenStream<'a> {
-        let jieba_tokens = self
-            .jieba
-            .tokenize(text, jieba_rs::TokenizeMode::Search, true);
-        let mut tantivy_tokens = Vec::with_capacity(jieba_tokens.len());
-        for (pos, jt) in jieba_tokens.iter().enumerate() {
-            tantivy_tokens.push(tantivy::tokenizer::Token {
-                offset_from: jt.start,
-                offset_to: jt.end,
-                position: pos, // Use enumerate for position
-                text: jt.word.to_string(),
-                position_length: 1,
-            });
-        }
-        JiebaTokenStream {
-            tokens: tantivy_tokens,
-            index: 0,
-        }
-    }
-}
-
-struct JiebaTokenStream {
-    tokens: Vec<tantivy::tokenizer::Token>,
-    index: usize,
-}
-
-impl<'a> tantivy::tokenizer::TokenStream for JiebaTokenStream {
-    fn advance(&mut self) -> bool {
-        if self.index < self.tokens.len() {
-            self.index += 1;
-            true
-        } else {
-            false
-        }
-    }
-
-    fn token(&self) -> &tantivy::tokenizer::Token {
-        &self.tokens[self.index - 1]
-    }
-
-    fn token_mut(&mut self) -> &mut tantivy::tokenizer::Token {
-        &mut self.tokens[self.index - 1]
     }
 }
 
