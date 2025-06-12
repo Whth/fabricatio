@@ -20,13 +20,6 @@ source =
 omit =
     */__init__.py
 
-[report]
-show_missing = True
-precision = 2
-exclude_lines =
-    pragma: no cover
-    def __repr__
-    raise AssertionError
-    raise NotImplementedError
-    if TYPE_CHECKING:
+
+
 
