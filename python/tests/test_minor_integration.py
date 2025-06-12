@@ -33,7 +33,7 @@ async def test_hello_fabricatio_workflow(caplog):
     # For this example, we assume a fresh environment or that Role re-registration is idempotent/handled.
 
     Role(name="talker", description="talker role",
-         registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))})
+         registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))},dispatch_on_init=True)
 
     # Delegate the task and get the result
     result = await task_fixture.delegate("talk")

@@ -28,10 +28,11 @@ clean:
 	rm -rf $(DIST)/* $(DATA)/*
 
 
+test_raw:
+	uv run pytest python/tests packages/*/python/tests --cov --cov-report=term --cov-report=html --cov-report=xml
 test:dev
 	uv sync --extra full
-	uv run pytest python/tests packages/*/python/tests
-
+	make test_raw
 publish: bdist
 	uv run subpackages.py --pyversion $(PY)
 	uvx -p $(PY) --project . maturin publish || true
@@ -39,4 +40,4 @@ publish: bdist
 
 docs:
 	make -C docs html
-.PHONY:  dev bdist clean publish tests bins dirs all docs
+.PHONY:  dev bdist clean publish test test_raw bins dirs all docs

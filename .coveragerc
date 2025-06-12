@@ -1,0 +1,42 @@
+[run]
+source =
+    python/fabricatio
+    packages/fabricatio-core/python/fabricatio-core
+    packages/fabricatio-capabilities/python/fabricatio_capabilities
+    packages/fabricatio-actions/python/fabricatio_actions
+    packages/fabricatio-typst/python/fabricatio_typst
+    packages/fabricatio-rag/python/fabricatio_rag
+    packages/fabricatio-rule/python/fabricatio_rule
+    packages/fabricatio-judge/python/fabricatio_judge
+    packages/fabricatio-improve/python/fabricatio_improve
+    packages/fabricatio-digest/python/fabricatio_digest
+    packages/fabricatio-memory/python/fabricatio_memory
+    packages/fabricatio-anki/python/fabricatio_anki
+    packages/fabricatio-question/python/fabricatio_question
+    packages/fabricatio-tagging/python/fabricatio_tagging
+    packages/fabricatio-yue/python/fabricatio_yue
+
+omit =
+    */__pycache__/*
+    */tests/*
+
+[report]
+show_missing = True
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    raise AssertionError
+    raise NotImplementedError
+    if TYPE_CHECKING:
+
+[html]
+directory = htmlcov
+title = fabricatio Code Coverage Report
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json
