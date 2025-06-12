@@ -55,3 +55,8 @@ if find_spec("fabricatio_yue"):
     from fabricatio_yue.models.segment import Segment, Song
 
     __all__ += ["Segment", "Song"]
+
+if find_spec("fabricatio_memory"):
+    from fabricatio_memory.models.note import Note
+
+    __all__ += ["Note"]

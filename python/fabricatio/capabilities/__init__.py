@@ -70,3 +70,9 @@ if find_spec("fabricatio_yue"):
         "Lyricize",
         "SelectGenre",
     ]
+if find_spec("fabricatio_memory"):
+    from fabricatio_memory.capabilities.memory import Remember
+
+    __all__ += [
+        "Remember",
+    ]
