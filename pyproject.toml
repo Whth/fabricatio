@@ -59,6 +59,7 @@ dev = [
     "pytest-rerunfailures>=15.0",
     "pytest-loguru>=0.4.0",
     "viztracer>=1.0.2",
+    "coveralls>=4.0.1",
 ]
 docs = [
     "myst-parser>=4.0.1",

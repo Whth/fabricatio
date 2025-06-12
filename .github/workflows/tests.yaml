@@ -51,6 +51,7 @@ jobs:
       - name: Test
         run: |
           make test
+          uv run coveralls
 
 
 
