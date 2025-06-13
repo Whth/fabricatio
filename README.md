@@ -20,7 +20,7 @@
 [![Build Package](https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml)
 [![Ruff Lint](https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml)
 [![Tests](https://github.com/Whth/fabricatio/actions/workflows/tests.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/Whth/fabricatio/badge.svg)](https://coveralls.io/github/Whth/fabricatio)
+[![Coverage Status](https://coveralls.io/repos/github/Whth/fabricatio/badge.svg?branch=master)](https://coveralls.io/github/Whth/fabricatio?branch=master)
 ![GitHub Issues](https://img.shields.io/github/issues/Whth/fabricatio)
 ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/Whth/fabricatio)
 ![GitHub Stars](https://img.shields.io/github/stars/Whth/fabricatio)
