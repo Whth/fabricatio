@@ -24,26 +24,47 @@ class TemplateManager:
 
     See: https://crates.io/crates/handlebars
     """
+    
+    
+    @property
+    def templates_stores(self)->List[Path]:
+        """Returns a list of paths to the template directories."""
 
     @property
     def template_count(self) -> int:
         """Returns the number of currently loaded templates."""
 
-    def get_template_source(self, name: str) -> Optional[str]:
-        """Get the filesystem path for a template.
-
+    def add_store(self, source: Path, rediscovery: bool = False) -> Self:
+        """Add a template directory to the list of template directories.
+        
         Args:
-            name: Template name (without extension)
-
+            source: Path to the template directory to add
+            rediscovery: Whether to rediscover templates after adding the source
+            
         Returns:
-            Path to the template file if found, None otherwise
+            Self for method chaining
         """
 
-    def discover_templates(self) -> None:
+    def add_stores(self, sources: List[Path], rediscovery: bool = False) -> Self:
+        """Add multiple template directories to the list of template directories.
+        
+        Args:
+            sources: List of paths to template directories to add
+            rediscovery: Whether to rediscover templates after adding the sources
+            
+        Returns:
+            Self for method chaining
+        """
+
+    def discover_templates(self) -> Self:
         """Scan template directories and load available templates.
 
         This refreshes the template cache, finding any new or modified templates.
+        
+        Returns:
+            Self for method chaining
         """
+
 
     @overload
     def render_template(self, name: str, data: Dict[str, Any]) -> str: ...
@@ -227,7 +248,7 @@ class DebugConfig:
 class TemplateManagerConfig:
     """Template manager configuration structure."""
 
-    template_dir: List[Path]
+    template_stores: List[Path]
     """The directories containing the templates."""
 
     active_loading: Optional[bool]

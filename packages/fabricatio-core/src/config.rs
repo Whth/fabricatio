@@ -242,21 +242,21 @@ impl Default for DebugConfig {
 #[pyclass(get_all, set_all)]
 pub struct TemplateManagerConfig {
     /// The directory containing the templates.
-    pub template_dir: Vec<PathBuf>,
+    pub template_stores: Vec<PathBuf>,
 
     /// Whether to enable active loading of templates.
-    pub active_loading: Option<bool>,
+    pub active_loading: bool,
 
     /// The suffix of the templates.
-    pub template_suffix: Option<String>,
+    pub template_suffix: String,
 }
 
 impl Default for TemplateManagerConfig {
     fn default() -> Self {
         TemplateManagerConfig {
-            template_dir: vec![PathBuf::from("templates"), ROAMING.join("templates")],
-            active_loading: Some(true),
-            template_suffix: Some("hbs".to_string()),
+            template_stores: vec![PathBuf::from("templates"), ROAMING.join("templates")],
+            active_loading: false,
+            template_suffix: "hbs".to_string(),
         }
     }
 }
