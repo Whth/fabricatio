@@ -82,7 +82,22 @@ class RenderedDump(Action, LLMUsage):
 
 
 class PersistentAll(Action, LLMUsage):
-    """Persist all the data to a file."""
+    """Persist all the data to a directory.
+
+    This action takes all PersistentAble objects from the execution context and persists
+    them to individual subdirectories within a specified directory. It can handle both
+    individual objects and collections of objects.
+
+    Returns:
+        int: The number of objects that were successfully persisted.
+
+    Notes:
+        - Only objects implementing PersistentAble interface will be persisted
+        - Each object gets its own subdirectory named after the context key
+        - Collections of PersistentAble objects are persisted together in one subdirectory
+        - Non-PersistentAble objects in the context are ignored
+        - If override is True, existing persist_dir will be removed before persisting
+    """
 
     output_key: str = "persistent_count"
     """The number of objects persisted."""
@@ -124,8 +139,8 @@ class PersistentAll(Action, LLMUsage):
                 final_dir.mkdir(parents=True, exist_ok=True)
                 v.persist(final_dir)
                 count += 1
-            if isinstance(v, Iterable) and any(
-                persistent_ables := (pers for pers in v if isinstance(pers, PersistentAble))
+            elif isinstance(v, Iterable) and any(
+                persistent_ables := [pers for pers in v if isinstance(pers, PersistentAble)]
             ):
                 logger.info(f"Persisting collection {k} to {final_dir}")
                 final_dir.mkdir(parents=True, exist_ok=True)

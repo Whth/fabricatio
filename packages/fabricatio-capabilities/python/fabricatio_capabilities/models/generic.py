@@ -315,6 +315,7 @@ class PersistentAble(Base, ABC):
     Implements basic versioning through filename hashing and timestamping.
     """
 
+    @final
     def persist(self, path: str | Path) -> Self:
         """Save model instance to disk with versioned filename.
 
@@ -350,6 +351,7 @@ class PersistentAble(Base, ABC):
         return self
 
     @classmethod
+    @final
     def from_latest_persistent(cls, dir_path: str | Path) -> Optional[Self]:
         """Load most recent persisted instance from directory.
 
@@ -383,6 +385,7 @@ class PersistentAble(Base, ABC):
         return cls.from_persistent(files.pop(0))
 
     @classmethod
+    @final
     def from_persistent(cls, path: str | Path) -> Self:
         """Load an instance from a specific persisted file.
 
