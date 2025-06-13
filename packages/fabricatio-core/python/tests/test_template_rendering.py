@@ -1,14 +1,25 @@
+"""Test module for template rendering functionality in TemplateManager.
+
+This module contains pytest test cases for verifying the correctness of template
+rendering operations, including template discovery, store management, and both
+single and batch template rendering functionalities. Tests cover both successful
+execution paths and error handling scenarios.
+"""
+
+from pathlib import Path
 
 import pytest
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TEMPLATE_MANAGER, TemplateManager
+
 
 @pytest.fixture
-def template_manager():
+def template_manager() -> TemplateManager:
     """Get the singleton TemplateManager instance for testing."""
     return TEMPLATE_MANAGER
 
+
 @pytest.fixture
-def sample_template_dir(tmp_path):
+def sample_template_dir(tmp_path: Path) -> Path:
     """Create a temporary directory with sample templates."""
     template_dir = tmp_path / "templates"
     template_dir.mkdir()
@@ -19,33 +30,37 @@ def sample_template_dir(tmp_path):
 
     return template_dir
 
-def test_template_count_property(template_manager) -> None:
+
+def test_template_count_property(template_manager: TemplateManager) -> None:
     """Test that template_count returns an integer."""
     count = template_manager.template_count
     assert isinstance(count, int)
     assert count >= 0
 
-def test_add_store_single_directory(template_manager, sample_template_dir) -> None:
+
+def test_add_store_single_directory(template_manager: TemplateManager, sample_template_dir: Path) -> None:
     """Test adding a single template directory."""
     result = template_manager.add_store(sample_template_dir)
     assert result is template_manager  # Should return self for chaining
 
-def test_add_store_with_rediscovery(template_manager, sample_template_dir) -> None:
+
+def test_add_store_with_rediscovery(template_manager: TemplateManager, sample_template_dir: Path) -> None:
     """Test adding a store with rediscovery enabled."""
     result = template_manager.add_store(sample_template_dir, rediscovery=True)
     assert result is template_manager
 
-def test_add_stores_multiple_directories(template_manager, tmp_path) -> None:
+
+def test_add_stores_multiple_directories(template_manager: TemplateManager, tmp_path: Path) -> None:
     """Test adding multiple template directories."""
     dir1 = tmp_path / "templates1"
     dir2 = tmp_path / "templates2"
     dir1.mkdir()
     dir2.mkdir()
-
     result = template_manager.add_stores([dir1, dir2])
     assert result is template_manager
 
-def test_add_stores_with_rediscovery(template_manager, tmp_path) -> None:
+
+def test_add_stores_with_rediscovery(template_manager: TemplateManager, tmp_path: Path) -> None:
     """Test adding multiple stores with rediscovery enabled."""
     dir1 = tmp_path / "templates1"
     dir2 = tmp_path / "templates2"
@@ -55,20 +70,23 @@ def test_add_stores_with_rediscovery(template_manager, tmp_path) -> None:
     result = template_manager.add_stores([dir1, dir2], rediscovery=True)
     assert result is template_manager
 
-def test_discover_templates(template_manager) -> None:
+
+def test_discover_templates(template_manager: TemplateManager) -> None:
     """Test template discovery."""
     result = template_manager.discover_templates()
     assert result is template_manager  # Should return self for chaining
 
-def test_templates_stores_property(template_manager) -> None:
+
+def test_templates_stores_property(template_manager: TemplateManager) -> None:
     """Test that templates_stores returns a list of Path objects."""
     stores = template_manager.templates_stores
     assert isinstance(stores, list)
     # Each item should be a Path object
     for store in stores:
-        assert hasattr(store, 'exists')  # Path-like object check
+        assert hasattr(store, "exists")  # Path-like object check
 
-def test_add_store_and_check_stores(template_manager, sample_template_dir) -> None:
+
+def test_add_store_and_check_stores(template_manager: TemplateManager, sample_template_dir: Path) -> None:
     """Test adding a store and verifying it appears in templates_stores."""
     initial_count = len(template_manager.templates_stores)
     template_manager.add_store(sample_template_dir)
@@ -78,7 +96,8 @@ def test_add_store_and_check_stores(template_manager, sample_template_dir) -> No
     assert len(stores) >= initial_count
     assert sample_template_dir in stores
 
-def test_integration_with_real_template(template_manager, sample_template_dir) -> None:
+
+def test_integration_with_real_template(template_manager: TemplateManager, sample_template_dir: Path) -> None:
     """Test template rendering with a real template file."""
     # Add the template directory and discover templates
     template_manager.add_store(sample_template_dir, rediscovery=True)
@@ -93,7 +112,8 @@ def test_integration_with_real_template(template_manager, sample_template_dir) -
         # Template rendering might fail in test environment, which is acceptable
         pytest.skip("Template rendering not available in test environment")
 
-def test_render_template_raw_integration(template_manager) -> None:
+
+def test_render_template_raw_integration(template_manager: TemplateManager) -> None:
     """Test raw template rendering."""
     template_str = "Hello {{name}}!"
     data = {"name": "World"}
@@ -106,7 +126,8 @@ def test_render_template_raw_integration(template_manager) -> None:
         # Raw template rendering might fail in test environment
         pytest.skip("Raw template rendering not available in test environment")
 
-def test_render_template_with_list_data(template_manager) -> None:
+
+def test_render_template_with_list_data(template_manager: TemplateManager) -> None:
     """Test rendering template with list of data."""
     template_str = "Hello {{name}}!"
     data = [{"name": "World"}, {"name": "Universe"}]
@@ -120,7 +141,8 @@ def test_render_template_with_list_data(template_manager) -> None:
         # Raw template rendering might fail in test environment
         pytest.skip("Raw template rendering not available in test environment")
 
-def test_render_template_error_handling(template_manager) -> None:
+
+def test_render_template_error_handling(template_manager: TemplateManager) -> None:
     """Test that RuntimeError is raised when template rendering fails."""
     template_name = "nonexistent_template"
     data = {"name": "World"}
