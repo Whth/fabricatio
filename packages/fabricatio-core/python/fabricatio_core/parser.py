@@ -30,6 +30,11 @@ class Capture:
     capture_type: Optional[str] = None
     """Optional type identifier for post-processing (e.g., 'json' for JSON repair)."""
 
+    def __post_init__(self) -> None:
+        """Post Initialize the Capture instance."""
+        if not self.pattern:
+            raise ValueError("Pattern cannot be empty.")
+
     def fix(self, text: str) -> str:
         """Fix the text based on capture_type (e.g., JSON repair).
 
@@ -69,14 +74,10 @@ class Capture:
         match = compiled.match(text) or compiled.search(text)
         if match is None:
             logger.debug(f"Capture Failed: {text!r}")
-            raise ValueError(f"No match found for pattern {self.pattern} in text.")
-
-        # Only consider the first group
-        if match.groups():
-            cap = self.fix(match.groups()[0])
-            logger.debug(f"Captured text: \n{cap}")
-            return cap
-        return None
+            return None
+        cap = self.fix(match.groups()[0] if match.groups() else match.group())
+        logger.debug(f"Captured text: \n{cap}")
+        return cap
 
     def convert_with(
         self,
