@@ -5,8 +5,7 @@ from functools import wraps
 from importlib.util import find_spec
 from inspect import signature
 from shutil import which
-from types import ModuleType
-from typing import Callable, Coroutine, List, Optional
+from typing import Callable, Coroutine, Optional
 
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG
@@ -153,8 +152,6 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
             return None
 
     return _wrapper
-
-
 
 
 def logging_exec_time[**P, R](

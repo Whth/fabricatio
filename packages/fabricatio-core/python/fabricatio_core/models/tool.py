@@ -4,18 +4,14 @@ This module provides classes for defining tools and toolboxes, which can be used
 with additional functionalities such as logging, execution info, and briefing.
 """
 
-from importlib.machinery import ModuleSpec
-from importlib.util import module_from_spec
 from inspect import iscoroutinefunction, signature
-from types import CodeType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Self, cast, overload
+from typing import Any, Callable, Dict, List, Optional, Self
 
 from pydantic import Field
 
-from fabricatio_core.decorators import logging_execution_info, use_temp_module
+from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Base, WithBriefing
-from fabricatio_core.rust import CONFIG
 
 
 class Tool[**P, R](WithBriefing):
@@ -186,114 +182,65 @@ class ToolExecutor(Base):
     data: Dict[str, Any] = Field(default_factory=dict)
     """The data that could be used when invoking the tools."""
 
-    def inject_tools[M: ModuleType](self, module: Optional[M] = None) -> M:
+    def inject_tools[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
         """Inject the tools into the provided module or default.
 
         This method injects the tools into the provided module or creates a new module if none is provided.
 
         Args:
-            module (Optional[M]): The module to inject tools into. If None, a new module is created.
+            cxt (Optional[M]): The module to inject tools into. If None, a new module is created.
 
         Returns:
             M: The module with injected tools.
         """
-        module = module or cast(
-            "M", module_from_spec(spec=ModuleSpec(name=CONFIG.toolbox.tool_module_name, loader=None))
-        )
+        cxt = cxt or {}
         for tool in self.candidates:
             logger.debug(f"Injecting tool: {tool.name}")
-            setattr(module, tool.name, tool.invoke)
-        return module
+            cxt[tool.name] = tool.invoke
+        return cxt
 
-    def inject_data[M: ModuleType](self, module: Optional[M] = None) -> M:
+    def inject_data[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
         """Inject the data into the provided module or default.
 
         This method injects the data into the provided module or creates a new module if none is provided.
 
         Args:
-            module (Optional[M]): The module to inject data into. If None, a new module is created.
+            cxt (Optional[M]): The module to inject data into. If None, a new module is created.
 
         Returns:
             M: The module with injected data.
         """
-        module = module or cast(
-            "M", module_from_spec(spec=ModuleSpec(name=CONFIG.toolbox.data_module_name, loader=None))
-        )
+        cxt = cxt or {}
         for key, value in self.data.items():
             logger.debug(f"Injecting data: {key}")
-            setattr(module, key, value)
-        return module
+            cxt[key] = value
+        return cxt
 
-    def execute[C: Dict[str, Any]](self, source: CodeType, cxt: Optional[C] = None) -> C:
+    async def execute[C: Dict[str, Any]](self, body: str, cxt: Optional[C] = None) -> Any:
         """Execute the sequence of tools with the provided context.
 
         This method executes the tools in the sequence with the provided context.
 
         Args:
-            source (CodeType): The source code to execute.
+            body (str): The source code to execute.
             cxt (Optional[C]): The context to execute the tools with. If None, an empty dictionary is used.
 
         Returns:
             C: The context after executing the tools.
         """
-        cxt = cxt or {}
+        cxt = self.inject_tools(cxt)
+        cxt = self.inject_data(cxt)
 
-        @use_temp_module([self.inject_data(), self.inject_tools()])
-        def _exec() -> None:
-            exec(source, cxt)  # noqa: S102
+        fn_name = "executer"
+        fn_source = f"async def {fn_name}():\n{self._indent(body)}"
+        exec(fn_source, cxt)
+        compiled_fn = cxt[fn_name]
+        return await compiled_fn()
 
-        _exec()
-        return cxt
-
-    @overload
-    def take[C: Dict[str, Any]](self, keys: List[str], source: CodeType, cxt: Optional[C] = None) -> C:
-        """Check the output of the tools with the provided context.
-
-        This method executes the tools and retrieves specific keys from the context.
-
-        Args:
-            keys (List[str]): The keys to retrieve from the context.
-            source (CodeType): The source code to execute.
-            cxt (Optional[C]): The context to execute the tools with. If None, an empty dictionary is used.
-
-        Returns:
-            C: A dictionary containing the retrieved keys and their values.
-        """
-        ...
-
-    @overload
-    def take[C: Dict[str, Any]](self, keys: str, source: CodeType, cxt: Optional[C] = None) -> Any:
-        """Check the output of the tools with the provided context.
-
-        This method executes the tools and retrieves a specific key from the context.
-
-        Args:
-            keys (str): The key to retrieve from the context.
-            source (CodeType): The source code to execute.
-            cxt (Optional[C]): The context to execute the tools with. If None, an empty dictionary is used.
-
-        Returns:
-            Any: The value of the retrieved key.
-        """
-        ...
-
-    def take[C: Dict[str, Any]](self, keys: List[str] | str, source: CodeType, cxt: Optional[C] = None) -> C | Any:
-        """Check the output of the tools with the provided context.
-
-        This method executes the tools and retrieves specific keys or a specific key from the context.
-
-        Args:
-            keys (List[str] | str): The keys to retrieve from the context. Can be a single key or a list of keys.
-            source (CodeType): The source code to execute.
-            cxt (Optional[C]): The context to execute the tools with. If None, an empty dictionary is used.
-
-        Returns:
-            C | Any: A dictionary containing the retrieved keys and their values, or the value of the retrieved key.
-        """
-        cxt = self.execute(source, cxt)
-        if isinstance(keys, str):
-            return cxt[keys]
-        return {key: cxt[key] for key in keys}
+    @staticmethod
+    def _indent(lines: str) -> str:
+        """Add four spaces to each line."""
+        return "\n".join([f"    {line}" for line in lines.split("\n")])
 
     @classmethod
     def from_recipe(cls, recipe: List[str], toolboxes: List[ToolBox]) -> Self:
