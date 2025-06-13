@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-core"
-version = "0.1.8-dev0"
+version = "0.1.9-dev0"
 description = "A foundational Python library providing core components for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 license = { file = "LICENSE" }
