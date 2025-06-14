@@ -104,7 +104,7 @@ class Song(SketchedAble, WithBriefing):
         logger.info(f"Saving song to {file_path.as_posix()}")
 
         out = f"{self.briefing}\n" + "\n".join(
-            f"## Section {i}. {seg.section_type.capitalize()}\n\n{self._wrapp(seg)}"
+            f"## Section {i}. {seg.section_type.capitalize()}\n\n> Duration: {seg.duration} s.\n\n{self._wrapp(seg)}"
             for i, seg in enumerate(self.segments)
         )
 

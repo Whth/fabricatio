@@ -21,7 +21,7 @@ class YueConfig(BaseModel):
     )
     """List of valid segment types for music composition."""
 
-    genre: Dict[str, List[str]] = Field(default_factory=once(lambda: load(genres_path.open())))
+    genre: Dict[str, List[str]] = Field(default_factory=once(lambda: load(genres_path.open(encoding="utf-8"))))
     """Dictionary mapping genre categories to lists of specific genres."""
 
     lyricize_template: str = "lyricize"

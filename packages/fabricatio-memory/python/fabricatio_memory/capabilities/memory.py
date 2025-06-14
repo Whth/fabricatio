@@ -7,7 +7,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.utils import fallback_kwargs, ok
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from fabricatio_memory.config import memory_config
 from fabricatio_memory.models.note import Note
@@ -16,6 +16,8 @@ from fabricatio_memory.rust import MemorySystem
 
 class RememberScopedConfig(ScopedConfig):
     """Configuration class for memory-related settings in the Remember capability."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
     """Configuration for LLM generation parameters used in memory operations."""
