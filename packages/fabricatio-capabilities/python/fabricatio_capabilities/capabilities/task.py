@@ -1,18 +1,16 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from types import CodeType
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Mapping, Optional, Unpack
 
-import ujson
 from fabricatio_core import Task
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
-from fabricatio_core.models.tool import Tool, ToolExecutor
+from fabricatio_core.models.tool import ResultCollector, Tool, ToolExecutor
 from fabricatio_core.models.usages import LLMUsage, ToolBoxUsage
-from fabricatio_core.parser import JsonCapture, PythonCapture
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.utils import override_kwargs
 
 from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.config import capabilities_config
@@ -50,8 +48,8 @@ class HandleTask(ToolBoxUsage, ABC):
         task: Task,
         tools: List[Tool],
         data: Dict[str, Any],
-        **kwargs: Unpack[ValidateKwargs],
-    ) -> Optional[Tuple[CodeType, List[str]]]:
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> Optional[str]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
         logger.info(f"Drafting tool usage code for task: {task.briefing}")
 
@@ -60,19 +58,10 @@ class HandleTask(ToolBoxUsage, ABC):
             logger.error(err)
             raise ValueError(err)
 
-        def _validator(response: str) -> Tuple[CodeType, List[str]] | None:
-            if (source := PythonCapture.convert_with(response, lambda resp: compile(resp, "<string>", "exec"))) and (
-                to_extract := JsonCapture.convert_with(response, ujson.loads)
-            ):
-                return source, to_extract
-
-            return None
-
         q = TEMPLATE_MANAGER.render_template(
             capabilities_config.draft_tool_usage_code_template,
             {
-                "data_module_name": CONFIG.toolbox.data_module_name,
-                "tool_module_name": CONFIG.toolbox.tool_module_name,
+                "collector_help": ResultCollector.__doc__,
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
@@ -80,11 +69,8 @@ class HandleTask(ToolBoxUsage, ABC):
             },
         )
         logger.debug(f"Code Drafting Question: \n{q}")
-        return await self.aask_validate(
-            question=q,
-            validator=_validator,
-            **kwargs,
-        )
+
+        return await self.acode_string(q, "python", **kwargs)
 
     async def handle_fine_grind(
         self,
@@ -92,27 +78,26 @@ class HandleTask(ToolBoxUsage, ABC):
         data: Dict[str, Any],
         box_choose_kwargs: Optional[ChooseKwargs] = None,
         tool_choose_kwargs: Optional[ChooseKwargs] = None,
-        **kwargs: Unpack[ValidateKwargs],
-    ) -> Optional[Tuple]:
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
         logger.info(f"Handling task: \n{task.briefing}")
 
         tools = await self.gather_tools_fine_grind(task, box_choose_kwargs, tool_choose_kwargs)
         logger.info(f"Gathered {[t.name for t in tools]}")
 
-        if tools and (pack := await self.draft_tool_usage_code(task, tools, data, **kwargs)):
-            executor = ToolExecutor(candidates=tools, data=data)
-
-            code, to_extract = pack
-            cxt = executor.execute(code)
-            if to_extract:
-                return tuple(cxt.get(k) for k in to_extract)
+        if tools and (source := await self.draft_tool_usage_code(task, tools, data, **kwargs)):
+            return await ToolExecutor(candidates=tools, data=data).execute(source)
 
         return None
 
-    async def handle(self, task: Task, data: Dict[str, Any], **kwargs: Unpack[ValidateKwargs]) -> Optional[Tuple]:
+    async def handle(
+        self, task: Task, data: Dict[str, Any], **kwargs: Unpack[ValidateKwargs[str]]
+    ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
-        return await self.handle_fine_grind(task, data, **kwargs)
+        okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
+
+        return await self.handle_fine_grind(task, data, box_choose_kwargs=okwargs, tool_choose_kwargs=okwargs, **kwargs)
 
 
 class DispatchTask(LLMUsage, ABC):
@@ -122,8 +107,8 @@ class DispatchTask(LLMUsage, ABC):
         self,
         task: Task[T],
         candidates: Mapping[str, WithBriefing],
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> T:
+        **kwargs: Unpack[ChooseKwargs],
+    ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 
         This method uses a template to render instructions for selecting the most suitable candidate,
@@ -133,7 +118,7 @@ class DispatchTask(LLMUsage, ABC):
             task: The task object to be dispatched. It must support delegation.
             candidates: A mapping of identifiers to WithBriefing instances representing available delegates.
                         Each key is a unique identifier and the corresponding value contains briefing details.
-            **kwargs: Keyword arguments unpacked from ValidateKwargs[List[T]], typically used for LLM configuration.
+            **kwargs: Keyword arguments unpacked from ChooseKwargs, typically used for LLM configuration.
 
         Returns:
             The result of the delegated task execution, which is of generic type T.
