@@ -18,7 +18,7 @@ clean_dist:
 	rm -rf $(DIST)/*
 
 bdist: dirs clean_dist
-	uv run subpackages.py -py $(PY) --bdist
+	uvx subpackages.py -py $(PY) --bdist
 
 
 test_raw:
@@ -28,7 +28,7 @@ test: dev
 	uv sync --extra full
 	make test_raw
 
-publish:
+publish: dirs clean_dist
 	uv run subpackages.py -py $(PY) --publish
 
 docs:

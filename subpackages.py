@@ -170,7 +170,7 @@ def make_dist(project_root: Union[str, Path]) -> bool:
     )
 
 
-def _pack(p: Path) -> bool:
+def _pack(p: str | Path) -> bool:
     return make_all_bins(p) and make_dist(p)
 
 
