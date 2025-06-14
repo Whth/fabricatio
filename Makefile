@@ -23,8 +23,9 @@ clean_dev:
 clean_dist:
 	rm -rf $(DIST)/*
 
-bdist: dirs clean_dev clean_dist bins
-	uv build -p $(PY) -o dist --sdist --wheel --all-packages
+bdist: dirs clean_dist
+	uv run subpackages.py -py $(PY) --bdist
+
 
 test_raw:
 	uv run pytest python/tests packages/*/python/tests --cov
@@ -33,9 +34,9 @@ test: dev
 	uv sync --extra full
 	make test_raw
 
-publish: bdist
-	uv run -p $(PY) subpackages.py  --publish
+publish:
+	uv run subpackages.py -py $(PY) --publish
 
 docs:
 	make -C docs html
-.PHONY:  dev bdist clean_dist clean_dev publish test test_raw bins dirs all docs
+.PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs

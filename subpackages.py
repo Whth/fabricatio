@@ -89,7 +89,8 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
     project_root = Path(project_root)
 
     scripts_dir = project_root.joinpath(SCRIPTS_DIR)
-
+    for f in [*list(scripts_dir.rglob("*.pyd")), *list(scripts_dir.rglob("*.so"))]:
+        f.unlink()
     return run_cmd(
         [
             [
@@ -104,8 +105,6 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
                 "--artifact-dir",
                 scripts_dir.as_posix(),
             ],
-            ["rm", "-f", (scripts_dir / "*.pdb").as_posix()],
-            ["rm", "-f", (scripts_dir / "*.dwarf").as_posix()],
         ],
         f"Build and clean binaries for {project_root.name}",
     )
@@ -127,23 +126,75 @@ def make_dist_dir_publish() -> None:
     logging.info(f"Successfully published {success_count} package(s).")
 
 
-def make_all(bins: bool, dev_mode: bool, publish: bool = False) -> bool:
+def make_dist(project_root: Union[str, Path]) -> bool:
+    """Build a package using maturin."""
+    project_root = Path(project_root)
+    if is_using_maturin(project_root):
+        for f in [*list(project_root.rglob("*.pyd")), *list(project_root.rglob("*.so"))]:
+            f.unlink()
+        return run_cmd(
+            [
+                [
+                    "uvx",
+                    "--python",
+                    PYTHON_VERSION,
+                    "--directory",
+                    project_root.as_posix(),
+                    "maturin",
+                    "build",
+                    "-o",
+                    DIST.as_posix(),
+                    "--sdist",
+                ],
+            ],
+            f"Build {project_root.name}",
+        )
+    return run_cmd(
+        [
+            [
+                "uv",
+                "build",
+                "--python",
+                PYTHON_VERSION,
+                "--package",
+                project_root.name,
+                "-o",
+                DIST.as_posix(),
+                "--sdist",
+                "--wheel",
+            ]
+        ],
+        f"Build {project_root.name}",
+    )
+
+
+def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
     """Build all packages that use maturin in parallel.
 
     Returns:
         True if all builds succeed, False otherwise.
     """
     futures = []
-    for path in [*list(PACKAGES_DIR.iterdir()), Path.cwd()]:
-        if path.is_dir() and is_using_maturin(path):
+    for path in [d for d in (*list(PACKAGES_DIR.iterdir()), Path.cwd()) if d.is_dir()]:
+        if is_using_maturin(path):
             if dev_mode:
                 future = POOL.submit(make_maturin_dev, path)
-                future.add_done_callback(lambda f: logging.info(f"Finished maturin dev build for {path.name}"))
+                future.add_done_callback(
+                    lambda f, p=path: logging.info(f"Finished maturin dev build for {p.name}")
+                )
                 futures.append(future)
-            if bins:
+            if bins or bdist:
                 future = POOL.submit(make_all_bins, path)
-                future.add_done_callback(lambda f: logging.info(f"Finished binary build for {path.name}"))
+                future.add_done_callback(
+                    lambda f, p=path: logging.info(f"Finished binary build for {p.name}")
+                )
                 futures.append(future)
+        if bdist:
+            future = POOL.submit(make_dist, path)
+            future.add_done_callback(
+                lambda f, p=path: logging.info(f"Finished dist build for {p.name}")
+            )
+            futures.append(future)
     results = [future.result() for future in futures]
     if publish:
         make_dist_dir_publish()
@@ -178,6 +229,12 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Publish all packages in the dist directory.",
     )
+    parser.add_argument(
+        "-bdist",
+        "--bdist",
+        action="store_true",
+        help="Build all packages using maturin.",
+    )
 
     return parser.parse_args()
 
@@ -189,6 +246,7 @@ if __name__ == "__main__":
     success = make_all(
         bins=args.bins,
         dev_mode=args.dev,
+        bdist=args.bdist,
         publish=args.publish,
     )
     if success:
