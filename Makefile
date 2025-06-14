@@ -14,12 +14,6 @@ bins: dirs
 dev: dirs
 	uv run subpackages.py -py $(PY) --bins --dev
 
-clean_dev:
-	rm -f ./python/*/*.pyd
-	rm -f ./python/*/*.so
-	rm -f ./packages/*/python/*/*.pyd
-	rm -f ./packages/*/python/*/*.so
-
 clean_dist:
 	rm -rf $(DIST)/*
 
@@ -35,7 +29,7 @@ test: dev
 	make test_raw
 
 publish:
-	uv run subpackages.py -py $(PY) --publish
+	uv run subpackages.py -py $(PY) --bdist --publish
 
 docs:
 	make -C docs html
