@@ -333,7 +333,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.6.3.dev0"
+version = "0.6.4"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -478,7 +478,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -524,7 +524,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.6"
+version = "0.1.7"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -543,7 +543,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.8"
+version = "0.1.9.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -663,7 +663,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.1.1"
+version = "0.1.1.dev0"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -804,7 +804,7 @@ provides-extras = ["full", "rag", "qa", "workflows"]
 
 [[package]]
 name = "fabricatio-yue"
-version = "0.2.0"
+version = "0.2.2.dev0"
 source = { editable = "packages/fabricatio-yue" }
 dependencies = [
     { name = "fabricatio-core" },

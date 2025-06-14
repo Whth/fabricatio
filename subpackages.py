@@ -9,7 +9,7 @@ import argparse
 import logging
 import subprocess
 import tomllib  # Use tomllib for TOML parsing (Python 3.11+)
-from concurrent.futures import ThreadPoolExecutor, Future, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -130,7 +130,14 @@ class Project:
         logger.info(f"Running {operation_description} for '{self.name}': {' '.join(command)}")
         try:
             # Run the command from the project's directory
-            process = subprocess.run(command, check=True, cwd=self.entry_path, capture_output=True, text=True, encoding="utf-8", )
+            process = subprocess.run(
+                command,
+                check=True,
+                cwd=self.entry_path,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
             if process.stdout:
                 logger.debug(f"Stdout for '{self.name}' ({operation_description}):\n{process.stdout}")
             if process.stderr:
@@ -174,25 +181,35 @@ class Project:
                 logger.error(f"Python version (--pyversion) is required for Maturin project '{self.name}'.")
                 return []
             develop_command = [
-                "uvx", "-p", self.pyversion, "--project", self.entry_path.as_posix(), "maturin", "develop", "--uv",
+                "uvx",
+                "-p",
+                self.pyversion,
+                "--project",
+                self.entry_path.as_posix(),
+                "maturin",
+                "develop",
+                "--uv",
                 "-r",
-
             ]
 
             # cargo build --workspace --bins -r -Z unstable-options --artifact-dir
             scripts_dir = self.entry_path / DEFAULT_DATA_DIR / "scripts"
             cargo_bins = [
-                "cargo", "build", "-p",self.name, "--bins", "-r", "-Z", "unstable-options", "--artifact-dir",
-                scripts_dir.as_posix()
-
+                "cargo",
+                "build",
+                "-p",
+                self.name,
+                "--bins",
+                "-r",
+                "-Z",
+                "unstable-options",
+                "--artifact-dir",
+                scripts_dir.as_posix(),
             ]
 
-            clean = [[
-                "rm", (scripts_dir / "*.pdb").as_posix(), "-f"
-            ], [
-                "rm", (scripts_dir / "*.dwarf").as_posix(), "-f"
-            ],
-                ["rm", r".\packages\*\python\*\*.pyd", "-f"]
+            clean = [
+                ["rm", (scripts_dir / "*.pdb").as_posix(), "-f"],
+                ["rm", (scripts_dir / "*.dwarf").as_posix(), "-f"],
             ]
 
             if self.dev_mode:
@@ -216,7 +233,8 @@ class Project:
         # This covers standard Python packages (setuptools, hatchling, etc.)
         if self.dev_mode:
             logger.info(
-                f"Dev mode enabled for non-Maturin project '{self.name}'. Build step will be skipped if publish is not enabled.")
+                f"Dev mode enabled for non-Maturin project '{self.name}'. Build step will be skipped if publish is not enabled."
+            )
             # For non-Maturin projects in dev mode, we might not want to build sdist/wheel
             # unless publishing is also intended. If only `build()` is called without `publish()`,
             # this could be an empty list or a specific dev install command if applicable.
@@ -244,7 +262,8 @@ class Project:
         if not build_commands:
             if self.dev_mode and self.build_backend != "maturin":
                 logger.info(
-                    f"Dev mode enabled for '{self.name}', and no explicit build commands for this mode (e.g. not publishing). Skipping build.")
+                    f"Dev mode enabled for '{self.name}', and no explicit build commands for this mode (e.g. not publishing). Skipping build."
+                )
                 return True  # Considered success in dev mode if no build commands are needed
             logger.error(f"No build commands generated for '{self.name}'. Build cannot proceed.")
             return False
@@ -281,7 +300,8 @@ class Project:
         # Ensure dist_dir exists before globbing
         if not self.dist_dir.exists():
             logger.warning(
-                f"Distribution directory '{self.dist_dir}' does not exist. Cannot find artifacts for '{self.name}'.")
+                f"Distribution directory '{self.dist_dir}' does not exist. Cannot find artifacts for '{self.name}'."
+            )
             return True  # No artifacts to publish because dist_dir doesn't exist.
 
         for package_file in self.dist_dir.glob(f"{normalized_name}*"):
@@ -329,8 +349,9 @@ class PackageManager:
         projects (List[Project]): A list of discovered and valid `Project` instances.
     """
 
-    def __init__(self, root_dir: Path, dist_dir: Path, pyversion: Optional[str], publish_enabled: bool,
-                 dev_mode: bool) -> None:
+    def __init__(
+        self, root_dir: Path, dist_dir: Path, pyversion: Optional[str], publish_enabled: bool, dev_mode: bool
+    ) -> None:
         """Initializes the PackageManager."""
         self.root_dir: Path = root_dir
         self.dist_dir: Path = dist_dir
@@ -400,19 +421,14 @@ class PackageManager:
         # We need to explicitly build sdist/wheel here before publishing.
         if self.dev_mode and project.build_backend != "maturin":
             logger.info(f"Dev mode: Explicitly building '{project_identifier}' for publishing.")
-            standard_build_cmd = [
-                "uvx", "uv", "build", "-o", self.dist_dir.resolve().as_posix(),
-                "--sdist", "--wheel"
-            ]
+            standard_build_cmd = ["uvx", "uv", "build", "-o", self.dist_dir.resolve().as_posix(), "--sdist", "--wheel"]
             # project._execute_subprocess is a method of the Project class, not one defined here.
             if not project._execute_subprocess(standard_build_cmd, "dev mode publish build"):
                 logger.error(f"Failed to build '{project_identifier}' for publishing in dev mode.")
                 return False
 
         if not project.name:  # Ensure project name is available for publishing
-            logger.error(
-                f"Cannot publish project from '{project.entry_path.name}' due to missing project name."
-            )
+            logger.error(f"Cannot publish project from '{project.entry_path.name}' due to missing project name.")
             return False
 
         logger.info(f"Publishing is enabled for '{project.name}'.")
@@ -479,14 +495,14 @@ class PackageManager:
                 except Exception as e:
                     # This case should ideally not be reached if process_one_project is robust.
                     logger.error(
-                        f"Unexpected error while processing project '{project_id_for_log}': {e}",
-                        exc_info=True
+                        f"Unexpected error while processing project '{project_id_for_log}': {e}", exc_info=True
                     )
                     failure_count += 1
                 finally:
                     processed_count += 1
                     logger.info(
-                        f"Finished processing for: {project_id_for_log}. ({processed_count}/{total_projects} completed)")
+                        f"Finished processing for: {project_id_for_log}. ({processed_count}/{total_projects} completed)"
+                    )
 
         self.log_processing_summary(total_projects, success_count, failure_count)
 
@@ -525,13 +541,13 @@ def main() -> None:
         type=str,
         default=None,
         help="Specify Python version (e.g., '3.12') for builders like Maturin that require it. "
-             "If not provided, Maturin projects may fail to build.",
+        "If not provided, Maturin projects may fail to build.",
     )
     parser.add_argument(
         "--dev",
         action="store_true",
         help="Enable development mode. For Maturin projects, this will only run 'maturin develop'. "
-             "For other projects, build steps might be altered or skipped if not publishing.",
+        "For other projects, build steps might be altered or skipped if not publishing.",
     )
 
     args = parser.parse_args()
