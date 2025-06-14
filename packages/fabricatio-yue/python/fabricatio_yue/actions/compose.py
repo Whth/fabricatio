@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from fabricatio import Action
-from fabricatio.capabilities import Lyricize
+from fabricatio_core.models.action import Action
 from fabricatio_core.utils import ok
 
+from fabricatio_yue.capabilities.lyricize import Lyricize
 from fabricatio_yue.models.segment import Song
 
 
