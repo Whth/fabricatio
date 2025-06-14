@@ -176,24 +176,17 @@ def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
     """
     futures = []
     for path in [d for d in (*list(PACKAGES_DIR.iterdir()), Path.cwd()) if d.is_dir()]:
-        if is_using_maturin(path):
-            if dev_mode:
-                future = POOL.submit(make_maturin_dev, path)
-                future.add_done_callback(
-                    lambda f, p=path: logging.info(f"Finished maturin dev build for {p.name}")
-                )
-                futures.append(future)
-            if bins or bdist:
-                future = POOL.submit(make_all_bins, path)
-                future.add_done_callback(
-                    lambda f, p=path: logging.info(f"Finished binary build for {p.name}")
-                )
-                futures.append(future)
-        if bdist:
-            future = POOL.submit(make_dist, path)
-            future.add_done_callback(
-                lambda f, p=path: logging.info(f"Finished dist build for {p.name}")
-            )
+        if is_using_maturin(path) and dev_mode:
+            future = POOL.submit(make_maturin_dev, path)
+            future.add_done_callback(lambda f, p=path: logging.info(f"Finished maturin dev build for {p.name}"))
+            futures.append(future)
+        if is_using_maturin(path) and bins and not bdist:
+            future = POOL.submit(make_all_bins, path)
+            future.add_done_callback(lambda f, p=path: logging.info(f"Finished binary build for {p.name}"))
+            futures.append(future)
+        if bdist or publish:
+            future = POOL.submit(lambda p: make_all_bins(p) and make_dist(p), path)
+            future.add_done_callback(lambda f, p=path: logging.info(f"Finished dist build for {p.name}"))
             futures.append(future)
     results = [future.result() for future in futures]
     if publish:
