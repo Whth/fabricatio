@@ -89,9 +89,8 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
     project_root = Path(project_root)
 
     scripts_dir = project_root.joinpath(SCRIPTS_DIR)
-    for f in [*list(scripts_dir.rglob("*.pyd")), *list(scripts_dir.rglob("*.so"))]:
-        f.unlink()
-    return run_cmd(
+
+    ret = run_cmd(
         [
             [
                 "cargo",
@@ -108,6 +107,9 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
         ],
         f"Build and clean binaries for {project_root.name}",
     )
+    for f in [*list(scripts_dir.rglob("*.pdb")), *list(scripts_dir.rglob("*.dwarf"))]:
+        f.unlink()
+    return ret
 
 
 def make_dist_dir_publish() -> None:
@@ -168,6 +170,10 @@ def make_dist(project_root: Union[str, Path]) -> bool:
     )
 
 
+def _pack(p: Path) -> bool:
+    return make_all_bins(p) and make_dist(p)
+
+
 def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
     """Build all packages that use maturin in parallel.
 
@@ -185,9 +191,10 @@ def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
             future.add_done_callback(lambda f, p=path: logging.info(f"Finished binary build for {p.name}"))
             futures.append(future)
         if bdist or publish:
-            future = POOL.submit(lambda p: make_all_bins(p) and make_dist(p), path)
+            future = POOL.submit(_pack if is_using_maturin(path) else make_dist, path)
             future.add_done_callback(lambda f, p=path: logging.info(f"Finished dist build for {p.name}"))
             futures.append(future)
+
     results = [future.result() for future in futures]
     if publish:
         make_dist_dir_publish()
