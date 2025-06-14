@@ -163,7 +163,11 @@ class ToolBox(WithBriefing):
 
 @dataclass
 class ResultCollector:
-    """A class for collecting results from tools."""
+    """Used for collecting results from tools etc.
+
+    use .submit(to: str, result: Any) to submit a result to the container with the specified key.
+    use .revoke(target: str) to remove a result from the container by its source key.
+    """
 
     container: Dict[str, Any] = field(default_factory=dict)
     """A dictionary to store results."""
@@ -181,11 +185,11 @@ class ResultCollector:
         self.container[to] = result
         return self
 
-    def revoke(self, src: str) -> Self:
+    def revoke(self, target: str) -> Self:
         """Remove a result from the container by its source key.
 
         Args:
-            src (str): The key of the result to remove.
+            target (str): The key of the result to remove.
 
         Returns:
             Self: The current instance for method chaining.
@@ -193,9 +197,9 @@ class ResultCollector:
         Raises:
             KeyError: If the key is not found in the container.
         """
-        if src not in self.container:
-            logger.warning(f"Key '{src}' not found in container.")
-        self.container.pop(src)
+        if target not in self.container:
+            logger.warning(f"Key '{target}' not found in container.")
+        self.container.pop(target)
         return self
 
     @overload
@@ -261,16 +265,22 @@ class ToolExecutor:
         """Inject the tools into the provided module or default.
 
         This method injects the tools into the provided module or creates a new module if none is provided.
+        It checks for potential collisions before injecting to avoid overwriting existing keys and raises KeyError.
 
         Args:
             cxt (Optional[M]): The module to inject tools into. If None, a new module is created.
 
         Returns:
             M: The module with injected tools.
+
+        Raises:
+            KeyError: If a tool name already exists in the context.
         """
         cxt = cxt or {}
         for tool in self.candidates:
             logger.debug(f"Injecting tool: {tool.name}")
+            if tool.name in cxt:
+                raise KeyError(f"Collision detected when injecting tool '{tool.name}'")
             cxt[tool.name] = tool.invoke
         return cxt
 
@@ -278,20 +288,47 @@ class ToolExecutor:
         """Inject the data into the provided module or default.
 
         This method injects the data into the provided module or creates a new module if none is provided.
+        It checks for potential collisions before injecting to avoid overwriting existing keys and raises KeyError.
 
         Args:
             cxt (Optional[M]): The module to inject data into. If None, a new module is created.
 
         Returns:
             M: The module with injected data.
+
+        Raises:
+            KeyError: If a data key already exists in the context.
         """
         cxt = cxt or {}
         for key, value in self.data.items():
             logger.debug(f"Injecting data: {key}")
+            if key in cxt:
+                raise KeyError(f"Collision detected when injecting data key '{key}'")
             cxt[key] = value
         return cxt
 
-    async def execute[C: Dict[str, Any]](self, body: str, cxt: Optional[C] = None) -> Any:
+    def inject_collector[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
+        """Inject the collector into the provided module or default.
+
+        This method injects the collector into the provided module or creates a new module if none is provided.
+        It checks for potential collisions before injecting to avoid overwriting existing keys and raises KeyError.
+
+        Args:
+            cxt (Optional[M]): The module to inject the collector into. If None, a new module is created.
+
+        Returns:
+            M: The module with injected collector.
+
+        Raises:
+            KeyError: If the collector name already exists in the context.
+        """
+        cxt = cxt or {}
+        if self.collector_name in cxt:
+            raise KeyError(f"Collision detected when injecting collector with name '{self.collector_name}'")
+        cxt[self.collector_name] = self.collector
+        return cxt
+
+    async def execute[C: Dict[str, Any]](self, body: str, cxt: Optional[C] = None) -> ResultCollector:
         """Execute the sequence of tools with the provided context.
 
         This method executes the tools in the sequence with the provided context.
@@ -303,12 +340,13 @@ class ToolExecutor:
         Returns:
             C: The context after executing the tools.
         """
+        cxt = self.inject_collector(cxt)
         cxt = self.inject_tools(cxt)
         cxt = self.inject_data(cxt)
-
-        exec(self.assemble(body), cxt)
+        exec(self.assemble(body), cxt)  # noqa: S102
         compiled_fn = cxt[self.fn_name]
-        return await compiled_fn()
+        await compiled_fn()
+        return self.collector
 
     def header(self) -> str:
         """Generate the header for the source code."""
