@@ -62,7 +62,7 @@ class HandleTask(ToolBoxUsage, ABC):
             capabilities_config.draft_tool_usage_code_template,
             {
                 "collector_help": ResultCollector.__doc__,
-                "fn_header":ToolExecutor(candidates=tools, data=data).header(),
+                "fn_header": ToolExecutor(candidates=tools, data=data).header(),
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
