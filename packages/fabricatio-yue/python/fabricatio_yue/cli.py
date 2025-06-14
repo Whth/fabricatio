@@ -31,7 +31,7 @@ def compose(
     output: Path = Option(Path("song"), "-o", "--output", help="Output file folder"),
 ) -> None:
     """Compose a song based on your requirements."""
-    from fabricatio import Event, Role, Task, WorkFlow
+    from fabricatio_core import Event, Role, Task, WorkFlow
     from fabricatio_core.utils import ok
     from questionary import text
 
