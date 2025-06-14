@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 
 class EmbeddingKwargs(TypedDict, total=False):
@@ -61,7 +61,7 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
 
 
 # noinspection PyTypedDict
-class ChooseKwargs[T](ValidateKwargs[T], total=False):
+class ChooseKwargs(ValidateKwargs[List[str]], total=False):
     """Arguments for selection operations.
 
     Extends GenerateKwargs with parameters for selecting among options,

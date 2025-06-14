@@ -31,7 +31,7 @@ from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, G
 from fabricatio_core.models.task import Task
 from fabricatio_core.models.tool import Tool, ToolBox
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
-from fabricatio_core.utils import first_available, ok
+from fabricatio_core.utils import first_available, ok, override_kwargs
 
 ROUTER = Router(
     routing_strategy="usage-based-routing-v2",
@@ -394,7 +394,7 @@ class LLMUsage(LLMScopedConfig, ABC):
             )
         return None
 
-    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[List[str]]]) -> Optional[List[str]]:
+    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -525,7 +525,7 @@ class LLMUsage(LLMScopedConfig, ABC):
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -573,7 +573,7 @@ class LLMUsage(LLMScopedConfig, ABC):
         self,
         instruction: str,
         choices: List[T],
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
@@ -717,7 +717,7 @@ class ToolBoxUsage(LLMUsage, ABC):
     async def choose_toolboxes(
         self,
         task: Task,
-        **kwargs: Unpack[ChooseKwargs[List[ToolBox]]],
+        **kwargs: Unpack[ChooseKwargs],
     ) -> Optional[List[ToolBox]]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
@@ -741,7 +741,7 @@ class ToolBoxUsage(LLMUsage, ABC):
         self,
         task: Task,
         toolbox: ToolBox,
-        **kwargs: Unpack[ChooseKwargs[List[Tool]]],
+        **kwargs: Unpack[ChooseKwargs],
     ) -> Optional[List[Tool]]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
@@ -799,7 +799,8 @@ class ToolBoxUsage(LLMUsage, ABC):
         Returns:
             List[Tool]: A list of tools gathered based on the provided task.
         """
-        return await self.gather_tools_fine_grind(task, kwargs, kwargs)
+        okwargs = override_kwargs(kwargs, default=None)
+        return await self.gather_tools_fine_grind(task, okwargs, okwargs)
 
 
 class Message(BaseModel):

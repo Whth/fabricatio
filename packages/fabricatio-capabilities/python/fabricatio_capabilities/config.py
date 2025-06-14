@@ -15,6 +15,7 @@ class CapabilitiesConfig:
 
     draft_tool_usage_code_template: str = "draft_tool_usage_code"
     """The name of the draft tool usage code template which will be used to draft tool usage code."""
+
     dispatch_task_template: str = "dispatch_task"
     """The name of the dispatch task template which will be used to dispatch a task."""
 

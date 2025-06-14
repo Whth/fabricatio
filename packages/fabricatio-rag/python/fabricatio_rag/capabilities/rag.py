@@ -240,7 +240,9 @@ class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
         )[:max_accepted]
 
     async def arefined_query(
-        self, question: List[str] | str, **kwargs: Unpack[ChooseKwargs[Optional[List[str]]]]
+        self,
+        question: List[str] | str,
+        **kwargs: Unpack[ChooseKwargs],
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 
