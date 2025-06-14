@@ -21,6 +21,10 @@ dev: dirs bins
 
 bdist: dirs bins
 
+	rm -f ./packages/*/python/*/*.so
+	rm -f ./packages/*/python/*/*.pyd
+	rm -f ./python/*/*.so
+	rm -f ./python/*/*.pyd
 	uvx -p $(PY) --project . maturin build --sdist -r -o $(DIST)
 	uv run subpackages.py --no-publish --pyversion $(PY)
 
