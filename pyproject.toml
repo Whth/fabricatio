@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.6.5-dev2"
+version = "0.6.5"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -97,7 +97,7 @@ yue = ["fabricatio-yue"]
 include = [
     "docs/source/conf.py",
     "pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py",
-    "packages/**/*.py", "packages/*/pyproject.toml"]
+    "packages/**/*.py","packages/**/*.pyi", "packages/*/pyproject.toml"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]

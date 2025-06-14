@@ -1,7 +1,7 @@
 """Rust bindings for the Rust API of fabricatio-anki."""
-from pathlib import Path
-from typing import Any, Dict
 
+from pathlib import Path
+from typing import Dict
 
 def compile_deck(path: Path | str, output: Path | str) -> None:
     """Compile an Anki deck from a project directory and export it to the specified output path.
@@ -48,14 +48,13 @@ def compile_deck(path: Path | str, output: Path | str) -> None:
         The generated .apkg file is compatible with Anki 2.1 and later versions.
     """
 
-
 def create_deck_project(
-        path: str,
-        deck_name: str | None = None,
-        deck_description: str | None = None,
-        author: str | None = None,
-        model_name: str | None = None,
-        fields: list[str] | None = None,
+    path: str,
+    deck_name: str | None = None,
+    deck_description: str | None = None,
+    author: str | None = None,
+    model_name: str | None = None,
+    fields: list[str] | None = None,
 ) -> None:
     """Create a new Anki deck project template with the specified configuration.
 
@@ -71,7 +70,7 @@ def create_deck_project(
 
     Project Structure:
         .. code-block:: text
-        
+
             anki_deck_project/
             ├── deck.yaml                # Metadata: Deck name, description, author, etc.
             ├── models/                  # Each Model corresponds to a subdirectory
@@ -144,7 +143,7 @@ def create_deck_project(
     Example:
         Basic project creation:
         >>> create_deck_project("/path/to/my-new-deck")
-        
+
         Customized project with specific configuration:
         >>> create_deck_project(
         ...     "/path/to/vocabulary-deck",
@@ -168,14 +167,13 @@ def create_deck_project(
           configuration files and clear separation of content and presentation.
     """
 
-
 def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
     """Save metadata as a YAML file in the specified directory.
-    
+
     This function takes a dictionary of metadata and saves it as a YAML file
     in the given directory. The file will be named with the provided name
     and automatically have a .yaml extension added.
-    
+
     Args:
         dir_path: The directory path where the YAML file should be saved.
                  The directory must exist and be writable.
@@ -197,12 +195,11 @@ def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
         # Creates /path/to/project/deck_info.yaml with the metadata
     """
 
-
 def save_template(
-        dir_path: Path,
-        front: str,
-        back: str,
-        css: str | None = None,
+    dir_path: Path,
+    front: str,
+    back: str,
+    css: str | None = None,
 ) -> None:
     """Save card type template files (front.html, back.html, and optional style.css) to a directory.
 
@@ -213,24 +210,24 @@ def save_template(
 
     The function writes three potential files:
     - front.html: Contains the HTML template for the front side of the card
-    - back.html: Contains the HTML template for the back side of the card  
+    - back.html: Contains the HTML template for the back side of the card
     - style.css: Contains CSS styling rules (only if css parameter is provided)
 
     Args:
         dir_path (Path): The directory path where the template files should be saved.
                         This directory must already exist and be writable. Typically this
                         would be a path like "models/model_name/templates/template_name/".
-        
+
         front (str): The HTML content for the front side of the card template.
                     This should be valid HTML that can include Anki field placeholders
                     like {{FieldName}} which will be replaced with actual card data.
                     Example: "<div class='front'>{{Question}}</div>"
-        
+
         back (str): The HTML content for the back side of the card template.
                    This should be valid HTML and typically includes {{FrontSide}} to
                    show the front content plus additional fields for the answer.
                    Example: "{{FrontSide}}<hr>{{Answer}}"
-        
+
         css (str | None, optional): CSS styling rules to be applied to the card templates.
                                    If provided, this will be written to a style.css file.
                                    If None, no CSS file will be created. The CSS should be
@@ -251,7 +248,7 @@ def save_template(
         ...     front="<div class='question'>{{Front}}</div>",
         ...     back="{{FrontSide}}<hr><div class='answer'>{{Back}}</div>"
         ... )
-        
+
         Card template with custom CSS styling:
         >>> save_template(
         ...     Path("/path/to/models/vocab/templates/word_card"),
@@ -269,25 +266,23 @@ def save_template(
         - Template files use standard HTML/CSS which allows for rich formatting and multimedia content.
     """
 
-
 def fname_santitize(filename: str) -> str:
     """Sanitize a filename by removing or replacing invalid characters.
-    
+
     Args:
         filename: The filename to sanitize
-        
+
     Returns:
         A sanitized version of the filename safe for use on filesystems
     """
 
-
 def add_csv_data(project_path: Path | str, model_name: str, data: Path | str) -> None:
     """Add CSV data to an Anki deck project by copying a CSV file to the project's data directory.
-    
+
     This function copies a CSV data file into the appropriate location within an Anki deck project
     structure. The CSV file will be renamed to match the model name and placed in the project's
     data directory where it can be used during deck compilation.
-    
+
     Args:
         project_path: The path to the root directory of the Anki deck project.
                      This should contain the standard project structure with a 'data' subdirectory.
@@ -295,13 +290,13 @@ def add_csv_data(project_path: Path | str, model_name: str, data: Path | str) ->
                    The CSV file will be renamed to "{model_name}.csv" in the data directory.
         data: The path to the source CSV file that contains the card data to be added.
              This file should have a header row with column names that match the model's fields.
-    
+
     Raises:
         Exception: If the project path does not exist or is not accessible.
         Exception: If the source CSV file cannot be read or does not exist.
         Exception: If the data directory cannot be created or written to.
         Exception: If the file copy operation fails due to I/O errors or permission issues.
-    
+
     Example:
         >>> from pathlib import Path
         >>> add_csv_data(
@@ -310,32 +305,30 @@ def add_csv_data(project_path: Path | str, model_name: str, data: Path | str) ->
         ...     Path("/path/to/vocab_data.csv")
         ... )
         # Copies vocab_data.csv to /path/to/my-deck-project/data/vocabulary_cards.csv
-    
+
     Note:
         - The function will overwrite any existing CSV file with the same model name.
         - The CSV file should have column headers that match the field names defined in the model.
         - The data directory will be created if it doesn't exist within the project structure.
     """
 
-
-
 def extract_html_component(html: str) -> tuple[str, str, str]:
     """Extract HTML components by separating layout, JavaScript, and CSS content.
-    
+
     This function parses an HTML string and extracts three distinct components:
     - Layout HTML (remaining HTML after removing script and style tags)
     - JavaScript content from <script> tags
     - CSS content from <style> tags
-    
+
     Args:
         html: The HTML string to parse and extract components from.
-    
+
     Returns:
         A tuple containing (layout_html, javascript_content, css_content):
         - layout_html: HTML content with script and style tags removed
         - javascript_content: Combined JavaScript code from all script tags
         - css_content: Combined CSS code from all style tags
-    
+
     Example:
         >>> html = '<div>Hello</div><script>alert("hi")</script><style>div{color:red}</style>'
         >>> layout, js, css = extract_html_component(html)

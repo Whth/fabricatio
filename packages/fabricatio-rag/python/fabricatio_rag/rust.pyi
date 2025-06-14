@@ -1,5 +1,4 @@
-from typing import List, Tuple, Literal
-
+from typing import List, Literal, Tuple
 
 class TEIClient:
     """Client for TEI reranking service.
@@ -16,11 +15,11 @@ class TEIClient:
         """
 
     async def arerank(
-            self,
-            query: str,
-            texts: List[str],
-            truncate: bool = False,
-            truncation_direction: Literal["Left", "Right"] = "Left",
+        self,
+        query: str,
+        texts: List[str],
+        truncate: bool = False,
+        truncation_direction: Literal["Left", "Right"] = "Left",
     ) -> List[Tuple[int, float]]:
         """Rerank texts based on relevance to query.
 
