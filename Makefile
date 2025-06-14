@@ -18,7 +18,7 @@ clean_dist:
 	rm -rf $(DIST)/*
 
 bdist: dirs clean_dist
-	uv run subpackages.py -py $(PY) --bdist
+	uv run subpackages.py -py $(PY) --bins --bdist
 
 
 test_raw:
@@ -29,7 +29,7 @@ test: dev
 	make test_raw
 
 publish:
-	uv run subpackages.py -py $(PY) --bdist --publish
+	uv run subpackages.py -py $(PY) --bins --bdist --publish
 
 docs:
 	make -C docs html
