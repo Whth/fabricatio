@@ -8,40 +8,34 @@ all:bdist
 dirs:
 	mkdir -p $(DIST) $(DATA)
 
-
 bins: dirs
-	cargo build -p fabricatio --bins -r -Z unstable-options --artifact-dir $(DATA)/scripts
-	rm $(DATA)/scripts/*.pdb -f
-	rm $(DATA)/scripts/*.dwarf -f
+	uv run subpackages.py -py $(PY) --bins
 
-dev: dirs bins
-	uvx -p $(PY) --project . maturin develop --uv -r
-	uv run subpackages.py --no-publish --pyversion $(PY) --dev
+dev: dirs
+	uv run subpackages.py -py $(PY) --bins --dev
 
-
-bdist: dirs bins
-
-	rm -f ./packages/*/python/*/*.so
-	rm -f ./packages/*/python/*/*.pyd
-	rm -f ./python/*/*.so
+clean_dev:
 	rm -f ./python/*/*.pyd
-	uvx -p $(PY) --project . maturin build --sdist -r -o $(DIST)
-	uv run subpackages.py --no-publish --pyversion $(PY)
+	rm -f ./python/*/*.so
+	rm -f ./packages/*/python/*/*.pyd
+	rm -f ./packages/*/python/*/*.so
 
-clean:
-	rm -rf $(DIST)/* $(DATA)/*
+clean_dist:
+	rm -rf $(DIST)/*
 
+bdist: dirs clean_dev clean_dist bins
+	uv build -p $(PY) -o dist --sdist --wheel --all-packages
 
 test_raw:
 	uv run pytest python/tests packages/*/python/tests --cov
-test:dev
+
+test: dev
 	uv sync --extra full
 	make test_raw
-publish: bdist
-	uv run subpackages.py --pyversion $(PY)
-	uvx -p $(PY) --project . maturin publish || true
 
+publish: bdist
+	uv run -p $(PY) subpackages.py  --publish
 
 docs:
 	make -C docs html
-.PHONY:  dev bdist clean publish test test_raw bins dirs all docs
+.PHONY:  dev bdist clean_dist clean_dev publish test test_raw bins dirs all docs
