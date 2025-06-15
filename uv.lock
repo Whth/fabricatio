@@ -524,7 +524,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.1.8"
+version = "0.1.9.dev0"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -547,7 +547,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.1.9"
+version = "0.1.10.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -772,7 +772,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.6.dev0"
+version = "0.1.6.dev1"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -814,7 +814,6 @@ dependencies = [
     { name = "fabricatio-core" },
     { name = "more-itertools" },
     { name = "pydantic" },
-    { name = "ujson" },
 ]
 
 [package.optional-dependencies]
@@ -835,7 +834,6 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "questionary", marker = "extra == 'cli'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
-    { name = "ujson", specifier = ">=5.10.0" },
 ]
 provides-extras = ["cli"]
 

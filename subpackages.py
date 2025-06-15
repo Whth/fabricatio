@@ -132,7 +132,8 @@ def make_dist(project_root: Union[str, Path]) -> bool:
     """Build a package using maturin."""
     project_root = Path(project_root)
     if is_using_maturin(project_root):
-        for f in [*list(project_root.rglob("*.pyd")), *list(project_root.rglob("*.so"))]:
+        src_dir = project_root / "python"
+        for f in [*list(src_dir.rglob("*.pyd")), *list(src_dir.rglob("*.so"))]:
             f.unlink()
         return run_cmd(
             [
