@@ -540,14 +540,14 @@ class LLMUsage(LLMScopedConfig, ABC):
         """
         from fabricatio_core.parser import JsonCapture
 
-        if dup := duplicates_everseen(choices, key=lambda x: x.name):
+        if dup := list(duplicates_everseen(choices, key=lambda x: x.name)):
             logger.error(err := f"Redundant choices: {dup}")
             raise ValueError(err)
         prompt = TEMPLATE_MANAGER.render_template(
             CONFIG.templates.make_choice_template,
             {
                 "instruction": instruction,
-                "options": [m.model_dump(include={"name", "briefing"}) for m in choices],
+                "options": [{"name": m.name, "briefing": m.briefing} for m in choices],
                 "k": k,
             },
         )

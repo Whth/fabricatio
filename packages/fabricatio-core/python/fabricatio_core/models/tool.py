@@ -163,26 +163,26 @@ class ToolBox(WithBriefing):
 
 @dataclass
 class ResultCollector:
-    """Used for collecting results from tools etc.
+    """Used for collecting results as the task requests.
 
-    use .submit(to: str, result: Any) to submit a result to the container with the specified key.
-    use .revoke(target: str) to remove a result from the container by its source key.
+    use .submit(to: str, val: Any) to submit a value that are required to the container with the specified key.
+    use .revoke(target: str) to remove a value from the container by its source key.
     """
 
     container: Dict[str, Any] = field(default_factory=dict)
     """A dictionary to store results."""
 
-    def submit(self, to: str, result: Any) -> Self:
+    def submit(self, to: str, val: Any) -> Self:
         """Submit a result to the container with the specified key.
 
         Args:
             to (str): The key to store the result under.
-            result (Any): The result to store in the container.
+            val (Any): The result to store in the container.
 
         Returns:
             Self: The current instance for method chaining.
         """
-        self.container[to] = result
+        self.container[to] = val
         return self
 
     def revoke(self, target: str) -> Self:
@@ -250,7 +250,7 @@ class ToolExecutor:
 
     collector: ResultCollector = field(default_factory=ResultCollector)
 
-    collector_name: ClassVar[str] = "collector"
+    collector_varname: ClassVar[str] = "collector"
 
     fn_name: ClassVar[str] = "execute"
     """The name of the function to execute."""
@@ -323,9 +323,9 @@ class ToolExecutor:
             KeyError: If the collector name already exists in the context.
         """
         cxt = cxt or {}
-        if self.collector_name in cxt:
-            raise KeyError(f"Collision detected when injecting collector with name '{self.collector_name}'")
-        cxt[self.collector_name] = self.collector
+        if self.collector_varname in cxt:
+            raise KeyError(f"Collision detected when injecting collector with name '{self.collector_varname}'")
+        cxt[self.collector_varname] = self.collector
         return cxt
 
     async def execute[C: Dict[str, Any]](self, body: str, cxt: Optional[C] = None) -> ResultCollector:

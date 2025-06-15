@@ -2,9 +2,13 @@ Task Briefing:
 Name: {{name}}
 Description: {{description}}
 NameSpace: {{namespace}}
+{{#if dependencies}}
 Dependency Paths:{{#each dependencies}}
 - `{{this}}`
 {{/each}}
-Goal:{{#each goal}}
+{{/if}}
+{{#if goals}}
+Goals:{{#each goals}}
 - `{{this}}`
 {{/each}}
+{{/if}}

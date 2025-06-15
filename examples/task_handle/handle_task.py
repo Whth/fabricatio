@@ -1,49 +1,57 @@
 """Example of using the library."""
 
 import asyncio
-from typing import Any, Set, Unpack
+from typing import Any, Set
 
-from fabricatio import Action, Event, Role, Task, ToolBox, WorkFlow, logger, toolboxes
-from fabricatio_core.parser import PythonCapture
+from fabricatio import Action, Event, Task, ToolBox, WorkFlow, logger, toolboxes
+from fabricatio import Role as RoleBase
+from fabricatio.capabilities import HandleTask, ProposeTask
+from fabricatio.models import LLMUsage
+from fabricatio_core.utils import ok
 from pydantic import Field
 
 
-class WriteCode(Action):
+class Role(RoleBase, ProposeTask):
+    """Role that can propose tasks."""
+
+
+class WriteCode(Action, LLMUsage):
     """Action that says hello to the world."""
 
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        return await self.aask_validate(
-            task_input.briefing,
-            system_message=task_input.dependencies_prompt,
-            validator=PythonCapture.capture,
-        )
+        return ok(await self.acode_string(f"{task_input.dependencies_prompt}\n\n{task_input.briefing}", "python"))
 
 
-class DumpText(Action):
+class DumpText(Action, HandleTask):
     """Dump the text to a file."""
 
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Any:
+    save_key: str = "save_path"
+
+    async def _execute(self, task_input: Task, dump_text: str, **_) -> Any:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
-            ["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
+            [
+                "dump the text contained in `text_to_dump` to a file",
+                f"only submit the pathstr of the written file to the '{self.save_key}]' slot.",
+            ]
         )
 
-        path = await self.handle(
-            task_input,
-            {"text_to_dump": dump_text},
+        collector = ok(
+            await self.handle(
+                task_input,
+                {"text_to_dump": dump_text},
+            )
         )
-        if path:
-            return path[0]
 
-        return None
+        return collector.take(self.save_key, str)
 
 
-class WriteDocumentation(Action):
+class WriteDocumentation(Action, LLMUsage):
     """Action that says hello to the world."""
 
     output_key: str = "dump_text"
@@ -87,16 +95,20 @@ async def main() -> None:
                 extra_init_context={"counter": 0},
             ),
         },
-    )
+    ).dispatch()
 
-    proposed_task = await role.propose_task(
-        "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
+    proposed_task: Task[str] = ok(
+        await role.propose_task(
+            "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
+        )
     )
-    path = await proposed_task.delegate("coding")
+    path = ok(await proposed_task.delegate("coding"))
     logger.success(f"Code Path: {path}")
 
-    proposed_task = await role.propose_task(
-        f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too."
+    proposed_task = ok(
+        await role.propose_task(
+            f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too."
+        )
     )
     proposed_task.override_dependencies(path)
     doc = await proposed_task.delegate("doc")

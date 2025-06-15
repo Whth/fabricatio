@@ -9,14 +9,18 @@
 {{/each }}
 
 **Available Tools:**
-{{ls tools}}
+{{#each tools}}
+{{block this.briefing this.name}}
+{{/each}}
 
 **Task Briefing:**
 {{ task }}
 
 
-**ResultCollector:**
+**ResultCollector Usage Help:**
 {{collector_help}}
+
+I have set up a global variable called `{{collector_varname}}` which is an instance of the ResultCollector class. You can use it to submit the result if required.
 
 
 ## Constrain

@@ -19,14 +19,14 @@ type EventLike = Union[str, Event, List[str]]
 class Task[T](WithBriefing, ProposedAble, WithDependency):
     """A class representing a task with a status and output."""
 
-    name: str = Field(...)
-    """The name of the task, which should be concise and descriptive."""
+    goals: List[str] = Field(default_factory=list)
+    """A list of clear and specific objectives that the task aims to accomplish."""
 
     description: str = Field(default="")
     """A detailed explanation of the task that includes all necessary information. Should be clear and answer what, why, when, where, who, and how questions."""
 
-    goals: List[str] = Field(default_factory=list)
-    """A list of objectives that the task aims to accomplish. Each goal should be clear and specific. Complex tasks should be broken into multiple smaller goals."""
+    name: str = Field(...)
+    """The name of the task, which should be concise and descriptive."""
 
     namespace: List[str] = Field(default_factory=list)
     """A list of string segments that identify the task's location in the system. If not specified, defaults to an empty list."""

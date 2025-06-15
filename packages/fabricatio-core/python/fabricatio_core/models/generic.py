@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
 
-from orjson import OPT_INDENT_2, dumps
+import orjson
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -16,6 +16,7 @@ from pydantic import (
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
+from fabricatio_core.decorators import precheck_package
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
@@ -186,6 +187,9 @@ class WithDependency(Base, ABC):
         return reader(self.dependencies.pop(idx))
 
     @property
+    @precheck_package(
+        "magika", "package `magika` is required for this method, have you installed fabricatio-core[ftd]?"
+    )
     def dependencies_prompt(self) -> str:
         """Generate a prompt for the task based on the file dependencies.
 
@@ -415,7 +419,9 @@ class WithFormatedJsonSchema(Base, ABC):
         Returns:
             str: The JSON schema of the model in a formatted string.
         """
-        return dumps(cls.model_json_schema(schema_generator=UnsortGenerate), option=OPT_INDENT_2)
+        return orjson.dumps(cls.model_json_schema(schema_generator=UnsortGenerate), option=orjson.OPT_INDENT_2).decode(
+            "utf-8"
+        )
 
 
 class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):

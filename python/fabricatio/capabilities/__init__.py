@@ -8,9 +8,9 @@ if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
     from fabricatio_capabilities.capabilities.propose import Propose
     from fabricatio_capabilities.capabilities.rating import Rating
-    from fabricatio_capabilities.capabilities.task import ProposeTask
+    from fabricatio_capabilities.capabilities.task import DispatchTask, HandleTask, ProposeTask
 
-    __all__ += ["Extract", "Propose", "ProposeTask", "Rating"]
+    __all__ += ["DispatchTask", "Extract", "HandleTask", "Propose", "ProposeTask", "Rating"]
 
 if find_spec("fabricatio_rag"):
     from fabricatio_rag.capabilities.rag import RAG

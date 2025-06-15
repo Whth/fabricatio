@@ -1,6 +1,5 @@
 """Example of proposing a task to a role."""
 
-import asyncio
 from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
@@ -14,6 +13,10 @@ from fabricatio_core.utils import ok
 class ProposeObj(Action, Propose):
     """Action that says hello to the world."""
 
+    llm_model: str | None = "openai/qwq-plus"
+    llm_max_tokens: int | None = 8190
+    llm_stream: bool | None = True
+    llm_temperature: float | None = 0.6
     output_key: str = "task_output"
 
     async def _execute(self, briefing: str, **_) -> Any:
@@ -25,26 +28,17 @@ class ProposeObj(Action, Propose):
         )
 
 
-async def main() -> None:
-    """Main function."""
-    Role(
-        name="talker",
-        description="talker role",
-        llm_model="openai/qwq-plus",
-        llm_max_tokens=8190,
-        llm_stream=True,
-        llm_temperature=0.6,
-        registry={
-            Event.quick_instantiate("talk"): WorkFlow(
-                name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
-            ).update_init_context(briefing=safe_text_read("briefing.txt"))
-        },
-    )
-
-    task: Task[ArticleOutline] = Task(name="write outline")
-    article_outline = ok(await task.delegate("talk"))
-    logger.success(f"article_outline:\n{article_outline.display()}")
+Role(
+    name="talker",
+    registry={
+        Event.quick_instantiate("talk"): WorkFlow(
+            name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
+        ).update_init_context(briefing=safe_text_read("briefing.txt"))
+    },
+)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    task: Task[ArticleOutline] = Task(name="write outline")
+    article_outline = ok(task.delegate_blocking("talk"))
+    logger.success(f"article_outline:\n{article_outline.display()}")

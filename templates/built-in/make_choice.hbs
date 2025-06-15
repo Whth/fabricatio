@@ -1,18 +1,11 @@
-# Task: Make Selection from Available Options
-
 {{instruction}}
 
-## CFER Framework
-When selecting the most appropriate option(s), follow these principles:
-- **Considered**: Evaluate each option thoroughly against the requirements
-- **Focused**: Select only options that directly address the core needs
-- **Evidence-based**: Base your selection on concrete merits rather than assumptions
-- **Reasoned**: Prioritize options that best satisfy all critical requirements
-
-## Available Options
+----- Start of Available Options -----
 {{#each options}}
-- **{{name}}**: {{briefing}}
+{{block this.briefing this.name}}
 {{/each}}
+----- End of Available Options -----
+
 
 ## Selection Guidelines
 When making your selection:
@@ -35,6 +28,6 @@ Return your selection as a JSON array of option names within a code block.
 
 ## Format Requirements
 - Response MUST be a valid JSON array containing only option names
-- Each selected option MUST be from the provided list: [{{#each options}}"{{name}}", {{/each}}]
+- Each selected option MUST be from the provided `Available Options`:
 - No explanations or additional text outside the JSON code block
 {{#if k}}- The array MUST contain EXACTLY {{k}} options{{/if}}
