@@ -1,12 +1,18 @@
 """Example of proposing a task to a role."""
 
 import asyncio
-from typing import Dict, List, Set, Unpack
+from typing import Dict, List, Set
 
-import ujson
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.capabilities import Rating
+import orjson
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as RoleBase
+from fabricatio.capabilities import ProposeTask, Rating
 from fabricatio_core.parser import JsonCapture
+from fabricatio_core.utils import ok
+
+
+class Role(RoleBase, ProposeTask):
+    """Role that can rate tasks."""
 
 
 class Rate(Action, Rating):
@@ -29,10 +35,10 @@ class WhatToRate(Action):
 
     output_key: str = "to_rate"
 
-    async def _execute(self, task_input: Task, rate_topic: str, **cxt: Unpack) -> List[str]:
+    async def _execute(self, task_input: Task, rate_topic: str, **_) -> List[str]:
         def _validate(resp: str) -> List[str] | None:
             if (
-                (cap := JsonCapture.convert_with(resp, ujson.loads)) is not None
+                (cap := JsonCapture.convert_with(resp, orjson.loads)) is not None
                 and isinstance(cap, list)
                 and all(isinstance(i, str) for i in cap)
             ):
@@ -54,7 +60,7 @@ class MakeCriteria(Action, Rating):
 
     output_key: str = "criteria"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> Set[str]:
+    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> Set[str]:
         criteria = await self.draft_rating_criteria_from_examples(rate_topic, to_rate)
         logger.info(f"Criteria: \n{criteria}")
         return set(criteria)
@@ -65,7 +71,7 @@ class MakeCompositeScore(Action, Rating):
 
     output_key: str = "task_output"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> List[float]:
+    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> List[float]:
         return await self.composite_score(
             rate_topic,
             to_rate,
@@ -77,7 +83,7 @@ class Best(Action, Rating):
 
     output_key: str = "task_output"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **cxt: Unpack) -> str:
+    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> str:
         return (await self.best(to_rate, topic=rate_topic)).pop(0)
 
 
@@ -116,8 +122,11 @@ async def main() -> None:
             ),
         },
     )
-    task = await role.propose_task(
-        "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",
+    task = ok(
+        await role.propose_task(
+            "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",
+        ),
+        "Failed to propose task.",
     )
     rating = await task.delegate("rate_food")
 

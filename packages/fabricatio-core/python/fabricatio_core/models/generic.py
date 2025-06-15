@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
 
-import ujson
+from orjson import OPT_INDENT_2, dumps
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -415,9 +415,7 @@ class WithFormatedJsonSchema(Base, ABC):
         Returns:
             str: The JSON schema of the model in a formatted string.
         """
-        return ujson.dumps(
-            cls.model_json_schema(schema_generator=UnsortGenerate), indent=2, ensure_ascii=False, sort_keys=False
-        )
+        return dumps(cls.model_json_schema(schema_generator=UnsortGenerate), option=OPT_INDENT_2)
 
 
 class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-typst"
-version = "0.1.6-dev0"
+version = "0.1.6-dev1"
 description = "A Python library for generating, validating and converting academic content using Typst format."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -9,7 +9,6 @@ authors = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
-
     "fabricatio-core",
 ]
 
@@ -40,6 +39,19 @@ build-backend = "maturin"
 python-source = "python"
 module-name = "fabricatio_typst.rust"
 data = "extra"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"

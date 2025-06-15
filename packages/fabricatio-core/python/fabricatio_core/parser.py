@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Callable, Optional, Self, Type
 
-import ujson
 from json_repair import repair_json
+from orjson import loads
 
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG
@@ -113,7 +113,7 @@ class Capture:
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
-        deserializer: Callable[[str], K] = lambda x: ujson.loads(x),
+        deserializer: Callable[[str], K] = lambda x: loads(x),
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types.
 

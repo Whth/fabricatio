@@ -5,12 +5,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Set, Type, final
 
-import ujson
 from fabricatio_core.fs import dump_text
 from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
+from orjson import OPT_INDENT_2, dumps
 from pydantic import (
     BaseModel,
 )
@@ -273,7 +273,7 @@ class Patch[T](ProposedAble, ABC):
                 )
             my_schema["description"] = ref_cls.__doc__
             my_schema["title"] = ref_cls.__name__
-        return ujson.dumps(my_schema, indent=2, ensure_ascii=False, sort_keys=False)
+        return dumps(my_schema, option=OPT_INDENT_2).decode("utf-8")
 
 
 class SequencePatch[T](ProposedUpdateAble, ABC):

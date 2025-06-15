@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import ujson
+import orjson
 
 from fabricatio_core.journal import logger
 
@@ -37,8 +37,8 @@ def safe_json_read(path: Path | str) -> Dict:
     """
     path = Path(path)
     try:
-        return ujson.loads(path.read_text(encoding="utf-8"))
-    except (ujson.JSONDecodeError, IsADirectoryError, FileNotFoundError) as e:
+        return orjson.loads(path.read_text(encoding="utf-8"))
+    except (orjson.JSONDecodeError, IsADirectoryError, FileNotFoundError) as e:
         logger.error(f"Failed to read file {path}: {e!s}")
         return {}
 

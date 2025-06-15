@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-capabilities"
-version = "0.1.8"
+version = "0.1.9-dev0"
 description = "A foundational Python library providing core capabilities for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 authors = [
@@ -9,8 +9,8 @@ authors = [
 license = { file = "LICENSE" }
 requires-python = ">=3.12,<3.14"
 dependencies = [
-
-    "fabricatio-core"
+    "fabricatio-core",
+    "orjson>=3.10.18",
 ]
 
 [dependency-groups]
@@ -25,6 +25,19 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_capabilities.rust"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
+default = true
 
 
 [project.urls]
