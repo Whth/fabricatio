@@ -52,3 +52,23 @@ handlebars_helper!(timestamp_to_date: |v: u64| {
         .map(|dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string())
         .unwrap_or_else(|| "Invalid timestamp".to_string())
 });
+
+
+handlebars_helper!(head: |v:String , n: i64| {
+    let mut lines = v.lines();
+    let mut result = String::new();
+    let mut count = 0;
+    for _ in 0..n {
+        if let Some(line) = lines.next() {
+            result.push_str(line);
+            result.push('\n');
+            count += 1;
+        }
+    }
+    let total_lines = v.lines().count();
+    if count < total_lines {
+        result.push_str(&format!(".....\n(total {} lines hidden)\n", total_lines - count));
+    }
+    result.trim_end().to_string()
+
+});

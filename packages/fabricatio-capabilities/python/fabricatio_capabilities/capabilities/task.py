@@ -62,7 +62,7 @@ class HandleTask(ToolBoxUsage, ABC):
             capabilities_config.draft_tool_usage_code_template,
             {
                 "collector_help": ResultCollector.__doc__,
-                "collector_varname":ToolExecutor.collector_varname,
+                "collector_varname": ToolExecutor.collector_varname,
                 "fn_header": ToolExecutor(candidates=tools, data=data).signature(),
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,

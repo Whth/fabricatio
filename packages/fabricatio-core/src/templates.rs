@@ -230,6 +230,8 @@ impl TemplateManager {
 
         self.handlebars
             .register_helper("date", Box::new(timestamp_to_date));
+        self.handlebars
+            .register_helper("head",Box::new(head));
         self
     }
 }
