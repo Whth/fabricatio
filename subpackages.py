@@ -30,7 +30,7 @@ def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
     try:
         for cmd in cmd_sequence:
             logging.info(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)  # noqa: S603
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")  # noqa: S603
             logging.debug(f"Command output: {result.stdout}")
         logging.info(f"{desc} completed successfully.")
         return True
@@ -170,8 +170,8 @@ def make_dist(project_root: Union[str, Path]) -> bool:
     )
 
 
-def _pack(p: str | Path) -> bool:
-    return make_all_bins(p) and make_dist(p)
+def _pack(project_root: str | Path) -> bool:
+    return make_all_bins(project_root) and make_dist(project_root)
 
 
 def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
