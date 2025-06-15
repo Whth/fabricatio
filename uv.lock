@@ -333,7 +333,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.6.6.dev3"
+version = "0.6.6.dev5"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },

@@ -15,8 +15,15 @@ class TypstConfig:
 
     research_content_summary_template: str = "research_content_summary"
     """The name of the research content summary template which will be used to generate a summary of research content."""
+
     as_prompt_template: str = "as_prompt"
     """The name of the as prompt template which will be used to convert a string to a prompt."""
+
+    paragraph_sep: str = "// - - -"
+    """The separator used to separate paragraphs."""
+
+    article_wrapper = "// =-=-=-=-=-=-=-=-=-="
+    """The wrapper used to wrap an article."""
 
 
 typst_config = CONFIG.load("typst", TypstConfig)

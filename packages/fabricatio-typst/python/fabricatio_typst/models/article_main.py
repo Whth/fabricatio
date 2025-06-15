@@ -9,6 +9,7 @@ from fabricatio_core.models.generic import Described, SketchedAble
 from fabricatio_core.rust import word_count
 from pydantic import Field, NonNegativeInt
 
+from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.article_base import (
     ArticleBase,
     ChapterBase,
@@ -28,7 +29,7 @@ from fabricatio_typst.rust import (
     split_out_metadata,
 )
 
-PARAGRAPH_SEP = "// - - -"
+PARAGRAPH_SEP = typst_config.paragraph_sep
 
 
 class Paragraph(SketchedAble, WordCount, Described):

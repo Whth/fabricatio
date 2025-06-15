@@ -27,6 +27,7 @@ from fabricatio_core.rust import (
 from fabricatio_core.utils import fallback_kwargs, ok
 from pydantic import Field
 
+from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.generic import AsPrompt, Introspect, WordCount
 from fabricatio_typst.rust import (
     extract_body,
@@ -36,7 +37,7 @@ from fabricatio_typst.rust import (
     to_metadata,
 )
 
-ARTICLE_WRAPPER = "// =-=-=-=-=-=-=-=-=-="
+ARTICLE_WRAPPER = typst_config.article_wrapper
 
 
 class ReferringType(StrEnum):
