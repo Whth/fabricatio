@@ -63,7 +63,7 @@ class HandleTask(ToolBoxUsage, ABC):
             {
                 "collector_help": ResultCollector.__doc__,
                 "collector_varname":ToolExecutor.collector_varname,
-                "fn_header": ToolExecutor(candidates=tools, data=data).header(),
+                "fn_header": ToolExecutor(candidates=tools, data=data).signature(),
                 "task": task.briefing,
                 "deps": task.dependencies_prompt,
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],

@@ -4,10 +4,6 @@ Description: {{description}}
 NameSpace: {{namespace}}
 {{#if dependencies}}
 Dependency Paths:{{#each dependencies}}
-- `{{this}}`
-{{/each}}
-{{/if}}{{#if goals}}
+- `{{this}}`{{/each}}{{/if}}{{#if goals}}
 Goals:{{#each goals}}
-- `{{this}}`
-{{/each}}
-{{/if}}
+- `{{this}}`{{/each}}{{/if}}

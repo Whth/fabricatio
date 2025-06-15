@@ -66,6 +66,11 @@ class Tool[**P, R](WithBriefing):
         return self.source(*args, **kwargs)
 
     @property
+    def signature(self) -> str:
+        """Return the signature of the tool's source function."""
+        return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}"
+
+    @property
     def briefing(self) -> str:
         """Return a brief description of the tool.
 
@@ -76,7 +81,7 @@ class Tool[**P, R](WithBriefing):
         """
         # 获取源函数的返回类型
 
-        return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}\n{_desc_wrapper(self.description)}"
+        return f"{self.signature}\n{_desc_wrapper(self.description)}"
 
 
 def _desc_wrapper(desc: str) -> str:
@@ -135,9 +140,9 @@ class ToolBox(WithBriefing):
         Returns:
             str: A brief description of the toolbox.
         """
-        list_out = "\n\n".join([f"{tool.briefing}" for tool in self.tools])
+        list_out = "\n".join([tool.signature for tool in self.tools])
         toc = f"## {self.name}: {self.description}\n## {len(self.tools)} tools available:"
-        return f"{toc}\n\n{list_out}"
+        return f"{toc}\n{list_out}"
 
     def get(self, name: str) -> Optional[Tool]:
         """Retrieve a tool by its name from the toolbox.
@@ -348,7 +353,7 @@ class ToolExecutor:
         await compiled_fn()
         return self.collector
 
-    def header(self) -> str:
+    def signature(self) -> str:
         """Generate the header for the source code."""
         arg_parts = [f'{k}:"{v.__class__.__name__}" = {k}' for k, v in self.data.items()]
         args_str = ", ".join(arg_parts)
@@ -365,7 +370,7 @@ class ToolExecutor:
         Returns:
             str: The assembled source code.
         """
-        return f"{self.header()}\n{self._indent(body)}"
+        return f"{self.signature()}\n{self._indent(body)}"
 
     @staticmethod
     def _indent(lines: str) -> str:
