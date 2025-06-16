@@ -70,7 +70,7 @@ class Tool[**P, R](WithBriefing):
     @property
     def signature(self) -> str:
         """Return the signature of the tool's source function."""
-        return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}"
+        return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}:"
 
     @property
     def briefing(self) -> str:
@@ -204,9 +204,10 @@ class ResultCollector:
         Raises:
             KeyError: If the key is not found in the container.
         """
-        if target not in self.container:
-            logger.warning(f"Key '{target}' not found in container.")
-        self.container.pop(target)
+        if target in self.container:
+            self.container.pop(target)
+            return self
+        logger.warning(f"Key '{target}' not found in container.")
         return self
 
     @overload

@@ -9,11 +9,11 @@ from pydantic import BaseModel, Field
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
 
-    forbidden_modules: Set[str] = Field(default_factory=lambda: {"os", "sys","subprocess"})
+    forbidden_modules: Set[str] = Field(default_factory=lambda: {"os", "sys", "subprocess"})
     """Modules that are forbidden to be imported."""
-    forbidden_imports: Set[str] = Field(default_factory=lambda: {"os", "sys","subprocess"})
+    forbidden_imports: Set[str] = Field(default_factory=lambda: {"os", "sys", "subprocess"})
     """Imports that are forbidden to be used."""
-    forbidden_calls: Set[str] = Field(default_factory=lambda: {"exec","breakpoint","compile","exit"})
+    forbidden_calls: Set[str] = Field(default_factory=lambda: {"exec", "breakpoint", "compile", "exit"})
     """"Calls that are forbidden to be used."""
 
 
