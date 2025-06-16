@@ -75,7 +75,7 @@ docs = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool]",
 ]
 
 anki = ["fabricatio-anki"]
@@ -92,6 +92,7 @@ actions = ["fabricatio-actions"]
 question = ["fabricatio-question"]
 tagging = ["fabricatio-tagging"]
 yue = ["fabricatio-yue"]
+tool = ["fabricatio-tool"]
 
 [tool.ruff]
 include = [
@@ -173,6 +174,7 @@ fabricatio-anki = { workspace = true }
 fabricatio-question = { workspace = true }
 fabricatio-tagging = { workspace = true }
 fabricatio-yue = { workspace = true }
+fabricatio-tool = {workspace = true}
 
 
 

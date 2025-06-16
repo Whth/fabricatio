@@ -13,7 +13,8 @@ from fabricatio_core.fs import (
     safe_text_read,
     tree,
 )
-from fabricatio_core.models.tool import ToolBox
+
+from fabricatio_tool.models.tool import ToolBox
 
 fs_toolbox = (
     ToolBox(name="FsToolBox", description="A toolbox for basic file system operations.")

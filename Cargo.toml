@@ -35,6 +35,7 @@ members = [
     "packages/fabricatio-memory",
     "packages/fabricatio-anki",
     "packages/fabricatio-anki/src/deck_loader",
+    "packages/fabricatio-tool",
 ]
 
 [workspace.package]

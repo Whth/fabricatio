@@ -8,11 +8,10 @@ from dataclasses import dataclass, field
 from inspect import iscoroutinefunction, signature
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Self, Type, overload
 
-from pydantic import Field
-
 from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
+from pydantic import Field
 
 
 class Tool[**P, R](WithBriefing):

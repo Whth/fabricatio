@@ -1,0 +1,35 @@
+[project]
+name = "fabricatio-tool"
+version = "0.1.1-dev0"
+description = "An extension of fabricatio, which brings up the capability to use tool with native python."
+readme = "README.md"
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.12,<3.14"
+dependencies = [
+
+    "fabricatio-core"
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_tool.rust"
+
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
