@@ -3,7 +3,6 @@
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fabricatio_tool.models.tool import ResultCollector, Tool, ToolBox, ToolExecutor
@@ -165,14 +164,22 @@ class TestToolExecutor:
         assert tool_executor.signature() == 'async def execute(x:"int" = x)->None:'
 
     @pytest.mark.asyncio
-    async def test_execute_with_mocked_code(self, tool_executor:ToolExecutor) -> None:
+    async def test_execute_with_mocked_code(self, tool_executor: ToolExecutor) -> None:
         """Test code execution with mocked context."""
+        source = f"x=32*6\n{tool_executor.collector_varname}.submit('num', x)\n"
+        col = await tool_executor.execute(source)
+        assert col.take("num", int) == 32 * 6
 
-        source=(f"{tool_executor.collector_varname}.submit('num', 1)\n"
-                "")
-        col=await tool_executor.execute(source)
-        assert col.take("num", int) == {"num":1}
-
+        source = f"import os\nx=32*6\n{tool_executor.collector_varname}.submit('num', x)\n"
+        with pytest.raises(ValueError, match="Forbidden import module: os"):
+            await tool_executor.execute(source)
+        source = f"import os as las\nx=32*6\n{tool_executor.collector_varname}.submit('num', x)\n"
+        with pytest.raises(ValueError, match="Forbidden import module: os"):
+            await tool_executor.execute(source)
+        source = f"from os import path\nx=32*6\n{tool_executor.collector_varname}.submit('num', x)\n"
+        with pytest.raises(ValueError, match="Forbidden import module: os"):
+            await tool_executor.execute(source)
+        # FIXME
 
 
 def test_from_recipe(toolbox, sample_func: Callable[[int, str], str]) -> None:

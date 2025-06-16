@@ -400,8 +400,13 @@ class ToolExecutor:
             Self: A new instance of the tool executor with the specified tools.
         """
         tools = []
-        while tool_name := recipe.pop(0):
+        while recipe:
+            tool_name = recipe.pop(0)
             for toolbox in toolboxes:
-                tools.append(toolbox.get(tool_name))
-
+                tool = toolbox.get(tool_name)
+                if tool is None:
+                    logger.warning(f"Tool {tool_name} not found in any toolbox.")
+                    continue
+                tools.append(tool)
+                break
         return cls(candidates=tools)

@@ -157,10 +157,14 @@ pub fn gather_violations<S: AsRef<str>>(source: S, config: LinterConfig) -> Resu
     // Traverse the module body and check each statement for violations
     module.as_module().ok_or("No module found")?
         .body.iter()
-        .for_each(|stmt| vis.visit_stmt(stmt.clone()));
+        .for_each(|stmt| { vis.visit_stmt(stmt.clone())
+        ;
+            if let Some(expr)=stmt.as_expr_stmt(){
+            vis.visit_expr(expr.value.as_ref().clone())
+            }
+        }
+        );
 
-    // Check expression if present
-    vis.visit_expr(module.expression().ok_or("No expression found")?.body.as_ref().clone());
 
     Ok(vis.violations)
 }
