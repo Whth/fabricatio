@@ -18,6 +18,8 @@ source =
     packages/fabricatio-question/python/fabricatio_question
     packages/fabricatio-tagging/python/fabricatio_tagging
     packages/fabricatio-yue/python/fabricatio_yue
+    packages/fabricatio-yue/python/fabricatio_tool
+    packages/fabricatio-plot/python/fabricatio_plot
     packages/fabricatio-tool/python/fabricatio_tool
 
 omit =
