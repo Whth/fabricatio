@@ -3,10 +3,10 @@
 from typing import Any, Optional
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.models import LLMUsage
+from fabricatio_core.capabilities.usages import UseLLM
 
 
-class WritePoem(Action, LLMUsage):
+class WritePoem(Action, UseLLM):
     """Action that generates a poem."""
 
     output_key: str = "task_output"

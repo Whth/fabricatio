@@ -2,7 +2,13 @@
 
 from importlib.util import find_spec
 
-__all__ = []
+from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseToolBox
+
+__all__ = [
+    "UseEmbedding",
+    "UseLLM",
+    "UseToolBox",
+]
 
 if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract

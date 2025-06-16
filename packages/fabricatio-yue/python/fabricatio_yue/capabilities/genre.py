@@ -3,15 +3,15 @@
 from typing import List, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.models.usages import LLMUsage
 from more_itertools import flatten
 
 from fabricatio_yue.config import yue_config
 
 
-class SelectGenre(LLMUsage):
+class SelectGenre(UseLLM):
     """A capability class for selecting appropriate music genres based on requirements."""
 
     @overload

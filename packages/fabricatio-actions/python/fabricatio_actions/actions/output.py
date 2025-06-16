@@ -4,18 +4,18 @@ from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
 
 from fabricatio_capabilities.models.generic import FinalizedDumpAble, PersistentAble
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.fs import dump_text
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.task import Task
-from fabricatio_core.models.usages import LLMUsage
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 
 from fabricatio_actions.models.generic import FromMapping, FromSequence
 
 
-class DumpFinalizedOutput(Action, LLMUsage):
+class DumpFinalizedOutput(Action, UseLLM):
     """Dump the finalized output to a file."""
 
     output_key: str = "dump_path"
@@ -43,7 +43,7 @@ class DumpFinalizedOutput(Action, LLMUsage):
         return dump_path.as_posix()
 
 
-class RenderedDump(Action, LLMUsage):
+class RenderedDump(Action, UseLLM):
     """Render the data to a file."""
 
     output_key: str = "dump_path"
@@ -81,7 +81,7 @@ class RenderedDump(Action, LLMUsage):
         return dump_path.as_posix()
 
 
-class PersistentAll(Action, LLMUsage):
+class PersistentAll(Action, UseLLM):
     """Persist all the data to a directory.
 
     This action takes all PersistentAble objects from the execution context and persists

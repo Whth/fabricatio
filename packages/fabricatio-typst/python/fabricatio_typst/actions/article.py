@@ -6,12 +6,12 @@ from typing import Callable, ClassVar, List, Optional
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
-from fabricatio_core.models.usages import LLMUsage
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok, wrapp_in_block
 from fabricatio_rule.capabilities.censor import Censor
@@ -276,7 +276,7 @@ class LoadArticle(Action):
         return Article.from_mixed_source(article_outline, typst_code)
 
 
-class WriteChapterSummary(Action, LLMUsage):
+class WriteChapterSummary(Action, UseLLM):
     """Write the chapter summary."""
 
     ctx_override: ClassVar[bool] = True
@@ -362,7 +362,7 @@ class WriteChapterSummary(Action, LLMUsage):
         return article
 
 
-class WriteResearchContentSummary(Action, LLMUsage):
+class WriteResearchContentSummary(Action, UseLLM):
     """Write the research content summary."""
 
     ctx_override: ClassVar[bool] = True

@@ -5,9 +5,9 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import List, Optional, Self, Type, Unpack
 
+from fabricatio_core.capabilities.usages import UseEmbedding
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs
-from fabricatio_core.models.usages import EmbeddingUsage
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from more_itertools.recipes import flatten, unique
@@ -29,7 +29,7 @@ def create_client(uri: str, token: str = "", timeout: Optional[float] = None) ->
     )
 
 
-class RAG(EmbeddingUsage, MilvusScopedConfig, ABC):
+class RAG(UseEmbedding, MilvusScopedConfig, ABC):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
     target_collection: Optional[str] = Field(default=None)

@@ -4,11 +4,11 @@ from abc import ABC
 from typing import Any, Dict, List, Mapping, Optional, Unpack
 
 from fabricatio_core import Task
+from fabricatio_core.capabilities.usages import UseLLM, UseToolBox
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio_core.models.tool import ResultCollector, Tool, ToolExecutor
-from fabricatio_core.models.usages import LLMUsage, ToolBoxUsage
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import override_kwargs
 
@@ -40,7 +40,7 @@ class ProposeTask(Propose, ABC):
         return await self.propose(Task, prompt, **kwargs)
 
 
-class HandleTask(ToolBoxUsage, ABC):
+class HandleTask(UseToolBox, ABC):
     """A class that handles a task based on a task object."""
 
     async def draft_tool_usage_code(
@@ -102,7 +102,7 @@ class HandleTask(ToolBoxUsage, ABC):
         return await self.handle_fine_grind(task, data, box_choose_kwargs=okwargs, tool_choose_kwargs=okwargs, **kwargs)
 
 
-class DispatchTask(LLMUsage, ABC):
+class DispatchTask(UseLLM, ABC):
     """A class that dispatches a task based on a task object."""
 
     async def dispatch_task[T](

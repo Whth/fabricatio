@@ -6,7 +6,7 @@ from typing import Any, Set
 from fabricatio import Action, Event, Task, ToolBox, WorkFlow, logger, toolboxes
 from fabricatio import Role as RoleBase
 from fabricatio.capabilities import HandleTask, ProposeTask
-from fabricatio.models import LLMUsage
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
 from pydantic import Field
 
@@ -15,7 +15,7 @@ class Role(RoleBase, ProposeTask):
     """Role that can propose tasks."""
 
 
-class WriteCode(Action, LLMUsage):
+class WriteCode(Action, UseLLM):
     """Action that says hello to the world."""
 
     output_key: str = "dump_text"
@@ -51,7 +51,7 @@ class DumpText(Action, HandleTask):
         return collector.take(self.save_key, str)
 
 
-class WriteDocumentation(Action, LLMUsage):
+class WriteDocumentation(Action, UseLLM):
     """Action that says hello to the world."""
 
     output_key: str = "dump_text"

@@ -19,14 +19,15 @@ from fabricatio.actions import (
     WriteChapterSummary,
     WriteResearchContentSummary,
 )
-from fabricatio.models import ArticleOutline, LLMUsage
+from fabricatio.models import ArticleOutline
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
 from typer import Typer
 
 # from pydantic import HttpUrl
 
 
-class Role(RoleBase, LLMUsage):
+class Role(RoleBase, UseLLM):
     """Role class for article writing."""
 
 

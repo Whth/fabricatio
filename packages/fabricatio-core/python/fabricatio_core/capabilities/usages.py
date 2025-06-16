@@ -1,48 +1,39 @@
-"""This module contains classes that manage the usage of language models and tools in tasks."""
+"""Module for defining LLM (Large Language Model) usage capabilities.
+
+This module contains classes and methods to manage interactions with LLMs, including:
+- Deploying models
+- Querying responses
+- Validating outputs
+- Generating embeddings
+- Selecting tools and toolboxes
+
+It provides structured functionality for managing language model operations,
+embedding generation, and tool selection workflows.
+"""
 
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Literal, Optional, Self, Sequence, Set, Unpack, overload
+from typing import Callable, Dict, List, Optional, Sequence, Set, Unpack, overload
 
 import asyncstdlib
-from litellm import (
-    Choices,
-    CustomStreamWrapper,
-    Deployment,
-    EmbeddingResponse,
-    LiteLLM_Params,
-    ModelInfo,
-    ModelResponse,
-    RateLimitError,
-    Router,
-    TextChoices,
-    stream_chunk_builder,
-    token_counter,
-)
-from litellm.utils import StreamingChoices
+from litellm import RateLimitError, Router, stream_chunk_builder, token_counter
+from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
+from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
+from litellm.types.utils import Choices, EmbeddingResponse, ModelResponse, StreamingChoices, TextChoices
 from more_itertools import duplicates_everseen
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
+from pydantic import Field, NonNegativeInt, PositiveInt
 
+from fabricatio_core import CONFIG, TEMPLATE_MANAGER, Task, ToolBox, logger
 from fabricatio_core.decorators import logging_exec_time
-from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.models.task import Task
-from fabricatio_core.models.tool import Tool, ToolBox
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
+from fabricatio_core.models.llm import ROUTER, Messages
+from fabricatio_core.models.tool import Tool
 from fabricatio_core.utils import first_available, ok, override_kwargs
 
-ROUTER = Router(
-    routing_strategy="usage-based-routing-v2",
-    default_max_parallel_requests=CONFIG.routing.max_parallel_requests,
-    allowed_fails=CONFIG.routing.allowed_fails,
-    retry_after=CONFIG.routing.retry_after,
-    cooldown_time=CONFIG.routing.cooldown_time,
-)
 
-
-class LLMUsage(LLMScopedConfig, ABC):
+class UseLLM(LLMScopedConfig, ABC):
     """Class that manages LLM (Large Language Model) usage parameters and methods.
 
     This class provides methods to deploy LLMs, query them for responses, and handle various configurations
@@ -627,7 +618,7 @@ class LLMUsage(LLMScopedConfig, ABC):
         )
 
 
-class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
+class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
     """A class representing the embedding model.
 
     This class extends LLMUsage and provides methods to generate embeddings for input text using various models.
@@ -705,7 +696,7 @@ class EmbeddingUsage(LLMUsage, EmbeddingScopedConfig, ABC):
         return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
 
 
-class ToolBoxUsage(LLMUsage, ABC):
+class UseToolBox(UseLLM, ABC):
     """A class representing the usage of tools in a task.
 
     This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.
@@ -801,72 +792,3 @@ class ToolBoxUsage(LLMUsage, ABC):
         """
         okwargs = override_kwargs(kwargs, default=None)
         return await self.gather_tools_fine_grind(task, okwargs, okwargs)
-
-
-class Message(BaseModel):
-    """A class representing a message."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True)
-    role: Literal["user", "system", "assistant"]
-    """The role of the message sender."""
-    content: str
-    """The content of the message."""
-
-
-class Messages(list):
-    """A list of messages."""
-
-    def add_message(self, role: Literal["user", "system", "assistant"], content: str) -> Self:
-        """Adds a message to the list with the specified role and content.
-
-        Args:
-            role (Literal["user", "system", "assistant"]): The role of the message sender.
-            content (str): The content of the message.
-
-        Returns:
-            Self: The current instance of Messages to allow method chaining.
-        """
-        if content:
-            self.append(Message(role=role, content=content))
-        return self
-
-    def add_user_message(self, content: str) -> Self:
-        """Adds a user message to the list with the specified content.
-
-        Args:
-            content (str): The content of the user message.
-
-        Returns:
-            Self: The current instance of Messages to allow method chaining.
-        """
-        return self.add_message("user", content)
-
-    def add_system_message(self, content: str) -> Self:
-        """Adds a system message to the list with the specified content.
-
-        Args:
-            content (str): The content of the system message.
-
-        Returns:
-            Self: The current instance of Messages to allow method chaining.
-        """
-        return self.add_message("system", content)
-
-    def add_assistant_message(self, content: str) -> Self:
-        """Adds an assistant message to the list with the specified content.
-
-        Args:
-            content (str): The content of the assistant message.
-
-        Returns:
-            Self: The current instance of Messages to allow method chaining.
-        """
-        return self.add_message("assistant", content)
-
-    def as_list(self) -> List[Dict[str, str]]:
-        """Converts the messages to a list of dictionaries.
-
-        Returns:
-            list[dict]: A list of dictionaries representing the messages.
-        """
-        return [message.model_dump() for message in self]
