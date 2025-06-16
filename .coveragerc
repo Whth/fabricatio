@@ -19,6 +19,7 @@ source =
     packages/fabricatio-tagging/python/fabricatio_tagging
     packages/fabricatio-yue/python/fabricatio_yue
     packages/fabricatio-yue/python/fabricatio_tool
+    packages/fabricatio-yue/python/fabricatio_plot
 
 omit =
     */__init__.py
