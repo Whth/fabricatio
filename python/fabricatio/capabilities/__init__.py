@@ -2,19 +2,22 @@
 
 from importlib.util import find_spec
 
-from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseToolBox
+from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM
 
-__all__ = [
-    "UseEmbedding",
-    "UseLLM",
-    "UseToolBox",
-]
+__all__ = ["UseEmbedding", "UseLLM"]
+
+if find_spec("fabricatio_tool"):
+    from fabricatio_tool.capabilities.handle_task import HandleTask
+    from fabricatio_tool.capabilities.use_tool import UseToolBox
+
+    __all__ += ["HandleTask", "UseToolBox"]
+
 
 if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
     from fabricatio_capabilities.capabilities.propose import Propose
     from fabricatio_capabilities.capabilities.rating import Rating
-    from fabricatio_capabilities.capabilities.task import DispatchTask, HandleTask, ProposeTask
+    from fabricatio_capabilities.capabilities.task import DispatchTask, ProposeTask
 
     __all__ += ["DispatchTask", "Extract", "HandleTask", "Propose", "ProposeTask", "Rating"]
 
@@ -25,9 +28,7 @@ if find_spec("fabricatio_rag"):
     if find_spec("fabricatio_write"):
         from fabricatio_typst.capabilities.citation_rag import CitationRAG
 
-    __all__ += [
-        "CitationRAG",
-    ]
+    __all__ += ["CitationRAG"]
 
 if find_spec("fabricatio_rule"):
     from fabricatio_rule.capabilities.censor import Censor
@@ -39,10 +40,7 @@ if find_spec("fabricatio_improve"):
     from fabricatio_improve.capabilities.correct import Correct
     from fabricatio_improve.capabilities.review import Review
 
-    __all__ += [
-        "Correct",
-        "Review",
-    ]
+    __all__ += ["Correct", "Review"]
 
 if find_spec("fabricatio_judge"):
     from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
@@ -72,13 +70,8 @@ if find_spec("fabricatio_yue"):
     from fabricatio_yue.capabilities.genre import SelectGenre
     from fabricatio_yue.capabilities.lyricize import Lyricize
 
-    __all__ += [
-        "Lyricize",
-        "SelectGenre",
-    ]
+    __all__ += ["Lyricize", "SelectGenre"]
 if find_spec("fabricatio_memory"):
     from fabricatio_memory.capabilities.memory import Remember
 
-    __all__ += [
-        "Remember",
-    ]
+    __all__ += ["Remember"]

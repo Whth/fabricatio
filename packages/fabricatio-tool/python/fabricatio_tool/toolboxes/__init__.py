@@ -2,10 +2,9 @@
 
 from typing import Set
 
+from fabricatio_tool.models.tool import ToolBox
 from fabricatio_tool.toolboxes.arithmetic import arithmetic_toolbox
 from fabricatio_tool.toolboxes.fs import fs_toolbox
-
-from fabricatio_tool.models.tool import ToolBox
 
 basic_toolboxes: Set[ToolBox] = {arithmetic_toolbox}
 
