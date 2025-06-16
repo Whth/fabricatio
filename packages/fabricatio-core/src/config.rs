@@ -348,25 +348,6 @@ impl Default for GeneralConfig {
     }
 }
 
-/// Configuration for toolbox functionality
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[pyclass(get_all, set_all)]
-pub struct ToolBoxConfig {
-    /// The name of the module containing the toolbox.
-    pub tool_module_name: String,
-
-    /// The name of the module containing the data.
-    pub data_module_name: String,
-}
-
-impl Default for ToolBoxConfig {
-    fn default() -> Self {
-        ToolBoxConfig {
-            tool_module_name: "Toolbox".to_string(),
-            data_module_name: "Data".to_string(),
-        }
-    }
-}
 
 /// Pymitter configuration structure
 ///
@@ -480,14 +461,6 @@ pub struct Config {
     /// - `use_json_repair`: Auto-repair malformed JSON
     #[pyo3(get)]
     pub general: GeneralConfig,
-
-    /// Toolbox configuration
-    ///
-    /// Module naming configuration:
-    /// - `tool_module_name`: Name of toolbox module
-    /// - `data_module_name`: Name of data module
-    #[pyo3(get)]
-    pub toolbox: ToolBoxConfig,
 
     /// Pymitter event system configuration
     ///

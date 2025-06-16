@@ -304,15 +304,6 @@ class GeneralConfig:
     use_json_repair: bool
     """Whether to automatically repair malformed JSON."""
 
-class ToolBoxConfig:
-    """Configuration for toolbox functionality."""
-
-    tool_module_name: str
-    """The name of the module containing the toolbox."""
-
-    data_module_name: str
-    """The name of the module containing the data."""
-
 class PymitterConfig:
     """Pymitter configuration structure for controlling event emission and listener behavior."""
 
@@ -348,9 +339,6 @@ class Config:
 
     general: GeneralConfig
     """General configuration."""
-
-    toolbox: ToolBoxConfig
-    """Toolbox configuration."""
 
     pymitter: PymitterConfig
     """Pymitter configuration."""
