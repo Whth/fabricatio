@@ -1,12 +1,9 @@
 """Rust bindings for the Rust API of fabricatio-tool."""
+
 from typing import List, Set
 
-
 def gather_violations(
-        source: str,
-        forbidden_modules: Set[str],
-        forbidden_imports: Set[str],
-        forbidden_calls: Set[str]
+    source: str, forbidden_modules: Set[str], forbidden_imports: Set[str], forbidden_calls: Set[str]
 ) -> List[str]:
     """Gather violations from the given Python source code.
 

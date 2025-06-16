@@ -1,13 +1,20 @@
 """Module containing configuration classes for fabricatio-tool."""
 
-from dataclasses import dataclass
+from typing import Set
 
 from fabricatio_core import CONFIG
+from pydantic import BaseModel, Field
 
 
-@dataclass(frozen=True)
-class ToolConfig:
+class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
+
+    forbidden_modules: Set[str] = Field(default_factory=lambda: {"os", "sys"})
+    """Modules that are forbidden to be imported."""
+    forbidden_imports: Set[str] = Field(default_factory=lambda: {"os", "sys"})
+    """Imports that are forbidden to be used."""
+    forbidden_calls: Set[str] = Field(default_factory=lambda: {"exec"})
+    """"Calls that are forbidden to be used."""
 
 
 tool_config = CONFIG.load("tool", ToolConfig)

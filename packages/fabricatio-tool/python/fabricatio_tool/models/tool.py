@@ -13,6 +13,9 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from pydantic import Field
 
+from fabricatio_tool.config import tool_config
+from fabricatio_tool.rust import gather_violations
+
 
 class Tool[**P, R](WithBriefing):
     """A class representing a tool with a callable source function.
@@ -347,7 +350,13 @@ class ToolExecutor:
         cxt = self.inject_collector(cxt)
         cxt = self.inject_tools(cxt)
         cxt = self.inject_data(cxt)
-        exec(self.assemble(body), cxt)  # noqa: S102
+        source = self.assemble(body)
+        if vio := gather_violations(
+            source, tool_config.forbidden_modules, tool_config.forbidden_imports, tool_config.forbidden_calls
+        ):
+            raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
+
+        exec(source, cxt)  # noqa: S102
         compiled_fn = cxt[self.fn_name]
         await compiled_fn()
         return self.collector
