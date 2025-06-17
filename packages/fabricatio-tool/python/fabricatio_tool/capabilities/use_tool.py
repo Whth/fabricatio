@@ -27,7 +27,7 @@ class UseToolBox(UseLLM, ABC):
     async def choose_toolboxes(
         self,
         task: Task,
-        **kwargs: Unpack[ChooseKwargs],
+        **kwargs: Unpack[ChooseKwargs[ToolBox]],
     ) -> Optional[List[ToolBox]]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
@@ -51,7 +51,7 @@ class UseToolBox(UseLLM, ABC):
         self,
         task: Task,
         toolbox: ToolBox,
-        **kwargs: Unpack[ChooseKwargs],
+        **kwargs: Unpack[ChooseKwargs[Tool]],
     ) -> Optional[List[Tool]]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
@@ -75,8 +75,8 @@ class UseToolBox(UseLLM, ABC):
     async def gather_tools_fine_grind(
         self,
         task: Task,
-        box_choose_kwargs: Optional[ChooseKwargs] = None,
-        tool_choose_kwargs: Optional[ChooseKwargs] = None,
+        box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
     ) -> List[Tool]:
         """Asynchronously gathers tools based on the provided task and toolbox and tool selection criteria.
 
@@ -99,7 +99,7 @@ class UseToolBox(UseLLM, ABC):
             chosen_tools.extend(ok(await self.choose_tools(task, toolbox, **tool_choose_kwargs)))
         return chosen_tools
 
-    async def gather_tools(self, task: Task, **kwargs: Unpack[ChooseKwargs]) -> List[Tool]:
+    async def gather_tools(self, task: Task, **kwargs: Unpack[ChooseKwargs[Tool]]) -> List[Tool]:
         """Asynchronously gathers tools based on the provided task.
 
         Args:
@@ -109,5 +109,4 @@ class UseToolBox(UseLLM, ABC):
         Returns:
             List[Tool]: A list of tools gathered based on the provided task.
         """
-        okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
-        return await self.gather_tools_fine_grind(task, okwargs, okwargs)
+        return await self.gather_tools_fine_grind(task, ChooseKwargs(**override_kwargs(kwargs, default=None)), kwargs)

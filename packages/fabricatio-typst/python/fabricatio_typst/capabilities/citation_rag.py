@@ -4,7 +4,7 @@ from abc import ABC
 from typing import Optional, Unpack
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.models.kwargs_types import ListStringKwargs
 from fabricatio_core.utils import fallback_kwargs
 from fabricatio_rag.capabilities.rag import RAG
 from fabricatio_rag.models.kwargs_types import FetchKwargs
@@ -23,7 +23,7 @@ class CitationRAG(RAG, ABC):
         max_round: int = 3,
         expand_multiplier: float = 1.4,
         base_accepted: int = 12,
-        refinery_kwargs: Optional[ChooseKwargs] = None,
+        refinery_kwargs: Optional[ListStringKwargs] = None,
         **kwargs: Unpack[FetchKwargs],
     ) -> CitationManager:
         """Asynchronously performs a clued search based on a given requirement and citation manager."""

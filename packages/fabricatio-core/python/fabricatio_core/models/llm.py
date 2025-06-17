@@ -18,6 +18,15 @@ ROUTER = Router(
 )
 
 
+def get_router() -> Router:
+    """Returns the router instance.
+
+    Returns:
+        Router: The router instance.
+    """
+    return ROUTER
+
+
 class Message(BaseModel):
     """A class representing a message."""
 
