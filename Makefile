@@ -9,27 +9,26 @@ dirs:
 	mkdir -p $(DIST) $(DATA)
 
 bins: dirs
-	uv run -p $(PY) --only-dev subpackages.py -py $(PY) --bins
+	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --bins
 
 dev: dirs
-	uv run -p $(PY) --only-dev subpackages.py -py $(PY) --bins --dev
+	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --bins --dev
 
 clean_dist:
 	rm -rf $(DIST)/*
 
 bdist: dirs clean_dist
-	uv run -p $(PY) --only-dev subpackages.py -py $(PY) --bdist
-
+	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --bdist
 
 test_raw:
-	uv run -p $(PY) --only-dev pytest python/tests packages/*/python/tests --cov
+	uv run --only-dev pytest python/tests packages/*/python/tests --cov
 
 test: dev
 	uv sync --extra full
 	make test_raw
 
 publish: dirs clean_dist
-	uv run -p $(PY) --only-dev subpackages.py -py $(PY) --publish
+	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --publish
 
 docs:
 	make -C docs html

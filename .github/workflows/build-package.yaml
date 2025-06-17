@@ -123,10 +123,21 @@ jobs:
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
 
+      - name: Cache cargo registry
+        id: cache-registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
-          make publish PY=${{ matrix.python-version }}
+          make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.python-version }}"
         env:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
@@ -140,6 +151,6 @@ jobs:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
           append_body: false
           files: |
-            dist/*.whl
+            ${{ matrix.os }}-${{ matrix.python-version }}/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}

@@ -4,7 +4,7 @@ import argparse
 import logging
 import subprocess
 import tomllib
-from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Union
 
@@ -14,7 +14,7 @@ SCRIPTS_DIR = Path("extra") / "scripts"
 
 PYTHON_VERSION = "3.13"
 
-POOL = ProcessPoolExecutor()
+POOL = ThreadPoolExecutor()
 
 
 def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
@@ -31,7 +31,7 @@ def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
         for cmd in cmd_sequence:
             logging.info(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")  # noqa: S603
-            logging.debug(f"Command output: {result.stdout}")
+            logging.info(f"Command output: {' '.join(cmd)} \n{result.stdout}")
         logging.info(f"{desc} completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
@@ -116,11 +116,11 @@ def make_dist_dir_publish() -> None:
     """Publish all packages in the dist directory."""
     success_count = 0
     for path in [f for f in DIST.iterdir() if f.is_file() and f.suffix in {".whl", ".tar.gz"}]:
-        success = run_cmd(
+        suc = run_cmd(
             [["uv", "publish", path.as_posix()]],
             f"Publish {path.name}",
         )
-        if success:
+        if suc:
             logging.info(f"{path.name} publish succeeded.")
             success_count += 1
         else:
@@ -148,6 +148,7 @@ def make_dist(project_root: Union[str, Path]) -> bool:
                     "-o",
                     DIST.as_posix(),
                     "--sdist",
+                    "--strip",
                 ],
             ],
             f"Build {project_root.name}",
@@ -236,6 +237,13 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Build all packages using maturin.",
     )
+    parser.add_argument(
+        "-dd",
+        "--distdir",
+        type=str,
+        default=DIST.as_posix(),
+        help=f"Specify the distribution directory to store built packages. Defaults to {DIST.as_posix()}",
+    )
 
     return parser.parse_args()
 
@@ -243,7 +251,11 @@ def parse_arguments() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_arguments()
     PYTHON_VERSION = args.pyversion
+    DIST_DIR = Path(args.distdir).absolute()
     logging.info(f"Using Python version: {PYTHON_VERSION}")
+    logging.info(f"Using distribution directory: {DIST_DIR.as_posix()}")
+    # Update DIST global variable based on command line argument
+    globals()['DIST'] = DIST_DIR
     success = make_all(
         bins=args.bins,
         dev_mode=args.dev,
