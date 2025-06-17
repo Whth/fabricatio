@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Error, Fields, Ident};
+use syn::{Data, DeriveInput, Error, Fields, Ident, parse_macro_input};
 
 #[proc_macro_derive(TemplateDefault, attributes(suffix))]
 pub fn derive_template_default(input: TokenStream) -> TokenStream {
@@ -44,9 +44,7 @@ pub fn derive_template_default(input: TokenStream) -> TokenStream {
     }
 
     // Generate field initializers
-    let (idents, defaults): (Vec<Ident>, Vec<String>) = field_names
-        .into_iter()
-        .unzip();
+    let (idents, defaults): (Vec<Ident>, Vec<String>) = field_names.into_iter().unzip();
 
     // Create the expanded implementation
     let expanded = quote! {

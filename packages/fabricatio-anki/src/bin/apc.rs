@@ -54,7 +54,11 @@ enum Cli {
         format: OutputFormat,
 
         /// Force overwrite existing output file
-        #[arg(short = 'F', long, help = "Overwrite existing output file without confirmation")]
+        #[arg(
+            short = 'F',
+            long,
+            help = "Overwrite existing output file without confirmation"
+        )]
         force: bool,
 
         /// Enable verbose output
@@ -85,14 +89,15 @@ enum Cli {
         /// Dry run - validate and show what would be built without creating output
         #[arg(short, long, help = "Perform a dry run without creating output files")]
         dry_run: bool,
-
-
     },
 
     /// Create a new project template
     New {
         /// Path where the new project should be created
-        #[arg(value_name = "PROJECT_PATH", help = "Path where the new project should be created")]
+        #[arg(
+            value_name = "PROJECT_PATH",
+            help = "Path where the new project should be created"
+        )]
         project_path: PathBuf,
 
         /// Name for the deck
@@ -188,11 +193,13 @@ enum Cli {
         all: bool,
 
         /// Dry run - show what would be cleaned without actually removing files
-        #[arg(short, long, help = "Show what would be cleaned without removing files")]
+        #[arg(
+            short,
+            long,
+            help = "Show what would be cleaned without removing files"
+        )]
         dry_run: bool,
     },
-
-
 }
 fn main() -> Result<(), String> {
     let cli = Cli::parse();
@@ -201,14 +208,14 @@ fn main() -> Result<(), String> {
 
 fn handle_cli_command(cli: Cli) -> Result<(), String> {
     match cli {
-        Cli::Build { 
-            project_path, 
-            output, 
+        Cli::Build {
+            project_path,
+            output,
             format,
-            force, 
-            verbose, 
+            force,
+            verbose,
             log_level,
-            compression, 
+            compression,
             dry_run,
         } => handle_build(
             project_path,
@@ -220,12 +227,12 @@ fn handle_cli_command(cli: Cli) -> Result<(), String> {
             compression,
             dry_run,
         ),
-        Cli::New { 
-            project_path, 
-            name, 
-            description, 
-            author, 
-            model_name, 
+        Cli::New {
+            project_path,
+            name,
+            description,
+            author,
+            model_name,
             fields,
             force,
             minimal,
@@ -241,8 +248,17 @@ fn handle_cli_command(cli: Cli) -> Result<(), String> {
             minimal,
             with_examples,
         ),
-        Cli::Validate { project_path, strict, verbose, fix } => handle_validate(project_path, strict, verbose, fix),
-        Cli::Clean { project_path, all, dry_run } => handle_clean(project_path, all, dry_run),
+        Cli::Validate {
+            project_path,
+            strict,
+            verbose,
+            fix,
+        } => handle_validate(project_path, strict, verbose, fix),
+        Cli::Clean {
+            project_path,
+            all,
+            dry_run,
+        } => handle_clean(project_path, all, dry_run),
     }
 }
 
@@ -284,18 +300,26 @@ fn handle_build(
     }
 
     if dry_run {
-        println!("Dry run: Would build deck and export to {}", output_path.display());
+        println!(
+            "Dry run: Would build deck and export to {}",
+            output_path.display()
+        );
         return Ok(());
     }
 
-    loader.build_deck()
+    loader
+        .build_deck()
         .map_err(|e| format!("Failed to build deck: {}", e))?;
 
     if verbose {
-        println!("Deck built successfully. Exporting to {}...", output_path.display());
+        println!(
+            "Deck built successfully. Exporting to {}...",
+            output_path.display()
+        );
     }
 
-    loader.export_deck(output_path.clone())
+    loader
+        .export_deck(output_path.clone())
         .map_err(|e| format!("Failed to export deck: {}", e))?;
 
     println!("Deck exported successfully to {}", output_path.display());
@@ -320,7 +344,10 @@ fn handle_new(
         ));
     }
 
-    println!("Creating new project template at {}", project_path.display());
+    println!(
+        "Creating new project template at {}",
+        project_path.display()
+    );
     println!("Deck name: {}", name);
     println!("Author: {}", author);
     println!("Model: {} with fields: {:?}", model_name, fields);
@@ -332,9 +359,13 @@ fn handle_new(
         Some(author),
         Some(model_name),
         Some(fields),
-    ).map_err(|e| format!("Failed to create project template: {}", e))?;
+    )
+    .map_err(|e| format!("Failed to create project template: {}", e))?;
 
-    println!("Project template created successfully at {}", project_path.display());
+    println!(
+        "Project template created successfully at {}",
+        project_path.display()
+    );
 
     if with_examples {
         println!("Example cards included in the template");
@@ -359,7 +390,8 @@ fn handle_validate(
     let loader = CoreAnkiDeckLoader::new(project_path.clone())
         .map_err(|e| format!("Failed to create loader: {}", e))?;
 
-    loader.build_deck()
+    loader
+        .build_deck()
         .map_err(|e| format!("Validation failed: {}", e))?;
 
     if verbose {
@@ -374,11 +406,7 @@ fn handle_validate(
     Ok(())
 }
 
-fn handle_clean(
-    project_path: PathBuf,
-    all: bool,
-    dry_run: bool,
-) -> Result<(), String> {
+fn handle_clean(project_path: PathBuf, all: bool, dry_run: bool) -> Result<(), String> {
     println!("Cleaning project directory: {}", project_path.display());
 
     if dry_run {
@@ -391,4 +419,3 @@ fn handle_clean(
     }
     Ok(())
 }
-

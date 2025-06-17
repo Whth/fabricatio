@@ -32,10 +32,7 @@ impl Event {
     fn instantiate_from(event: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(event_str) = event.extract::<String>() {
             let delimiter = DELIMITER.get().expect("Delimiter not set!");
-            let segments: Vec<String> = event_str
-                .split(delimiter)
-                .map(|s| s.to_string())
-                .collect();
+            let segments: Vec<String> = event_str.split(delimiter).map(|s| s.to_string()).collect();
             Ok(Event { segments })
         } else if let Ok(event_list) = event.downcast::<PyList>() {
             let mut segments = Vec::new();
@@ -73,14 +70,18 @@ impl Event {
     }
 
     fn collapse(&self) -> String {
-        self.segments.join(DELIMITER.get().expect("Delimiter not set!"))
+        self.segments
+            .join(DELIMITER.get().expect("Delimiter not set!"))
     }
 
     fn fork(&self) -> Self {
         self.clone()
     }
 
-    fn push<'py>(mut slf: PyRefMut<'py, Self>, segment: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
+    fn push<'py>(
+        mut slf: PyRefMut<'py, Self>,
+        segment: Bound<'py, PyAny>,
+    ) -> PyResult<PyRefMut<'py, Self>> {
         if let Ok(status) = segment.extract::<TaskStatus>() {
             slf.segments.push(status.to_string());
         } else if let Ok(string) = segment.extract::<String>() {
@@ -91,9 +92,10 @@ impl Event {
             }
             let delimiter = DELIMITER.get().expect("Delimiter not set!");
             if string.contains(delimiter) {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    format!("The segment must not contain the delimiter '{}'", delimiter),
-                ));
+                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "The segment must not contain the delimiter '{}'",
+                    delimiter
+                )));
             }
             slf.segments.push(string);
         } else {
@@ -143,13 +145,14 @@ impl Event {
         slf
     }
 
-
-    fn concat<'py>(mut slf: PyRefMut<'py, Self>, event: &Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
+    fn concat<'py>(
+        mut slf: PyRefMut<'py, Self>,
+        event: &Bound<'_, PyAny>,
+    ) -> PyResult<PyRefMut<'py, Self>> {
         let other = Self::instantiate_from(event)?;
         slf.segments.extend(other.segments);
         Ok(slf)
     }
-
 
     fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -157,7 +160,11 @@ impl Event {
         hasher.finish()
     }
 
-    fn __richcmp__(&self, other: &Bound<'_, PyAny>, op: pyo3::class::basic::CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Bound<'_, PyAny>,
+        op: pyo3::class::basic::CompareOp,
+    ) -> PyResult<bool> {
         if let Ok(_other_str) = other.extract::<String>() {
             let other_event = Self::instantiate_from(other)?;
             let result = self.collapse() == other_event.collapse();
@@ -181,7 +188,6 @@ impl Event {
     }
 }
 
-
 #[derive(
     Clone,
     Copy,
@@ -195,7 +201,7 @@ impl Event {
     Serialize,
     Deserialize,
     Decode,
-    Encode
+    Encode,
 )]
 #[pyclass]
 pub enum TaskStatus {
@@ -217,7 +223,9 @@ impl TaskStatus {
             2_u8 => Ok(TaskStatus::Finished),
             3_u8 => Ok(TaskStatus::Failed),
             4_u8 => Ok(TaskStatus::Cancelled),
-            _ => Err(pyo3::exceptions::PyValueError::new_err("Invalid variant for TaskStatus pickle"))
+            _ => Err(pyo3::exceptions::PyValueError::new_err(
+                "Invalid variant for TaskStatus pickle",
+            )),
         }
     }
     fn __str__(&self) -> String {
@@ -226,17 +234,18 @@ impl TaskStatus {
 
     fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
         (*self, _) = bincode::decode_from_slice(state.as_bytes(), bincode::config::standard())
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus"))?;
+            .map_err(|_| {
+                pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus")
+            })?;
         Ok(())
     }
 
-
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        let bytes = bincode::encode_to_vec(&self, bincode::config::standard())
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus"))?;
+        let bytes = bincode::encode_to_vec(&self, bincode::config::standard()).map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus")
+        })?;
         Ok(PyBytes::new(py, &bytes))
     }
-
 
     fn __getnewargs__(&self) -> PyResult<(u8,)> {
         match self {
@@ -249,11 +258,12 @@ impl TaskStatus {
     }
 }
 
-
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let conf = m.getattr("CONFIG")?.extract::<Config>()?;
-    DELIMITER.set(conf.pymitter.delimiter).expect("Failed to set delimiter!");
+    DELIMITER
+        .set(conf.pymitter.delimiter)
+        .expect("Failed to set delimiter!");
     m.add_class::<TaskStatus>()?;
     m.add_class::<Event>()?;
     Ok(())

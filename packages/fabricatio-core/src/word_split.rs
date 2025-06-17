@@ -7,13 +7,14 @@ fn split_word_bounds(string: &str) -> Vec<String> {
     string.split_word_bounds().map(|s| s.to_string()).collect()
 }
 
-
 /// split the string into sentences
 #[pyfunction]
 fn split_sentence_bounds(string: &str) -> Vec<String> {
-    string.split_sentence_bounds().map(|s| s.to_string()).collect()
+    string
+        .split_sentence_bounds()
+        .map(|s| s.to_string())
+        .collect()
 }
-
 
 /// Splits a given string into chunks based on the specified maximum chunk size and overlapping rate.
 ///
@@ -30,7 +31,11 @@ fn split_sentence_bounds(string: &str) -> Vec<String> {
 /// A vector of strings, where each string is a chunk of the original input.
 #[pyfunction]
 #[pyo3(signature = (string, max_chunk_size, max_overlapping_rate=0.3))]
-fn split_into_chunks(string: &str, max_chunk_size: usize, max_overlapping_rate: f64) -> Vec<String> {
+fn split_into_chunks(
+    string: &str,
+    max_chunk_size: usize,
+    max_overlapping_rate: f64,
+) -> Vec<String> {
     let sentences = split_sentence_bounds(string);
     let mut res = vec![];
     let max_overlapping_size = (max_overlapping_rate * max_chunk_size as f64) as usize;
@@ -54,7 +59,6 @@ fn split_into_chunks(string: &str, max_chunk_size: usize, max_overlapping_rate: 
     res
 }
 
-
 /// get the tail of the sentences of a long string.
 fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
     let mut res: Vec<String> = vec![];
@@ -75,12 +79,11 @@ pub(crate) fn word_count(string: &str) -> usize {
     string.split_word_bounds().count()
 }
 
-
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(split_word_bounds,m)?)?;
-    m.add_function(wrap_pyfunction!(word_count,m)?)?;
-    m.add_function(wrap_pyfunction!(split_sentence_bounds,m)?)?;
-    m.add_function(wrap_pyfunction!(split_into_chunks,m)?)?;
+    m.add_function(wrap_pyfunction!(split_word_bounds, m)?)?;
+    m.add_function(wrap_pyfunction!(word_count, m)?)?;
+    m.add_function(wrap_pyfunction!(split_sentence_bounds, m)?)?;
+    m.add_function(wrap_pyfunction!(split_into_chunks, m)?)?;
     Ok(())
 }

@@ -53,7 +53,6 @@ handlebars_helper!(timestamp_to_date: |v: u64| {
         .unwrap_or_else(|| "Invalid timestamp".to_string())
 });
 
-
 handlebars_helper!(head: |v:String , n: i64| {
     let mut lines = v.lines();
     let mut result = String::new();

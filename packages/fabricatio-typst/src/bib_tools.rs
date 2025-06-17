@@ -10,7 +10,6 @@ pub struct BibManager {
     source: Bibliography,
 }
 
-
 #[pymethods]
 impl BibManager {
     /// Create a new BibManager instance.
@@ -29,17 +28,17 @@ impl BibManager {
     fn get_cite_key_by_title(&self, title: String) -> Option<String> {
         let title_lower = title.to_lowercase();
 
-        self.source.iter().par_bridge()
-            .find_map_any(|entry| {
-                let entry_title = entry.title()
-                    .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
-                    .ok()?
-                    .to_biblatex_string(false)
-                    .fix()
-                    .to_lowercase();
+        self.source.iter().par_bridge().find_map_any(|entry| {
+            let entry_title = entry
+                .title()
+                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
+                .ok()?
+                .to_biblatex_string(false)
+                .fix()
+                .to_lowercase();
 
-                (entry_title == title_lower).then(|| entry.key.clone())
-            })
+            (entry_title == title_lower).then(|| entry.key.clone())
+        })
     }
 
     fn get_cite_key_by_title_fuzzy(&self, title: String) -> Option<String> {
@@ -50,11 +49,19 @@ impl BibManager {
             Normalization::Smart,
             AtomKind::Fuzzy,
         );
-        self.source.iter()
+        self.source
+            .iter()
             .map(|entry| {
                 let mut buf = vec![];
-                let text = entry.title().expect("Failed to get title").to_biblatex_string(false).fix();
-                (pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher), entry)
+                let text = entry
+                    .title()
+                    .expect("Failed to get title")
+                    .to_biblatex_string(false)
+                    .fix();
+                (
+                    pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
+                    entry,
+                )
             })
             .par_bridge()
             // Use filter_map's more concise form with pattern matching
@@ -73,12 +80,15 @@ impl BibManager {
             AtomKind::Fuzzy,
         );
 
-
-        self.source.iter()
+        self.source
+            .iter()
             .map(|entry| {
                 let mut buf = vec![];
                 let text = entry.to_biblatex_string().fix();
-                (pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher), entry)
+                (
+                    pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
+                    entry,
+                )
             })
             .par_bridge()
             // Use filter_map's more concise form with pattern matching
@@ -88,46 +98,52 @@ impl BibManager {
     }
     #[pyo3(signature = (is_verbatim=false))]
     fn list_titles(&self, is_verbatim: bool) -> Vec<String> {
-        self.source.iter().map(|entry| {
-            entry.title()
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
-                .ok()
-                .unwrap()
-                .to_biblatex_string(is_verbatim)
-                .fix()
-        }).collect::<Vec<_>>()
+        self.source
+            .iter()
+            .map(|entry| {
+                entry
+                    .title()
+                    .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
+                    .ok()
+                    .unwrap()
+                    .to_biblatex_string(is_verbatim)
+                    .fix()
+            })
+            .collect::<Vec<_>>()
     }
 
     fn get_author_by_key(&self, key: String) -> Option<Vec<String>> {
         if let Some(en) = self.source.get(key.as_str()) {
-            Some(en.author().unwrap()
-                .iter().map(
-                |auther| {
-                    format!("{}", auther).to_string()
-                }
-            ).collect())
+            Some(
+                en.author()
+                    .unwrap()
+                    .iter()
+                    .map(|auther| format!("{}", auther).to_string())
+                    .collect(),
+            )
         } else {
             None
         }
     }
 
-
     fn get_year_by_key(&self, key: String) -> Option<i32> {
         if let Some(en) = self.source.get(key.as_str()) {
-            match en.date().expect(format!("Failed to get date for key {key}").as_str()) {
-                PermissiveType::Typed(t) => {
-                    match t.value {
-                        biblatex::DateValue::At(da) => Some(da.year),
-                        biblatex::DateValue::Before(da) => Some(da.year),
-                        biblatex::DateValue::After(da) => Some(da.year),
-                        biblatex::DateValue::Between(da, _) => Some(da.year),
-                    }
-                }
-                _ => None
+            match en
+                .date()
+                .expect(format!("Failed to get date for key {key}").as_str())
+            {
+                PermissiveType::Typed(t) => match t.value {
+                    biblatex::DateValue::At(da) => Some(da.year),
+                    biblatex::DateValue::Before(da) => Some(da.year),
+                    biblatex::DateValue::After(da) => Some(da.year),
+                    biblatex::DateValue::Between(da, _) => Some(da.year),
+                },
+                _ => None,
             }
-        } else { None }
+        } else {
+            None
+        }
     }
-
 
     fn get_abstract_by_key(&self, key: String) -> Option<String> {
         self.get_field_by_key(key, "abstract".to_string())
@@ -139,13 +155,17 @@ impl BibManager {
 
     fn get_field_by_key(&self, key: String, field: String) -> Option<String> {
         if let Some(en) = self.source.get(key.as_str()) {
-            Some(en.get(field.as_str()).expect(format!("Failed to get field `{field}` for key {key}").as_str()).to_biblatex_string(false).fix())
+            Some(
+                en.get(field.as_str())
+                    .expect(format!("Failed to get field `{field}` for key {key}").as_str())
+                    .to_biblatex_string(false)
+                    .fix(),
+            )
         } else {
             None
         }
     }
 }
-
 
 trait Fix {
     fn fix(&self) -> String;
@@ -156,7 +176,6 @@ impl Fix for String {
         self.replace("{", "").replace("}", "")
     }
 }
-
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<BibManager>()?;

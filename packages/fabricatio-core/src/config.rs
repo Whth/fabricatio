@@ -348,7 +348,6 @@ impl Default for GeneralConfig {
     }
 }
 
-
 /// Pymitter configuration structure
 ///
 /// Contains settings for controlling event emission and listener behavior
