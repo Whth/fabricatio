@@ -509,7 +509,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.1.2"
+version = "0.1.3.dev0"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -555,7 +555,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.0"
+version = "0.3.1.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -780,7 +780,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.2.2.dev1"
+version = "0.3.0.dev3"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -803,7 +803,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.7"
+version = "0.1.8.dev0"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
