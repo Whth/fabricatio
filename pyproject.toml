@@ -60,6 +60,7 @@ dev = [
     "pytest-loguru>=0.4.0",
     "viztracer>=1.0.2",
     "coveralls>=4.0.1",
+    "pyright>=1.1.402",
 ]
 docs = [
     "myst-parser>=4.0.1",
@@ -93,6 +94,18 @@ question = ["fabricatio-question"]
 tagging = ["fabricatio-tagging"]
 yue = ["fabricatio-yue"]
 tool = ["fabricatio-tool"]
+
+
+[tool.pyright]
+include = [
+    "docs/source/conf.py",
+    "python/fabricatio/**/*.py",
+    "python/fabricatio/**/*.pyi",
+    "examples/**/*.py",
+    "packages/**/*.py",
+    "packages/**/*.pyi"
+]
+
 
 [tool.ruff]
 include = [
