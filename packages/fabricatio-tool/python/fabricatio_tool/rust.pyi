@@ -1,18 +1,42 @@
 """Rust bindings for the Rust API of fabricatio-tool."""
 
-from typing import List, Set
+from typing import List, Set, Optional, Literal
+
+
+class CheckConfig:
+
+    def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]):
+        """
+        Initialize a CheckConfig instance with specified targets and mode.
+
+        Args:
+            targets (Set[str]): A set of target items to be checked.
+            mode (str): The checking mode, either 'whitelist' or 'blacklist'.
+
+        Raises:
+            RuntimeError: If the provided mode is neither 'whitelist' nor 'blacklist'.
+        """
+        ...
 
 def gather_violations(
-    source: str, forbidden_modules: Set[str], forbidden_imports: Set[str], forbidden_calls: Set[str]
+    source: str, 
+    modules: Optional[CheckConfig] = None, 
+    imports: Optional[CheckConfig] = None, 
+    calls: Optional[CheckConfig] = None
 ) -> List[str]:
-    """Gather violations from the given Python source code.
+    """
+    Gather violations from the given Python source code based on check configurations.
 
     Args:
         source (str): The Python source code to analyze.
-        forbidden_modules (Set[str]): Set of forbidden module names.
-        forbidden_imports (Set[str]): Set of forbidden import names.
-        forbidden_calls (Set[str]): Set of forbidden function call names.
+        modules (Optional[CheckConfig]): Configuration for module checks.
+        imports (Optional[CheckConfig]): Configuration for import checks.
+        calls (Optional[CheckConfig]): Configuration for function call checks.
 
     Returns:
         List[str]: A list of violation messages found in the source code.
     """
+
+
+
+

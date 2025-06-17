@@ -1,50 +1,83 @@
-use rustpython_ast::Expr;
-use rustpython_ast::Stmt;
-use rustpython_ast::Visitor;
 use rustpython_ast::text_size::TextRange;
+use rustpython_ast::{Expr, Stmt, Visitor};
 use rustpython_parser::{Mode, parse};
 use std::collections::HashSet;
 
-/// Configuration struct for the linter.
-/// Holds sets of forbidden modules, imports, and function calls.
+/// Configuration struct for defining allowlist/denylist rules
 #[derive(Default)]
 pub struct LinterConfig {
-    forbidden_modules: Option<HashSet<String>>,
-    forbidden_imports: Option<HashSet<String>>,
-    forbidden_calls: Option<HashSet<String>>,
+    module_mode: CheckMode,
+    import_mode: CheckMode,
+    call_mode: CheckMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckMode {
+    Disabled,
+    Whitelist(HashSet<String>),
+    Blacklist(HashSet<String>),
+}
+
+impl Default for CheckMode {
+    fn default() -> Self {
+        CheckMode::Disabled
+    }
 }
 
 impl LinterConfig {
-    /// Creates a new, empty LinterConfig with default values.
+    /// Creates a new LinterConfig with default settings
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Adds forbidden modules to the configuration.
+    // --- Module-related configurations ---
+    /// Sets allowed modules (whitelist mode)
+    pub fn with_allowed_modules(mut self, modules: HashSet<String>) -> Self {
+        self.module_mode = CheckMode::Whitelist(modules);
+        self
+    }
+
+    /// Sets forbidden modules (blacklist mode)
     pub fn with_forbidden_modules(mut self, modules: HashSet<String>) -> Self {
-        self.forbidden_modules = Some(modules);
+        self.module_mode = CheckMode::Blacklist(modules);
         self
     }
 
-    /// Adds forbidden imports to the configuration.
+    // --- Import-related configurations ---
+    /// Sets allowed imports (whitelist mode)
+    pub fn with_allowed_imports(mut self, imports: HashSet<String>) -> Self {
+        self.import_mode = CheckMode::Whitelist(imports);
+        self
+    }
+
+    /// Sets forbidden imports (blacklist mode)
     pub fn with_forbidden_imports(mut self, imports: HashSet<String>) -> Self {
-        self.forbidden_imports = Some(imports);
+        self.import_mode = CheckMode::Blacklist(imports);
         self
     }
 
-    /// Adds forbidden function calls to the configuration.
+    // --- Function call-related configurations ---
+    /// Sets allowed function calls (whitelist mode)
+    pub fn with_allowed_calls(mut self, calls: HashSet<String>) -> Self {
+        self.call_mode = CheckMode::Whitelist(calls);
+        self
+    }
+
+    /// Sets forbidden function calls (blacklist mode)
     pub fn with_forbidden_calls(mut self, calls: HashSet<String>) -> Self {
-        self.forbidden_calls = Some(calls);
+        self.call_mode = CheckMode::Blacklist(calls);
         self
     }
 }
 
+/// AST visitor for checking linting rules
 struct LinterVisitor<'a> {
     config: &'a LinterConfig,
     violations: Vec<String>,
 }
 
 impl<'a> LinterVisitor<'a> {
+    /// Creates a new visitor with the given configuration
     fn with(config: &'a LinterConfig) -> Self {
         Self {
             config,
@@ -54,114 +87,97 @@ impl<'a> LinterVisitor<'a> {
 }
 
 impl<'a> Visitor for LinterVisitor<'a> {
+    /// Visits statements to check for violations
     fn visit_stmt(&mut self, node: Stmt<TextRange>) {
-        // Check current statement for violations
         if let Some(violation) = node
             .as_import_stmt()
             .map(|stmt| check_import(&Stmt::Import(stmt.clone()), self.config))
+            .flatten()
         {
-            if let Some(violation) = violation {
-                self.violations.push(violation);
-            }
+            self.violations.push(violation);
         }
 
         if let Some(violation) = node
             .as_import_from_stmt()
             .map(|stmt| check_import(&Stmt::ImportFrom(stmt.clone()), self.config))
+            .flatten()
         {
-            if let Some(violation) = violation {
-                self.violations.push(violation);
-            }
+            self.violations.push(violation);
         }
 
         self.generic_visit_stmt(node)
     }
 
+    /// Visits expressions to check for violations
     fn visit_expr(&mut self, node: Expr<TextRange>) {
         if let Some(violation) = node
             .as_call_expr()
             .map(|expr| check_call(&Expr::Call(expr.clone()), self.config))
+            .flatten()
         {
-            if let Some(violation) = violation {
-                self.violations.push(violation);
-            }
+            self.violations.push(violation);
         }
+
         self.generic_visit_expr(node)
     }
 }
 
-/// Checks if an import statement uses any forbidden modules or names.
-fn check_import(stmt: &Stmt, config: &LinterConfig) -> Option<String> {
-    match stmt {
-        Stmt::Import(a) => a
-            .names
-            .iter()
-            .filter_map(|alias| {
-                let module = &alias.name;
-                is_forbidden_module(module, config)
-                    .then(|| format!("Forbidden import module: {}", module))
-            })
-            .next(),
-        Stmt::ImportFrom(a) => a
-            .module
-            .as_ref()
-            .filter(|module_str| is_forbidden_module(module_str, config))
-            .map(|module_str| format!("Forbidden import module: {}", module_str))
-            .or_else(|| {
-                a.names.iter().find_map(|alias| {
-                    let name = alias.name.as_str();
-                    config
-                        .forbidden_imports
-                        .as_ref()
-                        .filter(|forbidden_imports| forbidden_imports.contains(&name.to_string()))
-                        .map(|_| format!("Forbidden import: {}", name))
-                })
-            }),
+/// Generic checker for allowlist/denylist modes
+fn check_in_mode<T: ToString + AsRef<str>>(value: &T, mode: &CheckMode) -> Option<String> {
+    const HARD_BLACKLISTED_MODULES: &[&str] = &["os", "sys", "subprocess", "shutil"];
+    let val_str = value.to_string();
+
+    // Hardcoded blacklist takes priority
+    if HARD_BLACKLISTED_MODULES.contains(&value.as_ref()) {
+        return Some(val_str);
+    }
+
+    match mode {
+        CheckMode::Disabled => None,
+        CheckMode::Blacklist(set) if set.contains(&val_str) => Some(val_str),
+        CheckMode::Whitelist(set) if !set.contains(&val_str) => Some(val_str),
         _ => None,
     }
 }
 
-/// Checks if a function call uses any forbidden function names.
+/// Checks import statements against configured rules
+fn check_import(stmt: &Stmt, config: &LinterConfig) -> Option<String> {
+    match stmt {
+        Stmt::Import(a) => a.names.iter().find_map(|alias| {
+            check_in_mode(&alias.name, &config.module_mode)
+                .map(|m| format!("Forbidden import module: {}", m))
+        }),
+        Stmt::ImportFrom(a) => {
+            if let Some(module_str) = &a.module {
+                if let Some(msg) = check_in_mode(module_str, &config.module_mode)
+                    .map(|m| format!("Forbidden import module: {}", m))
+                {
+                    return Some(msg);
+                }
+            }
+
+            a.names.iter().find_map(|alias| {
+                check_in_mode(&alias.name, &config.import_mode)
+                    .map(|n| format!("Forbidden import: {}", n))
+            })
+        }
+        _ => None,
+    }
+}
+
+/// Checks function calls against configured rules
 fn check_call(expr: &Expr, config: &LinterConfig) -> Option<String> {
     if let Expr::Call(call) = expr {
         if let Some(name) = call.func.clone().name_expr() {
             let call_name = name.id.as_str();
-            if config
-                .forbidden_calls
-                .as_ref()
-                .map_or(false, |calls| calls.contains(&call_name.to_string()))
-            {
-                return Some(format!("Forbidden function call: {}()", call_name));
-            }
+            return check_in_mode(&call_name, &config.call_mode)
+                .map(|_| format!("Forbidden function call: {}()", call_name));
         }
     }
     None
 }
 
-/// Helper function to determine if a module is forbidden.
-fn is_forbidden_module(module: &str, config: &LinterConfig) -> bool {
-    config
-        .forbidden_modules
-        .as_ref()
-        .map_or(false, |modules| modules.contains(module))
-        || ["os", "sys", "subprocess", "shutil"].contains(&module)
-}
-
-/// Gathers all violations found in the provided source code based on the given linter configuration.
-///
-/// This function parses the source code, traverses its abstract syntax tree (AST),
-/// and identifies any forbidden patterns as defined by the linter configuration.
-///
-/// # Arguments
-///
-/// * source - A string-like input representing the source code to analyze.
-/// * config - The linter configuration specifying forbidden modules, imports, and calls.
-///
-/// # Returns
-///
-/// A Result containing:
-/// - A vector of strings listing all identified violations.
-/// - An error message if parsing or traversal fails.
+/// Main function: analyzes source code and collects violations
 pub fn gather_violations<S: AsRef<str>>(
     source: S,
     config: LinterConfig,
@@ -169,7 +185,6 @@ pub fn gather_violations<S: AsRef<str>>(
     let module = parse(source.as_ref(), Mode::Module, "<string>").map_err(|err| err.to_string())?;
     let mut vis = LinterVisitor::with(&config);
 
-    // Traverse the module body and check each statement for violations
     module
         .as_module()
         .ok_or("No module found")?
