@@ -102,15 +102,10 @@ def test_integration_with_real_template(template_manager: TemplateManager, sampl
     # Add the template directory and discover templates
     template_manager.add_store(sample_template_dir, rediscovery=True)
 
-    # Try to render the template
-    try:
-        result = template_manager.render_template("test_template", {"name": "World"})
-        assert isinstance(result, str)
-        assert "Hello" in result
-        assert "World" in result
-    except RuntimeError:
-        # Template rendering might fail in test environment, which is acceptable
-        pytest.skip("Template rendering not available in test environment")
+    result = template_manager.render_template("test_template", {"name": "World"})
+    assert isinstance(result, str)
+    assert "Hello" in result
+    assert "World" in result
 
 
 def test_render_template_raw_integration(template_manager: TemplateManager) -> None:
@@ -118,28 +113,42 @@ def test_render_template_raw_integration(template_manager: TemplateManager) -> N
     template_str = "Hello {{name}}!"
     data = {"name": "World"}
 
-    try:
-        result = template_manager.render_template_raw(template_str, data)
-        assert isinstance(result, str)
-        assert result == "Hello World!"
-    except RuntimeError:
-        # Raw template rendering might fail in test environment
-        pytest.skip("Raw template rendering not available in test environment")
+    result = template_manager.render_template_raw(template_str, data)
+    assert isinstance(result, str)
+    assert result == "Hello World!"
 
 
 def test_render_template_with_list_data(template_manager: TemplateManager) -> None:
     """Test rendering template with list of data."""
-    template_str = "Hello {{name}}!"
-    data = [{"name": "World"}, {"name": "Universe"}]
+    template_str = "Hello {{name}}! You are {{position}} in the queue."
+    data = [
+        {"name": "World", "position": "first"},
+        {"name": "Universe", "position": "second"},
+        {"name": "Galaxy", "position": "third"},
+        {"name": "Star", "position": "fourth"},
+        {"name": "Planet", "position": "fifth"},
+        {"name": "Solar System", "position": "sixth"},
+        {"name": "Moon", "position": "seventh"},
+        {"name": "Comet", "position": "eighth"},
+        {"name": "Meteor", "position": "ninth"},
+        {"name": "Asteroid", "position": "tenth"}
+    ]
 
-    try:
-        result = template_manager.render_template_raw(template_str, data)
-        assert isinstance(result, list)
-        assert len(result) == 2
-        assert result == ["Hello World!", "Hello Universe!"]
-    except RuntimeError:
-        # Raw template rendering might fail in test environment
-        pytest.skip("Raw template rendering not available in test environment")
+    result = template_manager.render_template_raw(template_str, data)
+    assert isinstance(result, list)
+    assert len(result) == 10
+    assert result == [
+        "Hello World! You are first in the queue.",
+        "Hello Universe! You are second in the queue.",
+        "Hello Galaxy! You are third in the queue.",
+        "Hello Star! You are fourth in the queue.",
+        "Hello Planet! You are fifth in the queue.",
+        "Hello Solar System! You are sixth in the queue.",
+        "Hello Moon! You are seventh in the queue.",
+        "Hello Comet! You are eighth in the queue.",
+        "Hello Meteor! You are ninth in the queue.",
+        "Hello Asteroid! You are tenth in the queue."
+    ]
 
 
 def test_render_template_error_handling(template_manager: TemplateManager) -> None:
