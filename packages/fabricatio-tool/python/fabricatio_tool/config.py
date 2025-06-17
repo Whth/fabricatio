@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class CheckConfigNamedTuple(NamedTuple):
     """Configuration for check modules, imports, and calls."""
 
-    targets: Set[str] = set()
+    targets: Set[str]
     """targets: A set of strings representing the targets to check."""
     mode: Literal["whitelist", "blacklist"] = "whitelist"
     """mode: The mode to use for checking. Can be either "whitelist" or "blacklist"."""

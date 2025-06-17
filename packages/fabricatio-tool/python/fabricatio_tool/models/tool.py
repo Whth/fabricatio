@@ -356,7 +356,7 @@ class ToolExecutor:
             source,
             CheckConfig(*tool_config.check_modules),
             CheckConfig(*tool_config.check_imports),
-            CheckConfig(*tool_config.check_calls),
+            self._make_calls_check_config(),
         ):
             raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
 
@@ -364,6 +364,19 @@ class ToolExecutor:
         compiled_fn = cxt[self.fn_name]
         await compiled_fn()
         return self.collector
+
+    def _make_calls_check_config(self) -> CheckConfig:
+        """Generate the check configuration for the calls."""
+        if tool_config.check_calls.mode == "whitelist":
+            targets = {tool.name for tool in self.candidates}
+            targets.update(tool_config.check_calls.targets)
+            return CheckConfig(
+                mode="whitelist",
+                targets=targets,
+            )
+        if tool_config.check_calls.mode == "blacklist":
+            return CheckConfig(*tool_config.check_calls)
+        raise ValueError(f"Unknown mode: {tool_config.check_calls.mode}")
 
     def signature(self) -> str:
         """Generate the header for the source code."""

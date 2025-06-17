@@ -13,7 +13,6 @@ class CheckConfig:
         Raises:
             RuntimeError: If the provided mode is neither 'whitelist' nor 'blacklist'.
         """
-        ...
 
 def gather_violations(
     source: str,
