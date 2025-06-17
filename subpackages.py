@@ -4,7 +4,7 @@ import argparse
 import logging
 import subprocess
 import tomllib
-from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Union
 
@@ -14,7 +14,7 @@ SCRIPTS_DIR = Path("extra") / "scripts"
 
 PYTHON_VERSION = "3.13"
 
-POOL = ProcessPoolExecutor()
+POOL = ThreadPoolExecutor()
 
 
 def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
@@ -31,7 +31,7 @@ def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
         for cmd in cmd_sequence:
             logging.info(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")  # noqa: S603
-            logging.debug(f"Command output: {result.stdout}")
+            logging.info(f"Command output: {' '.join(cmd)} \n{result.stdout}")
         logging.info(f"{desc} completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
