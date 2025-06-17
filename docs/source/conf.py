@@ -111,6 +111,7 @@ html_show_sphinx = True
 
 autoapi_type = "python"
 autoapi_dirs = ["../../packages"]
+autoapi_ignore = ["*/tests/*"]
 autoapi_options = [
     "members",
     "undoc-members",
