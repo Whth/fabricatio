@@ -116,11 +116,11 @@ def make_dist_dir_publish() -> None:
     """Publish all packages in the dist directory."""
     success_count = 0
     for path in [f for f in DIST.iterdir() if f.is_file() and f.suffix in {".whl", ".tar.gz"}]:
-        success = run_cmd(
+        suc = run_cmd(
             [["uv", "publish", path.as_posix()]],
             f"Publish {path.name}",
         )
-        if success:
+        if suc:
             logging.info(f"{path.name} publish succeeded.")
             success_count += 1
         else:
