@@ -14,7 +14,7 @@ from fabricatio_core.models.generic import WithBriefing
 from pydantic import Field
 
 from fabricatio_tool.config import tool_config
-from fabricatio_tool.rust import gather_violations
+from fabricatio_tool.rust import CheckConfig, gather_violations
 
 
 class Tool[**P, R](WithBriefing):
@@ -353,7 +353,10 @@ class ToolExecutor:
         cxt = self.inject_data(cxt)
         source = self.assemble(body)
         if vio := gather_violations(
-            source, tool_config.forbidden_modules, tool_config.forbidden_imports, tool_config.forbidden_calls
+            source,
+            CheckConfig(*tool_config.check_modules),
+            CheckConfig(*tool_config.check_imports),
+            CheckConfig(*tool_config.check_calls),
         ):
             raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
 

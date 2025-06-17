@@ -1,19 +1,28 @@
 """Module containing configuration classes for fabricatio-tool."""
 
-from typing import Set
+from typing import Literal, NamedTuple, Set
 
 from fabricatio_core import CONFIG
 from pydantic import BaseModel, Field
 
 
+class CheckConfigNamedTuple(NamedTuple):
+    """Configuration for check modules, imports, and calls."""
+
+    targets: Set[str] = set()
+    """targets: A set of strings representing the targets to check."""
+    mode: Literal["whitelist", "blacklist"] = "whitelist"
+    """mode: The mode to use for checking. Can be either "whitelist" or "blacklist"."""
+
+
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
 
-    forbidden_modules: Set[str] = Field(default_factory=lambda: {"os", "sys", "subprocess"})
+    check_modules: CheckConfigNamedTuple = Field(default_factory=lambda: CheckConfigNamedTuple(targets=set()))
     """Modules that are forbidden to be imported."""
-    forbidden_imports: Set[str] = Field(default_factory=lambda: {"os", "sys", "subprocess"})
+    check_imports: CheckConfigNamedTuple = Field(default_factory=lambda: CheckConfigNamedTuple(targets=set()))
     """Imports that are forbidden to be used."""
-    forbidden_calls: Set[str] = Field(default_factory=lambda: {"exec", "breakpoint", "compile", "exit"})
+    check_calls: CheckConfigNamedTuple = Field(default_factory=lambda: CheckConfigNamedTuple(targets=set()))
     """"Calls that are forbidden to be used."""
 
 

@@ -179,8 +179,28 @@ class TestToolExecutor:
         source = f"from os import path\nx=32*6\n{tool_executor.collector_varname}.submit('num', x)\n"
         with pytest.raises(ValueError, match="Forbidden import module: os"):
             await tool_executor.execute(source)
-        # FIXME
+            
+@pytest.mark.asyncio
+async def test_forbidden_import_check(tool_executor: ToolExecutor) -> None:
+    """Test detection of forbidden imports."""
+    source = "import os\nx=32*6"
+    with pytest.raises(ValueError, match="Forbidden import module: os"):
+        await tool_executor.execute(source)
 
+    source = "from os import path"
+    with pytest.raises(ValueError, match="Forbidden import module: os"):
+        await tool_executor.execute(source)
+
+    source = "import sys"
+    with pytest.raises(ValueError, match="Forbidden import module: sys"):
+        await tool_executor.execute(source)
+    source= "exec(\"print('hi')\")"
+    with pytest.raises(ValueError, match="Forbidden function call: exec()"):
+        await tool_executor.execute(source)
+    source= "print(\"exec('hi=1')\")"
+    with pytest.raises(ValueError, match="Forbidden function call: print()"):
+        await tool_executor.execute(source)
+    
 
 def test_from_recipe(toolbox, sample_func: Callable[[int, str], str]) -> None:
     """Test ToolExecutor creation from recipe."""
