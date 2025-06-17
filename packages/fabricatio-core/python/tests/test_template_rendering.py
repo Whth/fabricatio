@@ -131,7 +131,7 @@ def test_render_template_with_list_data(template_manager: TemplateManager) -> No
         {"name": "Moon", "position": "seventh"},
         {"name": "Comet", "position": "eighth"},
         {"name": "Meteor", "position": "ninth"},
-        {"name": "Asteroid", "position": "tenth"}
+        {"name": "Asteroid", "position": "tenth"},
     ]
 
     result = template_manager.render_template_raw(template_str, data)
@@ -147,7 +147,7 @@ def test_render_template_with_list_data(template_manager: TemplateManager) -> No
         "Hello Moon! You are seventh in the queue.",
         "Hello Comet! You are eighth in the queue.",
         "Hello Meteor! You are ninth in the queue.",
-        "Hello Asteroid! You are tenth in the queue."
+        "Hello Asteroid! You are tenth in the queue.",
     ]
 
 
