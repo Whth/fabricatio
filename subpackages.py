@@ -148,6 +148,7 @@ def make_dist(project_root: Union[str, Path]) -> bool:
                     "-o",
                     DIST.as_posix(),
                     "--sdist",
+                    "--strip",
                 ],
             ],
             f"Build {project_root.name}",
@@ -236,6 +237,13 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Build all packages using maturin.",
     )
+    parser.add_argument(
+        "-dd",
+        "--distdir",
+        type=str,
+        default=DIST.as_posix(),
+        help=f"Specify the distribution directory to store built packages. Defaults to {DIST.as_posix()}",
+    )
 
     return parser.parse_args()
 
@@ -243,7 +251,11 @@ def parse_arguments() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_arguments()
     PYTHON_VERSION = args.pyversion
+    DIST_DIR = Path(args.distdir).absolute()
     logging.info(f"Using Python version: {PYTHON_VERSION}")
+    logging.info(f"Using distribution directory: {DIST_DIR.as_posix()}")
+    # Update DIST global variable based on command line argument
+    globals()['DIST'] = DIST_DIR
     success = make_all(
         bins=args.bins,
         dev_mode=args.dev,
