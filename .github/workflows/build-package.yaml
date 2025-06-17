@@ -126,7 +126,7 @@ jobs:
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
-          make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.python-version }}"
+          make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.python-version }}"
         env:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
