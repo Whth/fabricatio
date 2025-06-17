@@ -106,17 +106,17 @@ class TestTool:
         tool = Tool(source=sample_func, description="Custom description")
         assert tool.description == "Custom description"
 
-    def test_invoke_logs(self, tool, caplog) -> None:
+    def test_invoke_logs(self, tool: Tool, caplog: pytest.LogCaptureFixture) -> None:
         """Test tool invocation logging."""
         with caplog.at_level(logging.INFO):
             tool.invoke(5, "a")
         assert "Invoking tool: test_tool" in caplog.text
 
-    def test_signature_property(self, tool) -> None:
+    def test_signature_property(self, tool: Tool) -> None:
         """Test signature formatting."""
         assert tool.signature == "def test_tool(x: int, y: str) -> str:"
 
-    def test_briefing_property(self, tool) -> None:
+    def test_briefing_property(self, tool: Tool) -> None:
         """Test briefing generation."""
         expected = '''def test_tool(x: int, y: str) -> str:
     """
@@ -177,7 +177,7 @@ class TestResultCollector:
         results = result_collector.take(["a", "b"], int)
         assert results == [1, None]
 
-    def test_take_missing_key(self, result_collector, caplog) -> None:
+    def test_take_missing_key(self, result_collector: ResultCollector, caplog: pytest.LogCaptureFixture) -> None:
         """Test missing key handling with logging."""
         with caplog.at_level(logging.WARNING):
             result_collector.revoke("missing")
@@ -206,7 +206,7 @@ class TestToolExecutor:
         new_context = tool_executor.inject_data(mock_context)
         assert new_context["new"] == "data"
 
-    def test_signature_generation(self, tool_executor) -> None:
+    def test_signature_generation(self, tool_executor: ToolExecutor) -> None:
         """Test signature generation for executor function."""
         tool_executor.data = {"x": 5}
         assert tool_executor.signature() == 'async def execute(x:"int" = x)->None:'
