@@ -4,7 +4,7 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-from typing import Any, Optional
+from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import AsyncMock, patch
 
 import litellm
@@ -162,3 +162,209 @@ async def test_aask_branches(
         else:
             assert isinstance(result, str)
             assert result == ret_value
+
+
+@pytest.mark.parametrize(
+    ("ret_value", "question_input", "validator", "default", "max_validations"),
+    [
+        ("123", "What is 100 + 23?", lambda x: int(x) if x.isdigit() else None, None, 3),
+        ("abc", "Enter digits:", lambda x: int(x) if x.isdigit() else None, 0, 3),
+        ("Hello", ["Hi", "Hey"], lambda x: x if len(x) > 3 else None, None, 2),
+        ("5", "Give me a number:", lambda x: int(x) if x.isdigit() else None, -1, 3),
+    ],
+)
+@pytest.mark.asyncio
+async def test_aask_validate(
+    mock_router: Router,
+    ret_value: str,
+    question_input: str | list[str],
+    validator: Callable[[str], Any],
+    default: Optional[Any],
+    max_validations: int,
+    role_with_llm: LLMRole,
+) -> None:
+    """Test the aask_validate method with different validation scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Successful validation on first attempt
+    - Validation retries with cache disabled after failure
+    - Default value handling when validation fails
+    - List input handling
+
+    Args:
+        mock_router: Preconfigured mock router fixture
+        ret_value: Expected response value from LLM
+        question_input: Input question(s) to test
+        validator: Validation function to apply to responses
+        default: Default value to use when validation fails
+        max_validations: Maximum number of validation attempts
+        role_with_llm: Test role with LLM capabilities
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.aask_validate(
+            question=question_input,
+            validator=validator,
+            default=default,
+            max_validations=max_validations,
+        )
+
+        if isinstance(question_input, list):
+            assert isinstance(result, list)
+            assert all(str(r) == ret_value for r in result)
+        else:
+            assert str(result) == ret_value or result == default
+
+
+def code_block(content: str, lang: str = "json") -> str:
+    """Generate a code block."""
+    return f"```{lang}\n{content}\n```"
+
+
+@pytest.mark.parametrize(
+    ("ret_value", "requirement", "k", "expected_result"),
+    [
+        (
+            code_block('{"key1": "value1", "key2": "value2"}'),
+            "Generate two string mappings",
+            2,
+            {"key1": "value1", "key2": "value2"},
+        ),
+        (code_block('{"key": "value"}'), "Generate one string mapping", 1, {"key": "value"}),
+        (
+            code_block('{"key1": "value1", "key2": "value2", "key3": "value3"}'),
+            "Generate three string mappings",
+            0,
+            {"key1": "value1", "key2": "value2", "key3": "value3"},
+        ),
+        (code_block('{"invalid": 123}'), "Invalid mapping", 1, None),
+        (
+            code_block('{"batch_key1": "batch_value1", "batch_key2": "batch_value2"}'),
+            "Generate batch string mappings",
+            2,
+            {"batch_key1": "batch_value1", "batch_key2": "batch_value2"},
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_amapping_str(
+    mock_router: Router,
+    ret_value: str,
+    requirement: str,
+    k: int,
+    expected_result: Optional[Dict[str, str]],
+    role_with_llm: LLMRole,
+) -> None:
+    """Test the amapping_str method with different scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Successful generation of valid string mappings.
+    - Handling of invalid mappings that do not meet validation criteria.
+    - Behavior when k is set to 0 (infinite choices).
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Expected response value from LLM.
+        requirement: The requirement for the mapping of strings.
+        k: The number of choices to select.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.amapping_str(requirement=requirement, k=k)
+
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("ret_value", "requirement", "k", "expected_result"),
+    [
+        (code_block('["apple", "banana", "cherry"]'), "Generate three fruits", 3, ["apple", "banana", "cherry"]),
+        (code_block('["one" ,"two"]'), "Generate two words", 2, ["one", "two"]),
+        (code_block('["single_item"]'), "Generate one item", 1, ["single_item"]),
+        ("invalid json response", "Invalid response", 1, None),
+        (
+            code_block('["batch_item1" "batch_item2"]'),
+            code_block('["batch_item3", "batch_item4"]'),
+            2,
+            ["batch_item1", "batch_item2"],
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_alist_str(
+    mock_router: Router,
+    ret_value: str,
+    requirement: str,
+    k: int,
+    expected_result: Optional[List[str]],
+    role_with_llm: LLMRole,
+) -> None:
+    """Test the alist_str method with different scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Successful generation of valid string lists.
+    - Handling of invalid responses that do not meet validation criteria.
+    - Behavior when k is set to 0 (infinite choices).
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Expected response value from LLM.
+        requirement: The requirement for the list of strings.
+        k: The number of choices to select.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.alist_str(requirement=requirement, k=k)
+
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("ret_value", "requirement_list", "k", "expected_result"),
+    [
+        (
+                code_block('["item1", "item2"]'),
+            ["First requirement", "Second requirement"],
+            2,
+            [["item1", "item2"],["item1", "item2"]],
+        ),
+        (
+                code_block('["test1", "test2", "test3"]'),
+            ["Req1", "Req2", "Req3"],
+            3,
+            [["test1", "test2", "test3"],["test1", "test2", "test3"],["test1", "test2", "test3"]],
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_alist_str_with_requirement_list(
+    mock_router: Router,
+    ret_value: str,
+    requirement_list: List[str],
+    k: int,
+    expected_result: Optional[List[str]],
+    role_with_llm: LLMRole,
+) -> None:
+    """Test the alist_str method with a list of requirements.
+
+    Validates correct handling of:
+    - Generation of string lists based on multiple requirements.
+    - Proper handling of batch processing with multiple requirements.
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Expected response value from LLM.
+        requirement_list: A list of requirements for string generation.
+        k: The number of choices to select.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.alist_str(requirement=requirement_list, k=k)
+
+        assert result == expected_result
+
+
+
+
