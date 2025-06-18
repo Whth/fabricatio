@@ -13,14 +13,15 @@ class CheckConfigModel(BaseModel):
     """targets: A set of strings representing the targets to check."""
     mode: Literal["whitelist", "blacklist"] = "whitelist"
     """mode: The mode to use for checking. Can be either "whitelist" or "blacklist"."""
-    
+
     def is_blacklist(self) -> bool:
         """Check if the mode is blacklist."""
         return self.mode == "blacklist"
-    
+
     def is_whitelist(self) -> bool:
         """Check if the mode is whitelist."""
         return self.mode == "whitelist"
+
 
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
@@ -34,4 +35,4 @@ class ToolConfig(BaseModel):
 
 
 tool_config = CONFIG.load("tool", ToolConfig)
-__all__ = ["tool_config","CheckConfigModel"]
+__all__ = ["CheckConfigModel", "tool_config"]

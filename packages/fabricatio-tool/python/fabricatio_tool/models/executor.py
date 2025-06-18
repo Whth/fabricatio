@@ -139,7 +139,7 @@ class ToolExecutor:
         await compiled_fn()
         return self.collector
 
-    def validate_callcheck_config(self, check_calls: CheckConfigModel)-> CheckConfigModel:
+    def validate_callcheck_config(self, check_calls: CheckConfigModel) -> CheckConfigModel:
         """Validate the call check configuration.
 
         This method ensures that the tools defined in the executor are properly accounted for in the call check configuration.
@@ -157,17 +157,15 @@ class ToolExecutor:
         """
         check_calls = check_calls.model_copy(deep=True)
 
-        if check_calls.is_blacklist() and any(included:=list(tool.name for tool in self.candidates if tool.name in check_calls.targets)):
+        if check_calls.is_blacklist() and any(
+            included := [tool.name for tool in self.candidates if tool.name in check_calls.targets]
+        ):
             raise ValueError(f"Blacklist mode is not allowed for tools: {included}")
 
         for tool in self.candidates:
             logger.info(f"Adding tool {tool.name} to callcheck targets whitelist.")
             check_calls.targets.add(tool.name)
         return check_calls
-
-
-
-
 
     def signature(self) -> str:
         """Generate the header for the source code."""
