@@ -26,6 +26,9 @@ class CheckConfigModel(BaseModel):
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
 
+    draft_tool_usage_code_template: str = "draft_tool_usage_code"
+    """The name of the draft tool usage code template which will be used to draft tool usage code."""
+
     check_modules: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """Modules that are forbidden to be imported."""
     check_imports: CheckConfigModel = Field(default_factory=CheckConfigModel)

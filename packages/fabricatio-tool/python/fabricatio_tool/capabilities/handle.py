@@ -7,13 +7,13 @@ The class interacts with tools and manages their execution workflow.
 from abc import ABC
 from typing import Any, Dict, List, Optional, Unpack
 
-from fabricatio_capabilities.config import capabilities_config
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import override_kwargs
 
 from fabricatio_tool.capabilities.use_tool import UseTool
+from fabricatio_tool.config import tool_config
 from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.executor import ToolExecutor
 from fabricatio_tool.models.tool import Tool, ToolBox
@@ -38,7 +38,7 @@ class Handle(UseTool, ABC):
             raise ValueError(err)
 
         q = TEMPLATE_MANAGER.render_template(
-            capabilities_config.draft_tool_usage_code_template,
+            tool_config.draft_tool_usage_code_template,
             {
                 "collector_help": ResultCollector.__doc__,
                 "collector_varname": ToolExecutor.collector_varname,
