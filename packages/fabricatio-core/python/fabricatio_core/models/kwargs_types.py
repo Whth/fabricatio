@@ -49,7 +49,7 @@ class GenerateKwargs(LLMKwargs, total=False):
     system_message: str
 
 
-class ValidateKwargs[T](GenerateKwargs, total=False):
+class ValidateKwargs[T](TypedDict, GenerateKwargs, total=False):
     """Arguments for content validation operations.
 
     Extends LLMKwargs with additional parameters specific to validation tasks,

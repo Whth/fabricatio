@@ -15,7 +15,7 @@ from pydantic import Field
 from fabricatio_tool.models.tool import Tool, ToolBox
 
 
-class UseToolBox(UseLLM, ABC):
+class UseTool(UseLLM, ABC):
     """A class representing the usage of tools in a task.
 
     This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.

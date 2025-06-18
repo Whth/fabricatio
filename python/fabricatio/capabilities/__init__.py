@@ -8,9 +8,9 @@ __all__ = ["UseEmbedding", "UseLLM"]
 
 if find_spec("fabricatio_tool"):
     from fabricatio_tool.capabilities.handle_task import HandleTask
-    from fabricatio_tool.capabilities.use_tool import UseToolBox
+    from fabricatio_tool.capabilities.use_tool import UseTool
 
-    __all__ += ["HandleTask", "UseToolBox"]
+    __all__ += ["HandleTask", "UseTool"]
 
 
 if find_spec("fabricatio_capabilities"):
