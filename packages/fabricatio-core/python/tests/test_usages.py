@@ -16,11 +16,13 @@ from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
 
+
 def code_block(content: str, lang: str = "json") -> str:
     """Generate a code block."""
     return f"```{lang}\n{content}\n```"
 
-def generic_block(content: str, lang: str = "String")->str:
+
+def generic_block(content: str, lang: str = "String") -> str:
     """Generate a generic block."""
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
@@ -223,7 +225,6 @@ async def test_aask_validate(
             assert str(result) == ret_value or result == default
 
 
-
 @pytest.mark.parametrize(
     ("ret_value", "requirement", "k", "expected_result"),
     [
@@ -328,16 +329,16 @@ async def test_alist_str(
     ("ret_value", "requirement_list", "k", "expected_result"),
     [
         (
-                code_block('["item1", "item2"]'),
+            code_block('["item1", "item2"]'),
             ["First requirement", "Second requirement"],
             2,
-            [["item1", "item2"],["item1", "item2"]],
+            [["item1", "item2"], ["item1", "item2"]],
         ),
         (
-                code_block('["test1", "test2", "test3"]'),
+            code_block('["test1", "test2", "test3"]'),
             ["Req1", "Req2", "Req3"],
             3,
-            [["test1", "test2", "test3"],["test1", "test2", "test3"],["test1", "test2", "test3"]],
+            [["test1", "test2", "test3"], ["test1", "test2", "test3"], ["test1", "test2", "test3"]],
         ),
     ],
 )
@@ -380,7 +381,7 @@ async def test_alist_str_with_requirement_list(
 )
 @pytest.mark.asyncio
 async def test_apathstr(
-mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMRole
+    mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMRole
 ) -> None:
     """Test the apathstr method with different scenarios.
 
@@ -436,10 +437,6 @@ async def test_awhich_pathstr(
         assert result == expected_result
 
 
-
-
-
-
 @pytest.mark.parametrize(
     ("ret_value", "requirement", "expected_result"),
     [
@@ -450,11 +447,11 @@ async def test_awhich_pathstr(
 )
 @pytest.mark.asyncio
 async def test_ageneric_string(
-        mock_router: Router,
-        ret_value: str,
-        requirement: str | List[str],
-        expected_result: Optional[str | List[str]],
-        role_with_llm: LLMRole,
+    mock_router: Router,
+    ret_value: str,
+    requirement: str | List[str],
+    expected_result: Optional[str | List[str]],
+    role_with_llm: LLMRole,
 ) -> None:
     """Test the ageneric_string method with different scenarios.
 
@@ -472,10 +469,7 @@ async def test_ageneric_string(
     """
     # Patch the aask_validate method since we're testing the generic string functionality,
     # not the underlying LLM interaction
-    with patch.object(llm, "ROUTER",mock_router):
+    with patch.object(llm, "ROUTER", mock_router):
         result = await role_with_llm.ageneric_string(requirement=requirement)
 
         assert result == expected_result
-
-
-
