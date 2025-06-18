@@ -5,7 +5,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Self
 
 from fabricatio_core import logger
 
-from fabricatio_tool.config import tool_config
+from fabricatio_tool.config import CheckConfigModel, tool_config
 from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.tool import Tool, ToolBox
 from fabricatio_tool.rust import CheckConfig, gather_violations
@@ -99,17 +99,28 @@ class ToolExecutor:
         cxt[self.collector_varname] = self.collector
         return cxt
 
-    async def execute[C: Dict[str, Any]](self, body: str, cxt: Optional[C] = None) -> ResultCollector:
+    async def execute[C: Dict[str, Any]](
+        self,
+        body: str,
+        cxt: Optional[C] = None,
+        check_modules: Optional[CheckConfigModel] = None,
+        check_imports: Optional[CheckConfigModel] = None,
+        check_calls: Optional[CheckConfigModel] = None,
+    ) -> ResultCollector:
         """Execute the sequence of tools with the provided context.
 
-        This method executes the tools in the sequence with the provided context.
+        This method orchestrates the execution process by injecting the collector, tools, and data into the context,
+        assembling the source code, checking for violations, and finally executing the compiled function.
 
         Args:
             body (str): The source code to execute.
             cxt (Optional[C]): The context to execute the tools with. If None, an empty dictionary is used.
+            check_modules (Optional[CheckConfigModel]): Configuration for module-related checks.
+            check_imports (Optional[CheckConfigModel]): Configuration for import-related checks.
+            check_calls (Optional[CheckConfigModel]): Configuration for call-related checks.
 
         Returns:
-            C: The context after executing the tools.
+            ResultCollector: The collector containing results from the executed tools.
         """
         cxt = self.inject_collector(cxt)
         cxt = self.inject_tools(cxt)
@@ -117,9 +128,9 @@ class ToolExecutor:
         source = self.assemble(body)
         if vio := gather_violations(
             source,
-            CheckConfig(*tool_config.check_modules),
-            CheckConfig(*tool_config.check_imports),
-            self._make_calls_check_config(),
+            CheckConfig(**(check_modules or tool_config.check_modules).model_dump()),
+            CheckConfig(**(check_imports or tool_config.check_imports).model_dump()),
+            CheckConfig(**self.validate_callcheck_config(check_calls or tool_config.check_calls).model_dump()),
         ):
             raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
 
@@ -128,18 +139,35 @@ class ToolExecutor:
         await compiled_fn()
         return self.collector
 
-    def _make_calls_check_config(self) -> CheckConfig:
-        """Generate the check configuration for the calls."""
-        if tool_config.check_calls.mode == "whitelist":
-            targets = {tool.name for tool in self.candidates}
-            targets.update(tool_config.check_calls.targets)
-            return CheckConfig(
-                mode="whitelist",
-                targets=targets,
-            )
-        if tool_config.check_calls.mode == "blacklist":
-            return CheckConfig(*tool_config.check_calls)
-        raise ValueError(f"Unknown mode: {tool_config.check_calls.mode}")
+    def validate_callcheck_config(self, check_calls: CheckConfigModel)-> CheckConfigModel:
+        """Validate the call check configuration.
+
+        This method ensures that the tools defined in the executor are properly accounted for in the call check configuration.
+        If the configuration is in blacklist mode and any tool names appear in the targets, a ValueError is raised.
+        Otherwise, all tool names are added to the targets in whitelist mode.
+
+        Args:
+            check_calls (CheckConfigModel): The call check configuration to validate and update.
+
+        Returns:
+            CheckConfigModel: The validated and potentially updated call check configuration.
+
+        Raises:
+            ValueError: If blacklist mode is used and any tool names are found in the targets.
+        """
+        check_calls = check_calls.model_copy(deep=True)
+
+        if check_calls.is_blacklist() and any(included:=list(tool.name for tool in self.candidates if tool.name in check_calls.targets)):
+            raise ValueError(f"Blacklist mode is not allowed for tools: {included}")
+
+        for tool in self.candidates:
+            logger.info(f"Adding tool {tool.name} to callcheck targets whitelist.")
+            check_calls.targets.add(tool.name)
+        return check_calls
+
+
+
+
 
     def signature(self) -> str:
         """Generate the header for the source code."""
