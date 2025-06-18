@@ -16,6 +16,14 @@ from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
 
+def code_block(content: str, lang: str = "json") -> str:
+    """Generate a code block."""
+    return f"```{lang}\n{content}\n```"
+
+def generic_block(content: str, lang: str = "String")->str:
+    """Generate a generic block."""
+    return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
+
 
 @pytest.fixture
 def mock_router(ret_value: str) -> Router:
@@ -215,10 +223,6 @@ async def test_aask_validate(
             assert str(result) == ret_value or result == default
 
 
-def code_block(content: str, lang: str = "json") -> str:
-    """Generate a code block."""
-    return f"```{lang}\n{content}\n```"
-
 
 @pytest.mark.parametrize(
     ("ret_value", "requirement", "k", "expected_result"),
@@ -366,5 +370,109 @@ async def test_alist_str_with_requirement_list(
         assert result == expected_result
 
 
+@pytest.mark.parametrize(
+    ("ret_value", "requirement", "expected_result"),
+    [
+        (code_block('["path1", "path2"]'), "Generate two paths", ["path1", "path2"]),
+        (code_block('["single_path"]'), "Generate one path", ["single_path"]),
+        ("invalid json response", "Invalid path response", None),
+    ],
+)
+@pytest.mark.asyncio
+async def test_apathstr(
+mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMRole
+) -> None:
+    """Test the apathstr method with different scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Successful generation of valid path strings.
+    - Handling of invalid responses that do not meet validation criteria.
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Expected response value from LLM.
+        requirement: The requirement for the path string generation.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.apathstr(requirement=requirement)
+
+        assert result == expected_result
 
 
+@pytest.mark.parametrize(
+    ("ret_value", "requirement", "expected_result"),
+    [
+        (code_block('["path1"]'), "Generate a path", "path1"),
+        (code_block('["path2"]'), "Another path requirement", "path2"),
+        (None, "Invalid path response", None),
+    ],
+)
+@pytest.mark.asyncio
+async def test_awhich_pathstr(
+    mock_router: Router,
+    ret_value: str,
+    requirement: str,
+    expected_result: Optional[str],
+    role_with_llm: LLMRole,
+) -> None:
+    """Test the awhich_pathstr method with different scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Successful generation of valid path strings.
+    - Handling of empty or invalid responses.
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Mocked response from apathstr method.
+        requirement: The requirement for path string generation.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    with patch.object(llm, "ROUTER", mock_router):
+        result = await role_with_llm.awhich_pathstr(requirement=requirement)
+
+        assert result == expected_result
+
+
+
+
+
+
+@pytest.mark.parametrize(
+    ("ret_value", "requirement", "expected_result"),
+    [
+        (generic_block("Test output 1"), "Requirement 1", "Test output 1"),
+        (generic_block("Another output"), ["Req1", "Req2"], ["Another output", "Another output"]),
+        ("invalid json response", "Req", None),
+    ],
+)
+@pytest.mark.asyncio
+async def test_ageneric_string(
+        mock_router: Router,
+        ret_value: str,
+        requirement: str | List[str],
+        expected_result: Optional[str | List[str]],
+        role_with_llm: LLMRole,
+) -> None:
+    """Test the ageneric_string method with different scenarios.
+
+    Validates correct handling of various input combinations including:
+    - Single string requirement and response
+    - List of requirements with appropriate list response
+    - Invalid responses that do not meet validation criteria
+
+    Args:
+        mock_router: Preconfigured mock router fixture.
+        ret_value: Expected response value from LLM.
+        requirement: The requirement(s) for string generation.
+        expected_result: The expected validated result.
+        role_with_llm: Test role with LLM capabilities.
+    """
+    # Patch the aask_validate method since we're testing the generic string functionality,
+    # not the underlying LLM interaction
+    with patch.object(llm, "ROUTER",mock_router):
+        result = await role_with_llm.ageneric_string(requirement=requirement)
+
+        assert result == expected_result
