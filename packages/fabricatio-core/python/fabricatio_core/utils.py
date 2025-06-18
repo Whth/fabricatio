@@ -111,7 +111,7 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
-def first_available[T](iterable: Iterable[T], msg: str = "No available item found in the iterable.") -> T:
+def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available item found in the iterable.") -> T:
     """Return the first available item in the iterable that's not None.
 
     This function searches through the provided iterable and returns the first

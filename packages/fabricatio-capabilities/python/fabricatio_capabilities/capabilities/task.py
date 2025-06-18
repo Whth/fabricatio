@@ -41,11 +41,11 @@ class ProposeTask(Propose, ABC):
 class DispatchTask(UseLLM, ABC):
     """A class that dispatches a task based on a task object."""
 
-    async def dispatch_task[T](
+    async def dispatch_task[T, R: WithBriefing](
         self,
         task: Task[T],
-        candidates: Mapping[str, WithBriefing],
-        **kwargs: Unpack[ChooseKwargs],
+        candidates: Mapping[str, R],
+        **kwargs: Unpack[ChooseKwargs[R]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 

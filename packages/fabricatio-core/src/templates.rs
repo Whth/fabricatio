@@ -80,15 +80,21 @@ impl TemplateManager {
             let seq = depythonize::<Vec<Value>>(data)
                 .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
 
-            let rendered: Vec<String> = seq
+            let mut rendered_raw: Vec<(usize, String)> = seq
                 .iter()
-                .map(|item| {
-                    self.handlebars
-                        .render(name, item)
-                        .expect(&format!("Rendering error for {name} when rendering {item}"))
+                .enumerate()
+                .par_bridge()
+                .map(|(idx, item)| {
+                    (
+                        idx,
+                        self.handlebars
+                            .render(name, item)
+                            .expect(&format!("Rendering error for {name} when rendering {item}")),
+                    )
                 })
                 .collect();
-
+            rendered_raw.sort_by_key(|x| x.0);
+            let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
             let py_list = PyList::new(py, rendered).expect("Failed to create PyList");
             Ok(py_list.as_any().clone())
         } else {
@@ -117,18 +123,23 @@ impl TemplateManager {
             let seq = depythonize::<Vec<Value>>(data)
                 .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
 
-            let rendered: Vec<String> = seq
+            let mut rendered_raw: Vec<(usize, String)> = seq
                 .iter()
+                .enumerate()
                 .par_bridge()
-                .map(|item| {
-                    self.handlebars
-                        .render_template(template, item)
-                        .expect(&format!(
-                            "Rendering error for {template} when rendering {item}"
-                        ))
+                .map(|(idx, item)| {
+                    (
+                        idx,
+                        self.handlebars
+                            .render_template(template, item)
+                            .expect(&format!(
+                                "Rendering error for {template} when rendering {item}"
+                            )),
+                    )
                 })
                 .collect();
-
+            rendered_raw.sort_by_key(|x| x.0);
+            let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
             let py_list = PyList::new(py, &rendered).expect("Failed to create PyList");
             Ok(py_list.as_any().clone())
         } else {

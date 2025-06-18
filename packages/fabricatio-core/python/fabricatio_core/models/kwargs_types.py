@@ -61,11 +61,18 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
 
 
 # noinspection PyTypedDict
-class ChooseKwargs(ValidateKwargs[List[str]], total=False):
+class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     """Arguments for selection operations.
 
     Extends GenerateKwargs with parameters for selecting among options,
     such as the number of items to choose.
     """
+
+    k: int
+
+
+# noinspection PyTypedDict
+class ListStringKwargs(ValidateKwargs[List[str]], total=False):
+    """Arguments for operations that return a list of strings."""
 
     k: int

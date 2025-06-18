@@ -28,7 +28,7 @@ from fabricatio_core import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.models.llm import ROUTER, Messages
+from fabricatio_core.models.llm import Messages, get_router
 from fabricatio_core.utils import first_available, ok
 
 
@@ -48,8 +48,9 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Router: The updated router with the added deployment.
         """
-        self._added_deployment = ROUTER.upsert_deployment(deployment)
-        return ROUTER
+        router = get_router()
+        self._added_deployment = router.upsert_deployment(deployment)
+        return router
 
     # noinspection PyTypeChecker,PydanticTypeChecker,t
     async def aquery(
@@ -214,13 +215,14 @@ class UseLLM(LLMScopedConfig, ABC):
                 out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
             case (str(q), str(sm)):
                 out = ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportAttributeAccessIssue]
+
             case _:
                 raise RuntimeError("Should not reach here.")
-
-        logger.debug(
-            f"Response Token Count: {token_counter(text=out) if isinstance(out, str) else sum(token_counter(text=o) for o in out)}"
-            # pyright: ignore [reportOptionalIterable]
-        )
+        if out is not None:
+            logger.debug(
+                f"Response Token Count: {token_counter(text=out) if isinstance(out, str) else sum(token_counter(text=o) for o in out)}"
+                # pyright: ignore [reportOptionalIterable]
+            )
         return out  # pyright: ignore [reportReturnType]
 
     @overload
@@ -286,6 +288,7 @@ class UseLLM(LLMScopedConfig, ABC):
 
         async def _inner(q: str) -> Optional[T]:
             for lap in range(max_validations):
+                response = ""
                 try:
                     if (validated := validator(response := await self.aask(question=q, **kwargs))) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
@@ -515,7 +518,7 @@ class UseLLM(LLMScopedConfig, ABC):
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
@@ -563,7 +566,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         instruction: str,
         choices: List[T],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
@@ -649,11 +652,11 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
             logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
             raise ValueError(err)
 
-        return await ROUTER.aembedding(
+        return await get_router().aembedding(
             input=input_text,
             caching=caching or self.embedding_caching or CONFIG.embedding.caching,
             dimensions=dimensions or self.embedding_dimensions or CONFIG.embedding.dimensions,
-            model=model or self.embedding_model or CONFIG.embedding.model or self.llm_model or CONFIG.llm.model,
+            model=ok(model or self.embedding_model or CONFIG.embedding.model, "Embedding model not set at any level!"),
             timeout=timeout
             or self.embedding_timeout
             or CONFIG.embedding.timeout

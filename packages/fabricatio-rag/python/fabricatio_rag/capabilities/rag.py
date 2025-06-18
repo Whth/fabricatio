@@ -7,7 +7,7 @@ from typing import List, Optional, Self, Type, Unpack
 
 from fabricatio_core.capabilities.usages import UseEmbedding
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.models.kwargs_types import ListStringKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from more_itertools.recipes import flatten, unique
@@ -242,7 +242,7 @@ class RAG(UseEmbedding, MilvusScopedConfig, ABC):
     async def arefined_query(
         self,
         question: List[str] | str,
-        **kwargs: Unpack[ChooseKwargs],
+        **kwargs: Unpack[ListStringKwargs],
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 

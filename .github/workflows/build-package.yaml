@@ -118,7 +118,8 @@ jobs:
           rustup default nightly
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
       - name: Install deps
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
