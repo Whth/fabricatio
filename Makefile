@@ -32,4 +32,6 @@ publish: dirs clean_dist
 
 docs:
 	make -C docs html
-.PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs
+update:
+	uv sync --extra full --group docs -U && cargo update --recursive --verbose
+.PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs update

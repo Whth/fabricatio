@@ -49,7 +49,7 @@ class GenerateKwargs(LLMKwargs, total=False):
     system_message: str
 
 
-class ValidateKwargs[T](GenerateKwargs, total=False):
+class ValidateKwargs[T](TypedDict, GenerateKwargs, total=False):
     """Arguments for content validation operations.
 
     Extends LLMKwargs with additional parameters specific to validation tasks,
@@ -60,7 +60,6 @@ class ValidateKwargs[T](GenerateKwargs, total=False):
     max_validations: int
 
 
-# noinspection PyTypedDict
 class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     """Arguments for selection operations.
 
@@ -71,7 +70,6 @@ class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     k: int
 
 
-# noinspection PyTypedDict
 class ListStringKwargs(ValidateKwargs[List[str]], total=False):
     """Arguments for operations that return a list of strings."""
 

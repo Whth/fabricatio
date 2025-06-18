@@ -1,21 +1,18 @@
 ## Available Resources
-
 **Available Data:**
 {{#each data }}
 {{ block this @key }}
 {{/each }}
 
-**Dependencies:**
-{{deps}}
 
 **Available Tools:**
 {{#each tools}}
 {{block this.briefing this.name}}
 {{/each}}
 
-**Task Briefing:**
-{{ task }}
+## Task
 
+{{block reqest "Vital Requirements"}}
 
 **ResultCollector Usage Help:**
 {{collector_help}}
@@ -38,5 +35,6 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 
 ```
 Your response SHALL only contain the body of the function, no signature or return statement.
-Your code will be placed between `# -----`
-You shall never use package that needs import, use ONLY the provided `Available Tools` above to finish the job.
+Your code will be placed between `# -----`.
+You SHALL never use package that needs import, use ONLY the provided `Available Tools` above to finish the job.
+You SHALL put the `Vital Requirements` as the top guideline.
