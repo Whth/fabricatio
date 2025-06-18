@@ -150,7 +150,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
-          append_body: false
+          fail_on_unmatched_files: true
+          overwrite_files: true
           files: |
             ${{ matrix.os }}-${{ matrix.python-version }}/*.whl
         env:
