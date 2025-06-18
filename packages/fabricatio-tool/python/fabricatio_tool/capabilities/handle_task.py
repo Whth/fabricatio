@@ -15,7 +15,9 @@ from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import override_kwargs
 
 from fabricatio_tool.capabilities.use_tool import UseToolBox
-from fabricatio_tool.models.tool import ResultCollector, Tool, ToolExecutor
+from fabricatio_tool.models.collector import ResultCollector
+from fabricatio_tool.models.executor import ToolExecutor
+from fabricatio_tool.models.tool import Tool, ToolBox
 
 
 class HandleTask(UseToolBox, ABC):
@@ -56,8 +58,8 @@ class HandleTask(UseToolBox, ABC):
         self,
         task: Task,
         data: Dict[str, Any],
-        box_choose_kwargs: Optional[ChooseKwargs] = None,
-        tool_choose_kwargs: Optional[ChooseKwargs] = None,
+        box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
+        tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
@@ -77,4 +79,10 @@ class HandleTask(UseToolBox, ABC):
         """Asynchronously handles a task based on a given task object and parameters."""
         okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
 
-        return await self.handle_fine_grind(task, data, box_choose_kwargs=okwargs, tool_choose_kwargs=okwargs, **kwargs)
+        return await self.handle_fine_grind(
+            task,
+            data,
+            box_choose_kwargs=okwargs,
+            tool_choose_kwargs=okwargs,
+            **kwargs,
+        )

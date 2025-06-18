@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict
 
 import pytest
-from fabricatio_tool.models.tool import ResultCollector, Tool, ToolBox, ToolExecutor
+from fabricatio_tool.models.collector import ResultCollector
+from fabricatio_tool.models.executor import ToolExecutor
+from fabricatio_tool.models.tool import Tool, ToolBox
 
 
 # Fixtures
