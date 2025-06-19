@@ -123,7 +123,6 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
         Returns:
             Set[str]: A set containing the names of excluded fields.
         """
-        logger.debug("Getting excluded fields for ModelMetaData")
         return {"models", "author"}
 
     @staticmethod
@@ -135,5 +134,4 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
         Returns:
             Optional[Type[BaseModel]]: The Deck class.
         """
-        logger.debug("Getting reference class for ModelMetaData")
         return Deck
