@@ -4,13 +4,13 @@ from abc import ABC
 from typing import Mapping, Optional, Unpack
 
 from fabricatio_core import Task
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
 
-from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.config import capabilities_config
 
 

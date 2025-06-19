@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable, ClassVar, List, Optional
 
 from fabricatio_capabilities.capabilities.extract import Extract
-from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger

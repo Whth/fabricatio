@@ -4,7 +4,7 @@ from abc import ABC
 from asyncio import gather
 from typing import List, Optional, Unpack
 
-from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs

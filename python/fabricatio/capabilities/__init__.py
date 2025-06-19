@@ -16,9 +16,9 @@ if find_spec("fabricatio_tool"):
 
 if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
-    from fabricatio_capabilities.capabilities.propose import Propose
     from fabricatio_capabilities.capabilities.rating import Rating
     from fabricatio_capabilities.capabilities.task import DispatchTask, ProposeTask
+    from fabricatio_core.capabilities.propose import Propose
 
     __all__ += ["DispatchTask", "Extract", "HandleTask", "Propose", "ProposeTask", "Rating"]
 
