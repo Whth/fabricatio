@@ -3,12 +3,14 @@
 This module contains unit tests for LLM-related functionality within the Role class,
 specifically focusing on methods that interact with the UseLLM capability.
 """
+
 import os
 from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import AsyncMock, patch
 
 import litellm
 import pytest
+os.environ["FABRIK_LLM__API_KEY"] = "sk-123456789"
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models import llm
@@ -26,7 +28,8 @@ def generic_block(content: str, lang: str = "String") -> str:
     """Generate a generic block."""
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
-os.environ["FABRIK_LLM__API_KEY"]="sk-123456789"
+
+
 
 @pytest.fixture
 def mock_router(ret_value: str) -> Router:
@@ -37,7 +40,6 @@ def mock_router(ret_value: str) -> Router:
     Returns:
         Configured AsyncMock router object
     """
-
     mock = AsyncMock(spec=Router)
 
     async def _acomp_wrapper(*args: Any, **kwargs: Any) -> ModelResponse | CustomStreamWrapper:

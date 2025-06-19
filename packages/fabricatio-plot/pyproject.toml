@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-plot"
-version = "0.1.1-dev2"
+version = "0.1.1-dev3"
 description = "An extension of fabricatio, which brings up the capability to plot dataframe with matplotlib"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -30,6 +30,12 @@ dev = [
     "pytest",
 ]
 
+[project.optional-dependencies]
+excel=[
+    "openpyxl>=3.1.5",
+
+]
+
 
 [build-system]
 requires = ["hatchling"]
@@ -45,13 +51,13 @@ default = true
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
-[[tool.uv.index]]
-url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
-
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"

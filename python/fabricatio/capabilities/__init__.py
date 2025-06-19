@@ -2,9 +2,10 @@
 
 from importlib.util import find_spec
 
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM
 
-__all__ = ["UseEmbedding", "UseLLM"]
+__all__ = ["Propose", "UseEmbedding", "UseLLM"]
 
 if find_spec("fabricatio_tool"):
     from fabricatio_tool.capabilities.handle import Handle
@@ -18,9 +19,8 @@ if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
     from fabricatio_capabilities.capabilities.rating import Rating
     from fabricatio_capabilities.capabilities.task import DispatchTask, ProposeTask
-    from fabricatio_core.capabilities.propose import Propose
 
-    __all__ += ["DispatchTask", "Extract", "HandleTask", "Propose", "ProposeTask", "Rating"]
+    __all__ += ["DispatchTask", "Extract", "HandleTask", "ProposeTask", "Rating"]
 
 if find_spec("fabricatio_rag"):
     from fabricatio_rag.capabilities.rag import RAG
