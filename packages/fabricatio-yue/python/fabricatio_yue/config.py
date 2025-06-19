@@ -29,6 +29,9 @@ class YueConfig(BaseModel):
     select_genre_template: str = "select_genre"
     """Template name for genre selection."""
 
+    song_save_template: str = "song_save"
+    """Template name for saving a song."""
+
 
 yue_config = CONFIG.load("yue", YueConfig)
 __all__ = ["yue_config"]

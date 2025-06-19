@@ -1,0 +1,36 @@
+{{#with this as |song|}}# {{song.name}}
+
+> {{song.description}}
+
+Song Genres:
+{{code (join song.genres " ") "genres"}}  
+Song Duration: {{song.duration}} s
+
+Section Count: {{len song.segments}}
+
+---
+
+{{#each song.segments as |seg|}}
+## Section {{@index}}. {{seg.section_type}}
+
+> Section Duration: {{seg.duration}} s
+
+{{#if seg.extra_genres}}### Extra Genres
+
+{{code (join seg.extra_genres " ") "genres"}}
+
+### Assembled Genres
+
+```genres
+{{join song.genres " "}} {{join seg.extra_genres " "}}
+```
+
+{{/if}}
+### Lyrics
+
+```lyrics
+[{{seg.section_type}}]{{#each seg.lyrics}}
+{{this}}{{/each}}
+```
+
+{{/each}}{{/with}}
