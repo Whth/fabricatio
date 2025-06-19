@@ -3,7 +3,7 @@
 This module contains unit tests for LLM-related functionality within the Role class,
 specifically focusing on methods that interact with the UseLLM capability.
 """
-
+import os
 from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import AsyncMock, patch
 
@@ -26,18 +26,17 @@ def generic_block(content: str, lang: str = "String") -> str:
     """Generate a generic block."""
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
+os.environ["FABRIK_LLM__API_KEY"]="sk-123456789"
 
 @pytest.fixture
-def mock_router(ret_value: str, monkeypatch: pytest.MonkeyPatch) -> Router:
+def mock_router(ret_value: str) -> Router:
     """Fixture to create a mocked router with predefined response.
 
     Args:
         ret_value: The value to be returned by the mocked completion
-        monkeypatch: pytest monkeypatch fixture
     Returns:
         Configured AsyncMock router object
     """
-    monkeypatch.setenv("FABRIK_LLM__API_KEY", "sk-123456789")
 
     mock = AsyncMock(spec=Router)
 
