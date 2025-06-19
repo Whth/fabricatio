@@ -375,7 +375,10 @@ fn remove_templates(
 
     templates.iter().try_for_each(|pattern| {
         let pattern = Pattern::new(pattern).map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidInput, format!("Invalid pattern: {}", e))
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Invalid pattern: {}", e),
+            )
         })?;
 
         let all_templates = collect_templates_recursive(template_dir, None, template_dir)?;
@@ -389,9 +392,9 @@ fn remove_templates(
             return Ok(());
         }
 
-        matched_templates.iter().try_for_each(|(path, name)| {
-            remove_single_template(path, name, force, verbose)
-        })
+        matched_templates
+            .iter()
+            .try_for_each(|(path, name)| remove_single_template(path, name, force, verbose))
     })
 }
 

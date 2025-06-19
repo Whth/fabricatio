@@ -72,5 +72,4 @@ handlebars_helper!(head: |v:String , n: i64| {
 
 });
 
-
 handlebars_helper!(join: |v: Vec<String>, sep: String| v.join(&sep));

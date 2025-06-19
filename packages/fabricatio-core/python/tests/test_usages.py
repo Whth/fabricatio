@@ -55,6 +55,7 @@ class LLMRole(Role, UseLLM):
 
     llm_api_key: Optional[SecretStr] = SecretStr("sk-123456789")
     llm_model: Optional[str] = "openai/gpt-3.5-turbo"
+    llm_api_endpoint: Optional[str] = "https://api.openai.com/v1"
 
 
 @pytest.fixture(autouse=True)
