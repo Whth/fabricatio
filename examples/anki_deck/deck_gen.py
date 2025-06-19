@@ -79,7 +79,7 @@ csv_output_path = ok(
 
 deck_with_analysis: Deck = ok(
     Task(name="gen deck with analysis")
-    .update_init_context(source="topics_analyzed.csv", req=requirement, output="here")
+    .update_init_context(source=csv_output_path, req=requirement, output="reformed")
     .delegate_blocking(ns)
 )
 
