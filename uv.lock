@@ -759,7 +759,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-plot"
-version = "0.1.1.dev4"
+version = "0.1.1.dev5"
 source = { editable = "packages/fabricatio-plot" }
 dependencies = [
     { name = "fabricatio-core" },
