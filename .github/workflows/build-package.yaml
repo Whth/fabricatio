@@ -105,6 +105,8 @@ jobs:
       matrix:
         os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest]
         python-version: [ "3.12", "3.13" ]
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

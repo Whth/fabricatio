@@ -28,6 +28,8 @@ jobs:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest ]
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
