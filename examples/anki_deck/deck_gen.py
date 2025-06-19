@@ -5,6 +5,7 @@ from pathlib import Path
 from fabricatio import Action, Event, Role, Task, WorkFlow
 from fabricatio.capabilities import GenerateDeck
 from fabricatio.models import Deck
+from fabricatio_anki.actions.topic_analysis import AppendTopicAnalysis
 from fabricatio_anki.rust import add_csv_data, compile_deck
 from fabricatio_core import logger
 from fabricatio_core.utils import ok
@@ -44,20 +45,42 @@ class DeckGen(Action, GenerateDeck):
 (
     Role()
     .register_workflow(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(DeckGen().to_task_output(),)))
+    .register_workflow(
+        Event.quick_instantiate(ns2 := "topic_analyze"),
+        WorkFlow(steps=(AppendTopicAnalysis(csv_file="topics.csv").to_task_output(),)),
+    )
     .dispatch()
 )
 
+requirement = (
+    "Generate an Anki Deck for this question bank. The users are college students. "
+    "The deck should have a modern UI design and interactive features, "
+    "including animations when cards are clicked. Additionally, "
+    "it should display the time taken to answer each question and the accuracy rate of the answers."
+)
 deck: Deck = ok(
     Task(name="gen deck")
     .update_init_context(
         source="topics.csv",
-        req="Generate an Anki Deck for this question bank. The users are college students. "
-        "The deck should have a modern UI design and interactive features, "
-        "including animations when cards are clicked. Additionally, "
-        "it should display the time taken to answer each question and the accuracy rate of the answers.",
+        req=requirement,
         output="here",
     )
     .delegate_blocking(ns)
 )
 
 compile_deck("here", f"{deck.name}.apkg")
+
+csv_output_path = ok(
+    Task(name="analyze topics")
+    .update_init_context(csv_file="topics.csv", output="topics_analyzed.csv")
+    .delegate_blocking(ns2)
+)
+
+
+deck_with_analysis: Deck = ok(
+    Task(name="gen deck with analysis")
+    .update_init_context(source="topics_analyzed.csv", req=requirement, output="here")
+    .delegate_blocking(ns)
+)
+
+compile_deck("here", f"{deck_with_analysis.name}.apkg")
