@@ -28,8 +28,6 @@ jobs:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest ]
-    env:
-      GITHUB_TOKEN: ${{ secrets.PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +43,8 @@ jobs:
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
-
+        with:
+          repo-token: ${{ secrets.PAT }}
       - name: Install deps
         run: |
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple

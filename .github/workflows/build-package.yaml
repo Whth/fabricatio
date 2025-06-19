@@ -105,8 +105,7 @@ jobs:
       matrix:
         os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest]
         python-version: [ "3.12", "3.13" ]
-    env:
-      GITHUB_TOKEN: ${{ secrets.PAT }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -121,7 +120,7 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          repo-token: ${{ secrets.PAT }}
       - name: Install deps
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
