@@ -68,6 +68,9 @@ class AnkiConfig:
     If this value is incorrect or missing, Anki model generation will fail.
     """
 
+    topic_analysis_assemble_template: str = "topic_analysis_assemble"
+    """The template name used for assembling topic analysis."""    
+
 
 anki_config = CONFIG.load("anki", AnkiConfig)
 __all__ = ["anki_config"]

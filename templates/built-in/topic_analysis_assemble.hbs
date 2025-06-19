@@ -1,0 +1,70 @@
+<div class="topic-analysis">
+    <h2>Topic Analysis</h2>
+
+    <div class="metadata">
+        <p><strong>Difficulty:</strong> {{formatPercent difficulty_coefficient}} ({{difficultyDescription difficulty_coefficient}})</p>
+        <p><strong>Subjects:</strong> {{join subjects ", "}}</p>
+    </div>
+
+    <div class="key-points">
+        <h3>Key Points</h3>
+        <ul>
+            {{#each key_points}}
+                <li>{{this}}</li>
+            {{/each}}
+        </ul>
+    </div>
+
+    <div class="summary">
+        <h3>Summary</h3>
+        <p>{{brief_summary}}</p>
+    </div>
+
+    <div class="detailed-solution">
+        <h3>Detailed Solution</h3>
+        <div class="solution-content">
+            {{{detailed_solution}}}
+        </div>
+    </div>
+</div>
+
+<style>
+    .topic-analysis {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .topic-analysis h2, .topic-analysis h3 {
+        color: #2c3e50;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+
+    .metadata {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .key-points ul {
+        padding-left: 20px;
+    }
+
+    .key-points li {
+        margin-bottom: 8px;
+    }
+
+    .detailed-solution {
+        margin-top: 20px;
+        border-top: 1px dashed #ddd;
+        padding-top: 20px;
+    }
+
+    .solution-content {
+        white-space: pre-wrap;
+    }
+</style>
