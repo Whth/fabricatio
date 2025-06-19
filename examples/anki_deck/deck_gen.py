@@ -71,7 +71,7 @@ deck: Deck = ok(
 
 compile_deck("here", f"{deck.name}.apkg")
 
-logger.success(f'Compiled deck saved to {deck.name}.apkg')
+logger.success(f"Compiled deck saved to {deck.name}.apkg")
 csv_output_path = ok(
     Task(name="analyze topics")
     .update_init_context(csv_file="topics.csv", output_file="topics_analyzed.csv")
@@ -87,4 +87,4 @@ deck_with_analysis: Deck = ok(
 
 compile_deck("here", f"{deck_with_analysis.name}.apkg")
 
-logger.success(f'Compiled deck saved to {deck_with_analysis.name}.apkg')
+logger.success(f"Compiled deck saved to {deck_with_analysis.name}.apkg")
