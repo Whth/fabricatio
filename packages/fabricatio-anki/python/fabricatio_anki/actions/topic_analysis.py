@@ -5,12 +5,17 @@ from typing import Any, ClassVar
 
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
-
+import csv
 from fabricatio_anki.capabilities.generate_analysis import GenerateAnalysis
 
 
 class AppendTopicAnalysis(Action, GenerateAnalysis):
-    """Appends topic analysis results as a new column to a given CSV file."""
+    """Appends topic analysis results as a new column to a given CSV file.
+
+    This class reads the specified CSV file, generates topic analysis for each row,
+    and appends it as a new column. The result is either saved in a new file or
+    overwrites the original if no output path is provided.
+    """
 
     ctx_override: ClassVar[bool] = True
 
@@ -27,28 +32,50 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
     async def _execute(self, *_: Any, **cxt) -> Path | None:
         """Process the CSV file and append topic analysis as a new column.
 
+        Reads the CSV file line by line using the `csv` module, generates topic
+        analysis for each row, and writes the updated data back to the file or
+        to a new file if an output path is specified.
+
         Args:
-            *_: Variable positional arguments.
-            **cxt: Contextual keyword arguments.
+            *_: Ignored positional arguments.
+            **cxt: Contextual keyword arguments (not used here).
 
         Returns:
             Path: The path to the modified CSV file.
         """
-        p = Path(self.csv_file)
+        input_path = Path(self.csv_file)
+        output_path = Path(self.output_file or self.csv_file)
 
-        with p.open() as file:
-            lines = file.readlines()
-        header = lines[0]
-        if self.append_col_name in header:
-            logger.warning(f"'{self.append_col_name}' already exists in {p.as_posix()}")
-            return p
+        with input_path.open("r", newline="", encoding="utf-8") as infile:
+            reader = csv.DictReader(infile, delimiter=self.separator)
+            if not reader.fieldnames:
+                raise ValueError(f"CSV file {input_path} is empty or malformed.")
+            if self.append_col_name in reader.fieldnames:
+                logger.warning(f"'{self.append_col_name}' already exists in {input_path.as_posix()}")
+                return input_path
 
-        data_lines = lines[1:]
-        analysis_seq = ok(await self.generate_analysis([f"{header}\n{data}" for data in data_lines]))
+            # Read all rows and prepare for analysis
+            rows = list(reader)
+            fieldnames = list(reader.fieldnames) + [self.append_col_name]
 
-        header += self.append_col_name
-        new_data_lines = [f"{data},{analysis or ''}" for data, analysis in zip(data_lines, analysis_seq, strict=False)]
-        with Path(self.output_file or p).open("w") as file:
-            file.writelines([header, *new_data_lines])
-        logger.success(f"'{self.append_col_name}' column added to {p.as_posix()}")
-        return p
+        # Prepare content per row for analysis
+        contents = [
+            f"{','.join(row.values())}\n"  # Reconstructing line from values
+            for row in rows
+        ]
+
+        # Generate analysis asynchronously
+        analyses = ok(await self.generate_analysis(contents))
+
+        # Append analysis results to each row
+        for row, analysis in zip(rows, analyses):
+            row[self.append_col_name] = analysis.assemble() if analysis else ""
+
+        # Write updated rows to the output file
+        with output_path.open("w", newline="", encoding="utf-8") as outfile:
+            writer = csv.DictWriter(outfile, fieldnames=fieldnames, delimiter=self.separator)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        logger.success(f"'{self.append_col_name}' column added to {output_path.as_posix()}")
+        return output_path
