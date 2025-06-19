@@ -36,8 +36,9 @@ if find_spec("fabricatio_digest"):
 if find_spec("fabricatio_anki"):
     from fabricatio_anki.models.deck import Deck, Model
     from fabricatio_anki.models.template import Template
+    from fabricatio_anki.models.topic_analysis import TopicAnalysis
 
-    __all__ += ["Deck", "Model", "Template"]
+    __all__ += ["Deck", "Model", "Template", "TopicAnalysis"]
 
 if find_spec("fabricatio_question"):
     from fabricatio_question.models.questions import SelectionQuestion

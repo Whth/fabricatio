@@ -69,7 +69,10 @@ class AnkiConfig:
     """
 
     topic_analysis_assemble_template: str = "topic_analysis_assemble"
-    """The template name used for assembling topic analysis."""    
+    """The template name used for assembling topic analysis."""
+
+    generate_topic_analysis_template: str = "generate_topic_analysis"
+    """The template name used for generating analysis."""
 
 
 anki_config = CONFIG.load("anki", AnkiConfig)

@@ -54,9 +54,10 @@ if find_spec("fabricatio_digest"):
     __all__ += ["Digest"]
 
 if find_spec("fabricatio_anki"):
+    from fabricatio_anki.capabilities.generate_analysis import GenerateAnalysis
     from fabricatio_anki.capabilities.generate_deck import GenerateDeck
 
-    __all__ += ["GenerateDeck"]
+    __all__ += ["GenerateAnalysis", "GenerateDeck"]
 
 if find_spec("fabricatio_tagging"):
     from fabricatio_tagging.capabilities.tagging import Tagging

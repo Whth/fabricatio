@@ -51,7 +51,10 @@ deck: Deck = ok(
     Task(name="gen deck")
     .update_init_context(
         source="topics.csv",
-        req="为这个题库生成一个Anki Deck, 用户是中国大学生，需要有现代化的UI设计和交互，点击卡片后需要有动画效果，此外还需要有答题用时显示和答题正确率显示",
+        req="Generate an Anki Deck for this question bank. The users are college students. "
+        "The deck should have a modern UI design and interactive features, "
+        "including animations when cards are clicked. Additionally, "
+        "it should display the time taken to answer each question and the accuracy rate of the answers.",
         output="here",
     )
     .delegate_blocking(ns)
