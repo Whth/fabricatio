@@ -334,7 +334,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.9.1"
+version = "0.9.2.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -555,7 +555,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.4"
+version = "0.3.5.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -652,7 +652,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-judge"
-version = "0.1.4"
+version = "0.1.5.dev0"
 source = { editable = "packages/fabricatio-judge" }
 dependencies = [
     { name = "fabricatio-capabilities" },

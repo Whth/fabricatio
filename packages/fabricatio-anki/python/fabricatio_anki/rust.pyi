@@ -49,7 +49,7 @@ def compile_deck(path: Path | str, output: Path | str) -> None:
     """
 
 def create_deck_project(
-    path: str,
+    path: str | Path,
     deck_name: str | None = None,
     deck_description: str | None = None,
     author: str | None = None,
@@ -167,7 +167,7 @@ def create_deck_project(
           configuration files and clear separation of content and presentation.
     """
 
-def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
+def save_metadata(dir_path: Path | str, name: str, data: Dict) -> None:
     """Save metadata as a YAML file in the specified directory.
 
     This function takes a dictionary of metadata and saves it as a YAML file
@@ -196,7 +196,7 @@ def save_metadata(dir_path: Path, name: str, data: Dict) -> None:
     """
 
 def save_template(
-    dir_path: Path,
+    dir_path: Path | str,
     front: str,
     back: str,
     css: str | None = None,
