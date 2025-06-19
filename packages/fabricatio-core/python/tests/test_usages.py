@@ -4,20 +4,18 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-import os
 from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import AsyncMock, patch
 
 import litellm
 import pytest
-
-os.environ["FABRIK_LLM__API_KEY"] = "sk-123456789"
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models import llm
 from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
+from pydantic import SecretStr
 
 
 def code_block(content: str, lang: str = "json") -> str:
@@ -55,6 +53,7 @@ class LLMRole(Role, UseLLM):
     for testing purposes.
     """
 
+    llm_api_key: SecretStr = SecretStr("sk-123456789")
     pass
 
 
