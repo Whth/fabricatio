@@ -25,14 +25,16 @@ class GenerateAnalysis(Propose):
         self, topic: str, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
     ) -> None | TopicAnalysis: ...
 
+
     @overload
     async def generate_analysis(
         self, topic: List[str], **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
     ) -> List[TopicAnalysis | None] | None: ...
 
+
     async def generate_analysis(
         self, topic: str | List[str], **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
-    ) -> None | TopicAnalysis | List[TopicAnalysis | None]:
+    ) -> None | TopicAnalysis | List[TopicAnalysis | None]|List[TopicAnalysis]:
         """Generates an analysis for the given topic(s) using a template-based approach.
 
         This method renders a template with the provided topic information and proposes
@@ -50,6 +52,9 @@ class GenerateAnalysis(Propose):
         """
         return await self.propose(
             TopicAnalysis,
-            TEMPLATE_MANAGER.render_template(anki_config.generate_topic_analysis_template, {"topic": topic}),
+            TEMPLATE_MANAGER.render_template(
+                anki_config.generate_topic_analysis_template,
+                [{"topic": t} for t in topic] if isinstance(topic, list) else {"topic": topic},
+            ),
             **kwargs,
         )

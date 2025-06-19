@@ -1,11 +1,12 @@
 """AppendTopicAnalysis adds topic analysis to a CSV file as a new column."""
 
+import csv
 from pathlib import Path
 from typing import Any, ClassVar
 
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
-import csv
+
 from fabricatio_anki.capabilities.generate_analysis import GenerateAnalysis
 
 
@@ -56,7 +57,7 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
 
             # Read all rows and prepare for analysis
             rows = list(reader)
-            fieldnames = list(reader.fieldnames) + [self.append_col_name]
+            fieldnames = [*list(reader.fieldnames), self.append_col_name]
 
         # Prepare content per row for analysis
         contents = [
@@ -68,7 +69,7 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
         analyses = ok(await self.generate_analysis(contents))
 
         # Append analysis results to each row
-        for row, analysis in zip(rows, analyses):
+        for row, analysis in zip(rows, analyses, strict=False):
             row[self.append_col_name] = analysis.assemble() if analysis else ""
 
         # Write updated rows to the output file
