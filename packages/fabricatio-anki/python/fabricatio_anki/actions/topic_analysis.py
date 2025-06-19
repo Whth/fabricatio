@@ -60,20 +60,22 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
             fieldnames = [*list(reader.fieldnames), self.append_col_name]
 
         # Prepare content per row for analysis
-        contents = [
-            f"{','.join(row.values())}\n"  # Reconstructing line from values
-            for row in rows
-        ]
-
         # Generate analysis asynchronously
-        analyses = ok(await self.generate_analysis(contents))
+        analyses = ok(
+            await self.generate_analysis(
+                [
+                    f"{','.join(fieldnames)}\n{','.join(row.values())}\n"  # Reconstructing line from values
+                    for row in rows
+                ]
+            )
+        )
 
         # Append analysis results to each row
         for row, analysis in zip(rows, analyses, strict=False):
             row[self.append_col_name] = analysis.assemble() if analysis else ""
-
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         # Write updated rows to the output file
-        with output_path.open("w", newline="", encoding="utf-8") as outfile:
+        with output_path.open("w+", newline="", encoding="utf-8") as outfile:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames, delimiter=self.separator)
             writer.writeheader()
             writer.writerows(rows)
