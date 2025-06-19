@@ -119,7 +119,7 @@ jobs:
           rustup default nightly
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
-        env:
+        with:
           repo-token: ${{ secrets.PAT }}
       - name: Install deps
         run: |
