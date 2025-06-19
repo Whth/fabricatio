@@ -72,7 +72,7 @@ class Handle(UseTool, ABC):
         return None
 
     async def handle(
-        self, request: str, data: Optional[Dict[str, Any]]=None, **kwargs: Unpack[ValidateKwargs[str]]
+        self, request: str, data: Optional[Dict[str, Any]] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
         okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))

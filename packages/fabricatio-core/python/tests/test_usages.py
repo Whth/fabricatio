@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import litellm
 import pytest
+
 os.environ["FABRIK_LLM__API_KEY"] = "sk-123456789"
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
@@ -27,8 +28,6 @@ def code_block(content: str, lang: str = "json") -> str:
 def generic_block(content: str, lang: str = "String") -> str:
     """Generate a generic block."""
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
-
-
 
 
 @pytest.fixture

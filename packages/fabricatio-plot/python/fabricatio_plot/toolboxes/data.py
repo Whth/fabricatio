@@ -124,31 +124,6 @@ def get_data_summary(df: pd.DataFrame) -> Dict[str, Any]:
     return summary
 
 
-@data_toolbox.collect_tool
-def get_column_data(df: pd.DataFrame, column_name: str, n_samples: int = 5) -> Dict[str, Any]:
-    """Get information about a specific column.
-
-    Args:
-        df: Input DataFrame.
-        column_name: Name of the column to inspect.
-        n_samples: Number of sample values to return.
-
-    Returns:
-        Dictionary containing:
-        - 'dtype': Data type of the column
-        - 'unique_count': Number of unique values
-        - 'sample_values': List of sample values
-    """
-    if column_name not in df.columns:
-        raise ValueError(f"Column '{column_name}' not found in DataFrame")
-
-    return {
-        "dtype": str(df[column_name].dtype),
-        "unique_count": df[column_name].nunique(),
-        "sample_values": df[column_name].head(n_samples).tolist(),
-    }
-
-
 # =====================
 # Data Cleaning & Transformation
 # =====================
@@ -173,35 +148,6 @@ def handle_missing_values(
             raise ValueError("fill_value must be provided when using 'fill' strategy")
         return df.fillna(fill_value)
     raise ValueError("Invalid strategy. Use 'drop' or 'fill'.")
-
-
-@data_toolbox.collect_tool
-def convert_column_type(df: pd.DataFrame, column_name: str, new_type: str) -> pd.DataFrame:
-    """Convert a column to a different data type.
-
-    Args:
-        df: Input DataFrame.
-        column_name: Name of the column to convert.
-        new_type: Target data type ('int', 'float', 'str', 'datetime').
-
-    Returns:
-        DataFrame with converted column.
-    """
-    if column_name not in df.columns:
-        raise ValueError(f"Column '{column_name}' not found in DataFrame")
-
-    conversion_map = {"int": "int32", "float": "float64", "str": "string", "datetime": "datetime64[ns]"}
-
-    if new_type not in conversion_map:
-        raise ValueError(f"Unsupported type '{new_type}'. Use: {list(conversion_map.keys())}")
-
-    df = df.copy()
-    if new_type == "datetime":
-        df[column_name] = pd.to_datetime(df[column_name])
-    else:
-        df[column_name] = df[column_name].astype(conversion_map[new_type])
-
-    return df
 
 
 @data_toolbox.collect_tool
