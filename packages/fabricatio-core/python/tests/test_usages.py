@@ -53,8 +53,8 @@ class LLMRole(Role, UseLLM):
     for testing purposes.
     """
 
-    llm_api_key: SecretStr = SecretStr("sk-123456789")
-    pass
+    llm_api_key: Optional[SecretStr] = SecretStr("sk-123456789")
+    llm_model: Optional[str] = "openai/gpt-3.5-turbo"
 
 
 @pytest.fixture(autouse=True)
