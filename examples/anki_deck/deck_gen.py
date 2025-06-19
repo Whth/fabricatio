@@ -57,6 +57,7 @@ requirement = (
     "The deck should have a modern UI design and interactive features, "
     "including animations when cards are clicked. Additionally, "
     "it should display the time taken to answer each question and the accuracy rate of the answers."
+    "You Must use github-dark coloring for the UI design. dark mode should be enabled by default, do care about the font visibility."
 )
 deck: Deck = ok(
     Task(name="gen deck")
