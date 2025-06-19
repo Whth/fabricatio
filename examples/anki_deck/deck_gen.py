@@ -72,7 +72,7 @@ compile_deck("here", f"{deck.name}.apkg")
 
 csv_output_path = ok(
     Task(name="analyze topics")
-    .update_init_context(csv_file="topics.csv", output="topics_analyzed.csv")
+    .update_init_context(csv_file="topics.csv", output_file="topics_analyzed.csv")
     .delegate_blocking(ns2)
 )
 
