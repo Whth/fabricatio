@@ -103,8 +103,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest ]
+        os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest]
         python-version: [ "3.12", "3.13" ]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -118,8 +119,8 @@ jobs:
           rustup default nightly
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+        with:
+          repo-token: ${{ secrets.PAT }}
       - name: Install deps
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
@@ -150,7 +151,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
-          append_body: false
+          fail_on_unmatched_files: true
+          overwrite_files: true
           files: |
             ${{ matrix.os }}-${{ matrix.python-version }}/*.whl
         env:

@@ -3,10 +3,10 @@
 from abc import ABC
 from typing import Optional, Unpack
 
-from fabricatio_capabilities.capabilities.propose import Propose
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 
-from fabricatio_judge.models.advanced_judge import JudgeMent
+from fabricatio_judge.models.judgement import JudgeMent
 
 
 class AdvancedJudge(Propose, ABC):

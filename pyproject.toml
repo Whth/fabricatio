@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.9.0"
+version = "0.9.5-dev3"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -156,7 +156,8 @@ ignore = [
     "PYI019",
     "B008",
     "S101",
-    "PLR2004"
+    "PLR2004",
+    "PLC0415"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"

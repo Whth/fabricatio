@@ -3,8 +3,8 @@
 from abc import ABC
 from typing import Dict, Optional, Set, Unpack
 
-from fabricatio_capabilities.capabilities.propose import Propose
 from fabricatio_capabilities.capabilities.rating import Rating
+from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task

@@ -23,7 +23,7 @@ if find_spec("fabricatio_typst"):
         __all__ += ["ArticleChunk"]
 
 if find_spec("fabricatio_judge"):
-    from fabricatio_judge.models.advanced_judge import JudgeMent
+    from fabricatio_judge.models.judgement import JudgeMent
 
     __all__ += ["JudgeMent"]
 

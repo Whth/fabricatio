@@ -89,7 +89,7 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
     project_root = Path(project_root)
 
     scripts_dir = project_root.joinpath(SCRIPTS_DIR)
-
+    scripts_dir.mkdir(parents=True, exist_ok=True)
     ret = run_cmd(
         [
             [

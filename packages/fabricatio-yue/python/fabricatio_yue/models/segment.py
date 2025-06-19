@@ -9,9 +9,12 @@ and lyrics.
 from pathlib import Path
 from typing import List, Self
 
-from fabricatio_core import logger
+from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core.fs.curd import dump_text
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
-from pydantic import NonNegativeInt, PrivateAttr
+from pydantic import Field, NonNegativeInt
+
+from fabricatio_yue.config import yue_config
 
 
 class Segment(SketchedAble):
@@ -24,8 +27,8 @@ class Segment(SketchedAble):
     """Duration of the segment in seconds"""
     lyrics: List[str]
     """Lyrics for this segment as a list of lines"""
-    _extra_genres: List[str] = PrivateAttr(default_factory=list)
-    """Additional genre tags for this segment"""
+    extra_genres: List[str] = Field(default_factory=list)
+    """Additional genre tags for this segment to control generation if specified."""
 
     def override_extra_genres(self, genres: List[str]) -> Self:
         """Override the genre tags for this segment.
@@ -33,17 +36,8 @@ class Segment(SketchedAble):
         Args:
             genres (List[str]): New list of genre tags
         """
-        self._extra_genres = genres
+        self.extra_genres = genres
         return self
-
-    @property
-    def extra_genres(self) -> List[str]:
-        """Get the additional genre tags for this segment.
-
-        Returns:
-            List[str]: List of genre tags
-        """
-        return self._extra_genres
 
     @property
     def assemble(self) -> str:
@@ -52,7 +46,7 @@ class Segment(SketchedAble):
         Returns:
             str: A formatted string with section type header and lyrics
         """
-        return f"[{self.section_type}]\n" + "\n".join(self.lyrics) + "\n"
+        return f"[{self.section_type}]\n" + "\n".join(self.lyrics)
 
 
 class Song(SketchedAble, WithBriefing):
@@ -84,11 +78,6 @@ class Song(SketchedAble, WithBriefing):
         self.genres.extend(genres)
         return self
 
-    @property
-    def briefing(self) -> str:
-        """Generate a briefing of the song including its genre tags and duration."""
-        return f"# {self.name}\n>{self.description}\n\nDuration: {self.duration} s.\n\n{self.block(' '.join(self.genres), 'genres')} \n\n---\n"
-
     def save_to(self, parent_dir: str | Path) -> Self:
         """Save the song to a directory.
 
@@ -103,35 +92,10 @@ class Song(SketchedAble, WithBriefing):
 
         logger.info(f"Saving song to {file_path.as_posix()}")
 
-        out = f"{self.briefing}\n" + "\n".join(
-            f"## Section {i}. {seg.section_type.capitalize()}\n\n> Duration: {seg.duration} s.\n\n{self._wrapp(seg)}"
-            for i, seg in enumerate(self.segments)
+        out = TEMPLATE_MANAGER.render_template(
+            yue_config.song_save_template, {"duration": self.duration, **self.model_dump()}
         )
-
-        file_path.write_text(out, encoding="utf-8")
+        logger.debug(f"Song content:\n{out}")
+        dump_text(file_path, out)
 
         return self
-
-    def _wrapp(self, segment: Segment) -> str:
-        return (
-            f"Duration: {segment.duration} s.\n\n"
-            + (
-                f"Extra Genres: {self.block(' '.join(segment.extra_genres), 'genres')}\n"
-                f"Assembled Genres: {self.block(' '.join(self.genres + segment.extra_genres), 'genres')}"
-            )
-            if segment.extra_genres
-            else "" + f"Lyrics:{self.block(segment.assemble, 'lyrics')}"
-        )
-
-    @staticmethod
-    def block(content: str, lang: str = "text") -> str:
-        """Create a markdown code block with the specified language.
-
-        Args:
-            content (str): The content to wrap in the code block
-            lang (str, optional): The language identifier for syntax highlighting. Defaults to 'text'
-
-        Returns:
-            str: A formatted markdown code block
-        """
-        return f"\n```{lang}\n{content}\n```\n"

@@ -144,7 +144,7 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n��� Kwargs:{kwargs}\n",
+                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
                 instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask():
                 return func(*args, **kwargs)

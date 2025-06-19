@@ -7,17 +7,18 @@ from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM
 __all__ = ["UseEmbedding", "UseLLM"]
 
 if find_spec("fabricatio_tool"):
+    from fabricatio_tool.capabilities.handle import Handle
     from fabricatio_tool.capabilities.handle_task import HandleTask
     from fabricatio_tool.capabilities.use_tool import UseTool
 
-    __all__ += ["HandleTask", "UseTool"]
+    __all__ += ["Handle", "HandleTask", "UseTool"]
 
 
 if find_spec("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
-    from fabricatio_capabilities.capabilities.propose import Propose
     from fabricatio_capabilities.capabilities.rating import Rating
     from fabricatio_capabilities.capabilities.task import DispatchTask, ProposeTask
+    from fabricatio_core.capabilities.propose import Propose
 
     __all__ += ["DispatchTask", "Extract", "HandleTask", "Propose", "ProposeTask", "Rating"]
 
