@@ -6,24 +6,69 @@
 
 
 
+<p align="center">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">
+  </a>
+  <a href="https://pypi.org/project/fabricatio/">
+    <img src="https://img.shields.io/pypi/pyversions/fabricatio" alt="Python Versions">
+  </a>
+  <a href="https://pypi.org/project/fabricatio/">
+    <img src="https://img.shields.io/pypi/v/fabricatio" alt="PyPI Version">
+  </a>
+  <a href="https://deepwiki.com/Whth/fabricatio">
+    <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki">
+  </a>
+  <a href="https://pepy.tech/projects/fabricatio">
+    <img src="https://static.pepy.tech/badge/fabricatio/week" alt="PyPI Downloads (Week)">
+  </a>
+  <a href="https://pepy.tech/projects/fabricatio">
+    <img src="https://static.pepy.tech/badge/fabricatio" alt="PyPI Downloads">
+  </a>
+  <a href="https://github.com/PyO3/pyo3">
+    <img src="https://img.shields.io/badge/bindings-pyo3-green" alt="Bindings: PyO3">
+  </a>
+  <a href="https://github.com/BerriAI/litellm">
+    <img src="https://img.shields.io/badge/Powered%20by-LiteLLM-blue" alt="Powered by LiteLLM">
+  </a>
+  <a href="https://github.com/astral-sh/uv">
+    <img src="https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange" alt="Build Tool: uv + maturin">
+  </a>
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio)](https://pypi.org/project/fabricatio/)
-[![PyPI Version](https://img.shields.io/pypi/v/fabricatio)](https://pypi.org/project/fabricatio/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Whth/fabricatio)
-[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio/week)](https://pepy.tech/projects/fabricatio)
-[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio)](https://pepy.tech/projects/fabricatio)
-[![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
-[![Powered by LiteLLM](https://img.shields.io/badge/Powered%20by-LiteLLM-blue)](https://github.com/BerriAI/litellm)
-[![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
-[![Documentation Status](https://readthedocs.org/projects/fabricatio/badge/?version=latest)](https://fabricatio.readthedocs.io/en/latest/?badge=fabricatio)
-[![Build Package](https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml)
-[![Ruff Lint](https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml)
-[![Tests](https://github.com/Whth/fabricatio/actions/workflows/tests.yaml/badge.svg)](https://github.com/Whth/fabricatio/actions/workflows/tests.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/Whth/fabricatio/badge.svg?branch=master)](https://coveralls.io/github/Whth/fabricatio?branch=master)
-![GitHub Issues](https://img.shields.io/github/issues/Whth/fabricatio)
-![GitHub Pull Requests](https://img.shields.io/github/issues-pr/Whth/fabricatio)
-![GitHub Stars](https://img.shields.io/github/stars/Whth/fabricatio)
+</p>
+
+
+<p align="center">
+
+ <a href="https://fabricatio.readthedocs.io/en/latest/?badge=fabricatio">
+    <img src="https://readthedocs.org/projects/fabricatio/badge/?version=latest" alt="Documentation Status">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml">
+    <img src="https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml/badge.svg" alt="Build Package">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml">
+    <img src="https://github.com/Whth/fabricatio/actions/workflows/ruff.yaml/badge.svg" alt="Ruff Lint">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/actions/workflows/tests.yaml">
+    <img src="https://github.com/Whth/fabricatio/actions/workflows/tests.yaml/badge.svg" alt="Tests">
+  </a>
+  <a href="https://coveralls.io/github/Whth/fabricatio?branch=master">
+    <img src="https://coveralls.io/repos/github/Whth/fabricatio/badge.svg?branch=master" alt="Coverage Status">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/issues">
+    <img src="https://img.shields.io/github/issues/Whth/fabricatio" alt="GitHub Issues">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/pulls">
+    <img src="https://img.shields.io/github/issues-pr/Whth/fabricatio" alt="GitHub Pull Requests">
+  </a>
+  <a href="https://github.com/Whth/fabricatio/stargazers">
+    <img src="https://img.shields.io/github/stars/Whth/fabricatio" alt="GitHub Stars">
+  </a>
+</p>
+
+
+
+
 ---
 
 ## Overview
