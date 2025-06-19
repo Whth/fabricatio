@@ -19,7 +19,7 @@ use tar::Archive;
 )]
 struct Cli {
     /// Enable verbose output
-    #[arg(short, long, global = true)]
+    #[arg(long, global = true)]
     verbose: bool,
 
     /// Force operations without confirmation prompts
