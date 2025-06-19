@@ -371,19 +371,27 @@ fn remove_templates(
     force: bool,
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    templates.iter().try_for_each(|template_name| {
-        let matching_templates = find_matching_templates(template_name, template_dir)?;
+    use glob::Pattern;
 
-        if matching_templates.is_empty() {
-            eprintln!("{} Template not found: {}", "✗".red(), template_name);
+    templates.iter().try_for_each(|pattern| {
+        let pattern = Pattern::new(pattern).map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidInput, format!("Invalid pattern: {}", e))
+        })?;
+
+        let all_templates = collect_templates_recursive(template_dir, None, template_dir)?;
+        let matched_templates: Vec<_> = all_templates
+            .into_iter()
+            .filter(|(_, name)| pattern.matches(name))
+            .collect();
+
+        if matched_templates.is_empty() {
+            eprintln!("{} No templates matched pattern: {}", "✗".red(), pattern);
             return Ok(());
         }
 
-        matching_templates
-            .iter()
-            .try_for_each(|(template_path, relative_path)| {
-                remove_single_template(template_path, relative_path, force, verbose)
-            })
+        matched_templates.iter().try_for_each(|(path, name)| {
+            remove_single_template(path, name, force, verbose)
+        })
     })
 }
 
