@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-tool"
-version = "0.4.0"
+version = "0.4.1-dev0"
 description = "An extension of fabricatio, which brings up the capability to use tool with native python."
 readme = "README.md"
 authors = [
