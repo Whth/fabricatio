@@ -23,6 +23,7 @@ members = [
     "fabricatio-rule",
     "fabricatio-tagging",
     "fabricatio-tool",
+    "fabricatio-translate",
     "fabricatio-typst",
     "fabricatio-yue",
 ]
@@ -430,6 +431,7 @@ full = [
     { name = "fabricatio-rule" },
     { name = "fabricatio-tagging" },
     { name = "fabricatio-tool" },
+    { name = "fabricatio-translate" },
     { name = "fabricatio-typst" },
     { name = "fabricatio-yue" },
     { name = "typer-slim", extra = ["standard"] },
@@ -460,6 +462,9 @@ tagging = [
 ]
 tool = [
     { name = "fabricatio-tool" },
+]
+translate = [
+    { name = "fabricatio-translate" },
 ]
 typst = [
     { name = "fabricatio-typst" },
@@ -499,7 +504,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "improve", "rag", "yue", "tool", "plot"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "improve", "rag", "yue", "tool", "plot", "translate"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
     { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
@@ -514,11 +519,12 @@ requires-dist = [
     { name = "fabricatio-rule", marker = "extra == 'rule'", editable = "packages/fabricatio-rule" },
     { name = "fabricatio-tagging", marker = "extra == 'tagging'", editable = "packages/fabricatio-tagging" },
     { name = "fabricatio-tool", marker = "extra == 'tool'", editable = "packages/fabricatio-tool" },
+    { name = "fabricatio-translate", marker = "extra == 'translate'", editable = "packages/fabricatio-translate" },
     { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
     { name = "fabricatio-yue", marker = "extra == 'yue'", editable = "packages/fabricatio-yue" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot"]
+provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -620,7 +626,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.8"
+version = "0.3.9.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -898,6 +904,25 @@ requires-dist = [
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "pydantic", specifier = ">=2.11.7" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "fabricatio-translate"
+version = "0.1.1.dev0"
+source = { editable = "packages/fabricatio-translate" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
