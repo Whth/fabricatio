@@ -1,0 +1,12 @@
+[package]
+name = "fabricatio-locale"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+polib = "0.2.0"
+
+pyo3 = { version = "0.24.2", features = ["extension-module"] }
+
