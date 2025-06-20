@@ -230,10 +230,10 @@ impl TemplateManager {
     fn register_builtin_helper(&mut self) -> &mut Self {
         self.handlebars.register_helper("len", Box::new(len));
         self.handlebars
-            .register_helper("getlang", Box::new(getlang));
+            .register_helper("lang", Box::new(getlang));
         self.handlebars.register_helper("hash", Box::new(hash));
         self.handlebars
-            .register_helper("word_count", Box::new(word_count));
+            .register_helper("words", Box::new(word_count));
         self.handlebars.register_helper("block", Box::new(block));
         self.handlebars
             .register_helper("ls", Box::new(list_out_string));
