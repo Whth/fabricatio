@@ -229,8 +229,7 @@ impl TemplateManager {
 
     fn register_builtin_helper(&mut self) -> &mut Self {
         self.handlebars.register_helper("len", Box::new(len));
-        self.handlebars
-            .register_helper("lang", Box::new(getlang));
+        self.handlebars.register_helper("lang", Box::new(getlang));
         self.handlebars.register_helper("hash", Box::new(hash));
         self.handlebars
             .register_helper("words", Box::new(word_count));
