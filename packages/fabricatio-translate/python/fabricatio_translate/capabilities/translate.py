@@ -6,7 +6,7 @@ LLM infrastructure.
 """
 
 import asyncio
-from typing import List, Unpack
+from typing import List, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
@@ -32,8 +32,6 @@ class Translate(UseLLM):
     This class leverages the UseLLM base class to perform translations by rendering
     a translation template and executing it using the LLM infrastructure.
     """
-
-    from typing import overload
 
     @overload
     async def translate(

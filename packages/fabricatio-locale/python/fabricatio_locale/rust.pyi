@@ -10,7 +10,7 @@ class Message:
     txt: str
     def __init__(self, *, id: str, txt: str) -> None: ...
 
-def read_pofile(file_path: Path) -> List[Message]:
+def read_pofile(file_path: Path | str) -> List[Message]:
     """Reads a .po file and returns a list of Message objects containing msgid and msgstr.
 
     Args:
@@ -23,7 +23,7 @@ def read_pofile(file_path: Path) -> List[Message]:
         PyRuntimeError: If there is an error parsing the .po file.
     """
 
-def update_pofile(file_path: Path, messages: List[Message]) -> None:
+def update_pofile(file_path: Path | str, messages: List[Message]) -> None:
     """Updates a .po file with the provided messages.
 
     Args:
