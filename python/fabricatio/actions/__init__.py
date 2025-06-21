@@ -72,3 +72,8 @@ if find_spec("fabricatio_yue"):
     from fabricatio_yue.actions.compose import Compose
 
     __all__ += ["Compose"]
+
+if find_spec("fabricatio_locale"):
+    from fabricatio_locale.actions.localize import LocalizePoFile
+
+    __all__ += ["LocalizePoFile"]

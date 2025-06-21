@@ -77,3 +77,14 @@ if find_spec("fabricatio_memory"):
     from fabricatio_memory.capabilities.memory import Remember
 
     __all__ += ["Remember"]
+
+
+if find_spec("fabricatio_translate"):
+    from fabricatio_translate.capabilities.translate import Translate
+
+    __all__ += ["Translate"]
+
+    if find_spec("fabricatio_locale"):
+        from fabricatio_locale.capabilities.localize import Localize
+
+        __all__ += ["Localize"]
