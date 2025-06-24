@@ -21,6 +21,8 @@ source =
     packages/fabricatio-yue/python/fabricatio_tool
     packages/fabricatio-plot/python/fabricatio_plot
     packages/fabricatio-tool/python/fabricatio_tool
+    packages/fabricatio-translate/python/fabricatio_translate
+    packages/fabricatio-locale/python/fabricatio_locale
 
 omit =
     */__init__.py
