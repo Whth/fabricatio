@@ -12,6 +12,7 @@ import pytest
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models import llm
+from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import code_block, generic_block
 from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
@@ -37,20 +38,10 @@ def mock_router(ret_value: str) -> Router:
     return mock
 
 
-class LLMRole(Role, UseLLM):
-    """Test class combining Role and UseLLM functionality.
-
-    A concrete implementation of Role mixed with UseLLM capabilities
-    for testing purposes.
-    """
-
-    llm_api_key: Optional[SecretStr] = SecretStr("sk-123456789")
-    llm_model: Optional[str] = "openai/gpt-3.5-turbo"
-    llm_api_endpoint: Optional[str] = "https://api.openai.com/v1"
 
 
 @pytest.fixture(autouse=True)
-def role_with_llm() -> LLMRole:
+def role_with_llm() -> LLMTestRole:
     """Fixture providing an LLM-enabled role instance.
 
     Creates and returns an instance of LLMRole for testing.
@@ -58,7 +49,7 @@ def role_with_llm() -> LLMRole:
     Returns:
         Ready-to-use LLMRole instance
     """
-    return LLMRole()
+    return LLMTestRole()
 
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
@@ -79,7 +70,7 @@ async def test_router_completion(mock_router: Router, ret_value: str) -> None:
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
 @pytest.mark.asyncio
-async def test_aquery(mock_router: Router, ret_value: str, role_with_llm: LLMRole) -> None:
+async def test_aquery(mock_router: Router, ret_value: str, role_with_llm: LLMTestRole) -> None:
     """Test asynchronous query functionality.
 
     Validates that the aquery method correctly interacts with the LLM
@@ -98,7 +89,7 @@ async def test_aquery(mock_router: Router, ret_value: str, role_with_llm: LLMRol
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
 @pytest.mark.asyncio
-async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMRole) -> None:
+async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMTestRole) -> None:
     """Test asynchronous ask functionality.
 
     Ensures that simple question answering works as expected
@@ -130,7 +121,7 @@ async def test_aask_branches(
     ret_value: str,
     question_input: str | list[str],
     system_input: Optional[str | list[str]],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test different input branches of aask functionality.
 
@@ -184,7 +175,7 @@ async def test_aask_validate(
     validator: Callable[[str], Any],
     default: Optional[Any],
     max_validations: int,
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the aask_validate method with different validation scenarios.
 
@@ -250,7 +241,7 @@ async def test_amapping_str(
     requirement: str,
     k: int,
     expected_result: Optional[Dict[str, str]],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the amapping_str method with different scenarios.
 
@@ -295,7 +286,7 @@ async def test_alist_str(
     requirement: str,
     k: int,
     expected_result: Optional[List[str]],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the alist_str method with different scenarios.
 
@@ -342,7 +333,7 @@ async def test_alist_str_with_requirement_list(
     requirement_list: List[str],
     k: int,
     expected_result: Optional[List[str]],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the alist_str method with a list of requirements.
 
@@ -374,7 +365,7 @@ async def test_alist_str_with_requirement_list(
 )
 @pytest.mark.asyncio
 async def test_apathstr(
-    mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMRole
+    mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMTestRole
 ) -> None:
     """Test the apathstr method with different scenarios.
 
@@ -409,7 +400,7 @@ async def test_awhich_pathstr(
     ret_value: str,
     requirement: str,
     expected_result: Optional[str],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the awhich_pathstr method with different scenarios.
 
@@ -444,7 +435,7 @@ async def test_ageneric_string(
     ret_value: str,
     requirement: str | List[str],
     expected_result: Optional[str | List[str]],
-    role_with_llm: LLMRole,
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the ageneric_string method with different scenarios.
 
