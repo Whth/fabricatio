@@ -5,16 +5,14 @@ specifically focusing on methods that interact with the UseLLM capability.
 """
 
 from typing import Any, Callable, Dict, List, Optional
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-import litellm
 import pytest
 from fabricatio_core.models import llm
 from fabricatio_mock.models.mock_role import LLMTestRole
+from fabricatio_mock.models.mock_router import return_string
 from fabricatio_mock.utils import code_block, generic_block
 from litellm import Router
-from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
-from litellm.types.utils import ModelResponse
 
 
 @pytest.fixture
@@ -26,13 +24,7 @@ def mock_router(ret_value: str) -> Router:
     Returns:
         Configured AsyncMock router object
     """
-    mock = AsyncMock(spec=Router)
-
-    async def _acomp_wrapper(*args: Any, **kwargs: Any) -> ModelResponse | CustomStreamWrapper:
-        return litellm.mock_completion(*args, mock_response=ret_value, **kwargs)
-
-    mock.acompletion = _acomp_wrapper
-    return mock
+    return return_string(ret_value)
 
 
 @pytest.fixture(autouse=True)
