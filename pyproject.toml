@@ -58,6 +58,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "pytest-rerunfailures>=15.0",
     "pytest-loguru>=0.4.0",
+    "fabricatio-mock>=0.1.0",
     "viztracer>=1.0.2",
     "coveralls>=4.0.1",
     "pyright>=1.1.402",
@@ -196,15 +197,14 @@ fabricatio-tool = {workspace = true}
 fabricatio-plot = {workspace = true}
 fabricatio-translate = {workspace = true}
 fabricatio-locale = {workspace = true}
+fabricatio-mock = {workspace = true}
 
 
 
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"

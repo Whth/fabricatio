@@ -12,20 +12,11 @@ import pytest
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models import llm
+from fabricatio_mock.utils import code_block, generic_block
 from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
 from pydantic import SecretStr
-
-
-def code_block(content: str, lang: str = "json") -> str:
-    """Generate a code block."""
-    return f"```{lang}\n{content}\n```"
-
-
-def generic_block(content: str, lang: str = "String") -> str:
-    """Generate a generic block."""
-    return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
 
 @pytest.fixture
