@@ -1,11 +1,14 @@
-from typing import Optional
+"""Mock class representing a test role with LLM capabilities.
 
-from pydantic import SecretStr
+This class combines the base Role class with LLM usage capabilities for testing purposes.
+It provides default implementations and test values for LLM-related attributes.
+"""
+
+from typing import Optional
 
 from fabricatio_core import Role
 from fabricatio_core.capabilities.usages import UseLLM
-
-
+from pydantic import SecretStr
 
 
 class LLMTestRole(Role, UseLLM):

@@ -113,5 +113,3 @@ def return_model_json_string(model: BaseModel) -> AsyncMock:
         AsyncMock: A mock Router object configured to return the model's JSON representation.
     """
     return return_json_string(orjson.dumps(model.model_dump(), option=orjson.OPT_INDENT_2).decode())
-
-

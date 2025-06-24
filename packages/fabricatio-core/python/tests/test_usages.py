@@ -9,15 +9,12 @@ from unittest.mock import AsyncMock, patch
 
 import litellm
 import pytest
-from fabricatio_core import Role
-from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models import llm
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import code_block, generic_block
 from litellm import Router
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
-from pydantic import SecretStr
 
 
 @pytest.fixture
@@ -36,8 +33,6 @@ def mock_router(ret_value: str) -> Router:
 
     mock.acompletion = _acomp_wrapper
     return mock
-
-
 
 
 @pytest.fixture(autouse=True)
@@ -365,7 +360,11 @@ async def test_alist_str_with_requirement_list(
 )
 @pytest.mark.asyncio
 async def test_apathstr(
-    mock_router: Router, ret_value: str, requirement: str, expected_result: Optional[List[str]], role_with_llm: LLMTestRole
+    mock_router: Router,
+    ret_value: str,
+    requirement: str,
+    expected_result: Optional[List[str]],
+    role_with_llm: LLMTestRole,
 ) -> None:
     """Test the apathstr method with different scenarios.
 
