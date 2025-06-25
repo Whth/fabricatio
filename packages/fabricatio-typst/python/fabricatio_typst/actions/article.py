@@ -14,6 +14,8 @@ from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok, wrapp_in_block
+from fabricatio_improve.capabilities.correct import Correct
+from fabricatio_improve.models.improve import Improvement
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from more_itertools import filter_map
@@ -57,10 +59,7 @@ class ExtractArticleEssence(Action, Propose):
 
         for ess in await self.propose(
             ArticleEssence,
-            [
-                f"{c}\n\n\nBased the provided academic article above, you need to extract the essence from it.\n\nWrite the value string using `{detect_language(c)}`"
-                for c in contents
-            ],
+            TEMPLATE_MANAGER.render_template(typst_config.extract_essence_template, [{"content": c} for c in contents]),
         ):
             if ess is None:
                 logger.warning("Could not extract article essence")
@@ -137,7 +136,7 @@ class GenerateArticleProposal(Action, Propose):
         ).update_ref(briefing)
 
 
-class GenerateInitialOutline(Action, Extract):
+class GenerateInitialOutline(Action, Extract, Correct):
     """Generate the initial article outline based on the article proposal."""
 
     output_key: str = "initial_article_outline"
@@ -155,25 +154,28 @@ class GenerateInitialOutline(Action, Extract):
         supervisor: Optional[bool] = None,
         **_,
     ) -> Optional[ArticleOutline]:
-        req = (
-            f"Design each chapter of a proper and academic and ready for release manner.\n"
-            f"You Must make sure every chapter have sections, and every section have subsections.\n"
-            f"Make the chapter and sections and subsections bing divided into a specific enough article component.\n"
-            f"Every chapter must have sections, every section must have subsections.\n"
-            f"Note that you SHALL use `{article_proposal.language}` as written language",
+        raw_outline = await self.aask(
+            TEMPLATE_MANAGER.render_template(
+                typst_config.generate_outline_template,
+                {"proposal": article_proposal.as_prompt(), "language": article_proposal.language},
+            )
         )
-
-        raw_outline = await self.aask(f"{(article_proposal.as_prompt())}\n{req}")
 
         if supervisor or (supervisor is None and self.supervisor):
             from questionary import confirm, text
 
             r_print(raw_outline)
-            while not await confirm("Accept this version and continue?", default=True).ask_async():
-                imp = await text("Enter the improvement:").ask_async()
-                raw_outline = await self.aask(
-                    f"{article_proposal.as_prompt()}\n{wrapp_in_block(raw_outline, 'Previous ArticleOutline')}\n{req}\n{wrapp_in_block(imp, title='Improvement')}"
+            while not await confirm("Accept this version and continue?").ask_async():
+                raw_imp = await text("Enter the improvement:").ask_async()
+
+                imp = ok(
+                    await self.propose(Improvement, f"{wrapp_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}")
                 )
+                raw_outline = (
+                    await self.correct_string(
+                        raw_outline, imp, wrapp_in_block(article_proposal.as_prompt(), "Article Proposal")
+                    )
+                ) or raw_outline
                 r_print(raw_outline)
 
         return ok(

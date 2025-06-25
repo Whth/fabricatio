@@ -25,6 +25,12 @@ class TypstConfig:
     article_wrapper = "// =-=-=-=-=-=-=-=-=-="
     """The wrapper used to wrap an article."""
 
+    extract_essence_template: str = "extract_essence"
+    """The name of the extract essence template which will be used to extract the essence of a text."""
+
+    generate_outline_template: str = "generate_outline"
+    """The name of the generate outline template which will be used to generate an outline."""
+
 
 typst_config = CONFIG.load("typst", TypstConfig)
 __all__ = ["typst_config"]

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-typst"
-version = "0.1.10"
+version = "0.1.11-dev0"
 description = "A Python library for generating, validating and converting academic content using Typst format."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-full = ["fabricatio-typst[rag,workflows,qa]"]
+full = ["fabricatio-typst[rag,workflows,qa,actions]"]
 
 rag = [
     "fabricatio-rag"
@@ -29,6 +29,10 @@ qa = [
 ]
 
 workflows = ["fabricatio-actions", "fabricatio-rag"]
+
+actions =[
+    "fabricatio-improve"
+]
 
 
 [build-system]
