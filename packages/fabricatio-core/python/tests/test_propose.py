@@ -48,4 +48,5 @@ async def test_propose(mock_router: Router, ret_value: SketchedAble, role: Propo
 
         proposals = ok(await role.propose(ret_value.__class__, ["test"] * 3))
 
-        assert all(proposal.model_dump_json() == ret_value.model_dump_json() for proposal in proposals)
+        assert all(ok(proposal).model_dump_json() == ret_value.model_dump_json() for proposal in proposals)
+        assert len(proposals) == 3
