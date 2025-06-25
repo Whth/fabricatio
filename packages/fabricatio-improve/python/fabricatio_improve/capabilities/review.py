@@ -9,7 +9,7 @@ from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER
-from fabricatio_core.utils import ok
+from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
@@ -26,7 +26,7 @@ class Review(Rating, Propose, ABC):
     appropriate topic and criteria.
     """
 
-    async def review_task[T](self, task: Task[T], **kwargs: Unpack[ReviewKwargs]) -> Optional[Improvement]:
+    async def review_task[T](self, task: Task[T], **kwargs: Unpack[ReviewKwargs[Improvement]]) -> Optional[Improvement]:
         """Review a task using specified review criteria.
 
         This method analyzes a task object to identify problems and propose solutions
@@ -68,16 +68,16 @@ class Review(Rating, Propose, ABC):
             Improvement: A review result containing identified problems and proposed solutions,
                 with a reference to the original text.
         """
-        default = None
-        if "default" in kwargs:
-            # this `default` is the default for the `propose` method
-            default = kwargs.pop("default")
+        okwargs = override_kwargs(kwargs, default=None)
 
-        criteria = ok(criteria or (await self.draft_rating_criteria(topic, **kwargs)), " No criteria could be use.")
-        manual = rating_manual or await self.draft_rating_manual(topic, criteria, **kwargs)
+        criteria = ok(
+            criteria
+            or (set(rating_manual.keys()) if rating_manual else None)
+            or (await self.draft_rating_criteria(topic, **okwargs)),
+            " No criteria could be use.",
+        )
+        manual = rating_manual or await self.draft_rating_manual(topic, criteria, **okwargs)
 
-        if default is not None:
-            kwargs["default"] = default
         return await self.propose(
             Improvement,
             TEMPLATE_MANAGER.render_template(

@@ -41,7 +41,7 @@ def return_string(value: str) -> AsyncMock:
     return mock
 
 
-def return_generic_string(string: str, lang: str) -> AsyncMock:
+def return_generic_string(string: str, lang: str = "string") -> AsyncMock:
     """Wraps the given string into a generic code block using the specified language, then returns an AsyncMock object simulating a Router with this formatted response.
 
     Args:

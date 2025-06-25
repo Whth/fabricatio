@@ -28,20 +28,28 @@ def role() -> JudgeRole:
 
 
 @pytest.mark.parametrize(
-    "ret_value",
+    ("ret_value", "prompt"),
     [
-        JudgeMent(issue_to_judge="test", affirm_evidence=["test"], deny_evidence=["test"], final_judgement=True),
-        JudgeMent(issue_to_judge="test", affirm_evidence=["test"], deny_evidence=["test"], final_judgement=False),
+        (
+            JudgeMent(issue_to_judge="test", affirm_evidence=["test"], deny_evidence=["test"], final_judgement=True),
+            "positive",
+        ),
+        (
+            JudgeMent(issue_to_judge="test", affirm_evidence=["test"], deny_evidence=["test"], final_judgement=False),
+            "negative",
+        ),
     ],
 )
 @pytest.mark.asyncio
-async def test_judge(router: Router, role: JudgeRole, ret_value: SketchedAble) -> None:
+async def test_judge(router: Router, role: JudgeRole, ret_value: SketchedAble, prompt: str) -> None:
     """Test the judge method."""
     with install_router(router):
-        proposal = ok(await role.propose(ret_value.__class__, "test"))
-        assert proposal.model_dump_json() == ret_value.model_dump_json()
+        jud = ok(await role.evidently_judge(prompt))
+        assert jud.model_dump_json() == ret_value.model_dump_json()
+        assert bool(jud) == bool(ret_value)
 
-        proposals = ok(await role.propose(ret_value.__class__, ["test"] * 3))
+        jud_sq = ok(await role.propose(ret_value.__class__, ["test"] * 3))
 
-        assert all(ok(proposal).model_dump_json() == ret_value.model_dump_json() for proposal in proposals)
-        assert len(proposals) == 3
+        assert all(ok(proposal).model_dump_json() == ret_value.model_dump_json() for proposal in jud_sq)
+        assert all(bool(proposal) == bool(ret_value) for proposal in jud_sq)
+        assert len(jud_sq) == 3
