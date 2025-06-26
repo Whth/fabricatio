@@ -34,4 +34,8 @@ docs:
 	make -C docs html
 update:
 	cargo update --recursive --verbose && uv sync --extra full --group docs -U
-.PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs update
+
+init:
+	uv sync -p $(PY) --no-install-project  --only-dev
+
+.PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs update init

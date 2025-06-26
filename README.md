@@ -84,29 +84,24 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 
 ## Installation
 
-### Using UV (Recommended)
-
 ```bash
-# Install uv if not already installed
-pip install uv
+# install fabricatio with full capabilities.
+pip install fabricatio[full]
 
-# Clone the repository
-git clone https://github.com/Whth/fabricatio.git
-cd fabricatio
+# or with uv
 
-# Install the package in development mode with uvx
-uvx --with-editable . maturin develop --uv -r
+uv add fabricatio[full]
 
-# Or, with make
-make dev
+
+# install fabricatio with only rag and rule capabilities.
+pip install fabricatio[rag,rule]
+
+# or with uv
+
+uv add fabricatio[rag,rule]
+
 ```
 
-### Building Distribution
-
-```bash
-# Build distribution packages
-make bdist
-```
 
 ## Usage
 
@@ -156,39 +151,85 @@ _(For full example details, please check our detailed documentation, see [Exampl
 
 ## Configuration
 
-The configuration for Fabricatio is managed via environment variables or TOML files. For example:
+Fabricatio supports flexible configuration through multiple sources, with the following priority order:
+`./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` > `<ROMANING>/fabricatio/fabricatio.toml` > `Defaults`.
 
+Below is a unified view of the same configuration expressed in different formats:
+
+### Format Examples: Unified Configuration Representation
+
+#### Environment variables or dotenv file
+```dotenv
+FABRIK_LLM__API_ENDPOINT=https://api.openai.com
+FABRIK_LLM__API_KEY=your_openai_api_key
+FABRIK_LLM__TIMEOUT=300
+FABRIK_LLM__MAX_RETRIES=3
+FABRIK_LLM__MODEL=openai/gpt-3.5-turbo
+FABRIK_LLM__TEMPERATURE=1.0
+FABRIK_LLM__TOP_P=0.35
+FABRIK_LLM__GENERATION_COUNT=1
+FABRIK_LLM__STREAM=false
+FABRIK_LLM__MAX_TOKENS=8192
+FABRIK_DEBUG__LOG_LEVEL=INFO
+```
+
+#### `fabricatio.toml` file
 ```toml
 [llm]
 api_endpoint = "https://api.openai.com"
 api_key = "your_openai_api_key"
 timeout = 300
 max_retries = 3
-model = "gpt-3.5-turbo"
+model = "openai/gpt-3.5-turbo"
 temperature = 1.0
-stop_sign = ["\n\n\n", "User:"]
 top_p = 0.35
 generation_count = 1
 stream = false
 max_tokens = 8192
+
+[debug]
+log_level = "INFO"
+```
+
+#### `pyproject.toml` file
+```toml
+[tool.fabricatio.llm]
+api_endpoint = "https://api.openai.com"
+api_key = "your_openai_api_key"
+timeout = 300
+max_retries = 3
+model = "openai/gpt-3.5-turbo"
+temperature = 1.0
+top_p = 0.35
+generation_count = 1
+stream = false
+max_tokens = 8192
+
+[tool.fabricatio.debug]
+log_level = "INFO"
 ```
 
 ## Development Setup
 
 1. **Clone the Repository**:
-    ```bash
-    git clone https://github.com/Whth/fabricatio.git
-    cd fabricatio
-    ```
+   ```bash
+   git clone https://github.com/Whth/fabricatio.git
+   cd fabricatio
+   ```
 2. **Install Dependencies**:
-    ```bash
-    make dev
-    ```
-3. **Run Tests**:
-    ```bash
-    make test
-    ```
-
+   ```bash
+   make init
+   ```
+   
+3. **Build the Package**:
+   ```bash
+   make dev
+   ```
+4. **Run Tests**:
+   ```bash
+   make tests
+   ```
+   
 ## Contributing
 
 Contributions are welcome! Follow these steps:
