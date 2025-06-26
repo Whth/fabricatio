@@ -5,7 +5,7 @@ from typing import List, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.kwargs_types import ChooseKwargs
 from more_itertools import flatten
 
 from fabricatio_yue.config import yue_config
@@ -20,7 +20,7 @@ class SelectGenre(UseLLM):
         requirement: str,
         genre_classifier: str,
         genres: List[str],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> None | List[str]:
         """Select genres for a single requirement.
 
@@ -28,7 +28,7 @@ class SelectGenre(UseLLM):
             requirement (str): A single requirement string describing the desired music style.
             genre_classifier (str): The type or category of genres to consider.
             genres (List[str]): List of available genres to choose from.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             None | List[str]: List of selected genres or None if no genres match the requirement.
@@ -41,7 +41,7 @@ class SelectGenre(UseLLM):
         requirement: List[str],
         genre_classifier: str,
         genres: List[str],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[List[str] | None]:
         """Select genres for multiple requirements.
 
@@ -49,7 +49,7 @@ class SelectGenre(UseLLM):
             requirement (List[str]): List of requirement strings describing desired music styles.
             genre_classifier (str): The type or category of genres to consider.
             genres (List[str]): List of available genres to choose from.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             List[List[str] | None]: List of genre selections, where each selection is either a list of genres or None.
@@ -61,7 +61,7 @@ class SelectGenre(UseLLM):
         requirement: str | List[str],
         genre_classifier: str,
         genres: List[str],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> None | List[str] | List[List[str] | None]:
         """Select appropriate music genres based on given requirements.
 
@@ -73,7 +73,7 @@ class SelectGenre(UseLLM):
                         describing the desired music style or characteristics.
             genre_classifier (str): The type or category of genres to consider (e.g., "pop", "electronic").
             genres (List[str]): List of available genres to choose from.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters passed to the underlying validation system.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters passed to the underlying validation system.
 
         Returns:
             None | List[str] | List[List[str] | None]: For single requirement: List of selected genres or None if no match.
@@ -114,13 +114,13 @@ class SelectGenre(UseLLM):
     async def gather_genres(
         self,
         requirements: str,
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> None | List[str]:
         """Gather genres for a single requirement.
 
         Args:
             requirements (str): A single requirement string describing the desired music style.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             None | List[str]: List of all selected genres from all categories or None if no match.
@@ -131,13 +131,13 @@ class SelectGenre(UseLLM):
     async def gather_genres(
         self,
         requirements: List[str],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[List[str] | None]:
         """Gather genres for multiple requirements.
 
         Args:
             requirements (List[str]): List of requirement strings describing desired music styles.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             List[List[str] | None]: List where each element corresponds to gathered genres for each requirement.
@@ -147,7 +147,7 @@ class SelectGenre(UseLLM):
     async def gather_genres(
         self,
         requirements: str | List[str],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ChooseKwargs[str]],
     ) -> None | List[str] | List[List[str] | None]:
         """Gather genres from all available genre categories based on requirements.
 
@@ -156,7 +156,7 @@ class SelectGenre(UseLLM):
 
         Args:
             requirements (str | List[str]): Either a single requirement string or list of requirement strings.
-            **kwargs (Unpack[ValidateKwargs[List[str]]]): Additional validation parameters.
+            **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             None | List[str] | List[List[str] | None]: For single requirement: List of all selected genres from all categories or None.
@@ -188,7 +188,7 @@ class SelectGenre(UseLLM):
             logger.debug(f"Raw results from genre selection: {results}")
 
             # Flatten the results from all genre categories, filtering out any None responses
-            selected_genres = list(flatten(result for result in results if result))
+            selected_genres = list(flatten(r for r in results if r))
 
             logger.debug(f"Flattened selected genres: {selected_genres}")
 

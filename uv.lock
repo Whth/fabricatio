@@ -612,7 +612,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.2.3"
+version = "0.2.4.dev0"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -898,7 +898,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.6"
+version = "0.1.7.dev0"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },
