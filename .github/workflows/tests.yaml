@@ -45,6 +45,18 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.PAT }}
+
+      - name: Cache cargo registry
+        id: cache-registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-v1
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
       - name: Install deps
         run: |
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple
