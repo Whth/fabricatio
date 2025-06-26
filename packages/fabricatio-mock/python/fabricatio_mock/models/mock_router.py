@@ -6,11 +6,12 @@ actual network requests to language models are not desirable or necessary.
 """
 
 from functools import wraps
-from typing import Any
+from typing import Any, List, Optional
 from unittest.mock import AsyncMock
 
 import litellm
 import orjson
+from fabricatio_core.utils import ok
 from litellm import Router
 from litellm.caching.caching_handler import CustomStreamWrapper
 from litellm.types.utils import ModelResponse
@@ -19,97 +20,132 @@ from pydantic import BaseModel, JsonValue
 from fabricatio_mock.utils import code_block, generic_block
 
 
-def return_string(value: str) -> AsyncMock:
-    """Creates and returns an asynchronous mock object for a Router instance that simulates a completion response with the provided string value.
+def return_string(*value: str, default: Optional[str] = None) -> AsyncMock:
+    """Creates and returns an asynchronous mock object for a Router instance that simulates a completion response using the provided string values.
 
-    The returned AsyncMock can be used in testing scenarios to mimic the behavior of a real Router without making actual network requests.
+    The returned AsyncMock can be used in testing scenarios to mimic the behavior of a real Router without making actual network requests. The mock will return values sequentially from the provided *value arguments, falling back to the default value when these are exhausted.
 
     Args:
-        value (str): The string value to be used as the mock response.
+        *value (str): Variable length list of string responses to be used as mock outputs.
+        default (Optional[str]): Default value to use when no more values are available. If not provided, last value in *value is used.
 
     Returns:
         AsyncMock: A mock Router object with a configured 'acompletion' method.
     """
+    if not value:
+        raise ValueError("At least one value must be provided.")
     mock = AsyncMock(spec=Router)
+    gen = iter(value)
+    default = ok(default or value[-1])
 
     @wraps(Router.acompletion)
     async def _acomp_wrapper(*args: Any, **kwargs: Any) -> ModelResponse | CustomStreamWrapper:
-        return litellm.mock_completion(*args, mock_response=value, **kwargs)
+        cur_value = next(gen, default)
+        return litellm.mock_completion(*args, mock_response=cur_value, **kwargs)
 
     mock.acompletion = _acomp_wrapper
-
     return mock
 
 
-def return_generic_string(string: str, lang: str = "string") -> AsyncMock:
-    """Wraps the given string into a generic code block using the specified language, then returns an AsyncMock object simulating a Router with this formatted response.
+def return_generic_string(*strings: str, lang: str = "string", default: Optional[str] = None) -> AsyncMock:
+    """Wraps given strings into generic code blocks, returning an AsyncMock simulating a Router.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        string (str): The input string to be wrapped into a code block.
-        lang (str): The programming language identifier for the code block.
+        *strings (str): Input strings to be wrapped into code blocks
+        lang (str): Programming language identifier
+        default (Optional[str]): Default value when no more strings available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the formatted code block.
+        AsyncMock: Mock Router returning formatted code blocks
     """
-    return return_string(generic_block(string, lang))
+    if not strings:
+        raise ValueError("At least one string must be provided.")
+    processed = [generic_block(s, lang) for s in strings]
+    return return_string(*processed, default=default)
 
 
-def return_code_string(code: str, lang: str) -> AsyncMock:
-    """Generates a code-block-formatted string from the provided code and language, then returns an AsyncMock simulating a Router with this response.
+def return_code_string(*codes: str, lang: str, default: Optional[str] = None) -> AsyncMock:
+    """Generates code-block-formatted strings, returning an AsyncMock simulating a Router.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        code (str): The source code or content to be formatted as a code block.
-        lang (str): The programming language identifier for syntax highlighting.
+        *codes (str): Source code/content to format
+        lang (str): Programming language identifier
+        default (Optional[str]): Default value when no more codes available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the formatted code string.
+        AsyncMock: Mock Router returning formatted code strings
     """
-    return return_string(code_block(code, lang))
+    if not codes:
+        raise ValueError("At least one code must be provided.")
+    processed = [code_block(c, lang) for c in codes]
+    return return_string(*processed, default=default)
 
 
-def return_python_string(code: str) -> AsyncMock:
-    """Returns an AsyncMock simulating a Router that responds with a Python code block.
+def return_python_string(*codes: str, default: Optional[str] = None) -> AsyncMock:
+    """Returns AsyncMock simulating Router that responds with Python code blocks.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        code (str): The Python code to be included in the mock response.
+        *codes (str): Python code to include in responses
+        default (Optional[str]): Default value when no more codes available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the Python-formatted response.
+        AsyncMock: Mock Router returning Python-formatted responses
     """
-    return return_code_string(code, "python")
+    return return_code_string(*codes, lang="python", default=default)
 
 
-def return_json_string(json: str) -> AsyncMock:
-    """Returns an AsyncMock simulating a Router that responds with a JSON code block.
+def return_json_string(*jsons: str, default: Optional[str] = None) -> AsyncMock:
+    """Returns AsyncMock simulating Router that responds with JSON code blocks.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        json (str): The JSON content to be included in the mock response.
+        *jsons (str): JSON content to include in responses
+        default (Optional[str]): Default value when no more JSONs available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the JSON-formatted response.
+        AsyncMock: Mock Router returning JSON-formatted responses
     """
-    return return_code_string(json, "json")
+    return return_code_string(*jsons, lang="json", default=default)
 
 
-def return_json_array_string(array: list[JsonValue]) -> AsyncMock:
-    """Converts the provided list into an indented JSON array string and returns an AsyncMock simulating a Router with this response.
+def return_json_array_string(*arrays: List[JsonValue], default: Optional[str] = None) -> AsyncMock:
+    """Converts arrays to JSON array strings, returning AsyncMock simulating Router.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        array (list[JsonValue]): The list of JSON-compatible values to be serialized.
+        *arrays (List[JsonValue]): Lists of JSON-compatible values
+        default (Optional[str]): Default value when no more arrays available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the indented JSON array string.
+        AsyncMock: Mock Router returning JSON array strings
     """
-    return return_json_string(orjson.dumps(array, option=orjson.OPT_INDENT_2).decode())
+    if not arrays:
+        raise ValueError("At least one array must be provided.")
+    processed = [orjson.dumps(arr, option=orjson.OPT_INDENT_2).decode() for arr in arrays]
+    return return_json_string(*processed, default=default)
 
 
-def return_model_json_string(model: BaseModel) -> AsyncMock:
-    """Serializes the provided Pydantic model into a JSON string and returns an AsyncMock simulating a Router with this response.
+def return_model_json_string(*models: BaseModel, default: Optional[str] = None) -> AsyncMock:
+    """Serializes models to JSON strings, returning AsyncMock simulating Router.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        model (BaseModel): The Pydantic model to be serialized and included in the response.
+        *models (BaseModel): Pydantic models to serialize
+        default (Optional[str]): Default value when no more models available
 
     Returns:
-        AsyncMock: A mock Router object configured to return the model's JSON representation.
+        AsyncMock: Mock Router returning model JSON representations
     """
-    return return_json_string(orjson.dumps(model.model_dump(), option=orjson.OPT_INDENT_2).decode())
+    if not models:
+        raise ValueError("At least one model must be provided.")
+    processed = [orjson.dumps(model.model_dump(), option=orjson.OPT_INDENT_2).decode() for model in models]
+    return return_json_string(*processed, default=default)

@@ -382,7 +382,7 @@ async def test_apathstr(
     [
         (code_block('["path1"]'), "Generate a path", "path1"),
         (code_block('["path2"]'), "Another path requirement", "path2"),
-        (None, "Invalid path response", None),
+        ("invalid json response", "Invalid path response", None),
     ],
 )
 @pytest.mark.asyncio
