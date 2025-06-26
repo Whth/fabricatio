@@ -170,7 +170,8 @@ class Patch[T](ProposedAble, ABC):
             >>> user = User(name="Alice", age=30)
             >>> patch = UserPatch(name="Bob")
             >>> updated_user = patch.apply(user)
-            >>> print(updated_user.name)  # Output: Bob
+            >>> assert updated_user.name == "Bob" and updated_user.age == 30
+
         """
         for field in self.__class__.model_fields:
             if not hasattr(other, field):

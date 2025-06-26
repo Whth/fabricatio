@@ -635,7 +635,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.12"
+version = "0.3.13.dev0"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -797,7 +797,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-mock"
-version = "0.1.2"
+version = "0.1.3.dev0"
 source = { editable = "packages/fabricatio-mock" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -2567,7 +2567,7 @@ wheels = [
 [[package]]
 name = "sphinx"
 version = "8.3.0"
-source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "alabaster" },
     { name = "babel" },
@@ -2587,9 +2587,9 @@ dependencies = [
     { name = "sphinxcontrib-qthelp" },
     { name = "sphinxcontrib-serializinghtml" },
 ]
-sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/e5/8d/012c6d6f0e9a3e70ddf68dec54f08c51e36cb64e81d70c77ed2d096a042c/sphinx-8.3.0.tar.gz", hash = "sha256:3bad4314a7fa72ce92344eaaa14c42ddf3177ee6a79c227e4ff8ae07d416f584" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/e5/8d/012c6d6f0e9a3e70ddf68dec54f08c51e36cb64e81d70c77ed2d096a042c/sphinx-8.3.0.tar.gz", hash = "sha256:3bad4314a7fa72ce92344eaaa14c42ddf3177ee6a79c227e4ff8ae07d416f584" }
 wheels = [
-    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/2f/72/9a437a9dc5393c0eabba447bdb6233a7b02bb23e84975f17ad9a9ca86677/sphinx-8.3.0-py3-none-any.whl", hash = "sha256:bd8fcf35ab2c4240b01c74a411c948350a3aebd6aa175579363754ed380d350a" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/2f/72/9a437a9dc5393c0eabba447bdb6233a7b02bb23e84975f17ad9a9ca86677/sphinx-8.3.0-py3-none-any.whl", hash = "sha256:bd8fcf35ab2c4240b01c74a411c948350a3aebd6aa175579363754ed380d350a" },
 ]
 
 [[package]]
@@ -2680,8 +2680,8 @@ dependencies = [
     { name = "docutils" },
     { name = "setuptools" },
     { name = "sphinx" },
-    { name = "wheel", version = "0.46.0", source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }, marker = "python_full_version < '3.13'" },
-    { name = "wheel", version = "0.46.1", source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "wheel", version = "0.46.0", source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }, marker = "python_full_version < '3.13'" },
+    { name = "wheel", version = "0.46.1", source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }, marker = "python_full_version >= '3.13'" },
 ]
 sdist = { url = "https://mirrors.aliyun.com/pypi/packages/f0/df/d151dfbbe588116e450ca7e898750cb218dca6b2e557ced8de6f9bd7242b/sphinx-togglebutton-0.3.2.tar.gz", hash = "sha256:ab0c8b366427b01e4c89802d5d078472c427fa6e9d12d521c34fa0442559dc7a" }
 wheels = [
@@ -2982,31 +2982,31 @@ wheels = [
 [[package]]
 name = "wheel"
 version = "0.46.0"
-source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 resolution-markers = [
     "python_full_version < '3.13'",
 ]
 dependencies = [
     { name = "packaging", marker = "python_full_version < '3.13'" },
 ]
-sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/11/d9/f16ef50f69f8b85961f8df7a2bdad08a98a32e79dfabf9f14f250fc0324d/wheel-0.46.0.tar.gz", hash = "sha256:bd9fadc35ff6a3624bdd00bc78437bcded40e2edc1fbb29076308de503fe9a4b" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/11/d9/f16ef50f69f8b85961f8df7a2bdad08a98a32e79dfabf9f14f250fc0324d/wheel-0.46.0.tar.gz", hash = "sha256:bd9fadc35ff6a3624bdd00bc78437bcded40e2edc1fbb29076308de503fe9a4b" }
 wheels = [
-    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/f2/67/b488d1c2408bc619bdd9f8c929e67d7743087dfa00bbdc0c0c5db70161f9/wheel-0.46.0-py3-none-any.whl", hash = "sha256:8c1909305dc5a40979693cece1ec872eed10cc49af2038201213461b0688b7b4" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/f2/67/b488d1c2408bc619bdd9f8c929e67d7743087dfa00bbdc0c0c5db70161f9/wheel-0.46.0-py3-none-any.whl", hash = "sha256:8c1909305dc5a40979693cece1ec872eed10cc49af2038201213461b0688b7b4" },
 ]
 
 [[package]]
 name = "wheel"
 version = "0.46.1"
-source = { registry = "https://mirrors.huaweicloud.com/repository/pypi/simple" }
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 resolution-markers = [
     "python_full_version >= '3.13'",
 ]
 dependencies = [
     { name = "packaging", marker = "python_full_version >= '3.13'" },
 ]
-sdist = { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/fb/62/e90918c4558b002726ab930863c0cbd3e7cf9a7befa1d4a1a240cecdb379/wheel-0.46.1.tar.gz", hash = "sha256:fd477efb5da0f7df1d3c76c73c14394002c844451bd63229d8570f376f5e6a38" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/fb/62/e90918c4558b002726ab930863c0cbd3e7cf9a7befa1d4a1a240cecdb379/wheel-0.46.1.tar.gz", hash = "sha256:fd477efb5da0f7df1d3c76c73c14394002c844451bd63229d8570f376f5e6a38" }
 wheels = [
-    { url = "https://mirrors.huaweicloud.com/repository/pypi/packages/af/44/31d964a260fcda6bf2f59384231bbf4962ac796a5d36c554162b5411b8db/wheel-0.46.1-py3-none-any.whl", hash = "sha256:f796f65d72750ccde090663e466d0ca37cd72b62870f7520b96d34cdc07d86d8" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/af/44/31d964a260fcda6bf2f59384231bbf4962ac796a5d36c554162b5411b8db/wheel-0.46.1-py3-none-any.whl", hash = "sha256:f796f65d72750ccde090663e466d0ca37cd72b62870f7520b96d34cdc07d86d8" },
 ]
 
 [[package]]
