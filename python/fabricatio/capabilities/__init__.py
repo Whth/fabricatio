@@ -74,10 +74,13 @@ if find_spec("fabricatio_yue"):
 
     __all__ += ["Lyricize", "SelectGenre"]
 if find_spec("fabricatio_memory"):
-    from fabricatio_memory.capabilities.memory import Remember
+    from fabricatio_memory.capabilities.remember import Remember
 
     __all__ += ["Remember"]
+    if find_spec("fabricatio_judge"):
+        from fabricatio_memory.capabilities.selective_remember import SelectiveRemember
 
+        __all__ += ["SelectiveRemember"]
 
 if find_spec("fabricatio_translate"):
     from fabricatio_translate.capabilities.translate import Translate

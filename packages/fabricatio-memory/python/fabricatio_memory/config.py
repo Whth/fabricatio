@@ -13,6 +13,8 @@ class MemoryConfig:
     """Template for recording memory."""
     memory_recall_template: str = "memory_recall"
     """Template for recalling memory."""
+    sremember_template: str = "sremember"
+    """Template for selective remembering."""
 
 
 memory_config = CONFIG.load("memory", MemoryConfig)
