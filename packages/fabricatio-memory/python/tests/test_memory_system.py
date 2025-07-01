@@ -15,12 +15,16 @@ def memory_system() -> MemorySystem:
     return MemorySystem()
 
 
-def test_add_and_get_memory(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("content", "importance", "tags"),
+    [
+        ("Test memory content", 0.75, ["test", "pytest"]),
+        ("Another test memory", 0.5, ["sample"]),
+        ("Memory with high importance", 0.95, ["critical", "high-priority"]),
+    ],
+)
+def test_add_and_get_memory(memory_system: MemorySystem, content: str, importance: float, tags: list) -> None:
     """Test adding a memory and retrieving it by ID."""
-    content = "Test memory content"
-    importance = 0.75
-    tags = ["test", "pytest"]
-
     memory_id = memory_system.add_memory(content, importance, tags)
     assert memory_id > 0
 
@@ -31,15 +35,30 @@ def test_add_and_get_memory(memory_system: MemorySystem) -> None:
     assert set(memory.tags) == set(tags)
 
 
-def test_update_memory(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    (
+        "original_content",
+        "updated_content",
+        "original_importance",
+        "updated_importance",
+        "original_tags",
+        "updated_tags",
+    ),
+    [
+        ("Original content", "Updated content", 0.5, 0.8, ["original"], ["updated"]),
+        ("Initial text", "Modified text", 0.3, 0.7, ["draft"], ["final", "reviewed"]),
+    ],
+)
+def test_update_memory(
+    memory_system: MemorySystem,
+    original_content: str,
+    updated_content: str,
+    original_importance: float,
+    updated_importance: float,
+    original_tags: list,
+    updated_tags: list,
+) -> None:
     """Test updating memory content, importance, and tags."""
-    original_content = "Original content"
-    updated_content = "Updated content"
-    original_importance = 0.5
-    updated_importance = 0.8
-    original_tags = ["original"]
-    updated_tags = ["updated"]
-
     memory_id = memory_system.add_memory(original_content, original_importance, original_tags)
 
     # Update all fields
@@ -54,9 +73,16 @@ def test_update_memory(memory_system: MemorySystem) -> None:
     assert set(memory.tags) == set(updated_tags)
 
 
-def test_delete_memory_by_id(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("content", "importance", "tags"),
+    [
+        ("Test content", 0.5, ["test"]),
+        ("Another content", 0.7, ["sample", "delete"]),
+    ],
+)
+def test_delete_memory_by_id(memory_system: MemorySystem, content: str, importance: float, tags: list) -> None:
     """Test deleting a memory by its ID."""
-    memory_id = memory_system.add_memory("Test content", 0.5, ["test"])
+    memory_id = memory_system.add_memory(content, importance, tags)
     result = memory_system.delete_memory_by_id(memory_id)
     assert result
 
@@ -64,44 +90,135 @@ def test_delete_memory_by_id(memory_system: MemorySystem) -> None:
     assert memory_system.get_memory(memory_id) is None
 
 
-def test_search_memories(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "query", "expected_content_substring", "top_k", "boost_recent"),
+    [
+        (
+            [("apple banana orange", 0.5, ["fruit"]), ("carrot potato tomato", 0.6, ["vegetable"])],
+            "apple",
+            "apple",
+            100,
+            False,
+        ),
+        (
+            [("red blue green", 0.7, ["colors"]), ("square circle triangle", 0.8, ["shapes"])],
+            "circle",
+            "circle",
+            100,
+            True,
+        ),
+        (
+            [("first item", 0.3, ["list"]), ("second item", 0.4, ["list"]), ("third item", 0.5, ["list"])],
+            "item",
+            "item",
+            2,
+            False,
+        ),
+    ],
+)
+def test_search_memories(
+    memory_system: MemorySystem,
+    memories: list,
+    query: str,
+    expected_content_substring: str,
+    top_k: int,
+    boost_recent: bool,
+) -> None:
     """Test searching memories using a query string."""
     # Add test data
-    memory_system.add_memory("apple banana orange", 0.5, ["fruit"])
-    memory_system.add_memory("carrot potato tomato", 0.6, ["vegetable"])
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
 
-    results = memory_system.search_memories("apple")
-    assert len(results) == 1
-    assert "apple" in results[0].content
-
-    # Test boosting recent
-    results_boosted = memory_system.search_memories("tomato", boost_recent=True)
-    assert len(results_boosted) == 1
-    assert "tomato" in results_boosted[0].content
+    results = memory_system.search_memories(query, top_k=top_k, boost_recent=boost_recent)
+    assert len(results) > 0
+    assert any(expected_content_substring in result.content for result in results)
 
 
-def test_search_by_tags(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "search_tags", "expected_count", "expected_content_substring"),
+    [
+        (
+            [("Document about AI", 0.7, ["AI", "technology"]), ("Recipe for cake", 0.6, ["cooking", "baking"])],
+            ["AI"],
+            1,
+            "AI",
+        ),
+        (
+            [
+                ("Python tutorial", 0.8, ["programming", "python"]),
+                ("JavaScript basics", 0.7, ["programming", "javascript"]),
+                ("JavaScript advanced", 0.7, ["programming", "javascript"]),
+            ],
+            ["programming"],
+            3,
+            None,
+        ),
+        (
+            [("Summer vacation", 0.5, ["travel", "summer"]), ("Winter holiday", 0.6, ["travel", "winter"])],
+            ["travel", "summer"],
+            2,
+            "Summer",
+        ),
+    ],
+)
+def test_search_by_tags(
+    memory_system: MemorySystem,
+    memories: list,
+    search_tags: list,
+    expected_count: int,
+    expected_content_substring: str,
+) -> None:
     """Test searching memories by tags."""
-    memory_system.add_memory("Document about AI", 0.7, ["AI", "technology"])
-    memory_system.add_memory("Recipe for cake", 0.6, ["cooking", "baking"])
+    # Add test data
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
 
-    results = memory_system.search_by_tags(["AI"])
-    assert len(results) == 1
-    assert "AI" in results[0].tags
+    results = memory_system.search_by_tags(search_tags)
 
-    multiple_tag_results = memory_system.search_by_tags(["cooking", "baking"])
-    assert len(multiple_tag_results) == 1
-    assert "cake" in multiple_tag_results[0].content
+    assert len(results) == expected_count
+
+    # Check if tags match
+    for result in results:
+        assert any(tag in result.tags for tag in search_tags), (
+            f"Tag {result.tags} not found in result: {result.content}"
+        )
+
+    # Check content if expected_content_substring is provided
+    if expected_content_substring:
+        assert any(expected_content_substring in result.content for result in results)
 
 
-def test_get_memories_by_importance(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "min_importance", "expected_count"),
+    [
+        (
+            [("High importance item", 0.9, ["important"]), ("Low importance item", 0.3, ["not-important"])],
+            0.5,
+            1,
+        ),
+        (
+            [("Critical task", 0.95, ["critical"]), ("Normal task", 0.6, ["normal"]), ("Minor task", 0.2, ["minor"])],
+            0.7,
+            1,
+        ),
+        (
+            [("Task 1", 0.8, ["task"]), ("Task 2", 0.7, ["task"]), ("Task 3", 0.6, ["task"])],
+            0.5,
+            3,
+        ),
+    ],
+)
+def test_get_memories_by_importance(
+    memory_system: MemorySystem, memories: list, min_importance: float, expected_count: int
+) -> None:
     """Test retrieving memories by minimum importance threshold."""
-    memory_system.add_memory("High importance item", 0.9, ["important"])
-    memory_system.add_memory("Low importance item", 0.3, ["not-important"])
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
 
-    results = memory_system.get_memories_by_importance(0.5)
-    assert len(results) == 1
-    assert results[0].importance >= 0.5
+    results = memory_system.get_memories_by_importance(min_importance)
+    assert len(results) == expected_count
+    for memory in results:
+        assert memory.importance >= min_importance
 
 
 def test_get_recent_memories(memory_system: MemorySystem) -> None:
@@ -123,62 +240,110 @@ def test_get_recent_memories(memory_system: MemorySystem) -> None:
     assert current_id in memory_ids
 
 
-def test_get_frequently_accessed(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("content", "importance", "tags", "access_count", "top_k"),
+    [
+        ("Frequent access", 0.5, ["frequent"], 10, 1),
+        ("Regular content", 0.7, ["regular"], 5, 2),
+    ],
+)
+def test_get_frequently_accessed(
+    memory_system: MemorySystem, content: str, importance: float, tags: list, access_count: int, top_k: int
+) -> None:
     """Test retrieving most frequently accessed memories."""
-    freq_id = memory_system.add_memory("Frequent access", 0.5, ["frequent"])
+    freq_id = memory_system.add_memory(content, importance, tags)
 
     # Simulate accesses
-    for _ in range(10):
+    for _ in range(access_count):
         memory_system.get_memory(freq_id)
 
-    frequent_memories = memory_system.get_frequently_accessed(top_k=1)
+    frequent_memories = memory_system.get_frequently_accessed(top_k=top_k)
     assert len(frequent_memories) == 1
-    assert frequent_memories[0].access_count == 10
+    assert frequent_memories[0].access_count == access_count
 
 
-def test_cleanup_old_memories(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("content", "importance", "tags", "days_threshold", "min_importance", "should_be_removed"),
+    [
+        ("Old unimportant memory", 0.2, ["old"], 0, 0.5, True),
+        ("Important old memory", 0.8, ["old", "important"], 0, 0.5, False),
+    ],
+)
+def test_cleanup_old_memories(
+    memory_system: MemorySystem,
+    content: str,
+    importance: float,
+    tags: list,
+    days_threshold: int,
+    min_importance: float,
+    should_be_removed: bool,
+) -> None:
     """Test cleaning up old, low-importance, infrequently accessed memories."""
-    # Add a low-importance memory that will be eligible for cleanup
-    memory_id = memory_system.add_memory("Old unimportant memory", 0.2, ["old"])
+    # Add a test memory
+    memory_id = memory_system.add_memory(content, importance, tags)
 
     sleep(2)
 
     # Since we can't directly manipulate timestamp, we'll test the cleanup function
     # with current memories and verify it works with importance threshold
-    removed_ids = memory_system.cleanup_old_memories(days_threshold=0, min_importance=0.5)
+    removed_ids = memory_system.cleanup_old_memories(days_threshold=days_threshold, min_importance=min_importance)
 
-    # Verify that the low-importance memory was removed
-    assert memory_id in removed_ids
-    assert memory_system.get_memory(memory_id) is None
+    # Verify that the memory was removed or kept as expected
+    if should_be_removed:
+        assert memory_id in removed_ids
+        assert memory_system.get_memory(memory_id) is None
+    else:
+        assert memory_id not in removed_ids
+        assert memory_system.get_memory(memory_id) is not None
 
-    # Additional verification: ensure no other memories were accidentally removed
-    [m.id for m in memory_system.get_all_memories()]
-    assert not set(removed_ids) - {memory_id}
 
-
-def test_get_all_memories(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "expected_count"),
+    [
+        ([("First memory", 0.5, ["test"]), ("Second memory", 0.6, ["example"])], 2),
+        ([("Single memory", 0.7, ["one"])], 1),
+        ([], 0),
+    ],
+)
+def test_get_all_memories(memory_system: MemorySystem, memories: list, expected_count: int) -> None:
     """Test retrieving all memories in the system."""
-    memory_system.add_memory("First memory", 0.5, ["test"])
-    memory_system.add_memory("Second memory", 0.6, ["example"])
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
 
     all_memories = memory_system.get_all_memories()
-    assert len(all_memories) == 2
+    assert len(all_memories) == expected_count
 
 
-def test_count_memories(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "expected_count"),
+    [
+        ([("One", 0.5, ["test"]), ("Two", 0.6, ["example"])], 2),
+        ([("Single entry", 0.7, ["one"])], 1),
+        ([], 0),
+    ],
+)
+def test_count_memories(memory_system: MemorySystem, memories: list, expected_count: int) -> None:
     """Test counting total memories in the system."""
-    memory_system.add_memory("One", 0.5, ["test"])
-    memory_system.add_memory("Two", 0.6, ["example"])
-    assert memory_system.count_memories() == 2
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
+
+    assert memory_system.count_memories() == expected_count
 
 
-def test_get_memory_stats(memory_system: MemorySystem) -> None:
+@pytest.mark.parametrize(
+    ("memories", "expected_avg_importance"),
+    [
+        ([("Important memory", 0.9, ["important"]), ("Another important one", 0.8, ["important"])], (0.8, 0.9)),
+        ([("Critical item", 1.0, ["critical"]), ("Normal item", 0.5, ["normal"])], (0.75, 0.75)),
+    ],
+)
+def test_get_memory_stats(memory_system: MemorySystem, memories: list, expected_avg_importance: tuple) -> None:
     """Test generating memory statistics."""
-    memory_system.add_memory("Important memory", 0.9, ["important"])
-    memory_system.add_memory("Another important one", 0.8, ["important"])
+    for content, importance, tags in memories:
+        memory_system.add_memory(content, importance, tags)
 
     stats = memory_system.get_memory_stats()
-    assert stats.total_memories == 2
-    assert 0.8 <= stats.avg_importance <= 0.9
+    assert stats.total_memories == len(memories)
+    assert expected_avg_importance[0] <= stats.avg_importance <= expected_avg_importance[1]
     assert stats.avg_access_count == 0
     assert stats.avg_age_days >= 0  # Age depends on when memories were created

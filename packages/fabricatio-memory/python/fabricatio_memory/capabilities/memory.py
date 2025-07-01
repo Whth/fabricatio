@@ -55,17 +55,21 @@ class Remember(Propose, RememberScopedConfig):
         logger.debug(f"Memory recorded: {mem_id}")
         return note
 
-    async def recall(self, query: str, **kwargs: Unpack[LLMKwargs]) -> str:
+    async def recall(
+        self, query: str, top_k: int | None = 100, boost_recent: bool = True, **kwargs: Unpack[LLMKwargs]
+    ) -> str:
         """Recall information from the memory system based on a query, Process with llm, which make a summary over memories.
 
         Args:
             query: The query string to search for relevant memories.
+            top_k: The number of top memories to retrieve.
+            boost_recent: Whether to boost the relevance of more recent memories.
             **kwargs: Additional keyword arguments for generation.
 
         Returns:
             A string containing the recalled information.
         """
-        mem_seq = self.memory_system.search_memories(query)
+        mem_seq = self.memory_system.search_memories(query, top_k, boost_recent)
 
         return await self.aask(
             TEMPLATE_MANAGER.render_template(
