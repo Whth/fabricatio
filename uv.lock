@@ -778,10 +778,15 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.1.1"
+version = "0.2.1"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
+]
+
+[package.optional-dependencies]
+selective = [
+    { name = "fabricatio-judge" },
 ]
 
 [package.dev-dependencies]
@@ -790,7 +795,11 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-judge", marker = "extra == 'selective'", editable = "packages/fabricatio-judge" },
+]
+provides-extras = ["selective"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
