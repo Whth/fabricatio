@@ -1,6 +1,6 @@
 """Rust bindings for the MemorySystem class."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 class Memory:
     """Represents a memory item with content, metadata, and access statistics."""
@@ -22,6 +22,8 @@ class Memory:
     """Number of times this memory has been accessed."""
     last_accessed: int
     """Timestamp indicating the last time the memory was accessed (in seconds since epoch)."""
+    def to_dict(self) -> Dict:
+        """Converts the Memory object to a dictionary."""
 
 class MemoryStats:
     """Contains statistical data about the memories in the MemorySystem."""
@@ -110,7 +112,7 @@ class MemorySystem:
             doesn't check if ID existed before deletion attempt for return value).
         """
 
-    def search_memories(self, query_str: str, top_k: Optional[int] = 100, boost_recent: bool = False) -> List[Memory]:
+    def search_memories(self, query_str: str, top_k: int = 100, boost_recent: bool = False) -> List[Memory]:
         """Searches memories based on a query string. Results can be boosted by recency.
 
         Args:
@@ -122,7 +124,7 @@ class MemorySystem:
             A list of Memory objects matching the query, sorted by relevance.
         """
 
-    def search_by_tags(self, tags: List[str], top_k: Optional[int] = 100) -> List[Memory]:
+    def search_by_tags(self, tags: List[str], top_k: int = 100) -> List[Memory]:
         """Searches for memories that match any of the provided tags.
 
         Args:
@@ -133,7 +135,7 @@ class MemorySystem:
             A list of Memory objects matching the tags.
         """
 
-    def get_memories_by_importance(self, min_importance: float, top_k: Optional[int] = 100) -> List[Memory]:
+    def get_memories_by_importance(self, min_importance: float, top_k: int = 100) -> List[Memory]:
         """Retrieves memories with an importance score greater than or equal to min_importance.
 
         Args:
@@ -144,7 +146,7 @@ class MemorySystem:
             A list of Memory objects, sorted by importance in descending order.
         """
 
-    def get_recent_memories(self, days: int, top_k: Optional[int] = 100) -> List[Memory]:
+    def get_recent_memories(self, days: int, top_k: int = 100) -> List[Memory]:
         """Retrieves memories created within the specified number of days from now.
 
         Args:
@@ -155,7 +157,7 @@ class MemorySystem:
             A list of Memory objects, sorted by timestamp in descending order (most recent first).
         """
 
-    def get_frequently_accessed(self, top_k: Optional[int] = 100) -> List[Memory]:
+    def get_frequently_accessed(self, top_k: int = 100) -> List[Memory]:
         """Retrieves the most frequently accessed memories.
 
         Args:

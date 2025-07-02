@@ -2,14 +2,18 @@ You are a memory recall system. Given a query and a sequence of relevant memorie
 
 
 Retrieved Memories:
-{{#each mem_seq}}
-    Memory {{@index}}:
+{{#if mem_seq}}
+    {{#each mem_seq}}
+    Memory [{{@index}}]:
     - Content: {{this.content}}
     - Importance(0.0~1.0): {{this.importance}}
     - Tags: {{#each this.tags}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
     - Created:  {{date this.timestamp}}
     - Last accessed: {{date this.last_accessed}}
-{{/each}}
+    {{/each}}
+{{else}}
+    None is recalled!
+{{/if}}
 
 {{block query "Query"}}
 

@@ -1,7 +1,9 @@
 use chrono::Utc;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use serde::Deserialize;
+use pyo3::types::PyDict;
+use pythonize::pythonize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -33,7 +35,7 @@ impl MemoryStats {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[pyclass(get_all)]
 pub struct Memory {
     pub id: u64,
@@ -43,6 +45,13 @@ pub struct Memory {
     pub tags: Vec<String>,
     pub access_count: u64,
     pub last_accessed: i64,
+}
+
+#[pymethods]
+impl Memory {
+    pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        Ok(pythonize(python, self)?.downcast_into::<PyDict>()?)
+    }
 }
 
 impl Memory {
@@ -327,14 +336,13 @@ impl MemorySystem {
     }
 
     /// Search memories by query string with optional recency boosting
-    #[pyo3(signature = (query_str, top_k = Some(100), boost_recent=false))]
+    #[pyo3(signature = (query_str, top_k = 100, boost_recent=false))]
     pub fn search_memories(
         &self,
         query_str: &str,
-        top_k: Option<usize>,
+        top_k: usize,
         boost_recent: bool,
     ) -> PyResult<Vec<Memory>> {
-        let top_k = top_k.unwrap_or(100);
         let (_, content_field, tags_field, _, _, _, _) = *FIELDS;
 
         // Create reader following basic example pattern
@@ -388,25 +396,23 @@ impl MemorySystem {
     }
 
     /// Search memories by tags
-    #[pyo3(signature = (tags, top_k = Some(100)))]
-    pub fn search_by_tags(&self, tags: Vec<String>, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
-        let top_k = top_k.unwrap_or(100);
+    #[pyo3(signature = (tags, top_k = 100))]
+    pub fn search_by_tags(&self, tags: Vec<String>, top_k: usize) -> PyResult<Vec<Memory>> {
         let query_str = tags
             .iter()
             .map(|tag| format!("\"{}\"", tag)) // Ensure tags are treated as phrases
             .collect::<Vec<String>>()
             .join(" OR ");
-        self.search_memories(&query_str, Some(top_k), false)
+        self.search_memories(&query_str, top_k, false)
     }
 
     /// Get memories filtered by minimum importance level
-    #[pyo3(signature = (min_importance, top_k = Some(100)))]
+    #[pyo3(signature = (min_importance, top_k = 100))]
     pub fn get_memories_by_importance(
         &self,
         min_importance: f64,
-        top_k: Option<usize>,
+        top_k: usize,
     ) -> PyResult<Vec<Memory>> {
-        let top_k = top_k.unwrap_or(100);
         let reader = self
             .index
             .reader_builder()
@@ -435,9 +441,8 @@ impl MemorySystem {
     }
 
     /// Get memories from the last N days
-    #[pyo3(signature = (days, top_k = Some(100)))]
-    pub fn get_recent_memories(&self, days: i64, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
-        let top_k = top_k.unwrap_or(100);
+    #[pyo3(signature = (days, top_k = 100))]
+    pub fn get_recent_memories(&self, days: i64, top_k: usize) -> PyResult<Vec<Memory>> {
         let cutoff = Utc::now().timestamp() - (days * 86400);
 
         // Get all documents and filter by timestamp
@@ -464,9 +469,8 @@ impl MemorySystem {
     }
 
     /// Get memories sorted by access frequency
-    #[pyo3(signature = (top_k = Some(100)))]
-    pub fn get_frequently_accessed(&self, top_k: Option<usize>) -> PyResult<Vec<Memory>> {
-        let top_k = top_k.unwrap_or(100);
+    #[pyo3(signature = (top_k = 100))]
+    pub fn get_frequently_accessed(&self, top_k: usize) -> PyResult<Vec<Memory>> {
         // Get all documents (no filter) and sort by access count
         let all_query = tantivy::query::AllQuery;
 
