@@ -3,7 +3,7 @@
 import pytest
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
-from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string
@@ -11,7 +11,7 @@ from fabricatio_mock.utils import install_router
 from litellm import Router
 
 
-class JudgeRole(LLMTestRole, AdvancedJudge):
+class JudgeRole(LLMTestRole, EvidentlyJudge):
     """A class that tests the judge method."""
 
 

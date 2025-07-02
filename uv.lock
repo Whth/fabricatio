@@ -732,7 +732,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-judge"
-version = "0.1.7"
+version = "0.1.8.dev0"
 source = { editable = "packages/fabricatio-judge" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -778,7 +778,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.2.1"
+version = "0.2.2.dev0"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -907,7 +907,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.7"
+version = "0.1.8.dev0"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },

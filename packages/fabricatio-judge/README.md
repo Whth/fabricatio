@@ -36,20 +36,85 @@ The module is designed to be extensible, allowing users to implement custom logi
 ## 🧩 Usage
 
 ```python
-from fabricatio.capabilities import AdvancedJudge
-The `AdvancedJudge` class is imported from the `fabricatio.capabilities` module. It provides a set of methods for evidence collection, analysis, and judgment. To use it, you can create an instance of the class and call its methods to perform judgment tasks.
+from fabricatio.capabilities import EvidentlyJudge
+
+The
+`EvidentlyJudge`
+
+
+class is imported from the `fabricatio.capabilities` module.It provides a set of methods for evidence collection, analysis, and judgment.To use it, you can create an instance of the class and call its methods to perform judgment tasks.
+
+
 from fabricatio.models import JudgeMent
-The `JudgeMent` model represents the result of a judgment task. It contains attributes such as the final verdict (a boolean value) and additional information about the judgment process, such as the evidence used and the decision - making steps.
+
+The
+`JudgeMent`
+model
+represents
+the
+result
+of
+a
+judgment
+task.It
+contains
+attributes
+such as the
+final
+verdict(a
+boolean
+value) and additional
+information
+about
+the
+judgment
+process, such as the
+evidence
+used and the
+decision - making
+steps.
 
 
-class MyJudge(AdvancedJudge):
+class MyJudge(EvidentlyJudge):
     pass  # Implement custom logic if needed
 
 
 async def evaluate():
     judge = MyJudge()
     result: JudgeMent = await judge.evidently_judge("Is water wet?")
-    The `evidently_judge` method is used to perform a judgment task. It takes a question or a statement as input and returns a `JudgeMent` object. In this example, the judge will collect evidence related to the question "Is water wet?" and make a decision based on the available evidence.
+    The
+    `evidently_judge`
+    method is used
+    to
+    perform
+    a
+    judgment
+    task.It
+    takes
+    a
+    question or a
+    statement as input and returns
+    a
+    `JudgeMent`
+    object.In
+    this
+    example, the
+    judge
+    will
+    collect
+    evidence
+    related
+    to
+    the
+    question
+    "Is water wet?" and make
+    a
+    decision
+    based
+    on
+    the
+    available
+    evidence.
     print(f"Verdict: {result.final_judgement}")
 ```
 

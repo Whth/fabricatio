@@ -7,14 +7,14 @@ from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_memory.config import memory_config
 from fabricatio_memory.models.note import Note
 
 
-class SelectiveRemember(Remember, AdvancedJudge):
+class SelectiveRemember(Remember, EvidentlyJudge):
     """A class that implements selective memory recording by leveraging judgment capabilities.
 
     It decides whether to remember certain data based on the outcome of a judgment process.

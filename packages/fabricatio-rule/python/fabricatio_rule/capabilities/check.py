@@ -11,14 +11,14 @@ from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language
 from fabricatio_core.utils import override_kwargs
 from fabricatio_improve.models.improve import Improvement
-from fabricatio_judge.capabilities.advanced_judge import AdvancedJudge
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 
 from fabricatio_rule.config import rule_config
 from fabricatio_rule.models.patch import RuleSetMetadata
 from fabricatio_rule.models.rule import Rule, RuleSet
 
 
-class Check(AdvancedJudge, Propose, ABC):
+class Check(EvidentlyJudge, Propose, ABC):
     """Class for validating strings/objects against predefined rules and guidelines.
 
     This capability combines rule-based judgment and proposal generation to provide

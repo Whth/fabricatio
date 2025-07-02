@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-rule"
-version = "0.1.7"
+version = "0.1.8-dev1"
 description = "A Python module for rule-based content validation, correction, and enforcement in LLM applications."
 license = { file = "LICENSE" }
 authors = [
