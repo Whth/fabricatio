@@ -8,7 +8,6 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import override_kwargs
-from pydantic import ConfigDict
 
 from fabricatio_judge.models.judgement import JudgeMent
 
@@ -40,8 +39,6 @@ class EvidentlyJudge(Propose, ABC):
 
 class VoteLLMConfig(ScopedConfig):
     """A class that uses a language model to vote on the evidence."""
-
-    model_config = ConfigDict(use_attribute_docstrings=True, arbitrary_types_allowed=True)
 
     vote_llm: Dict[float, ValidateKwargs[JudgeMent]]
     """Config that specify the models used to make a decision."""
