@@ -70,7 +70,5 @@ class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     k: int
 
 
-class ListStringKwargs(ValidateKwargs[List[str]], total=False):
+class ListStringKwargs(ChooseKwargs[str], total=False):
     """Arguments for operations that return a list of strings."""
-
-    k: int

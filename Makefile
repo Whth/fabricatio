@@ -39,8 +39,8 @@ init:
 	uv sync -p $(PY) --no-install-project  --only-dev
 
 fix:
+	cargo fmt
 	ruff format
 	ruff check --fix --unsafe-fixes
-	cargo fmt
 
 .PHONY:  dev bdist clean_dist publish test test_raw bins dirs all docs update init fix
