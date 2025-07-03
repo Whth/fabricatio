@@ -7,6 +7,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 
-pyo3 = { version = "0.24.2", features = ["extension-module"] }
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
 rustpython-ast = { version = "0.4.0", features = ["visitor"] }
 rustpython-parser = { version = "0.4.0"  }

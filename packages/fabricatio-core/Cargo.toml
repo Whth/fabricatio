@@ -9,8 +9,8 @@ crate-type = ["cdylib"]
 blake3 = "1.6.0"
 figment = { version = "0.10.19", features = ["env", "toml"] }
 handlebars = "6.3.1"
-pyo3 = { version = "0.24.2", features = ["extension-module"] }
-pythonize = "0.24.0"
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
+pythonize = "0.25.0"
 rayon = "1.10.0"
 serde_json = "1.0.138"
 unicode-segmentation = "1.12.0"

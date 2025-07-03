@@ -6,7 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.24.2", features = ["extension-module"] }
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
 
 reqwest = { version = "0.12.12", features = ["blocking", "json"] }
 tar = "0.4.43"
