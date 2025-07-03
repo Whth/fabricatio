@@ -4,7 +4,7 @@ from typing import List
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_json_array_string
+from fabricatio_mock.models.mock_router import return_json_obj_string
 from fabricatio_mock.utils import install_router
 from fabricatio_yue.capabilities.genre import SelectGenre
 from fabricatio_yue.config import yue_config
@@ -26,7 +26,7 @@ def mock_router(ret_value: List[JsonValue]) -> Router:
     Returns:
         A configured Router object with mocked behavior.
     """
-    return return_json_array_string(ret_value)
+    return return_json_obj_string(ret_value)
 
 
 @pytest.fixture(autouse=True)

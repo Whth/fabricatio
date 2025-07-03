@@ -6,7 +6,7 @@ actual network requests to language models are not desirable or necessary.
 """
 
 from functools import wraps
-from typing import Any, List, Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock
 
 import litellm
@@ -115,21 +115,21 @@ def return_json_string(*jsons: str, default: Optional[str] = None) -> AsyncMock:
     return return_code_string(*jsons, lang="json", default=default)
 
 
-def return_json_array_string(*arrays: List[JsonValue], default: Optional[str] = None) -> AsyncMock:
+def return_json_obj_string(*objs: JsonValue, default: Optional[str] = None) -> AsyncMock:
     """Converts arrays to JSON array strings, returning AsyncMock simulating Router.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
 
     Args:
-        *arrays (List[JsonValue]): Lists of JSON-compatible values
+        *objs (JsonValue): Array of JSON values
         default (Optional[str]): Default value when no more arrays available
 
     Returns:
         AsyncMock: Mock Router returning JSON array strings
     """
-    if not arrays:
+    if not objs:
         raise ValueError("At least one array must be provided.")
-    processed = [orjson.dumps(arr, option=orjson.OPT_INDENT_2).decode() for arr in arrays]
+    processed = [orjson.dumps(obj, option=orjson.OPT_INDENT_2).decode() for obj in objs]
     return return_json_string(*processed, default=default)
 
 

@@ -65,7 +65,6 @@ class SynthesizeData(UseLLM, ABC):
             or None if parsing or generation fails.
         """
         from pandas import read_csv
-        from pandas.errors import ParserError
 
         header = header or await self.generate_header(requirement)
 
@@ -82,15 +81,16 @@ class SynthesizeData(UseLLM, ABC):
                 return df
             logger.warning(f"Header mismatch: {d_header} != {header}")
             return None
-        except ParserError:
+        except ValueError as e:
+            logger.warning(f"Failed to parse CSV: \n{e}")
             return None
 
     async def synthesize_data(
         self,
         requirement: str,
+        header: Optional[List[str]] = None,
         rows: int = 1000,
         batch_size: int = 100,
-        header: Optional[List[str]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional["DataFrame"]:
         """Synthesize large datasets efficiently by parallel batch generation and concatenation.
