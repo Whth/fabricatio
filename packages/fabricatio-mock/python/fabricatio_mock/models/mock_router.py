@@ -147,5 +147,5 @@ def return_model_json_string(*models: BaseModel, default: Optional[str] = None) 
     """
     if not models:
         raise ValueError("At least one model must be provided.")
-    processed = [orjson.dumps(model.model_dump(), option=orjson.OPT_INDENT_2).decode() for model in models]
+    processed = [orjson.dumps(model.model_dump(by_alias=True), option=orjson.OPT_INDENT_2).decode() for model in models]
     return return_json_string(*processed, default=default)

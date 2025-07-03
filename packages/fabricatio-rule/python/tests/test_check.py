@@ -1,6 +1,5 @@
 """Tests for the Check capability."""
 
-
 import pytest
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_improve.models.improve import Improvement
@@ -19,22 +18,16 @@ class MockDisplayObject(Display):
 
     content: str
 
-    def display(self) -> str:
-        return self.content
-
 
 class MockBriefingObject(WithBriefing):
     """Mock object that implements WithBriefing interface."""
 
     name: str = "Mock Briefing Object"
     description: str = "A mock object for testing"
-    briefing: str
 
 
 class CheckRole(LLMTestRole, Check):
     """A test role that implements the Check capability."""
-
-    pass
 
 
 @pytest.fixture
