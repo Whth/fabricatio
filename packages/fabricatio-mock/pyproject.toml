@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-mock"
-version = "0.1.4"
+version = "0.1.5-dev0"
 description = "An extension of fabricatio, which provides mocks and other test utils."
 readme = "README.md"
 license = { file = "LICENSE" }
