@@ -23,14 +23,14 @@ from fabricatio_mock.utils import code_block, generic_block
 def return_string(*value: str, default: Optional[str] = None) -> AsyncMock:
     """Creates and returns an asynchronous mock object for a Router instance that simulates a completion response using the provided string values.
 
-    The returned AsyncMock can be used in testing scenarios to mimic the behavior of a real Router without making actual network requests. The mock will return values sequentially from the provided *value arguments, falling back to the default value when these are exhausted.
+    The returned AsyncMock can be used in testing scenarios to mimic the behavior of a real Router without making actual network requests. The mock will return values sequentially from the provided *value* arguments, falling back to the default value when these are exhausted.
 
     Args:
         *value (str): Variable length list of string responses to be used as mock outputs.
-        default (Optional[str]): Default value to use when no more values are available. If not provided, last value in *value is used.
+        default (Optional[str]): Default value to use when no more values are available. If not provided, last value is used.
 
     Returns:
-        AsyncMock: A mock Router object with a configured 'acompletion' method.
+        AsyncMock: A mock Router object with a configured *acompletion* method.
     """
     if not value:
         raise ValueError("At least one value must be provided.")
