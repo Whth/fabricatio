@@ -198,6 +198,8 @@ fabricatio-plot = {workspace = true}
 fabricatio-translate = {workspace = true}
 fabricatio-locale = {workspace = true}
 fabricatio-mock = {workspace = true}
+fabricatio-kk = {workspace = true}
+fabricatio-hias = {workspace = true}
 
 
 

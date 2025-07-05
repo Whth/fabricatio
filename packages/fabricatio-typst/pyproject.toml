@@ -7,6 +7,16 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Framework :: AsyncIO",
+    "Framework :: Pydantic :: 2",
+    "Typing :: Typed",
+]
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "fabricatio-core",

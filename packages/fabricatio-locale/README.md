@@ -6,7 +6,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-locale/week)](https://pepy.tech/projects/fabricatio-locale)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-locale)](https://pepy.tech/projects/fabricatio-locale)
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
-[![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
 
 
