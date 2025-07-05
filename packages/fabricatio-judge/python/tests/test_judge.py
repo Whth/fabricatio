@@ -134,7 +134,7 @@ def make_vote_router(judgments: List[JudgeMent]) -> Router:
 
 
 # Test data
-class TestCase:
+class Case:
     """Test case class for vote_judge method."""
 
     def __init__(
@@ -158,7 +158,7 @@ class TestCase:
 # Parametrized test cases
 vote_test_cases = [
     # Case 1: Two out of three votes pass (threshold 0.5)
-    TestCase(
+    Case(
         judgments=[
             {"final_judgement": True, "affirm_evidence": ["test"], "deny_evidence": ["test"], "issue_to_judge": "test"},
             {"final_judgement": True, "affirm_evidence": ["test"], "deny_evidence": ["test"], "issue_to_judge": "test"},
@@ -173,7 +173,7 @@ vote_test_cases = [
         expected_result=True,
     ),
     # Case 2: Only one vote passes (threshold 0.5)
-    TestCase(
+    Case(
         judgments=[
             {"final_judgement": True, "affirm_evidence": ["test"], "deny_evidence": ["test"], "issue_to_judge": "test"},
             {
@@ -193,7 +193,7 @@ vote_test_cases = [
         expected_result=False,
     ),
     # Case 3: Exact threshold match
-    TestCase(
+    Case(
         judgments=[
             {"final_judgement": True, "affirm_evidence": ["test"], "deny_evidence": ["test"], "issue_to_judge": "test"},
             {
@@ -212,12 +212,12 @@ vote_test_cases = [
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", vote_test_cases)
-async def test_vote_judge(vote_role: VoteJudgeRole, case: TestCase) -> None:
+async def test_vote_judge(vote_role: VoteJudgeRole, case: Case) -> None:
     """Test the vote_judge method with various judgment and threshold combinations.
 
     Args:
         vote_role (VoteJudgeRole): VoteJudgeRole fixture
-        case (TestCase): Test case containing judgments, threshold and expected result
+        case (Case): Test case containing judgments, threshold and expected result
     """
     router = return_model_json_string(*case.judgments)
     with install_router(router):

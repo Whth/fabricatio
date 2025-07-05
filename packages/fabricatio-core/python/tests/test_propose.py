@@ -12,7 +12,7 @@ from fabricatio_mock.utils import install_router
 from litellm import Router
 
 
-class TestModel(SketchedAble):
+class MockModel(SketchedAble):
     """Test model for testing propose method."""
 
     attr1: str
@@ -38,7 +38,7 @@ def role() -> ProposeTestRole:
     return ProposeTestRole()
 
 
-@pytest.mark.parametrize("ret_value", [Task(name="test"), TestModel(attr1="test", attr2=1, attr=["test"])])
+@pytest.mark.parametrize("ret_value", [Task(name="test"), MockModel(attr1="test", attr2=1, attr=["test"])])
 @pytest.mark.asyncio
 async def test_propose(mock_router: Router, ret_value: SketchedAble, role: ProposeTestRole) -> None:
     """Test propose method."""

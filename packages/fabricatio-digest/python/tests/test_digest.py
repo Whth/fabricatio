@@ -16,8 +16,6 @@ from litellm import Router
 class MockRole(Role):
     """Mock role for testing purposes."""
 
-    briefing: str = "Mock role briefing"
-
 
 class DigestRole(LLMTestRole, Digest):
     """A test role that implements the Digest capability."""
@@ -43,9 +41,9 @@ def mock_receptions() -> List[MockRole]:
         List[MockRole]: List of mock roles
     """
     return [
-        MockRole(briefing="Handle user authentication"),
-        MockRole(briefing="Process data validation"),
-        MockRole(briefing="Generate reports"),
+        MockRole(name="Reception 1", description="Reception 1 briefing"),
+        MockRole(name="Reception 2", description="Reception 2 briefing"),
+        MockRole(name="Reception 3", description="Reception 3 briefing"),
     ]
 
 
