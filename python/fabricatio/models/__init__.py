@@ -55,3 +55,8 @@ if find_spec("fabricatio_memory"):
     from fabricatio_memory.models.note import Note
 
     __all__ += ["Note"]
+
+if find_spec("fabricatio_diff"):
+    from fabricatio_diff.models.diff import Diff
+
+    __all__ += ["Diff"]

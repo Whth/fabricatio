@@ -697,7 +697,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.1.1.dev1"
+version = "0.1.1.dev2"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1529,7 +1529,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.73.7"
+version = "1.74.0"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1544,9 +1544,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/8a/de/57d70ee511d30a930394a71c9577b4693bf53ed92f7da0d9ccf515400727/litellm-1.73.7.tar.gz", hash = "sha256:75b64d4795ddb19eff3f31cba11d06deee2da5f38db8325c1cd3f9845d142ef2" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/24/1f/eb4a931e7bc5fc7ab398df61df75801a0825dcd7edeecf5ccd07d427c36e/litellm-1.74.0.tar.gz", hash = "sha256:2ee64579568cc81835025db45da6d91ee7ec6706ab4adf1a833866999ed822e7" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/8a/f5/af2ad579bccd25e9de81829124df61628769bf9f69df896118d926bda144/litellm-1.73.7-py3-none-any.whl", hash = "sha256:6b748d2fe89692704f850ae4b72dd134e94509b92d194bef2312032bb83b9d34" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/8b/28/ada87d58dc4dfaf8a1858df712b9c21c3775d6c7d303598e9ab3a57a63cf/litellm-1.74.0-py3-none-any.whl", hash = "sha256:f6c41169e0dbf182c2d74a0b9e146f1c67735351a721c8498eea7ec6306be309" },
 ]
 
 [[package]]

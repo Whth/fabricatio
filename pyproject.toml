@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.14.5"
+version = "0.15.0"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -199,7 +199,6 @@ fabricatio-plot = {workspace = true}
 fabricatio-translate = {workspace = true}
 fabricatio-locale = {workspace = true}
 fabricatio-mock = {workspace = true}
-fabricatio-kk = {workspace = true}
 fabricatio-diff = {workspace = true}
 
 
