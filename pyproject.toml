@@ -77,7 +77,7 @@ docs = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool,plot,translate,locale]",
+    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool,plot,translate,locale,diff]",
 ]
 
 anki = ["fabricatio-anki"]
@@ -98,6 +98,7 @@ tool = ["fabricatio-tool"]
 plot = ["fabricatio-plot"]
 translate = ["fabricatio-translate"]
 locale = ["fabricatio-locale"]
+diff = ["fabricatio-diff"]
 
 
 [tool.pyright]
@@ -199,7 +200,7 @@ fabricatio-translate = {workspace = true}
 fabricatio-locale = {workspace = true}
 fabricatio-mock = {workspace = true}
 fabricatio-kk = {workspace = true}
-fabricatio-hias = {workspace = true}
+fabricatio-diff = {workspace = true}
 
 
 
