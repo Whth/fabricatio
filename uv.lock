@@ -697,11 +697,12 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.1.0"
+version = "0.1.1.dev1"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
     { name = "levenshtein" },
+    { name = "more-itertools" },
 ]
 
 [package.dev-dependencies]
@@ -713,6 +714,7 @@ dev = [
 requires-dist = [
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "levenshtein", specifier = ">=0.27.1" },
+    { name = "more-itertools", specifier = ">=10.7.0" },
 ]
 
 [package.metadata.requires-dev]

@@ -1,0 +1,16 @@
+{{block source "Source"}}
+{{block requirement "Edit Requirement"}}
+You must write a `Diff` to satisfy the `Edit Requirement` to the `Source`.
+A `Diff` contains `SEARCH` and `REPLACE`.
+The format of `SEARCH` and `REPLACE` is as below, you MUST return both `SEARCH` and `REPLACE` at a time.
+
+<<<<SEARCH
+I' m a string that needs to be replaced
+this is the second line of the string
+SEARCH<<<<
+
+<<<<REPLACE
+I' m a replaced string
+this is the second line of the string, but it's been replaced
+this is the third line of the string that is newly added
+REPLACE<<<<
