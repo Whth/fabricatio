@@ -1,12 +1,21 @@
 [project]
 name = "fabricatio-capabilities"
-version = "0.2.4"
+version = "0.2.5-dev0"
 description = "A foundational Python library providing core capabilities for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
 license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Framework :: AsyncIO",
+    "Framework :: Pydantic :: 2",
+    "Typing :: Typed",
+]
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "fabricatio-core",
@@ -19,12 +28,11 @@ dev = [
 ]
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
-build-backend = "maturin"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.maturin]
-python-source = "python"
-module-name = "fabricatio_capabilities.rust"
+[tool.hatch.build.targets.wheel]
+sources = ["python"]
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
