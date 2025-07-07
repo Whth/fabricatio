@@ -146,14 +146,28 @@ jobs:
           UV_INDEX: https://pypi.org/simple
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
+      - name: Move Generic whl
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir ${{ matrix.os }}-${{ matrix.python-version }}-generic
+          mv ${{ matrix.os }}-${{ matrix.python-version }}/*-none-any.whl ${{ matrix.os }}-${{ matrix.python-version }}-generic/
+
       - name: Upload assets
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
-          fail_on_unmatched_files: true
-          overwrite_files: true
           files: |
             ${{ matrix.os }}-${{ matrix.python-version }}/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Upload generic assets
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.determine_changes.outputs.current_version }}
+          files: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-generic/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
