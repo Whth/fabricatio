@@ -5,6 +5,7 @@ from typing import List, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from more_itertools.more import duplicates_everseen
 
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_capabilities.config import capabilities_config
@@ -61,10 +62,13 @@ class Ordering(Rating):
         Returns:
             List[WithBriefing] | None: Ordered list of WithBriefing objects if successful, otherwise None.
         """
+        if dup := list(duplicates_everseen(seq)):
+            raise ValueError(f"Duplicate names found in the sequence: {dup}")
+
         ordered_names = await self.order_string(
             [s.name for s in seq],
             TEMPLATE_MANAGER.render_template(
-                capabilities_config.order_with_briefing_template,
+                capabilities_config.order_briefed_template,
                 {
                     "requirement": requirement,
                     "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq],
@@ -72,7 +76,8 @@ class Ordering(Rating):
             ),
             **kwargs,
         )
-        return [seq[i] for i in ordered_names]
+        mapping = {s.name: s for s in seq}
+        return [mapping.get(n) for n in ordered_names]
 
     @overload
     async def order(

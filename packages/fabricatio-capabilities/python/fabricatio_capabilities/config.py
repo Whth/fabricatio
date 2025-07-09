@@ -38,6 +38,9 @@ class CapabilitiesConfig:
     order_string_template: str = "order_string"
     """The name of the order string template which will be used to order string."""
 
+    order_briefed_template: str = "order_briefed"
+    """The name of the order briefed template which will be used to order briefed."""
+
 
 capabilities_config = CONFIG.load("capabilities", CapabilitiesConfig)
 __all__ = ["capabilities_config"]
