@@ -2,14 +2,13 @@
 
 from typing import List, Unpack, overload
 
-from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs, OrderStringKwargs
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok
 
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_capabilities.config import capabilities_config
+from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs, OrderStringKwargs
 
 
 class Ordering(Rating):
@@ -18,8 +17,7 @@ class Ordering(Rating):
     async def order_string(
         self, seq: List[str], requirement: str, reverse: bool = False, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> List[str] | None:
-        """
-        Orders a list of strings based on a given requirement using a language model.
+        """Orders a list of strings based on a given requirement using a language model.
 
         Args:
             seq (List[str]): The input sequence to be ordered.
@@ -49,20 +47,17 @@ class Ordering(Rating):
     @overload
     async def order(
         self, seq: List[str], requirement: str, **kwargs: Unpack[OrderStringKwargs]
-    ) -> List[str] | None:
-        ...
+    ) -> List[str] | None: ...
 
     @overload
     async def order(
         self, seq: List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
-    ) -> List[WithBriefing] | None:
-        ...
+    ) -> List[WithBriefing] | None: ...
 
     async def order(
         self, seq: List[str] | List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
     ) -> None | List[str] | List[WithBriefing]:
-        """
-        Orders a sequence of either strings or WithBriefing objects based on a requirement.
+        """Orders a sequence of either strings or WithBriefing objects based on a requirement.
 
         Args:
             seq (List[str] | List[WithBriefing]): Input sequence to be ordered.
@@ -81,7 +76,10 @@ class Ordering(Rating):
                 [s.name for s in seq],
                 TEMPLATE_MANAGER.render_template(
                     capabilities_config.order_with_briefing_template,
-                    {"requirement": requirement, "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq]}
+                    {
+                        "requirement": requirement,
+                        "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq],
+                    },
                 ),
                 **kwargs,
             )
@@ -91,20 +89,17 @@ class Ordering(Rating):
     @overload
     async def order_rated(
         self, seq: List[str], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> List[str] | None:
-        ...
+    ) -> List[str] | None: ...
 
     @overload
     async def order_rated(
         self, seq: List[WithBriefing], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> List[WithBriefing] | None:
-        ...
+    ) -> List[WithBriefing] | None: ...
 
     async def order_rated(
         self, seq: List[str] | List[WithBriefing], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> None | List[str] | List[WithBriefing]:
-        """
-        Orders a sequence based on composite scores calculated from their briefings or content.
+        """Orders a sequence based on composite scores calculated from their briefings or content.
 
         Args:
             seq (List[str] | List[WithBriefing]): Sequence to rate and order.
@@ -117,7 +112,5 @@ class Ordering(Rating):
         to_rate: List[str] = [s.briefing for s in seq] if all(isinstance(s, WithBriefing) for s in seq) else seq
         scores = await self.composite_score(to_rate=to_rate, **kwargs)
         # order the sequence by the scores
-        sorted_pack = sorted(zip(seq, scores), key=lambda x: x[1], reverse=reverse)
+        sorted_pack = sorted(zip(seq, scores, strict=False), key=lambda x: x[1], reverse=reverse)
         return [s[0] for s in sorted_pack]
-
-

@@ -30,7 +30,6 @@ class ReferencedKwargs[T](ValidateKwargs[T], total=False):
     reference: str
 
 
-
 class OrderStringKwargs(ValidateKwargs[List[str]], total=False):
     """Arguments for ordering strings."""
 
