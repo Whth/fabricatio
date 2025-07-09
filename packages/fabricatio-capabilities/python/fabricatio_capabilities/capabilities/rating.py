@@ -96,7 +96,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> Dict[str, float]: ...
 
     @overload
@@ -107,7 +107,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> List[Dict[str, float]]: ...
 
     async def rate(
@@ -117,7 +117,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
 
@@ -341,7 +341,7 @@ class Rating(Propose, ABC):
         weights: Optional[Dict[str, float]] = None,
         manual: Optional[Dict[str, str]] = None,
         approx: bool = False,
-        **kwargs: Unpack[ValidateKwargs[List[Dict[str, float]]]],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> List[float]:
         """Calculates the composite scores for a list of items based on a given topic and criteria.
 
@@ -357,13 +357,15 @@ class Rating(Propose, ABC):
         Returns:
             List[float]: A list of composite scores for the items.
         """
+        okwargs=override_kwargs(kwargs, default=None)
+
         criteria = ok(
             criteria
             or (await self.draft_rating_criteria(topic, **override_kwargs(kwargs, default=None)) if approx else None)
-            or await self.draft_rating_criteria_from_examples(topic, to_rate, **override_kwargs(kwargs, default=None))
+            or await self.draft_rating_criteria_from_examples(topic, to_rate, **okwargs)
         )
         weights = ok(
-            weights or await self.drafting_rating_weights_klee(topic, criteria, **override_kwargs(kwargs, default=None))
+            weights or await self.drafting_rating_weights_klee(topic, criteria, **okwargs)
         )
         logger.info(f"Criteria: {criteria}\nWeights: {weights}")
         ratings_seq = await self.rate(to_rate, topic, criteria, manual, **kwargs)
