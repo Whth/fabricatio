@@ -33,9 +33,9 @@ class Ordering(Rating):
         )
 
         logger.debug(f"Ordering sequence: \n{seq}")
-        ordered_raw = await self.alist_str(rendered, k=len(seq), **kwargs), "Failed to order the sequence."
+        ordered_raw = await self.alist_str(rendered, k=len(seq), **kwargs)
 
-        if ordered_raw and sorted(seq) == sorted(ordered_raw):
+        if (ordered_raw is not None) and (sorted(seq) == sorted(ordered_raw)):
             return ordered_raw
         logger.error(
             f"Ordering failed. The generated sequence is not the same as the original sequence. \n"
@@ -43,6 +43,36 @@ class Ordering(Rating):
             f"Generated sequence: {ordered_raw}"
         )
         return None
+
+    async def order_briefed(
+        self, seq: List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
+    ) -> List[WithBriefing] | None:
+        """Orders a list of WithBriefing objects based on a given requirement using their names for language model processing.
+
+        This method extracts the 'name' attributes from the WithBriefing objects to form a sequence of strings,
+        then utilizes the order_string method to obtain an ordered list of names. Finally, it reconstructs the
+        ordered list using the original WithBriefing objects.
+
+        Args:
+            seq (List[WithBriefing]): The input sequence of WithBriefing objects to be ordered.
+            requirement (str): The requirement string guiding the ordering.
+            **kwargs: Additional keyword arguments unpacked and passed to the order_string method.
+
+        Returns:
+            List[WithBriefing] | None: Ordered list of WithBriefing objects if successful, otherwise None.
+        """
+        ordered_names = await self.order_string(
+            [s.name for s in seq],
+            TEMPLATE_MANAGER.render_template(
+                capabilities_config.order_with_briefing_template,
+                {
+                    "requirement": requirement,
+                    "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq],
+                },
+            ),
+            **kwargs,
+        )
+        return [seq[i] for i in ordered_names]
 
     @overload
     async def order(
@@ -72,18 +102,7 @@ class Ordering(Rating):
             return await self.order_string(seq, requirement, **kwargs)
         if all(isinstance(s, WithBriefing) for s in seq):
             seq: List[WithBriefing]
-            ordered_names = await self.order_string(
-                [s.name for s in seq],
-                TEMPLATE_MANAGER.render_template(
-                    capabilities_config.order_with_briefing_template,
-                    {
-                        "requirement": requirement,
-                        "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq],
-                    },
-                ),
-                **kwargs,
-            )
-            return [seq[i] for i in ordered_names]
+            return await self.order_briefed(seq, requirement, **kwargs)
         raise ValueError("The sequence must be a list of strings or a list of WithBriefing objects.")
 
     @overload
