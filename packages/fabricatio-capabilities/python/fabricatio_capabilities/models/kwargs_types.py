@@ -28,3 +28,10 @@ class ReferencedKwargs[T](ValidateKwargs[T], total=False):
     """Arguments for content review operations."""
 
     reference: str
+
+
+
+class OrderStringKwargs(ValidateKwargs[List[str]], total=False):
+    """Arguments for ordering strings."""
+
+    reverse: bool = False

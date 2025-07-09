@@ -35,6 +35,9 @@ class CapabilitiesConfig:
     draft_rating_weights_klee_template: str = "draft_rating_weights_klee"
     """The name of the draft rating weights klee template which will be used to draft rating weights with Klee method."""
 
+    order_string_template: str = "order_string"
+    """The name of the order string template which will be used to order string."""
+
 
 capabilities_config = CONFIG.load("capabilities", CapabilitiesConfig)
 __all__ = ["capabilities_config"]
