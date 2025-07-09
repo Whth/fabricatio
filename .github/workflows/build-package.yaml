@@ -164,6 +164,7 @@ jobs:
 
       - name: Upload generic assets
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
