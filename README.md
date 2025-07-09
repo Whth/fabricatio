@@ -235,10 +235,11 @@ log_level = "INFO"
 Contributions are welcome! Follow these steps:
 
 1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/new-feature`).
-3. Commit your changes (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature/new-feature`).
-5. Create a new Pull Request.
+2. Create your feature branch (`git checkout -b feat/new-feature`).
+3. [Optional]Create a py/rs subpackage with `make rs` or `make py` 
+4. Commit your changes (`git commit -am 'Add new feature'`).
+5. Push to the branch (`git push origin feat/new-feature`).
+6. Create a new Pull Request.
 
 ## License
 
