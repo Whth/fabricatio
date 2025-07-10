@@ -43,29 +43,32 @@ class GenerateDeck(Propose):
         """
         ov_kwargs = override_kwargs(kwargs, defualt=None)
 
-        metadata = ok(
-            await self.propose(
-                ModelMetaData,
-                TEMPLATE_MANAGER.render_template(
-                    anki_config.generate_anki_deck_metadata_template, {"requirement": requirement, "fields": fields}
-                ),
-                **ov_kwargs,
-            )
-        )
-        model_generation_requirements = ok(
-            await self.alist_str(
-                TEMPLATE_MANAGER.render_template(
-                    anki_config.generate_anki_model_generation_requirements_template,
-                    {"requirement": requirement, "fields": fields},
-                ),
-                k=km,
-                **ov_kwargs,
-            )
+        metadata = await self.propose(
+            ModelMetaData,
+            TEMPLATE_MANAGER.render_template(
+                anki_config.generate_anki_deck_metadata_template, {"requirement": requirement, "fields": fields}
+            ),
+            **ov_kwargs,
         )
 
-        models = ok(await self.generate_model(fields, model_generation_requirements, k=kt, **ov_kwargs))
+        model_generation_requirements = await self.alist_str(
+            TEMPLATE_MANAGER.render_template(
+                anki_config.generate_anki_model_generation_requirements_template,
+                {"requirement": requirement, "fields": fields},
+            ),
+            k=km,
+            **ov_kwargs,
+        )
 
-        return Deck(**metadata.as_kwargs(), models=models)
+        models = (
+            await self.generate_model(fields, model_generation_requirements, k=kt, **ov_kwargs)
+            if model_generation_requirements
+            else None
+        )
+
+        if models and metadata:
+            return Deck(**metadata.as_kwargs(), models=models)
+        return kwargs.get("default")
 
     @overload
     async def generate_model(
@@ -217,7 +220,7 @@ class GenerateDeck(Propose):
         """
 
     async def generate_template(
-        self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: str | List[str] | None, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> Template | List[Template] | None:
         """Generate one or more card templates.
 
@@ -229,6 +232,8 @@ class GenerateDeck(Propose):
         Returns:
             One or more Template instances based on input type
         """
+        if requirement is None:
+            return None
         if isinstance(requirement, str):
             return await self._generate_single_template(fields, requirement, **kwargs)
         if isinstance(requirement, list):
