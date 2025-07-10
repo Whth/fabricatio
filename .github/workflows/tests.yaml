@@ -60,6 +60,7 @@ jobs:
       - name: Install deps
         run: |
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple
+          uv pip install fabricatio-plot[excel]
           make dev
       - name: Test
         run: |
