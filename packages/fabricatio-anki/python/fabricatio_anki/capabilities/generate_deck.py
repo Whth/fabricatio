@@ -220,7 +220,7 @@ class GenerateDeck(Propose):
         """
 
     async def generate_template(
-        self, fields: List[str], requirement: str | List[str] | None, **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> Template | List[Template] | None:
         """Generate one or more card templates.
 
@@ -232,8 +232,6 @@ class GenerateDeck(Propose):
         Returns:
             One or more Template instances based on input type
         """
-        if requirement is None:
-            return None
         if isinstance(requirement, str):
             return await self._generate_single_template(fields, requirement, **kwargs)
         if isinstance(requirement, list):

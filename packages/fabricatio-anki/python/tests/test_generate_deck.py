@@ -1,20 +1,18 @@
 """Tests for the Anki deck generation capabilities."""
 
-from typing import List, Optional, Union
+from typing import Any, List, Optional
 from unittest.mock import AsyncMock, patch
+
 import pytest
 from fabricatio_anki.capabilities.generate_deck import GenerateDeck
 from fabricatio_anki.models.deck import Deck, Model, ModelMetaData
-from fabricatio_anki.models.template import Template, Side
+from fabricatio_anki.models.template import Side, Template
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
-    return_string,
-    return_model_json_string,
-    return_code_string,
     return_json_obj_string,
+    return_model_json_string,
 )
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 def side_factory(layout: str = "Default layout", js: str = "", css: str = "") -> Side:
@@ -165,16 +163,15 @@ async def test_generate_deck_success(
         requirement (str): Requirement for deck generation
         expected_deck_name (str): Expected name of the generated deck
     """
-    with patch.object(GenerateDeck, 'propose', new_callable=AsyncMock) as mock_propose, \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch.object(GenerateDeck, 'generate_model', new_callable=AsyncMock) as mock_generate_model:
-
+    with (
+        patch.object(GenerateDeck, "propose", new_callable=AsyncMock) as mock_propose,
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch.object(GenerateDeck, "generate_model", new_callable=AsyncMock) as mock_generate_model,
+    ):
         # Configure mocks
         mock_propose.return_value = metadata_ret
         mock_alist.return_value = model_reqs_ret
-        mock_generate_model.return_value = [
-            model_factory("test_model", fields, [template_factory("test_template")])
-        ]
+        mock_generate_model.return_value = [model_factory("test_model", fields, [template_factory("test_template")])]
 
         # Execute the method
         result = await role.generate_deck(requirement, fields)
@@ -230,10 +227,11 @@ async def test_generate_model_single_requirement(
         expected_name (str): Expected sanitized model name
         template_names (List[str]): Names for templates to create
     """
-    with patch.object(GenerateDeck, 'ageneric_string', new_callable=AsyncMock) as mock_generic, \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch.object(GenerateDeck, 'generate_template', new_callable=AsyncMock) as mock_template:
-
+    with (
+        patch.object(GenerateDeck, "ageneric_string", new_callable=AsyncMock) as mock_generic,
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch.object(GenerateDeck, "generate_template", new_callable=AsyncMock) as mock_template,
+    ):
         # Configure mocks
         mock_generic.return_value = expected_name
         mock_alist.return_value = template_names
@@ -296,13 +294,14 @@ async def test_generate_model_multiple_requirements(
     """
     template_reqs = ["Template 1", "Template 2"]
 
-    async def mock_gather(*args):
+    async def mock_gather(*args: Any) -> List[List[Template]]:
         return [[template_factory(f"template_{i}")] for i in range(len(requirements))]
 
-    with patch.object(GenerateDeck, 'ageneric_string', new_callable=AsyncMock) as mock_generic, \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch('fabricatio_anki.capabilities.generate_deck.gather', new_callable=AsyncMock) as mock_gather_func:
-
+    with (
+        patch.object(GenerateDeck, "ageneric_string", new_callable=AsyncMock) as mock_generic,
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch("fabricatio_anki.capabilities.generate_deck.gather", new_callable=AsyncMock) as mock_gather_func,
+    ):
         # Configure mocks
         mock_generic.return_value = model_names
         mock_alist.return_value = [template_reqs] * len(requirements)
@@ -357,9 +356,10 @@ async def test_generate_template_single_requirement(
     front_html = f"<div>{{{{ {fields[0]} }}}}</div>"
     back_html = f"<div>{{{{ {fields[1] if len(fields) > 1 else fields[0]} }}}}</div>"
 
-    with patch.object(GenerateDeck, 'ageneric_string', new_callable=AsyncMock) as mock_generic, \
-         patch.object(GenerateDeck, 'acode_string', new_callable=AsyncMock) as mock_code:
-
+    with (
+        patch.object(GenerateDeck, "ageneric_string", new_callable=AsyncMock) as mock_generic,
+        patch.object(GenerateDeck, "acode_string", new_callable=AsyncMock) as mock_code,
+    ):
         # Configure mocks
         mock_generic.return_value = expected_name
         mock_code.side_effect = [front_html, back_html]
@@ -412,10 +412,11 @@ async def test_generate_template_multiple_requirements(
     front_html_contents = [f"<div>Front Content {i}</div>" for i in range(len(requirements))]
     back_html_contents = [f"<div>Back Content {i}</div>" for i in range(len(requirements))]
 
-    with patch.object(GenerateDeck, 'ageneric_string', new_callable=AsyncMock) as mock_generic, \
-         patch.object(GenerateDeck, 'generate_front_side', new_callable=AsyncMock) as mock_front, \
-         patch.object(GenerateDeck, 'generate_back_side', new_callable=AsyncMock) as mock_back:
-
+    with (
+        patch.object(GenerateDeck, "ageneric_string", new_callable=AsyncMock) as mock_generic,
+        patch.object(GenerateDeck, "generate_front_side", new_callable=AsyncMock) as mock_front,
+        patch.object(GenerateDeck, "generate_back_side", new_callable=AsyncMock) as mock_back,
+    ):
         # Configure mocks
         mock_generic.return_value = template_names
         mock_front.return_value = [side_factory(html) for html in front_html_contents]
@@ -468,7 +469,7 @@ async def test_generate_front_side(
         fields (List[str]): List of fields for the side
         expected_html_content (str): Expected HTML content
     """
-    with patch.object(GenerateDeck, 'acode_string', new_callable=AsyncMock) as mock_code:
+    with patch.object(GenerateDeck, "acode_string", new_callable=AsyncMock) as mock_code:
         # Configure mock
         mock_code.return_value = expected_html_content
 
@@ -513,7 +514,7 @@ async def test_generate_back_side(
         fields (List[str]): List of fields for the side
         expected_html_content (str): Expected HTML content
     """
-    with patch.object(GenerateDeck, 'acode_string', new_callable=AsyncMock) as mock_code:
+    with patch.object(GenerateDeck, "acode_string", new_callable=AsyncMock) as mock_code:
         # Configure mock
         mock_code.return_value = expected_html_content
 
@@ -554,10 +555,11 @@ async def test_generate_deck_edge_cases(
         fields (List[str]): List of fields (may be empty)
         requirement (str): Requirement for deck generation
     """
-    with patch.object(GenerateDeck, 'propose', new_callable=AsyncMock) as mock_propose, \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch.object(GenerateDeck, 'generate_model', new_callable=AsyncMock) as mock_model:
-
+    with (
+        patch.object(GenerateDeck, "propose", new_callable=AsyncMock) as mock_propose,
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch.object(GenerateDeck, "generate_model", new_callable=AsyncMock) as mock_model,
+    ):
         # Configure mocks for edge cases
         mock_propose.return_value = metadata_factory("Test", "Test description")
         mock_alist.return_value = ["test requirement"]
@@ -586,17 +588,17 @@ async def test_generate_template_none_inputs(role: GenerateDeckRole) -> None:
     Args:
         role (GenerateDeckRole): GenerateDeckRole fixture
     """
-    # Test with None requirement
-    result_none = await role.generate_template(["Field1"], None)
-    assert result_none is None
+    with pytest.raises(ValueError, match="requirement must be a string or a list of strings"):
+        # Test with None requirement
+        await role.generate_template(["Field1"], None)
 
     # Test with valid requirement
-    with patch.object(GenerateDeck, 'ageneric_string', new_callable=AsyncMock) as mock_generic, \
-         patch.object(GenerateDeck, 'acode_string', new_callable=AsyncMock) as mock_code:
-
+    with (
+        patch.object(GenerateDeck, "ageneric_string", new_callable=AsyncMock) as mock_generic,
+        patch.object(GenerateDeck, "acode_string", new_callable=AsyncMock) as mock_code,
+    ):
         mock_generic.return_value = "test_template"
         mock_code.side_effect = ["<div>Front</div>", "<div>Back</div>"]
-
         result_valid = await role.generate_template(["Field1"], "Valid requirement")
         assert result_valid is not None
         assert result_valid.name == "test_template"
@@ -627,7 +629,7 @@ async def test_generate_deck_none_components(
     role: GenerateDeckRole,
     metadata_none: bool,
     models_none: bool,
-    expected_result,
+    expected_result: Optional[Deck],
 ) -> None:
     """Test generate_deck when components return None.
 
@@ -637,10 +639,11 @@ async def test_generate_deck_none_components(
         models_none (bool): Whether models should be None
         expected_result: Expected result when components are None
     """
-    with patch.object(GenerateDeck, 'propose', new_callable=AsyncMock) as mock_propose, \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch.object(GenerateDeck, 'generate_model', new_callable=AsyncMock) as mock_model:
-
+    with (
+        patch.object(GenerateDeck, "propose", new_callable=AsyncMock) as mock_propose,
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch.object(GenerateDeck, "generate_model", new_callable=AsyncMock) as mock_model,
+    ):
         # Configure mocks based on test parameters
         mock_propose.return_value = None if metadata_none else metadata_factory("Test", "Test")
         mock_alist.return_value = ["test"] if not models_none else []
@@ -682,12 +685,13 @@ async def test_generate_deck_with_router(
         expected_result (str): Expected deck name
     """
     metadata_router = return_model_json_string(metadata_factory(ret_value.name, ret_value.description))
-    string_list_router = return_json_obj_string(["model1", "model2"])
+    return_json_obj_string(["model1", "model2"])
 
-    with install_router(metadata_router), \
-         patch.object(GenerateDeck, 'alist_str', new_callable=AsyncMock) as mock_alist, \
-         patch.object(GenerateDeck, 'generate_model', new_callable=AsyncMock) as mock_model:
-
+    with (
+        install_router(metadata_router),
+        patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
+        patch.object(GenerateDeck, "generate_model", new_callable=AsyncMock) as mock_model,
+    ):
         # Configure mocks
         mock_alist.return_value = ["test requirement"]
         mock_model.return_value = ret_value.models
