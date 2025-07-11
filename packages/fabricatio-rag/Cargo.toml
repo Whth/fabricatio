@@ -12,11 +12,11 @@ validator = { version = "0.20.0", features = ["derive"] }
 pyo3-log = "0.12.3"
 
 tonic = ">=0.13.0"
-prost = ">=0.13.5"
+prost = "0.13.5"
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 
 
 [build-dependencies]
-tonic-build = "0.13.0"
+tonic-build = ">=0.13.0"
 
 

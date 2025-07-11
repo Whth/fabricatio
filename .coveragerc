@@ -23,6 +23,8 @@ source =
     packages/fabricatio-translate/python/fabricatio_translate
     packages/fabricatio-locale/python/fabricatio_locale
     packages/fabricatio-diff/python/fabricatio_diff
+    packages/fabricatio-test/python/fabricatio_test
+    packages/fabricatio-thinking/python/fabricatio_thinking
 
 omit =
     */__init__.py
