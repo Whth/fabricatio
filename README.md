@@ -40,9 +40,7 @@
 
 <p align="center">
 
- <a href="https://fabricatio.readthedocs.io/en/latest/?badge=fabricatio">
-    <img src="https://readthedocs.org/projects/fabricatio/badge/?version=latest" alt="Documentation Status">
-  </a>
+
   <a href="https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml">
     <img src="https://github.com/Whth/fabricatio/actions/workflows/build-package.yaml/badge.svg" alt="Build Package">
   </a>
@@ -54,6 +52,9 @@
   </a>
   <a href="https://coveralls.io/github/Whth/fabricatio?branch=master">
     <img src="https://coveralls.io/repos/github/Whth/fabricatio/badge.svg?branch=master" alt="Coverage Status">
+  </a>
+  <a href="https://fabricatio.readthedocs.io/en/latest/?badge=fabricatio">
+    <img src="https://readthedocs.org/projects/fabricatio/badge/?version=latest" alt="Documentation Status">
   </a>
   <a href="https://github.com/Whth/fabricatio/issues">
     <img src="https://img.shields.io/github/issues/Whth/fabricatio" alt="GitHub Issues">
