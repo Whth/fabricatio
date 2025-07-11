@@ -2,7 +2,7 @@ Development Setup
 =================
 
 Prerequisites
--------------
+---------------------
 
 Before starting development, ensure you have:
 
@@ -11,7 +11,7 @@ Before starting development, ensure you have:
 - UV package manager (recommended)
 
 Quick Setup
------------
+---------------
 
 Clone and set up the development environment:
 
@@ -23,7 +23,7 @@ Clone and set up the development environment:
    make dev
 
 Alternative Setup with UV
--------------------------
+-----------------------------------------
 
 Using UV with maturin for development:
 
@@ -34,7 +34,7 @@ Using UV with maturin for development:
    uvx --with-editable . maturin develop --uv -r
 
 Development Commands
--------------------
+-------------------------------
 
 **Initialize Development Environment:**
 
@@ -76,7 +76,7 @@ Development Commands
    make py    # Generate Python subpackage
 
 Project Structure
-----------------
+------------------------
 
 The project follows a workspace structure with multiple packages:
 
@@ -88,7 +88,7 @@ The project follows a workspace structure with multiple packages:
 - ``tests/`` - Test suite
 
 Testing
--------
+-----------
 
 Run the full test suite:
 
@@ -99,7 +99,7 @@ Run the full test suite:
 For specific test configurations, check the ``pytest.ini_options`` in ``pyproject.toml``.
 
 Code Quality
------------
+---------------
 
 The project uses several tools for code quality:
 
@@ -114,7 +114,7 @@ Run linting and auto-fix issues:
    make fix
 
 Building Documentation
----------------------
+---------------------------------
 
 To build the documentation locally:
 
@@ -126,7 +126,7 @@ To build the documentation locally:
 The documentation will be available in ``docs/build/html/``.
 
 Debugging
----------
+-------------
 
 For debugging with visual tracing:
 
