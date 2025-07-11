@@ -3,14 +3,14 @@
 from pathlib import Path
 from typing import List
 
-class Message:
+class Msg:
     """Represents a message entry in a .po file."""
 
     id: str
     txt: str
     def __init__(self, *, id: str, txt: str) -> None: ...
 
-def read_pofile(file_path: Path | str) -> List[Message]:
+def read_pofile(file_path: Path | str) -> List[Msg]:
     """Reads a .po file and returns a list of Message objects containing msgid and msgstr.
 
     Args:
@@ -23,7 +23,7 @@ def read_pofile(file_path: Path | str) -> List[Message]:
         PyRuntimeError: If there is an error parsing the .po file.
     """
 
-def update_pofile(file_path: Path | str, messages: List[Message]) -> None:
+def update_pofile(file_path: Path | str, messages: List[Msg]) -> None:
     """Updates a .po file with the provided messages.
 
     Args:
