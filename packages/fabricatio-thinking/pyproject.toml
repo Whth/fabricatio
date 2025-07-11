@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-thinking"
-version = "0.1.1-dev0"
-description = "An extension of fabricatio"
+version = "0.1.1"
+description = "An extension of fabricatio, provide capablitities for thinking."
 readme = "README.md"
 license = "MIT"
 authors = [
