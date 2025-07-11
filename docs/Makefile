@@ -21,6 +21,7 @@ clean_text:
 
 gettext: clean_text
 	@$(SPHINXBUILD) -b gettext "$(SOURCEDIR)" "$(GETTEXTDIR)" $(SPHINXOPTS) $(O)
+	@rm -rf $(GETTEXTDIR)/autoapi
 
 intl: gettext intl_raw
 
