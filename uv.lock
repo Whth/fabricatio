@@ -400,7 +400,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.17.0"
+version = "0.17.1"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -648,7 +648,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.17.dev1"
+version = "0.3.17"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1309,7 +1309,7 @@ wheels = [
 
 [[package]]
 name = "huggingface-hub"
-version = "0.33.2"
+version = "0.33.3"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "filelock" },
@@ -1321,9 +1321,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/fa/42/8a95c5632080ae312c0498744b2b852195e10b05a20b1be11c5141092f4c/huggingface_hub-0.33.2.tar.gz", hash = "sha256:84221defaec8fa09c090390cd68c78b88e3c4c2b7befba68d3dc5aacbc3c2c5f" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/ea/b3/c3037ce396222d0f08894c7ca9eec87508e462c052e2a3776e7047e432b5/huggingface_hub-0.33.3.tar.gz", hash = "sha256:d3c8be3b0abf5e1fae313efe9c4cdd78928cc3279cf517903b05b688a7abf13e" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/44/f4/5f3f22e762ad1965f01122b42dae5bf0e009286e2dba601ce1d0dba72424/huggingface_hub-0.33.2-py3-none-any.whl", hash = "sha256:3749498bfa91e8cde2ddc2c1db92c79981f40e66434c20133b39e5928ac9bcc5" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/7a/9b/6ddcb6c4a91c4ad7be1574fd1e9c7cddaaeb5fb93c7df01703edc5395af9/huggingface_hub-0.33.3-py3-none-any.whl", hash = "sha256:d72241a6f78b7f5978e3c757275d5c10dcbdf94d7c766c73d8ecb7bf1a108d46" },
 ]
 
 [[package]]
