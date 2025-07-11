@@ -91,7 +91,13 @@ if find_spec("fabricatio_translate"):
         from fabricatio_locale.capabilities.localize import Localize
 
         __all__ += ["Localize"]
+
 if find_spec("fabricatio_diff"):
     from fabricatio_diff.capabilities.diff_edit import DiffEdit
 
     __all__ += ["DiffEdit"]
+
+if find_spec("fabricatio_thinking"):
+    from fabricatio_thinking.capabilities.thinking import Thinking
+
+    __all__ += ["Thinking"]

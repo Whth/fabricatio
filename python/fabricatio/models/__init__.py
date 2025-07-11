@@ -60,3 +60,9 @@ if find_spec("fabricatio_diff"):
     from fabricatio_diff.models.diff import Diff
 
     __all__ += ["Diff"]
+
+
+if find_spec("fabricatio_thinking"):
+    from fabricatio_thinking.models.thinking import Thought
+
+    __all__ += ["Thought"]
