@@ -865,7 +865,7 @@ dependencies = [
  "chrono",
  "clap",
  "colored",
- "fabricatio-constants 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fabricatio-constants 0.1.0",
  "flate2",
  "glob",
  "indicatif",
@@ -891,6 +891,8 @@ dependencies = [
 [[package]]
 name = "fabricatio-constants"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af9da5d4af1e418c9ab6f91f217b2c8fd41c312a699e2e1a805cc411a625342a"
 dependencies = [
  "directories-next",
  "once_cell",
@@ -898,9 +900,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-constants"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af9da5d4af1e418c9ab6f91f217b2c8fd41c312a699e2e1a805cc411a625342a"
+version = "0.2.0"
 dependencies = [
  "directories-next",
  "once_cell",
@@ -914,7 +914,7 @@ dependencies = [
  "blake3",
  "chrono",
  "dotenvy",
- "fabricatio-constants 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fabricatio-constants 0.1.0",
  "figment",
  "handlebars",
  "log",
