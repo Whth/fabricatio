@@ -1,0 +1,153 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: ../../source/configuration.rst:2
+msgid "Configuration"
+msgstr ""
+
+#: ../../source/configuration.rst:4
+msgid ""
+"Fabricatio supports flexible configuration through multiple sources, with"
+" the following priority order: ``Call Arguments`` > ``./.env`` > "
+"``Environment Variables`` > ``./fabricatio.toml`` > ``./pyproject.toml`` "
+"> ``<ROAMING>/fabricatio/fabricatio.toml`` > ``Builtin Defaults``."
+msgstr ""
+
+#: ../../source/configuration.rst:7
+msgid ""
+"Below is a unified view of the same configuration expressed in different "
+"formats:"
+msgstr ""
+
+#: ../../source/configuration.rst:10
+msgid "Environment Variables or .env File"
+msgstr ""
+
+#: ../../source/configuration.rst:27
+msgid "fabricatio.toml File"
+msgstr ""
+
+#: ../../source/configuration.rst:47
+msgid "pyproject.toml File"
+msgstr ""
+
+#: ../../source/configuration.rst:67
+msgid "Configuration Options"
+msgstr ""
+
+#: ../../source/configuration.rst:69
+msgid "**LLM Settings:**"
+msgstr ""
+
+#: ../../source/configuration.rst:71
+msgid "``api_endpoint``: The API endpoint for the LLM service"
+msgstr ""
+
+#: ../../source/configuration.rst:72
+msgid "``api_key``: Your API key for authentication"
+msgstr ""
+
+#: ../../source/configuration.rst:73
+msgid "``timeout``: Request timeout in seconds (default: 300)"
+msgstr ""
+
+#: ../../source/configuration.rst:74
+msgid "``max_retries``: Maximum number of retry attempts (default: 3)"
+msgstr ""
+
+#: ../../source/configuration.rst:75
+msgid "``model``: Model identifier (e.g., \"openai/gpt-3.5-turbo\")"
+msgstr ""
+
+#: ../../source/configuration.rst:76
+msgid "``temperature``: Sampling temperature (0.0 to 2.0)"
+msgstr ""
+
+#: ../../source/configuration.rst:77
+msgid "``top_p``: Nucleus sampling parameter"
+msgstr ""
+
+#: ../../source/configuration.rst:78
+msgid "``generation_count``: Number of generations per request"
+msgstr ""
+
+#: ../../source/configuration.rst:79
+msgid "``stream``: Enable streaming responses"
+msgstr ""
+
+#: ../../source/configuration.rst:80
+msgid "``max_tokens``: Maximum tokens in response"
+msgstr ""
+
+#: ../../source/configuration.rst:82
+msgid "**Debug Settings:**"
+msgstr ""
+
+#: ../../source/configuration.rst:84
+msgid "``log_level``: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+msgstr ""
+
+#: ../../source/configuration.rst:87
+msgid "Configuration Priority"
+msgstr ""
+
+#: ../../source/configuration.rst:89
+msgid ""
+"Configuration values are resolved in the following order (highest to "
+"lowest priority):"
+msgstr ""
+
+#: ../../source/configuration.rst:91
+msgid "**Call Arguments** - Parameters passed directly to function calls"
+msgstr ""
+
+#: ../../source/configuration.rst:92
+msgid "**./.env** - Environment file in the current working directory"
+msgstr ""
+
+#: ../../source/configuration.rst:93
+msgid ""
+"**Environment Variables** - System environment variables with "
+"``FABRICATIO_`` prefix"
+msgstr ""
+
+#: ../../source/configuration.rst:94
+msgid ""
+"**./fabricatio.toml** - Configuration file in the current working "
+"directory"
+msgstr ""
+
+#: ../../source/configuration.rst:95
+msgid ""
+"**./pyproject.toml** - Project configuration file (under "
+"``[tool.fabricatio]``)"
+msgstr ""
+
+#: ../../source/configuration.rst:96
+msgid ""
+"**<ROAMING>/fabricatio/fabricatio.toml** - User-specific configuration "
+"file"
+msgstr ""
+
+#: ../../source/configuration.rst:97
+msgid "**Builtin Defaults** - Default values provided by the library"
+msgstr ""
+

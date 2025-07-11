@@ -1,0 +1,183 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: ../../source/development.rst:2
+msgid "Development Setup"
+msgstr ""
+
+#: ../../source/development.rst:5
+msgid "Prerequisites"
+msgstr ""
+
+#: ../../source/development.rst:7
+msgid "Before starting development, ensure you have:"
+msgstr ""
+
+#: ../../source/development.rst:9
+msgid "Python 3.12 or 3.13"
+msgstr ""
+
+#: ../../source/development.rst:10
+msgid "Rust toolchain (for building native extensions)"
+msgstr ""
+
+#: ../../source/development.rst:11
+msgid "UV package manager (recommended)"
+msgstr ""
+
+#: ../../source/development.rst:14
+msgid "Quick Setup"
+msgstr ""
+
+#: ../../source/development.rst:16
+msgid "Clone and set up the development environment:"
+msgstr ""
+
+#: ../../source/development.rst:26
+msgid "Alternative Setup with UV"
+msgstr ""
+
+#: ../../source/development.rst:28
+msgid "Using UV with maturin for development:"
+msgstr ""
+
+#: ../../source/development.rst:37
+msgid "Development Commands"
+msgstr ""
+
+#: ../../source/development.rst:39
+msgid "**Initialize Development Environment:**"
+msgstr ""
+
+#: ../../source/development.rst:45
+msgid "**Build in Development Mode:**"
+msgstr ""
+
+#: ../../source/development.rst:51
+msgid "**Run Tests:**"
+msgstr ""
+
+#: ../../source/development.rst:59
+msgid "**Fix Linting Issues:**"
+msgstr ""
+
+#: ../../source/development.rst:65
+msgid "**Build Distribution:**"
+msgstr ""
+
+#: ../../source/development.rst:71
+msgid "**Generate Subpackages:**"
+msgstr ""
+
+#: ../../source/development.rst:79
+msgid "Project Structure"
+msgstr ""
+
+#: ../../source/development.rst:81
+msgid "The project follows a workspace structure with multiple packages:"
+msgstr ""
+
+#: ../../source/development.rst:83
+msgid "``packages/`` - Individual fabricatio subpackages"
+msgstr ""
+
+#: ../../source/development.rst:84
+msgid "``python/`` - Main Python source code"
+msgstr ""
+
+#: ../../source/development.rst:85
+msgid "``src/`` - Rust source code"
+msgstr ""
+
+#: ../../source/development.rst:86
+msgid "``examples/`` - Usage examples"
+msgstr ""
+
+#: ../../source/development.rst:87
+msgid "``docs/`` - Documentation source"
+msgstr ""
+
+#: ../../source/development.rst:88
+msgid "``tests/`` - Test suite"
+msgstr ""
+
+#: ../../source/development.rst:91
+msgid "Testing"
+msgstr ""
+
+#: ../../source/development.rst:93
+msgid "Run the full test suite:"
+msgstr ""
+
+#: ../../source/development.rst:99
+msgid ""
+"For specific test configurations, check the ``pytest.ini_options`` in "
+"``pyproject.toml``."
+msgstr ""
+
+#: ../../source/development.rst:102
+msgid "Code Quality"
+msgstr ""
+
+#: ../../source/development.rst:104
+msgid "The project uses several tools for code quality:"
+msgstr ""
+
+#: ../../source/development.rst:106
+msgid "**Ruff** for linting and formatting"
+msgstr ""
+
+#: ../../source/development.rst:107
+msgid "**PyRight** for type checking"
+msgstr ""
+
+#: ../../source/development.rst:108
+msgid "**Pytest** for testing"
+msgstr ""
+
+#: ../../source/development.rst:110
+msgid "Run linting and auto-fix issues:"
+msgstr ""
+
+#: ../../source/development.rst:117
+msgid "Building Documentation"
+msgstr ""
+
+#: ../../source/development.rst:119
+msgid "To build the documentation locally:"
+msgstr ""
+
+#: ../../source/development.rst:126
+msgid "The documentation will be available in ``docs/build/html/``."
+msgstr ""
+
+#: ../../source/development.rst:129
+msgid "Debugging"
+msgstr ""
+
+#: ../../source/development.rst:131
+msgid "For debugging with visual tracing:"
+msgstr ""
+
+#: ../../source/development.rst:138
+msgid "This will generate trace files that can be viewed in the VizTracer viewer."
+msgstr ""
+

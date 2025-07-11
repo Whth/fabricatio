@@ -1,0 +1,215 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: ../../source/usage.rst:2
+msgid "Usage"
+msgstr ""
+
+#: ../../source/usage.rst:5
+msgid "Overview"
+msgstr ""
+
+#: ../../source/usage.rst:7
+msgid ""
+"Fabricatio is a streamlined Python library for building LLM applications "
+"using an event-based agent structure. It features:"
+msgstr ""
+
+#: ../../source/usage.rst:9
+msgid ""
+"**Event-Driven Architecture**: Robust task management through an "
+"EventEmitter pattern"
+msgstr ""
+
+#: ../../source/usage.rst:10
+msgid ""
+"**LLM Integration & Templating**: Seamlessly interact with large language"
+" models and dynamic content generation"
+msgstr ""
+
+#: ../../source/usage.rst:11
+msgid ""
+"**Async & Extensible**: Fully asynchronous execution with easy extension "
+"via custom actions and workflows"
+msgstr ""
+
+#: ../../source/usage.rst:14
+msgid "Basic Example"
+msgstr ""
+
+#: ../../source/usage.rst:16
+msgid "Here's a simple \"Hello World\" example:"
+msgstr ""
+
+#: ../../source/usage.rst:47
+msgid "Async Usage"
+msgstr ""
+
+#: ../../source/usage.rst:49
+msgid "For asynchronous execution:"
+msgstr ""
+
+#: ../../source/usage.rst:79
+msgid "Available Examples"
+msgstr ""
+
+#: ../../source/usage.rst:81
+msgid "Fabricatio comes with numerous examples demonstrating various use cases:"
+msgstr ""
+
+#: ../../source/usage.rst:83
+msgid "**Basic Examples:**"
+msgstr ""
+
+#: ../../source/usage.rst:85
+msgid "``examples/minor/hello_fabricatio.py`` - Simple hello world"
+msgstr ""
+
+#: ../../source/usage.rst:86
+msgid "``examples/minor/write_a_poem.py`` - Creative writing"
+msgstr ""
+
+#: ../../source/usage.rst:87
+msgid "``examples/simple_chat/chat.py`` - Basic chat interface"
+msgstr ""
+
+#: ../../source/usage.rst:89
+msgid "**Advanced Examples:**"
+msgstr ""
+
+#: ../../source/usage.rst:91
+msgid "``examples/simple_rag/simple_rag.py`` - Retrieval-Augmented Generation"
+msgstr ""
+
+#: ../../source/usage.rst:92
+msgid "``examples/extract_article/extract.py`` - Article extraction"
+msgstr ""
+
+#: ../../source/usage.rst:93
+msgid "``examples/propose_task/propose.py`` - Task proposal system"
+msgstr ""
+
+#: ../../source/usage.rst:94
+msgid "``examples/reviewer/review.py`` - Code review automation"
+msgstr ""
+
+#: ../../source/usage.rst:95
+msgid "``examples/write_outline/write_outline.py`` - Outline generation"
+msgstr ""
+
+#: ../../source/usage.rst:97
+msgid "**Specialized Examples:**"
+msgstr ""
+
+#: ../../source/usage.rst:99
+msgid "``examples/anki_deck/deck_gen.py`` - Anki deck generation"
+msgstr ""
+
+#: ../../source/usage.rst:100
+msgid "``examples/make_diary/diary.py`` - Diary creation from git commits"
+msgstr ""
+
+#: ../../source/usage.rst:101
+msgid "``examples/search_bibtex/search.py`` - BibTeX search functionality"
+msgstr ""
+
+#: ../../source/usage.rst:102
+msgid "``examples/yue/compose.py`` - Yue language composition"
+msgstr ""
+
+#: ../../source/usage.rst:105
+msgid "Key Concepts"
+msgstr ""
+
+#: ../../source/usage.rst:107
+msgid "**Actions**"
+msgstr ""
+
+#: ../../source/usage.rst:108
+msgid ""
+"The basic unit of work in Fabricatio. Each action performs a specific "
+"task and can be chained together."
+msgstr ""
+
+#: ../../source/usage.rst:110
+msgid "**Workflows**"
+msgstr ""
+
+#: ../../source/usage.rst:111
+msgid "A sequence of actions that define how tasks are processed."
+msgstr ""
+
+#: ../../source/usage.rst:113
+msgid "**Events**"
+msgstr ""
+
+#: ../../source/usage.rst:114
+msgid ""
+"Triggers that initiate workflows. Events follow an event-driven "
+"architecture pattern."
+msgstr ""
+
+#: ../../source/usage.rst:116
+msgid "**Roles**"
+msgstr ""
+
+#: ../../source/usage.rst:117
+msgid "Entities that manage workflows and handle task delegation."
+msgstr ""
+
+#: ../../source/usage.rst:119
+msgid "**Tasks**"
+msgstr ""
+
+#: ../../source/usage.rst:120
+msgid "Work items that get processed through workflows."
+msgstr ""
+
+#: ../../source/usage.rst:123
+msgid "Getting Started"
+msgstr ""
+
+#: ../../source/usage.rst:125
+msgid "Install fabricatio with desired capabilities"
+msgstr ""
+
+#: ../../source/usage.rst:126
+msgid "Define your actions by subclassing ``Action``"
+msgstr ""
+
+#: ../../source/usage.rst:127
+msgid "Create workflows combining your actions"
+msgstr ""
+
+#: ../../source/usage.rst:128
+msgid "Register workflows with roles using events"
+msgstr ""
+
+#: ../../source/usage.rst:129
+msgid "Submit tasks for processing"
+msgstr ""
+
+#: ../../source/usage.rst:131
+msgid ""
+"For detailed examples and advanced usage patterns, explore the "
+"``examples/`` directory in the repository."
+msgstr ""
+
