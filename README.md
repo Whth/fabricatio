@@ -156,9 +156,7 @@ Fabricatio supports flexible configuration through multiple sources, with the fo
 
 Below is a unified view of the same configuration expressed in different formats:
 
-### Format Examples: Unified Configuration Representation
-
-#### Environment variables or dotenv file
+### Environment variables or dotenv file
 ```dotenv
 FABRIK_LLM__API_ENDPOINT=https://api.openai.com
 FABRIK_LLM__API_KEY=your_openai_api_key
@@ -173,7 +171,7 @@ FABRIK_LLM__MAX_TOKENS=8192
 FABRIK_DEBUG__LOG_LEVEL=INFO
 ```
 
-#### `fabricatio.toml` file
+### `fabricatio.toml` file
 ```toml
 [llm]
 api_endpoint = "https://api.openai.com"
@@ -191,7 +189,7 @@ max_tokens = 8192
 log_level = "INFO"
 ```
 
-#### `pyproject.toml` file
+### `pyproject.toml` file
 ```toml
 [tool.fabricatio.llm]
 api_endpoint = "https://api.openai.com"
@@ -208,6 +206,10 @@ max_tokens = 8192
 [tool.fabricatio.debug]
 log_level = "INFO"
 ```
+
+## Contributing
+
+We welcome contributions from everyone! Before contributing, please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
