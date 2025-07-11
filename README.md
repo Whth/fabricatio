@@ -209,38 +209,6 @@ max_tokens = 8192
 log_level = "INFO"
 ```
 
-## Development Setup
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Whth/fabricatio.git
-   cd fabricatio
-   ```
-2. **Install Dependencies**:
-   ```bash
-   make init
-   ```
-   
-3. **Build the Package**:
-   ```bash
-   make dev
-   ```
-4. **Run Tests**:
-   ```bash
-   make tests
-   ```
-   
-## Contributing
-
-Contributions are welcome! Follow these steps:
-
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feat/new-feature`).
-3. [Optional]Create a py/rs subpackage with `make rs` or `make py` 
-4. Commit your changes (`git commit -am 'Add new feature'`).
-5. Push to the branch (`git push origin feat/new-feature`).
-6. Create a new Pull Request.
-
 ## License
 
 Fabricatio is licensed under the MIT License. See [LICENSE](LICENSE) for details.
