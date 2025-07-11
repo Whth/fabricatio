@@ -18,10 +18,9 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
 #: ../../source/configuration.rst:2
 msgid "Configuration"
-msgstr ""
+msgstr "配置"
 
 #: ../../source/configuration.rst:4
 msgid ""
@@ -30,124 +29,127 @@ msgid ""
 "``Environment Variables`` > ``./fabricatio.toml`` > ``./pyproject.toml`` "
 "> ``<ROAMING>/fabricatio/fabricatio.toml`` > ``Builtin Defaults``."
 msgstr ""
+"Fabricatio支持通过多种来源进行灵活配置，优先级顺序如下：``调用参数`` > ``./.env`` > "
+"``环境变量`` > ``./fabricatio.toml`` > ``./pyproject.toml`` > "
+"``<ROAMING>/fabricatio/fabricatio.toml`` > ``内置默认值``。"
 
 #: ../../source/configuration.rst:7
 msgid ""
 "Below is a unified view of the same configuration expressed in different "
 "formats:"
-msgstr ""
+msgstr "以下是相同配置在不同格式下的统一视图："
 
 #: ../../source/configuration.rst:10
 msgid "Environment Variables or .env File"
-msgstr ""
+msgstr "环境变量或.env文件"
 
 #: ../../source/configuration.rst:27
 msgid "fabricatio.toml File"
-msgstr ""
+msgstr "fabricatio.toml文件"
 
 #: ../../source/configuration.rst:47
 msgid "pyproject.toml File"
-msgstr ""
+msgstr "pyproject.toml文件"
 
 #: ../../source/configuration.rst:67
 msgid "Configuration Options"
-msgstr ""
+msgstr "配置选项"
 
 #: ../../source/configuration.rst:69
 msgid "**LLM Settings:**"
-msgstr ""
+msgstr "**大语言模型设置:**"
 
 #: ../../source/configuration.rst:71
 msgid "``api_endpoint``: The API endpoint for the LLM service"
-msgstr ""
+msgstr "``api_endpoint``: 大语言模型服务的API端点"
 
 #: ../../source/configuration.rst:72
 msgid "``api_key``: Your API key for authentication"
-msgstr ""
+msgstr "``api_key``: 用于身份验证的API密钥"
 
 #: ../../source/configuration.rst:73
 msgid "``timeout``: Request timeout in seconds (default: 300)"
-msgstr ""
+msgstr "``timeout``: 请求超时时间（秒，默认：300）"
 
 #: ../../source/configuration.rst:74
 msgid "``max_retries``: Maximum number of retry attempts (default: 3)"
-msgstr ""
+msgstr "``max_retries``: 最大重试次数（默认：3）"
 
 #: ../../source/configuration.rst:75
 msgid "``model``: Model identifier (e.g., \"openai/gpt-3.5-turbo\")"
-msgstr ""
+msgstr "``model``: 模型标识符（例如\"openai/gpt-3.5-turbo\"）"
 
 #: ../../source/configuration.rst:76
 msgid "``temperature``: Sampling temperature (0.0 to 2.0)"
-msgstr ""
+msgstr "``temperature``: 采样温度（0.0至2.0）"
 
 #: ../../source/configuration.rst:77
 msgid "``top_p``: Nucleus sampling parameter"
-msgstr ""
+msgstr "``top_p``: 核心采样参数"
 
 #: ../../source/configuration.rst:78
 msgid "``generation_count``: Number of generations per request"
-msgstr ""
+msgstr "``generation_count``: 每次请求的生成次数"
 
 #: ../../source/configuration.rst:79
 msgid "``stream``: Enable streaming responses"
-msgstr ""
+msgstr "`[stream](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L30-L30)`: 启用流式响应"
 
 #: ../../source/configuration.rst:80
-msgid "``max_tokens``: Maximum tokens in response"
-msgstr ""
+msgid "`[max_tokens](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29)`: Maximum tokens in response"
+msgstr "`[max_tokens](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29)`: 响应中的最大tokens数"
 
 #: ../../source/configuration.rst:82
 msgid "**Debug Settings:**"
-msgstr ""
+msgstr "**调试设置:**"
 
 #: ../../source/configuration.rst:84
 msgid "``log_level``: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
-msgstr ""
+msgstr "``log_level``: 日志级别（DEBUG, INFO, WARNING, ERROR, CRITICAL）"
 
 #: ../../source/configuration.rst:87
 msgid "Configuration Priority"
-msgstr ""
+msgstr "配置优先级"
 
 #: ../../source/configuration.rst:89
 msgid ""
 "Configuration values are resolved in the following order (highest to "
 "lowest priority):"
-msgstr ""
+msgstr "配置值按以下顺序解析（优先级从高到低）："
 
 #: ../../source/configuration.rst:91
 msgid "**Call Arguments** - Parameters passed directly to function calls"
-msgstr ""
+msgstr "**调用参数** - 直接传递给函数调用的参数"
 
 #: ../../source/configuration.rst:92
 msgid "**./.env** - Environment file in the current working directory"
-msgstr ""
+msgstr "**./.env** - 当前工作目录中的环境文件"
 
 #: ../../source/configuration.rst:93
 msgid ""
 "**Environment Variables** - System environment variables with "
 "``FABRICATIO_`` prefix"
-msgstr ""
+msgstr "**环境变量** - 带有``FABRICATIO_``前缀的系统环境变量"
 
 #: ../../source/configuration.rst:94
 msgid ""
 "**./fabricatio.toml** - Configuration file in the current working "
 "directory"
-msgstr ""
+msgstr "**./fabricatio.toml** - 当前工作目录中的配置文件"
 
 #: ../../source/configuration.rst:95
 msgid ""
 "**./pyproject.toml** - Project configuration file (under "
 "``[tool.fabricatio]``)"
-msgstr ""
+msgstr "**./pyproject.toml** - 项目配置文件（位于``[tool.fabricatio]``下）"
 
 #: ../../source/configuration.rst:96
 msgid ""
 "**<ROAMING>/fabricatio/fabricatio.toml** - User-specific configuration "
 "file"
-msgstr ""
+msgstr "**<ROAMING>/fabricatio/fabricatio.toml** - 用户特定的配置文件"
 
 #: ../../source/configuration.rst:97
 msgid "**Builtin Defaults** - Default values provided by the library"
-msgstr ""
+msgstr "**内置默认值** - 库提供的默认值"
 

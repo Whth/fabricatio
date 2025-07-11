@@ -55,83 +55,83 @@ msgstr "Fabricatio 支持多种可选依赖以提供不同的功能："
 
 #: ../../source/installation.rst:37
 msgid "``anki``: Anki deck generation (fabricatio-anki)"
-msgstr ""
+msgstr "``anki``：Anki 卡片生成（fabricatio-anki）"
 
 #: ../../source/installation.rst:38
 msgid "``memory``: Memory management (fabricatio-memory)"
-msgstr ""
+msgstr "``memory``：记忆管理（fabricatio-memory）"
 
 #: ../../source/installation.rst:39
 msgid "``digest``: Content digestion (fabricatio-digest)"
-msgstr ""
+msgstr "``digest``：内容消化（fabricatio-digest）"
 
 #: ../../source/installation.rst:40
 msgid "``rag``: Retrieval-Augmented Generation (fabricatio-rag)"
-msgstr ""
+msgstr "``rag``：检索增强生成（fabricatio-rag）"
 
 #: ../../source/installation.rst:41
 msgid "``judge``: Judgment and evaluation (fabricatio-judge)"
-msgstr ""
+msgstr "``judge``：判断与评估（fabricatio-judge）"
 
 #: ../../source/installation.rst:42
 msgid "``rule``: Rule-based processing (fabricatio-rule)"
-msgstr ""
+msgstr "``rule``：基于规则的处理（fabricatio-rule）"
 
 #: ../../source/installation.rst:43
 msgid "``cli``: Command-line interface (typer-slim)"
-msgstr ""
+msgstr "``cli``：命令行界面（typer-slim）"
 
 #: ../../source/installation.rst:44
 msgid "``typst``: Typst document generation (fabricatio-typst)"
-msgstr ""
+msgstr "``typst``：Typst 文档生成（fabricatio-typst）"
 
 #: ../../source/installation.rst:45
 msgid "``improve``: Content improvement (fabricatio-improve)"
-msgstr ""
+msgstr "``improve``：内容改进（fabricatio-improve）"
 
 #: ../../source/installation.rst:46
 msgid "``capabilities``: Core capabilities (fabricatio-capabilities)"
-msgstr ""
+msgstr "``capabilities``：核心能力（fabricatio-capabilities）"
 
 #: ../../source/installation.rst:47
 msgid "``actions``: Action system (fabricatio-actions)"
-msgstr ""
+msgstr "``actions``：操作系统（fabricatio-actions）"
 
 #: ../../source/installation.rst:48
 msgid "``question``: Question processing (fabricatio-question)"
-msgstr ""
+msgstr "``question``：问题处理（fabricatio-question）"
 
 #: ../../source/installation.rst:49
 msgid "``tagging``: Content tagging (fabricatio-tagging)"
-msgstr ""
+msgstr "``tagging``：内容打标签（fabricatio-tagging）"
 
 #: ../../source/installation.rst:50
-msgid "``yue``: Yue language support (fabricatio-yue)"
-msgstr ""
+msgid "``yue``: Yue support (fabricatio-yue)"
+msgstr "``yue``：YUE 支持（fabricatio-yue）"
 
 #: ../../source/installation.rst:51
 msgid "``tool``: Tool integration (fabricatio-tool)"
-msgstr ""
+msgstr "``tool``：工具集成（fabricatio-tool）"
 
 #: ../../source/installation.rst:52
 msgid "``plot``: Plotting capabilities (fabricatio-plot)"
-msgstr ""
+msgstr "``plot``：绘图功能（fabricatio-plot）"
 
 #: ../../source/installation.rst:53
 msgid "``translate``: Translation services (fabricatio-translate)"
-msgstr ""
+msgstr "``translate``：翻译服务（fabricatio-translate）"
 
 #: ../../source/installation.rst:54
 msgid "``locale``: Localization support (fabricatio-locale)"
-msgstr ""
+msgstr "``locale``：本地化支持（fabricatio-locale）"
 
 #: ../../source/installation.rst:55
 msgid "``diff``: Diff utilities (fabricatio-diff)"
-msgstr ""
+msgstr "``diff``：差异工具（fabricatio-diff）"
 
 #: ../../source/installation.rst:56
 msgid "``thinking``: Thinking/reasoning (fabricatio-thinking)"
-msgstr ""
+msgstr "``thinking``：思考与推理（fabricatio-thinking）"
 
 #: ../../source/installation.rst:59
 msgid "Development Installation"

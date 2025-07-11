@@ -21,195 +21,202 @@ msgstr ""
 
 #: ../../source/usage.rst:2
 msgid "Usage"
-msgstr ""
+msgstr "使用方法"
 
 #: ../../source/usage.rst:5
 msgid "Overview"
-msgstr ""
+msgstr "概述"
 
 #: ../../source/usage.rst:7
 msgid ""
 "Fabricatio is a streamlined Python library for building LLM applications "
 "using an event-based agent structure. It features:"
 msgstr ""
+"Fabricatio 是一个精简的 Python 库，用于通过基于事件的代理结构构建 LLM 应用程序。它具有以下特点："
 
 #: ../../source/usage.rst:9
 msgid ""
 "**Event-Driven Architecture**: Robust task management through an "
 "EventEmitter pattern"
 msgstr ""
+"**事件驱动架构**：通过 EventEmitter 模式实现强大的任务管理"
 
 #: ../../source/usage.rst:10
 msgid ""
 "**LLM Integration & Templating**: Seamlessly interact with large language"
 " models and dynamic content generation"
 msgstr ""
+"**LLM 集成与模板化**：无缝与大型语言模型交互并生成动态内容"
 
 #: ../../source/usage.rst:11
 msgid ""
 "**Async & Extensible**: Fully asynchronous execution with easy extension "
 "via custom actions and workflows"
 msgstr ""
+"**异步与可扩展性**：完全异步执行，并可通过自定义操作和工作流轻松扩展"
 
 #: ../../source/usage.rst:14
 msgid "Basic Example"
-msgstr ""
+msgstr "基本示例"
 
 #: ../../source/usage.rst:16
 msgid "Here's a simple \"Hello World\" example:"
-msgstr ""
+msgstr "这里是一个简单的“Hello World”示例："
 
 #: ../../source/usage.rst:47
 msgid "Async Usage"
-msgstr ""
+msgstr "异步使用"
 
 #: ../../source/usage.rst:49
 msgid "For asynchronous execution:"
-msgstr ""
+msgstr "对于异步执行："
 
 #: ../../source/usage.rst:79
 msgid "Available Examples"
-msgstr ""
+msgstr "可用示例"
 
 #: ../../source/usage.rst:81
 msgid "Fabricatio comes with numerous examples demonstrating various use cases:"
-msgstr ""
+msgstr "Fabricatio 提供了大量展示各种使用场景的示例："
 
 #: ../../source/usage.rst:83
 msgid "**Basic Examples:**"
-msgstr ""
+msgstr "**基础示例：**"
 
 #: ../../source/usage.rst:85
 msgid "``examples/minor/hello_fabricatio.py`` - Simple hello world"
-msgstr ""
+msgstr "``examples/minor/hello_fabricatio.py`` - 简单的 Hello World 示例"
 
 #: ../../source/usage.rst:86
 msgid "``examples/minor/write_a_poem.py`` - Creative writing"
-msgstr ""
+msgstr "``examples/minor/write_a_poem.py`` - 创意写作"
 
 #: ../../source/usage.rst:87
 msgid "``examples/simple_chat/chat.py`` - Basic chat interface"
-msgstr ""
+msgstr "``examples/simple_chat/chat.py`` - 基础聊天界面"
 
 #: ../../source/usage.rst:89
 msgid "**Advanced Examples:**"
-msgstr ""
+msgstr "**高级示例：**"
 
 #: ../../source/usage.rst:91
 msgid "``examples/simple_rag/simple_rag.py`` - Retrieval-Augmented Generation"
-msgstr ""
+msgstr "``examples/simple_rag/simple_rag.py`` - 检索增强生成（RAG）"
 
 #: ../../source/usage.rst:92
 msgid "``examples/extract_article/extract.py`` - Article extraction"
-msgstr ""
+msgstr "``examples/extract_article/extract.py`` - 文章提取"
 
 #: ../../source/usage.rst:93
 msgid "``examples/propose_task/propose.py`` - Task proposal system"
-msgstr ""
+msgstr "``examples/propose_task/propose.py`` - 任务提案系统"
 
 #: ../../source/usage.rst:94
 msgid "``examples/reviewer/review.py`` - Code review automation"
-msgstr ""
+msgstr "``examples/reviewer/review.py`` - 代码审查自动化"
 
 #: ../../source/usage.rst:95
 msgid "``examples/write_outline/write_outline.py`` - Outline generation"
-msgstr ""
+msgstr "``examples/write_outline/write_outline.py`` - 大纲生成"
 
 #: ../../source/usage.rst:97
 msgid "**Specialized Examples:**"
-msgstr ""
+msgstr "**专门示例：**"
 
 #: ../../source/usage.rst:99
 msgid "``examples/anki_deck/deck_gen.py`` - Anki deck generation"
-msgstr ""
+msgstr "``examples/anki_deck/deck_gen.py`` - Anki 卡片生成"
 
 #: ../../source/usage.rst:100
 msgid "``examples/make_diary/diary.py`` - Diary creation from git commits"
-msgstr ""
+msgstr "``examples/make_diary/diary.py`` - 从 Git 提交创建日记"
 
 #: ../../source/usage.rst:101
 msgid "``examples/search_bibtex/search.py`` - BibTeX search functionality"
-msgstr ""
+msgstr "``examples/search_bibtex/search.py`` - BibTeX 搜索功能"
 
 #: ../../source/usage.rst:102
 msgid "``examples/yue/compose.py`` - Yue language composition"
-msgstr ""
+msgstr "``examples/yue/compose.py`` - 粤语创作"
 
 #: ../../source/usage.rst:105
 msgid "Key Concepts"
-msgstr ""
+msgstr "关键概念"
 
 #: ../../source/usage.rst:107
 msgid "**Actions**"
-msgstr ""
+msgstr "**操作**"
 
 #: ../../source/usage.rst:108
 msgid ""
 "The basic unit of work in Fabricatio. Each action performs a specific "
 "task and can be chained together."
 msgstr ""
+"Fabricatio 中的基本工作单元。每个操作执行特定任务，并可以串联在一起。"
 
 #: ../../source/usage.rst:110
 msgid "**Workflows**"
-msgstr ""
+msgstr "**工作流**"
 
 #: ../../source/usage.rst:111
 msgid "A sequence of actions that define how tasks are processed."
-msgstr ""
+msgstr "定义任务如何被处理的一系列操作。"
 
 #: ../../source/usage.rst:113
 msgid "**Events**"
-msgstr ""
+msgstr "**事件**"
 
 #: ../../source/usage.rst:114
 msgid ""
 "Triggers that initiate workflows. Events follow an event-driven "
 "architecture pattern."
 msgstr ""
+"触发工作流的机制。事件遵循事件驱动架构模式。"
 
 #: ../../source/usage.rst:116
 msgid "**Roles**"
-msgstr ""
+msgstr "**角色**"
 
 #: ../../source/usage.rst:117
 msgid "Entities that manage workflows and handle task delegation."
-msgstr ""
+msgstr "管理工作流并处理任务委派的实体。"
 
 #: ../../source/usage.rst:119
 msgid "**Tasks**"
-msgstr ""
+msgstr "**任务**"
 
 #: ../../source/usage.rst:120
 msgid "Work items that get processed through workflows."
-msgstr ""
+msgstr "通过工作流进行处理的工作项。"
 
 #: ../../source/usage.rst:123
 msgid "Getting Started"
-msgstr ""
+msgstr "入门指南"
 
 #: ../../source/usage.rst:125
 msgid "Install fabricatio with desired capabilities"
-msgstr ""
+msgstr "安装带有所需功能的 fabricatio"
 
 #: ../../source/usage.rst:126
-msgid "Define your actions by subclassing ``Action``"
-msgstr ""
+msgid "Define your actions by subclassing `[Action](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\action.py#L28-L90)`"
+msgstr "通过继承 `[Action](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\action.py#L28-L90)` 定义您的操作"
 
 #: ../../source/usage.rst:127
 msgid "Create workflows combining your actions"
-msgstr ""
+msgstr "创建组合您操作的工作流"
 
 #: ../../source/usage.rst:128
 msgid "Register workflows with roles using events"
-msgstr ""
+msgstr "使用事件将工作流注册到角色"
 
 #: ../../source/usage.rst:129
 msgid "Submit tasks for processing"
-msgstr ""
+msgstr "提交任务以进行处理"
 
 #: ../../source/usage.rst:131
 msgid ""
 "For detailed examples and advanced usage patterns, explore the "
 "``examples/`` directory in the repository."
 msgstr ""
+"有关详细示例和高级使用模式，请探索存储库中的 ``examples/`` 目录。"
 

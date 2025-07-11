@@ -21,163 +21,163 @@ msgstr ""
 
 #: ../../source/development.rst:2
 msgid "Development Setup"
-msgstr ""
+msgstr "开发设置"
 
 #: ../../source/development.rst:5
 msgid "Prerequisites"
-msgstr ""
+msgstr "前提条件"
 
 #: ../../source/development.rst:7
 msgid "Before starting development, ensure you have:"
-msgstr ""
+msgstr "开始开发之前，请确保已安装以下环境："
 
 #: ../../source/development.rst:9
 msgid "Python 3.12 or 3.13"
-msgstr ""
+msgstr "Python 3.12 或 3.13"
 
 #: ../../source/development.rst:10
 msgid "Rust toolchain (for building native extensions)"
-msgstr ""
+msgstr "Rust 工具链（用于构建本地扩展）"
 
 #: ../../source/development.rst:11
 msgid "UV package manager (recommended)"
-msgstr ""
+msgstr "UV 包管理器（推荐）"
 
 #: ../../source/development.rst:14
 msgid "Quick Setup"
-msgstr ""
+msgstr "快速设置"
 
 #: ../../source/development.rst:16
 msgid "Clone and set up the development environment:"
-msgstr ""
+msgstr "克隆并配置开发环境："
 
 #: ../../source/development.rst:26
 msgid "Alternative Setup with UV"
-msgstr ""
+msgstr "使用 UV 的替代设置"
 
 #: ../../source/development.rst:28
 msgid "Using UV with maturin for development:"
-msgstr ""
+msgstr "使用 UV 和 maturin 进行开发："
 
 #: ../../source/development.rst:37
 msgid "Development Commands"
-msgstr ""
+msgstr "开发命令"
 
 #: ../../source/development.rst:39
 msgid "**Initialize Development Environment:**"
-msgstr ""
+msgstr "**初始化开发环境：**"
 
 #: ../../source/development.rst:45
 msgid "**Build in Development Mode:**"
-msgstr ""
+msgstr "**以开发模式构建：**"
 
 #: ../../source/development.rst:51
 msgid "**Run Tests:**"
-msgstr ""
+msgstr "**运行测试：**"
 
 #: ../../source/development.rst:59
 msgid "**Fix Linting Issues:**"
-msgstr ""
+msgstr "**修复代码规范问题：**"
 
 #: ../../source/development.rst:65
 msgid "**Build Distribution:**"
-msgstr ""
+msgstr "**构建发布包：**"
 
 #: ../../source/development.rst:71
 msgid "**Generate Subpackages:**"
-msgstr ""
+msgstr "**生成子包：**"
 
 #: ../../source/development.rst:79
 msgid "Project Structure"
-msgstr ""
+msgstr "项目结构"
 
 #: ../../source/development.rst:81
 msgid "The project follows a workspace structure with multiple packages:"
-msgstr ""
+msgstr "该项目采用包含多个包的工作区结构："
 
 #: ../../source/development.rst:83
 msgid "``packages/`` - Individual fabricatio subpackages"
-msgstr ""
+msgstr "``packages/`` - 独立的 fabricatio 子包"
 
 #: ../../source/development.rst:84
 msgid "``python/`` - Main Python source code"
-msgstr ""
+msgstr "``python/`` - 主要 Python 源代码"
 
 #: ../../source/development.rst:85
 msgid "``src/`` - Rust source code"
-msgstr ""
+msgstr "``src/`` - Rust 源代码"
 
 #: ../../source/development.rst:86
 msgid "``examples/`` - Usage examples"
-msgstr ""
+msgstr "``examples/`` - 使用示例"
 
 #: ../../source/development.rst:87
 msgid "``docs/`` - Documentation source"
-msgstr ""
+msgstr "``docs/`` - 文档源文件"
 
 #: ../../source/development.rst:88
 msgid "``tests/`` - Test suite"
-msgstr ""
+msgstr "``tests/`` - 测试套件"
 
 #: ../../source/development.rst:91
 msgid "Testing"
-msgstr ""
+msgstr "测试"
 
 #: ../../source/development.rst:93
 msgid "Run the full test suite:"
-msgstr ""
+msgstr "运行完整测试套件："
 
 #: ../../source/development.rst:99
 msgid ""
 "For specific test configurations, check the ``pytest.ini_options`` in "
-"``pyproject.toml``."
-msgstr ""
+"`[pyproject.toml](file://L:\rust_proj\fabricatio\packages\fabricatio-anki\pyproject.toml)`."
+msgstr "有关特定测试配置，请检查 `[pyproject.toml](file://L:\rust_proj\fabricatio\packages\fabricatio-anki\pyproject.toml)` 中的 ``pytest.ini_options``。"
 
 #: ../../source/development.rst:102
 msgid "Code Quality"
-msgstr ""
+msgstr "代码质量"
 
 #: ../../source/development.rst:104
 msgid "The project uses several tools for code quality:"
-msgstr ""
+msgstr "该项目使用多种工具保障代码质量："
 
 #: ../../source/development.rst:106
 msgid "**Ruff** for linting and formatting"
-msgstr ""
+msgstr "**Ruff** 用于代码检查和格式化"
 
 #: ../../source/development.rst:107
 msgid "**PyRight** for type checking"
-msgstr ""
+msgstr "**PyRight** 用于类型检查"
 
 #: ../../source/development.rst:108
 msgid "**Pytest** for testing"
-msgstr ""
+msgstr "**Pytest** 用于测试"
 
 #: ../../source/development.rst:110
 msgid "Run linting and auto-fix issues:"
-msgstr ""
+msgstr "运行代码检查并自动修复问题："
 
 #: ../../source/development.rst:117
 msgid "Building Documentation"
-msgstr ""
+msgstr "构建文档"
 
 #: ../../source/development.rst:119
 msgid "To build the documentation locally:"
-msgstr ""
+msgstr "在本地构建文档："
 
 #: ../../source/development.rst:126
 msgid "The documentation will be available in ``docs/build/html/``."
-msgstr ""
+msgstr "文档将生成在 ``docs/build/html/`` 目录下。"
 
 #: ../../source/development.rst:129
 msgid "Debugging"
-msgstr ""
+msgstr "调试"
 
 #: ../../source/development.rst:131
 msgid "For debugging with visual tracing:"
-msgstr ""
+msgstr "进行可视化追踪调试："
 
 #: ../../source/development.rst:138
 msgid "This will generate trace files that can be viewed in the VizTracer viewer."
-msgstr ""
+msgstr "这会生成可在 VizTracer 查看器中查看的跟踪文件。"
 
