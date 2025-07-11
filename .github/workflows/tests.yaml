@@ -65,8 +65,12 @@ jobs:
       - name: Test
         run: |
           make test
+
+
+      - name: Upload coverage to Codecov
+        if: github.event_name != 'pull_request'
+        run: |
           uv run coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-
 

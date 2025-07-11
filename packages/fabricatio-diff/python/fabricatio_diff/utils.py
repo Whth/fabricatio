@@ -37,19 +37,16 @@ def match_lines(haystack: str, needle: str, match_precision: float = 1.0) -> str
 
 
 class Delimiters(StrEnum):
-    """Enum class representing delimiters used for search and replace operations.
-
-    Attributes:
-        SEARCH_LEFT (str): Left delimiter for search blocks.
-        SEARCH_RIGHT (str): Right delimiter for search blocks.
-        REPLACE_LEFT (str): Left delimiter for replace blocks.
-        REPLACE_RIGHT (str): Right delimiter for replace blocks.
-    """
+    """Enum class representing delimiters used for search and replace operations."""
 
     SEARCH_LEFT = "<<<<SEARCH\n"
+    """Left delimiter for search blocks."""
     SEARCH_RIGHT = "\nSEARCH<<<<"
+    """Right delimiter for search blocks."""
     REPLACE_LEFT = "<<<<REPLACE\n"
+    """Left delimiter for replace blocks."""
     REPLACE_RIGHT = "\nREPLACE<<<<"
+    """Right delimiter for replace blocks."""
 
 
 SearchCapture = Capture.capture_content(Delimiters.SEARCH_LEFT, Delimiters.SEARCH_RIGHT)

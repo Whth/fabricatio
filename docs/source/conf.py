@@ -6,10 +6,15 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+from tomllib import load
+
+with open("../../pyproject.toml", "rb") as f:
+    pyproject = load(f)
+
 project = "fabricatio"
 copyright = "2025, Whth"
 author = "Whth"
-release = "0.1.0"
+release = pyproject.get("project",{}).get("version")
 show_authors = True
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -49,7 +54,6 @@ templates_path = ["_templates"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
 
 # Modern UI configurations
 html_theme_options = {
