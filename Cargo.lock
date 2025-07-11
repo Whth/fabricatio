@@ -967,6 +967,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-thinking"
+version = "0.0.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
 name = "fabricatio-tool"
 version = "0.0.0"
 dependencies = [
