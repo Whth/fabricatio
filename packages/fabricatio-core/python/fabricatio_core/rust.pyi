@@ -238,7 +238,6 @@ class DebugConfig:
     retention: Optional[int] = None
     """The retention of the log file, in days. Defaults to be None"""
 
-
 class TemplateManagerConfig:
     """Template manager configuration structure."""
 

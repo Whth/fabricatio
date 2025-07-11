@@ -43,18 +43,23 @@ fn split_into_chunks(
     let mut current_chunk = String::new();
 
     for s in sentences {
-        let sentence_word_count = word_count(s.as_str());
+        current_chunk.push_str(&s);
         let overlapping_word_count = word_count(overlapping.as_str());
         let current_word_count = word_count(current_chunk.as_str());
-        if overlapping_word_count + current_word_count + sentence_word_count <= max_chunk_size {
-            // chunk not filled up yet
-            current_chunk.push_str(&s)
-        } else {
+        if overlapping_word_count + current_word_count > max_chunk_size {
             // chunk filled up, push to result
             res.push(overlapping + current_chunk.as_str());
+
+            // update overlapping
             overlapping = get_tail_sentences(&current_chunk, max_overlapping_size).join("");
+
+            // clear the container
             current_chunk.clear()
         }
+    }
+    if !current_chunk.is_empty() {
+        // push the last chunk that does not fill up a chunk
+        res.push(overlapping + current_chunk.as_str());
     }
     res
 }
@@ -63,7 +68,7 @@ fn split_into_chunks(
 fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
     let mut res: Vec<String> = vec![];
     for s in split_sentence_bounds(string).iter().rev() {
-        if word_count(s.as_str()) + res.iter().map(|s| word_count(s)).sum::<usize>() <= max_size {
+        if word_count(s.as_str()) + word_count(res.join("").as_str()) <= max_size {
             res.push(s.to_string());
         } else {
             break;
@@ -76,7 +81,10 @@ fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
 /// count the words
 #[pyfunction]
 pub(crate) fn word_count(string: &str) -> usize {
-    string.split_word_bounds().count()
+    string
+        .split_word_bounds()
+        .filter(|s| !s.trim().is_empty())
+        .count()
 }
 
 /// register the module
