@@ -152,23 +152,23 @@ _(For full example details, please check our detailed documentation, see [Exampl
 ## Configuration
 
 Fabricatio supports flexible configuration through multiple sources, with the following priority order:
-`./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` > `<ROMANING>/fabricatio/fabricatio.toml` > `Defaults`.
+`Call Arguments` > `./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` > `<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`.
 
 Below is a unified view of the same configuration expressed in different formats:
 
 ### Environment variables or dotenv file
 ```dotenv
-FABRIK_LLM__API_ENDPOINT=https://api.openai.com
-FABRIK_LLM__API_KEY=your_openai_api_key
-FABRIK_LLM__TIMEOUT=300
-FABRIK_LLM__MAX_RETRIES=3
-FABRIK_LLM__MODEL=openai/gpt-3.5-turbo
-FABRIK_LLM__TEMPERATURE=1.0
-FABRIK_LLM__TOP_P=0.35
-FABRIK_LLM__GENERATION_COUNT=1
-FABRIK_LLM__STREAM=false
-FABRIK_LLM__MAX_TOKENS=8192
-FABRIK_DEBUG__LOG_LEVEL=INFO
+FABRICATIO_LLM__API_ENDPOINT=https://api.openai.com
+FABRICATIO_LLM__API_KEY=your_openai_api_key
+FABRICATIO_LLM__TIMEOUT=300
+FABRICATIO_LLM__MAX_RETRIES=3
+FABRICATIO_LLM__MODEL=openai/gpt-3.5-turbo
+FABRICATIO_LLM__TEMPERATURE=1.0
+FABRICATIO_LLM__TOP_P=0.35
+FABRICATIO_LLM__GENERATION_COUNT=1
+FABRICATIO_LLM__STREAM=false
+FABRICATIO_LLM__MAX_TOKENS=8192
+FABRICATIO_DEBUG__LOG_LEVEL=INFO
 ```
 
 ### `fabricatio.toml` file

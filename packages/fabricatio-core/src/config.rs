@@ -1,5 +1,5 @@
 use dotenvy::dotenv_override;
-use fabricatio_constants::ROAMING;
+use fabricatio_constants::{ROAMING,NAME,GLOBAL_CONFIG_FILE,CONFIG_FILE};
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
@@ -16,6 +16,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use validator::Validate;
 
@@ -228,12 +229,21 @@ pub struct EmbeddingConfig {
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
     log_level: String,
+
+    log_file: Option<PathBuf>,
+
+    rotation: Option<usize>,
+
+    retention: Option<usize>,
 }
 
 impl Default for DebugConfig {
     fn default() -> Self {
         DebugConfig {
             log_level: "INFO".to_string(),
+            log_file: None,
+            rotation: None,
+            retention: None,
         }
     }
 }
@@ -504,14 +514,14 @@ impl Config {
                 if let Ok(env_file) = dotenv_override() {
                     debug!("Using env file: {}", env_file.display())
                 }
-                Env::prefixed("FABRIK_").split("__")
+                Env::prefixed(format!("{}_",NAME.to_uppercase()).as_str()).split("__")
             })
-            .join(Toml::file("fabricatio.toml"))
+            .join(Toml::file(CONFIG_FILE))
             .join(PyprojectToml::new(
                 "pyproject.toml",
-                vec!["tool", "fabricatio"],
+                vec!["tool", NAME],
             ))
-            .join(Toml::file(ROAMING.join("fabricatio.toml")))
+            .join(Toml::file(GLOBAL_CONFIG_FILE.deref()))
             .join(Config::default())
     }
 

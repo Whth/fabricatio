@@ -229,6 +229,16 @@ class DebugConfig:
     log_level: str
     """The logging level to use."""
 
+    log_file: Optional[Path] = None
+    """The path to the log file. Defaults to be None"""
+
+    rotation: Optional[int] = None
+    """The rotation of the log file, in MB. Defaults to be None"""
+
+    retention: Optional[int] = None
+    """The retention of the log file, in days. Defaults to be None"""
+
+
 class TemplateManagerConfig:
     """Template manager configuration structure."""
 
