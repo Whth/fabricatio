@@ -21,7 +21,7 @@ from pydantic import BaseModel, JsonValue
 from fabricatio_mock.utils import code_block, generic_block
 
 
-def return_string(*value: str, default: Optional[str] = None) -> AsyncMock:
+def return_string(*value: str, default: Optional[str] = None) -> Router:
     """Creates and returns an asynchronous mock object for a Router instance that simulates a completion response using the provided string values.
 
     The returned AsyncMock can be used in testing scenarios to mimic the behavior of a real Router without making actual network requests. The mock will return values sequentially from the provided *value* arguments, falling back to the default value when these are exhausted.
@@ -31,7 +31,7 @@ def return_string(*value: str, default: Optional[str] = None) -> AsyncMock:
         default (Optional[str]): Default value to use when no more values are available. If not provided, last value is used.
 
     Returns:
-        AsyncMock: A mock Router object with a configured *acompletion* method.
+        Router: A mock Router object with a configured *acompletion* method.
     """
     if not value:
         raise ValueError("At least one value must be provided.")
@@ -48,7 +48,7 @@ def return_string(*value: str, default: Optional[str] = None) -> AsyncMock:
     return mock
 
 
-def return_generic_string(*strings: str, lang: str = "string", default: Optional[str] = None) -> AsyncMock:
+def return_generic_string(*strings: str, lang: str = "string", default: Optional[str] = None) -> Router:
     """Wraps given strings into generic code blocks, returning an AsyncMock simulating a Router.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -59,7 +59,7 @@ def return_generic_string(*strings: str, lang: str = "string", default: Optional
         default (Optional[str]): Default value when no more strings available
 
     Returns:
-        AsyncMock: Mock Router returning formatted code blocks
+        Router: Mock Router returning formatted code blocks
     """
     if not strings:
         raise ValueError("At least one string must be provided.")
@@ -67,7 +67,7 @@ def return_generic_string(*strings: str, lang: str = "string", default: Optional
     return return_string(*processed, default=default)
 
 
-def return_code_string(*codes: str, lang: str, default: Optional[str] = None) -> AsyncMock:
+def return_code_string(*codes: str, lang: str, default: Optional[str] = None) -> Router:
     """Generates code-block-formatted strings, returning an AsyncMock simulating a Router.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -78,7 +78,7 @@ def return_code_string(*codes: str, lang: str, default: Optional[str] = None) ->
         default (Optional[str]): Default value when no more codes available
 
     Returns:
-        AsyncMock: Mock Router returning formatted code strings
+        Router: Mock Router returning formatted code strings
     """
     if not codes:
         raise ValueError("At least one code must be provided.")
@@ -86,7 +86,7 @@ def return_code_string(*codes: str, lang: str, default: Optional[str] = None) ->
     return return_string(*processed, default=default)
 
 
-def return_python_string(*codes: str, default: Optional[str] = None) -> AsyncMock:
+def return_python_string(*codes: str, default: Optional[str] = None) -> Router:
     """Returns AsyncMock simulating Router that responds with Python code blocks.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -96,12 +96,12 @@ def return_python_string(*codes: str, default: Optional[str] = None) -> AsyncMoc
         default (Optional[str]): Default value when no more codes available
 
     Returns:
-        AsyncMock: Mock Router returning Python-formatted responses
+        Router: Mock Router returning Python-formatted responses
     """
     return return_code_string(*codes, lang="python", default=default)
 
 
-def return_json_string(*jsons: str, default: Optional[str] = None) -> AsyncMock:
+def return_json_string(*jsons: str, default: Optional[str] = None) -> Router:
     """Returns AsyncMock simulating Router that responds with JSON code blocks.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -111,12 +111,12 @@ def return_json_string(*jsons: str, default: Optional[str] = None) -> AsyncMock:
         default (Optional[str]): Default value when no more JSONs available
 
     Returns:
-        AsyncMock: Mock Router returning JSON-formatted responses
+        Router: Mock Router returning JSON-formatted responses
     """
     return return_code_string(*jsons, lang="json", default=default)
 
 
-def return_json_obj_string(*objs: JsonValue, default: Optional[str] = None) -> AsyncMock:
+def return_json_obj_string(*objs: JsonValue, default: Optional[str] = None) -> Router:
     """Converts arrays to JSON array strings, returning AsyncMock simulating Router.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -126,7 +126,7 @@ def return_json_obj_string(*objs: JsonValue, default: Optional[str] = None) -> A
         default (Optional[str]): Default value when no more arrays available
 
     Returns:
-        AsyncMock: Mock Router returning JSON array strings
+        Router: Mock Router returning JSON array strings
     """
     if not objs:
         raise ValueError("At least one array must be provided.")
@@ -134,7 +134,7 @@ def return_json_obj_string(*objs: JsonValue, default: Optional[str] = None) -> A
     return return_json_string(*processed, default=default)
 
 
-def return_model_json_string(*models: BaseModel, default: Optional[str] = None) -> AsyncMock:
+def return_model_json_string(*models: BaseModel, default: Optional[str] = None) -> Router:
     """Serializes models to JSON strings, returning AsyncMock simulating Router.
 
     Supports multiple values - will return them sequentially. If no values remain, returns default.
@@ -144,7 +144,7 @@ def return_model_json_string(*models: BaseModel, default: Optional[str] = None) 
         default (Optional[str]): Default value when no more models available
 
     Returns:
-        AsyncMock: Mock Router returning model JSON representations
+        Router: Mock Router returning model JSON representations
     """
     if not models:
         raise ValueError("At least one model must be provided.")
