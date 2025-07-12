@@ -876,6 +876,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-agent"
+version = "0.0.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
 name = "fabricatio-anki"
 version = "0.0.0"
 dependencies = [
