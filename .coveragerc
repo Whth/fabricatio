@@ -25,6 +25,7 @@ source =
     packages/fabricatio-diff/python/fabricatio_diff
     packages/fabricatio-test/python/fabricatio_test
     packages/fabricatio-thinking/python/fabricatio_thinking
+    packages/fabricatio-mock/python/fabricatio_mock
 
 omit =
     */__init__.py

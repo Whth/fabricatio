@@ -5,8 +5,9 @@ the behavior of a LiteLLM Router. It is primarily intended for use in testing sc
 actual network requests to language models are not desirable or necessary.
 """
 
+from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Optional
+from typing import Any, Callable, Literal, Optional
 from unittest.mock import AsyncMock
 
 import litellm
@@ -149,3 +150,51 @@ def return_model_json_string(*models: BaseModel, default: Optional[str] = None) 
         raise ValueError("At least one model must be provided.")
     processed = [orjson.dumps(model.model_dump(by_alias=True), option=orjson.OPT_INDENT_2).decode() for model in models]
     return return_json_string(*processed, default=default)
+
+
+@dataclass
+class Value[M: BaseModel | str]:
+    """Value class for mocking responses."""
+
+    source: M
+    """The source data to be used for mocking. Can be a BaseModel instance"""
+    type: Literal["model", "json", "python", "raw", "generic"]
+    """Specifies the type of the source data, which determines how the data will be processed when converted to a string representation."""
+
+    convertor: Optional[Callable[[M], str]] = None
+
+    def to_string(self) -> str:
+        """Converts the source data to a string representation based on its type.
+
+        Returns:
+            str: The processed string representation of the source data.
+
+        Raises:
+            ValueError: If the type is invalid or unsupported.
+        """
+        if self.type == "model":
+            return orjson.dumps(self.source.model_dump(by_alias=True), option=orjson.OPT_INDENT_2).decode()
+        if self.type == "json":
+            return orjson.dumps(self.source, option=orjson.OPT_INDENT_2).decode()
+        if self.type == "python":
+            return code_block(self.source, "python")
+        if self.type == "generic":
+            return generic_block(self.source, "string")
+        if self.convertor:
+            return self.convertor(self.source)
+        raise ValueError(f"Invalid type: {self.type}")
+
+
+def return_mixed_string(*values: Value, default: Optional[str] = None) -> Router:
+    """Generates a mock Router that returns a string based on the provided values.
+
+    Supports multiple values - will return them sequentially. If no values remain, returns default.
+
+    Args:
+        *values (Value): Values to be processed and returned as strings
+        default (Optional[str]): Default value when no more values available
+
+    Returns:
+        Router: A mock Router that returns a string based on the provided values
+    """
+    return return_string(*[value.to_string() for value in values], default=default)
