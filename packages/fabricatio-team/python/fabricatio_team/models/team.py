@@ -78,5 +78,5 @@ class Team:
 
         for m in member_to_inform:
             m.update_teammates(self.teammates)
-            logger.debug(f"{m.name} is now informed with teammates: {[mate.name for mate in m.teammates]}")
+            logger.debug(f"{m.name} is now informed with teammates: {m.teammate_roster()}")
         return self

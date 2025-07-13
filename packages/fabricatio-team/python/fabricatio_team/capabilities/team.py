@@ -1,7 +1,7 @@
 """This module contains the capabilities for the team."""
 
 from abc import ABC
-from typing import Iterable, Self, Set
+from typing import Iterable, List, Self, Set
 
 from fabricatio_core import Role
 from pydantic import BaseModel, PrivateAttr
@@ -47,3 +47,11 @@ class Cooperate(BaseModel, ABC):
     def teammates(self) -> Set[Role]:
         """Returns the teammates set."""
         return self._teammates
+
+    def teammate_roster(self) -> List[str]:
+        """Returns the teammate roster."""
+        return [mate.name for mate in self._teammates]
+
+    def consult_teammate(self, name: str) -> Role | None:
+        """Returns the teammate with the given name."""
+        return next((mate for mate in self._teammates if mate.name == name), None)
