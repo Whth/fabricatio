@@ -11,6 +11,7 @@ from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VoteJud
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_question.capabilities.questioning import Questioning
 from fabricatio_rule.capabilities.censor import Censor
+from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_tool.capabilities.handle import Handle
 
@@ -28,6 +29,7 @@ class Fulfill(
     Thinking,
     Digest,
     Handle,
+    Cooperate,
 ):
     """This class represents an agent with all capabilities enabled."""
 
@@ -41,4 +43,4 @@ class Fulfill(
         ):
             return
 
-        await self.digest()
+        await self.digest(request, self.teammates, **kwargs)
