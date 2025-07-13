@@ -13,7 +13,7 @@ from fabricatio_question.capabilities.questioning import Questioning
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_tool.capabilities.handle import Handle
-
+from fabricatio_digest.capabilities.digest import Digest
 
 class Fulfill(
     Remember,
@@ -24,6 +24,7 @@ class Fulfill(
     DiffEdit,
     Questioning,
     Thinking,
+    Digest,
     Handle,
 ):
     """This class represents an agent with all capabilities enabled."""
@@ -31,15 +32,17 @@ class Fulfill(
     async def fulfill(self, request: str,check_capable: bool = True, **kwargs: Unpack[GenerateKwargs]) -> Any:
         """This method is used to fullfill a request."""
 
-        if check_capable and self.evidently_judge(
+        if check_capable and await self.evidently_judge(
             TEMPLATE_MANAGER.render_template(agent_config.fulfill_capable_check_template, {
                 "request": request,
                 "tools": self.browse_toolboxes()
-            })
+            }),
+            **kwargs
         ):
             return
 
-        #TODO
+        task = await self.digest()
+
 
 
 
