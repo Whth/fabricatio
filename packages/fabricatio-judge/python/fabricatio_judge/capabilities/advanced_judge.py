@@ -4,10 +4,11 @@ from abc import ABC
 from asyncio import gather
 from typing import Dict, List, Optional, Unpack, overload
 
+from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import override_kwargs
+from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_judge.models.judgement import JudgeMent
 
@@ -96,7 +97,7 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
         prompt: str | List[str],
         vote_pass_threshold: Optional[float] = None,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[List[bool] | List[bool | None]]:
+    ) -> Optional[bool | List[bool | None]]:
         """Vote on the evidence and make a final decision.
 
         Args:
@@ -113,7 +114,7 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
         was_str = isinstance(prompt, str)
         prompt = [prompt] if was_str else prompt
 
-        vote_pass_threshold = vote_pass_threshold or self.vote_pass_threshold
+        vote_pass_threshold = ok(vote_pass_threshold or self.vote_pass_threshold, "vote_pass_threshold not provided.")
         weights = list(self.vote_llm.keys())
 
         # Fully concurrent execution using gather for all operations
@@ -123,8 +124,13 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
                 for p in prompt
             ]
         )
-
-        passes = [self.resolve_pass(weights, judgments, vote_pass_threshold) for judgments in judgments_list]
+        passes = []
+        for judgments in judgments_list:
+            if any(j is None for j in judgments):
+                logger.warning("Some judgments failed, assuming judgment is False.")
+                passes.append(False)
+                continue
+            passes.append(self.resolve_pass(weights, judgments, vote_pass_threshold))  # pyright: ignore [reportArgumentType]
 
         return passes[0] if was_str else passes
 

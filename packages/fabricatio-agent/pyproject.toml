@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.1.1-dev3"
+version = "0.1.1-dev4"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -16,8 +16,17 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
-
-    "fabricatio-core"
+    "fabricatio-core",
+    "fabricatio-digest",
+    "fabricatio-memory",
+    "fabricatio-improve",
+    "fabricatio-rule",
+    "fabricatio-judge",
+    "fabricatio-capabilities",
+    "fabricatio-diff",
+    "fabricatio-thinking",
+    "fabricatio-question",
+    "fabricatio-tool",
 ]
 
 [dependency-groups]
@@ -34,6 +43,19 @@ build-backend = "maturin"
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_agent.rust"
+
+[tool.uv.sources]
+fabricatio-digest = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
 
 
 [project.urls]
