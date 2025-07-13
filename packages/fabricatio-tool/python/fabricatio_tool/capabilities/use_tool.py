@@ -33,7 +33,6 @@ class UseTool(UseLLM, ToolConfig, ABC):
         """Browse through available toolboxes."""
         return "\n".join([toolbox.briefing for toolbox in self.toolboxes])
 
-
     async def choose_toolboxes(
         self,
         request: str,

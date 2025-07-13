@@ -4,6 +4,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 """
 
 from asyncio import Queue, run
+from functools import cached_property
 from typing import Any, Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
@@ -123,7 +124,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return self._namespace.derive(self.name).push(status).collapse()
 
-    @property
+    @cached_property
     def pending_label(self) -> str:
         """Return the pending status label for the task.
 
@@ -132,7 +133,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return self.status_label(TaskStatus.Pending)
 
-    @property
+    @cached_property
     def running_label(self) -> str:
         """Return the running status label for the task.
 
@@ -141,7 +142,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return self.status_label(TaskStatus.Running)
 
-    @property
+    @cached_property
     def finished_label(self) -> str:
         """Return the finished status label for the task.
 
@@ -150,7 +151,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return self.status_label(TaskStatus.Finished)
 
-    @property
+    @cached_property
     def failed_label(self) -> str:
         """Return the failed status label for the task.
 
@@ -159,7 +160,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return self.status_label(TaskStatus.Failed)
 
-    @property
+    @cached_property
     def cancelled_label(self) -> str:
         """Return the cancelled status label for the task.
 
@@ -261,7 +262,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return run(self.delegate(new_namespace))
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Return a briefing of the task including its goal.
 

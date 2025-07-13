@@ -1,6 +1,7 @@
 """This module defines generic classes for models in the Fabricatio library, providing a foundation for various model functionalities."""
 
 from abc import ABC, abstractmethod
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
 
@@ -110,7 +111,7 @@ class WithBriefing(Named, Described, ABC):
     This class combines the name and description attributes to provide a brief summary of the object.
     """
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Get the briefing of the object.
 
@@ -495,7 +496,7 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
 class Language:
     """Class that provides a language attribute."""
 
-    @property
+    @cached_property
     def language(self) -> str:
         """Get the language of the object."""
         if isinstance(self, Described) and self.description:
