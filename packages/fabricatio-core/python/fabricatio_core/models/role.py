@@ -43,9 +43,9 @@ class Role(WithBriefing):
         """
         base = super().briefing
 
-        abilities = "\n".join(f"`{k.collapse()}`:{w.briefing}" for (k, w) in self.registry.items())
+        abilities = "\n".join(f"  - `{k.collapse()}` ==> {w.briefing}" for (k, w) in self.registry.items())
 
-        return f"{base}\n\nAbilities:\n{abilities}"
+        return f"{base}\nEvent Mapping:\n{abilities}"
 
     def __eq__(self, other: object) -> bool:
         """Check if two roles are equal."""
