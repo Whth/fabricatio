@@ -24,13 +24,13 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     """A list of clear and specific objectives that the task aims to accomplish."""
 
     description: str = Field(default="")
-    """A detailed explanation of the task that includes all necessary information. Should be clear and answer what, why, when, where, who, and how questions."""
+    """A detailed explanation of the task that includes all necessary information, with 5W1H rule enforced."""
 
     name: str = Field(...)
     """The name of the task, which should be concise and descriptive."""
 
     namespace: List[str] = Field(default_factory=list)
-    """A list of string segments that identify the task's location in the system. If not specified, defaults to an empty list."""
+    """A list of string segments that identify, to where the task will be sent."""
 
     dependencies: List[str] = Field(default_factory=list)
     """A list of file paths that are needed or mentioned in the task's description (either reading or writing) to complete this task. If not specified, defaults to an empty list."""
@@ -41,7 +41,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
 
-    _namespace: Event = PrivateAttr(default_factory=Event)
+    _event: Event = PrivateAttr(default_factory=Event)
     """The namespace of the task as an event, which is generated from the namespace list."""
     _extra_init_context: Dict = PrivateAttr(default_factory=dict)
     """Extra initialization context for the task, which is designed to override the one of the Workflow."""
@@ -58,7 +58,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the task with a namespace event."""
-        self._namespace.concat(self.namespace)
+        self._event.concat(self.namespace)
 
     def move_to(self, new_namespace: EventLike) -> Self:
         """Move the task to a new namespace.
@@ -70,8 +70,8 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
             Task: The moved instance of the `Task` class.
         """
         logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
-        self._namespace.clear().concat(new_namespace)
-        self.namespace = self._namespace.segments
+        self._event.clear().concat(new_namespace)
+        self.namespace = self._event.segments
         return self
 
     def nested_move_to(self, new_parent_namespace: EventLike) -> Self:
@@ -84,8 +84,8 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
             Task: The nested moved instance of the `Task` class.
         """
         logger.debug(f"Nested moving task `{self.name}` to `{new_parent_namespace}`")
-        self._namespace.clear().concat(new_parent_namespace).concat(self.namespace)
-        self.namespace = self._namespace.segments
+        self._event.clear().concat(new_parent_namespace).concat(self.namespace)
+        self.namespace = self._event.segments
         return self
 
     def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
@@ -122,7 +122,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The formatted status label.
         """
-        return self._namespace.derive(self.name).push(status).collapse()
+        return self._event.derive(self.name).push(status).collapse()
 
     @cached_property
     def pending_label(self) -> str:
