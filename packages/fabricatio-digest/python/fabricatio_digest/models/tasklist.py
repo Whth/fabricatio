@@ -5,7 +5,8 @@ of tasks aimed at achieving a specific ultimate target. It inherits from the Pro
 interface and provides implementations for task sequence generation.
 """
 
-from typing import List
+from asyncio import gather
+from typing import Any, List
 
 from fabricatio_core import Task
 from fabricatio_core.models.generic import ProposedAble
@@ -19,3 +20,15 @@ class TaskList(ProposedAble):
 
     tasks: List[Task]
     """The tasks sequence that aims to achieve the ultimate target."""
+
+    async def sequential(self) -> List[Any]:
+        """Generate tasks sequentially."""
+        res = []
+        for task in self.tasks:
+            res.append(await task.delegate())
+
+        return res
+
+    async def parallel(self) -> List[Any]:
+        """Generate tasks in parallel."""
+        return await gather(*[task.delegate() for task in self.tasks])
