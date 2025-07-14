@@ -620,10 +620,11 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.1.dev10"
+version = "0.1.1.dev11"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
+    { name = "fabricatio-capable" },
     { name = "fabricatio-core" },
     { name = "fabricatio-diff" },
     { name = "fabricatio-digest" },
@@ -645,6 +646,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
+    { name = "fabricatio-capable", editable = "packages/fabricatio-capable" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "fabricatio-diff", editable = "packages/fabricatio-diff" },
     { name = "fabricatio-digest", editable = "packages/fabricatio-digest" },
@@ -709,7 +711,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capable"
-version = "0.1.1.dev1"
+version = "0.1.1.dev3"
 source = { editable = "packages/fabricatio-capable" }
 dependencies = [
     { name = "fabricatio-core" },
