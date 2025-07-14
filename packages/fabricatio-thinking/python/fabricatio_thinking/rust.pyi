@@ -1,6 +1,6 @@
 """Rust bindings for the Rust API of fabricatio-thinking."""
 
-from typing import Optional
+from typing import List, Optional
 
 class ThoughtVCS:
     """Represents a simple version control system for managing branches and their commits."""
@@ -50,4 +50,25 @@ class ThoughtVCS:
 
         Returns:
             The branch name if the checkout was successful, or None otherwise.
+        """
+
+    def export_branch(self, branch: None | str) -> List[str]:
+        """Exports the commits of a specified branch as a list of strings.
+
+        Args:
+            branch: The name of the branch to export, or None for the default branch.
+
+        Returns:
+            A list of strings representing the commit contents in the specified branch.
+        """
+
+    def export_branch_string(self, branch: None | str) -> str:
+        """Exports the specified branch's commits as a concatenated string.
+
+        Args:
+            branch: The name of the branch to export, or None for the default branch.
+
+        Returns:
+            A string containing all commit contents in the specified branch,
+            concatenated together.
         """

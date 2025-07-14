@@ -1,0 +1,26 @@
+{{!--
+  Task List Explanation Template
+
+  Renders an explanation for a TaskList, which is a sequence of steps to achieve the specified ultimate target.
+  Expects:
+    - ultimate_target: str (description of the main goal)
+    - tasks: list of {"description": ..., ...}
+    - parallel: bool (optional)
+--}}
+# Task List Overview
+
+**Ultimate Target:**
+{{ultimate_target}}
+
+### Task Sequence:
+
+{{#each tasks}}
+{{#if name}}**{{name}}**{{/if}}
+
+{{#if description}}{{description}}{{/if}}
+
+Will be sent to namespace `{{namespace}}`.
+
+{{/each}}
+
+*Completing these tasks {{#if parallel}}in parallel{{else}}in sequence{{/if}} will achieve the ultimate target stated above.*

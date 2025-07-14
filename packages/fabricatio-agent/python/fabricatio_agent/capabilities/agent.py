@@ -5,7 +5,6 @@ from typing import Any, List, Unpack
 from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_core.models.kwargs_types import GenerateKwargs
-from fabricatio_core.models.role import Role
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_digest.capabilities.digest import Digest
@@ -41,8 +40,6 @@ class Fulfill(
         if check_capable and not await self.capable(request, **kwargs):
             return None
 
-        if not isinstance(self, Role):
-            raise TypeError("self must be a instance of `Role`.")
+        task_list = ok(await self.digest(request, self.team_members, **kwargs))
 
-        task_list = ok(await self.digest(request, self, **kwargs))
-        return await task_list.sequential()
+        return await task_list.execute()

@@ -184,6 +184,50 @@ impl ThoughtVCS {
             None
         }
     }
+
+    /// Exports the list of commits for a given branch.
+    ///
+    /// This function retrieves all commits associated with the specified branch.
+    /// If the branch does not exist, it returns an empty vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `branch` - An optional string representing the name of the branch.
+    ///              If `None`, the default branch is used.
+    ///
+    /// # Returns
+    ///
+    /// A vector of strings where each string represents a commit in the branch.
+    /// If the branch does not exist and cannot be found, an empty vector is returned.
+    #[pyo3(signature = (branch = None))]
+    fn export_branch(&mut self, branch: Option<String>) -> Vec<String> {
+        self.branch(branch, false)
+            .map(|branch| branch.commits.clone())
+            .unwrap_or_else(|| vec![])
+    }
+
+    ///
+    /// # Arguments
+    ///
+    /// * `branch` - An optional string representing the name of the branch.
+    ///              If `None`, the default branch is used.
+    ///
+    /// # Returns
+    ///
+    /// A formatted string where each line represents a commit in the branch, prefixed with "- ".
+    /// If the branch does not exist, returns an empty string.
+    #[pyo3(signature = (branch = None))]
+    fn export_branch_string(&mut self, branch: Option<String>) -> String {
+        self.branch(branch, false)
+            .map(|branch| {
+                branch
+                    .commits
+                    .iter()
+                    .map(|commit| format!("- {commit}"))
+                    .join("\n")
+            })
+            .unwrap_or_else(|| "".to_string())
+    }
 }
 
 /// Registers the `ThoughtVCS` class with the given Python module.
