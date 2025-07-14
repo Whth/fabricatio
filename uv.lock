@@ -13,6 +13,7 @@ members = [
     "fabricatio-agent",
     "fabricatio-anki",
     "fabricatio-capabilities",
+    "fabricatio-capable",
     "fabricatio-core",
     "fabricatio-diff",
     "fabricatio-digest",
@@ -141,11 +142,11 @@ wheels = [
 
 [[package]]
 name = "astroid"
-version = "3.3.10"
+version = "3.3.11"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/00/c2/9b2de9ed027f9fe5734a6c0c0a601289d796b3caaf1e372e23fa88a73047/astroid-3.3.10.tar.gz", hash = "sha256:c332157953060c6deb9caa57303ae0d20b0fbdb2e59b4a4f2a6ba49d0a7961ce" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/18/74/dfb75f9ccd592bbedb175d4a32fc643cf569d7c218508bfbd6ea7ef9c091/astroid-3.3.11.tar.gz", hash = "sha256:1e5a5011af2920c7c67a53f65d536d65bfa7116feeaf2354d8b94f29573bb0ce" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/15/58/5260205b9968c20b6457ed82f48f9e3d6edf2f1f95103161798b73aeccf0/astroid-3.3.10-py3-none-any.whl", hash = "sha256:104fb9cb9b27ea95e847a94c003be03a9e039334a8ebca5ee27dafaf5c5711eb" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/af/0f/3b8fdc946b4d9cc8cc1e8af42c4e409468c84441b933d037e101b3d72d86/astroid-3.3.11-py3-none-any.whl", hash = "sha256:54c760ae8322ece1abd213057c4b5bba7c49818853fc901ef09719a60dbf9dec" },
 ]
 
 [[package]]
@@ -186,11 +187,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2025.7.9"
+version = "2025.7.14"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/de/8a/c729b6b60c66a38f590c4e774decc4b2ec7b0576be8f1aa984a53ffa812a/certifi-2025.7.9.tar.gz", hash = "sha256:c1d2ec05395148ee10cf672ffc28cd37ea0ab0d99f9cc74c43e588cbd111b079" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/b3/76/52c535bcebe74590f296d6c77c86dabf761c41980e1347a2422e4aa2ae41/certifi-2025.7.14.tar.gz", hash = "sha256:8ea99dbdfaaf2ba2f9bac77b9249ef62ec5218e7c2b2e903378ed5fccf765995" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/66/f3/80a3f974c8b535d394ff960a11ac20368e06b736da395b551a49ce950cce/certifi-2025.7.9-py3-none-any.whl", hash = "sha256:d842783a14f8fdd646895ac26f719a061408834473cfc10203f6a575beb15d39" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/4f/52/34c6cf5bb9285074dc3531c437b3919e825d976fde097a7a73f79e726d03/certifi-2025.7.14-py3-none-any.whl", hash = "sha256:6b31f564a415d79ee77df69d757bb49a5bb53bd9f756cbbe24394ffd6fc1f4b2" },
 ]
 
 [[package]]
@@ -421,6 +422,9 @@ anki = [
 capabilities = [
     { name = "fabricatio-capabilities" },
 ]
+capable = [
+    { name = "fabricatio-capable" },
+]
 cli = [
     { name = "typer-slim", extra = ["standard"] },
 ]
@@ -435,6 +439,7 @@ full = [
     { name = "fabricatio-agent" },
     { name = "fabricatio-anki" },
     { name = "fabricatio-capabilities" },
+    { name = "fabricatio-capable" },
     { name = "fabricatio-diff" },
     { name = "fabricatio-digest" },
     { name = "fabricatio-improve" },
@@ -532,11 +537,12 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "improve", "rag", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "cli", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "improve", "rag", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-agent", marker = "extra == 'agent'", editable = "packages/fabricatio-agent" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
     { name = "fabricatio-capabilities", marker = "extra == 'capabilities'", editable = "packages/fabricatio-capabilities" },
+    { name = "fabricatio-capable", marker = "extra == 'capable'", editable = "packages/fabricatio-capable" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "fabricatio-diff", marker = "extra == 'diff'", editable = "packages/fabricatio-diff" },
     { name = "fabricatio-digest", marker = "extra == 'digest'", editable = "packages/fabricatio-digest" },
@@ -557,7 +563,7 @@ requires-dist = [
     { name = "fabricatio-yue", marker = "extra == 'yue'", editable = "packages/fabricatio-yue" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team"]
+provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "cli", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -614,7 +620,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.1.dev7"
+version = "0.1.1.dev9"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -702,8 +708,27 @@ requires-dist = [
 dev = [{ name = "pytest" }]
 
 [[package]]
+name = "fabricatio-capable"
+version = "0.1.0"
+source = { editable = "packages/fabricatio-capable" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
 name = "fabricatio-core"
-version = "0.3.19.dev3"
+version = "0.3.19.dev5"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -783,7 +808,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-digest"
-version = "0.1.4"
+version = "0.1.5.dev1"
 source = { editable = "packages/fabricatio-digest" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1038,7 +1063,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-team"
-version = "0.1.1.dev0"
+version = "0.1.1.dev2"
 source = { editable = "packages/fabricatio-team" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1500,11 +1525,11 @@ wheels = [
 
 [[package]]
 name = "json-repair"
-version = "0.47.6"
+version = "0.47.7"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/ae/9e/e8bcda4fd47b16fcd4f545af258d56ba337fa43b847beb213818d7641515/json_repair-0.47.6.tar.gz", hash = "sha256:4af5a14b9291d4d005a11537bae5a6b7912376d7584795f0ac1b23724b999620" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/8f/91/4fb4e2c3d4d1a59252ca1b32936b883d0cd9f1e03f07edb6005aed1dc4bc/json_repair-0.47.7.tar.gz", hash = "sha256:04a5469e50f7f61c7756ddf3370a56fa21cebc1258e3f6a1a3de988e521d5eb8" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/bb/f8/f464ce2afc4be5decf53d0171c2d399d9ee6cd70d2273b8e85e7c6d00324/json_repair-0.47.6-py3-none-any.whl", hash = "sha256:1c9da58fb6240f99b8405f63534e08f8402793f09074dea25800a0b232d4fb19" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/d4/ae/c8ac14cf7922be8908da2490ce5e37a69c593017ec57698afe04cd1567dc/json_repair-0.47.7-py3-none-any.whl", hash = "sha256:b2b5c9432289434730ef8b134a73602325fa689db323d6021249f363a7dd23c0" },
 ]
 
 [[package]]

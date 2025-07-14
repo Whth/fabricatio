@@ -43,12 +43,13 @@ class Fulfill(
                 agent_config.fulfill_capable_check_template,
                 {
                     "request": request,
-                    "tools": self.browse_toolboxes(),
+                    "tools": [t.briefing for t in self.toolboxes],
+                    "team_members": [m.briefing for m in self.team_members],
                 },
             ),
             **kwargs,
         ):
             return None
 
-        task_list = ok(await self.digest(request, self.teammates, **kwargs))
+        task_list = ok(await self.digest(request, self.team_members, **kwargs))
         return await task_list.sequential()

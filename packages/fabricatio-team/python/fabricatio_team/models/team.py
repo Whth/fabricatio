@@ -21,20 +21,20 @@ class Team:
             role1 = Role(name="Role1", capabilities=["cap1"])
             role2 = Role(name="Role2", capabilities=["cap2"])
 
-            class MyRole(InformedRole):
+            # define the role that needs the member info
+            class MyRole(Cooperate):
                 ...
 
             # Create a team
-            team = Team(teammates={role1, role2}).join(MyRole(name="MyRole"))
+            team = Team(members={role1, role2}).join(MyRole(name="MyRole"))
 
             # Inform the team members about each other accordingly
             team.inform()
 
-
     """
 
-    teammates: Set[Role]
-    """A set of Mate instances representing the teammates in the team."""
+    members: Set[Role]
+    """The team members."""
 
     def join(self, teammate: Role) -> Self:
         """Adds a teammate to the team.
@@ -45,9 +45,9 @@ class Team:
         Raises:
             ValueError: If the teammate is already a member of the team.
         """
-        if teammate in self.teammates:
+        if teammate in self.members:
             raise ValueError(f"`{teammate.name}` is already a member of the team")
-        self.teammates.add(teammate)
+        self.members.add(teammate)
         return self
 
     def resign(self, teammate: Role) -> Self:
@@ -59,9 +59,9 @@ class Team:
         Raises:
             ValueError: If the teammate is not a member of the team.
         """
-        if teammate not in self.teammates:
+        if teammate not in self.members:
             raise ValueError(f"`{teammate.name}` is not a member of the team.")
-        self.teammates.remove(teammate)
+        self.members.remove(teammate)
         return self
 
     def inform(self) -> Self:
@@ -70,13 +70,14 @@ class Team:
         Returns:
             The updated team instance.
         """
-        member_to_inform = [member for member in self.teammates if isinstance(member, Cooperate)]
+        # only the Cooperate members have slot to store member info.
+        member_to_inform = [member for member in self.members if isinstance(member, Cooperate)]
 
         if not member_to_inform:
             logger.warning("No members that need to be informed found in the team. Skipping...")
             return self
 
         for m in member_to_inform:
-            m.update_teammates(self.teammates)
-            logger.debug(f"{m.name} is now informed with teammates: {m.teammate_roster()}")
+            m.update_team_members(self.members)
+            logger.debug(f"{m.name} is now informed with members: {m.team_roster()}")
         return self

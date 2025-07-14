@@ -29,10 +29,6 @@ class UseTool(UseLLM, ToolConfig, ABC):
     This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.
     """
 
-    def browse_toolboxes(self) -> str:
-        """Browse through available toolboxes."""
-        return "\n".join([toolbox.briefing for toolbox in self.toolboxes])
-
     async def choose_toolboxes(
         self,
         request: str,
