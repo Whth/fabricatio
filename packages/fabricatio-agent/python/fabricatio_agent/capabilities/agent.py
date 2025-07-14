@@ -18,18 +18,8 @@ from fabricatio_tool.capabilities.handle import Handle
 
 
 class Fulfill(
-    Remember,
     Capable,
-    Censor,
-    VoteJudge,
-    EvidentlyJudge,
-    DispatchTask,
-    DiffEdit,
-    Questioning,
-    Thinking,
     Digest,
-    Handle,
-    Cooperate,
 ):
     """This class represents an agent with all capabilities enabled."""
 
@@ -43,3 +33,20 @@ class Fulfill(
         task_list = ok(await self.digest(request, self.team_members, **kwargs))
 
         return await task_list.execute()
+
+
+class Agent(
+    Fulfill,
+    Remember,
+    Censor,
+    VoteJudge,
+    EvidentlyJudge,
+    DispatchTask,
+    DiffEdit,
+    Questioning,
+    Thinking,
+    Handle,
+    Cooperate,
+):
+    """This class represents an agent with all capabilities enabled."""
+    # TODO
