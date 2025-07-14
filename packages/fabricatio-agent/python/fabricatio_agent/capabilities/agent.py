@@ -3,8 +3,9 @@
 from typing import Any, List, Unpack
 
 from fabricatio_capabilities.capabilities.task import DispatchTask
+from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_core.models.kwargs_types import GenerateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.models.role import Role
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_digest.capabilities.digest import Digest
@@ -16,11 +17,10 @@ from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_tool.capabilities.handle import Handle
 
-from fabricatio_agent.config import agent_config
-
 
 class Fulfill(
     Remember,
+    Capable,
     Censor,
     VoteJudge,
     EvidentlyJudge,
@@ -37,19 +37,12 @@ class Fulfill(
     async def fulfill(
         self, request: str, check_capable: bool = True, **kwargs: Unpack[GenerateKwargs]
     ) -> None | List[Any]:
-        """This method is used to fullfill a request."""
-        if check_capable and await self.evidently_judge(
-            TEMPLATE_MANAGER.render_template(
-                agent_config.fulfill_capable_check_template,
-                {
-                    "request": request,
-                    "tools": [t.briefing for t in self.toolboxes],
-                    "team_members": [m.briefing for m in self.team_members],
-                },
-            ),
-            **kwargs,
-        ):
+        """This method is used to fulfill a request."""
+        if check_capable and not await self.capable(request, **kwargs):
             return None
 
-        task_list = ok(await self.digest(request, self.team_members, **kwargs))
+        if not isinstance(self, Role):
+            raise TypeError("self must be a instance of `Role`.")
+
+        task_list = ok(await self.digest(request, self, **kwargs))
         return await task_list.sequential()

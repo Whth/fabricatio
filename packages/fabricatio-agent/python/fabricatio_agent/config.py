@@ -12,9 +12,6 @@ class AgentConfig:
     sequential_thinking: bool = True
     """Whether to think sequentially."""
 
-    fulfill_capable_check_template: str = "fulfill_capable_check"
-    """Template for checking whether a capability is capable of fulfilling a request."""
-
 
 agent_config = CONFIG.load("agent", AgentConfig)
 

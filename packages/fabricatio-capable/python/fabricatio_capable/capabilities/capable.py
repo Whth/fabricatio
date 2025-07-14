@@ -1,7 +1,7 @@
 """This module contains the capabilities for the capable."""
 
 from abc import ABC
-from typing import List, Optional, Set, Unpack
+from typing import List, Optional, Set, Unpack, overload
 
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -16,6 +16,22 @@ from fabricatio_capable.config import capable_config
 
 class Capable(EvidentlyJudge, UseTool, WithBriefing, ABC):
     """A class that represents a capable entity with advanced judgment and tool usage capabilities."""
+
+    @overload
+    async def capable(
+        self,
+        request: str,
+        toolboxes: Optional[Set[ToolBox]],
+        **kwargs: Unpack[ValidateKwargs[JudgeMent]],
+    ) -> Optional[JudgeMent]: ...
+
+    @overload
+    async def capable(
+        self,
+        request: List[str],
+        toolboxes: Optional[Set[ToolBox]],
+        **kwargs: Unpack[ValidateKwargs[JudgeMent]],
+    ) -> List[Optional[JudgeMent]]: ...
 
     async def capable(
         self,
