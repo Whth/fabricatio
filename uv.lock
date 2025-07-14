@@ -620,7 +620,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.1.dev9"
+version = "0.1.1.dev10"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -686,7 +686,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.3.0"
+version = "0.3.1.dev0"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -709,10 +709,12 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capable"
-version = "0.1.0"
+version = "0.1.1.dev1"
 source = { editable = "packages/fabricatio-capable" }
 dependencies = [
     { name = "fabricatio-core" },
+    { name = "fabricatio-judge" },
+    { name = "fabricatio-tool" },
 ]
 
 [package.dev-dependencies]
@@ -721,7 +723,11 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-judge", editable = "packages/fabricatio-judge" },
+    { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -1063,7 +1069,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-team"
-version = "0.1.1.dev2"
+version = "0.1.1.dev3"
 source = { editable = "packages/fabricatio-team" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1101,7 +1107,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.4.2.dev2"
+version = "0.4.2.dev3"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
