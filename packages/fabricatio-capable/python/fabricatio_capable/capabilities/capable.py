@@ -14,7 +14,7 @@ from fabricatio_tool.models.tool import ToolBox
 from fabricatio_capable.config import capable_config
 
 
-class Capable(EvidentlyJudge, UseTool, WithBriefing, ABC):
+class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
     """A class that represents a capable entity with advanced judgment and tool usage capabilities."""
 
     @overload

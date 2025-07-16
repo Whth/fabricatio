@@ -14,7 +14,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 
-type EventLike = Union[str, Event, List[str]]
+type NameSpace = Union[str, List[str]]
 
 
 class Task[T](WithBriefing, ProposedAble, WithDependency):
@@ -54,7 +54,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.extra_init_context.update(kwargs)
         return self
 
-    def move_to(self, new_namespace: str | List[str]) -> Self:
+    def move_to(self, new_namespace: NameSpace) -> Self:
         """Move the task to a new namespace.
 
         Args:
@@ -67,7 +67,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
         return self
 
-    def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
+    def update_task(self, *, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
         """Update the goal and description of the task.
 
         Args:
@@ -200,46 +200,63 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         await ENV.emit_async(self.failed_label, self)
         return self
 
-    def publish(self, new_namespace: Optional[EventLike] = None) -> Self:
+    def publish(self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None) -> Self:
         """Publish the task to the event bus.
 
         Args:
             new_namespace(EventLike, optional): The new namespace to move the task to.
+            event(EventLike, optional): The event to publish.
 
         Returns:
             Task: The published instance of the `Task` class.
         """
-        if new_namespace:
+        if event is not None:
+            logger.debug(f"Publishing task `{self.name}` to `{event}`.")
+            ENV.emit_future(Event.instantiate_from(event).collapse(), self)
+            return self
+
+        if new_namespace is not None:
             self.move_to(new_namespace)
-        logger.info(f"Publishing task `{(label := self.pending_label)}`")
+        logger.info(f"Publishing task `{self.name}` to `{(label := self.pending_label)}`.")
         ENV.emit_future(label, self)
         return self
 
-    async def delegate(self, new_namespace: Optional[EventLike] = None) -> T | None:
+    async def delegate(
+        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+    ) -> T | None:
         """Delegate the task to the event.
 
         Args:
-            new_namespace(EventLike, optional): The new namespace to move the task to.
+            new_namespace (EventLike, optional): The new namespace to move the task to.
+            event (EventLike, optional): The event to publish.
 
         Returns:
             T|None: The output of the task.
         """
-        if new_namespace:
+        if event is not None:
+            logger.debug(f"Publishing task `{self.name}` to `{event}`.")
+            ENV.emit_future(Event.instantiate_from(event).collapse(), self)
+            return await self.get_output()
+
+        if new_namespace is not None:
             self.move_to(new_namespace)
         logger.info(f"Delegating task `{(label := self.pending_label)}`")
         ENV.emit_future(label, self)
         return await self.get_output()
 
-    def delegate_blocking(self, new_namespace: Optional[EventLike] = None) -> T | None:
+    def delegate_blocking(
+        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+    ) -> T | None:
         """Delegate the task to the event in a blocking manner.
 
         Args:
             new_namespace (EventLike, optional): The new namespace to move the task to.
+            event (EventLike, optional): The event to publish.
 
         Returns:
             T|None: The output of the task.
         """
-        return run(self.delegate(new_namespace))
+        return run(self.delegate(new_namespace, event=event))
 
     @cached_property
     def briefing(self) -> str:

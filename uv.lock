@@ -620,7 +620,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.1.dev13"
+version = "0.1.1.dev14"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -688,7 +688,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.3.1.dev0"
+version = "0.3.1.dev3"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -711,7 +711,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capable"
-version = "0.1.1.dev3"
+version = "0.1.1.dev5"
 source = { editable = "packages/fabricatio-capable" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -736,7 +736,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.19.dev5"
+version = "0.3.19.dev7"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1071,7 +1071,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-team"
-version = "0.1.1.dev3"
+version = "0.1.1.dev4"
 source = { editable = "packages/fabricatio-team" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1090,7 +1090,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-thinking"
-version = "0.1.2.dev0"
+version = "0.1.2.dev1"
 source = { editable = "packages/fabricatio-thinking" }
 dependencies = [
     { name = "fabricatio-core" },

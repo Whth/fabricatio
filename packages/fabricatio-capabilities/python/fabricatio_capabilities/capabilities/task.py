@@ -1,14 +1,13 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import Mapping, Optional, Unpack, Set
+from typing import List, Optional, Set, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.role import Role
 from fabricatio_core.rust import TEMPLATE_MANAGER
 
@@ -42,11 +41,11 @@ class ProposeTask(Propose, ABC):
 class DispatchTask(UseLLM, ABC):
     """A class that dispatches a task based on a task object."""
 
-    async def dispatch_task[T, R: Role](
+    async def dispatch_task[T](
         self,
         task: Task[T],
-        candidates: Set[R],
-        **kwargs: Unpack[ChooseKwargs[R]],
+        candidates: Set[Role],
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 
@@ -68,10 +67,10 @@ class DispatchTask(UseLLM, ABC):
         """
         inst = TEMPLATE_MANAGER.render_template(
             capabilities_config.dispatch_task_template,
-            {"task": task.briefing, "candidates": [r.briefing for r in candidates]},
+            {"task": task.briefing, "candidates": [c.briefing for c in candidates]},
         )
-
-        target = await self.apick(inst, candidates, **kwargs)
-
-        target_namespace = rev_mapping[target.name]
-        return await task.delegate(target_namespace)
+        task_event = await self.alist_str(inst, k=1, **kwargs)
+        if task_event:
+            return await task.delegate(event=task_event[0])
+        logger.error("Failed to decide where the task should be dispatched to.")
+        return None
