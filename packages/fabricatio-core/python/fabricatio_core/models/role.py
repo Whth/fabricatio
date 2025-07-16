@@ -47,13 +47,7 @@ class Role(WithBriefing):
 
         return f"{base}\nEvent Mapping:\n{abilities}"
 
-    def __eq__(self, other: object) -> bool:
-        """Check if two roles are equal."""
-        return self.name == other.name if isinstance(other, Role) else False
 
-    def __hash__(self) -> int:
-        """Get the hash value of the role."""
-        return hash(self.name)
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.

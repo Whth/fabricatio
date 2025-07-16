@@ -1,7 +1,7 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import Mapping, Optional, Unpack
+from typing import Mapping, Optional, Unpack, Set
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.propose import Propose
@@ -9,6 +9,7 @@ from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
+from fabricatio_core.models.role import Role
 from fabricatio_core.rust import TEMPLATE_MANAGER
 
 from fabricatio_capabilities.config import capabilities_config
@@ -41,10 +42,10 @@ class ProposeTask(Propose, ABC):
 class DispatchTask(UseLLM, ABC):
     """A class that dispatches a task based on a task object."""
 
-    async def dispatch_task[T, R: WithBriefing](
+    async def dispatch_task[T, R: Role](
         self,
         task: Task[T],
-        candidates: Mapping[str, R],
+        candidates: Set[R],
         **kwargs: Unpack[ChooseKwargs[R]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
@@ -67,12 +68,10 @@ class DispatchTask(UseLLM, ABC):
         """
         inst = TEMPLATE_MANAGER.render_template(
             capabilities_config.dispatch_task_template,
-            {"task": task.briefing, "candidates": [wb.name for wb in candidates.values()]},
+            {"task": task.briefing, "candidates": [r.briefing for r in candidates]},
         )
 
-        rev_mapping = {wb.name: ns for (ns, wb) in candidates.items()}
-
-        target = await self.apick(inst, list(candidates.values()), **kwargs)
+        target = await self.apick(inst, candidates, **kwargs)
 
         target_namespace = rev_mapping[target.name]
         return await task.delegate(target_namespace)

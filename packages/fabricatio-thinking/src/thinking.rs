@@ -224,6 +224,7 @@ impl ThoughtVCS {
                     .commits
                     .iter()
                     .map(|commit| format!("- {commit}"))
+                    .collect::<Vec<_>>()
                     .join("\n")
             })
             .unwrap_or_else(|| "".to_string())

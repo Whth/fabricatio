@@ -20,6 +20,7 @@ from fabricatio_tool.capabilities.handle import Handle
 class Fulfill(
     Capable,
     Digest,
+    Cooperate,
 ):
     """This class represents an agent with all capabilities enabled."""
 
@@ -27,7 +28,7 @@ class Fulfill(
         self, request: str, check_capable: bool = True, **kwargs: Unpack[GenerateKwargs]
     ) -> None | List[Any]:
         """This method is used to fulfill a request."""
-        if check_capable and not await self.capable(request, **kwargs):
+        if check_capable and not await self.capable(request, **kwargs):  # pyright: ignore [reportCallIssue]
             return None
 
         task_list = ok(await self.digest(request, self.team_members, **kwargs))
@@ -46,7 +47,7 @@ class Agent(
     Questioning,
     Thinking,
     Handle,
-    Cooperate,
 ):
     """This class represents an agent with all capabilities enabled."""
+
     # TODO
