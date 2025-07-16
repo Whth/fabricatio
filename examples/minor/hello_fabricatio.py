@@ -4,8 +4,6 @@ from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
-task = Task(name="say hello")
-
 
 class Hello(Action):
     """Action that says hello."""
@@ -20,6 +18,10 @@ class Hello(Action):
     """Main function."""
 
 
-(Role().register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,))).dispatch())
+(
+    Role(name="talker", description="talker role")
+    .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
+    .dispatch()
+)
 
-logger.success(task.delegate_blocking("talk"))
+logger.success(Task(name="say hi").delegate_blocking("talk"))

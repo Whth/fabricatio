@@ -1,5 +1,6 @@
 """Provide a memory system to remember things."""
 
+from abc import ABC
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
@@ -25,7 +26,7 @@ class RememberScopedConfig(ScopedConfig):
     """The memory system instance used for storing and retrieving memories."""
 
 
-class Remember(Propose, RememberScopedConfig):
+class Remember(Propose, RememberScopedConfig, ABC):
     """Provide a memory system to remember things."""
 
     async def record(self, raw: str, **kwargs: Unpack[ValidateKwargs[Note]]) -> Note:

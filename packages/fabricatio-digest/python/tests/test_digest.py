@@ -1,6 +1,6 @@
 """Tests for the digest."""
 
-from typing import List
+from typing import List, Set
 
 import pytest
 from fabricatio_core import Role, Task
@@ -34,17 +34,17 @@ def digest_role() -> DigestRole:
 
 
 @pytest.fixture
-def mock_receptions() -> List[MockRole]:
+def mock_receptions() -> Set[MockRole]:
     """Create mock receptions for testing.
 
     Returns:
-        List[MockRole]: List of mock roles
+        Set[MockRole]: List of mock roles
     """
-    return [
+    return {
         MockRole(name="Reception 1", description="Reception 1 briefing"),
         MockRole(name="Reception 2", description="Reception 2 briefing"),
         MockRole(name="Reception 3", description="Reception 3 briefing"),
-    ]
+    }
 
 
 def create_test_tasklist(target: str, task_descriptions: List[str]) -> TaskList:
@@ -97,7 +97,7 @@ def router(ret_value: SketchedAble) -> Router:
 @pytest.mark.asyncio
 async def test_digest_success(
     digest_role: DigestRole,
-    mock_receptions: List[MockRole],
+    mock_receptions: Set[MockRole],
     requirement: str,
     expected_target: str,
     expected_task_count: int,
@@ -106,7 +106,7 @@ async def test_digest_success(
 
     Args:
         digest_role (DigestRole): DigestRole fixture
-        mock_receptions (List[MockRole]): Mock receptions
+        mock_receptions (Set[MockRole]): Mock receptions
         requirement (str): Test requirement
         expected_target (str): Expected ultimate target
         expected_task_count (int): Expected number of tasks
@@ -139,7 +139,7 @@ async def test_digest_with_empty_receptions(digest_role: DigestRole) -> None:
     router = return_model_json_string(test_tasklist)
 
     with install_router(router):
-        result = await digest_role.digest(requirement, [])
+        result = await digest_role.digest(requirement, set())
 
         assert result is not None
         assert result.ultimate_target == requirement
@@ -147,12 +147,12 @@ async def test_digest_with_empty_receptions(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: List[MockRole]) -> None:
+async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
     """Test digest when it returns None.
 
     Args:
         digest_role (DigestRole): DigestRole fixture
-        mock_receptions (List[MockRole]): Mock receptions
+        mock_receptions (Set[MockRole]): Mock receptions
     """
     router = return_string("null")
 
@@ -184,12 +184,12 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: List[MockRole]) -> None:
+async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
     """Test digest with additional kwargs.
 
     Args:
         digest_role (DigestRole): DigestRole fixture
-        mock_receptions (List[MockRole]): Mock receptions
+        mock_receptions (Set[MockRole]): Mock receptions
     """
     requirement = "Task with kwargs"
     test_tasklist = create_test_tasklist(requirement, ["Task with custom settings"])
@@ -204,12 +204,12 @@ async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: List
 
 
 @pytest.mark.asyncio
-async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: List[MockRole]) -> None:
+async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
     """Test digest with a complex, multi-part requirement.
 
     Args:
         digest_role (DigestRole): DigestRole fixture
-        mock_receptions (List[MockRole]): Mock receptions
+        mock_receptions (Set[MockRole]): Mock receptions
     """
     requirement = "Build a complete e-commerce platform with user management, product catalog, shopping cart, and payment processing"
     complex_tasks = [

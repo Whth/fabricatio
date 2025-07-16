@@ -1,15 +1,16 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import Mapping, Optional, Unpack
+from typing import Optional, Set, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.role import Role
 from fabricatio_core.rust import TEMPLATE_MANAGER
+from more_itertools import flatten
 
 from fabricatio_capabilities.config import capabilities_config
 
@@ -41,11 +42,11 @@ class ProposeTask(Propose, ABC):
 class DispatchTask(UseLLM, ABC):
     """A class that dispatches a task based on a task object."""
 
-    async def dispatch_task[T, R: WithBriefing](
+    async def dispatch_task[T](
         self,
         task: Task[T],
-        candidates: Mapping[str, R],
-        **kwargs: Unpack[ChooseKwargs[R]],
+        candidates: Set[Role],
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 
@@ -67,12 +68,14 @@ class DispatchTask(UseLLM, ABC):
         """
         inst = TEMPLATE_MANAGER.render_template(
             capabilities_config.dispatch_task_template,
-            {"task": task.briefing, "candidates": [wb.name for wb in candidates.values()]},
+            {
+                "task": task.briefing,
+                "candidates": [c.briefing for c in candidates],
+                "possible_values": list(flatten((e.collapse() for e in r.registry) for r in candidates)),
+            },
         )
-
-        rev_mapping = {wb.name: ns for (ns, wb) in candidates.items()}
-
-        target = await self.apick(inst, list(candidates.values()), **kwargs)
-
-        target_namespace = rev_mapping[target.name]
-        return await task.delegate(target_namespace)
+        task_event = await self.ageneric_string(inst, **kwargs)
+        if task_event:
+            return await task.delegate(event=task_event)
+        logger.error("Failed to decide where the task should be dispatched to.")
+        return None

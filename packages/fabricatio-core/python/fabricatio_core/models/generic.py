@@ -1,6 +1,7 @@
 """This module defines generic classes for models in the Fabricatio library, providing a foundation for various model functionalities."""
 
 from abc import ABC, abstractmethod
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
 
@@ -105,12 +106,14 @@ class Titled(Base, ABC):
 
 
 class WithBriefing(Named, Described, ABC):
-    """Class that provides a briefing based on the name and description.
+    """Class that combines naming and description attributes with briefing generation.
 
-    This class combines the name and description attributes to provide a brief summary of the object.
+    This class inherits from both Named and Described classes to provide a combined interface
+    that includes both name and description attributes. It also provides automatic briefing
+    generation by combining these two attributes.
     """
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Get the briefing of the object.
 
@@ -118,6 +121,14 @@ class WithBriefing(Named, Described, ABC):
             str: The briefing of the object.
         """
         return f"{self.name}: {self.description}" if self.description else self.name
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two roles are equal."""
+        return self.name == other.name if isinstance(other, self.__class__) else False
+
+    def __hash__(self) -> int:
+        """Get the hash value of the role."""
+        return hash(self.name)
 
 
 class WithDependency(Base, ABC):
@@ -495,7 +506,7 @@ class ProposedAble(CreateJsonObjPrompt, InstantiateFromString, ABC):
 class Language:
     """Class that provides a language attribute."""
 
-    @property
+    @cached_property
     def language(self) -> str:
         """Get the language of the object."""
         if isinstance(self, Described) and self.description:

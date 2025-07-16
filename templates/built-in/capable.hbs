@@ -1,0 +1,17 @@
+{{!--
+  Capable template for fabricatio-capable.
+
+  Variables:
+    - briefing: The overall briefing for the capability.
+    - request: A string request, or a list of requests.
+    - toolboxes: A list of toolbox briefing strings.
+--}}
+{{block briefing "Self Briefing"}}
+{{#if toolboxes}}
+Available Toolboxes:
+{{#each toolboxes as |toolbox|}}
+{{toolbox}}{{/each}}
+{{else}}No toolboxes provided.
+{{/if}}
+{{block request "Request"}}
+Does the people described in above is capable of completing the `Request`?

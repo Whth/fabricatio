@@ -1,6 +1,6 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from functools import partial
+from functools import cached_property, partial
 from typing import Any, Dict, Self
 
 from pydantic import ConfigDict, Field
@@ -34,7 +34,7 @@ class Role(WithBriefing):
     dispatch_on_init: bool = Field(default=False, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Get the briefing of the role.
 
@@ -43,9 +43,9 @@ class Role(WithBriefing):
         """
         base = super().briefing
 
-        abilities = "\n".join(f"`{k.collapse()}`:{w.briefing}" for (k, w) in self.registry.items())
+        abilities = "\n".join(f"  - `{k.collapse()}` ==> {w.briefing}" for (k, w) in self.registry.items())
 
-        return f"{base}\n\nAbilities:\n{abilities}"
+        return f"{base}\nEvent Mapping:\n{abilities}"
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -102,17 +102,17 @@ class Role(WithBriefing):
         """
         if issubclass(self.__class__, ScopedConfig):
             logger.debug(f"Role `{self.name}` is a ScopedConfig. Applying configuration to all workflows.")
-            self.hold_to(self.registry.values(), EXCLUDED_FIELDS)
+            self.hold_to(self.registry.values(), EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
         for workflow in self.registry.values():
             if issubclass(workflow.__class__, ScopedConfig):
                 logger.debug(f"Workflow `{workflow.name}` is a ScopedConfig. Applying configuration to its steps.")
-                workflow.hold_to(workflow.steps, EXCLUDED_FIELDS)
+                workflow.hold_to(workflow.steps, EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
             elif issubclass(self.__class__, ScopedConfig):
                 logger.debug(
                     f"Workflow `{workflow.name}` is not a ScopedConfig, but role `{self.name}` is. "
                     "Applying role configuration to workflow steps."
                 )
-                self.hold_to(workflow.steps, EXCLUDED_FIELDS)
+                self.hold_to(workflow.steps, EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
             else:
                 logger.debug(
                     f"Neither role nor workflow `{workflow.name}` is a ScopedConfig. "

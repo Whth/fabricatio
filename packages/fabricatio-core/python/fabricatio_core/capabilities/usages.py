@@ -288,7 +288,6 @@ class UseLLM(LLMScopedConfig, ABC):
 
         async def _inner(q: str) -> Optional[T]:
             for lap in range(max_validations):
-                response = ""
                 try:
                     if (validated := validator(response := await self.aask(question=q, **kwargs))) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")

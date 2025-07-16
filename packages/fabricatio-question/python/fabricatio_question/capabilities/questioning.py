@@ -9,6 +9,7 @@ from typing import List, Unpack
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.utils import ok
 
 from fabricatio_question.config import question_config
 from fabricatio_question.models.questions import SelectionQuestion
@@ -44,15 +45,19 @@ class Questioning(Propose):
         Raises:
             Exception: If the LLM generation fails or user interaction encounters an error.
         """
-        q = await self.propose(
-            SelectionQuestion,
-            TEMPLATE_MANAGER.render_template(
-                question_config.selection_template, {"q": q}
-            ),  # create the generation prompt
-            **kwargs,
-        )  # let llm draft the question that will be asked to the user
+        # let llm draft the question that will be asked to the user
+        question = ok(
+            await self.propose(
+                SelectionQuestion,
+                TEMPLATE_MANAGER.render_template(
+                    question_config.selection_template, {"q": q}
+                ),  # create the generation prompt
+                **kwargs,
+            ),
+            "Failed to generate selection question.",
+        )
 
         if k == 1:
-            return await q.single()
+            return await question.single()
 
-        return await q.multiple(k)
+        return await question.multiple(k)

@@ -8,6 +8,7 @@ from typing import List, Optional, Set, Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ChooseKwargs
 from fabricatio_core.utils import ok, override_kwargs
 from pydantic import Field
@@ -15,14 +16,18 @@ from pydantic import Field
 from fabricatio_tool.models.tool import Tool, ToolBox
 
 
-class UseTool(UseLLM, ABC):
+class ToolConfig(ScopedConfig):
+    """A configuration class for tool usage."""
+
+    toolboxes: Set[ToolBox] = Field(default_factory=set)
+    """A set of toolboxes used by the instance."""
+
+
+class UseTool(UseLLM, ToolConfig, ABC):
     """A class representing the usage of tools in a task.
 
     This class extends LLMUsage and provides methods to manage and use toolboxes and tools within tasks.
     """
-
-    toolboxes: Set[ToolBox] = Field(default_factory=set)
-    """A set of toolboxes used by the instance."""
 
     async def choose_toolboxes(
         self,

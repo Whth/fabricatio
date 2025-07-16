@@ -4,6 +4,7 @@ This module provides classes for defining tools and toolboxes, which can be used
 with additional functionalities such as logging, execution info, and briefing.
 """
 
+from functools import cached_property
 from inspect import iscoroutinefunction, signature
 from typing import Any, Callable, List, Optional, Self
 
@@ -63,12 +64,12 @@ class Tool[**P, R](WithBriefing):
         logger.info(f"Invoking tool: {self.name}")
         return self.source(*args, **kwargs)
 
-    @property
+    @cached_property
     def signature(self) -> str:
         """Return the signature of the tool's source function."""
         return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}:"
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Return a brief description of the tool.
 
@@ -123,7 +124,7 @@ class ToolBox(WithBriefing):
         self.collect_tool(logging_execution_info(func))
         return self
 
-    @property
+    @cached_property
     def briefing(self) -> str:
         """Return a brief description of the toolbox.
 

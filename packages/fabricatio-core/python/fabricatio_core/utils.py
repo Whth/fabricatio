@@ -37,7 +37,7 @@ def is_subclass_of_any_base(cls: Type, bases: List[Tuple[str, str]]) -> bool:
 
 
 @precheck_package(
-    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
+    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio-core[qa]`?."
 )
 async def ask_edit(text_seq: List[str]) -> List[str]:
     """Asks the user to edit a list of texts.
@@ -68,7 +68,7 @@ async def ask_retain[V](candidates: List[str], value_mapping: List[V]) -> List[V
 
 
 @precheck_package(
-    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
+    "questionary", "'questionary' is required to run this function. Have you installed `fabricatio-core[qa]`?."
 )
 async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] = None) -> List[str] | List[V]:
     """Asks the user to retain a list of candidates."""

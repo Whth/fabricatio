@@ -6,6 +6,7 @@ from typing import Optional
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
+from fabricatio_core.utils import ok
 
 from fabricatio_thinking.models.thinking import Thought
 from fabricatio_thinking.rust import ThoughtVCS
@@ -40,7 +41,7 @@ class Thinking(Propose, ABC):
         logger.debug("Initialized ThoughtVCS")
 
         for step in count():
-            thought = await self.propose(Thought, question, **kwargs)
+            thought = ok(await self.propose(Thought, question, **kwargs), "Failed to propose thought")
             logger.debug(f"Step {step}: Received thought - {thought}")
 
             # Commit the current thought
