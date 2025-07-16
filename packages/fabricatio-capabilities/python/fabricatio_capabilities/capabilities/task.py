@@ -10,6 +10,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.role import Role
 from fabricatio_core.rust import TEMPLATE_MANAGER
+from more_itertools import flatten
 
 from fabricatio_capabilities.config import capabilities_config
 
@@ -67,7 +68,11 @@ class DispatchTask(UseLLM, ABC):
         """
         inst = TEMPLATE_MANAGER.render_template(
             capabilities_config.dispatch_task_template,
-            {"task": task.briefing, "candidates": [c.briefing for c in candidates]},
+            {
+                "task": task.briefing,
+                "candidates": [c.briefing for c in candidates],
+                "possible_values": list(flatten((e.collapse() for e in r.registry) for r in candidates)),
+            },
         )
         task_event = await self.alist_str(inst, k=1, **kwargs)
         if task_event:

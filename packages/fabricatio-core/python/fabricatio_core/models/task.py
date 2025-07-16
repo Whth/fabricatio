@@ -81,6 +81,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Returns:
             Task: The updated instance of the `Task` class.
+
         Example:
             .. code-block:: python
                 # Update both goal and description
@@ -117,6 +118,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Returns:
             T: The output of the task.
+
         Example:
             .. code-block:: python
                 # Test basic output retrieval
