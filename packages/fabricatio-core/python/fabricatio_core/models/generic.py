@@ -130,6 +130,7 @@ class WithBriefing(Named, Described, ABC):
         """Get the hash value of the role."""
         return hash(self.name)
 
+
 class WithDependency(Base, ABC):
     """Class that manages file dependencies.
 

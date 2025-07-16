@@ -47,8 +47,6 @@ class Role(WithBriefing):
 
         return f"{base}\nEvent Mapping:\n{abilities}"
 
-
-
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
 

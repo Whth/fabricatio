@@ -4,7 +4,7 @@ from abc import ABC
 from typing import List, Optional, Set, Unpack, overload
 
 from fabricatio_core.models.generic import WithBriefing
-from fabricatio_core.models.kwargs_types import GenerateKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 from fabricatio_judge.models.judgement import JudgeMent
@@ -52,7 +52,6 @@ class Capable(EvidentlyJudge, UseTool, WithBriefing, ABC):
         Returns:
             A list of optional judgment results corresponding to each input request.
         """
-
 
     async def capable(
         self,

@@ -5,7 +5,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue, run
 from functools import cached_property
-from typing import Any, Dict, List, Optional, Self, Union
+from typing import Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
 
@@ -41,8 +41,6 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
 
-    _event: Event = PrivateAttr(default_factory=Event)
-    """The namespace of the task as an event, which is generated from the namespace list."""
     _extra_init_context: Dict = PrivateAttr(default_factory=dict)
     """Extra initialization context for the task, which is designed to override the one of the Workflow."""
 
@@ -56,36 +54,17 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.extra_init_context.update(kwargs)
         return self
 
-    def model_post_init(self, __context: Any) -> None:
-        """Initialize the task with a namespace event."""
-        self._event.concat(self.namespace)
-
-    def move_to(self, new_namespace: EventLike) -> Self:
+    def move_to(self, new_namespace: str | List[str]) -> Self:
         """Move the task to a new namespace.
 
         Args:
-            new_namespace (EventLike): The new namespace to move the task to.
+            new_namespace (str|List[str]): The new namespace to move the task to.
 
         Returns:
             Task: The moved instance of the `Task` class.
         """
         logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
-        self._event.clear().concat(new_namespace)
-        self.namespace = self._event.segments
-        return self
-
-    def nested_move_to(self, new_parent_namespace: EventLike) -> Self:
-        """Move the task to a new namespace by nesting it under the new parent namespace.
-
-        Args:
-            new_parent_namespace (EventLike): The new parent namespace to move the task to.
-
-        Returns:
-            Task: The nested moved instance of the `Task` class.
-        """
-        logger.debug(f"Nested moving task `{self.name}` to `{new_parent_namespace}`")
-        self._event.clear().concat(new_parent_namespace).concat(self.namespace)
-        self.namespace = self._event.segments
+        self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
         return self
 
     def update_task(self, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
@@ -122,7 +101,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The formatted status label.
         """
-        return self._event.derive(self.name).push(status).collapse()
+        return Event.instantiate_from(self.namespace).push(self.name).push(status).collapse()
 
     @cached_property
     def pending_label(self) -> str:
