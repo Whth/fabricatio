@@ -18,22 +18,22 @@ type NameSpace = Union[str, List[str]]
 
 
 class Task[T](WithBriefing, ProposedAble, WithDependency):
-    """A class representing a task with a status and output."""
+    """A class representing a task with status management and output handling."""
 
     goals: List[str] = Field(default_factory=list)
-    """A list of clear and specific objectives that the task aims to accomplish."""
+    """Objectives the task aims to achieve."""
 
     description: str = Field(default="")
-    """A detailed explanation of the task that includes all necessary information, with 5W1H rule enforced."""
+    """Detailed explanation of the task with 5W1H rule."""
 
     name: str = Field(...)
-    """The name of the task, which should be concise and descriptive."""
+    """Concise and descriptive name of the task."""
 
     namespace: List[str] = Field(default_factory=list)
-    """A list of string segments that identify, to where the task will be sent."""
+    """Segments indicating where the task will be sent. Using ['work'] as namespace and `::` as sep results in `work::task_name::Pending` when the task submitted."""
 
     dependencies: List[str] = Field(default_factory=list)
-    """A list of file paths that are needed or mentioned in the task's description (either reading or writing) to complete this task. If not specified, defaults to an empty list."""
+    """File paths needed to complete the task."""
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""
@@ -61,7 +61,12 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
             new_namespace (str|List[str]): The new namespace to move the task to.
 
         Returns:
-            Task: The moved instance of the `Task` class.
+            Task: The moved instance of the `Task` class
+
+        Example:
+            .. code-block:: python
+                task = Task(name="example_task", namespace=["example"]).move_to("work")
+                assert task.namespace == ["work"]
         """
         logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
         self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
@@ -76,6 +81,30 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Returns:
             Task: The updated instance of the `Task` class.
+        Example:
+            .. code-block:: python
+                # Update both goal and description
+                task = Task(name="example_task", goals=["old_goal"], description="old description")
+                task.update_task(goal="new_goal", description="new description")
+                assert task.goals == ["new_goal"]
+                assert task.description == "new description"
+
+                # Update only the goal with a single string
+                task = Task(name="example_task", goals=["old_goal"])
+                task.update_task(goal="new_goal")
+                assert task.goals == ["new_goal"]
+
+                # Update goal with a list of strings
+                task = Task(name="example_task", goals=["old_goal"])
+                task.update_task(goal=["new_goal1", "new_goal2"])
+                assert task.goals == ["new_goal1", "new_goal2"]
+
+                # Update only the description
+                task = Task(name="example_task", description="old description")
+                task.update_task(description="new description")
+                assert task.description == "new description"
+
+
         """
         if goal:
             self.goals = goal if isinstance(goal, list) else [goal]
@@ -88,6 +117,24 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Returns:
             T: The output of the task.
+        Example:
+            .. code-block:: python
+                # Test basic output retrieval
+                task = Task(name="output_task")
+                await task.finish("success")
+                assert await task.get_output() == "success"
+
+                # Test output retrieval with multiple get calls
+                task2 = Task(name="multi_get_task")
+                await task2.finish(42)
+                assert await task2.get_output() == 42
+                # Second get should return same value
+                assert await task2.get_output() == 42
+
+                # Test output retrieval for cancelled task
+                task3 = Task(name="cancelled_task")
+                await task3.cancel()
+                assert await task3.get_output() is None
         """
         logger.debug(f"Getting output for task {self.name}")
         return await self._output.get()
