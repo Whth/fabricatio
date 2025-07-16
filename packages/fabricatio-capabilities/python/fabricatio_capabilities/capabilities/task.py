@@ -46,7 +46,7 @@ class DispatchTask(UseLLM, ABC):
         self,
         task: Task[T],
         candidates: Set[Role],
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 
@@ -74,8 +74,8 @@ class DispatchTask(UseLLM, ABC):
                 "possible_values": list(flatten((e.collapse() for e in r.registry) for r in candidates)),
             },
         )
-        task_event = await self.alist_str(inst, k=1, **kwargs)
+        task_event = await self.ageneric_string(inst, **kwargs)
         if task_event:
-            return await task.delegate(event=task_event[0])
+            return await task.delegate(event=task_event)
         logger.error("Failed to decide where the task should be dispatched to.")
         return None
