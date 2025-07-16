@@ -8,7 +8,7 @@ from fabricatio_core.models.kwargs_types import GenerateKwargs
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_digest.capabilities.digest import Digest
-from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VoteJudge
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_question.capabilities.questioning import Questioning
 from fabricatio_rule.capabilities.censor import Censor
@@ -40,7 +40,6 @@ class Agent(
     Fulfill,
     Remember,
     Censor,
-    VoteJudge,
     EvidentlyJudge,
     DispatchTask,
     DiffEdit,

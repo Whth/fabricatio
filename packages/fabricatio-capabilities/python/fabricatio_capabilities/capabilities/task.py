@@ -1,7 +1,7 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import List, Optional, Set, Unpack
+from typing import Optional, Set, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.propose import Propose
