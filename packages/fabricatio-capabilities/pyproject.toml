@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-capabilities"
-version = "0.3.1-dev6"
+version = "0.3.1-dev7"
 description = "A foundational Python library providing core capabilities for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 authors = [
