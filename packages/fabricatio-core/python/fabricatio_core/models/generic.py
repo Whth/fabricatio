@@ -189,13 +189,18 @@ class WithDependency(Base, ABC):
         """
         return self.clear_dependencies().add_dependency(dependencies)
 
-    def pop_dependence[T](self, idx: int = -1, reader: Callable[[str], T] = safe_text_read) -> T:
-        """Pop the file dependencies from the task.
+    def read_dependency[T](self, idx: int = -1, reader: Callable[[str], T] = safe_text_read) -> T:
+        """Read the content of a file dependency.
+
+        Args:
+            idx (int): Index of the dependency to read. Defaults to -1 (last dependency).
+            reader (Callable[[str], T]): Function to use for reading the file.
+                Defaults to safe_text_read.
 
         Returns:
-            str: The popped file dependency
+            T: The content of the file read using the provided reader function.
         """
-        return reader(self.dependencies.pop(idx))
+        return reader(self.dependencies[idx])
 
     @property
     @precheck_package(
