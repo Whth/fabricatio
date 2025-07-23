@@ -9,8 +9,14 @@ from fabricatio_core import CONFIG
 class AgentConfig:
     """Configuration for fabricatio-agent."""
 
-    sequential_thinking: bool = True
+    memory: bool = False
+    """Whether to use memory."""
+    sequential_thinking: bool = False
     """Whether to think sequentially."""
+    check_capable: bool = False
+    """Whether to check if the agent is capable of performing the task."""
+    fulfill_prompt_template: str = "fulfill_prompt"
+    """The prompt template to use for fulfill."""
 
 
 agent_config = CONFIG.load("agent", AgentConfig)

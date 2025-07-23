@@ -52,7 +52,7 @@ class ThoughtVCS:
             The branch name if the checkout was successful, or None otherwise.
         """
 
-    def export_branch(self, branch: None | str) -> List[str]:
+    def export_branch(self, branch: None | str = None) -> List[str]:
         """Exports the commits of a specified branch as a list of strings.
 
         Args:
@@ -62,7 +62,7 @@ class ThoughtVCS:
             A list of strings representing the commit contents in the specified branch.
         """
 
-    def export_branch_string(self, branch: None | str) -> str:
+    def export_branch_string(self, branch: None | str = None) -> str:
         """Exports the specified branch's commits as a concatenated string.
 
         Args:

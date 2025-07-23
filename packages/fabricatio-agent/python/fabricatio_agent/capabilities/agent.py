@@ -1,10 +1,12 @@
-"""This module contains the capabilities for the agent."""
+"""Agent capability implementation."""
 
-from typing import Any, List, Unpack
+from abc import ABC
+from typing import Any, List, Optional, Unpack
 
 from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_digest.capabilities.digest import Digest
@@ -16,28 +18,13 @@ from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_tool.capabilities.handle import Handle
 
-
-class Fulfill(
-    Capable,
-    Digest,
-    Cooperate,
-):
-    """This class represents an agent with all capabilities enabled."""
-
-    async def fulfill(
-        self, request: str, check_capable: bool = True, **kwargs: Unpack[GenerateKwargs]
-    ) -> None | List[Any]:
-        """This method is used to fulfill a request."""
-        if check_capable and not await self.capable(request, **kwargs):  # pyright: ignore [reportCallIssue]
-            return None
-
-        task_list = ok(await self.digest(request, self.team_members, **kwargs))
-
-        return await task_list.execute()
+from fabricatio_agent.config import agent_config
 
 
 class Agent(
-    Fulfill,
+    Capable,
+    Digest,
+    Cooperate,
     Remember,
     Censor,
     EvidentlyJudge,
@@ -46,7 +33,67 @@ class Agent(
     Questioning,
     Thinking,
     Handle,
+    ABC,
 ):
-    """This class represents an agent with all capabilities enabled."""
+    """Main agent class that integrates multiple capabilities to fulfill requests.
 
-    # TODO
+    This class combines various capabilities like memory, thinking, task dispatching,
+    and team cooperation to process and fulfill user requests.
+    """
+
+    async def fulfill(
+        self,
+        request: str,
+        sequential_thinking: Optional[bool] = None,
+        check_capable: bool = False,
+        memory: bool = False,
+        top_k: int = 100,
+        boost_recent: bool = True,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> None | List[Any]:
+        """Process and fulfill a request using various agent capabilities.
+
+        Args:
+            request (str): The request to be fulfilled.
+            sequential_thinking (Optional[bool], optional): Whether to use sequential thinking. 
+                Defaults to None.
+            check_capable (bool, optional): Whether to check agent capabilities before processing. 
+                Defaults to False.
+            memory (bool, optional): Whether to use memory in processing. Defaults to False.
+            top_k (int, optional): Number of top memories to recall. Defaults to 100.
+            boost_recent (bool, optional): Whether to boost recent memories. Defaults to True.
+            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for generation.
+
+        Returns:
+            None | List[Any]: None if not capable, otherwise a list of execution results.
+            
+        Note:
+            The method integrates multiple capabilities:
+            
+            - Checks capabilities if required
+            - Recalls memories if enabled
+            - Performs sequential thinking if enabled
+            - Digests the request into tasks
+            - Executes the generated task list
+        """
+        if (check_capable or agent_config.check_capable) and not await self.capable(request, **kwargs):  # pyright: ignore [reportCallIssue]
+            return None
+        mem = ""
+        thought = ""
+        if memory or agent_config.memory:
+            mem = await self.recall(request, top_k, boost_recent, **kwargs)
+
+        if sequential_thinking or agent_config.sequential_thinking:
+            thought = (await self.thinking(request, **kwargs)).export_branch_string()
+
+        task_list = ok(
+            await self.digest(
+                TEMPLATE_MANAGER.render_template(
+                    agent_config.fulfill_prompt_template, {"request": request, "mem": mem, "thoughts": thought}
+                ),
+                self.team_members,
+                **kwargs,
+            )
+        )
+
+        return await task_list.execute()
