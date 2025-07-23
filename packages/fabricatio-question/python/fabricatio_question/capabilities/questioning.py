@@ -46,7 +46,7 @@ class Questioning(Propose):
             Exception: If the LLM generation fails or user interaction encounters an error.
         """
         # let llm draft the question that will be asked to the user
-        question = ok(
+        question: SelectionQuestion = ok(
             await self.propose(
                 SelectionQuestion,
                 TEMPLATE_MANAGER.render_template(
@@ -61,3 +61,45 @@ class Questioning(Propose):
             return await question.single()
 
         return await question.multiple(k)
+
+    async def selection_string(self, q: str, k: int = 1, **kwargs: Unpack[GenerateKwargs]) -> str:
+        """Generates a selection question and returns the formatted response with selected indices.
+
+        This method creates a selection question using the internal propose method to generate
+        options and then gathers user input for either a single or multiple selections. The result
+        is rendered using a template that includes the question topic, options, and selections.
+
+        Args:
+            q (str): The prompt text used to generate the selection question.
+            k (int, optional): The number of selections allowed. Defaults to 1.
+                If k=1, a single selection is made. If k>1, multiple selections are made up to k.
+            **kwargs: Additional keyword arguments passed to the LLM generation process.
+
+        Returns:
+            str: A formatted string representing the rendered selection question along with
+                the indices of the selected options.
+
+        Raises:
+            Exception: If question generation or user interaction encounters an error.
+        """
+        question: SelectionQuestion = ok(
+            await self.propose(
+                SelectionQuestion,
+                TEMPLATE_MANAGER.render_template(
+                    question_config.selection_template, {"q": q}
+                ),  # create the generation prompt
+                **kwargs,
+            ),
+            "Failed to generate selection question.",
+        )
+
+        if k == 1:
+            selection = await question.single()
+            selected_indices = [question.option.index(selection)]
+        else:
+            selected_indices = [question.option.index(s) for s in await question.multiple(k)]
+
+        return TEMPLATE_MANAGER.render_template(
+            question_config.selection_display_template,
+            {"topic": question.q, "options": question.option, "selections": [selected_indices]},
+        )

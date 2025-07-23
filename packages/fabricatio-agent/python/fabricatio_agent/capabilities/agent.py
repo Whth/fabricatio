@@ -55,9 +55,9 @@ class Agent(
 
         Args:
             request (str): The request to be fulfilled.
-            sequential_thinking (Optional[bool], optional): Whether to use sequential thinking. 
+            sequential_thinking (Optional[bool], optional): Whether to use sequential thinking.
                 Defaults to None.
-            check_capable (bool, optional): Whether to check agent capabilities before processing. 
+            check_capable (bool, optional): Whether to check agent capabilities before processing.
                 Defaults to False.
             memory (bool, optional): Whether to use memory in processing. Defaults to False.
             top_k (int, optional): Number of top memories to recall. Defaults to 100.
@@ -66,10 +66,10 @@ class Agent(
 
         Returns:
             None | List[Any]: None if not capable, otherwise a list of execution results.
-            
+
         Note:
             The method integrates multiple capabilities:
-            
+
             - Checks capabilities if required
             - Recalls memories if enabled
             - Performs sequential thinking if enabled
