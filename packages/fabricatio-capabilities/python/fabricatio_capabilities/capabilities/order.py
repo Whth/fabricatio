@@ -1,6 +1,6 @@
 """Module for the Ordering class which provides functionalities to order sequences based on requirements."""
 
-from typing import List, Unpack, overload
+from typing import Any, List, TypeGuard, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import WithBriefing
@@ -10,6 +10,30 @@ from more_itertools.more import duplicates_everseen
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_capabilities.config import capabilities_config
 from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs, OrderStringKwargs
+
+
+def is_list_str(sq: Any) -> TypeGuard[List[str]]:
+    """Check if the input is a list of strings.
+
+    Args:
+        sq (Any): Input to be validated.
+
+    Returns:
+        TypeGuard[List[str]]: True if input is a list of strings, False otherwise.
+    """
+    return isinstance(sq, list) and all(isinstance(s, str) for s in sq)
+
+
+def is_list_briefing(sq: Any) -> TypeGuard[List[WithBriefing]]:
+    """Check if the input is a list of WithBriefing objects.
+
+    Args:
+        sq (Any): Input to be validated.
+
+    Returns:
+        TypeGuard[List[WithBriefing]]: True if input is a list of WithBriefing objects, False otherwise.
+    """
+    return isinstance(sq, list) and all(isinstance(s, WithBriefing) for s in sq)
 
 
 class Ordering(Rating):
@@ -76,8 +100,10 @@ class Ordering(Rating):
             ),
             **kwargs,
         )
+        if ordered_names is None:
+            return None
         mapping = {s.name: s for s in seq}
-        return [mapping.get(n) for n in ordered_names]
+        return [mapping[n] for n in ordered_names]
 
     @overload
     async def order(
@@ -102,11 +128,9 @@ class Ordering(Rating):
         Returns:
             None | List[str] | List[WithBriefing]: Ordered sequence or None if invalid input.
         """
-        if all(isinstance(s, str) for s in seq):
-            seq: List[str]
+        if is_list_str(seq):
             return await self.order_string(seq, requirement, **kwargs)
-        if all(isinstance(s, WithBriefing) for s in seq):
-            seq: List[WithBriefing]
+        if is_list_briefing(seq):
             return await self.order_briefed(seq, requirement, **kwargs)
         raise ValueError("The sequence must be a list of strings or a list of WithBriefing objects.")
 
@@ -133,8 +157,9 @@ class Ordering(Rating):
         Returns:
             None | List[str] | List[WithBriefing]: Ordered sequence based on scores.
         """
-        to_rate: List[str] = [s.briefing for s in seq] if all(isinstance(s, WithBriefing) for s in seq) else seq
+        to_rate: List[str] = [s.briefing for s in seq] if is_list_briefing(seq) else seq  # pyright: ignore [reportAssignmentType]
+
         scores = await self.composite_score(to_rate=to_rate, **kwargs)
         # order the sequence by the scores
         sorted_pack = sorted(zip(seq, scores, strict=False), key=lambda x: x[1], reverse=reverse)
-        return [s[0] for s in sorted_pack]
+        return [s[0] for s in sorted_pack]  # pyright: ignore [reportReturnType]

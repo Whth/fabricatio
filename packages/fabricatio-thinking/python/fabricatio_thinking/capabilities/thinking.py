@@ -2,10 +2,12 @@
 
 from abc import ABC
 from itertools import count
-from typing import Optional
+from typing import Optional, Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.utils import ok
 
 from fabricatio_thinking.models.thinking import Thought
 from fabricatio_thinking.rust import ThoughtVCS
@@ -15,7 +17,11 @@ class Thinking(Propose, ABC):
     """This class contains the capabilities for the thinking."""
 
     async def thinking(
-        self, question: str, vcs: Optional[ThoughtVCS] = None, max_steps: Optional[int] = 25, **kwargs
+        self,
+        question: str,
+        vcs: Optional[ThoughtVCS] = None,
+        max_steps: Optional[int] = 25,
+        **kwargs: Unpack[ValidateKwargs[Thought]],
     ) -> ThoughtVCS:
         """Perform a step-by-step thinking process to address the given question.
 
@@ -40,7 +46,7 @@ class Thinking(Propose, ABC):
         logger.debug("Initialized ThoughtVCS")
 
         for step in count():
-            thought = await self.propose(Thought, question, **kwargs)
+            thought = ok(await self.propose(Thought, question, **kwargs), "Failed to propose thought")
             logger.debug(f"Step {step}: Received thought - {thought}")
 
             # Commit the current thought

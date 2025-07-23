@@ -29,7 +29,7 @@ class WriteDiary(Action):
         )
 
         # 2025-02-22 format
-        json_data = task_input.pop_dependence(reader=safe_json_read)
+        json_data = task_input.read_dependency(reader=safe_json_read)
         seq = sorted(json_data.items(), key=lambda x: datetime.strptime(x[0], "%Y-%m-%d"))
 
         res = await self.aask(

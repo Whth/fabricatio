@@ -1,6 +1,11 @@
-{{block task "Task need to complete"}}
-
-To finish the `Task need to complete` you need to choose which one is capable of doing it and I can delegate the task to.
-
 Candidates:
-{{ls candidates}}
+{{#each candidates}}
+  {{this}}
+
+{{/each}}
+
+{{block task "Task need to complete"}}
+To complete the "Task need to complete", I need to you to specify which event the task will be delegated to.
+You SHALL return the event name of the workflow to which the task will be delegated.
+All Possible Values Summary:
+{{possible_values}}

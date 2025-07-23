@@ -12,6 +12,9 @@ class QuestionConfig:
     selection_template: str = "selection"
     """Template name for selection question"""
 
+    selection_display_template: str = "selection_display"
+    """Template name for selection display."""
+
 
 question_config = CONFIG.load("question", QuestionConfig)
 __all__ = ["question_config"]
