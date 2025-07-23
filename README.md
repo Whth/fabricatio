@@ -113,12 +113,13 @@ uv add fabricatio[rag,rule]
 
 from typing import Any
 
+# Import necessary classes from the namespace package.
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
-
+# Create an action.
 class Hello(Action):
     """Action that says hello."""
-
+    
     output_key: str = "task_output"
 
     async def _execute(self, **_) -> Any:
@@ -126,13 +127,14 @@ class Hello(Action):
         logger.info("executing talk action")
         return ret
 
-    """Main function."""
 
-
+# Create the role and register the workflow.
 (Role()
  .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
  .dispatch())
 
+
+# Make a task and delegate it to the workflow registered above.
 assert Task(name="say hello").delegate_blocking("talk") == "Hello fabricatio!"
 
 ```
@@ -148,7 +150,7 @@ For various usage scenarios, refer to the following examples:
 - Code Review
 - Write Outline
 
-_(For full example details, please check our detailed documentation, see [Examples](./examples))_
+_(For full example details, see [Examples](./examples))_
 
 ## Configuration
 
