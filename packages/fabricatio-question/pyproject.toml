@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-question"
-version = "0.1.2-dev1"
+version = "0.1.2-dev2"
 description = "An extension of fabricatio, which provide the capability to question user to make better planning and etc."
 readme = "README.md"
 license = { file = "LICENSE" }
