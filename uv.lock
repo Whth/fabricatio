@@ -620,7 +620,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.1.dev16"
+version = "0.1.1.dev18"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -985,7 +985,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-question"
-version = "0.1.2.dev1"
+version = "0.1.2.dev2"
 source = { editable = "packages/fabricatio-question" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1090,7 +1090,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-thinking"
-version = "0.1.2.dev1"
+version = "0.1.2.dev2"
 source = { editable = "packages/fabricatio-thinking" }
 dependencies = [
     { name = "fabricatio-core" },
