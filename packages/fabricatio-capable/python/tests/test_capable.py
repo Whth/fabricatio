@@ -97,6 +97,7 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: S
         assert isinstance(results, list)
         assert len(results) == 3
         for actual, expected in zip(results, desires, strict=False):
+            assert actual is not None
             assert actual.model_dump_json() == expected.model_dump_json()
             assert bool(actual) == expected.final_judgement
 
