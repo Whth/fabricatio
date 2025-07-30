@@ -11,7 +11,8 @@ from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG
 
 
-def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def precheck_package[**P, R](package_name: str, msg: str) \
+        -> (Callable[[Callable[P, R]|Callable[P, Coroutine[None, None, R]]], Callable[P, R]|Callable[P, Coroutine[None, None, R]]]):
     """Decorator to check if a required package exists in the current environment before executing a function.
 
     This decorator ensures that a specified package is available in the environment. If the package is not found,
@@ -48,7 +49,7 @@ def precheck_package[**P, R](package_name: str, msg: str) -> Callable[[Callable[
         @wraps(func)
         def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
             if find_spec(package_name):
-                return func(*args, **kwargs)
+                return func(*args, **kwargs)  # pyright: ignore [reportReturnType]
             raise RuntimeError(msg)
 
         return _inner
@@ -113,7 +114,7 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 @precheck_package(
     "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
 )
-def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, R]:
+def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, Coroutine[None, None, Optional[R]]]:
     """Decorator to confirm before executing a function.
 
     Args:
@@ -130,7 +131,7 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
     if iscoroutinefunction(func):
 
         @wraps(func)
-        async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+        async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
             if await confirm(
                 f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
                 instruction="Please input [Yes/No] to proceed (default: Yes):",
@@ -138,18 +139,17 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
                 return await func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
             return None
+        return _async_wrapper
 
-    else:
-
-        @wraps(func)
-        def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
-            if confirm(
-                f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
-                instruction="Please input [Yes/No] to proceed (default: Yes):",
-            ).ask():
-                return func(*args, **kwargs)
-            logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
-            return None
+    @wraps(func)
+    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+        if confirm(
+            f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
+            instruction="Please input [Yes/No] to proceed (default: Yes):",
+        ).ask():
+            return func(*args, **kwargs)
+        logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
+        return None
 
     return _wrapper
 
@@ -193,7 +193,7 @@ def logging_exec_time[**P, R](
         logger.debug(
             f"Execution time of {func.__name__}: {(time() - start_time) * 1000:.2f} ms",
         )
-        return result
+        return result  # pyright: ignore [reportReturnType]
 
     return _wrapper
 
@@ -222,7 +222,7 @@ def once[**P, R](
             if not _called:
                 _result = await func(*args, **kwargs)
                 _called = True
-            return _result
+            return _result  # pyright: ignore [reportReturnType]
 
         return _async_wrapper
 
@@ -232,6 +232,6 @@ def once[**P, R](
         if not _called:
             _result = func(*args, **kwargs)
             _called = True
-        return _result
+        return _result  # pyright: ignore [reportReturnType]
 
     return _wrapper
