@@ -17,7 +17,12 @@ from asyncio import gather
 from typing import Callable, Dict, List, Optional, Sequence, Unpack, overload
 
 import asyncstdlib
-from litellm import RateLimitError, Router, stream_chunk_builder, token_counter
+from litellm import (
+    RateLimitError,  # pyright: ignore [reportPrivateImportUsage]
+    Router,  # pyright: ignore [reportPrivateImportUsage]
+    stream_chunk_builder,
+    token_counter,  # pyright: ignore [reportPrivateImportUsage]
+)
 from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
 from litellm.types.utils import Choices, EmbeddingResponse, ModelResponse, StreamingChoices, TextChoices
