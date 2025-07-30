@@ -41,14 +41,14 @@ class Env:
     )
 
     @overload
-    def on[**P, R](self, event: str | Event,func: Callable[P, R], /, ttl: int = -1) -> Self:
+    def on[**P, R](self, event: str | Event, func: Callable[P, R], /, ttl: int = -1) -> Self:
         """
         Registers an event listener that listens indefinitely or for a specified number of times.
 
         Args:
             event: The event to listen for. Can be a string or Event enum.
             func: The function to be called when the event is emitted.
-            ttl: Time-to-live for the listener. If -1 (default), the listener will 
+            ttl: Time-to-live for the listener. If -1 (default), the listener will
                 listen indefinitely. Otherwise, it will be removed after `ttl` emissions.
 
         Returns:
@@ -82,7 +82,7 @@ class Env:
         Args:
             event: The event to listen for. Can be a string or Event enum.
             func: Must be None when using as a decorator.
-            ttl: Time-to-live for the listener. If -1 (default), the listener will 
+            ttl: Time-to-live for the listener. If -1 (default), the listener will
                 listen indefinitely. Otherwise, it will be removed after `ttl` emissions.
 
         Returns:
@@ -106,12 +106,12 @@ class Env:
         """Registers an event listener that listens indefinitely or for a specified number of times.
 
         This method can be used either as a direct function call or as a decorator.
-        
+
         Args:
             event: The event to listen for. Can be a string or Event enum.
-            func: The function to be called when the event is emitted. If None, 
+            func: The function to be called when the event is emitted. If None,
                 the method acts as a decorator.
-            ttl: Time-to-live for the listener. If -1 (default), the listener will 
+            ttl: Time-to-live for the listener. If -1 (default), the listener will
                 listen indefinitely. Otherwise, it will be removed after `ttl` emissions.
 
         Returns:
@@ -193,7 +193,7 @@ class Env:
 
         Args:
             event: The event to listen for. Can be a string or Event enum.
-            func: The function to be called when the event is emitted. If None, 
+            func: The function to be called when the event is emitted. If None,
                 the method acts as a decorator.
 
         Returns:

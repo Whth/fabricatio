@@ -5,14 +5,17 @@ from functools import wraps
 from importlib.util import find_spec
 from inspect import signature
 from shutil import which
-from typing import Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional, overload
 
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG
 
 
-def precheck_package[**P, R](package_name: str, msg: str) \
-        -> (Callable[[Callable[P, R]|Callable[P, Coroutine[None, None, R]]], Callable[P, R]|Callable[P, Coroutine[None, None, R]]]):
+def precheck_package[**P, R](
+    package_name: str, msg: str
+) -> Callable[
+    [Callable[P, R] | Callable[P, Coroutine[None, None, R]]], Callable[P, R] | Callable[P, Coroutine[None, None, R]]
+]:
     """Decorator to check if a required package exists in the current environment before executing a function.
 
     This decorator ensures that a specified package is available in the environment. If the package is not found,
@@ -114,7 +117,9 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 @precheck_package(
     "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
 )
-def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]] | Callable[P, Coroutine[None, None, Optional[R]]]:
+def confirm_to_execute[**P, R](
+    func: Callable[P, R],
+) -> Callable[P, Optional[R]] | Callable[P, Coroutine[None, None, Optional[R]]]:
     """Decorator to confirm before executing a function.
 
     Args:
@@ -139,6 +144,7 @@ def confirm_to_execute[**P, R](func: Callable[P, R]) -> Callable[P, Optional[R]]
                 return await func(*args, **kwargs)
             logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
             return None
+
         return _async_wrapper
 
     @wraps(func)
@@ -196,6 +202,18 @@ def logging_exec_time[**P, R](
         return result  # pyright: ignore [reportReturnType]
 
     return _wrapper
+
+
+@overload
+def once[**P, R](
+    func: Callable[P, Coroutine[None, None, R]],
+) -> Callable[P, Coroutine[None, None, R]]: ...
+
+
+@overload
+def once[**P, R](
+    func: Callable[P, R],
+) -> Callable[P, R]: ...
 
 
 def once[**P, R](
