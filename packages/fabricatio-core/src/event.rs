@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{CONFIG_VARNAME, Config};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
@@ -260,9 +260,9 @@ impl TaskStatus {
 
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    let conf = m.getattr("CONFIG")?.extract::<Config>()?;
+    let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     DELIMITER
-        .set(conf.pymitter.delimiter)
+        .set(conf.emitter.delimiter)
         .expect("Failed to set delimiter!");
     m.add_class::<TaskStatus>()?;
     m.add_class::<Event>()?;

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
 
-from fabricatio_core.emitter import ENV
+from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
@@ -208,10 +208,11 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         logger.info(f"Finishing task {self.name}")
         self._status = TaskStatus.Finished
+
+        logger.debug(f"Emitting finished event for task {self.name}")
+        await EMITTER.emit(self.finished_label, self)
+        logger.debug(f"Setting output for task {self.name}")
         await self._output.put(output)
-        logger.debug(f"Output set for task {self.name}")
-        await ENV.emit_async(self.finished_label, self)
-        logger.debug(f"Emitted finished event for task {self.name}")
         return self
 
     async def start(self) -> Self:
@@ -222,7 +223,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         logger.info(f"Starting task `{self.name}`")
         self._status = TaskStatus.Running
-        await ENV.emit_async(self.running_label, self)
+        await EMITTER.emit(self.running_label, self)
         return self
 
     async def cancel(self) -> Self:
@@ -234,7 +235,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         logger.info(f"Cancelling task `{self.name}`")
         self._status = TaskStatus.Cancelled
         await self._output.put(None)
-        await ENV.emit_async(self.cancelled_label, self)
+        await EMITTER.emit(self.cancelled_label, self)
         return self
 
     async def fail(self) -> Self:
@@ -246,7 +247,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         logger.info(f"Failing task `{self.name}`")
         self._status = TaskStatus.Failed
         await self._output.put(None)
-        await ENV.emit_async(self.failed_label, self)
+        await EMITTER.emit(self.failed_label, self)
         return self
 
     def publish(self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None) -> Self:
@@ -261,13 +262,13 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         if event is not None:
             logger.debug(f"Publishing task `{self.name}` to `{event}`.")
-            ENV.emit_future(Event.instantiate_from(event).collapse(), self)
+            EMITTER.emit_future(Event.instantiate_from(event).collapse(), self)
             return self
 
         if new_namespace is not None:
             self.move_to(new_namespace)
         logger.info(f"Publishing task `{self.name}` to `{(label := self.pending_label)}`.")
-        ENV.emit_future(label, self)
+        EMITTER.emit_future(label, self)
         return self
 
     async def delegate(
@@ -284,13 +285,13 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         if event is not None:
             logger.debug(f"Publishing task `{self.name}` to `{event}`.")
-            ENV.emit_future(Event.instantiate_from(event).collapse(), self)
+            EMITTER.emit_future(Event.instantiate_from(event).collapse(), self)
             return await self.get_output()
 
         if new_namespace is not None:
             self.move_to(new_namespace)
         logger.info(f"Delegating task `{(label := self.pending_label)}`")
-        ENV.emit_future(label, self)
+        EMITTER.emit_future(label, self)
         return await self.get_output()
 
     def delegate_blocking(

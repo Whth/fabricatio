@@ -34,9 +34,8 @@ async def test_hello_fabricatio_workflow(caplog):
 
     Role(name="talker", description="talker role",
          registry={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))},dispatch_on_init=True)
-
     # Delegate the task and get the result
-    result = await task_fixture.delegate("talk")
+    result =await task_fixture.delegate("talk")
 
     # Assert the expected outcome
     assert result == "Hello fabricatio!"
@@ -46,7 +45,11 @@ async def test_hello_fabricatio_workflow(caplog):
     assert "executing talk action" in caplog.text
     # logger.success is not standard, assuming it's a custom level or alias for info/debug
     # If logger.success logs at INFO level or above:
-    assert f"Emitted finished event for task say hello" in caplog.text  # This might be an actual log from your main
+    assert f"Setting output for task say hello" in caplog.text
+    assert f"Emitting finished event for task say hello" in caplog.text  # This might be an actual log from your main
+
     # but here we are asserting the result directly.
     # The original logger.success call is removed from the test logic itself
     # and replaced by an assertion.
+
+

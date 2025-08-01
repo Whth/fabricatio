@@ -313,17 +313,11 @@ class GeneralConfig:
     use_json_repair: bool
     """Whether to automatically repair malformed JSON."""
 
-class PymitterConfig:
-    """Pymitter configuration structure for controlling event emission and listener behavior."""
+class EmitterConfig:
+    """Emitter configuration structure."""
 
     delimiter: str
     """The delimiter used to separate the event name into segments."""
-
-    new_listener_event: bool
-    """If set, a newListener event is emitted when a new listener is added."""
-
-    max_listeners: int
-    """The maximum number of listeners per event. -1 means unlimited."""
 
 class Config:
     """Configuration structure containing all system components."""
@@ -349,8 +343,8 @@ class Config:
     general: GeneralConfig
     """General configuration."""
 
-    pymitter: PymitterConfig
-    """Pymitter configuration."""
+    emitter: EmitterConfig
+    """Emitter configuration."""
 
     def load[C](self, name: str, cls: Type[C]) -> C:
         """Load configuration data for a given name and instantiate it with the provided class.

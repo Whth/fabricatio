@@ -1011,7 +1011,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.7"
+version = "0.1.8.dev0"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },

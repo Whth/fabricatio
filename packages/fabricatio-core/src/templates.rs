@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
 use handlebars::{Handlebars, no_escape};
 use log::debug;
@@ -246,11 +246,13 @@ impl TemplateManager {
     }
 }
 
+const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
-    let conf = m.getattr("CONFIG")?.extract::<Config>()?;
+    let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     m.add(
-        "TEMPLATE_MANAGER",
+        TEMPLATE_MANAGER_VARNAME,
         TemplateManager::new(
             conf.template_manager.template_stores,
             conf.template_manager.template_suffix,

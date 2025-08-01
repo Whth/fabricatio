@@ -5,7 +5,7 @@ from typing import Any, Dict, Self
 
 from pydantic import ConfigDict, Field
 
-from fabricatio_core.emitter import ENV
+from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.generic import ScopedConfig, WithBriefing
@@ -86,7 +86,7 @@ class Role(WithBriefing):
         """
         for event, workflow in self.registry.items():
             logger.debug(f"Registering workflow: `{workflow.name}` for event: `{event.collapse()}`")
-            ENV.on(event, workflow.serve)
+            EMITTER.on(event.collapse(), workflow.serve)
         return self
 
     def resolve_configuration(self) -> Self:

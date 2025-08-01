@@ -363,23 +363,15 @@ impl Default for GeneralConfig {
 /// Contains settings for controlling event emission and listener behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[pyclass(get_all, set_all)]
-pub struct PymitterConfig {
+pub struct EmitterConfig {
     /// The delimiter used to separate the event name into segments
     pub delimiter: String,
-
-    /// If set, a newListener event is emitted when a new listener is added
-    pub new_listener_event: bool,
-
-    /// The maximum number of listeners per event. -1 means unlimited
-    pub max_listeners: i32,
 }
 
-impl Default for PymitterConfig {
+impl Default for EmitterConfig {
     fn default() -> Self {
-        PymitterConfig {
+        EmitterConfig {
             delimiter: "::".to_string(),
-            new_listener_event: false,
-            max_listeners: -1,
         }
     }
 }
@@ -471,14 +463,12 @@ pub struct Config {
     #[pyo3(get)]
     pub general: GeneralConfig,
 
-    /// Pymitter event system configuration
+    /// EventEmitter system configuration
     ///
     /// Event emission control settings:
     /// - `delimiter`: Event name segment separator
-    /// - `new_listener_event`: Emit on listener add
-    /// - `max_listeners`: Listener limit (-1 = unlimited)
     #[pyo3(get)]
-    pub pymitter: PymitterConfig,
+    pub emitter: EmitterConfig,
 
     /// Extension configuration store
     ///
@@ -578,10 +568,12 @@ impl Provider for Config {
     }
 }
 
+pub(crate) const CONFIG_VARNAME: &str = "CONFIG";
+
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
-    m.add("CONFIG", Config::new()?)?;
+    m.add(CONFIG_VARNAME, Config::new()?)?;
 
     Ok(())
 }
