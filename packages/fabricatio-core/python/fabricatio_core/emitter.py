@@ -1,6 +1,8 @@
 """Core module that contains the Env class for managing event handling."""
 
 import asyncio
+from asyncio import as_completed
+from asyncio.tasks import Task
 from collections import defaultdict
 from typing import Any, Callable, Coroutine, Dict, List, Tuple
 
@@ -9,49 +11,8 @@ from fabricatio_core.rust import CONFIG
 WILDCARD = "*"
 
 
-class PatternType:
-    """Base class for pattern types."""
-
-
-class Exact(PatternType):
-    """Represents an exact pattern match."""
-
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"Exact({self.value})"
-
-
-class Wildcard(PatternType):
-    """Represents a wildcard pattern match."""
-
-    def __init__(self, segments: List[str]) -> None:
-        self.segments = segments
-
-    def __repr__(self) -> str:
-        return f"Wildcard({self.segments})"
-
-
-def pattern_type_from_string(source: str, sep: str) -> PatternType:
-    """Creates a PatternType from a string by splitting it with a separator.
-
-    Args:
-        source: The string to split.
-        sep: The separator used to split the string.
-
-    Returns:
-        A PatternType instance (Exact or Wildcard).
-    """
-    parts = source.split(sep)
-    if any(part == WILDCARD for part in parts):
-        return Wildcard(parts)
-    # For Exact, we store the original string, not the concatenated parts
-    # to match the Rust behavior for handler lookup.
-    return Exact(source)  # Or Exact('.'.join(parts)) if you want the joined key
-
-
 type Callback[T] = Callable[[T], Coroutine[None, None, None]]
+"""Callback type for event handlers."""
 
 
 class EventEmitter[T]:
@@ -62,12 +23,12 @@ class EventEmitter[T]:
     concurrently.
     """
 
-    def __init__(self, sep: str = ".") -> None:
+    def __init__(self, sep: str = "::") -> None:
         """Creates a new EventEmitter with the specified separator.
 
         Args:
             sep: The separator string used to split event names into segments.
-                 Defaults to ".".
+                 Defaults to "::".
         """
         self.sep = sep
         # Stores handlers for exact event matches (key: event name, value: list of callbacks)
@@ -93,14 +54,12 @@ class EventEmitter[T]:
         if not pattern:
             raise ValueError("Pattern cannot be empty")
 
-        pattern_type = pattern_type_from_string(pattern, self.sep)
-
-        if isinstance(pattern_type, Exact):
-            self._handlers[pattern_type.value].append(callback)
-        elif isinstance(pattern_type, Wildcard):
+        parts = pattern.split(self.sep)
+        if any(part == WILDCARD for part in parts):
             # Use tuple as key for hashability
-            key = tuple(pattern_type.segments)
-            self._wildcard_handlers[key].append(callback)
+            self._wildcard_handlers[tuple(parts)].append(callback)
+        else:
+            self._handlers[pattern].append(callback)
 
     def _gather_exact_handlers(self, event_parts: List[str]) -> List[Callback[T]]:
         """Gathers all exact handlers that match the given event parts."""
@@ -130,6 +89,10 @@ class EventEmitter[T]:
         Args:
             event: The name of the event to emit.
             data: The data to pass to the event handlers.
+
+        Note:
+            The execution of the event handlers is concurrent, and this method
+            will wait for all handlers to complete before returning.
         """
         parts = event.split(self.sep)
         callbacks: List[Callback[T]] = []
@@ -144,9 +107,10 @@ class EventEmitter[T]:
         # Run all gathered callbacks concurrently
         if callbacks:
             # Ensure the callback is a coroutine before awaiting
-            await asyncio.gather(*[callback(data) for callback in callbacks])
+            for cro in as_completed([callback(data) for callback in callbacks]):
+                await cro
 
-    def emit_future(self, event: str, data: Any = None) -> None:
+    def emit_future(self, event: str, data: Any = None) -> Task:
         """Emits an event with the given data to all matching handlers.
 
         This method finds all handlers that match the event pattern (both exact
@@ -155,10 +119,12 @@ class EventEmitter[T]:
         Args:
             event: The name of the event to emit.
             data: The data to pass to the event handlers.
+
+        Returns:
+            A future that will be completed when all handlers have been invoked.
         """
-        asyncio.ensure_future(self.emit(event, data))  # noqa: RUF006
+        return asyncio.ensure_future(self.emit(event, data))
 
 
 EMITTER = EventEmitter(sep=CONFIG.emitter.delimiter)
-
-__all__ = ["EMITTER"]
+"""The global event emitter instance."""

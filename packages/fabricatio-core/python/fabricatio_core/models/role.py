@@ -1,6 +1,6 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from functools import cached_property, partial
+from functools import cached_property
 from typing import Any, Dict, Self
 
 from pydantic import ConfigDict, Field
@@ -10,10 +10,6 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.generic import ScopedConfig, WithBriefing
 from fabricatio_core.rust import Event
-from fabricatio_core.utils import is_subclass_of_base
-
-is_toolbox_usage = partial(is_subclass_of_base, base_module="fabricatio_core.models.usages", base_name="ToolBoxUsage")
-is_scoped_config = partial(is_subclass_of_base, base_module="fabricatio_core.models.generic", base_name="ScopedConfig")
 
 
 class Role(WithBriefing):
@@ -125,3 +121,4 @@ class Role(WithBriefing):
 EXCLUDED_FIELDS = set(
     list(Role.model_fields.keys()) + list(WorkFlow.model_fields.keys()) + list(Action.model_fields.keys())
 )
+"""The set of fields that should not be resolved during configuration resolution."""
