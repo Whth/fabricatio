@@ -85,6 +85,17 @@ class Role(WithBriefing):
             EMITTER.on(event.collapse(), workflow.serve)
         return self
 
+    def undo_dispatch(self) -> Self:
+        """Unregister each workflow in the registry from its corresponding event in the event bus.
+
+        Returns:
+            Self: The role instance for method chaining
+        """
+        for event, workflow in self.registry.items():
+            logger.debug(f"Unregistering workflow: `{workflow.name}` for event: `{event.collapse()}`")
+            EMITTER.off(event.collapse())
+        return self
+
     def resolve_configuration(self) -> Self:
         """Resolve and bind shared configuration to workflows and their components.
 

@@ -4,9 +4,12 @@ import asyncio
 from asyncio import as_completed
 from asyncio.tasks import Task
 from collections import defaultdict
-from typing import Any, Callable, Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING, Callable, Coroutine, Dict, List, Self, Tuple
 
 from fabricatio_core.rust import CONFIG
+
+if TYPE_CHECKING:
+    from fabricatio_core.models.task import Task as _Task
 
 WILDCARD = "*"
 
@@ -36,7 +39,7 @@ class EventEmitter[T]:
         # Stores handlers for wildcard event patterns (key: pattern tuple, value: list of callbacks)
         self._wildcard_handlers: Dict[Tuple[str, ...], List[Callback[T]]] = defaultdict(list)
 
-    def on(self, pattern: str, callback: Callback[T]) -> None:
+    def on(self, pattern: str, callback: Callback[T]) -> Self:
         """Registers an event handler for a specific pattern.
 
         The pattern can be an exact event name or contain wildcards (`*`) to match
@@ -60,6 +63,28 @@ class EventEmitter[T]:
             self._wildcard_handlers[tuple(parts)].append(callback)
         else:
             self._handlers[pattern].append(callback)
+        return self
+
+    def off(self, pattern: str) -> Self:
+        """Removes an event handler for a specific pattern.
+
+        The pattern must match the pattern used when registering the handler.
+
+        Args:
+            pattern: The event pattern to remove the handler for.
+
+        Raises:
+            ValueError: If the pattern is empty.
+        """
+        if not pattern:
+            raise ValueError("Pattern cannot be empty")
+
+        parts = pattern.split(self.sep)
+        if any(part == WILDCARD for part in parts):
+            self._wildcard_handlers.pop(tuple(parts))
+        else:
+            self._handlers.pop(pattern)
+        return self
 
     def _gather_exact_handlers(self, event_parts: List[str]) -> List[Callback[T]]:
         """Gathers all exact handlers that match the given event parts."""
@@ -80,7 +105,7 @@ class EventEmitter[T]:
                 matching_handlers.extend(handlers)
         return matching_handlers
 
-    async def emit(self, event: str, data: Any = None) -> None:
+    async def emit(self, event: str, data: T) -> None:
         """Emits an event with the given data to all matching handlers.
 
         This method finds all handlers that match the event pattern (both exact
@@ -110,7 +135,7 @@ class EventEmitter[T]:
             for cro in as_completed([callback(data) for callback in callbacks]):
                 await cro
 
-    def emit_future(self, event: str, data: Any = None) -> Task:
+    def emit_future(self, event: str, data: T) -> Task:
         """Emits an event with the given data to all matching handlers.
 
         This method finds all handlers that match the event pattern (both exact
@@ -126,5 +151,5 @@ class EventEmitter[T]:
         return asyncio.ensure_future(self.emit(event, data))
 
 
-EMITTER = EventEmitter(sep=CONFIG.emitter.delimiter)
+EMITTER: EventEmitter["_Task"] = EventEmitter(sep=CONFIG.emitter.delimiter)
 """The global event emitter instance."""
