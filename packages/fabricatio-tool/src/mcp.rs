@@ -10,10 +10,10 @@ use rmcp::model::{ClientInfo, Tool};
 use rmcp::service::{DynService, RunningService};
 use rmcp::transport::SseClientTransport;
 use rmcp::{
-    RoleClient,
     model::CallToolRequestParam,
     service::ServiceExt,
     transport::{ConfigureCommandExt, TokioChildProcess},
+    RoleClient,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -24,40 +24,56 @@ use std::fmt;
 use std::sync::Arc;
 use tokio::process::Command;
 
+/// Represents possible errors that can occur in MCP operations
 #[derive(Debug)]
 pub enum McpError {
+    /// I/O related errors
     IoError(std::io::Error),
+    /// Errors originating from RMCP operations
     RmcpError(Box<dyn Error + Send + Sync>),
+    /// Requested client not found
     ClientNotFound(String),
+    /// General service errors
     ServiceError(String),
 }
 
+/// Transport protocol types for service communication
 #[derive(Debug, Serialize, Deserialize)]
 enum Transport {
+    /// Standard input/output communication
     Stdio,
+    /// Server-Sent Events (SSE) protocol
     Sse,
 }
 
+/// Configuration for a single service instance
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceConfig {
+    /// Type of transport to use for this service
     #[serde(rename = "type")]
     service_type: Transport,
-
+    
+    /// Command to execute for stdio services
     #[serde(default, skip_serializing_if = "Option::is_none")]
     command: Option<String>,
-
+    
+    /// URL for SSE services
     #[serde(default, skip_serializing_if = "Option::is_none")]
     url: Option<String>,
-
+    
+    /// Command-line arguments for stdio services
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     args: Vec<String>,
-
+    
+    /// Environment variables for the service process
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     env: HashMap<String, Value>,
 }
 
+/// Top-level MCP configuration structure
 #[derive(Debug, Serialize, Deserialize)]
 struct MCPConfig {
+    /// Map of server names to their configurations
     servers: HashMap<String, ServiceConfig>,
 }
 
@@ -80,13 +96,17 @@ impl From<std::io::Error> for McpError {
     }
 }
 
+/// Result type alias for MCP operations
 pub type Result<T> = std::result::Result<T, McpError>;
 
+/// Inner manager structure handling client connections
 pub struct McpManagerInner {
+    /// Map of client IDs to their running services
     clients: HashMap<String, RunningService<RoleClient, Box<dyn DynService<RoleClient>>>>,
 }
 
 impl McpManagerInner {
+    /// Creates a new MCP manager from configuration
     fn new(config: MCPConfig) -> Result<Self> {
         let mut clients = HashMap::new();
         let mut fut = vec![];
@@ -141,26 +161,28 @@ impl McpManagerInner {
             let mut futures = Vec::new();
             let mut names = Vec::new();
 
-            // 提前收集名字和 future
+            // Collect names and futures upfront
             for (name, fut) in fut {
                 names.push(name.to_owned());
                 futures.push(fut);
             }
 
-            // 并发执行所有 future
+            // Execute all futures concurrently
             let results = join_all(futures).await;
 
-            // 处理结果
+            // Process results
             for (name, result) in names.into_iter().zip(results) {
                 let service = result.map_err(|e| McpError::RmcpError(Box::new(e)))?;
                 clients.insert(name, service);
             }
 
-            Ok::<(), McpError>(()) // 注意：这里要处理 Result 的传播
+            Ok::<(), McpError>(())
         })?;
 
         Ok(Self { clients })
     }
+
+    /// Lists available tools from a client
     pub async fn list_tools(&self, client_id: &str) -> Result<Vec<rmcp::model::Tool>> {
         self.clients
             .get(client_id)
@@ -175,6 +197,7 @@ impl McpManagerInner {
             .await
     }
 
+    /// Executes a tool on a client
     pub async fn call_tool(
         &self,
         client_id: &str,
@@ -195,15 +218,18 @@ impl McpManagerInner {
     }
 }
 
+/// Python-exposed MCP manager
 #[pyclass]
 struct McpManager {
     inner: Arc<McpManagerInner>,
 }
 
+/// Python representation of tool metadata
 #[pyclass]
 struct ToolMetaData {
     inner: Tool,
 }
+
 impl From<Tool> for ToolMetaData {
     fn from(value: Tool) -> Self {
         Self { inner: value }
@@ -212,6 +238,7 @@ impl From<Tool> for ToolMetaData {
 
 #[pymethods]
 impl ToolMetaData {
+    /// Serializes the tool metadata to a Python dictionary
     fn dump_dict<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         pythonize(python, &self.inner).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
     }
@@ -220,6 +247,10 @@ impl ToolMetaData {
 #[pymethods]
 impl McpManager {
     #[new]
+    /// Creates a new MCP manager instance
+    /// 
+    /// # Arguments
+    /// * `server_configs` - Python dictionary containing server configurations
     fn new(server_configs: Bound<'_, PyDict>) -> PyResult<Self> {
         Ok(Self {
             inner: Arc::new(
@@ -232,11 +263,11 @@ impl McpManager {
         })
     }
 
+    /// Retrieves list of tools from a client
     fn list_tools<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
 
         future_into_py(python, async move {
-            // Use move to capture the cloned data
             let tools = inner
                 .list_tools(client_id.as_str())
                 .await
@@ -248,6 +279,7 @@ impl McpManager {
         })
     }
 
+    /// Executes a tool on a client and returns the result
     fn call_tool<'a>(
         &self,
         python: Python<'a>,
@@ -266,7 +298,6 @@ impl McpManager {
         };
 
         future_into_py(python, async move {
-            // Use move to capture the cloned data
             let result = inner
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
@@ -280,7 +311,7 @@ impl McpManager {
     }
 }
 
-/// Registers the gather_violations function with the Python module.
+/// Registers Python module components
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<McpManager>()?;
     m.add_class::<ToolMetaData>()?;
