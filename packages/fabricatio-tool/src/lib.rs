@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 mod linter;
+mod mcp;
 mod tool;
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -10,5 +11,6 @@ mod tool;
 #[pyo3(name = "rust")]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     tool::register(python, m)?;
+    mcp::register(python, m)?;
     Ok(())
 }

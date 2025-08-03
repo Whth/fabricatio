@@ -1,6 +1,6 @@
 """Module containing configuration classes for fabricatio-tool."""
 
-from typing import Literal, Set
+from typing import Dict, Literal, Set
 
 from fabricatio_core import CONFIG
 from pydantic import BaseModel, Field
@@ -28,6 +28,8 @@ class ToolConfig(BaseModel):
 
     draft_tool_usage_code_template: str = "draft_tool_usage_code"
     """The name of the draft tool usage code template which will be used to draft tool usage code."""
+    list_mcp_tools_template: str = "list_mcp_tools"
+    """The name of the list mcp tools template which will be used to list mcp tools."""
 
     check_modules: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """Modules that are forbidden to be imported."""
@@ -35,6 +37,9 @@ class ToolConfig(BaseModel):
     """Imports that are forbidden to be used."""
     check_calls: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """"Calls that are forbidden to be used."""
+
+    mcp_servers: Dict[str, Dict] = Field(default_factory=dict)
+    """MCP servers that are allowed to be used."""
 
 
 tool_config = CONFIG.load("tool", ToolConfig)
