@@ -1,12 +1,14 @@
 use futures::future::join_all;
+use futures::{FutureExt, TryFutureExt};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
-use rmcp::model::Tool;
+use rmcp::model::{ClientInfo, Tool};
 use rmcp::service::{DynService, RunningService};
+use rmcp::transport::SseClientTransport;
 use rmcp::{
     RoleClient,
     model::CallToolRequestParam,
@@ -93,14 +95,38 @@ impl McpManagerInner {
                 Transport::Stdio if config.command.is_some() => {
                     let cmd_str = config.command.as_ref().unwrap();
 
-                    ().into_dyn().serve(TokioChildProcess::new(
+                    let proc = TokioChildProcess::new(
                         Command::new(OsStr::new(cmd_str)).configure(|cmd| {
                             cmd.args(config.args.iter().map(OsStr::new));
+
+                            cmd.envs(config.env.iter().map(|(k, v)| {
+                                let v = match v {
+                                    Value::String(s) => s.clone(),
+                                    _ => v.to_string(),
+                                };
+                                (k.clone(), v)
+                            }));
                         }),
-                    )?)
+                    )?;
+                    ().into_dyn()
+                        .serve(proc)
+                        .map_err(|e| McpError::ServiceError(e.to_string()))
+                        .boxed()
                 }
-                Transport::Sse => {
-                    todo!()
+                Transport::Sse if config.url.is_some() => {
+                    let url = config.url.as_ref().unwrap();
+                    async move {
+                        if let Ok(transport) = SseClientTransport::start(url.clone()).await {
+                            ClientInfo::default()
+                                .into_dyn()
+                                .serve(transport)
+                                .map_err(|e| McpError::ServiceError(e.to_string()))
+                                .await
+                        } else {
+                            Err(McpError::ServiceError("Invalid SSE URL".to_string()))
+                        }
+                    }
+                    .boxed()
                 }
 
                 _ => {
