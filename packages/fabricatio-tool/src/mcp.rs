@@ -8,7 +8,7 @@ use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
 use rmcp::model::{ClientInfo, Tool};
 use rmcp::service::{DynService, RunningService};
-use rmcp::transport::SseClientTransport;
+use rmcp::transport::{SseClientTransport, StreamableHttpClientTransport, WorkerTransport};
 use rmcp::{
     model::CallToolRequestParam,
     service::ServiceExt,
@@ -44,6 +44,9 @@ enum Transport {
     Stdio,
     /// Server-Sent Events (SSE) protocol
     Sse,
+    Stream,
+    Oneshot,
+    Worker,
 }
 
 /// Configuration for a single service instance
@@ -52,19 +55,19 @@ struct ServiceConfig {
     /// Type of transport to use for this service
     #[serde(rename = "type")]
     service_type: Transport,
-    
+
     /// Command to execute for stdio services
     #[serde(default, skip_serializing_if = "Option::is_none")]
     command: Option<String>,
-    
+
     /// URL for SSE services
     #[serde(default, skip_serializing_if = "Option::is_none")]
     url: Option<String>,
-    
+
     /// Command-line arguments for stdio services
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     args: Vec<String>,
-    
+
     /// Environment variables for the service process
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     env: HashMap<String, Value>,
@@ -149,6 +152,22 @@ impl McpManagerInner {
                     .boxed()
                 }
 
+                Transport::Stream if config.url.is_some() => {
+                    let url = config.url.as_ref().unwrap();
+                    ClientInfo::default()
+                        .into_dyn()
+                        .serve(StreamableHttpClientTransport::from_uri(url.clone()))
+                        .map_err(|e| McpError::ServiceError(e.to_string()))
+                        .boxed()
+                }
+                Transport::Worker if config.url.is_some() => {
+                    let url = config.url.as_ref().unwrap();
+                    ClientInfo::default()
+                        .into_dyn()
+                        .serve(WorkerTransport::from_uri(url.clone()))
+                        .map_err(|e| McpError::ServiceError(e.to_string()))
+                        .boxed()
+                }
                 _ => {
                     return Err(McpError::ServiceError("Invalid service type".to_string()));
                 }
@@ -248,7 +267,7 @@ impl ToolMetaData {
 impl McpManager {
     #[new]
     /// Creates a new MCP manager instance
-    /// 
+    ///
     /// # Arguments
     /// * `server_configs` - Python dictionary containing server configurations
     fn new(server_configs: Bound<'_, PyDict>) -> PyResult<Self> {
