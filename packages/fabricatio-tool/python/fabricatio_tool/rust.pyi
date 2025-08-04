@@ -87,3 +87,12 @@ class McpManager:
         Returns:
             The count of servers.
         """
+    def ping(self, client_id: str) -> bool:
+        """Ping a server.
+
+        Args:
+            client_id: The client ID to ping.
+
+        Returns:
+            True if the server is reachable, False otherwise.
+        """
