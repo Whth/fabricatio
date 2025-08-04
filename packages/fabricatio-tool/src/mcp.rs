@@ -92,10 +92,14 @@ impl MCPManager {
     ///
     /// # Returns
     /// * `PyResult<bool>` - Ok(true) if the client is connected, Ok(false) if not, or an error if the client doesn't exist
-    fn ping(&self, client_id: &str) -> PyResult<bool> {
-        self.inner
-            .ping(client_id)
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    fn ping<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
+        let inner = self.inner.clone();
+        future_into_py(python, async move {
+            inner
+                .ping(&client_id)
+                .await
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+        })
     }
     /// Executes a tool on a client and returns the result
     fn call_tool<'a>(

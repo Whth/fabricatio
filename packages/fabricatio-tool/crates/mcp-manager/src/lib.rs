@@ -130,9 +130,7 @@ impl MCPManager {
                     }
                     Transport::Worker if config.url.is_some() => {
                         ().into_dyn()
-                            .serve(WorkerTransport::from_uri(
-                                config.url.as_ref().unwrap().clone(),
-                            ))
+                            .serve(WorkerTransport::from_uri(config.url.unwrap()))
                             .map_err(|e| McpError::ServiceError(e.to_string()))
                             .await
                     }
@@ -210,11 +208,14 @@ impl MCPManager {
         }
     }
 
-    pub fn ping(&self, client_id: &str) -> Result<bool> {
+    pub async fn ping(&self, client_id: &str) -> Result<bool> {
         self.clients
             .get(client_id)
-            .ok_or(McpError::ClientNotFound(client_id.to_string()))
-            .map(|client| !client.is_transport_closed())
+            .ok_or(McpError::ClientNotFound(client_id.to_string()))?
+            .list_tools(None)
+            .await
+            .map(|_| true)
+            .map_err(|e| McpError::ServiceError(format!("Failed to ping service: {e}")))
     }
 
     /// Returns a list of all server names currently managed by the MCP manager
@@ -260,5 +261,155 @@ impl MCPManager {
             })?
             .await
             .map_err(|e| McpError::RmcpError(Box::new(e)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn test_mcp_manager_create_stdio_service() {
+        let mut servers = HashMap::new();
+        servers.insert(
+            "test_stdio".to_string(),
+            ServiceConfig {
+                service_type: Transport::Stdio,
+                command: Some("nonexist".to_string()),
+                args: vec!["test".to_string()],
+                url: None,
+                env: HashMap::new(),
+            },
+        );
+
+        let config = MCPConfig { servers };
+        let manager = MCPManager::create(config).await;
+
+        assert_eq!(manager.server_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_mcp_manager_create_invalid_service() {
+        let mut servers = HashMap::new();
+        servers.insert(
+            "invalid_service".to_string(),
+            ServiceConfig {
+                service_type: Transport::Stdio,
+                command: None,
+                args: vec![],
+                url: None,
+                env: HashMap::new(),
+            },
+        );
+
+        let config = MCPConfig { servers };
+        let manager = MCPManager::create(config).await;
+
+        assert_eq!(manager.server_count(), 0);
+        assert!(
+            !manager
+                .server_list()
+                .contains(&"invalid_service".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_manager_ping_nonexistent_client() {
+        let servers = HashMap::new();
+        let config = MCPConfig { servers };
+        let manager = MCPManager::create(config).await;
+
+        let result = manager.ping("nonexistent_client").await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            McpError::ClientNotFound(_) => (),
+            _ => panic!("Expected ClientNotFound error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_mcp_manager_list_tools_nonexistent_client() {
+        let servers = HashMap::new();
+        let config = MCPConfig { servers };
+        let manager = MCPManager::create(config).await;
+
+        let result = manager.list_tools("nonexistent_client").await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            McpError::ClientNotFound(_) => (),
+            _ => panic!("Expected ClientNotFound error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_mcp_manager_call_tool_nonexistent_client() {
+        let servers = HashMap::new();
+        let config = MCPConfig { servers };
+        let manager = MCPManager::create(config).await;
+
+        let result = manager
+            .call_tool("nonexistent_client", "test_tool", None)
+            .await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            McpError::ClientNotFound(_) => (),
+            _ => panic!("Expected ClientNotFound error"),
+        }
+    }
+
+    #[test]
+    fn test_mcp_error_display() {
+        let io_error = McpError::IoError("test io error".to_string());
+        assert_eq!(format!("{}", io_error), "IO error: test io error");
+
+        let rmcp_error = McpError::RmcpError("test rmcp error".into());
+        assert_eq!(format!("{}", rmcp_error), "RMCP error: test rmcp error");
+
+        let client_not_found = McpError::ClientNotFound("test_client".to_string());
+        assert_eq!(
+            format!("{}", client_not_found),
+            "Client test_client not found"
+        );
+
+        let service_error = McpError::ServiceError("test service error".to_string());
+        assert_eq!(
+            format!("{}", service_error),
+            "Service error: test service error"
+        );
+    }
+
+    #[test]
+    fn test_transport_default() {
+        let transport: Transport = Default::default();
+        assert_eq!(transport, Transport::Stdio);
+    }
+
+    #[test]
+    fn test_service_config_serialization() {
+        let config = ServiceConfig {
+            service_type: Transport::Stdio,
+            command: Some("test_cmd".to_string()),
+            args: vec!["arg1".to_string(), "arg2".to_string()],
+            url: None,
+            env: {
+                let mut map = HashMap::new();
+                map.insert("TEST_ENV".to_string(), json!("test_value"));
+                map
+            },
+        };
+
+        let serialized = serde_json::to_string(&config).unwrap();
+        let deserialized: ServiceConfig = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized.service_type, Transport::Stdio);
+        assert_eq!(deserialized.command, Some("test_cmd".to_string()));
+        assert_eq!(
+            deserialized.args,
+            vec!["arg1".to_string(), "arg2".to_string()]
+        );
+        assert_eq!(deserialized.url, None);
+        assert_eq!(deserialized.env.get("TEST_ENV"), Some(&json!("test_value")));
     }
 }
