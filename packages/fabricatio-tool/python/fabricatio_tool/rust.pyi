@@ -2,6 +2,9 @@
 
 from typing import Any, Dict, List, Literal, Optional, Set
 
+from pydantic import JsonValue
+
+
 class CheckConfig:
     def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]) -> None:
         """Initialize a CheckConfig instance with specified targets and mode.
@@ -31,16 +34,56 @@ def gather_violations(
     Returns:
         List[str]: A list of violation messages found in the source code.
     """
-
 class ToolMetaData:
-    """Metadata wrapper for a tool, containing its specification and metadata."""
-
-    def dump_dict(self) -> Dict[str, Any]:
-        """Serialize the internal tool data into a Python dictionary.
-
-        Returns:
-            A dictionary representation of the tool metadata.
+    """Metadata container for a tool's properties and specifications.
+    
+    Provides structured access to tool name, description, input schema,
+    annotations, and full serialization capabilities.
+    """
+    @property
+    def name(self) -> str:
+        """Get the tool's display name as a string identifier."""
+    @property
+    def description(self) -> str:
+        """Get the tool's human-readable description. May be empty if unspecified."""
+    
+    @property
+    def input_schema(self) -> Dict[str, JsonValue]:
+        """JSON schema defining expected input parameters for the tool.
+        
+        This schema follows the JSON Schema specification and validates
+        the input data passed to the tool.
         """
+    @property
+    def annotations(self) -> Dict[str, JsonValue]:
+        """Additional metadata properties in key-value format.
+        
+        Contains implementation-specific details and custom attributes
+        associated with the tool.
+        """
+    
+    def dump_dict(self) -> Dict[str, JsonValue]:
+        """Serialize the complete tool metadata to a JSON-compatible dictionary.
+        
+        Returns:
+            Dictionary representation containing all tool metadata fields.
+        """
+    @property
+    def input_schema_string(self) -> str:
+        """JSON schema string representation of the tool's input requirements.
+        
+        Serialized version of input_schema property. Provides the schema in
+        a string format suitable for JSON parsing or transmission.
+        """
+    @property
+    def annotations_string(self) -> str:
+        """Stringified JSON representation of the tool's annotations metadata.
+        
+        Serialized version of annotations property. Offers machine-readable
+        access to implementation-specific details in string format.
+        """
+
+
 
 class MCPManager:
     """Manager for interacting with MCP (Model Coordination Protocol) services."""

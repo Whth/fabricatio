@@ -35,6 +35,39 @@ impl ToolMetaData {
     fn dump_dict<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         pythonize(python, &self.inner).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
     }
+
+    #[getter]
+    fn name(&self) -> String {
+        self.inner.name.to_string()
+    }
+
+    #[getter]
+    fn description(&self) -> String {
+        self.inner.description.clone().unwrap_or_default().to_string()
+    }
+
+    #[getter]
+    fn input_schema<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+        pythonize(python, &self.inner.input_schema).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[getter]
+    fn  input_schema_string(&self)-> String {
+        serde_json::to_string(&self.inner.input_schema)
+            .unwrap_or_default()
+    }
+
+    #[getter]
+    fn annotations<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>>{
+        pythonize(python, &self.inner.annotations).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+    }
+    #[getter]
+    fn annotations_string(&self)-> String {
+        serde_json::to_string(&self.inner.annotations)
+            .unwrap_or_default()
+    }
+
+
 }
 
 #[pymethods]

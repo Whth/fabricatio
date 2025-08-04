@@ -12,7 +12,6 @@ pyo3 = { version = "0.25.0", features = ["extension-module"] }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 pythonize = "0.25.0"
 rmcp = { version = "0.3.2", features = [
-    "auth",
     "client",
     "transport-child-process",
     "transport-io",
@@ -23,5 +22,5 @@ rustpython-ast = { version = "0.4.0", features = ["visitor"] }
 rustpython-parser = { version = "0.4.0"  }
 serde_json = "1.0.142"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-
+serde = { version = "1.0.219", features = ["derive"] }
 mcp-manager = { path = "./crates/mcp-manager" }

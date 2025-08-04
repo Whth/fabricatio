@@ -1047,6 +1047,7 @@ dependencies = [
  "rmcp",
  "rustpython-ast",
  "rustpython-parser",
+ "serde",
  "serde_json",
  "tracing-subscriber",
 ]
