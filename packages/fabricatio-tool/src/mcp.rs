@@ -1,4 +1,4 @@
-use futures::future::join_all;
+use futures::future::{join_all, BoxFuture};
 use futures::{FutureExt, TryFutureExt};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -6,7 +6,7 @@ use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
-use rmcp::model::{ClientInfo, Tool};
+use rmcp::model::Tool;
 use rmcp::service::{DynService, RunningService};
 use rmcp::transport::{SseClientTransport, StreamableHttpClientTransport, WorkerTransport};
 use rmcp::{
@@ -108,73 +108,42 @@ pub struct McpManagerInner {
     clients: HashMap<String, RunningService<RoleClient, Box<dyn DynService<RoleClient>>>>,
 }
 
+
+type ClientFuture<'a> = BoxFuture<'a,Result<RunningService<RoleClient, Box<dyn DynService<RoleClient>>>>>;
 impl McpManagerInner {
     /// Creates a new MCP manager from configuration
     fn new(config: MCPConfig) -> Result<Self> {
         let mut clients = HashMap::new();
-        let mut fut = vec![];
-        for (name, config) in config.servers.iter() {
-            let service_fut = match config.service_type {
-                Transport::Stdio if config.command.is_some() => {
-                    let cmd_str = config.command.as_ref().unwrap();
-
-                    let proc = TokioChildProcess::new(
-                        Command::new(OsStr::new(cmd_str)).configure(|cmd| {
-                            cmd.args(config.args.iter().map(OsStr::new));
-
-                            cmd.envs(config.env.iter().map(|(k, v)| {
-                                let v = match v {
-                                    Value::String(s) => s.clone(),
-                                    _ => v.to_string(),
-                                };
-                                (k.clone(), v)
-                            }));
-                        }),
-                    )?;
-                    ().into_dyn()
-                        .serve(proc)
-                        .map_err(|e| McpError::ServiceError(e.to_string()))
-                        .boxed()
-                }
-                Transport::Sse if config.url.is_some() => {
-                    let url = config.url.as_ref().unwrap();
-                    async move {
-                        if let Ok(transport) = SseClientTransport::start(url.clone()).await {
-                            ClientInfo::default()
-                                .into_dyn()
-                                .serve(transport)
-                                .map_err(|e| McpError::ServiceError(e.to_string()))
-                                .await
-                        } else {
-                            Err(McpError::ServiceError("Invalid SSE URL".to_string()))
-                        }
+        let fut = config
+            .servers
+            .iter()
+            .map(|(name, config)| {
+                let fut = match config.service_type {
+                    Transport::Stdio if config.command.is_some() => {
+                        Self::make_stdio_client_future(config)
                     }
-                    .boxed()
-                }
-
-                Transport::Stream if config.url.is_some() => {
-                    let url = config.url.as_ref().unwrap();
-                    ClientInfo::default()
-                        .into_dyn()
-                        .serve(StreamableHttpClientTransport::from_uri(url.clone()))
-                        .map_err(|e| McpError::ServiceError(e.to_string()))
-                        .boxed()
-                }
-                Transport::Worker if config.url.is_some() => {
-                    let url = config.url.as_ref().unwrap();
-                    ClientInfo::default()
-                        .into_dyn()
-                        .serve(WorkerTransport::from_uri(url.clone()))
-                        .map_err(|e| McpError::ServiceError(e.to_string()))
-                        .boxed()
-                }
-                _ => {
-                    return Err(McpError::ServiceError("Invalid service type".to_string()));
-                }
-            };
-
-            fut.push((name, service_fut));
-        }
+                    Transport::Sse if config.url.is_some() => {
+                        Self::make_sse_client_future(config)
+                    }
+                    Transport::Stream if config.url.is_some() => {
+                        let url = config.url.as_ref().unwrap();
+                        ().into_dyn()
+                            .serve(StreamableHttpClientTransport::from_uri(url.clone()))
+                            .map_err(|e| McpError::ServiceError(e.to_string()))
+                            .boxed()
+                    }
+                    Transport::Worker if config.url.is_some() => {
+                        let url = config.url.as_ref().unwrap();
+                        ().into_dyn()
+                            .serve(WorkerTransport::from_uri(url.clone()))
+                            .map_err(|e| McpError::ServiceError(e.to_string()))
+                            .boxed()
+                    }
+                    _ => async { Err(McpError::ServiceError("Invalid service type".to_string())) }.boxed(),
+                };
+                (name, fut)
+            })
+            .collect::<Vec<_>>();
 
         tokio::runtime::Runtime::new()?.block_on(async {
             let mut futures = Vec::new();
@@ -199,6 +168,44 @@ impl McpManagerInner {
         })?;
 
         Ok(Self { clients })
+    }
+
+    fn make_sse_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
+        let url = config.url.as_ref().unwrap().clone();
+        async move {
+            match SseClientTransport::start(url).await {
+                Ok(transport) => {
+                    ().into_dyn()
+                        .serve(transport)
+                        .map_err(|e| McpError::ServiceError(e.to_string()))
+                        .await
+                }
+                Err(_) => Err(McpError::ServiceError("Invalid SSE URL".to_string())),
+            }
+        }
+            .boxed()
+    }
+
+    fn make_stdio_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
+        let cmd_str = config.command.as_ref().unwrap();
+        match TokioChildProcess::new(
+            Command::new(OsStr::new(cmd_str)).configure(|cmd| {
+                cmd.args(config.args.iter().map(OsStr::new));
+                cmd.envs(config.env.iter().map(|(k, v)| {
+                    let v = match v {
+                        Value::String(s) => s.clone(),
+                        _ => v.to_string(),
+                    };
+                    (k.clone(), v)
+                }));
+            }),
+        ) {
+            Ok(proc) => ().into_dyn()
+                .serve(proc)
+                .map_err(|e| McpError::ServiceError(e.to_string()))
+                .boxed(),
+            Err(_) => async { Err(McpError::ServiceError("Invalid command".to_string())) }.boxed(),
+        }
     }
 
     /// Lists available tools from a client
