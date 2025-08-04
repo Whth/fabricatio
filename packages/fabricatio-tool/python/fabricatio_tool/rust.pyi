@@ -52,7 +52,7 @@ class McpManager:
             server_configs: A dictionary mapping server names to their configuration objects.
         """
 
-    def list_tools(self, client_id: str) -> List[ToolMetaData]:
+    async def list_tools(self, client_id: str) -> List[ToolMetaData]:
         """Asynchronously list available tools for a given client.
 
         Args:
@@ -62,7 +62,7 @@ class McpManager:
             A list of ToolMetaData instances representing available tools.
         """
 
-    def call_tool(self, client_id: str, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> List[str]:
+    async def call_tool(self, client_id: str, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> List[str]:
         """Asynchronously call a specific tool with optional arguments.
 
         Args:

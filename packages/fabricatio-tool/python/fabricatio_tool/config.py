@@ -1,9 +1,9 @@
 """Module containing configuration classes for fabricatio-tool."""
 
-from typing import Dict, Literal, Set
+from typing import Dict, List, Literal, Optional, Set, TypedDict
 
 from fabricatio_core import CONFIG
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, JsonValue
 
 
 class CheckConfigModel(BaseModel):
@@ -23,6 +23,25 @@ class CheckConfigModel(BaseModel):
         return self.mode == "whitelist"
 
 
+class ServiceConfig(TypedDict):
+    """Configuration for a single MCP service instance."""
+
+    type: Literal["stdio", "sse", "stream", "worker"]
+    """The transport protocol type (stdio, sse, stream, worker)"""
+
+    command: Optional[str]
+    """The execution command for stdio-type services"""
+
+    url: Optional[str]
+    """The endpoint URL for SSE/stream/worker-type services"""
+
+    args: List[str]
+    """Command-line arguments for stdio services"""
+
+    env: Dict[str, JsonValue]
+    """Environment variables to set for service process"""
+
+
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
 
@@ -38,7 +57,7 @@ class ToolConfig(BaseModel):
     check_calls: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """"Calls that are forbidden to be used."""
 
-    mcp_servers: Dict[str, Dict] = Field(default_factory=dict)
+    mcp_servers: Dict[str, ServiceConfig] = Field(default_factory=dict)
     """MCP servers that are allowed to be used."""
 
 

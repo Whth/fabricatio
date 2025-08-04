@@ -1,4 +1,4 @@
-use futures::future::{join_all, BoxFuture};
+use futures::future::{BoxFuture, join_all};
 use futures::{FutureExt, TryFutureExt};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -10,10 +10,10 @@ use rmcp::model::Tool;
 use rmcp::service::{DynService, RunningService};
 use rmcp::transport::{SseClientTransport, StreamableHttpClientTransport, WorkerTransport};
 use rmcp::{
+    RoleClient,
     model::CallToolRequestParam,
     service::ServiceExt,
     transport::{ConfigureCommandExt, TokioChildProcess},
-    RoleClient,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -39,13 +39,15 @@ pub enum McpError {
 
 /// Transport protocol types for service communication
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 enum Transport {
     /// Standard input/output communication
     Stdio,
     /// Server-Sent Events (SSE) protocol
     Sse,
+    /// HTTP streaming transport protocol
     Stream,
-    Oneshot,
+    /// Web worker transport protocol
     Worker,
 }
 
@@ -102,14 +104,15 @@ impl From<std::io::Error> for McpError {
 /// Result type alias for MCP operations
 pub type Result<T> = std::result::Result<T, McpError>;
 
+type MCPService = RunningService<RoleClient, Box<dyn DynService<RoleClient>>>;
+
 /// Inner manager structure handling client connections
 pub struct McpManagerInner {
     /// Map of client IDs to their running services
-    clients: HashMap<String, RunningService<RoleClient, Box<dyn DynService<RoleClient>>>>,
+    clients: HashMap<String, MCPService>,
 }
 
-
-type ClientFuture<'a> = BoxFuture<'a,Result<RunningService<RoleClient, Box<dyn DynService<RoleClient>>>>>;
+type ClientFuture<'a> = BoxFuture<'a, Result<MCPService>>;
 impl McpManagerInner {
     /// Creates a new MCP manager from configuration
     fn new(config: MCPConfig) -> Result<Self> {
@@ -122,9 +125,7 @@ impl McpManagerInner {
                     Transport::Stdio if config.command.is_some() => {
                         Self::make_stdio_client_future(config)
                     }
-                    Transport::Sse if config.url.is_some() => {
-                        Self::make_sse_client_future(config)
-                    }
+                    Transport::Sse if config.url.is_some() => Self::make_sse_client_future(config),
                     Transport::Stream if config.url.is_some() => {
                         let url = config.url.as_ref().unwrap();
                         ().into_dyn()
@@ -139,7 +140,8 @@ impl McpManagerInner {
                             .map_err(|e| McpError::ServiceError(e.to_string()))
                             .boxed()
                     }
-                    _ => async { Err(McpError::ServiceError("Invalid service type".to_string())) }.boxed(),
+                    _ => async { Err(McpError::ServiceError("Invalid service type".to_string())) }
+                        .boxed(),
                 };
                 (name, fut)
             })
@@ -183,33 +185,33 @@ impl McpManagerInner {
                 Err(_) => Err(McpError::ServiceError("Invalid SSE URL".to_string())),
             }
         }
-            .boxed()
+        .boxed()
     }
 
     fn make_stdio_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
         let cmd_str = config.command.as_ref().unwrap();
-        match TokioChildProcess::new(
-            Command::new(OsStr::new(cmd_str)).configure(|cmd| {
-                cmd.args(config.args.iter().map(OsStr::new));
-                cmd.envs(config.env.iter().map(|(k, v)| {
-                    let v = match v {
-                        Value::String(s) => s.clone(),
-                        _ => v.to_string(),
-                    };
-                    (k.clone(), v)
-                }));
-            }),
-        ) {
-            Ok(proc) => ().into_dyn()
-                .serve(proc)
-                .map_err(|e| McpError::ServiceError(e.to_string()))
-                .boxed(),
+        match TokioChildProcess::new(Command::new(OsStr::new(cmd_str)).configure(|cmd| {
+            cmd.args(config.args.iter().map(OsStr::new));
+            cmd.envs(config.env.iter().map(|(k, v)| {
+                let v = match v {
+                    Value::String(s) => s.clone(),
+                    _ => v.to_string(),
+                };
+                (k.clone(), v)
+            }));
+        })) {
+            Ok(proc) => {
+                ().into_dyn()
+                    .serve(proc)
+                    .map_err(|e| McpError::ServiceError(e.to_string()))
+                    .boxed()
+            }
             Err(_) => async { Err(McpError::ServiceError("Invalid command".to_string())) }.boxed(),
         }
     }
 
     /// Lists available tools from a client
-    pub async fn list_tools(&self, client_id: &str) -> Result<Vec<rmcp::model::Tool>> {
+    pub async fn list_tools(&self, client_id: &str) -> Result<Vec<Tool>> {
         self.clients
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
@@ -272,11 +274,11 @@ impl ToolMetaData {
 
 #[pymethods]
 impl McpManager {
-    #[new]
     /// Creates a new MCP manager instance
     ///
     /// # Arguments
     /// * `server_configs` - Python dictionary containing server configurations
+    #[new]
     fn new(server_configs: Bound<'_, PyDict>) -> PyResult<Self> {
         Ok(Self {
             inner: Arc::new(
