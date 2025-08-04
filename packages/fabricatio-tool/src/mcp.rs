@@ -23,12 +23,13 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::sync::Arc;
 use tokio::process::Command;
+use which::which;
 
 /// Represents possible errors that can occur in MCP operations
 #[derive(Debug)]
 pub enum McpError {
     /// I/O related errors
-    IoError(std::io::Error),
+    IoError(String),
     /// Errors originating from RMCP operations
     RmcpError(Box<dyn Error + Send + Sync>),
     /// Requested client not found
@@ -38,10 +39,11 @@ pub enum McpError {
 }
 
 /// Transport protocol types for service communication
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum Transport {
     /// Standard input/output communication
+    #[default]
     Stdio,
     /// Server-Sent Events (SSE) protocol
     Sse,
@@ -55,7 +57,7 @@ enum Transport {
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceConfig {
     /// Type of transport to use for this service
-    #[serde(rename = "type")]
+    #[serde(default, rename = "type")]
     service_type: Transport,
 
     /// Command to execute for stdio services
@@ -97,7 +99,7 @@ impl Error for McpError {}
 
 impl From<std::io::Error> for McpError {
     fn from(error: std::io::Error) -> Self {
-        McpError::IoError(error)
+        McpError::IoError(error.to_string())
     }
 }
 
@@ -190,24 +192,50 @@ impl McpManagerInner {
 
     fn make_stdio_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
         let cmd_str = config.command.as_ref().unwrap();
-        match TokioChildProcess::new(Command::new(OsStr::new(cmd_str)).configure(|cmd| {
-            cmd.args(config.args.iter().map(OsStr::new));
-            cmd.envs(config.env.iter().map(|(k, v)| {
-                let v = match v {
-                    Value::String(s) => s.clone(),
-                    _ => v.to_string(),
-                };
-                (k.clone(), v)
-            }));
-        })) {
+        let cmd = if let Ok(cmd_path) = which(cmd_str) {
+            Command::new(cmd_path.as_os_str()).configure(|cmd| {
+                cmd.args(config.args.iter().map(OsStr::new));
+                cmd.envs(config.env.iter().map(|(k, v)| {
+                    let v = match v {
+                        Value::String(s) => s.clone(),
+                        _ => v.to_string(),
+                    };
+                    (k.clone(), v)
+                }));
+            })
+        } else {
+            return async move {
+                Err(McpError::IoError(format!(
+                    "Failed to find executable: {cmd_str}"
+                )))
+            }
+            .boxed();
+        };
+
+        match TokioChildProcess::new(cmd) {
             Ok(proc) => {
                 ().into_dyn()
                     .serve(proc)
                     .map_err(|e| McpError::ServiceError(e.to_string()))
                     .boxed()
             }
-            Err(_) => async { Err(McpError::ServiceError("Invalid command".to_string())) }.boxed(),
+            Err(e) => async move {
+                Err(McpError::ServiceError(format!(
+                    "Failed to start service with command: {cmd_str}, {e}"
+                )))
+            }
+            .boxed(),
         }
+    }
+
+    /// Returns a list of all server names currently managed by the MCP manager
+    pub fn server_list(&self) -> Vec<String> {
+        self.clients.keys().cloned().collect()
+    }
+
+    /// Returns the number of servers currently managed by the MCP manager
+    pub fn server_count(&self) -> usize {
+        self.clients.len()
     }
 
     /// Lists available tools from a client
@@ -307,6 +335,13 @@ impl McpManager {
         })
     }
 
+    fn server_list(&self) -> Vec<String> {
+        self.inner.server_list()
+    }
+
+    fn server_count(&self) -> usize {
+        self.inner.server_count()
+    }
     /// Executes a tool on a client and returns the result
     fn call_tool<'a>(
         &self,

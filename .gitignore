@@ -170,3 +170,4 @@ templates/customed
 *.typ
 tei.rs
 .python-version
+/fabricatio.toml

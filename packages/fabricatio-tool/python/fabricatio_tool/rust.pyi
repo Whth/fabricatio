@@ -73,3 +73,17 @@ class McpManager:
         Returns:
             A list of text results returned by the tool.
         """
+
+    def server_list(self) -> List[str]:
+        """List all available servers.
+
+        Returns:
+            A list of server names.
+        """
+
+    def server_count(self) -> int:
+        """Get the number of available servers.
+
+        Returns:
+            The count of servers.
+        """

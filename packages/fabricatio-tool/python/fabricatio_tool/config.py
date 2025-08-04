@@ -5,6 +5,8 @@ from typing import Dict, List, Literal, Optional, Set, TypedDict
 from fabricatio_core import CONFIG
 from pydantic import BaseModel, Field, JsonValue
 
+from fabricatio_tool.rust import McpManager
+
 
 class CheckConfigModel(BaseModel):
     """Configuration for check modules, imports, and calls."""
@@ -23,11 +25,11 @@ class CheckConfigModel(BaseModel):
         return self.mode == "whitelist"
 
 
-class ServiceConfig(TypedDict):
+class ServiceConfig(TypedDict, total=False):
     """Configuration for a single MCP service instance."""
 
     type: Literal["stdio", "sse", "stream", "worker"]
-    """The transport protocol type (stdio, sse, stream, worker)"""
+    """The transport protocol type (stdio, sse, stream, worker), default is stdio."""
 
     command: Optional[str]
     """The execution command for stdio-type services"""
@@ -62,4 +64,7 @@ class ToolConfig(BaseModel):
 
 
 tool_config = CONFIG.load("tool", ToolConfig)
+
+MCP_MANAGER = McpManager(tool_config.mcp_servers)
+
 __all__ = ["CheckConfigModel", "tool_config"]
