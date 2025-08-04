@@ -5,8 +5,6 @@ from typing import Dict, List, Literal, Optional, Set, TypedDict
 from fabricatio_core import CONFIG
 from pydantic import BaseModel, Field, JsonValue
 
-from fabricatio_tool.rust import McpManager
-
 
 class CheckConfigModel(BaseModel):
     """Configuration for check modules, imports, and calls."""
@@ -65,6 +63,5 @@ class ToolConfig(BaseModel):
 
 tool_config = CONFIG.load("tool", ToolConfig)
 
-MCP_MANAGER = McpManager(tool_config.mcp_servers)
 
-__all__ = ["CheckConfigModel", "tool_config"]
+__all__ = ["CheckConfigModel", "ServiceConfig", "ToolConfig", "tool_config"]

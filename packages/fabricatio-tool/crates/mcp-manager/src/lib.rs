@@ -1,5 +1,5 @@
-use futures::future::{BoxFuture, join_all};
-use futures::{FutureExt, TryFutureExt};
+use futures::future::BoxFuture;
+use futures::{FutureExt, StreamExt, TryFutureExt, stream};
 use rmcp::model::{CallToolRequestParam, Tool};
 use rmcp::service::{DynService, RunningService};
 use rmcp::transport::ConfigureCommandExt;
@@ -35,6 +35,7 @@ pub enum McpError {
 /// Transport protocol types for service communication
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(PartialEq)]
 enum Transport {
     /// Standard input/output communication
     #[default]
@@ -111,61 +112,48 @@ type ClientFuture<'a> = BoxFuture<'a, Result<MCPService>>;
 
 impl MCPManager {
     /// Creates a new MCP manager from configuration
-    pub fn new(config: MCPConfig) -> Result<Self> {
-        let mut clients = HashMap::new();
-        let fut = config
-            .servers
-            .iter()
-            .map(|(name, config)| {
-                let fut = match config.service_type {
+    pub async fn create(config: MCPConfig) -> Self {
+        let clients = stream::iter(config.servers)
+            .map(|(name, config)| async move {
+                let serv_res = match config.service_type {
                     Transport::Stdio if config.command.is_some() => {
-                        Self::make_stdio_client_future(config)
+                        Self::make_stdio_client_future(&config).await
                     }
-                    Transport::Sse if config.url.is_some() => Self::make_sse_client_future(config),
+                    Transport::Sse if config.url.is_some() => {
+                        Self::make_sse_client_future(&config).await
+                    }
                     Transport::Stream if config.url.is_some() => {
-                        let url = config.url.as_ref().unwrap();
                         ().into_dyn()
-                            .serve(StreamableHttpClientTransport::from_uri(url.clone()))
+                            .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
                             .map_err(|e| McpError::ServiceError(e.to_string()))
-                            .boxed()
+                            .await
                     }
                     Transport::Worker if config.url.is_some() => {
-                        let url = config.url.as_ref().unwrap();
                         ().into_dyn()
-                            .serve(WorkerTransport::from_uri(url.clone()))
+                            .serve(WorkerTransport::from_uri(
+                                config.url.as_ref().unwrap().clone(),
+                            ))
                             .map_err(|e| McpError::ServiceError(e.to_string()))
-                            .boxed()
+                            .await
                     }
-                    _ => async { Err(McpError::ServiceError("Invalid service type".to_string())) }
-                        .boxed(),
+                    _ => {
+                        async { Err(McpError::ServiceError("Invalid service type".to_string())) }
+                            .await
+                    }
                 };
-                (name, fut)
+                (name, serv_res)
             })
-            .collect::<Vec<_>>();
+            .buffer_unordered(3)
+            .filter_map(|(name, serv_res)| async {
+                match serv_res {
+                    Ok(serv) => Some((name, serv)),
+                    _ => None,
+                }
+            })
+            .collect::<HashMap<_, _>>()
+            .await;
 
-        tokio::runtime::Runtime::new()?.block_on(async {
-            let mut futures = Vec::new();
-            let mut names = Vec::new();
-
-            // Collect names and futures upfront
-            for (name, fut) in fut {
-                names.push(name.to_owned());
-                futures.push(fut);
-            }
-
-            // Execute all futures concurrently
-            let results = join_all(futures).await;
-
-            // Process results
-            for (name, result) in names.into_iter().zip(results) {
-                let service = result.map_err(|e| McpError::RmcpError(Box::new(e)))?;
-                clients.insert(name, service);
-            }
-
-            Ok::<(), McpError>(())
-        })?;
-
-        Ok(Self { clients })
+        Self { clients }
     }
 
     fn make_sse_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {

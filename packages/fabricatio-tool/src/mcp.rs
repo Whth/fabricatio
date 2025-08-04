@@ -13,7 +13,7 @@ use tracing_subscriber::prelude::*;
 
 /// Python-exposed MCP manager
 #[pyclass]
-struct McpManager {
+struct MCPManager {
     inner: Arc<MCPManagerInner>,
 }
 
@@ -38,21 +38,24 @@ impl ToolMetaData {
 }
 
 #[pymethods]
-impl McpManager {
+impl MCPManager {
     /// Creates a new MCP manager instance
     ///
     /// # Arguments
     /// * `server_configs` - Python dictionary containing server configurations
-    #[new]
-    fn new(server_configs: Bound<'_, PyDict>) -> PyResult<Self> {
-        Ok(Self {
-            inner: Arc::new(
-                MCPManagerInner::new(MCPConfig {
-                    servers: depythonize::<HashMap<String, ServiceConfig>>(&server_configs)
-                        .map_err(move |e| PyRuntimeError::new_err(e.to_string()))?,
-                })
+    #[staticmethod]
+    fn create<'a>(
+        python: Python<'a>,
+        server_configs: Bound<'a, PyDict>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let conf = MCPConfig {
+            servers: depythonize::<HashMap<String, ServiceConfig>>(&server_configs)
                 .map_err(move |e| PyRuntimeError::new_err(e.to_string()))?,
-            ),
+        };
+        future_into_py(python, async move {
+            Ok(Self {
+                inner: Arc::new(MCPManagerInner::create(conf).await),
+            })
         })
     }
 
@@ -135,7 +138,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-    m.add_class::<McpManager>()?;
+    m.add_class::<MCPManager>()?;
     m.add_class::<ToolMetaData>()?;
     Ok(())
 }

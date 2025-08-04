@@ -42,10 +42,11 @@ class ToolMetaData:
             A dictionary representation of the tool metadata.
         """
 
-class McpManager:
+class MCPManager:
     """Manager for interacting with MCP (Model Coordination Protocol) services."""
 
-    def __init__(self, server_configs: Dict[str, Any]) -> None:
+    @staticmethod
+    async def create(server_configs: Dict[str, Any]) -> MCPManager:
         """Initialize the MCP manager with server configurations.
 
         Args:
