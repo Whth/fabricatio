@@ -480,9 +480,8 @@ pub struct Config {
 
 #[pymethods]
 impl Config {
-
     /// Load configuration data for a given section name and instantiate a Python class
-    /// 
+    ///
     /// This method performs configuration loading with the following behavior:
     /// - Looks up configuration data by section name from extension configuration store
     /// - Converts the data to Python objects using serde serialization

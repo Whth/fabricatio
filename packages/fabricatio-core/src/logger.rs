@@ -53,8 +53,8 @@ where
         };
 
         write!(writer, "{}", colored_msg)?;
-
         ctx.format_fields(writer.by_ref(), event)?;
+        write!(writer, "\x1b[0m")?;
 
         writeln!(writer)
     }
