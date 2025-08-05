@@ -6,6 +6,7 @@ mod hash;
 mod hbs_helpers;
 
 mod language;
+mod logger;
 mod templates;
 mod word_split;
 
@@ -18,6 +19,10 @@ use pyo3::prelude::*;
 #[pyo3(name = "rust")]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     config::register(python, m)?;
+    let conf = m
+        .getattr(config::CONFIG_VARNAME)?
+        .extract::<config::Config>()?;
+    logger::init_logger(conf.debug.log_level.as_str());
     language::register(python, m)?;
     templates::register(python, m)?;
     hash::register(python, m)?;

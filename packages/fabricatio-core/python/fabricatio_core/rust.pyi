@@ -13,7 +13,7 @@ Key Features:
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Self, Type, Union, overload
+from typing import Any, Dict, List, Literal, Optional, Self, Type, Union, overload
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -226,7 +226,7 @@ class EmbeddingConfig:
 class DebugConfig:
     """Debug configuration structure."""
 
-    log_level: str
+    log_level: Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
     """The logging level to use."""
 
     log_file: Optional[Path] = None

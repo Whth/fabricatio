@@ -241,7 +241,7 @@ impl TaskStatus {
     }
 
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        let bytes = bincode::encode_to_vec(&self, bincode::config::standard()).map_err(|_| {
+        let bytes = bincode::encode_to_vec(self, bincode::config::standard()).map_err(|_| {
             pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus")
         })?;
         Ok(PyBytes::new(py, &bytes))

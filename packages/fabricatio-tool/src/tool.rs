@@ -65,7 +65,7 @@ fn gather_violations(
         }
     };
 
-    linter::gather_violations(source, config).map_err(|err| PyRuntimeError::new_err(err))
+    linter::gather_violations(source, config).map_err(PyRuntimeError::new_err)
 }
 
 /// Registers the gather_violations function with the Python module.

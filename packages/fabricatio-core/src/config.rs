@@ -228,7 +228,7 @@ pub struct EmbeddingConfig {
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
-    log_level: String,
+    pub log_level: String,
 
     log_file: Option<PathBuf>,
 
