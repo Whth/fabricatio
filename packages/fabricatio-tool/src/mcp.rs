@@ -43,31 +43,33 @@ impl ToolMetaData {
 
     #[getter]
     fn description(&self) -> String {
-        self.inner.description.clone().unwrap_or_default().to_string()
+        self.inner
+            .description
+            .clone()
+            .unwrap_or_default()
+            .to_string()
     }
 
     #[getter]
     fn input_schema<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        pythonize(python, &self.inner.input_schema).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+        pythonize(python, &self.inner.input_schema)
+            .map_err(move |e| PyRuntimeError::new_err(e.to_string()))
     }
 
     #[getter]
-    fn  input_schema_string(&self)-> String {
-        serde_json::to_string(&self.inner.input_schema)
-            .unwrap_or_default()
+    fn input_schema_string(&self) -> String {
+        serde_json::to_string(&self.inner.input_schema).unwrap_or_default()
     }
 
     #[getter]
-    fn annotations<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>>{
-        pythonize(python, &self.inner.annotations).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+    fn annotations<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+        pythonize(python, &self.inner.annotations)
+            .map_err(move |e| PyRuntimeError::new_err(e.to_string()))
     }
     #[getter]
-    fn annotations_string(&self)-> String {
-        serde_json::to_string(&self.inner.annotations)
-            .unwrap_or_default()
+    fn annotations_string(&self) -> String {
+        serde_json::to_string(&self.inner.annotations).unwrap_or_default()
     }
-
-
 }
 
 #[pymethods]
@@ -105,6 +107,59 @@ impl MCPManager {
                 .into_iter()
                 .map(ToolMetaData::from)
                 .collect::<Vec<_>>())
+        })
+    }
+
+    /// Retrieves a list of tool names from a client
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client to retrieve tools from
+    ///
+    /// # Returns
+    /// * `PyResult<Vec<String>>` - A list of tool names or an error if the operation fails
+    fn list_tool_names<'a>(
+        &self,
+        python: Python<'a>,
+        client_id: String,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let inner = self.inner.clone();
+        future_into_py(python, async move {
+            match inner.list_tools(client_id.as_str()).await {
+                Ok(tools) => Ok(tools
+                    .into_iter()
+                    .map(|tool| tool.name.to_string())
+                    .collect::<Vec<_>>()),
+                Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
+            }
+        })
+    }
+
+    /// Retrieves a mapping of tool names to their descriptions from a client
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client to retrieve tools from
+    ///
+    /// # Returns
+    /// * `PyResult<HashMap<String, String>>` - A mapping of tool names to descriptions or an error if the operation fails
+    fn description_mapping<'a>(
+        &self,
+        python: Python<'a>,
+        client_id: String,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let inner = self.inner.clone();
+        future_into_py(python, async move {
+            match inner.list_tools(client_id.as_str()).await {
+                Ok(tools) => Ok(tools
+                    .into_iter()
+                    .map(|tool| {
+                        (
+                            tool.name.to_string(),
+                            tool.description.unwrap_or_default().to_string(),
+                        )
+                    })
+                    .collect::<HashMap<String, String>>()),
+                Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
+            }
         })
     }
 
