@@ -974,6 +974,7 @@ dependencies = [
  "bincode",
  "blake3",
  "chrono",
+ "colored",
  "dotenvy",
  "fabricatio-constants 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "figment",
@@ -986,6 +987,8 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.27.2",
+ "tracing",
+ "tracing-log",
  "tracing-subscriber",
  "unicode-segmentation",
  "validator",
@@ -4364,6 +4367,7 @@ version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8189decb5ac0fa7bc8b96b7cb9b2701d60d48805aca84a238004d665fcc4008"
 dependencies = [
+ "chrono",
  "matchers",
  "nu-ansi-term",
  "once_cell",

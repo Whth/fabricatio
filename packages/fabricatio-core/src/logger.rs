@@ -1,56 +1,90 @@
-use std::time::SystemTime;
-use tracing_subscriber::fmt::time::FormatTime;
+use chrono::prelude::*;
+use colored::*;
+use tracing::{Event, Subscriber};
+use tracing_log::NormalizeEvent;
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::prelude::*;
+use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{EnvFilter, fmt};
 
-/// A custom time formatter that formats time in HH:MM:SS format.
-struct LoguruTime;
+/// Custom event formatter that mimics loguru-style output.
+/// Format: "HH:MM:SS | LEVEL   | target:span - k=v message"
+struct MyFormatter;
 
-impl FormatTime for LoguruTime {
-    /// Formats the current time as HH:MM:SS.
-    ///
-    /// # Arguments
-    ///
-    /// * `w` - A mutable reference to the writer to which the formatted time is written.
-    ///
-    /// # Returns
-    ///
-    /// A `std::fmt::Result` indicating the result of the write operation.
-    fn format_time(&self, w: &mut fmt::format::Writer<'_>) -> std::fmt::Result {
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Time went backwards");
-        let secs = now.as_secs() % 86400; // 只保留一天内的秒数
-        let hours = (secs / 3600) as u32;
-        let minutes = (secs % 3600) / 60;
-        let seconds = (secs % 60) as u32;
+impl<S, N> FormatEvent<S, N> for MyFormatter
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+{
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, S, N>,
+        mut writer: format::Writer<'_>,
+        event: &Event<'_>,
+    ) -> std::fmt::Result {
+        let normalized_meta = event.normalized_metadata();
+        let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
 
-        write!(w, "{:02}:{:02}:{:02}", hours, minutes, seconds)
+        let level = event.metadata().level();
+        let colored_level: ColoredString = match *level {
+            tracing::Level::ERROR => "ERROR".red().bold(),
+            tracing::Level::WARN => "WARN ".yellow(),
+            tracing::Level::INFO => "INFO ".blue(),
+            tracing::Level::DEBUG => "DEBUG".blue().bold(),
+            tracing::Level::TRACE => "TRACE".dimmed(),
+        };
+
+        // 1. Time (dimmed green)
+        let local: DateTime<Local> = Local::now();
+        let time = local.format("%H:%M:%S").to_string().green();
+
+        // 3. Target (cyan)
+        let target = meta.target().cyan();
+
+        // 4. Write formatted parts
+        write!(writer, "{} | {:<7} | {} - ", time, colored_level, target)?;
+
+        let colored_msg: &str = match *level {
+            tracing::Level::ERROR => "\x1b[31m\x1b[1m",
+            tracing::Level::WARN => "\x1b[33m",
+            tracing::Level::INFO => "\x1b[34m",
+            tracing::Level::DEBUG => "\x1b[34m\x1b[1m",
+            tracing::Level::TRACE => "\x1b[2m",
+        };
+
+        write!(writer, "{}", colored_msg)?;
+
+        ctx.format_fields(writer.by_ref(), event)?;
+
+        writeln!(writer)
     }
 }
 
-/// Initializes the logger with a custom time format and default logging settings.
+/// Initializes the global logger with loguru-like formatting.
 ///
-/// The logger is configured with:
-/// - Environment-based filtering (falls back to info level, with debug for this crate)
-/// - Custom time formatting (HH:MM:SS)
-/// - Level, target, and line number information in logs
-/// - Compact formatting
+/// This configures:
+/// - Environment filter for dynamic log levels
+/// - Custom time format (HH:MM:SS)
+/// - Compact, readable output with span context
+/// - Support for custom "levels" like SUCCESS via target naming
+///
+/// # Arguments
+///
+/// * `level` - Default log level (e.g., "debug", "info")
+///
+/// # Example
+///
+/// ```
+/// init_logger("debug");
+/// ```
 pub(crate) fn init_logger(level: &str) {
+    let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter); // Use custom event format
+
     tracing_subscriber::registry()
         .with(EnvFilter::new(format!(
-            "{level},SUCCESS=info,CRITICAL=error"
+            "{},SUCCESS=info,CRITICAL=error",
+            level
         )))
-        .with(
-            fmt::layer().event_format(
-                fmt::format()
-                    .with_timer(LoguruTime)
-                    .with_level(true)
-                    .with_target(true)
-                    .with_file(false) // 如果你不需要文件名
-                    .with_line_number(true)
-                    .compact(),
-            ),
-        )
+        .with(fmt_layer)
         .init();
 }
