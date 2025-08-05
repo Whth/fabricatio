@@ -9,7 +9,6 @@ use rmcp::model::Tool;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing_subscriber::prelude::*;
 
 /// Python-exposed MCP manager
 #[pyclass]
@@ -223,13 +222,6 @@ impl MCPManager {
 
 /// Registers Python module components
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("info,{}=debug", env!("CARGO_CRATE_NAME")).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
     m.add_class::<MCPManager>()?;
     m.add_class::<ToolMetaData>()?;
     Ok(())

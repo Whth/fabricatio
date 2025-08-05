@@ -25,6 +25,7 @@ whichlang = "0.1.1"
 macro_utils = { path = "src/macro_utils" }
 fabricatio-constants = ">=0.2.0"
 chrono = "0.4.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 
 
