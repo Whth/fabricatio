@@ -244,7 +244,14 @@ mod tests {
             "type": "object"
         })
     }
-
+    #[test]
+    fn test_blank_schema(){
+        let schema_value = json!({"$schema":"http://json-schema.org/draft-07/schema#","additionalProperties":false,"properties":{},"type":"object"});
+        let signature = schema_to_signature(&schema_value);
+        assert_eq!(signature, Some("()".to_string()));
+        let docstring = schema_to_docstring_args(&schema_value);
+        assert_eq!(docstring, None);
+    }
     #[test]
     fn test_empty_schema() {
         let schema_value = schema_from_props_and_required(serde_json::Map::new(), vec![]);

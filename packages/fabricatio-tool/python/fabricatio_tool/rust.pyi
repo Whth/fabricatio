@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Set
 
 from pydantic import JsonValue
 
+
 class CheckConfig:
     def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]) -> None:
         """Initialize a CheckConfig instance with specified targets and mode.
@@ -81,6 +82,30 @@ class ToolMetaData:
 
         Serialized version of annotations property. Offers machine-readable
         access to implementation-specific details in string format.
+        """
+
+    @property
+    def function_header(self) -> str:
+        """Python function signature string for this tool.
+
+        Returns:
+            Formatted async function signature with input parameters and return type.
+        """
+    
+    @property
+    def function_docstring(self) -> str:
+        """Python docstring template for this tool's generated function.
+
+        Returns:
+            Pre-formatted docstring with argument descriptions and return documentation.
+        """
+    @property
+    def function_string(self) -> str:
+        """Complete Python function template for this tool's implementation.
+        
+        Returns:
+            String containing full async function definition with formatted
+            signature, docstring, and return type annotation.
         """
 
 class MCPManager:

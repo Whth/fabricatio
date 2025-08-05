@@ -7,9 +7,9 @@ use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
 use rmcp::model::Tool;
 use serde_json::Value;
+use signify::{schema_to_docstring_args, schema_to_signature};
 use std::collections::HashMap;
 use std::sync::Arc;
-
 /// Python-exposed MCP manager
 #[pyclass]
 struct MCPManager {
@@ -69,6 +69,31 @@ impl ToolMetaData {
     fn annotations_string(&self) -> String {
         serde_json::to_string(&self.inner.annotations).unwrap_or_default()
     }
+
+    #[getter]
+    fn function_header(&self)->PyResult<String>{
+        let inner = &self.inner;
+        Ok(format!("async def {}{}->List[str]:",inner.name,schema_to_signature(&serde_json::to_value(inner.clone().input_schema)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+        ).ok_or(PyRuntimeError::new_err("Invalid input schema"))?))
+    }
+    #[getter]
+    fn function_docstring(&self)->PyResult<String>{
+        let inner = &self.inner;
+        Ok(format!("{}\n{}\nReturn:\n    List[str]: The strings of execution info.",inner.clone().description.unwrap_or_default(),schema_to_docstring_args(&serde_json::to_value(inner.clone().input_schema)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+        ).unwrap_or_default()))
+    }
+    #[getter]
+    fn function_string(&self)->PyResult<String>{
+        let header = self.function_header()?;
+        let docstring = self.function_docstring()?.lines()
+            .map(|s| format!("    {}",s))
+            .collect::<Vec<String>>()
+            .join("\n");
+        Ok(format!("{}\n    \"\"\"\n{}\n    \"\"\"",header,docstring))
+    }
+
 }
 
 #[pymethods]
