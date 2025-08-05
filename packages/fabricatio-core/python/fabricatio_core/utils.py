@@ -1,39 +1,8 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Type, overload
+from typing import Any, Dict, Iterable, List, Mapping, Optional, overload
 
 from fabricatio_core.decorators import precheck_package
-
-
-def is_subclass_of_base(cls: Type, base_module: str, base_name: str) -> bool:
-    """Determines if the given class is a subclass of an unimported base class.
-
-    Args:
-        cls: The class to check
-        base_module: The module name of the base class
-        base_name: The class name of the base class
-
-    Returns:
-        bool: True if cls is a subclass of the specified base class, False otherwise
-    """
-    return any(ancestor.__module__ == base_module and ancestor.__name__ == base_name for ancestor in cls.__mro__)
-
-
-def is_subclass_of_any_base(cls: Type, bases: List[Tuple[str, str]]) -> bool:
-    """Determines if the given class is a subclass of the candidate base classes.
-
-    Args:
-        cls: The class to check
-        bases: A list of tuples where each tuple contains (module_name, class_name)
-
-    Returns:
-        bool: True if cls is a subclass of the specified base classes, False otherwise
-    """
-    for ancestor in cls.__mro__:
-        for base_module, base_name in bases:
-            if ancestor.__module__ == base_module and ancestor.__name__ == base_name:
-                return True
-    return False
 
 
 @precheck_package(

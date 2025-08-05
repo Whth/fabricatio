@@ -306,7 +306,7 @@ class ScopedConfig(Base, ABC):
     @final
     def hold_to(
         self,
-        others: Union[Union["ScopedConfig", Any], Iterable[Union["ScopedConfig", Any]]],
+        others: Union["ScopedConfig", Any] | Iterable[Union["ScopedConfig", Any]],
         exclude: Optional[Set[str]] = None,
     ) -> Self:
         """Propagate non-null values to other configurations.
@@ -323,8 +323,7 @@ class ScopedConfig(Base, ABC):
         if not isinstance(others, Iterable):
             others = [others]
 
-        for other in others:
-            # noinspection PyTypeChecker,PydanticTypeChecker
+        for other in (o for o in others if isinstance(o, ScopedConfig)):
             other.fallback_to(self, exclude=exclude)
         return self
 

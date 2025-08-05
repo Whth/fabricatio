@@ -1,6 +1,6 @@
-use crate::config::{Config, CONFIG_VARNAME};
+use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
-use handlebars::{no_escape, Handlebars};
+use handlebars::{Handlebars, no_escape};
 use log::debug;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -87,9 +87,9 @@ impl TemplateManager {
                 .map(|(idx, item)| {
                     (
                         idx,
-                        self.handlebars
-                            .render(name, item)
-                            .unwrap_or_else(|_| panic!("Rendering error for {name} when rendering {item}")),
+                        self.handlebars.render(name, item).unwrap_or_else(|_| {
+                            panic!("Rendering error for {name} when rendering {item}")
+                        }),
                     )
                 })
                 .collect();
@@ -132,7 +132,9 @@ impl TemplateManager {
                         idx,
                         self.handlebars
                             .render_template(template, item)
-                            .unwrap_or_else(|_| panic!("Rendering error for '{template}' when rendering \n{item}")),
+                            .unwrap_or_else(|_| {
+                                panic!("Rendering error for '{template}' when rendering \n{item}")
+                            }),
                     )
                 })
                 .collect();

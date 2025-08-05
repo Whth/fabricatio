@@ -228,7 +228,7 @@ pub struct EmbeddingConfig {
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
-    log_level: String,
+    pub log_level: String,
 
     log_file: Option<PathBuf>,
 
@@ -474,7 +474,7 @@ pub struct Config {
     ///
     /// Additional configuration values as key-value pairs.
     /// Used for storing arbitrary extra configuration data.
-    pub extension: HashMap<String, Value>,
+    pub ext: HashMap<String, Value>,
 }
 
 #[pymethods]
@@ -485,7 +485,7 @@ impl Config {
         name: &str,
         cls: Bound<'a, PyAny>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        if let Some(data) = self.extension.get(name) {
+        if let Some(data) = self.ext.get(name) {
             let any = pythonize(python, data)?;
             cls.call((), Some(&any.downcast_into_exact::<PyDict>()?))
         } else {

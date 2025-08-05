@@ -11,17 +11,12 @@ pub struct LinterConfig {
     call_mode: CheckMode,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum CheckMode {
+    #[default]
     Disabled,
     Whitelist(HashSet<String>),
     Blacklist(HashSet<String>),
-}
-
-impl Default for CheckMode {
-    fn default() -> Self {
-        CheckMode::Disabled
-    }
 }
 
 impl LinterConfig {
@@ -91,16 +86,14 @@ impl<'a> Visitor for LinterVisitor<'a> {
     fn visit_stmt(&mut self, node: Stmt<TextRange>) {
         if let Some(violation) = node
             .as_import_stmt()
-            .map(|stmt| check_import(&Stmt::Import(stmt.clone()), self.config))
-            .flatten()
+            .and_then(|stmt| check_import(&Stmt::Import(stmt.clone()), self.config))
         {
             self.violations.push(violation);
         }
 
         if let Some(violation) = node
             .as_import_from_stmt()
-            .map(|stmt| check_import(&Stmt::ImportFrom(stmt.clone()), self.config))
-            .flatten()
+            .and_then(|stmt| check_import(&Stmt::ImportFrom(stmt.clone()), self.config))
         {
             self.violations.push(violation);
         }
@@ -112,8 +105,7 @@ impl<'a> Visitor for LinterVisitor<'a> {
     fn visit_expr(&mut self, node: Expr<TextRange>) {
         if let Some(violation) = node
             .as_call_expr()
-            .map(|expr| check_call(&Expr::Call(expr.clone()), self.config))
-            .flatten()
+            .and_then(|expr| check_call(&Expr::Call(expr.clone()), self.config))
         {
             self.violations.push(violation);
         }
@@ -148,12 +140,11 @@ fn check_import(stmt: &Stmt, config: &LinterConfig) -> Option<String> {
                 .map(|m| format!("Forbidden import module: {}", m))
         }),
         Stmt::ImportFrom(a) => {
-            if let Some(module_str) = &a.module {
-                if let Some(msg) = check_in_mode(module_str, &config.module_mode)
+            if let Some(module_str) = &a.module
+                && let Some(msg) = check_in_mode(module_str, &config.module_mode)
                     .map(|m| format!("Forbidden import module: {}", m))
-                {
-                    return Some(msg);
-                }
+            {
+                return Some(msg);
             }
 
             a.names.iter().find_map(|alias| {
@@ -167,12 +158,12 @@ fn check_import(stmt: &Stmt, config: &LinterConfig) -> Option<String> {
 
 /// Checks function calls against configured rules
 fn check_call(expr: &Expr, config: &LinterConfig) -> Option<String> {
-    if let Expr::Call(call) = expr {
-        if let Some(name) = call.func.clone().name_expr() {
-            let call_name = name.id.as_str();
-            return check_in_mode(&call_name, &config.call_mode)
-                .map(|_| format!("Forbidden function call: {}()", call_name));
-        }
+    if let Expr::Call(call) = expr
+        && let Some(name) = call.func.clone().name_expr()
+    {
+        let call_name = name.id.as_str();
+        return check_in_mode(&call_name, &config.call_mode)
+            .map(|_| format!("Forbidden function call: {}()", call_name));
     }
     None
 }
