@@ -1043,7 +1043,6 @@ dependencies = [
 name = "fabricatio-tool"
 version = "0.0.0"
 dependencies = [
- "futures",
  "mcp-manager",
  "pyo3",
  "pyo3-async-runtimes",
@@ -1052,6 +1051,7 @@ dependencies = [
  "rustpython-ast",
  "rustpython-parser",
  "serde_json",
+ "signify",
 ]
 
 [[package]]
@@ -3583,6 +3583,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "signify"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "indoc",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
