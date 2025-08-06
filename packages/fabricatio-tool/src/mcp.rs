@@ -293,8 +293,12 @@ impl MCPManager {
     ///
     /// # Returns
     /// * `PyResult<bool>` - True if the tool exists, false otherwise, or an error if the operation fails
-    pub fn has_tool<'a>(&self,python: Python<'a>, client_id: String, tool_name: String) -> PyResult<Bound<'a, PyAny>> {
-
+    pub fn has_tool<'a>(
+        &self,
+        python: Python<'a>,
+        client_id: String,
+        tool_name: String,
+    ) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
 
         future_into_py(python, async move {
@@ -303,7 +307,6 @@ impl MCPManager {
                 .await
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         })
-
     }
 }
 

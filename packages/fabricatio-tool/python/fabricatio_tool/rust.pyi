@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Optional, Set
 
 from pydantic import JsonValue
 
-
 class CheckConfig:
     def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]) -> None:
         """Initialize a CheckConfig instance with specified targets and mode.
@@ -195,7 +194,6 @@ class MCPManager:
         Returns:
             True if the server is reachable, False otherwise.
         """
-
 
     def has_client(self, client_id: str) -> bool:
         """Check if a client exists in the manager.
