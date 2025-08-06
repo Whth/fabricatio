@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.6.19"
+version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "301af1932e46185686725e0fad2f8f2aa7da69dd70bf6ecc44d6b703844a3933"
+checksum = "3ae563653d1938f79b1ab1b5e668c87c76a9930414574a6583a7b7e11a8e6192"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -111,22 +111,22 @@ dependencies = [
 
 [[package]]
 name = "anstyle-query"
-version = "1.1.3"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8bdeb6047d8983be085bab0ba1472e6dc604e7041dbf6fcd5e71523014fae9"
+checksum = "9e231f6134f61b71076a3eab506c379d4f36122f2af15a9ff04415ea4c3339e2"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
 name = "anstyle-wincon"
-version = "3.0.9"
+version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "403f75924867bb1033c59fbf0797484329750cfbe3c4325cd33127941fabc882"
+checksum = "3e0633414522a32ffaac8ac6cc8f748e090c5717661fddeea04219e2344f5f2a"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1047,7 +1047,6 @@ dependencies = [
  "pyo3",
  "pyo3-async-runtimes",
  "pythonize",
- "rmcp",
  "rustpython-ast",
  "rustpython-parser",
  "serde_json",
@@ -2266,26 +2265,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e25be21376a772d15f97ae789845340a9651d3c4246ff5ebb6a2b35f9c37bd31"
 
 [[package]]
-name = "oauth2"
-version = "5.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
-dependencies = [
- "base64",
- "chrono",
- "getrandom 0.2.16",
- "http",
- "rand 0.8.5",
- "reqwest",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "sha2",
- "thiserror 1.0.69",
- "url",
-]
-
-[[package]]
 name = "object"
 version = "0.36.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2891,7 +2870,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3173,15 +3152,14 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f0d0d5493be0d181a62db489eab7838669b81885972ca00ceca893cf6ac2883"
+checksum = "9a04b2d9da174d72bc0511410242eb3e8f47a02d9e23868e4b076c7c70208eb4"
 dependencies = [
  "base64",
  "chrono",
  "futures",
  "http",
- "oauth2",
  "paste",
  "pin-project-lite",
  "process-wrap",
@@ -3196,14 +3174,13 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "url",
 ]
 
 [[package]]
 name = "rmcp-macros"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4aebc912b8fa7d54999adc4e45601d1d95fe458f97eb0a1277eddcd6382cf4b1"
+checksum = "651b4292f292d4a4ba191e64f0ce553aef5455b8ddf831dc6a8cd328dd68d721"
 dependencies = [
  "darling 0.21.1",
  "proc-macro2",
@@ -3501,16 +3478,6 @@ dependencies = [
  "itoa",
  "memchr",
  "ryu",
- "serde",
-]
-
-[[package]]
-name = "serde_path_to_error"
-version = "0.1.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59fab13f937fa393d08645bf3a84bdfe86e296747b506ada67bb15f10f218b2a"
-dependencies = [
- "itoa",
  "serde",
 ]
 
@@ -4578,7 +4545,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]
@@ -5274,9 +5240,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec"
-version = "0.11.3"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdbb9122ea75b11bf96e7492afb723e8a7fbe12c67417aa95e7e3d18144d37cd"
+checksum = "e7aa2bd55086f1ab526693ecbe444205da57e25f4489879da80635a46d90e73b"
 dependencies = [
  "yoke",
  "zerofrom",
