@@ -1047,6 +1047,7 @@ dependencies = [
  "pyo3",
  "pyo3-async-runtimes",
  "pythonize",
+ "rmcp",
  "rustpython-ast",
  "rustpython-parser",
  "serde_json",
@@ -2870,7 +2871,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

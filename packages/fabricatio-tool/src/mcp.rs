@@ -5,7 +5,7 @@ use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
-use rmcp::model::Tool;
+use rmcp::model::{CallToolResult, Tool};
 use serde_json::Value;
 use signify::{schema_to_docstring_args, schema_to_signature};
 use std::collections::HashMap;
@@ -232,15 +232,18 @@ impl MCPManager {
         };
 
         future_into_py(python, async move {
-            let result = inner
+            let result:CallToolResult = inner
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
             Ok(result
                 .content
-                .into_iter()
-                .map(|c| c.raw.as_text().unwrap().text.clone())
-                .collect::<Vec<_>>())
+                .map(|ve|
+                  ve.into_iter()
+                      .map(|v| v.raw.as_text().map(|t| t.text.clone()).unwrap_or_default())
+                      .collect::<Vec<_>>()
+
+                ))
         })
     }
 }
