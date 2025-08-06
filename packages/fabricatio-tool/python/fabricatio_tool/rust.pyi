@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Optional, Set
 
 from pydantic import JsonValue
 
-
 class CheckConfig:
     def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]) -> None:
         """Initialize a CheckConfig instance with specified targets and mode.
@@ -91,7 +90,7 @@ class ToolMetaData:
         Returns:
             Formatted async function signature with input parameters and return type.
         """
-    
+
     @property
     def function_docstring(self) -> str:
         """Python docstring template for this tool's generated function.
@@ -102,7 +101,7 @@ class ToolMetaData:
     @property
     def function_string(self) -> str:
         """Complete Python function template for this tool's implementation.
-        
+
         Returns:
             String containing full async function definition with formatted
             signature, docstring, and return type annotation.
@@ -127,6 +126,17 @@ class MCPManager:
 
         Returns:
             A list of ToolMetaData instances representing available tools.
+        """
+
+    async def get_tool(self, client_id: str, tool_name: str) -> Optional[ToolMetaData]:
+        """Retrieves metadata for a specific tool from a client.
+
+        Args:
+            client_id: The ID of the client to retrieve the tool from
+            tool_name: The name of the tool to retrieve
+
+        Returns:
+            The requested tool's metadata if found
         """
 
     async def call_tool(self, client_id: str, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> List[str]:

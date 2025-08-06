@@ -30,6 +30,8 @@ pub enum McpError {
     ClientNotFound(String),
     /// General service errors
     ServiceError(String),
+    /// Tool not found
+    ToolNotFound(String),
 }
 
 /// Transport protocol types for service communication
@@ -86,6 +88,7 @@ impl fmt::Display for McpError {
             McpError::RmcpError(e) => write!(f, "RMCP error: {}", e),
             McpError::ClientNotFound(id) => write!(f, "Client {} not found", id),
             McpError::ServiceError(e) => write!(f, "Service error: {}", e),
+            McpError::ToolNotFound(e) => write!(f, "Tool not found: {}", e),
         }
     }
 }
@@ -235,14 +238,39 @@ impl MCPManager {
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
             .map(|client| async move {
                 client
-                    .list_tools(Default::default())
+                    .list_all_tools()
                     .await
-                    .map(|tools| tools.tools)
                     .map_err(|e| McpError::RmcpError(Box::new(e)))
             })?
             .await
     }
-
+    /// Retrieves a specific tool from a client by name
+    ///
+    /// # Arguments
+    ///
+    /// * `client_id` - The ID of the client to retrieve the tool from
+    /// * `tool_name` - The name of the tool to retrieve
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Tool>` - The requested tool if found, or an error if the client
+    ///   doesn't exist, there's a communication issue, or the tool is not found
+    pub async fn get_tool(&self, client_id: &str, tool_name: &str) -> Result<Tool> {
+        self.clients
+            .get(client_id)
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))
+            .map(|client| async move {
+                client
+                    .list_all_tools()
+                    .await
+                    .map_err(|e| McpError::RmcpError(Box::new(e)))?
+                    .into_iter()
+                    .filter(|tool| tool.name == tool_name)
+                    .last()
+                    .ok_or(McpError::ToolNotFound(tool_name.to_string()))
+            })?
+            .await
+    }
     /// Executes a tool on a client
     pub async fn call_tool(
         &self,
@@ -261,6 +289,36 @@ impl MCPManager {
             })?
             .await
             .map_err(|e| McpError::RmcpError(Box::new(e)))
+    }
+
+    /// Checks if a client with the given ID exists in the manager
+    pub fn has_client(&self, client_id: &str) -> bool {
+        self.clients.contains_key(client_id)
+    }
+
+    /// Checks if a specific tool exists for a given client
+    ///
+    /// # Arguments
+    ///
+    /// * `client_id` - The ID of the client to check
+    /// * `tool_name` - The name of the tool to look for
+    ///
+    /// # Returns
+    ///
+    /// * `Result<bool>` - Ok(true) if the tool exists, Ok(false) if it doesn't,
+    ///   or an error if the client doesn't exist or there's a communication issue
+    pub async fn has_tool(&self, client_id: &str, tool_name: &str) -> Result<bool> {
+        self.clients
+            .get(client_id)
+            .map(|client| async move {
+                client
+                    .list_all_tools()
+                    .await
+                    .map(|tools| tools.iter().any(|t| t.name == tool_name))
+                    .map_err(|e| McpError::RmcpError(Box::new(e)))
+            })
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?
+            .await
     }
 }
 

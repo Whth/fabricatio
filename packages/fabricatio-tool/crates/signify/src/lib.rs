@@ -20,7 +20,7 @@ struct JsonSchema {
     /// Map of parameter names to their schema definitions.
     #[serde(default)]
     properties: serde_json::Map<String, Value>,
-    /// List of parameter names that are required.
+    /// list of parameter names that are required.
     #[serde(default)]
     required: Vec<String>,
     // Other fields like 'type' or 'additionalProperties' could be added for stricter validation
@@ -31,7 +31,7 @@ struct JsonSchema {
 struct ParameterInfo {
     /// The parameter name converted to Python's snake_case convention.
     name: String,
-    /// The base Python type (e.g., "str", "List[str]", "bool").
+    /// The base Python type (e.g., "str", "list[str]", "bool").
     base_py_type: String,
     /// The description of the parameter from the schema.
     description: String,
@@ -57,10 +57,10 @@ fn map_json_type_to_python(json_type: &str, prop_obj: &serde_json::Map<String, V
                 .and_then(|items_obj| items_obj.get("type"))
                 .and_then(|t| t.as_str())
                 .map(map_item_type_to_python)
-                .unwrap_or_else(|| "Any".to_string());
-            format!("List[{}]", items_type_str)
+                .unwrap_or_else(|| "object".to_string());
+            format!("list[{}]", items_type_str)
         }
-        "object" => "Dict[str, Any]".to_string(),
+        "object" => "dict[str, object]".to_string(),
         _ => json_type.to_string(), // Fallback for unknown or custom types
     }
 }
@@ -74,7 +74,7 @@ fn map_item_type_to_python(json_item_type: &str) -> String {
         "boolean" => "bool".to_string(),
         "array" => "list".to_string(),  // Simplified for nested arrays
         "object" => "dict".to_string(), // Simplified for nested objects
-        _ => "Any".to_string(),         // Fallback for complex or unspecified item types
+        _ => "object".to_string(),      // Fallback for complex or unspecified item types
     }
 }
 
@@ -146,7 +146,10 @@ fn format_docstring_arg(param_info: &ParameterInfo) -> String {
 pub fn schema_to_signature(schema_value: &Value) -> Option<String> {
     let schema: JsonSchema = serde_json::from_value(schema_value.clone()).ok()?;
     let infos = extract_parameter_infos(&schema);
-    let param_strings: Vec<String> = infos.iter().map(format_signature_param).collect();
+    let mut param_strings: Vec<String> = infos.iter().map(format_signature_param).collect();
+    if !param_strings.is_empty() {
+        param_strings.insert(0, "*".to_string());
+    }
     Some(format!("({})", param_strings.join(", ")))
 }
 
@@ -245,7 +248,7 @@ mod tests {
         })
     }
     #[test]
-    fn test_blank_schema(){
+    fn test_blank_schema() {
         let schema_value = json!({"$schema":"http://json-schema.org/draft-07/schema#","additionalProperties":false,"properties":{},"type":"object"});
         let signature = schema_to_signature(&schema_value);
         assert_eq!(signature, Some("()".to_string()));
@@ -275,7 +278,10 @@ mod tests {
         let schema_value = schema_from_props_and_required(properties, vec!["width", "height"]);
 
         let signature = schema_to_signature(&schema_value);
-        assert_eq!(signature, Some("(width: float, height: float)".to_string()));
+        assert_eq!(
+            signature,
+            Some("(*, width: float, height: float)".to_string())
+        );
 
         let expected_docstring = indoc! {"
             Args:
@@ -303,7 +309,7 @@ mod tests {
         let signature = schema_to_signature(&schema_value);
         assert_eq!(
             signature,
-            Some("(accept: bool, prompt_text: Optional[str] = None)".to_string())
+            Some("(*, accept: bool, prompt_text: Optional[str] = None)".to_string())
         );
 
         let expected_docstring = indoc! {"
@@ -342,7 +348,7 @@ mod tests {
         let schema_value = schema_from_props_and_required(properties, vec!["element", "ref"]);
 
         let signature = schema_to_signature(&schema_value);
-        assert_eq!(signature, Some("(element: str, ref: str, button: Optional[str] = None, double_click: Optional[bool] = None)".to_string()));
+        assert_eq!(signature, Some("(*, element: str, ref: str, button: Optional[str] = None, double_click: Optional[bool] = None)".to_string()));
 
         let expected_docstring = indoc! {r#"
             Args:
@@ -381,7 +387,7 @@ mod tests {
         let schema_value = schema_from_props_and_required(properties, vec![]); // No required fields
 
         let signature = schema_to_signature(&schema_value);
-        assert_eq!(signature, Some("(element: Optional[str] = None, filename: Optional[str] = None, full_page: Optional[bool] = None, raw: Optional[bool] = None, ref: Optional[str] = None)".to_string()));
+        assert_eq!(signature, Some("(*, element: Optional[str] = None, filename: Optional[str] = None, full_page: Optional[bool] = None, raw: Optional[bool] = None, ref: Optional[str] = None)".to_string()));
 
         let expected_docstring = indoc! {"
             Args:
@@ -409,11 +415,11 @@ mod tests {
         let schema_value = schema_from_props_and_required(properties, vec!["paths"]);
 
         let signature = schema_to_signature(&schema_value);
-        assert_eq!(signature, Some("(paths: List[str])".to_string()));
+        assert_eq!(signature, Some("(*, paths: list[str])".to_string()));
 
         let expected_docstring = indoc! {"
             Args:
-                paths: List[str]: The absolute paths to the files to upload. Can be a single file or multiple files. (required)
+                paths: list[str]: The absolute paths to the files to upload. Can be a single file or multiple files. (required)
         "}.trim_end();
         let docstring = schema_to_docstring_args(&schema_value);
         assert_eq!(docstring, Some(expected_docstring.to_string()));
@@ -444,14 +450,14 @@ mod tests {
         let signature = schema_to_signature(&schema_value);
         assert_eq!(
             signature,
-            Some("(element: str, ref: str, values: List[str])".to_string())
+            Some("(*, element: str, ref: str, values: list[str])".to_string())
         );
 
         let expected_docstring = indoc! {"
             Args:
                 element: str: Human-readable element description used to obtain permission to interact with the element (required)
                 ref: str: Exact target element reference from the page snapshot (required)
-                values: List[str]: Array of values to select in the dropdown. This can be a single value or multiple values. (required)
+                values: list[str]: Array of values to select in the dropdown. This can be a single value or multiple values. (required)
         "}.trim_end();
         let docstring = schema_to_docstring_args(&schema_value);
         assert_eq!(docstring, Some(expected_docstring.to_string()));
