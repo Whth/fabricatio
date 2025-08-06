@@ -273,6 +273,38 @@ impl MCPManager {
             }))
         })
     }
+
+    /// Checks if a client exists in the manager
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client to check
+    ///
+    /// # Returns
+    /// * `bool` - True if the client exists, false otherwise
+    fn has_client(&self, client_id: String) -> bool {
+        self.inner.has_client(client_id.as_str())
+    }
+
+    /// Checks if a tool exists for a specific client
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client
+    /// * `tool_name` - The name of the tool to check
+    ///
+    /// # Returns
+    /// * `PyResult<bool>` - True if the tool exists, false otherwise, or an error if the operation fails
+    pub fn has_tool<'a>(&self,python: Python<'a>, client_id: String, tool_name: String) -> PyResult<Bound<'a, PyAny>> {
+
+        let inner = self.inner.clone();
+
+        future_into_py(python, async move {
+            inner
+                .has_tool(client_id.as_str(), tool_name.as_str())
+                .await
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+        })
+
+    }
 }
 
 /// Registers Python module components

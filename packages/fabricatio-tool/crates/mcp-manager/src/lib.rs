@@ -1,12 +1,12 @@
 use futures::future::BoxFuture;
-use futures::{FutureExt, StreamExt, TryFutureExt, stream};
+use futures::{stream, FutureExt, StreamExt, TryFutureExt};
 use rmcp::model::{CallToolRequestParam, Tool};
 use rmcp::service::{DynService, RunningService};
-use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::sse_client::SseClientTransport;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
@@ -320,6 +320,7 @@ impl MCPManager {
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))?
             .await
     }
+
 }
 
 #[cfg(test)]
