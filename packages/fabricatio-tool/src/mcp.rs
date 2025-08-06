@@ -5,8 +5,9 @@ use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pythonize::{depythonize, pythonize};
-use rmcp::model::Tool;
+use rmcp::model::{CallToolResult, Tool};
 use serde_json::Value;
+use signify::{schema_to_docstring_args, schema_to_signature};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -69,6 +70,44 @@ impl ToolMetaData {
     fn annotations_string(&self) -> String {
         serde_json::to_string(&self.inner.annotations).unwrap_or_default()
     }
+
+    #[getter]
+    fn function_header(&self) -> PyResult<String> {
+        let inner = &self.inner;
+        Ok(format!(
+            "async def {}{}->list[str]:",
+            inner.name,
+            schema_to_signature(
+                &serde_json::to_value(inner.clone().input_schema)
+                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+            )
+            .ok_or(PyRuntimeError::new_err("Invalid input schema"))?
+        ))
+    }
+    #[getter]
+    fn function_docstring(&self) -> PyResult<String> {
+        let inner = &self.inner;
+        Ok(format!(
+            "{}\n{}\nReturn:\n    list[str]: The strings of execution info.",
+            inner.clone().description.unwrap_or_default(),
+            schema_to_docstring_args(
+                &serde_json::to_value(inner.clone().input_schema)
+                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+            )
+            .unwrap_or_default()
+        ))
+    }
+    #[getter]
+    fn function_string(&self) -> PyResult<String> {
+        let header = self.function_header()?;
+        let docstring = self
+            .function_docstring()?
+            .lines()
+            .map(|s| format!("    {}", s))
+            .collect::<Vec<String>>()
+            .join("\n");
+        Ok(format!("{}\n    \"\"\"\n{}\n    \"\"\"", header, docstring))
+    }
 }
 
 #[pymethods]
@@ -106,6 +145,23 @@ impl MCPManager {
                 .into_iter()
                 .map(ToolMetaData::from)
                 .collect::<Vec<_>>())
+        })
+    }
+
+    /// Retrieves a tool from a client
+    fn get_tool<'a>(
+        &self,
+        python: Python<'a>,
+        client_id: String,
+        tool_name: String,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let inner = self.inner.clone();
+        future_into_py(python, async move {
+            Ok(inner
+                .get_tool(client_id.as_str(), tool_name.as_str())
+                .await
+                .ok()
+                .map(ToolMetaData::from))
         })
     }
 
@@ -196,8 +252,6 @@ impl MCPManager {
         tool_name: String,
         arguments: Option<Bound<'_, PyDict>>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let inner = self.inner.clone();
-
         let arguments = if let Some(arguments) = arguments {
             let arguments = depythonize::<serde_json::Map<String, Value>>(&arguments)
                 .map_err(move |e| PyRuntimeError::new_err(e.to_string()))?;
@@ -206,16 +260,52 @@ impl MCPManager {
             None
         };
 
+        let inner = self.inner.clone();
         future_into_py(python, async move {
-            let result = inner
+            let result: CallToolResult = inner
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-            Ok(result
-                .content
-                .into_iter()
-                .map(|c| c.raw.as_text().unwrap().text.clone())
-                .collect::<Vec<_>>())
+            Ok(result.content.map(|ve| {
+                ve.into_iter()
+                    .map(|v| v.raw.as_text().map(|t| t.text.clone()).unwrap_or_default())
+                    .collect::<Vec<_>>()
+            }))
+        })
+    }
+
+    /// Checks if a client exists in the manager
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client to check
+    ///
+    /// # Returns
+    /// * `bool` - True if the client exists, false otherwise
+    fn has_client(&self, client_id: String) -> bool {
+        self.inner.has_client(client_id.as_str())
+    }
+
+    /// Checks if a tool exists for a specific client
+    ///
+    /// # Arguments
+    /// * `client_id` - The ID of the client
+    /// * `tool_name` - The name of the tool to check
+    ///
+    /// # Returns
+    /// * `PyResult<bool>` - True if the tool exists, false otherwise, or an error if the operation fails
+    pub fn has_tool<'a>(
+        &self,
+        python: Python<'a>,
+        client_id: String,
+        tool_name: String,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let inner = self.inner.clone();
+
+        future_into_py(python, async move {
+            inner
+                .has_tool(client_id.as_str(), tool_name.as_str())
+                .await
+                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         })
     }
 }

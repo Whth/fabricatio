@@ -433,6 +433,7 @@ pub struct Config {
     /// - `liststr_template`: String list display template
     /// - `pathstr_template`: Path string acquisition template
     /// - `create_json_obj_template`: JSON object creation template
+    /// - ...
     #[pyo3(get)]
     pub templates: TemplateConfig,
 
@@ -479,6 +480,26 @@ pub struct Config {
 
 #[pymethods]
 impl Config {
+    /// Load configuration data for a given section name and instantiate a Python class
+    ///
+    /// This method performs configuration loading with the following behavior:
+    /// - Looks up configuration data by section name from extension configuration store
+    /// - Converts the data to Python objects using serde serialization
+    /// - Instantiates the provided Python class with the configuration data
+    ///
+    /// # Arguments
+    /// * `name` - Name of the configuration section to load
+    /// * `cls` - Python class to instantiate, must accept keyword arguments
+    ///
+    /// # Returns
+    /// `PyResult<Bound<'a, PyAny>>` containing either:
+    /// - Successfully initialized class instance with loaded config data
+    /// - Default-initialized class instance if section not found
+    ///
+    /// # Errors
+    /// Returns PyRuntimeError if:
+    /// - Data deserialization to Python types fails
+    /// - Class initialization fails with invalid arguments
     fn load<'a>(
         &self,
         python: Python<'a>,

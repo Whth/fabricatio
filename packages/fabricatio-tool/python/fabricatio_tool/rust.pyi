@@ -83,6 +83,30 @@ class ToolMetaData:
         access to implementation-specific details in string format.
         """
 
+    @property
+    def function_header(self) -> str:
+        """Python function signature string for this tool.
+
+        Returns:
+            Formatted async function signature with input parameters and return type.
+        """
+
+    @property
+    def function_docstring(self) -> str:
+        """Python docstring template for this tool's generated function.
+
+        Returns:
+            Pre-formatted docstring with argument descriptions and return documentation.
+        """
+    @property
+    def function_string(self) -> str:
+        """Complete Python function template for this tool's implementation.
+
+        Returns:
+            String containing full async function definition with formatted
+            signature, docstring, and return type annotation.
+        """
+
 class MCPManager:
     """Manager for interacting with MCP (Model Coordination Protocol) services."""
 
@@ -102,6 +126,17 @@ class MCPManager:
 
         Returns:
             A list of ToolMetaData instances representing available tools.
+        """
+
+    async def get_tool(self, client_id: str, tool_name: str) -> Optional[ToolMetaData]:
+        """Retrieves metadata for a specific tool from a client.
+
+        Args:
+            client_id: The ID of the client to retrieve the tool from
+            tool_name: The name of the tool to retrieve
+
+        Returns:
+            The requested tool's metadata if found
         """
 
     async def call_tool(self, client_id: str, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> List[str]:
@@ -158,4 +193,25 @@ class MCPManager:
 
         Returns:
             True if the server is reachable, False otherwise.
+        """
+
+    def has_client(self, client_id: str) -> bool:
+        """Check if a client exists in the manager.
+
+        Args:
+            client_id: The ID of the client to check.
+
+        Returns:
+            True if the client exists, False otherwise.
+        """
+
+    async def has_tool(self, client_id: str, tool_name: str) -> bool:
+        """Check if a tool exists for a specific client.
+
+        Args:
+            client_id: The ID of the client.
+            tool_name: The name of the tool.
+
+        Returns:
+            True if the tool exists, False otherwise.
         """
