@@ -1,12 +1,12 @@
 """MCP (Model Context Protocol) management utilities."""
 
-from functools import wraps
 from typing import Any, Callable, Coroutine, Dict, List
 
-from fabricatio_tool.rust import MCPManager
-
+from fabricatio_core import logger
 from fabricatio_core.decorators import once
+
 from fabricatio_tool.config import ServiceConfig, tool_config
+from fabricatio_tool.rust import MCPManager
 
 
 @once
@@ -42,14 +42,10 @@ async def mcp_tool_to_function(client_id: str, tool_name: str) -> Callable[..., 
     man = await get_global_mcp_manager()
 
     if (t := await man.get_tool(client_id, tool_name)) is not None:
-        n = t.name
-        exec(t.function_string, locals())  # noqa: S102
-        f: Callable[..., List[str]] = locals().get(n)  # pyright: ignore [reportAssignmentType]
-
-        @wraps(f)
-        async def _inner(**kwargs) -> List[str]:
-            return await man.call_tool(client_id, tool_name, kwargs)
-
-        return _inner
-
+        code = f"{t.function_string}\n    return await man.call_tool(client_id, tool_name, kwargs)"
+        logger.debug(f"Generating function for tool {t.name} in {client_id}")
+        d = locals()
+        exec(code, d)  # noqa: S102
+        f: Callable[..., Coroutine[Any, Any, List[str]]] = d.get(t.name)  # pyright: ignore [reportAssignmentType]
+        return f
     raise ValueError(f"Tool {tool_name} not found")
