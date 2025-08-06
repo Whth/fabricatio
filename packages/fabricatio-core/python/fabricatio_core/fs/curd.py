@@ -6,10 +6,11 @@ from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from fabricatio_core.decorators import depend_on_external_cmd
+from fabricatio_core.decorators import confirm_to_execute, depend_on_external_cmd
 from fabricatio_core.journal import logger
 
 
+@confirm_to_execute
 def dump_text(path: Union[str, Path], text: str) -> None:
     """Dump text to a file. you need to make sure the file's parent directory exists.
 
@@ -23,6 +24,7 @@ def dump_text(path: Union[str, Path], text: str) -> None:
     Path(path).write_text(text, encoding="utf-8", errors="ignore", newline="\n")
 
 
+@confirm_to_execute
 def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Copy a file from source to destination.
 
@@ -42,6 +44,7 @@ def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
     """Move a file from source to destination.
 
@@ -61,6 +64,7 @@ def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def delete_file(file_path: Union[str, Path]) -> None:
     """Delete a file.
 
@@ -79,6 +83,7 @@ def delete_file(file_path: Union[str, Path]) -> None:
         raise
 
 
+@confirm_to_execute
 def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok: bool = True) -> None:
     """Create a directory.
 
@@ -106,6 +111,7 @@ def tree(dir_path: Union[str, Path]) -> str:
     return subprocess.check_output(("erd", dir_path.as_posix()), encoding="utf-8")  # noqa: S603
 
 
+@confirm_to_execute
 def delete_directory(dir_path: Union[str, Path]) -> None:
     """Delete a directory and its contents.
 
