@@ -113,9 +113,6 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     return _wrapper
 
 
-
-
-
 def logging_exec_time[**P, R](
     func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:

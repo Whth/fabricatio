@@ -8,11 +8,11 @@ from functools import cached_property
 from inspect import iscoroutinefunction, signature
 from typing import Any, Callable, List, Optional, Self, overload
 
-from pydantic import Field
-
 from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
+from pydantic import Field
+
 from fabricatio_tool.decorators import confirm_to_execute
 
 
@@ -98,12 +98,15 @@ class ToolBox(WithBriefing):
     tools: List[Tool] = Field(default_factory=list, frozen=True)
     """A list of tools in the toolbox."""
 
-
     @overload
-    def collect_tool[**P, R](self, *,confirm: bool = True,logging: bool = True) -> Callable[[Callable[P, R]],Callable[P, R]]:...
+    def collect_tool[**P, R](
+        self, *, confirm: bool = True, logging: bool = True
+    ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
     @overload
-    def collect_tool[**P, R](self, func:Callable[P, R]) -> Callable[P, R]:...
-    def collect_tool[**P, R](self, func:Optional [Callable[P, R]]=None,*,confirm: bool = True,logging: bool = True) -> Callable[[Callable[P, R]],Callable[P, R]]|Callable[P, R]:
+    def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]: ...
+    def collect_tool[**P, R](
+        self, func: Optional[Callable[P, R]] = None, *, confirm: bool = True, logging: bool = True
+    ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
         """Add a callable function to the toolbox as a tool.
 
         This method wraps the function with logging execution info and adds it to the toolbox.
@@ -116,11 +119,13 @@ class ToolBox(WithBriefing):
         Returns:
             Callable[P, R]: The added function.
         """
-        def _wrapper(f: Callable[P, R])->Callable[P, R]:
-            tool= logging_execution_info(f) if logging else f
+
+        def _wrapper(f: Callable[P, R]) -> Callable[P, R]:
+            tool = logging_execution_info(f) if logging else f
             tool = confirm_to_execute(tool) if confirm else tool
             self.tools.append(Tool(source=tool))
-            return  f
+            return f
+
         if func is None:
             return _wrapper
         return _wrapper(func)
@@ -138,7 +143,7 @@ class ToolBox(WithBriefing):
         Returns:
             Self: The current instance of the toolbox.
         """
-        tool= logging_execution_info(func) if logging else func
+        tool = logging_execution_info(func) if logging else func
         tool = confirm_to_execute(tool) if confirm else tool
         self.tools.append(Tool(source=tool))
         return self

@@ -68,7 +68,7 @@ def toolbox(sample_func: Callable[[int, str], str]) -> ToolBox:
     Returns:
         A configured ToolBox object.
     """
-    return ToolBox(name="test_box", description="Test toolbox").add_tool(sample_func)
+    return ToolBox(name="test_box", description="Test toolbox").add_tool(sample_func, confirm=False)
 
 
 @pytest.fixture
