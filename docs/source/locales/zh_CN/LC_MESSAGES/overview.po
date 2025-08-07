@@ -21,11 +21,11 @@ msgstr ""
 
 #: ../../source/overview.rst:2
 msgid "Overview"
-msgstr ""
+msgstr "概述"
 
 #: ../../source/overview.rst:5
 msgid "What is Fabricatio?"
-msgstr ""
+msgstr "什么是 Fabricatio？"
 
 #: ../../source/overview.rst:7
 msgid ""
@@ -33,7 +33,7 @@ msgid ""
 "using an event-based agent structure. It provides developers with a "
 "powerful yet simple framework for creating sophisticated language model-"
 "powered applications with minimal boilerplate code."
-msgstr ""
+msgstr "Fabricatio 是一个精简的 Python 库，用于使用基于事件的代理结构构建 LLM 应用程序。它为开发人员提供了一个强大而简单的框架，用于创建复杂的语言模型驱动的应用程序，只需最少的样板代码。"
 
 #: ../../source/overview.rst:9
 msgid ""
@@ -42,389 +42,389 @@ msgid ""
 " Rust for computationally intensive tasks. This hybrid approach allows "
 "developers to enjoy the productivity of Python while benefiting from the "
 "performance characteristics of compiled systems programming languages."
-msgstr ""
+msgstr "在其核心，Fabricatio 通过利用 Rust 处理计算密集型任务，弥合了高级 Python 应用程序开发和性能关键操作之间的差距。这种混合方法使开发人员能够享受 Python 的生产力，同时受益于编译型系统编程语言的性能特性。"
 
 #: ../../source/overview.rst:12
 msgid "Core Architecture"
-msgstr ""
+msgstr "核心架构"
 
 #: ../../source/overview.rst:14
 msgid ""
 "Fabricatio is built around an event-driven architecture that promotes "
 "loose coupling and high cohesion between components. The framework's core"
 " concepts include:"
-msgstr ""
+msgstr "Fabricatio 围绕事件驱动架构构建，该架构促进了组件之间的松耦合和高内聚。框架的核心概念包括："
 
 #: ../../source/overview.rst:17
 msgid "Event-Based Agent Structure"
-msgstr ""
+msgstr "基于事件的代理结构"
 
 #: ../../source/overview.rst:19
 msgid ""
 "The foundation of Fabricatio's architecture is its event-based agent "
 "structure. This pattern allows for:"
-msgstr ""
+msgstr "Fabricatio 架构的基础是其基于事件的代理结构。这种模式允许："
 
 #: ../../source/overview.rst:21
 msgid ""
 "**Decoupled Components**: Agents communicate through events rather than "
 "direct method calls, reducing dependencies between system components"
-msgstr ""
+msgstr "**解耦组件**：代理通过事件而不是直接方法调用进行通信，减少了系统组件之间的依赖关系"
 
 #: ../../source/overview.rst:22
 msgid ""
 "**Scalable Task Management**: Events can be processed asynchronously, "
 "enabling efficient handling of concurrent operations"
-msgstr ""
+msgstr "**可扩展的任务管理**：事件可以异步处理，实现对并发操作的高效处理"
 
 #: ../../source/overview.rst:23
 msgid ""
 "**Extensible Design**: New functionality can be added by registering "
 "event handlers without modifying existing code"
-msgstr ""
+msgstr "**可扩展设计**：可以通过注册事件处理程序添加新功能，而无需修改现有代码"
 
 #: ../../source/overview.rst:25
 msgid "The architecture consists of several key components:"
-msgstr ""
+msgstr "该架构由几个关键组件组成："
 
 #: ../../source/overview.rst:27
 msgid "**Events**"
-msgstr ""
+msgstr "**事件**"
 
 #: ../../source/overview.rst:28
 msgid ""
 "Events are the primary communication mechanism in Fabricatio. They "
 "represent triggers that initiate workflows and can carry data between "
 "different parts of the system."
-msgstr ""
+msgstr "事件是 Fabricatio 中的主要通信机制。它们代表触发工作流的触发器，并可以在系统的不同部分之间携带数据。"
 
 #: ../../source/overview.rst:30
 msgid "**Roles**"
-msgstr ""
+msgstr "**角色**"
 
 #: ../../source/overview.rst:31
 msgid ""
 "Roles are entities that manage workflows and handle task delegation. They"
 " act as coordinators that listen for events and route them to appropriate"
 " workflows."
-msgstr ""
+msgstr "角色是管理工作流和处理任务委派的实体。它们充当协调者，监听事件并将其路由到适当的工作流。"
 
 #: ../../source/overview.rst:33
 msgid "**Workflows**"
-msgstr ""
+msgstr "**工作流**"
 
 #: ../../source/overview.rst:34
 msgid ""
 "Workflows define sequences of actions that process tasks. They provide a "
 "structured approach to handling complex operations by breaking them down "
 "into manageable steps."
-msgstr ""
+msgstr "工作流定义了处理任务的操作序列。它们通过将复杂操作分解为可管理的步骤，提供了一种结构化的方法来处理复杂操作。"
 
 #: ../../source/overview.rst:36
 msgid "**Actions**"
-msgstr ""
+msgstr "**操作**"
 
 #: ../../source/overview.rst:37
 msgid ""
 "Actions are the basic units of work in Fabricatio. Each action performs a"
 " specific task and can be chained together to form complex processing "
 "pipelines."
-msgstr ""
+msgstr "操作是 Fabricatio 中的基本工作单元。每个操作执行特定任务，并可以链接在一起形成复杂的处理管道。"
 
 #: ../../source/overview.rst:39
 msgid "**Tasks**"
-msgstr ""
+msgstr "**任务**"
 
 #: ../../source/overview.rst:40
 msgid ""
 "Tasks are work items that get processed through workflows. They represent"
 " the actual work to be done and can carry data and metadata through the "
 "processing pipeline."
-msgstr ""
+msgstr "任务是通过工作流处理的工作项。它们代表实际要完成的工作，并可以通过处理管道携带数据和元数据。"
 
 #: ../../source/overview.rst:43
 msgid "Technology Stack"
-msgstr ""
+msgstr "技术栈"
 
 #: ../../source/overview.rst:45
 msgid ""
 "Fabricatio leverages a modern technology stack that combines the best of "
 "multiple ecosystems:"
-msgstr ""
+msgstr "Fabricatio 利用现代技术栈，结合了多个生态系统的最佳特性："
 
 #: ../../source/overview.rst:48
 msgid "Rust for Performance"
-msgstr ""
+msgstr "Rust 用于性能"
 
 #: ../../source/overview.rst:50
 msgid ""
 "Performance-critical operations in Fabricatio are implemented in Rust, a "
 "systems programming language known for its speed, memory safety, and "
 "zero-cost abstractions. This includes:"
-msgstr ""
+msgstr "Fabricatio 中的性能关键操作是用 Rust 实现的，Rust 是一种以速度、内存安全和零成本抽象而闻名的系统编程语言。这包括："
 
 #: ../../source/overview.rst:52
 msgid "Core event processing and dispatch mechanisms"
-msgstr ""
+msgstr "核心事件处理和分发机制"
 
 #: ../../source/overview.rst:53
 msgid "Template rendering and processing"
-msgstr ""
+msgstr "模板渲染和处理"
 
 #: ../../source/overview.rst:54
 msgid "Data serialization and deserialization"
-msgstr ""
+msgstr "数据序列化和反序列化"
 
 #: ../../source/overview.rst:55
 msgid "Concurrent task management"
-msgstr ""
+msgstr "并发任务管理"
 
 #: ../../source/overview.rst:57
 msgid ""
 "Rust's compile-time guarantees and performance characteristics ensure "
 "that Fabricatio can handle high-throughput scenarios while maintaining "
 "reliability."
-msgstr ""
+msgstr "Rust 的编译时保证和性能特性确保 Fabricatio 能够处理高吞吐量场景，同时保持可靠性。"
 
 #: ../../source/overview.rst:60
 msgid "Handlebars for Templating"
-msgstr ""
+msgstr "Handlebars 用于模板化"
 
 #: ../../source/overview.rst:62
 msgid ""
 "Fabricatio uses Handlebars as its templating engine, providing a familiar"
 " and powerful way to generate dynamic content. Handlebars offers:"
-msgstr ""
+msgstr "Fabricatio 使用 Handlebars 作为其模板引擎，提供了一种熟悉而强大的方式来生成动态内容。Handlebars 提供："
 
 #: ../../source/overview.rst:64
 msgid "**Logic-less Templates**: Clean separation between presentation and logic"
-msgstr ""
+msgstr "**无逻辑模板**：表示层和逻辑层的清晰分离"
 
 #: ../../source/overview.rst:65
 msgid ""
 "**Helper Functions**: Extensible template functionality through custom "
 "helpers"
-msgstr ""
+msgstr "**辅助函数**：通过自定义辅助函数实现可扩展的模板功能"
 
 #: ../../source/overview.rst:66
 msgid "**Partials**: Reusable template components"
-msgstr ""
+msgstr "**局部模板**：可重用的模板组件"
 
 #: ../../source/overview.rst:67
 msgid "**Compatibility**: Well-established syntax familiar to many developers"
-msgstr ""
+msgstr "**兼容性**：许多开发人员熟悉的成熟语法"
 
 #: ../../source/overview.rst:70
 msgid "PyO3 for Python Bindings"
-msgstr ""
+msgstr "PyO3 用于 Python 绑定"
 
 #: ../../source/overview.rst:72
 msgid ""
 "Fabricatio's Python interface is built using PyO3, a powerful library for"
 " creating Python bindings for Rust code. PyO3 provides:"
-msgstr ""
+msgstr "Fabricatio 的 Python 接口是使用 PyO3 构建的，PyO3 是一个用于为 Rust 代码创建 Python 绑定的强大库。PyO3 提供："
 
 #: ../../source/overview.rst:74
 msgid ""
 "**Seamless Integration**: Natural Python APIs that feel native to Python "
 "developers"
-msgstr ""
+msgstr "**无缝集成**：对 Python 开发人员来说感觉自然的 Python API"
 
 #: ../../source/overview.rst:75
 msgid ""
 "**Performance**: Direct access to Rust implementations without "
 "significant overhead"
-msgstr ""
+msgstr "**性能**：直接访问 Rust 实现，无需显著开销"
 
 #: ../../source/overview.rst:76
 msgid ""
 "**Type Safety**: Strong typing that bridges Python's dynamic nature with "
 "Rust's static typing"
-msgstr ""
+msgstr "**类型安全**：强类型化，将 Python 的动态特性与 Rust 的静态类型化相结合"
 
 #: ../../source/overview.rst:77
 msgid "**Async Support**: First-class support for Python's async/await syntax"
-msgstr ""
+msgstr "**异步支持**：对 Python 的 async/await 语法的一流支持"
 
 #: ../../source/overview.rst:80
 msgid "Key Benefits"
-msgstr ""
+msgstr "关键优势"
 
 #: ../../source/overview.rst:82
 msgid ""
 "Fabricatio offers several compelling advantages for LLM application "
 "development:"
-msgstr ""
+msgstr "Fabricatio 为 LLM 应用程序开发提供了几个引人注目的优势："
 
 #: ../../source/overview.rst:84
 msgid "**Developer Productivity**"
-msgstr ""
+msgstr "**开发人员生产力**"
 
 #: ../../source/overview.rst:85
 msgid "Minimal boilerplate code required to get started"
-msgstr ""
+msgstr "启动所需的样板代码最少"
 
 #: ../../source/overview.rst:86
 msgid "Intuitive API design that follows Python conventions"
-msgstr ""
+msgstr "遵循 Python 约定的直观 API 设计"
 
 #: ../../source/overview.rst:87
 msgid "Comprehensive documentation and examples"
-msgstr ""
+msgstr "全面的文档和示例"
 
 #: ../../source/overview.rst:88
 msgid "Extensive type hints for better IDE support"
-msgstr ""
+msgstr "广泛的类型提示以获得更好的 IDE 支持"
 
 #: ../../source/overview.rst:90
 msgid "**Performance**"
-msgstr ""
+msgstr "**性能**"
 
 #: ../../source/overview.rst:91
 msgid "Rust-based core for computationally intensive operations"
-msgstr ""
+msgstr "基于 Rust 的核心用于计算密集型操作"
 
 #: ../../source/overview.rst:92
 msgid "Efficient memory management and garbage collection"
-msgstr ""
+msgstr "高效的内存管理和垃圾回收"
 
 #: ../../source/overview.rst:93
 msgid "Optimized concurrent processing capabilities"
-msgstr ""
+msgstr "优化的并发处理能力"
 
 #: ../../source/overview.rst:95
 msgid "**Flexibility**"
-msgstr ""
+msgstr "**灵活性**"
 
 #: ../../source/overview.rst:96
 msgid "Modular architecture that allows selective feature inclusion"
-msgstr ""
+msgstr "模块化架构，允许选择性功能包含"
 
 #: ../../source/overview.rst:97
 msgid "Extensible through custom actions and workflows"
-msgstr ""
+msgstr "通过自定义操作和工作流可扩展"
 
 #: ../../source/overview.rst:98
 msgid "Support for various LLM providers through LiteLLM integration"
-msgstr ""
+msgstr "通过 LiteLLM 集成支持各种 LLM 提供商"
 
 #: ../../source/overview.rst:100
 msgid "**Scalability**"
-msgstr ""
+msgstr "**可扩展性**"
 
 #: ../../source/overview.rst:101
 msgid "Event-driven architecture supports high-concurrency scenarios"
-msgstr ""
+msgstr "事件驱动架构支持高并发场景"
 
 #: ../../source/overview.rst:102
 msgid "Asynchronous processing model"
-msgstr ""
+msgstr "异步处理模型"
 
 #: ../../source/overview.rst:103
 msgid "Configurable resource usage"
-msgstr ""
+msgstr "可配置的资源使用"
 
 #: ../../source/overview.rst:106
 msgid "Primary Use Cases"
-msgstr ""
+msgstr "主要使用场景"
 
 #: ../../source/overview.rst:108
 msgid "Fabricatio is designed for a wide range of LLM application scenarios:"
-msgstr ""
+msgstr "Fabricatio 专为广泛的 LLM 应用场景而设计："
 
 #: ../../source/overview.rst:110
 msgid "**Content Generation**"
-msgstr ""
+msgstr "**内容生成**"
 
 #: ../../source/overview.rst:111
 msgid "Automated writing and editing workflows"
-msgstr ""
+msgstr "自动化写作和编辑工作流"
 
 #: ../../source/overview.rst:112
 msgid "Creative content generation (stories, poems, articles)"
-msgstr ""
+msgstr "创意内容生成（故事、诗歌、文章）"
 
 #: ../../source/overview.rst:113
 msgid "Technical documentation generation"
-msgstr ""
+msgstr "技术文档生成"
 
 #: ../../source/overview.rst:115
 msgid "**Data Processing**"
-msgstr ""
+msgstr "**数据处理**"
 
 #: ../../source/overview.rst:116
 msgid "Information extraction from unstructured text"
-msgstr ""
+msgstr "从非结构化文本中提取信息"
 
 #: ../../source/overview.rst:117
 msgid "Document analysis and summarization"
-msgstr ""
+msgstr "文档分析和摘要"
 
 #: ../../source/overview.rst:118
 msgid "Data transformation and enrichment"
-msgstr ""
+msgstr "数据转换和丰富"
 
 #: ../../source/overview.rst:120
 msgid "**Interactive Applications**"
-msgstr ""
+msgstr "**交互式应用程序**"
 
 #: ../../source/overview.rst:121
 msgid "Chatbots and conversational agents"
-msgstr ""
+msgstr "聊天机器人和对话代理"
 
 #: ../../source/overview.rst:122
 msgid "Interactive task assistants"
-msgstr ""
+msgstr "交互式任务助手"
 
 #: ../../source/overview.rst:123
 msgid "Decision support systems"
-msgstr ""
+msgstr "决策支持系统"
 
 #: ../../source/overview.rst:125
 msgid "**Knowledge Management**"
-msgstr ""
+msgstr "**知识管理**"
 
 #: ../../source/overview.rst:126
 msgid "Retrieval-Augmented Generation (RAG) systems"
-msgstr ""
+msgstr "检索增强生成 (RAG) 系统"
 
 #: ../../source/overview.rst:127
 msgid "Knowledge base construction and maintenance"
-msgstr ""
+msgstr "知识库构建和维护"
 
 #: ../../source/overview.rst:128
 msgid "Information retrieval and organization"
-msgstr ""
+msgstr "信息检索和组织"
 
 #: ../../source/overview.rst:130
 msgid "**Automation**"
-msgstr ""
+msgstr "**自动化**"
 
 #: ../../source/overview.rst:131
 msgid "Code review and analysis systems"
-msgstr ""
+msgstr "代码审查和分析系统"
 
 #: ../../source/overview.rst:132
 msgid "Task planning and execution"
-msgstr ""
+msgstr "任务规划和执行"
 
 #: ../../source/overview.rst:133
 msgid "Workflow automation"
-msgstr ""
+msgstr "工作流自动化"
 
 #: ../../source/overview.rst:136
 msgid "Differentiation from Other LLM Frameworks"
-msgstr ""
+msgstr "与其他 LLM 框架的区别"
 
 #: ../../source/overview.rst:138
 msgid ""
 "Fabricatio distinguishes itself from other LLM frameworks through several"
 " key approaches:"
-msgstr ""
+msgstr "Fabricatio 通过几个关键方法将自己与其他 LLM 框架区分开来："
 
 #: ../../source/overview.rst:140
 msgid "**Event-Driven Architecture**"
-msgstr ""
+msgstr "**事件驱动架构**"
 
 #: ../../source/overview.rst:141
 msgid ""
@@ -432,11 +432,11 @@ msgid ""
 "Fabricatio's event-driven approach provides better scalability and "
 "flexibility. This allows for more complex interaction patterns and easier"
 " integration with existing event-driven systems."
-msgstr ""
+msgstr "虽然许多 LLM 框架使用顺序或基于管道的处理，但 Fabricatio 的事件驱动方法提供了更好的可扩展性和灵活性。这允许更复杂的交互模式，并更容易与现有的事件驱动系统集成。"
 
 #: ../../source/overview.rst:143
 msgid "**Performance-First Design**"
-msgstr ""
+msgstr "**性能优先设计**"
 
 #: ../../source/overview.rst:144
 msgid ""
@@ -444,11 +444,11 @@ msgid ""
 "characteristics that are difficult to match with pure Python "
 "implementations. This is particularly important for high-throughput "
 "applications and resource-constrained environments."
-msgstr ""
+msgstr "通过利用 Rust 进行核心操作，Fabricatio 实现了难以通过纯 Python 实现匹敌的性能特性。这对于高吞吐量应用程序和资源受限环境特别重要。"
 
 #: ../../source/overview.rst:146
 msgid "**Modular Capabilities**"
-msgstr ""
+msgstr "**模块化功能**"
 
 #: ../../source/overview.rst:147
 msgid ""
@@ -456,27 +456,27 @@ msgid ""
 " features they need, reducing dependency overhead and potential security "
 "risks. This modular design also makes it easier to maintain and update "
 "individual components."
-msgstr ""
+msgstr "Fabricatio 基于包的方法允许开发人员只包含他们需要的功能，减少依赖开销和潜在的安全风险。这种模块化设计也使维护和更新单个组件变得更加容易。"
 
 #: ../../source/overview.rst:149
 msgid "**Developer Experience**"
-msgstr ""
+msgstr "**开发人员体验**"
 
 #: ../../source/overview.rst:150
 msgid ""
 "The framework prioritizes developer productivity through intuitive APIs, "
 "comprehensive documentation, and strong typing. This reduces the learning"
 " curve and helps prevent common implementation errors."
-msgstr ""
+msgstr "该框架通过直观的 API、全面的文档和强类型化优先考虑开发人员的生产力。这减少了学习曲线，并有助于防止常见的实现错误。"
 
 #: ../../source/overview.rst:152
 msgid "**Template-Centric Approach**"
-msgstr ""
+msgstr "**以模板为中心的方法**"
 
 #: ../../source/overview.rst:153
 msgid ""
 "Fabricatio's integration with Handlebars provides a powerful and familiar"
 " templating system that makes content generation more predictable and "
 "maintainable compared to purely programmatic approaches."
-msgstr ""
+msgstr "Fabricatio 与 Handlebars 的集成为内容生成提供了一个强大而熟悉的模板系统，与纯程序化方法相比，使内容生成更加可预测和可维护。"
 

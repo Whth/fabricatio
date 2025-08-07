@@ -69,27 +69,27 @@ msgstr "对于异步执行："
 
 #: ../../source/usage.rst:81
 msgid "Usage Scenarios"
-msgstr ""
+msgstr "使用场景"
 
 #: ../../source/usage.rst:83
 msgid "Fabricatio supports various usage scenarios:"
-msgstr ""
+msgstr "Fabricatio 支持各种使用场景："
 
 #: ../../source/usage.rst:85
 msgid "Simple Chat"
-msgstr ""
+msgstr "简单聊天"
 
 #: ../../source/usage.rst:86
 msgid "Retrieval-Augmented Generation (RAG)"
-msgstr ""
+msgstr "检索增强生成 (RAG)"
 
 #: ../../source/usage.rst:87
 msgid "Article Extraction"
-msgstr ""
+msgstr "文章提取"
 
 #: ../../source/usage.rst:88
 msgid "Propose Task"
-msgstr ""
+msgstr "任务提案"
 
 #: ../../source/usage.rst:89
 #, fuzzy
@@ -98,7 +98,7 @@ msgstr "概述"
 
 #: ../../source/usage.rst:90
 msgid "Write Outline"
-msgstr ""
+msgstr "撰写大纲"
 
 #: ../../source/usage.rst:92 ../../source/usage.rst:121
 msgid ""
@@ -164,7 +164,7 @@ msgstr "安装带有所需功能的 fabricatio"
 
 #: ../../source/usage.rst:116
 msgid "Define your actions by subclassing ``Action``"
-msgstr ""
+msgstr "通过继承 ``Action`` 来定义您的操作"
 
 #: ../../source/usage.rst:117
 msgid "Create workflows combining your actions"

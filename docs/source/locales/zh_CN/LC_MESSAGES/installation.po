@@ -45,19 +45,19 @@ msgstr "安装特定功能的 fabricatio："
 
 #: ../../source/installation.rst:33
 msgid "Template Download"
-msgstr ""
+msgstr "模板下载"
 
 #: ../../source/installation.rst:35
 msgid ""
 "You can download the templates from the GitHub release manually and "
 "extract them to the work directory:"
-msgstr ""
+msgstr "您可以手动从 GitHub 发布版本下载模板并将其解压到工作目录："
 
 #: ../../source/installation.rst:41
 msgid ""
 "Or you can use the CLI ``tdown`` bundled with ``fabricatio`` to achieve "
 "the same result:"
-msgstr ""
+msgstr "或者您可以使用 ``fabricatio`` 捆绑的 CLI ``tdown`` 来实现相同的结果："
 
 #: ../../source/installation.rst:49
 msgid ""
@@ -65,7 +65,7 @@ msgid ""
 "filename-based identification. Template resolution follows a priority "
 "hierarchy where working directory templates override templates located in"
 " ``<ROAMING>/fabricatio/templates``."
-msgstr ""
+msgstr "``fabricatio`` 通过多个来源执行模板发现，基于文件名进行识别。模板解析遵循优先级层次结构，其中工作目录中的模板会覆盖位于 ``<ROAMING>/fabricatio/templates`` 中的模板。"
 
 #: ../../source/installation.rst:52
 msgid "Available Optional Dependencies"

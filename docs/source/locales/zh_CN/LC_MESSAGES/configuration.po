@@ -98,14 +98,14 @@ msgstr "``generation_count``: 每次请求的生成次数"
 
 #: ../../source/configuration.rst:79
 msgid "``stream``: Enable streaming responses"
-msgstr ""
+msgstr "``stream``: 启用流式响应"
 "`[stream](file://L:\r"
 "ust_proj\\fabricatio\\packages\\fabricatio-"
 "core\\python\\fabricatio_core\\models\\kwargs_types.py#L30-L30)`: 启用流式响应"
 
 #: ../../source/configuration.rst:80
 msgid "``max_tokens``: Maximum tokens in response"
-msgstr ""
+msgstr "``max_tokens``: 响应中的最大令牌数"
 
 #: ../../source/configuration.rst:82
 msgid "**Debug Settings:**"

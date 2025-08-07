@@ -21,18 +21,18 @@ msgstr ""
 
 #: ../../source/features.rst:2
 msgid "Features"
-msgstr ""
+msgstr "功能特性"
 
 #: ../../source/features.rst:4
 msgid ""
 "Fabricatio provides a powerful set of features designed to streamline the"
 " development of LLM applications through its event-driven architecture, "
 "seamless LLM integration, and extensible async framework."
-msgstr ""
+msgstr "Fabricatio 提供了一套强大的功能，旨在通过其事件驱动架构、无缝的 LLM 集成和可扩展的异步框架来简化 LLM 应用程序的开发。"
 
 #: ../../source/features.rst:7
 msgid "Event-Driven Architecture"
-msgstr ""
+msgstr "事件驱动架构"
 
 #: ../../source/features.rst:9
 msgid ""
@@ -40,192 +40,192 @@ msgid ""
 " promotes loose coupling and high cohesion between components. This "
 "pattern allows for scalable, maintainable, and flexible application "
 "development."
-msgstr ""
+msgstr "Fabricatio 的核心架构围绕事件驱动模型构建，该模型促进了组件之间的松耦合和高内聚。这种模式允许进行可扩展、可维护和灵活的应用程序开发。"
 
 #: ../../source/features.rst:12
 msgid "EventEmitter Pattern"
-msgstr ""
+msgstr "EventEmitter 模式"
 
 #: ../../source/features.rst:14
 msgid ""
 "At the heart of Fabricatio's event-driven architecture is the "
 "``EventEmitter`` class, which provides a robust mechanism for managing "
 "event handling with both exact and wildcard event matching capabilities."
-msgstr ""
+msgstr "Fabricatio 事件驱动架构的核心是 ``EventEmitter`` 类，它提供了一种强大的机制来管理事件处理，具有精确和通配符事件匹配功能。"
 
 #: ../../source/features.rst:16
 msgid "The ``EventEmitter`` supports:"
-msgstr ""
+msgstr "``EventEmitter`` 支持："
 
 #: ../../source/features.rst:18
 msgid ""
 "**Exact Event Matching**: Direct registration and emission of specific "
 "events"
-msgstr ""
+msgstr "**精确事件匹配**：直接注册和发出特定事件"
 
 #: ../../source/features.rst:19
 msgid ""
 "**Wildcard Event Matching**: Pattern-based event handling using wildcards"
 " (``*``) for flexible event routing"
-msgstr ""
+msgstr "**通配符事件匹配**：使用通配符 (``*``) 进行基于模式的事件处理，实现灵活的事件路由"
 
 #: ../../source/features.rst:20
 msgid ""
 "**Concurrent Event Processing**: Multiple event handlers can be executed "
 "concurrently for improved performance"
-msgstr ""
+msgstr "**并发事件处理**：多个事件处理程序可以并发执行以提高性能"
 
 #: ../../source/features.rst:21
 msgid ""
 "**Hierarchical Event Structure**: Events can be organized in hierarchical"
 " namespaces using configurable separators"
-msgstr ""
+msgstr "**分层事件结构**：事件可以使用可配置的分隔符组织在分层命名空间中"
 
 #: ../../source/features.rst:23
 msgid "Key features of the EventEmitter pattern include:"
-msgstr ""
+msgstr "EventEmitter 模式的关键特性包括："
 
 #: ../../source/features.rst:42
 msgid "Task Management Workflows"
-msgstr ""
+msgstr "任务管理工作流"
 
 #: ../../source/features.rst:44
 msgid ""
 "Fabricatio's event-driven architecture excels at managing complex task "
 "workflows through its sophisticated task lifecycle management system."
-msgstr ""
+msgstr "Fabricatio 的事件驱动架构通过其复杂任务生命周期管理系统在管理复杂任务工作流方面表现出色。"
 
 #: ../../source/features.rst:46
 msgid "**Task Lifecycle Management**"
-msgstr ""
+msgstr "**任务生命周期管理**"
 
 #: ../../source/features.rst:48
 msgid "Tasks in Fabricatio progress through well-defined states:"
-msgstr ""
+msgstr "Fabricatio 中的任务通过明确定义的状态进行："
 
 #: ../../source/features.rst:50
 msgid "**Pending**: Task has been created but not yet started"
-msgstr ""
+msgstr "**待处理**：任务已创建但尚未开始"
 
 #: ../../source/features.rst:51
 msgid "**Running**: Task is currently being processed"
-msgstr ""
+msgstr "**运行中**：任务正在处理中"
 
 #: ../../source/features.rst:52
 msgid "**Finished**: Task completed successfully"
-msgstr ""
+msgstr "**已完成**：任务成功完成"
 
 #: ../../source/features.rst:53
 msgid "**Failed**: Task encountered an error during processing"
-msgstr ""
+msgstr "**失败**：任务在处理过程中遇到错误"
 
 #: ../../source/features.rst:54
 msgid "**Cancelled**: Task was cancelled before completion"
-msgstr ""
+msgstr "**已取消**：任务在完成前被取消"
 
 #: ../../source/features.rst:56
 msgid ""
 "Each state transition triggers corresponding events that can be handled "
 "by registered workflows:"
-msgstr ""
+msgstr "每个状态转换都会触发相应的事件，这些事件可以由注册的工作流处理："
 
 #: ../../source/features.rst:72
 msgid "**Event-Based Workflow Registration**"
-msgstr ""
+msgstr "**基于事件的工作流注册**"
 
 #: ../../source/features.rst:74
 msgid ""
 "Roles in Fabricatio register workflows to handle specific events, "
 "creating a flexible routing system:"
-msgstr ""
+msgstr "Fabricatio 中的角色注册工作流来处理特定事件，创建一个灵活的路由系统："
 
 #: ../../source/features.rst:86
 msgid "Benefits of Event-Driven Design"
-msgstr ""
+msgstr "事件驱动设计的优势"
 
 #: ../../source/features.rst:88
 msgid "Fabricatio's event-driven architecture provides several key advantages:"
-msgstr ""
+msgstr "Fabricatio 的事件驱动架构提供了几个关键优势："
 
 #: ../../source/features.rst:90
 msgid "**Scalability**"
-msgstr ""
+msgstr "**可扩展性**"
 
 #: ../../source/features.rst:91
 msgid "Decoupled components can be scaled independently"
-msgstr ""
+msgstr "解耦的组件可以独立扩展"
 
 #: ../../source/features.rst:92
 msgid "Event-based communication supports distributed processing"
-msgstr ""
+msgstr "基于事件的通信支持分布式处理"
 
 #: ../../source/features.rst:93
 msgid "Concurrent event handling maximizes resource utilization"
-msgstr ""
+msgstr "并发事件处理最大化资源利用率"
 
 #: ../../source/features.rst:95
 msgid "**Flexibility**"
-msgstr ""
+msgstr "**灵活性**"
 
 #: ../../source/features.rst:96
 msgid ""
 "New functionality can be added through event handlers without modifying "
 "existing code"
-msgstr ""
+msgstr "可以通过事件处理程序添加新功能，而无需修改现有代码"
 
 #: ../../source/features.rst:97
 msgid "Wildcard event matching enables generic handlers for related events"
-msgstr ""
+msgstr "通配符事件匹配为相关事件启用通用处理程序"
 
 #: ../../source/features.rst:98
 msgid "Dynamic workflow registration allows runtime configuration"
-msgstr ""
+msgstr "动态工作流注册允许运行时配置"
 
 #: ../../source/features.rst:100
 msgid "**Maintainability**"
-msgstr ""
+msgstr "**可维护性**"
 
 #: ../../source/features.rst:101
 msgid "Loose coupling reduces dependencies between system components"
-msgstr ""
+msgstr "松耦合减少了系统组件之间的依赖关系"
 
 #: ../../source/features.rst:102
 msgid "Clear event boundaries make code easier to understand and debug"
-msgstr ""
+msgstr "清晰的事件边界使代码更易于理解和调试"
 
 #: ../../source/features.rst:103
 msgid "Standardized event patterns promote consistency across applications"
-msgstr ""
+msgstr "标准化的事件模式促进应用程序间的一致性"
 
 #: ../../source/features.rst:105
 msgid "**Extensibility**"
-msgstr ""
+msgstr "**可扩展性**"
 
 #: ../../source/features.rst:106
 msgid "Event handlers can be added or removed without system downtime"
-msgstr ""
+msgstr "可以添加或删除事件处理程序而无需系统停机"
 
 #: ../../source/features.rst:107
 msgid "Plugin architecture supports modular feature development"
-msgstr ""
+msgstr "插件架构支持模块化功能开发"
 
 #: ../../source/features.rst:108
 msgid "Event inheritance enables specialized handling of generic events"
-msgstr ""
+msgstr "事件继承支持对通用事件的专门处理"
 
 #: ../../source/features.rst:111
 msgid "LLM Integration & Templating"
-msgstr ""
+msgstr "LLM 集成与模板化"
 
 #: ../../source/features.rst:113
 msgid ""
 "Fabricatio provides seamless integration with Large Language Models "
 "through its sophisticated templating system and unified LLM interface."
-msgstr ""
+msgstr "Fabricatio 通过其复杂的模板系统和统一的 LLM 接口提供与大型语言模型的无缝集成。"
 
 #: ../../source/features.rst:116
 msgid "Handlebars Templating"
-msgstr ""
+msgstr "Handlebars 模板"
 
 #: ../../source/features.rst:118
 msgid ""
@@ -233,197 +233,197 @@ msgid ""
 "providing a powerful and familiar way to generate dynamic content for LLM"
 " interactions. The ``TemplateManager`` wraps the high-performance "
 "handlebars-rust engine for efficient template rendering."
-msgstr ""
+msgstr "Fabricatio 利用 Handlebars 作为其主要模板引擎，为 LLM 交互提供生成动态内容的强大而熟悉的方式。``TemplateManager`` 封装了高性能的 handlebars-rust 引擎以实现高效的模板渲染。"
 
 #: ../../source/features.rst:120
 msgid "**Template Features**"
-msgstr ""
+msgstr "**模板特性**"
 
 #: ../../source/features.rst:122
 msgid "The templating system supports:"
-msgstr ""
+msgstr "模板系统支持："
 
 #: ../../source/features.rst:124
 msgid "**Logic-less Templates**: Clean separation between presentation and logic"
-msgstr ""
+msgstr "**无逻辑模板**：表示层和逻辑层的清晰分离"
 
 #: ../../source/features.rst:125
 msgid ""
 "**Helper Functions**: Extensible template functionality through custom "
 "helpers"
-msgstr ""
+msgstr "**辅助函数**：通过自定义辅助函数实现可扩展的模板功能"
 
 #: ../../source/features.rst:126
 msgid "**Partials**: Reusable template components for consistent formatting"
-msgstr ""
+msgstr "**局部模板**：可重用的模板组件以实现一致的格式化"
 
 #: ../../source/features.rst:127
 msgid "**Context-aware Rendering**: Templates can access complex data structures"
-msgstr ""
+msgstr "**上下文感知渲染**：模板可以访问复杂的数据结构"
 
 #: ../../source/features.rst:145
 msgid "**Template Management**"
-msgstr ""
+msgstr "**模板管理**"
 
 #: ../../source/features.rst:147
 msgid ""
 "Fabricatio's template system provides flexible template discovery and "
 "management:"
-msgstr ""
+msgstr "Fabricatio 的模板系统提供灵活的模板发现和管理："
 
 #: ../../source/features.rst:163
 msgid "Dynamic Content Generation"
-msgstr ""
+msgstr "动态内容生成"
 
 #: ../../source/features.rst:165
 msgid ""
 "Fabricatio's LLM integration enables sophisticated dynamic content "
 "generation through its action-based workflow system."
-msgstr ""
+msgstr "Fabricatio 的 LLM 集成通过其基于操作的工作流系统实现复杂的动态内容生成。"
 
 #: ../../source/features.rst:167
 msgid "**LLM Configuration**"
-msgstr ""
+msgstr "**LLM 配置**"
 
 #: ../../source/features.rst:169
 msgid ""
 "The system provides comprehensive LLM configuration through multiple "
 "sources with clear priority ordering:"
-msgstr ""
+msgstr "系统通过多个来源提供全面的 LLM 配置，并具有明确的优先级排序："
 
 #: ../../source/features.rst:182
 msgid "**Action-based LLM Interaction**"
-msgstr ""
+msgstr "**基于操作的 LLM 交互**"
 
 #: ../../source/features.rst:184
 msgid ""
 "Actions in Fabricatio can seamlessly interact with LLMs through built-in "
 "methods:"
-msgstr ""
+msgstr "Fabricatio 中的操作可以通过内置方法与 LLM 无缝交互："
 
 #: ../../source/features.rst:204
 msgid "**Template-driven Prompt Engineering**"
-msgstr ""
+msgstr "**模板驱动的提示工程**"
 
 #: ../../source/features.rst:206
 msgid "Fabricatio's templating system enables sophisticated prompt engineering:"
-msgstr ""
+msgstr "Fabricatio 的模板系统支持复杂的提示工程："
 
 #: ../../source/features.rst:230
 msgid "Async & Extensible"
-msgstr ""
+msgstr "异步与可扩展"
 
 #: ../../source/features.rst:232
 msgid ""
 "Fabricatio is built from the ground up with asynchronous execution and "
 "extensibility as core principles, enabling high-performance LLM "
 "applications that can be easily customized and extended."
-msgstr ""
+msgstr "Fabricatio 从头开始构建，以异步执行和可扩展性为核心原则，支持高性能的 LLM 应用程序，可以轻松定制和扩展。"
 
 #: ../../source/features.rst:235
 msgid "Asynchronous Execution Model"
-msgstr ""
+msgstr "异步执行模型"
 
 #: ../../source/features.rst:237
 msgid ""
 "Fabricatio leverages Python's async/await syntax throughout its "
 "architecture to provide non-blocking, concurrent execution of tasks and "
 "workflows."
-msgstr ""
+msgstr "Fabricatio 在其整个架构中利用 Python 的 async/await 语法，以提供任务和工作流的非阻塞、并发执行。"
 
 #: ../../source/features.rst:239
 msgid "**Concurrent Task Processing**"
-msgstr ""
+msgstr "**并发任务处理**"
 
 #: ../../source/features.rst:241
 msgid "The framework supports concurrent execution of multiple tasks:"
-msgstr ""
+msgstr "框架支持多个任务的并发执行："
 
 #: ../../source/features.rst:262
 msgid "**Non-blocking Action Execution**"
-msgstr ""
+msgstr "**非阻塞操作执行**"
 
 #: ../../source/features.rst:264
 msgid "All actions in Fabricatio are designed to be non-blocking:"
-msgstr ""
+msgstr "Fabricatio 中的所有操作都设计为非阻塞："
 
 #: ../../source/features.rst:280
 msgid "**Event Loop Integration**"
-msgstr ""
+msgstr "**事件循环集成**"
 
 #: ../../source/features.rst:282
 msgid "Fabricatio integrates seamlessly with Python's asyncio event loop:"
-msgstr ""
+msgstr "Fabricatio 与 Python 的 asyncio 事件循环无缝集成："
 
 #: ../../source/features.rst:297
 msgid "Extension Mechanisms"
-msgstr ""
+msgstr "扩展机制"
 
 #: ../../source/features.rst:299
 msgid ""
 "Fabricatio provides multiple extension points that allow developers to "
 "customize and extend the framework's functionality."
-msgstr ""
+msgstr "Fabricatio 提供了多个扩展点，允许开发人员自定义和扩展框架的功能。"
 
 #: ../../source/features.rst:301
 msgid "**Custom Actions**"
-msgstr ""
+msgstr "**自定义操作**"
 
 #: ../../source/features.rst:303
 msgid ""
 "Developers can create custom actions by subclassing the ``Action`` base "
 "class:"
-msgstr ""
+msgstr "开发人员可以通过继承 ``Action`` 基类来创建自定义操作："
 
 #: ../../source/features.rst:331
 msgid "**Custom Workflows**"
-msgstr ""
+msgstr "**自定义工作流**"
 
 #: ../../source/features.rst:333
 msgid "Workflows can be customized to implement specific processing patterns:"
-msgstr ""
+msgstr "工作流可以定制以实现特定的处理模式："
 
 #: ../../source/features.rst:354
 msgid "**Plugin Architecture**"
-msgstr ""
+msgstr "**插件架构**"
 
 #: ../../source/features.rst:356
 msgid "Fabricatio supports a plugin architecture through its modular design:"
-msgstr ""
+msgstr "Fabricatio 通过其模块化设计支持插件架构："
 
 #: ../../source/features.rst:377
 msgid "Workflow Customization"
-msgstr ""
+msgstr "工作流定制"
 
 #: ../../source/features.rst:379
 msgid ""
 "Fabricatio provides extensive customization options for workflow behavior"
 " and task processing."
-msgstr ""
+msgstr "Fabricatio 为工作流行为和任务处理提供了广泛的定制选项。"
 
 #: ../../source/features.rst:381
 msgid "**Context Management**"
-msgstr ""
+msgstr "**上下文管理**"
 
 #: ../../source/features.rst:383
 msgid ""
 "Workflows provide sophisticated context management for sharing data "
 "between actions:"
-msgstr ""
+msgstr "工作流提供复杂上下文管理，用于在操作之间共享数据："
 
 #: ../../source/features.rst:401
 msgid "**Error Handling and Recovery**"
-msgstr ""
+msgstr "**错误处理和恢复**"
 
 #: ../../source/features.rst:403
 msgid "Custom workflows can implement sophisticated error handling:"
-msgstr ""
+msgstr "自定义工作流可以实现复杂的错误处理："
 
 #: ../../source/features.rst:419
 msgid "**Dynamic Workflow Composition**"
-msgstr ""
+msgstr "**动态工作流组合**"
 
 #: ../../source/features.rst:421
 msgid "Workflows can be composed dynamically at runtime:"
-msgstr ""
+msgstr "工作流可以在运行时动态组合："
 
