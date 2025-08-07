@@ -110,7 +110,7 @@ curl -L https://github.com/Whth/fabricatio/releases/download/v0.19.1/templates.t
 Or you can use the cli `tdown` bundled with `fabricatio` to achieve the same result.
 
 ```bash
-tdown download -V -o ./
+tdown download --verbose -o ./
 ```
 > Note: `fabricatio` performs template discovery across multiple sources with filename-based identification. Template resolution follows a priority hierarchy where working directory templates override templates located in `<ROAMING>/fabricatio/templates`.
 
