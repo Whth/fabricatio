@@ -244,3 +244,15 @@ def extract_body(string: str, wrapper: str) -> Optional[str]:
     Returns:
         The content between the first two occurrences of the wrapper string if found, otherwise None.
     """
+
+def extract_sections(string: str, level: int, section_char: str = "#") -> List[Tuple[str, str]]:
+    """Extract sections from markdown-style text by header level.
+
+    Args:
+        string (str): Input text to parse
+        level (int): Header level (e.g., 1 for '#', 2 for '##')
+        section_char (str, optional): The character used for headers (default: '#')
+
+    Returns:
+        List[Tuple[str, str]]: List of (header_text, section_content) tuples
+    """

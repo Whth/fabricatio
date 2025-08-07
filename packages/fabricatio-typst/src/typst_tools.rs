@@ -168,6 +168,43 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
     first_match.get(1).map(|m| m.as_str().to_string())
 }
 
+/// Extract sections from markdown-style text by header level.
+#[pyfunction]
+fn extract_sections(
+    string: &str,
+    level: usize,
+    section_char: Option<&str>,
+) -> PyResult<Vec<(String, String)>> {
+    let section_char = section_char.unwrap_or("#");
+
+    // Create the regex pattern dynamically based on inputs
+    let pattern = format!(
+        r"^{}\{{{}\}}\s+(.+?)\n((?:(?!^{}\{{{}\}}\s).|\n)*)",
+        regex::escape(section_char),
+        level,
+        regex::escape(section_char),
+        level
+    );
+
+    let re = Regex::new(&pattern).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
+    let mut results = Vec::new();
+
+    for cap in re.captures_iter(string) {
+        let header_text = cap
+            .get(1)
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+        let section_content = cap
+            .get(2)
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+        results.push((header_text, section_content));
+    }
+
+    Ok(results)
+}
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;
@@ -182,5 +219,6 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(replace_thesis_body, m)?)?;
     m.add_function(wrap_pyfunction!(extract_body, m)?)?;
     m.add_function(wrap_pyfunction!(strip_comment, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_sections, m)?)?;
     Ok(())
 }

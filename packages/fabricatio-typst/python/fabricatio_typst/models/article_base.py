@@ -12,7 +12,6 @@ from fabricatio_capabilities.models.generic import (
     ProposedUpdateAble,
 )
 from fabricatio_core.fs import dump_text, safe_text_read
-from fabricatio_core.fs.readers import extract_sections
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import (
     Described,
@@ -31,6 +30,7 @@ from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.generic import AsPrompt, Introspect, WordCount
 from fabricatio_typst.rust import (
     extract_body,
+    extract_sections,
     replace_thesis_body,
     split_out_metadata,
     strip_comment,
