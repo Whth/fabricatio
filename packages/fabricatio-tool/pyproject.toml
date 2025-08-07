@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-tool"
-version = "0.6.1"
+version = "0.6.2-dev0"
 description = "An extension of fabricatio, which brings up the capability to use tool with native python."
 readme = "README.md"
 authors = [
@@ -20,6 +20,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "fabricatio-core",
     "pydantic>=2.11.7",
+    "questionary>=2.1.0",
 ]
 
 [dependency-groups]
@@ -39,16 +40,13 @@ module-name = "fabricatio_tool.rust"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
 
 
 [project.urls]

@@ -6,12 +6,14 @@ with additional functionalities such as logging, execution info, and briefing.
 
 from functools import cached_property
 from inspect import iscoroutinefunction, signature
-from typing import Any, Callable, List, Optional, Self
+from typing import Any, Callable, List, Optional, Self, overload
+
+from pydantic import Field
 
 from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
-from pydantic import Field
+from fabricatio_tool.decorators import confirm_to_execute
 
 
 class Tool[**P, R](WithBriefing):
@@ -96,32 +98,49 @@ class ToolBox(WithBriefing):
     tools: List[Tool] = Field(default_factory=list, frozen=True)
     """A list of tools in the toolbox."""
 
-    def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]:
+
+    @overload
+    def collect_tool[**P, R](self, *,confirm: bool = True,logging: bool = True) -> Callable[[Callable[P, R]],Callable[P, R]]:...
+    @overload
+    def collect_tool[**P, R](self, func:Callable[P, R]) -> Callable[P, R]:...
+    def collect_tool[**P, R](self, func:Optional [Callable[P, R]]=None,*,confirm: bool = True,logging: bool = True) -> Callable[[Callable[P, R]],Callable[P, R]]|Callable[P, R]:
         """Add a callable function to the toolbox as a tool.
 
         This method wraps the function with logging execution info and adds it to the toolbox.
 
         Args:
             func (Callable[P, R]): The function to be added as a tool.
+            confirm (bool, optional): Whether to confirm before executing the function. Defaults to True.
+            logging (bool, optional): Whether to log the execution info. Defaults to True.
 
         Returns:
             Callable[P, R]: The added function.
         """
-        self.tools.append(Tool(source=func))
-        return func
+        def _wrapper(f: Callable[P, R])->Callable[P, R]:
+            tool= logging_execution_info(f) if logging else f
+            tool = confirm_to_execute(tool) if confirm else tool
+            self.tools.append(Tool(source=tool))
+            return  f
+        if func is None:
+            return _wrapper
+        return _wrapper(func)
 
-    def add_tool[**P, R](self, func: Callable[P, R]) -> Self:
+    def add_tool[**P, R](self, func: Callable[P, R], *, confirm: bool = True, logging: bool = True) -> Self:
         """Add a callable function to the toolbox as a tool.
 
         This method wraps the function with logging execution info and adds it to the toolbox.
 
         Args:
             func (Callable): The function to be added as a tool.
+            confirm (bool, optional): Whether to confirm before executing the function. Defaults to True.
+            logging (bool, optional): Whether to log the execution info. Defaults to True.
 
         Returns:
             Self: The current instance of the toolbox.
         """
-        self.collect_tool(logging_execution_info(func))
+        tool= logging_execution_info(func) if logging else func
+        tool = confirm_to_execute(tool) if confirm else tool
+        self.tools.append(Tool(source=tool))
         return self
 
     @cached_property
