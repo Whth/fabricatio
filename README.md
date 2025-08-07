@@ -103,6 +103,18 @@ uv add fabricatio[rag,rule]
 
 ```
 
+You can download the templates from the github release manually and extract them to the work directory.
+```bash
+curl -L https://github.com/Whth/fabricatio/releases/download/v0.19.1/templates.tar.gz | tar -xz
+```
+Or you can use the cli `tdown` bundled with `fabricatio` to achieve the same result.
+
+```bash
+tdown download -V -o ./
+```
+> Note: `fabricatio` performs template discovery across multiple sources with filename-based identification. Template resolution follows a priority hierarchy where working directory templates override templates located in `<ROAMING>/fabricatio/templates`.
+
+
 
 ## Usage
 
