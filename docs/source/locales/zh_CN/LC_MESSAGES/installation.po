@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"POT-Creation-Date: 2025-08-07 16:55+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -44,130 +44,156 @@ msgid "Install fabricatio with specific capabilities:"
 msgstr "安装特定功能的 fabricatio："
 
 #: ../../source/installation.rst:33
+msgid "Template Download"
+msgstr ""
+
+#: ../../source/installation.rst:35
+msgid ""
+"You can download the templates from the GitHub release manually and "
+"extract them to the work directory:"
+msgstr ""
+
+#: ../../source/installation.rst:41
+msgid ""
+"Or you can use the CLI ``tdown`` bundled with ``fabricatio`` to achieve "
+"the same result:"
+msgstr ""
+
+#: ../../source/installation.rst:49
+msgid ""
+"``fabricatio`` performs template discovery across multiple sources with "
+"filename-based identification. Template resolution follows a priority "
+"hierarchy where working directory templates override templates located in"
+" ``<ROAMING>/fabricatio/templates``."
+msgstr ""
+
+#: ../../source/installation.rst:52
 msgid "Available Optional Dependencies"
 msgstr "可用的可选依赖"
 
-#: ../../source/installation.rst:35
+#: ../../source/installation.rst:54
 msgid ""
 "Fabricatio supports various optional dependencies for different "
 "capabilities:"
 msgstr "Fabricatio 支持多种可选依赖以提供不同的功能："
 
-#: ../../source/installation.rst:37
+#: ../../source/installation.rst:56
 msgid "``anki``: Anki deck generation (fabricatio-anki)"
 msgstr "``anki``：Anki 卡片生成（fabricatio-anki）"
 
-#: ../../source/installation.rst:38
+#: ../../source/installation.rst:57
 msgid "``memory``: Memory management (fabricatio-memory)"
 msgstr "``memory``：记忆管理（fabricatio-memory）"
 
-#: ../../source/installation.rst:39
+#: ../../source/installation.rst:58
 msgid "``digest``: Content digestion (fabricatio-digest)"
 msgstr "``digest``：内容消化（fabricatio-digest）"
 
-#: ../../source/installation.rst:40
+#: ../../source/installation.rst:59
 msgid "``rag``: Retrieval-Augmented Generation (fabricatio-rag)"
 msgstr "``rag``：检索增强生成（fabricatio-rag）"
 
-#: ../../source/installation.rst:41
+#: ../../source/installation.rst:60
 msgid "``judge``: Judgment and evaluation (fabricatio-judge)"
 msgstr "``judge``：判断与评估（fabricatio-judge）"
 
-#: ../../source/installation.rst:42
+#: ../../source/installation.rst:61
 msgid "``rule``: Rule-based processing (fabricatio-rule)"
 msgstr "``rule``：基于规则的处理（fabricatio-rule）"
 
-#: ../../source/installation.rst:43
+#: ../../source/installation.rst:62
 msgid "``cli``: Command-line interface (typer-slim)"
 msgstr "``cli``：命令行界面（typer-slim）"
 
-#: ../../source/installation.rst:44
+#: ../../source/installation.rst:63
 msgid "``typst``: Typst document generation (fabricatio-typst)"
 msgstr "``typst``：Typst 文档生成（fabricatio-typst）"
 
-#: ../../source/installation.rst:45
+#: ../../source/installation.rst:64
 msgid "``improve``: Content improvement (fabricatio-improve)"
 msgstr "``improve``：内容改进（fabricatio-improve）"
 
-#: ../../source/installation.rst:46
+#: ../../source/installation.rst:65
 msgid "``capabilities``: Core capabilities (fabricatio-capabilities)"
 msgstr "``capabilities``：核心能力（fabricatio-capabilities）"
 
-#: ../../source/installation.rst:47
+#: ../../source/installation.rst:66
 msgid "``actions``: Action system (fabricatio-actions)"
 msgstr "``actions``：操作系统（fabricatio-actions）"
 
-#: ../../source/installation.rst:48
+#: ../../source/installation.rst:67
 msgid "``question``: Question processing (fabricatio-question)"
 msgstr "``question``：问题处理（fabricatio-question）"
 
-#: ../../source/installation.rst:49
+#: ../../source/installation.rst:68
 msgid "``tagging``: Content tagging (fabricatio-tagging)"
 msgstr "``tagging``：内容打标签（fabricatio-tagging）"
 
-#: ../../source/installation.rst:50
-msgid "``yue``: Yue support (fabricatio-yue)"
+#: ../../source/installation.rst:69
+#, fuzzy
+msgid "``yue``: Yue language support (fabricatio-yue)"
 msgstr "``yue``：YUE 支持（fabricatio-yue）"
 
-#: ../../source/installation.rst:51
+#: ../../source/installation.rst:70
 msgid "``tool``: Tool integration (fabricatio-tool)"
 msgstr "``tool``：工具集成（fabricatio-tool）"
 
-#: ../../source/installation.rst:52
+#: ../../source/installation.rst:71
 msgid "``plot``: Plotting capabilities (fabricatio-plot)"
 msgstr "``plot``：绘图功能（fabricatio-plot）"
 
-#: ../../source/installation.rst:53
+#: ../../source/installation.rst:72
 msgid "``translate``: Translation services (fabricatio-translate)"
 msgstr "``translate``：翻译服务（fabricatio-translate）"
 
-#: ../../source/installation.rst:54
+#: ../../source/installation.rst:73
 msgid "``locale``: Localization support (fabricatio-locale)"
 msgstr "``locale``：本地化支持（fabricatio-locale）"
 
-#: ../../source/installation.rst:55
+#: ../../source/installation.rst:74
 msgid "``diff``: Diff utilities (fabricatio-diff)"
 msgstr "``diff``：差异工具（fabricatio-diff）"
 
-#: ../../source/installation.rst:56
+#: ../../source/installation.rst:75
 msgid "``thinking``: Thinking/reasoning (fabricatio-thinking)"
 msgstr "``thinking``：思考与推理（fabricatio-thinking）"
 
-#: ../../source/installation.rst:59
+#: ../../source/installation.rst:78
 msgid "Development Installation"
 msgstr "开发环境安装"
 
-#: ../../source/installation.rst:61
+#: ../../source/installation.rst:80
 msgid "For development, clone the repository and install in development mode:"
 msgstr "对于开发环境，克隆仓库并以开发模式安装："
 
-#: ../../source/installation.rst:70
+#: ../../source/installation.rst:89
 msgid "Or using UV with maturin:"
 msgstr "或使用 UV 和 maturin："
 
-#: ../../source/installation.rst:79
+#: ../../source/installation.rst:98
 msgid "Building Distribution"
 msgstr "构建发行版"
 
-#: ../../source/installation.rst:81
+#: ../../source/installation.rst:100
 msgid "To build distribution packages:"
 msgstr "构建发行包："
 
-#: ../../source/installation.rst:88
+#: ../../source/installation.rst:107
 msgid "Requirements"
 msgstr "系统要求"
 
-#: ../../source/installation.rst:90
+#: ../../source/installation.rst:109
 msgid "Python 3.12 or 3.13"
 msgstr "Python 3.12 或 3.13"
 
-#: ../../source/installation.rst:91
+#: ../../source/installation.rst:110
 msgid "Rust toolchain (for development builds)"
 msgstr "Rust 工具链（用于开发构建）"
 
-#: ../../source/installation.rst:92
+#: ../../source/installation.rst:111
 msgid "UV package manager (recommended)"
 msgstr "UV 包管理器（推荐）"
 
 #~ msgid "Using UV (Recommended)"
 #~ msgstr ""
+

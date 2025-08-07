@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"POT-Creation-Date: 2025-08-07 16:55+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -18,19 +18,21 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
+
 #: ../../source/configuration.rst:2
 msgid "Configuration"
 msgstr "配置"
 
 #: ../../source/configuration.rst:4
+#, fuzzy
 msgid ""
 "Fabricatio supports flexible configuration through multiple sources, with"
-" the following priority order: ``Call Arguments`` > ``./.env`` > "
-"``Environment Variables`` > ``./fabricatio.toml`` > ``./pyproject.toml`` "
-"> ``<ROAMING>/fabricatio/fabricatio.toml`` > ``Builtin Defaults``."
+" the following priority order: `Call Arguments` > `./.env` > `Environment"
+" Variables` > `./fabricatio.toml` > `./pyproject.toml` > "
+"`<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`."
 msgstr ""
-"Fabricatio支持通过多种来源进行灵活配置，优先级顺序如下：``调用参数`` > ``./.env`` > "
-"``环境变量`` > ``./fabricatio.toml`` > ``./pyproject.toml`` > "
+"Fabricatio支持通过多种来源进行灵活配置，优先级顺序如下：``调用参数`` > ``./.env`` > ``环境变量`` > "
+"``./fabricatio.toml`` > ``./pyproject.toml`` > "
 "``<ROAMING>/fabricatio/fabricatio.toml`` > ``内置默认值``。"
 
 #: ../../source/configuration.rst:7
@@ -40,15 +42,18 @@ msgid ""
 msgstr "以下是相同配置在不同格式下的统一视图："
 
 #: ../../source/configuration.rst:10
-msgid "Environment Variables or .env File"
+#, fuzzy
+msgid "Environment variables or dotenv file"
 msgstr "环境变量或.env文件"
 
 #: ../../source/configuration.rst:27
-msgid "fabricatio.toml File"
+#, fuzzy
+msgid "`fabricatio.toml` file"
 msgstr "fabricatio.toml文件"
 
 #: ../../source/configuration.rst:47
-msgid "pyproject.toml File"
+#, fuzzy
+msgid "`pyproject.toml` file"
 msgstr "pyproject.toml文件"
 
 #: ../../source/configuration.rst:67
@@ -93,11 +98,14 @@ msgstr "``generation_count``: 每次请求的生成次数"
 
 #: ../../source/configuration.rst:79
 msgid "``stream``: Enable streaming responses"
-msgstr "`[stream](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L30-L30)`: 启用流式响应"
+msgstr ""
+"`[stream](file://L:\r"
+"ust_proj\\fabricatio\\packages\\fabricatio-"
+"core\\python\\fabricatio_core\\models\\kwargs_types.py#L30-L30)`: 启用流式响应"
 
 #: ../../source/configuration.rst:80
-msgid "`[max_tokens](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29)`: Maximum tokens in response"
-msgstr "`[max_tokens](file://L:\rust_proj\fabricatio\packages\fabricatio-core\python\fabricatio_core\models\kwargs_types.py#L29-L29)`: 响应中的最大tokens数"
+msgid "``max_tokens``: Maximum tokens in response"
+msgstr ""
 
 #: ../../source/configuration.rst:82
 msgid "**Debug Settings:**"
@@ -144,12 +152,24 @@ msgid ""
 msgstr "**./pyproject.toml** - 项目配置文件（位于``[tool.fabricatio]``下）"
 
 #: ../../source/configuration.rst:96
+#, fuzzy
 msgid ""
-"**<ROAMING>/fabricatio/fabricatio.toml** - User-specific configuration "
+"**<ROMANING>/fabricatio/fabricatio.toml** - User-specific configuration "
 "file"
 msgstr "**<ROAMING>/fabricatio/fabricatio.toml** - 用户特定的配置文件"
 
 #: ../../source/configuration.rst:97
 msgid "**Builtin Defaults** - Default values provided by the library"
 msgstr "**内置默认值** - 库提供的默认值"
+
+#~ msgid ""
+#~ "`[max_tokens](file://L:\r"
+#~ "ust_proj\\fabricatio\\packages\\fabricatio-"
+#~ "core\\python\\fabricatio_core\\models\\kwargs_types.py#L29-L29)`: "
+#~ "Maximum tokens in response"
+#~ msgstr ""
+#~ "`[max_tokens](file://L:\r"
+#~ "ust_proj\\fabricatio\\packages\\fabricatio-"
+#~ "core\\python\\fabricatio_core\\models\\kwargs_types.py#L29-L29)`: "
+#~ "响应中的最大tokens数"
 

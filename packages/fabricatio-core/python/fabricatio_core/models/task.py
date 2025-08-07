@@ -65,6 +65,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Example:
             .. code-block:: python
+
                 task = Task(name="example_task", namespace=["example"]).move_to("work")
                 assert task.namespace == ["work"]
         """
@@ -84,6 +85,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Example:
             .. code-block:: python
+
                 # Update both goal and description
                 task = Task(name="example_task", goals=["old_goal"], description="old description")
                 task.update_task(goal="new_goal", description="new description")
@@ -121,6 +123,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Example:
             .. code-block:: python
+
                 # Test basic output retrieval
                 task = Task(name="output_task")
                 await task.finish("success")

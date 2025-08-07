@@ -21,12 +21,13 @@ Here's a simple "Hello World" example:
 
    from typing import Any
 
+   # Import necessary classes from the namespace package.
    from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
-
+   # Create an action.
    class Hello(Action):
        """Action that says hello."""
-
+       
        output_key: str = "task_output"
 
        async def _execute(self, **_) -> Any:
@@ -35,12 +36,13 @@ Here's a simple "Hello World" example:
            return ret
 
 
-   # Register the workflow and dispatch
+   # Create the role and register the workflow.
    (Role()
     .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
     .dispatch())
 
-   # Execute the task
+
+   # Make a task and delegate it to the workflow registered above.
    assert Task(name="say hello").delegate_blocking("talk") == "Hello fabricatio!"
 
 Async Usage
@@ -75,31 +77,19 @@ For asynchronous execution:
    if __name__ == "__main__":
        asyncio.run(main())
 
-Available Examples
-------------------
+Usage Scenarios
+---------------
 
-Fabricatio comes with numerous examples demonstrating various use cases:
+Fabricatio supports various usage scenarios:
 
-**Basic Examples:**
+- Simple Chat
+- Retrieval-Augmented Generation (RAG)
+- Article Extraction
+- Propose Task
+- Code Review
+- Write Outline
 
-- ``examples/minor/hello_fabricatio.py`` - Simple hello world
-- ``examples/minor/write_a_poem.py`` - Creative writing
-- ``examples/simple_chat/chat.py`` - Basic chat interface
-
-**Advanced Examples:**
-
-- ``examples/simple_rag/simple_rag.py`` - Retrieval-Augmented Generation
-- ``examples/extract_article/extract.py`` - Article extraction
-- ``examples/propose_task/propose.py`` - Task proposal system
-- ``examples/reviewer/review.py`` - Code review automation
-- ``examples/write_outline/write_outline.py`` - Outline generation
-
-**Specialized Examples:**
-
-- ``examples/anki_deck/deck_gen.py`` - Anki deck generation
-- ``examples/make_diary/diary.py`` - Diary creation from git commits
-- ``examples/search_bibtex/search.py`` - BibTeX search functionality
-- ``examples/yue/compose.py`` - Yue language composition
+For detailed examples and advanced usage patterns, explore the ``examples/`` directory in the repository.
 
 Key Concepts
 ------------

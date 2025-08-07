@@ -7,6 +7,8 @@ fabricatio documentation
    :maxdepth: 2
    :caption: Contents:
 
+   overview
+   features
    installation
    usage
    configuration

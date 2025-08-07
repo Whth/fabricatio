@@ -1,0 +1,429 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-07 16:55+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: ../../source/features.rst:2
+msgid "Features"
+msgstr ""
+
+#: ../../source/features.rst:4
+msgid ""
+"Fabricatio provides a powerful set of features designed to streamline the"
+" development of LLM applications through its event-driven architecture, "
+"seamless LLM integration, and extensible async framework."
+msgstr ""
+
+#: ../../source/features.rst:7
+msgid "Event-Driven Architecture"
+msgstr ""
+
+#: ../../source/features.rst:9
+msgid ""
+"Fabricatio's core architecture is built around an event-driven model that"
+" promotes loose coupling and high cohesion between components. This "
+"pattern allows for scalable, maintainable, and flexible application "
+"development."
+msgstr ""
+
+#: ../../source/features.rst:12
+msgid "EventEmitter Pattern"
+msgstr ""
+
+#: ../../source/features.rst:14
+msgid ""
+"At the heart of Fabricatio's event-driven architecture is the "
+"``EventEmitter`` class, which provides a robust mechanism for managing "
+"event handling with both exact and wildcard event matching capabilities."
+msgstr ""
+
+#: ../../source/features.rst:16
+msgid "The ``EventEmitter`` supports:"
+msgstr ""
+
+#: ../../source/features.rst:18
+msgid ""
+"**Exact Event Matching**: Direct registration and emission of specific "
+"events"
+msgstr ""
+
+#: ../../source/features.rst:19
+msgid ""
+"**Wildcard Event Matching**: Pattern-based event handling using wildcards"
+" (``*``) for flexible event routing"
+msgstr ""
+
+#: ../../source/features.rst:20
+msgid ""
+"**Concurrent Event Processing**: Multiple event handlers can be executed "
+"concurrently for improved performance"
+msgstr ""
+
+#: ../../source/features.rst:21
+msgid ""
+"**Hierarchical Event Structure**: Events can be organized in hierarchical"
+" namespaces using configurable separators"
+msgstr ""
+
+#: ../../source/features.rst:23
+msgid "Key features of the EventEmitter pattern include:"
+msgstr ""
+
+#: ../../source/features.rst:42
+msgid "Task Management Workflows"
+msgstr ""
+
+#: ../../source/features.rst:44
+msgid ""
+"Fabricatio's event-driven architecture excels at managing complex task "
+"workflows through its sophisticated task lifecycle management system."
+msgstr ""
+
+#: ../../source/features.rst:46
+msgid "**Task Lifecycle Management**"
+msgstr ""
+
+#: ../../source/features.rst:48
+msgid "Tasks in Fabricatio progress through well-defined states:"
+msgstr ""
+
+#: ../../source/features.rst:50
+msgid "**Pending**: Task has been created but not yet started"
+msgstr ""
+
+#: ../../source/features.rst:51
+msgid "**Running**: Task is currently being processed"
+msgstr ""
+
+#: ../../source/features.rst:52
+msgid "**Finished**: Task completed successfully"
+msgstr ""
+
+#: ../../source/features.rst:53
+msgid "**Failed**: Task encountered an error during processing"
+msgstr ""
+
+#: ../../source/features.rst:54
+msgid "**Cancelled**: Task was cancelled before completion"
+msgstr ""
+
+#: ../../source/features.rst:56
+msgid ""
+"Each state transition triggers corresponding events that can be handled "
+"by registered workflows:"
+msgstr ""
+
+#: ../../source/features.rst:72
+msgid "**Event-Based Workflow Registration**"
+msgstr ""
+
+#: ../../source/features.rst:74
+msgid ""
+"Roles in Fabricatio register workflows to handle specific events, "
+"creating a flexible routing system:"
+msgstr ""
+
+#: ../../source/features.rst:86
+msgid "Benefits of Event-Driven Design"
+msgstr ""
+
+#: ../../source/features.rst:88
+msgid "Fabricatio's event-driven architecture provides several key advantages:"
+msgstr ""
+
+#: ../../source/features.rst:90
+msgid "**Scalability**"
+msgstr ""
+
+#: ../../source/features.rst:91
+msgid "Decoupled components can be scaled independently"
+msgstr ""
+
+#: ../../source/features.rst:92
+msgid "Event-based communication supports distributed processing"
+msgstr ""
+
+#: ../../source/features.rst:93
+msgid "Concurrent event handling maximizes resource utilization"
+msgstr ""
+
+#: ../../source/features.rst:95
+msgid "**Flexibility**"
+msgstr ""
+
+#: ../../source/features.rst:96
+msgid ""
+"New functionality can be added through event handlers without modifying "
+"existing code"
+msgstr ""
+
+#: ../../source/features.rst:97
+msgid "Wildcard event matching enables generic handlers for related events"
+msgstr ""
+
+#: ../../source/features.rst:98
+msgid "Dynamic workflow registration allows runtime configuration"
+msgstr ""
+
+#: ../../source/features.rst:100
+msgid "**Maintainability**"
+msgstr ""
+
+#: ../../source/features.rst:101
+msgid "Loose coupling reduces dependencies between system components"
+msgstr ""
+
+#: ../../source/features.rst:102
+msgid "Clear event boundaries make code easier to understand and debug"
+msgstr ""
+
+#: ../../source/features.rst:103
+msgid "Standardized event patterns promote consistency across applications"
+msgstr ""
+
+#: ../../source/features.rst:105
+msgid "**Extensibility**"
+msgstr ""
+
+#: ../../source/features.rst:106
+msgid "Event handlers can be added or removed without system downtime"
+msgstr ""
+
+#: ../../source/features.rst:107
+msgid "Plugin architecture supports modular feature development"
+msgstr ""
+
+#: ../../source/features.rst:108
+msgid "Event inheritance enables specialized handling of generic events"
+msgstr ""
+
+#: ../../source/features.rst:111
+msgid "LLM Integration & Templating"
+msgstr ""
+
+#: ../../source/features.rst:113
+msgid ""
+"Fabricatio provides seamless integration with Large Language Models "
+"through its sophisticated templating system and unified LLM interface."
+msgstr ""
+
+#: ../../source/features.rst:116
+msgid "Handlebars Templating"
+msgstr ""
+
+#: ../../source/features.rst:118
+msgid ""
+"Fabricatio leverages Handlebars as its primary templating engine, "
+"providing a powerful and familiar way to generate dynamic content for LLM"
+" interactions. The ``TemplateManager`` wraps the high-performance "
+"handlebars-rust engine for efficient template rendering."
+msgstr ""
+
+#: ../../source/features.rst:120
+msgid "**Template Features**"
+msgstr ""
+
+#: ../../source/features.rst:122
+msgid "The templating system supports:"
+msgstr ""
+
+#: ../../source/features.rst:124
+msgid "**Logic-less Templates**: Clean separation between presentation and logic"
+msgstr ""
+
+#: ../../source/features.rst:125
+msgid ""
+"**Helper Functions**: Extensible template functionality through custom "
+"helpers"
+msgstr ""
+
+#: ../../source/features.rst:126
+msgid "**Partials**: Reusable template components for consistent formatting"
+msgstr ""
+
+#: ../../source/features.rst:127
+msgid "**Context-aware Rendering**: Templates can access complex data structures"
+msgstr ""
+
+#: ../../source/features.rst:145
+msgid "**Template Management**"
+msgstr ""
+
+#: ../../source/features.rst:147
+msgid ""
+"Fabricatio's template system provides flexible template discovery and "
+"management:"
+msgstr ""
+
+#: ../../source/features.rst:163
+msgid "Dynamic Content Generation"
+msgstr ""
+
+#: ../../source/features.rst:165
+msgid ""
+"Fabricatio's LLM integration enables sophisticated dynamic content "
+"generation through its action-based workflow system."
+msgstr ""
+
+#: ../../source/features.rst:167
+msgid "**LLM Configuration**"
+msgstr ""
+
+#: ../../source/features.rst:169
+msgid ""
+"The system provides comprehensive LLM configuration through multiple "
+"sources with clear priority ordering:"
+msgstr ""
+
+#: ../../source/features.rst:182
+msgid "**Action-based LLM Interaction**"
+msgstr ""
+
+#: ../../source/features.rst:184
+msgid ""
+"Actions in Fabricatio can seamlessly interact with LLMs through built-in "
+"methods:"
+msgstr ""
+
+#: ../../source/features.rst:204
+msgid "**Template-driven Prompt Engineering**"
+msgstr ""
+
+#: ../../source/features.rst:206
+msgid "Fabricatio's templating system enables sophisticated prompt engineering:"
+msgstr ""
+
+#: ../../source/features.rst:230
+msgid "Async & Extensible"
+msgstr ""
+
+#: ../../source/features.rst:232
+msgid ""
+"Fabricatio is built from the ground up with asynchronous execution and "
+"extensibility as core principles, enabling high-performance LLM "
+"applications that can be easily customized and extended."
+msgstr ""
+
+#: ../../source/features.rst:235
+msgid "Asynchronous Execution Model"
+msgstr ""
+
+#: ../../source/features.rst:237
+msgid ""
+"Fabricatio leverages Python's async/await syntax throughout its "
+"architecture to provide non-blocking, concurrent execution of tasks and "
+"workflows."
+msgstr ""
+
+#: ../../source/features.rst:239
+msgid "**Concurrent Task Processing**"
+msgstr ""
+
+#: ../../source/features.rst:241
+msgid "The framework supports concurrent execution of multiple tasks:"
+msgstr ""
+
+#: ../../source/features.rst:262
+msgid "**Non-blocking Action Execution**"
+msgstr ""
+
+#: ../../source/features.rst:264
+msgid "All actions in Fabricatio are designed to be non-blocking:"
+msgstr ""
+
+#: ../../source/features.rst:280
+msgid "**Event Loop Integration**"
+msgstr ""
+
+#: ../../source/features.rst:282
+msgid "Fabricatio integrates seamlessly with Python's asyncio event loop:"
+msgstr ""
+
+#: ../../source/features.rst:297
+msgid "Extension Mechanisms"
+msgstr ""
+
+#: ../../source/features.rst:299
+msgid ""
+"Fabricatio provides multiple extension points that allow developers to "
+"customize and extend the framework's functionality."
+msgstr ""
+
+#: ../../source/features.rst:301
+msgid "**Custom Actions**"
+msgstr ""
+
+#: ../../source/features.rst:303
+msgid ""
+"Developers can create custom actions by subclassing the ``Action`` base "
+"class:"
+msgstr ""
+
+#: ../../source/features.rst:331
+msgid "**Custom Workflows**"
+msgstr ""
+
+#: ../../source/features.rst:333
+msgid "Workflows can be customized to implement specific processing patterns:"
+msgstr ""
+
+#: ../../source/features.rst:354
+msgid "**Plugin Architecture**"
+msgstr ""
+
+#: ../../source/features.rst:356
+msgid "Fabricatio supports a plugin architecture through its modular design:"
+msgstr ""
+
+#: ../../source/features.rst:377
+msgid "Workflow Customization"
+msgstr ""
+
+#: ../../source/features.rst:379
+msgid ""
+"Fabricatio provides extensive customization options for workflow behavior"
+" and task processing."
+msgstr ""
+
+#: ../../source/features.rst:381
+msgid "**Context Management**"
+msgstr ""
+
+#: ../../source/features.rst:383
+msgid ""
+"Workflows provide sophisticated context management for sharing data "
+"between actions:"
+msgstr ""
+
+#: ../../source/features.rst:401
+msgid "**Error Handling and Recovery**"
+msgstr ""
+
+#: ../../source/features.rst:403
+msgid "Custom workflows can implement sophisticated error handling:"
+msgstr ""
+
+#: ../../source/features.rst:419
+msgid "**Dynamic Workflow Composition**"
+msgstr ""
+
+#: ../../source/features.rst:421
+msgid "Workflows can be composed dynamically at runtime:"
+msgstr ""
+

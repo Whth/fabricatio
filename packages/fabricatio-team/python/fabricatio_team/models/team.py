@@ -14,6 +14,7 @@ class Team:
 
     Example:
         .. code-block:: python
+
             from fabricatio_core import Role
             from fabricatio_team.models import Team
 

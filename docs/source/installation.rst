@@ -29,6 +29,25 @@ Install fabricatio with specific capabilities:
    # Or with uv
    uv add fabricatio[rag,rule]
 
+Template Download
+-----------------
+
+You can download the templates from the GitHub release manually and extract them to the work directory:
+
+.. code-block:: bash
+
+   curl -L https://github.com/Whth/fabricatio/releases/download/v0.19.1/templates.tar.gz | tar -xz
+
+Or you can use the CLI ``tdown`` bundled with ``fabricatio`` to achieve the same result:
+
+.. code-block:: bash
+
+   tdown download --verbose -o ./
+
+.. note::
+
+   ``fabricatio`` performs template discovery across multiple sources with filename-based identification. Template resolution follows a priority hierarchy where working directory templates override templates located in ``<ROAMING>/fabricatio/templates``.
+
 Available Optional Dependencies
 -------------------------------
 

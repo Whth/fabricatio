@@ -2,14 +2,14 @@ Configuration
 =============
 
 Fabricatio supports flexible configuration through multiple sources, with the following priority order:
-``Call Arguments`` > ``./.env`` > ``Environment Variables`` > ``./fabricatio.toml`` > ``./pyproject.toml`` > ``<ROAMING>/fabricatio/fabricatio.toml`` > ``Builtin Defaults``.
+`Call Arguments` > `./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` > `<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`.
 
 Below is a unified view of the same configuration expressed in different formats:
 
-Environment Variables or .env File
------------------------------------
+Environment variables or dotenv file
+------------------------------------
 
-.. code-block:: bash
+.. code-block:: dotenv
 
    FABRICATIO_LLM__API_ENDPOINT=https://api.openai.com
    FABRICATIO_LLM__API_KEY=your_openai_api_key
@@ -23,8 +23,8 @@ Environment Variables or .env File
    FABRICATIO_LLM__MAX_TOKENS=8192
    FABRICATIO_DEBUG__LOG_LEVEL=INFO
 
-fabricatio.toml File
---------------------
+`fabricatio.toml` file
+----------------------
 
 .. code-block:: toml
 
@@ -43,8 +43,8 @@ fabricatio.toml File
    [debug]
    log_level = "INFO"
 
-pyproject.toml File
--------------------
+`pyproject.toml` file
+---------------------
 
 .. code-block:: toml
 
@@ -93,5 +93,5 @@ Configuration values are resolved in the following order (highest to lowest prio
 3. **Environment Variables** - System environment variables with ``FABRICATIO_`` prefix
 4. **./fabricatio.toml** - Configuration file in the current working directory
 5. **./pyproject.toml** - Project configuration file (under ``[tool.fabricatio]``)
-6. **<ROAMING>/fabricatio/fabricatio.toml** - User-specific configuration file
+6. **<ROMANING>/fabricatio/fabricatio.toml** - User-specific configuration file
 7. **Builtin Defaults** - Default values provided by the library

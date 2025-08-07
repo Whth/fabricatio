@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 01:28+0800\n"
+"POT-Creation-Date: 2025-08-07 16:55+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -128,10 +128,14 @@ msgid "Run the full test suite:"
 msgstr "运行完整测试套件："
 
 #: ../../source/development.rst:99
+#, fuzzy
 msgid ""
 "For specific test configurations, check the ``pytest.ini_options`` in "
-"`[pyproject.toml](file://L:\rust_proj\fabricatio\packages\fabricatio-anki\pyproject.toml)`."
-msgstr "有关特定测试配置，请检查 `[pyproject.toml](file://L:\rust_proj\fabricatio\packages\fabricatio-anki\pyproject.toml)` 中的 ``pytest.ini_options``。"
+"``pyproject.toml``."
+msgstr ""
+"有关特定测试配置，请检查 `[pyproject.toml](file://L:\r"
+"ust_proj\\fabricatio\\packages\\fabricatio-anki\\pyproject.toml)` 中的 "
+"``pytest.ini_options``。"
 
 #: ../../source/development.rst:102
 msgid "Code Quality"

@@ -1,0 +1,482 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-07 16:55+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: ../../source/overview.rst:2
+msgid "Overview"
+msgstr ""
+
+#: ../../source/overview.rst:5
+msgid "What is Fabricatio?"
+msgstr ""
+
+#: ../../source/overview.rst:7
+msgid ""
+"Fabricatio is a streamlined Python library for building LLM applications "
+"using an event-based agent structure. It provides developers with a "
+"powerful yet simple framework for creating sophisticated language model-"
+"powered applications with minimal boilerplate code."
+msgstr ""
+
+#: ../../source/overview.rst:9
+msgid ""
+"At its core, Fabricatio bridges the gap between high-level Python "
+"application development and performance-critical operations by leveraging"
+" Rust for computationally intensive tasks. This hybrid approach allows "
+"developers to enjoy the productivity of Python while benefiting from the "
+"performance characteristics of compiled systems programming languages."
+msgstr ""
+
+#: ../../source/overview.rst:12
+msgid "Core Architecture"
+msgstr ""
+
+#: ../../source/overview.rst:14
+msgid ""
+"Fabricatio is built around an event-driven architecture that promotes "
+"loose coupling and high cohesion between components. The framework's core"
+" concepts include:"
+msgstr ""
+
+#: ../../source/overview.rst:17
+msgid "Event-Based Agent Structure"
+msgstr ""
+
+#: ../../source/overview.rst:19
+msgid ""
+"The foundation of Fabricatio's architecture is its event-based agent "
+"structure. This pattern allows for:"
+msgstr ""
+
+#: ../../source/overview.rst:21
+msgid ""
+"**Decoupled Components**: Agents communicate through events rather than "
+"direct method calls, reducing dependencies between system components"
+msgstr ""
+
+#: ../../source/overview.rst:22
+msgid ""
+"**Scalable Task Management**: Events can be processed asynchronously, "
+"enabling efficient handling of concurrent operations"
+msgstr ""
+
+#: ../../source/overview.rst:23
+msgid ""
+"**Extensible Design**: New functionality can be added by registering "
+"event handlers without modifying existing code"
+msgstr ""
+
+#: ../../source/overview.rst:25
+msgid "The architecture consists of several key components:"
+msgstr ""
+
+#: ../../source/overview.rst:27
+msgid "**Events**"
+msgstr ""
+
+#: ../../source/overview.rst:28
+msgid ""
+"Events are the primary communication mechanism in Fabricatio. They "
+"represent triggers that initiate workflows and can carry data between "
+"different parts of the system."
+msgstr ""
+
+#: ../../source/overview.rst:30
+msgid "**Roles**"
+msgstr ""
+
+#: ../../source/overview.rst:31
+msgid ""
+"Roles are entities that manage workflows and handle task delegation. They"
+" act as coordinators that listen for events and route them to appropriate"
+" workflows."
+msgstr ""
+
+#: ../../source/overview.rst:33
+msgid "**Workflows**"
+msgstr ""
+
+#: ../../source/overview.rst:34
+msgid ""
+"Workflows define sequences of actions that process tasks. They provide a "
+"structured approach to handling complex operations by breaking them down "
+"into manageable steps."
+msgstr ""
+
+#: ../../source/overview.rst:36
+msgid "**Actions**"
+msgstr ""
+
+#: ../../source/overview.rst:37
+msgid ""
+"Actions are the basic units of work in Fabricatio. Each action performs a"
+" specific task and can be chained together to form complex processing "
+"pipelines."
+msgstr ""
+
+#: ../../source/overview.rst:39
+msgid "**Tasks**"
+msgstr ""
+
+#: ../../source/overview.rst:40
+msgid ""
+"Tasks are work items that get processed through workflows. They represent"
+" the actual work to be done and can carry data and metadata through the "
+"processing pipeline."
+msgstr ""
+
+#: ../../source/overview.rst:43
+msgid "Technology Stack"
+msgstr ""
+
+#: ../../source/overview.rst:45
+msgid ""
+"Fabricatio leverages a modern technology stack that combines the best of "
+"multiple ecosystems:"
+msgstr ""
+
+#: ../../source/overview.rst:48
+msgid "Rust for Performance"
+msgstr ""
+
+#: ../../source/overview.rst:50
+msgid ""
+"Performance-critical operations in Fabricatio are implemented in Rust, a "
+"systems programming language known for its speed, memory safety, and "
+"zero-cost abstractions. This includes:"
+msgstr ""
+
+#: ../../source/overview.rst:52
+msgid "Core event processing and dispatch mechanisms"
+msgstr ""
+
+#: ../../source/overview.rst:53
+msgid "Template rendering and processing"
+msgstr ""
+
+#: ../../source/overview.rst:54
+msgid "Data serialization and deserialization"
+msgstr ""
+
+#: ../../source/overview.rst:55
+msgid "Concurrent task management"
+msgstr ""
+
+#: ../../source/overview.rst:57
+msgid ""
+"Rust's compile-time guarantees and performance characteristics ensure "
+"that Fabricatio can handle high-throughput scenarios while maintaining "
+"reliability."
+msgstr ""
+
+#: ../../source/overview.rst:60
+msgid "Handlebars for Templating"
+msgstr ""
+
+#: ../../source/overview.rst:62
+msgid ""
+"Fabricatio uses Handlebars as its templating engine, providing a familiar"
+" and powerful way to generate dynamic content. Handlebars offers:"
+msgstr ""
+
+#: ../../source/overview.rst:64
+msgid "**Logic-less Templates**: Clean separation between presentation and logic"
+msgstr ""
+
+#: ../../source/overview.rst:65
+msgid ""
+"**Helper Functions**: Extensible template functionality through custom "
+"helpers"
+msgstr ""
+
+#: ../../source/overview.rst:66
+msgid "**Partials**: Reusable template components"
+msgstr ""
+
+#: ../../source/overview.rst:67
+msgid "**Compatibility**: Well-established syntax familiar to many developers"
+msgstr ""
+
+#: ../../source/overview.rst:70
+msgid "PyO3 for Python Bindings"
+msgstr ""
+
+#: ../../source/overview.rst:72
+msgid ""
+"Fabricatio's Python interface is built using PyO3, a powerful library for"
+" creating Python bindings for Rust code. PyO3 provides:"
+msgstr ""
+
+#: ../../source/overview.rst:74
+msgid ""
+"**Seamless Integration**: Natural Python APIs that feel native to Python "
+"developers"
+msgstr ""
+
+#: ../../source/overview.rst:75
+msgid ""
+"**Performance**: Direct access to Rust implementations without "
+"significant overhead"
+msgstr ""
+
+#: ../../source/overview.rst:76
+msgid ""
+"**Type Safety**: Strong typing that bridges Python's dynamic nature with "
+"Rust's static typing"
+msgstr ""
+
+#: ../../source/overview.rst:77
+msgid "**Async Support**: First-class support for Python's async/await syntax"
+msgstr ""
+
+#: ../../source/overview.rst:80
+msgid "Key Benefits"
+msgstr ""
+
+#: ../../source/overview.rst:82
+msgid ""
+"Fabricatio offers several compelling advantages for LLM application "
+"development:"
+msgstr ""
+
+#: ../../source/overview.rst:84
+msgid "**Developer Productivity**"
+msgstr ""
+
+#: ../../source/overview.rst:85
+msgid "Minimal boilerplate code required to get started"
+msgstr ""
+
+#: ../../source/overview.rst:86
+msgid "Intuitive API design that follows Python conventions"
+msgstr ""
+
+#: ../../source/overview.rst:87
+msgid "Comprehensive documentation and examples"
+msgstr ""
+
+#: ../../source/overview.rst:88
+msgid "Extensive type hints for better IDE support"
+msgstr ""
+
+#: ../../source/overview.rst:90
+msgid "**Performance**"
+msgstr ""
+
+#: ../../source/overview.rst:91
+msgid "Rust-based core for computationally intensive operations"
+msgstr ""
+
+#: ../../source/overview.rst:92
+msgid "Efficient memory management and garbage collection"
+msgstr ""
+
+#: ../../source/overview.rst:93
+msgid "Optimized concurrent processing capabilities"
+msgstr ""
+
+#: ../../source/overview.rst:95
+msgid "**Flexibility**"
+msgstr ""
+
+#: ../../source/overview.rst:96
+msgid "Modular architecture that allows selective feature inclusion"
+msgstr ""
+
+#: ../../source/overview.rst:97
+msgid "Extensible through custom actions and workflows"
+msgstr ""
+
+#: ../../source/overview.rst:98
+msgid "Support for various LLM providers through LiteLLM integration"
+msgstr ""
+
+#: ../../source/overview.rst:100
+msgid "**Scalability**"
+msgstr ""
+
+#: ../../source/overview.rst:101
+msgid "Event-driven architecture supports high-concurrency scenarios"
+msgstr ""
+
+#: ../../source/overview.rst:102
+msgid "Asynchronous processing model"
+msgstr ""
+
+#: ../../source/overview.rst:103
+msgid "Configurable resource usage"
+msgstr ""
+
+#: ../../source/overview.rst:106
+msgid "Primary Use Cases"
+msgstr ""
+
+#: ../../source/overview.rst:108
+msgid "Fabricatio is designed for a wide range of LLM application scenarios:"
+msgstr ""
+
+#: ../../source/overview.rst:110
+msgid "**Content Generation**"
+msgstr ""
+
+#: ../../source/overview.rst:111
+msgid "Automated writing and editing workflows"
+msgstr ""
+
+#: ../../source/overview.rst:112
+msgid "Creative content generation (stories, poems, articles)"
+msgstr ""
+
+#: ../../source/overview.rst:113
+msgid "Technical documentation generation"
+msgstr ""
+
+#: ../../source/overview.rst:115
+msgid "**Data Processing**"
+msgstr ""
+
+#: ../../source/overview.rst:116
+msgid "Information extraction from unstructured text"
+msgstr ""
+
+#: ../../source/overview.rst:117
+msgid "Document analysis and summarization"
+msgstr ""
+
+#: ../../source/overview.rst:118
+msgid "Data transformation and enrichment"
+msgstr ""
+
+#: ../../source/overview.rst:120
+msgid "**Interactive Applications**"
+msgstr ""
+
+#: ../../source/overview.rst:121
+msgid "Chatbots and conversational agents"
+msgstr ""
+
+#: ../../source/overview.rst:122
+msgid "Interactive task assistants"
+msgstr ""
+
+#: ../../source/overview.rst:123
+msgid "Decision support systems"
+msgstr ""
+
+#: ../../source/overview.rst:125
+msgid "**Knowledge Management**"
+msgstr ""
+
+#: ../../source/overview.rst:126
+msgid "Retrieval-Augmented Generation (RAG) systems"
+msgstr ""
+
+#: ../../source/overview.rst:127
+msgid "Knowledge base construction and maintenance"
+msgstr ""
+
+#: ../../source/overview.rst:128
+msgid "Information retrieval and organization"
+msgstr ""
+
+#: ../../source/overview.rst:130
+msgid "**Automation**"
+msgstr ""
+
+#: ../../source/overview.rst:131
+msgid "Code review and analysis systems"
+msgstr ""
+
+#: ../../source/overview.rst:132
+msgid "Task planning and execution"
+msgstr ""
+
+#: ../../source/overview.rst:133
+msgid "Workflow automation"
+msgstr ""
+
+#: ../../source/overview.rst:136
+msgid "Differentiation from Other LLM Frameworks"
+msgstr ""
+
+#: ../../source/overview.rst:138
+msgid ""
+"Fabricatio distinguishes itself from other LLM frameworks through several"
+" key approaches:"
+msgstr ""
+
+#: ../../source/overview.rst:140
+msgid "**Event-Driven Architecture**"
+msgstr ""
+
+#: ../../source/overview.rst:141
+msgid ""
+"While many LLM frameworks use sequential or pipeline-based processing, "
+"Fabricatio's event-driven approach provides better scalability and "
+"flexibility. This allows for more complex interaction patterns and easier"
+" integration with existing event-driven systems."
+msgstr ""
+
+#: ../../source/overview.rst:143
+msgid "**Performance-First Design**"
+msgstr ""
+
+#: ../../source/overview.rst:144
+msgid ""
+"By leveraging Rust for core operations, Fabricatio achieves performance "
+"characteristics that are difficult to match with pure Python "
+"implementations. This is particularly important for high-throughput "
+"applications and resource-constrained environments."
+msgstr ""
+
+#: ../../source/overview.rst:146
+msgid "**Modular Capabilities**"
+msgstr ""
+
+#: ../../source/overview.rst:147
+msgid ""
+"Fabricatio's package-based approach allows developers to include only the"
+" features they need, reducing dependency overhead and potential security "
+"risks. This modular design also makes it easier to maintain and update "
+"individual components."
+msgstr ""
+
+#: ../../source/overview.rst:149
+msgid "**Developer Experience**"
+msgstr ""
+
+#: ../../source/overview.rst:150
+msgid ""
+"The framework prioritizes developer productivity through intuitive APIs, "
+"comprehensive documentation, and strong typing. This reduces the learning"
+" curve and helps prevent common implementation errors."
+msgstr ""
+
+#: ../../source/overview.rst:152
+msgid "**Template-Centric Approach**"
+msgstr ""
+
+#: ../../source/overview.rst:153
+msgid ""
+"Fabricatio's integration with Handlebars provides a powerful and familiar"
+" templating system that makes content generation more predictable and "
+"maintainable compared to purely programmatic approaches."
+msgstr ""
+
