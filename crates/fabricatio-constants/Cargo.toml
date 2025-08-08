@@ -2,8 +2,8 @@
 name = "fabricatio-constants"
 version = "0.2.1"
 edition = "2024"
-authors = ["Whth <zettainspector@foxmail.com>"]
-license = "MIT"
+authors.workspace = true
+license-file.workspace = true
 repository = "https://github.com/Whth/fabricatio"
 description = "This crate provides constant values used throughout the fabricatio application."
 readme = "README.md"
