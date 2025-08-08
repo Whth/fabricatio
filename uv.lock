@@ -583,7 +583,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.6"
+version = "0.1.7.dev1"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -674,7 +674,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.3.1"
+version = "0.3.2.dev1"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -722,7 +722,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.26.dev1"
+version = "0.3.26.dev2"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1079,7 +1079,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.6.2"
+version = "0.6.3.dev1"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1123,10 +1123,11 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.12"
+version = "0.1.13.dev1"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
+    { name = "fabricatio-tool" },
 ]
 
 [package.optional-dependencies]
@@ -1157,6 +1158,7 @@ requires-dist = [
     { name = "fabricatio-improve", marker = "extra == 'actions'", editable = "packages/fabricatio-improve" },
     { name = "fabricatio-rag", marker = "extra == 'rag'", editable = "packages/fabricatio-rag" },
     { name = "fabricatio-rag", marker = "extra == 'workflows'", editable = "packages/fabricatio-rag" },
+    { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
     { name = "fabricatio-typst", extras = ["rag", "workflows", "qa", "actions"], marker = "extra == 'full'", editable = "packages/fabricatio-typst" },
     { name = "questionary", marker = "extra == 'qa'" },
 ]
@@ -1164,7 +1166,7 @@ provides-extras = ["full", "rag", "qa", "workflows", "actions"]
 
 [[package]]
 name = "fabricatio-yue"
-version = "0.2.6"
+version = "0.2.7.dev0"
 source = { editable = "packages/fabricatio-yue" }
 dependencies = [
     { name = "fabricatio-core" },

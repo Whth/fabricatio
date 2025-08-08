@@ -26,4 +26,3 @@ __all__ = [
     "safe_text_read",
     "tree",
 ]
-

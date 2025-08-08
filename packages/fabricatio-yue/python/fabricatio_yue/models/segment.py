@@ -11,7 +11,6 @@ from typing import List, Self
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
-from fabricatio_tool.fs import dump_text
 from pydantic import Field, NonNegativeInt
 
 from fabricatio_yue.config import yue_config
@@ -96,6 +95,6 @@ class Song(SketchedAble, WithBriefing):
             yue_config.song_save_template, {"duration": self.duration, **self.model_dump()}
         )
         logger.debug(f"Song content:\n{out}")
-        dump_text(file_path, out)
+        Path(file_path).write_text(out, encoding="utf-8", errors="ignore", newline="\n")
 
         return self

@@ -1,7 +1,7 @@
 use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
 use handlebars::{Handlebars, no_escape};
-use log::debug;
+use log::{debug, trace};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -218,7 +218,7 @@ impl TemplateManager {
                     .map(|e| e.path().to_path_buf())
             })
             .inspect(|path| {
-                debug!(
+                trace!(
                     "Discovered template: {}=>{}",
                     path.file_stem().unwrap_or_default().to_string_lossy(),
                     path.display()

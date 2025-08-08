@@ -6,13 +6,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
 from pydantic import (
     BaseModel,
 )
-
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 
 
 class ModelHash(Base, ABC):
