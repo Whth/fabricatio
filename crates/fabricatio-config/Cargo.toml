@@ -1,0 +1,19 @@
+[package]
+name = "fabricatio-config"
+version = "0.1.0"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
+figment = { version = "0.10.19", features = ["env", "toml"] }
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
+pythonize = "0.25.0"
+serde_json = "1.0.138"
+serde = { version = "1.0.219", features = ["derive"] }
+validator = { version = "0.20.0", features = ["derive"] }
+dotenvy = "0.15.7"
+log = "0.4.27"
+macro_utils = { path = "./crates/macro_utils" }
+fabricatio-constants = {path = "../fabricatio-constants"}
+
