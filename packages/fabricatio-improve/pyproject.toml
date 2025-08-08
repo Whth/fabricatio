@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-improve"
-version = "0.1.7-dev0"
+version = "0.1.7"
 description = "A Python library for content review, correction, and improvement in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
