@@ -2,10 +2,10 @@ use chrono::prelude::*;
 use colored::*;
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
+use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{fmt, EnvFilter};
 
 /// Custom event formatter that mimics loguru-style output.
 /// Format: "HH:MM:SS | LEVEL   | target:span - k=v message"
@@ -39,10 +39,12 @@ where
         let time = local.format("%H:%M:%S").to_string().green();
 
         // 3. Target (cyan)
-        let target = meta.target().cyan();
+        let formatted_target = meta.target().split_once("::")
+            .map(|(before, after)| format!("{}::<rust>::{}", before, after))
+            .unwrap_or_else(|| meta.target().to_string());
 
         // 4. Write formatted parts
-        write!(writer, "{} | {:<7} | {} - ", time, colored_level, target)?;
+        write!(writer, "{} | {:<7} | {} - ", time, colored_level, formatted_target.cyan())?;
 
         let colored_msg: &str = match *level {
             tracing::Level::ERROR => "\x1b[31m\x1b[1m",
