@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-improve"
-version = "0.1.6"
+version = "0.1.7-dev0"
 description = "A Python library for content review, correction, and improvement in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -13,6 +13,7 @@ dependencies = [
 
     "fabricatio-core",
     "fabricatio-capabilities",
+    "fabricatio-question"
 ]
 [dependency-groups]
 dev = [
