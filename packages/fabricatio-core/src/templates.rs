@@ -1,5 +1,5 @@
-use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
+use fabricatio_config::{CONFIG_VARNAME, Config};
 use handlebars::{Handlebars, no_escape};
 use log::{debug, trace};
 use pyo3::exceptions::PyRuntimeError;

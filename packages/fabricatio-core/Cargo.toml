@@ -7,7 +7,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 blake3 = "1.6.0"
-figment = { version = "0.10.19", features = ["env", "toml"] }
 handlebars = "6.3.1"
 pyo3 = { version = "0.25.0", features = ["extension-module"] }
 pythonize = "0.25.0"
@@ -16,14 +15,12 @@ serde_json = "1.0.138"
 unicode-segmentation = "1.12.0"
 walkdir = "2.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
-validator = { version = "0.20.0", features = ["derive"] }
-dotenvy = "0.15.7"
 log = "0.4.27"
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
-macro_utils = { path = "src/macro_utils" }
 fabricatio-constants = {path = "../../crates/fabricatio-constants"}
 fabricatio-logger = {path = "../../crates/fabricatio-logger"}
+fabricatio-config = {path = "../../crates/fabricatio-config"}
 chrono = "0.4.41"
 

@@ -28,11 +28,12 @@ glob = "0.3.2"
 members = [
     "crates/fabricatio-constants",
     "crates/fabricatio-logger",
+    "crates/fabricatio-config",
     "packages/fabricatio-typst",
     "packages/fabricatio-typst/src/typst_conversion",
     "packages/fabricatio-rag",
     "packages/fabricatio-core",
-    "packages/fabricatio-core/src/macro_utils",
+    "crates/fabricatio-config/crates/macro_utils",
     "packages/fabricatio-memory",
     "packages/fabricatio-anki",
     "packages/fabricatio-anki/src/deck_loader",

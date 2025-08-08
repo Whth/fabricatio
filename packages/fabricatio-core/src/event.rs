@@ -1,4 +1,4 @@
-use crate::config::{CONFIG_VARNAME, Config};
+use fabricatio_config::{CONFIG_VARNAME, Config};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 

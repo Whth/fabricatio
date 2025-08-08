@@ -942,11 +942,29 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "deck_loader",
+ "fabricatio-logger",
+ "log",
  "pyo3",
  "pythonize",
  "regex",
  "sanitize-filename",
  "serde_yml",
+]
+
+[[package]]
+name = "fabricatio-config"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "fabricatio-constants",
+ "figment",
+ "log",
+ "macro_utils",
+ "pyo3",
+ "pythonize",
+ "serde",
+ "serde_json",
+ "validator",
 ]
 
 [[package]]
@@ -964,13 +982,11 @@ dependencies = [
  "bincode",
  "blake3",
  "chrono",
- "dotenvy",
+ "fabricatio-config",
  "fabricatio-constants",
  "fabricatio-logger",
- "figment",
  "handlebars",
  "log",
- "macro_utils",
  "pyo3",
  "pythonize",
  "rayon",
@@ -978,7 +994,6 @@ dependencies = [
  "serde_json",
  "strum 0.27.2",
  "unicode-segmentation",
- "validator",
  "walkdir",
  "whichlang",
 ]
@@ -997,6 +1012,9 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "colored",
+ "fabricatio-config",
+ "fabricatio-constants",
+ "pyo3",
  "tracing",
  "tracing-log",
  "tracing-subscriber",

@@ -1,11 +1,16 @@
 use chrono::prelude::*;
 use colored::*;
+use fabricatio_config::{CONFIG_VARNAME, Config};
+use fabricatio_constants::NAME;
+use pyo3::exceptions::PyModuleNotFoundError;
+use pyo3::prelude::*;
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
+
 /// Custom event formatter that mimics loguru-style output.
 /// Format: "HH:MM:SS | LEVEL   | target:span - k=v message"
 struct MyFormatter;
@@ -99,5 +104,19 @@ pub fn init_logger(level: &str) {
         .init();
 }
 
-
-
+pub fn init_logger_auto() -> PyResult<()> {
+    let level = Python::with_gil(|py| {
+        let mut n = NAME.to_string();
+        n.push_str("core");
+        if let Ok(m) = py.import(n)
+            && let Ok(conf_obj) = m.getattr(CONFIG_VARNAME)
+            && let Ok(conf) = conf_obj.extract::<Config>()
+        {
+            Ok(conf.debug.log_level)
+        } else {
+            Err(PyModuleNotFoundError::new_err("Config module not found"))
+        }
+    })?;
+    crate::init_logger(level.as_str());
+    Ok(())
+}
