@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
+    m.add_class::<Config>()?;
     m.add(CONFIG_VARNAME, Config::new()?)?;
     Ok(())
 }

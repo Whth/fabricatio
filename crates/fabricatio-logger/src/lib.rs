@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 use colored::*;
-use fabricatio_config::{CONFIG_VARNAME, Config};
+use fabricatio_config::CONFIG_VARNAME;
 use fabricatio_constants::NAME;
 use pyo3::exceptions::PyModuleNotFoundError;
 use pyo3::prelude::*;
@@ -107,16 +107,22 @@ pub fn init_logger(level: &str) {
 pub fn init_logger_auto() -> PyResult<()> {
     let level = Python::with_gil(|py| {
         let mut n = NAME.to_string();
-        n.push_str("core");
-        if let Ok(m) = py.import(n)
-            && let Ok(conf_obj) = m.getattr(CONFIG_VARNAME)
-            && let Ok(conf) = conf_obj.extract::<Config>()
-        {
-            Ok(conf.debug.log_level)
+        n.push_str("_core");
+        if let Ok(m) = py.import(n) {
+            if let Ok(conf_obj) = m.getattr(CONFIG_VARNAME) {
+                conf_obj
+                    .getattr("debug")?
+                    .getattr("log_level")?
+                    .extract::<String>()
+            } else {
+                Err(PyModuleNotFoundError::new_err(
+                    "CONFIG_VARNAME not found in module",
+                ))
+            }
         } else {
             Err(PyModuleNotFoundError::new_err("Config module not found"))
         }
     })?;
-    crate::init_logger(level.as_str());
+    init_logger(level.as_str());
     Ok(())
 }
