@@ -23,12 +23,7 @@ strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
 macro_utils = { path = "src/macro_utils" }
-fabricatio-constants = ">=0.2.0"
+fabricatio-constants = {path = "../../crates/fabricatio-constants"}
+fabricatio-logger = {path = "../../crates/fabricatio-logger"}
 chrono = "0.4.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
-tracing = "0.1.41"
-tracing-log = "0.2.0"
-colored = "3.0.0"
-
-
 

@@ -919,7 +919,7 @@ dependencies = [
  "chrono",
  "clap",
  "colored",
- "fabricatio-constants 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fabricatio-constants",
  "flate2",
  "glob",
  "indicatif",
@@ -958,25 +958,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "fabricatio-constants"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e76099a63b54ab2f40cbb5e728989d12bd3c217d3b0dfb9e4b890ba97e1ada0"
-dependencies = [
- "directories-next",
- "once_cell",
-]
-
-[[package]]
 name = "fabricatio-core"
 version = "0.0.0"
 dependencies = [
  "bincode",
  "blake3",
  "chrono",
- "colored",
  "dotenvy",
- "fabricatio-constants 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fabricatio-constants",
+ "fabricatio-logger",
  "figment",
  "handlebars",
  "log",
@@ -987,9 +977,6 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.27.2",
- "tracing",
- "tracing-log",
- "tracing-subscriber",
  "unicode-segmentation",
  "validator",
  "walkdir",
@@ -1002,6 +989,17 @@ version = "0.0.0"
 dependencies = [
  "polib",
  "pyo3",
+]
+
+[[package]]
+name = "fabricatio-logger"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colored",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]
