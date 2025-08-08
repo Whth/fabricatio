@@ -77,7 +77,7 @@ docs = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,cli,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool,plot,translate,locale,diff,thinking,agent,team,capable]",
+    "fabricatio[rag,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool,plot,translate,locale,diff,thinking,agent,team,capable]",
 ]
 
 anki = ["fabricatio-anki"]
@@ -86,7 +86,6 @@ digest = ["fabricatio-digest"]
 rag = ["fabricatio-rag"]
 judge = ["fabricatio-judge"]
 rule = ["fabricatio-rule"]
-cli = ["typer-slim[standard]>=0.15.2"]
 typst = ["fabricatio-typst"]
 improve = ["fabricatio-improve"]
 capabilities = ["fabricatio-capabilities"]
