@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Dict
 
 import orjson
-
 from fabricatio_core.journal import logger
 
 

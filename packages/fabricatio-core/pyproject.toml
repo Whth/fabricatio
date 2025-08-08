@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-core"
-version = "0.3.26-dev1"
+version = "0.3.26-dev2"
 description = "A foundational Python library providing core components for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -27,18 +27,6 @@ dependencies = [
     "pydantic>=2.10.6",
     "rich>=13.9.4",
     "orjson>=3.10.18",
-]
-[project.optional-dependencies]
-full = [
-    "fabricatio-core[ftd,qa]",
-]
-
-
-qa = [
-    "questionary>=2.1.0",
-]
-ftd = [
-    "magika>=0.6.1",
 ]
 
 [dependency-groups]

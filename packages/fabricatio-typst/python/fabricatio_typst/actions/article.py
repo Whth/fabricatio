@@ -7,7 +7,6 @@ from typing import Callable, ClassVar, List, Optional
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
-from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -18,6 +17,7 @@ from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
+from fabricatio_tool.fs import dump_text, safe_text_read
 from more_itertools import filter_map
 from pydantic import Field
 from rich import print as r_print

@@ -17,8 +17,6 @@ from pydantic import (
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
-from fabricatio_core.decorators import precheck_package
-from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
 
@@ -189,13 +187,14 @@ class WithDependency(Base, ABC):
         """
         return self.clear_dependencies().add_dependency(dependencies)
 
-    def read_dependency[T](self, idx: int = -1, reader: Callable[[str], T] = safe_text_read) -> T:
+    def read_dependency[T](
+        self, idx: int = -1, reader: Callable[[str], T] = lambda p: Path(p).read_text(encoding="utf-8", errors="ignore")
+    ) -> T:
         """Read the content of a file dependency.
 
         Args:
             idx (int): Index of the dependency to read. Defaults to -1 (last dependency).
             reader (Callable[[str], T]): Function to use for reading the file.
-                Defaults to safe_text_read.
 
         Returns:
             T: The content of the file read using the provided reader function.
@@ -203,28 +202,21 @@ class WithDependency(Base, ABC):
         return reader(self.dependencies[idx])
 
     @property
-    @precheck_package(
-        "magika", "package `magika` is required for this method, have you installed fabricatio-core[ftd]?"
-    )
     def dependencies_prompt(self) -> str:
         """Generate a prompt for the task based on the file dependencies.
 
         Returns:
             str: The generated prompt for the task.
         """
-        from fabricatio_core.fs import MAGIKA
-
         return TEMPLATE_MANAGER.render_template(
             CONFIG.templates.dependencies_template,
             {
                 (pth := Path(p)).name: {
                     "path": pth.as_posix(),
                     "exists": pth.exists(),
-                    "description": (identity := MAGIKA.identify_path(pth)).output.description,
                     "size": f"{pth.stat().st_size / (1024 * 1024) if pth.exists() and pth.is_file() else 0:.3f} MB",
-                    "content": (text := safe_text_read(pth)),
+                    "content": (text := pth.read_text(encoding="utf-8", errors="ignore")),
                     "lines": len(text.splitlines()),
-                    "language": identity.output.ct_label,
                     "checksum": blake3_hash(pth.read_bytes()) if pth.exists() and pth.is_file() else "unknown",
                 }
                 for p in self.dependencies

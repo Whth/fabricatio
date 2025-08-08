@@ -5,8 +5,7 @@ from typing import Optional
 
 from fabricatio import Event, Role, Task, WorkFlow, logger
 from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
-from fabricatio_core.fs import safe_text_read
-from fabricatio_core.fs.curd import gather_files
+from fabricatio_tool.fs import gather_files, safe_text_read
 from fabricatio_typst.rust import BibManager
 from litellm.utils import token_counter
 

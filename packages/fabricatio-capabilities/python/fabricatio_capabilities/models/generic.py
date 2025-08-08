@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
-from fabricatio_core.fs import dump_text
-from fabricatio_core.fs.readers import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
+from fabricatio_tool.fs import dump_text
+from fabricatio_tool.fs.readers import safe_text_read
 from pydantic import (
     BaseModel,
 )

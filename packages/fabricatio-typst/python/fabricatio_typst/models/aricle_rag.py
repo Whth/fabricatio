@@ -6,11 +6,11 @@ from itertools import groupby
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Self, Unpack
 
-from fabricatio_core.fs import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import blake3_hash, split_into_chunks
 from fabricatio_core.utils import ok, wrapp_in_block
 from fabricatio_rag.models.rag import MilvusDataBase
+from fabricatio_tool.fs import safe_text_read
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field

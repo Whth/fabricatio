@@ -11,7 +11,6 @@ from fabricatio_capabilities.models.generic import (
     PersistentAble,
     ProposedUpdateAble,
 )
-from fabricatio_core.fs import dump_text, safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import (
     Described,
@@ -24,6 +23,7 @@ from fabricatio_core.rust import (
     word_count,
 )
 from fabricatio_core.utils import fallback_kwargs, ok
+from fabricatio_tool.fs import dump_text, safe_text_read
 from pydantic import Field
 
 from fabricatio_typst.config import typst_config

@@ -6,8 +6,8 @@ from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.actions import PersistentAll
 from fabricatio.capabilities import Propose
 from fabricatio.models import ArticleOutline
-from fabricatio_core.fs import safe_text_read
 from fabricatio_core.utils import ok
+from fabricatio_tool.fs import safe_text_read
 
 
 class ProposeObj(Action, Propose):

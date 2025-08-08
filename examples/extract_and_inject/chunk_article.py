@@ -4,8 +4,8 @@ import asyncio
 
 from fabricatio import Event, Role, Task, WorkFlow, logger
 from fabricatio.actions import ChunkArticle, InjectToDB
-from fabricatio_core.fs import gather_files
 from fabricatio_core.utils import ok
+from fabricatio_tool.fs import gather_files
 from fabricatio_typst.rust import BibManager
 
 

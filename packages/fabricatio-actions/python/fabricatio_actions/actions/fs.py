@@ -3,9 +3,9 @@
 from pathlib import Path
 from typing import Any, List, Mapping, Self
 
-from fabricatio_core.fs import safe_text_read
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
+from fabricatio_tool.fs import safe_text_read
 
 from fabricatio_actions.models.generic import FromMapping
 

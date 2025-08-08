@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import List, Self
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
-from fabricatio_core.fs.curd import dump_text
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
+from fabricatio_tool.fs import dump_text
 from pydantic import Field, NonNegativeInt
 
 from fabricatio_yue.config import yue_config

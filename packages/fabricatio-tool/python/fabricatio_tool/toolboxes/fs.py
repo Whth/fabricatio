@@ -1,6 +1,6 @@
 """File system tool box."""
 
-from fabricatio_core.fs import (
+from fabricatio_tool.fs import (
     absolute_path,
     copy_file,
     create_directory,
@@ -13,7 +13,6 @@ from fabricatio_core.fs import (
     safe_text_read,
     tree,
 )
-
 from fabricatio_tool.models.tool import ToolBox
 
 fs_toolbox = (

@@ -5,12 +5,12 @@ from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
 
 from fabricatio_capabilities.models.generic import FinalizedDumpAble, PersistentAble
 from fabricatio_core.capabilities.usages import UseLLM
-from fabricatio_core.fs import dump_text
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
+from fabricatio_tool.fs import dump_text
 
 from fabricatio_actions.models.generic import FromMapping, FromSequence
 
