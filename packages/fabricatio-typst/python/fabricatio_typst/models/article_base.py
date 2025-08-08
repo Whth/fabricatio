@@ -23,7 +23,7 @@ from fabricatio_core.rust import (
     word_count,
 )
 from fabricatio_core.utils import fallback_kwargs, ok
-from fabricatio_tool.fs import dump_text, safe_text_read
+from fabricatio_tool.fs import dump_text
 from pydantic import Field
 
 from fabricatio_typst.config import typst_config
@@ -474,7 +474,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     def update_article_file[S: "ArticleBase"](self: S, file: str | Path) -> S:
         """Update the article file."""
         file = Path(file)
-        string = safe_text_read(file)
+        string = Path(file).read_text(encoding="utf-8")
         if updated := replace_thesis_body(string, ARTICLE_WRAPPER, f"\n\n{self.to_typst_code()}\n\n"):
             dump_text(file, updated)
             logger.success(f"Successfully updated {file.as_posix()}.")
@@ -486,7 +486,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     def from_article_file[S: "ArticleBase"](cls: Type[S], file: str | Path, title: str = "") -> S:
         """Load article from file."""
         file = Path(file)
-        string = safe_text_read(file)
+        string = Path(file).read_text(encoding="utf-8")
         return cls.from_typst_code(
             title, ok(extract_body(string, ARTICLE_WRAPPER), "Failed to extract body from file.")
         )

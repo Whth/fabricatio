@@ -6,14 +6,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
-from fabricatio_tool.fs import dump_text
-from fabricatio_tool.fs.readers import safe_text_read
 from pydantic import (
     BaseModel,
 )
+
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 
 
 class ModelHash(Base, ABC):
@@ -110,7 +109,7 @@ class FinalizedDumpAble(Base, ABC):
         Returns:
             Self: The current instance of the object.
         """
-        dump_text(path, self.finalized_dump())
+        Path(path).write_text(self.finalized_dump(), encoding="utf-8", errors="ignore", newline="\n")
         return self
 
 
@@ -400,4 +399,4 @@ class PersistentAble(Base, ABC):
             FileNotFoundError: If the specified file does not exist.
             ValueError: If the file content is invalid for the model.
         """
-        return cls.model_validate_json(safe_text_read(path))
+        return cls.model_validate_json(Path(path).read_text(encoding="utf-8"))

@@ -1,5 +1,6 @@
 """Example of proposing a task to a role."""
 
+from pathlib import Path
 from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
@@ -7,7 +8,6 @@ from fabricatio.actions import PersistentAll
 from fabricatio.capabilities import Propose
 from fabricatio.models import ArticleOutline
 from fabricatio_core.utils import ok
-from fabricatio_tool.fs import safe_text_read
 
 
 class ProposeObj(Action, Propose):
@@ -33,7 +33,7 @@ Role(
     registry={
         Event.quick_instantiate("talk"): WorkFlow(
             name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
-        ).update_init_context(briefing=safe_text_read("briefing.txt"))
+        ).update_init_context(briefing=Path("briefing.txt").read_text(encoding="utf-8"))
     },
 )
 

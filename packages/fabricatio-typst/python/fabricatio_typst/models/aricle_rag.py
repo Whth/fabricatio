@@ -10,7 +10,6 @@ from fabricatio_core.journal import logger
 from fabricatio_core.rust import blake3_hash, split_into_chunks
 from fabricatio_core.utils import ok, wrapp_in_block
 from fabricatio_rag.models.rag import MilvusDataBase
-from fabricatio_tool.fs import safe_text_read
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
@@ -101,7 +100,9 @@ class ArticleChunk(MilvusDataBase):
 
         result = [
             cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
-            for c in split_into_chunks(cls.purge_numeric_citation(cls.strip(safe_text_read(path))), **kwargs)
+            for c in split_into_chunks(
+                cls.purge_numeric_citation(cls.strip(Path(path).read_text(encoding="utf-8"))), **kwargs
+            )
         ]
 
         logger.debug(f"Number of chunks created from file {path.as_posix()}: {len(result)}")

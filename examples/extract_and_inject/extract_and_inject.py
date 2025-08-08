@@ -1,11 +1,12 @@
 """Example of proposing a task to a role."""
 
 import asyncio
+from pathlib import Path
 from typing import Optional
 
 from fabricatio import Event, Role, Task, WorkFlow, logger
 from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
-from fabricatio_tool.fs import gather_files, safe_text_read
+from fabricatio_tool.fs import gather_files
 from fabricatio_typst.rust import BibManager
 from litellm.utils import token_counter
 
@@ -13,7 +14,7 @@ MAX_TOKEN = 64000
 
 
 def _reader(path: str) -> Optional[str]:
-    string = safe_text_read(path)
+    string = Path(path).read_text(encoding="utf-8")
     string = string.split("References\n")[0]
     string = string.split("参考文献\n")[0]
     if (leng := token_counter(text=string)) > MAX_TOKEN:

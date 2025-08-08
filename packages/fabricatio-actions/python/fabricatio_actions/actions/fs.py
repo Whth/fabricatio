@@ -5,7 +5,6 @@ from typing import Any, List, Mapping, Self
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
-from fabricatio_tool.fs import safe_text_read
 
 from fabricatio_actions.models.generic import FromMapping
 
@@ -19,7 +18,7 @@ class ReadText(Action, FromMapping):
 
     async def _execute(self, *_: Any, **cxt) -> str:
         logger.info(f"Read text from {Path(self.read_path).as_posix()} to {self.output_key}")
-        return safe_text_read(self.read_path)
+        return Path(self.read_path).read_text(encoding="utf-8")
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:

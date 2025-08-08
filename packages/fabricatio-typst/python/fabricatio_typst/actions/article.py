@@ -17,7 +17,7 @@ from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
-from fabricatio_tool.fs import dump_text, safe_text_read
+from fabricatio_tool.fs import dump_text
 from more_itertools import filter_map
 from pydantic import Field
 from rich import print as r_print
@@ -116,7 +116,7 @@ class GenerateArticleProposal(Action, Propose):
             logger.error("Task not approved, since all inputs are None.")
             return None
 
-        briefing = article_briefing or safe_text_read(
+        briefing = article_briefing or Path(
             ok(
                 article_briefing_path
                 or await self.awhich_pathstr(
@@ -124,7 +124,7 @@ class GenerateArticleProposal(Action, Propose):
                 ),
                 "Could not find the path of file to read.",
             )
-        )
+        ).read_text(encoding="utf-8")
 
         logger.info("Start generating the proposal.")
         return ok(
@@ -193,7 +193,7 @@ class ExtractOutlineFromRaw(Action, Extract):
         logger.info(f"Extracting outline from raw: {Path(article_outline_raw_path).as_posix()}")
 
         return ok(
-            await self.extract(ArticleOutline, safe_text_read(article_outline_raw_path)),
+            await self.extract(ArticleOutline, Path(article_outline_raw_path).read_text(encoding="utf-8")),
             "Could not extract the outline from raw.",
         )
 
@@ -359,7 +359,8 @@ class WriteChapterSummary(Action, UseLLM):
         article.update_article_file(article_path)
 
         dump_text(
-            article_path, safe_text_read(article_path).replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+            article_path,
+            Path(article_path).read_text("utf-8").replace(f"=== {self.summary_title}", f"== {self.summary_title}"),
         )
         return article
 
@@ -414,6 +415,7 @@ class WriteResearchContentSummary(Action, UseLLM):
 
         article.update_article_file(article_path)
         dump_text(
-            article_path, safe_text_read(article_path).replace(f"=== {self.summary_title}", f"== {self.summary_title}")
+            article_path,
+            Path(article_path).read_text("utf-8").replace(f"=== {self.summary_title}", f"== {self.summary_title}"),
         )
         return article

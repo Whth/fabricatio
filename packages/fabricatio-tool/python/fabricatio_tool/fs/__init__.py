@@ -1,7 +1,5 @@
 """FileSystem manipulation module for Fabricatio."""
 
-from importlib.util import find_spec
-
 from fabricatio_tool.fs.curd import (
     absolute_path,
     copy_file,
@@ -29,8 +27,3 @@ __all__ = [
     "tree",
 ]
 
-if find_spec("magika"):
-    from magika import Magika
-
-    MAGIKA = Magika()
-    __all__ += ["MAGIKA"]
