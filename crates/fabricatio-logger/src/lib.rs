@@ -2,11 +2,10 @@ use chrono::prelude::*;
 use colored::*;
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
+use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{EnvFilter, fmt};
-
+use tracing_subscriber::{fmt, EnvFilter};
 /// Custom event formatter that mimics loguru-style output.
 /// Format: "HH:MM:SS | LEVEL   | target:span - k=v message"
 struct MyFormatter;
@@ -99,3 +98,6 @@ pub fn init_logger(level: &str) {
         .with(fmt_layer)
         .init();
 }
+
+
+
