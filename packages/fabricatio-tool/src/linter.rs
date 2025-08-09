@@ -1,3 +1,4 @@
+use log::{debug, error, info, warn};
 use rustpython_ast::text_size::TextRange;
 use rustpython_ast::{Expr, Stmt, Visitor};
 use rustpython_parser::{Mode, parse};
@@ -22,18 +23,27 @@ pub enum CheckMode {
 impl LinterConfig {
     /// Creates a new LinterConfig with default settings
     pub fn new() -> Self {
+        debug!("Creating new LinterConfig with default settings");
         Self::default()
     }
 
     // --- Module-related configurations ---
     /// Sets allowed modules (whitelist mode)
     pub fn with_allowed_modules(mut self, modules: HashSet<String>) -> Self {
+        debug!(
+            "Setting allowed modules (whitelist) with {} entries",
+            modules.len()
+        );
         self.module_mode = CheckMode::Whitelist(modules);
         self
     }
 
     /// Sets forbidden modules (blacklist mode)
     pub fn with_forbidden_modules(mut self, modules: HashSet<String>) -> Self {
+        debug!(
+            "Setting forbidden modules (blacklist) with {} entries",
+            modules.len()
+        );
         self.module_mode = CheckMode::Blacklist(modules);
         self
     }
@@ -41,12 +51,20 @@ impl LinterConfig {
     // --- Import-related configurations ---
     /// Sets allowed imports (whitelist mode)
     pub fn with_allowed_imports(mut self, imports: HashSet<String>) -> Self {
+        debug!(
+            "Setting allowed imports (whitelist) with {} entries",
+            imports.len()
+        );
         self.import_mode = CheckMode::Whitelist(imports);
         self
     }
 
     /// Sets forbidden imports (blacklist mode)
     pub fn with_forbidden_imports(mut self, imports: HashSet<String>) -> Self {
+        debug!(
+            "Setting forbidden imports (blacklist) with {} entries",
+            imports.len()
+        );
         self.import_mode = CheckMode::Blacklist(imports);
         self
     }
@@ -54,12 +72,20 @@ impl LinterConfig {
     // --- Function call-related configurations ---
     /// Sets allowed function calls (whitelist mode)
     pub fn with_allowed_calls(mut self, calls: HashSet<String>) -> Self {
+        debug!(
+            "Setting allowed function calls (whitelist) with {} entries",
+            calls.len()
+        );
         self.call_mode = CheckMode::Whitelist(calls);
         self
     }
 
     /// Sets forbidden function calls (blacklist mode)
     pub fn with_forbidden_calls(mut self, calls: HashSet<String>) -> Self {
+        debug!(
+            "Setting forbidden function calls (blacklist) with {} entries",
+            calls.len()
+        );
         self.call_mode = CheckMode::Blacklist(calls);
         self
     }
@@ -74,6 +100,7 @@ struct LinterVisitor<'a> {
 impl<'a> LinterVisitor<'a> {
     /// Creates a new visitor with the given configuration
     fn with(config: &'a LinterConfig) -> Self {
+        debug!("Initializing LinterVisitor with configuration");
         Self {
             config,
             violations: vec![],
@@ -88,6 +115,7 @@ impl<'a> Visitor for LinterVisitor<'a> {
             .as_import_stmt()
             .and_then(|stmt| check_import(&Stmt::Import(stmt.clone()), self.config))
         {
+            info!("Detected import violation: {}", violation);
             self.violations.push(violation);
         }
 
@@ -95,6 +123,7 @@ impl<'a> Visitor for LinterVisitor<'a> {
             .as_import_from_stmt()
             .and_then(|stmt| check_import(&Stmt::ImportFrom(stmt.clone()), self.config))
         {
+            info!("Detected import-from violation: {}", violation);
             self.violations.push(violation);
         }
 
@@ -107,6 +136,7 @@ impl<'a> Visitor for LinterVisitor<'a> {
             .as_call_expr()
             .and_then(|expr| check_call(&Expr::Call(expr.clone()), self.config))
         {
+            info!("Detected function call violation: {}", violation);
             self.violations.push(violation);
         }
 
@@ -121,13 +151,23 @@ fn check_in_mode<T: ToString + AsRef<str>>(value: &T, mode: &CheckMode) -> Optio
 
     // Hardcoded blacklist takes priority
     if HARD_BLACKLISTED_MODULES.contains(&value.as_ref()) {
+        warn!(
+            "Hard-coded blacklist violation detected for module: {}",
+            val_str
+        );
         return Some(val_str);
     }
 
     match mode {
         CheckMode::Disabled => None,
-        CheckMode::Blacklist(set) if set.contains(&val_str) => Some(val_str),
-        CheckMode::Whitelist(set) if !set.contains(&val_str) => Some(val_str),
+        CheckMode::Blacklist(set) if set.contains(&val_str) => {
+            debug!("Blacklist match for: {}", val_str);
+            Some(val_str)
+        }
+        CheckMode::Whitelist(set) if !set.contains(&val_str) => {
+            debug!("Whitelist mismatch for: {}", val_str);
+            Some(val_str)
+        }
         _ => None,
     }
 }
@@ -173,12 +213,21 @@ pub fn gather_violations<S: AsRef<str>>(
     source: S,
     config: LinterConfig,
 ) -> Result<Vec<String>, String> {
-    let module = parse(source.as_ref(), Mode::Module, "<string>").map_err(|err| err.to_string())?;
+    info!("Starting code analysis with linting rules");
+
+    let module = parse(source.as_ref(), Mode::Module, "<string>").map_err(|err| {
+        error!("Parsing failed: {}", err);
+        err.to_string()
+    })?;
+
     let mut vis = LinterVisitor::with(&config);
 
     module
         .as_module()
-        .ok_or("No module found")?
+        .ok_or_else(|| {
+            error!("No module structure found in source code");
+            "No module found".to_string()
+        })?
         .body
         .iter()
         .for_each(|stmt| {
@@ -188,5 +237,9 @@ pub fn gather_violations<S: AsRef<str>>(
             }
         });
 
+    info!(
+        "Analysis completed. Found {} violations",
+        vis.violations.len()
+    );
     Ok(vis.violations)
 }

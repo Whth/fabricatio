@@ -1,4 +1,44 @@
-use chrono::prelude::*;
+//! A loguru-inspired structured logging implementation for Fabricatio ecosystem
+//!
+//! Provides highly customizable logging with:
+//! - Rich ANSI color output formatting
+//! - Python/Rust interoperability through PyO3 bindings
+//! - Automatic log level configuration
+//! - Structured key-value logging via tracing subsystem
+//!
+//! # Features
+//! - Loguru-style formatting with module/line context
+//! - Cross-language configuration (read settings from Python)
+//! - Custom log levels (SUCCESS/CRITICAL) through metadata filtering
+//! - Thread-safe initialization and global logger management
+//! - Precise timestamps using chrono's local timezone
+//!
+//! # Usage
+//!
+//! ## Basic Rust Initialization
+//! ```rust
+//! use fabricatio_logger::{init_logger, init_logger_auto};
+//!
+//! // Manual initialization with specified level
+//! init_logger("debug");
+//!
+//! // Or automatic configuration from Python settings
+//! init_logger_auto().expect("Failed to initialize logger from Python config");
+//! ```
+//!
+//! # Implementation Details
+//! Built on top of [`tracing`] ecosystem with custom [`FormatEvent`] implementation.
+//! The logger propagates spans and events through the [`tracing_subscriber`] layer system.
+//!
+//! # Panics
+//! - Will panic if initialization is attempted multiple times
+//! - May panic on invalid UTF-8 in log messages
+//!
+//! [`tracing`]: https://docs.rs/tracing
+//! [`FormatEvent`]: tracing_subscriber::fmt::FormatEvent
+//! [`tracing_subscriber`]: https://docs.rs/tracing-subscriber
+
+use chrono::{DateTime, Local};
 use colored::*;
 use fabricatio_config::CONFIG_VARNAME;
 use fabricatio_constants::NAME;
