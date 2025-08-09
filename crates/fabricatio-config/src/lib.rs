@@ -342,9 +342,6 @@ impl Default for RoutingConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[pyclass(get_all, set_all)]
 pub struct GeneralConfig {
-    /// Whether to confirm operations before executing them
-    pub confirm_on_ops: bool,
-
     /// Whether to automatically repair malformed JSON
     pub use_json_repair: bool,
 }
@@ -352,7 +349,6 @@ pub struct GeneralConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         GeneralConfig {
-            confirm_on_ops: true,
             use_json_repair: true,
         }
     }

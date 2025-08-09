@@ -13,6 +13,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import WithBriefing
 from pydantic import Field
 
+from fabricatio_tool.config import tool_config
 from fabricatio_tool.decorators import confirm_to_execute
 
 
@@ -100,12 +101,16 @@ class ToolBox(WithBriefing):
 
     @overload
     def collect_tool[**P, R](
-        self, *, confirm: bool = True, logging: bool = True
+        self, *, confirm: bool = tool_config.confirm_on_ops, logging: bool = tool_config.logging_on_ops
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
     @overload
     def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]: ...
     def collect_tool[**P, R](
-        self, func: Optional[Callable[P, R]] = None, *, confirm: bool = True, logging: bool = True
+        self,
+        func: Optional[Callable[P, R]] = None,
+        *,
+        confirm: bool = tool_config.confirm_on_ops,
+        logging: bool = tool_config.logging_on_ops,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
         """Add a callable function to the toolbox as a tool.
 
@@ -130,7 +135,13 @@ class ToolBox(WithBriefing):
             return _wrapper
         return _wrapper(func)
 
-    def add_tool[**P, R](self, func: Callable[P, R], *, confirm: bool = True, logging: bool = True) -> Self:
+    def add_tool[**P, R](
+        self,
+        func: Callable[P, R],
+        *,
+        confirm: bool = tool_config.confirm_on_ops,
+        logging: bool = tool_config.logging_on_ops,
+    ) -> Self:
         """Add a callable function to the toolbox as a tool.
 
         This method wraps the function with logging execution info and adds it to the toolbox.
