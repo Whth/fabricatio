@@ -309,23 +309,6 @@ fn list_templates(
     Ok(())
 }
 
-fn find_matching_templates(
-    template_name: &str,
-    template_dir: &PathBuf,
-) -> Result<Vec<(PathBuf, String)>, Box<dyn std::error::Error>> {
-    let found_templates =
-        collect_templates_recursive(template_dir, Some(template_name), template_dir)?;
-
-    let matching_templates: Vec<_> = found_templates
-        .into_iter()
-        .filter(|(path, relative_path)| {
-            let file_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-            file_stem == template_name || relative_path == template_name
-        })
-        .collect();
-
-    Ok(matching_templates)
-}
 
 fn confirm_removal(relative_path: &str) -> Result<bool, Box<dyn std::error::Error>> {
     print!(
@@ -347,13 +330,9 @@ fn remove_single_template(
     force: bool,
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if !force {
-        if !confirm_removal(relative_path)? {
-            if verbose {
-                println!("{} Skipped {}", "→".yellow(), relative_path);
-            }
-            return Ok(());
-        }
+    if !force && !confirm_removal(relative_path)? && verbose {
+        println!("{} Skipped {}", "→".yellow(), relative_path);
+        return Ok(());
     }
 
     fs::remove_file(template_path)?;

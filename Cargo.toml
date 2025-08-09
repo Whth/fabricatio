@@ -20,7 +20,12 @@ indicatif = ">=0.17.11"
 glob = "0.3.2"
 
 
-
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
 
 
 
