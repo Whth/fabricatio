@@ -5,7 +5,7 @@ from functools import wraps
 from inspect import signature
 from typing import Callable, Coroutine, Optional
 
-from fabricatio_core import CONFIG, logger
+from fabricatio_core import logger
 
 
 def confirm_to_execute[**P, R](
@@ -19,9 +19,6 @@ def confirm_to_execute[**P, R](
     Returns:
         Callable: A decorator that wraps the function to confirm before execution.
     """
-    if not CONFIG.general.confirm_on_ops:
-        # Skip confirmation if the configuration is set to False
-        return func
     from questionary import confirm
 
     if iscoroutinefunction(func):
