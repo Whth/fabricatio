@@ -309,7 +309,6 @@ fn list_templates(
     Ok(())
 }
 
-
 fn confirm_removal(relative_path: &str) -> Result<bool, Box<dyn std::error::Error>> {
     print!(
         "{} Remove template '{}'? [y/N]: ",

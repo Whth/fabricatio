@@ -390,7 +390,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.19.2"
+version = "0.19.3"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1075,7 +1075,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.6.3"
+version = "0.6.4"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
