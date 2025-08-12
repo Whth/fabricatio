@@ -38,6 +38,9 @@
 //! [`FormatEvent`]: tracing_subscriber::fmt::FormatEvent
 //! [`tracing_subscriber`]: https://docs.rs/tracing-subscriber
 
+mod logger;
+
+use crate::logger::PY_SOURCE_KEY;
 use chrono::{DateTime, Local};
 use colored::*;
 use fabricatio_config::CONFIG_VARNAME;
@@ -67,6 +70,12 @@ where
         event: &Event<'_>,
     ) -> std::fmt::Result {
         let normalized_meta = event.normalized_metadata();
+        let py_source = event
+            .fields()
+            .filter(|field| field.name() == PY_SOURCE_KEY)
+            .last()
+            .map(|field| field.to_string());
+
         let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
 
         let level = event.metadata().level();
@@ -83,11 +92,14 @@ where
         let time = local.format("%H:%M:%S").to_string().green();
 
         // 3. Target (cyan)
-        let formatted_target = meta
-            .target()
-            .split_once("::")
-            .map(|(before, after)| format!("{}::<rust>::{}", before, after))
-            .unwrap_or_else(|| meta.target().to_string());
+        let formatted_target = if let Some(py_source) = py_source {
+            py_source
+        } else {
+            meta.target()
+                .split_once("::")
+                .map(|(before, after)| format!("{}::<rust>::{}", before, after))
+                .unwrap_or_else(|| meta.target().to_string())
+        };
 
         // 4. Write formatted parts
         write!(

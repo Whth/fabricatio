@@ -6,7 +6,6 @@ from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.role import Role
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event
-from fabricatio_tool import fs
 
 __all__ = [
     "CONFIG",
@@ -16,7 +15,6 @@ __all__ = [
     "Role",
     "Task",
     "WorkFlow",
-    "fs",
     "logger",
     "parser",
     "utils",
