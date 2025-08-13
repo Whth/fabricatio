@@ -39,7 +39,7 @@ class DiffEdit(UseLLM, ABC):
         diff = await self.diff(source, requirement, **kwargs)
         if diff:
             return diff.apply(source, match_precision or diff_config.match_precision)
-        logger.warning("Failed to generate a valid diff.")
+        logger.warn("Failed to generate a valid diff.")
         return None
 
     async def diff(self, source: str, requirement: str, **kwargs: Unpack[ValidateKwargs[Diff]]) -> Diff | None:

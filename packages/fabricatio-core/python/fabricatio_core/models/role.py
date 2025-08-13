@@ -57,7 +57,7 @@ class Role(WithBriefing):
     def register_workflow(self, event: Event, workflow: WorkFlow) -> Self:
         """Register a workflow to the role's registry."""
         if event in self.registry:
-            logger.warning(
+            logger.warn(
                 f"Event `{event.collapse()}` is already registered with workflow "
                 f"`{self.registry[event].name}`. It will be overwritten by `{workflow.name}`."
             )
@@ -71,7 +71,7 @@ class Role(WithBriefing):
             del self.registry[event]
 
         else:
-            logger.warning(f"No workflow registered for event `{event.collapse()}` to unregister.")
+            logger.warn(f"No workflow registered for event `{event.collapse()}` to unregister.")
         return self
 
     def dispatch(self) -> Self:

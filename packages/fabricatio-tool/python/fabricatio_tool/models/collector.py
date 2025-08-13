@@ -45,7 +45,7 @@ class ResultCollector:
         if target in self.container:
             self.container.pop(target)
             return self
-        logger.warning(f"Key '{target}' not found in container.")
+        logger.warn(f"Key '{target}' not found in container.")
         return self
 
     @overload

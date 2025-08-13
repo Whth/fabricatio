@@ -18,7 +18,7 @@ def _reader(path: str) -> Optional[str]:
     string = string.split("References\n")[0]
     string = string.split("参考文献\n")[0]
     if (leng := token_counter(text=string)) > MAX_TOKEN:
-        logger.warning(f"{path} is too long, got {leng} tokens, skip.")
+        logger.warn(f"{path} is too long, got {leng} tokens, skip.")
         return None
     logger.info(f"Read {path} get {leng} tokens.")
     return string

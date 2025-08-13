@@ -30,7 +30,7 @@ class CitationRAG(RAG, ABC):
         if max_round <= 0:
             raise ValueError("max_round should be greater than 0")
         if max_round == 1:
-            logger.warning(
+            logger.warn(
                 "max_round should be greater than 1, otherwise it behaves nothing different from the `self.aretrieve`"
             )
 

@@ -92,7 +92,7 @@ class ArticleChunk(MilvusDataBase):
             or bib_mgr.get_cite_key_fuzzy(path.stem)
         )
         if key is None:
-            logger.warning(f"no cite key found for {path.as_posix()}, skip.")
+            logger.warn(f"no cite key found for {path.as_posix()}, skip.")
             return []
         authors = ok(bib_mgr.get_author_by_key(key), f"no author found for {key}")
         year = ok(bib_mgr.get_year_by_key(key), f"no year found for {key}")
@@ -121,7 +121,7 @@ class ArticleChunk(MilvusDataBase):
             f"String length after head strip: {(stripped_len := len(string))}, decreased by {(d := original - stripped_len)}"
         )
         if not d:
-            logger.warning("No decrease at head strip, which is might be abnormal.")
+            logger.warn("No decrease at head strip, which is might be abnormal.")
         for split in (s for s in cls.tail_split if s in string):
             logger.debug(f"Strip tail using {split}")
             parts = string.split(split)
@@ -129,7 +129,7 @@ class ArticleChunk(MilvusDataBase):
             break
         logger.debug(f"String length after tail strip: {len(string)}, decreased by {(d := stripped_len - len(string))}")
         if not d:
-            logger.warning("No decrease at tail strip, which is might be abnormal.")
+            logger.warn("No decrease at tail strip, which is might be abnormal.")
 
         return string
 

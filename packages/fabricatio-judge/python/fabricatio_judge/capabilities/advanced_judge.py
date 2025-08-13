@@ -127,7 +127,7 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
         passes = []
         for judgments in judgments_list:
             if any(j is None for j in judgments):
-                logger.warning("Some judgments failed, assuming judgment is False.")
+                logger.warn("Some judgments failed, assuming judgment is False.")
                 passes.append(False)
                 continue
             passes.append(self.resolve_pass(weights, judgments, vote_pass_threshold))  # pyright: ignore [reportArgumentType]

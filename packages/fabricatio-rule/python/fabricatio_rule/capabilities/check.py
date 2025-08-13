@@ -179,7 +179,7 @@ class Check(EvidentlyJudge, Propose, ABC):
             *[self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules]
         )
         if imp_seq is None:
-            logger.warning(f"Generation failed for string check against `{ruleset.name}`")
+            logger.warn(f"Generation failed for string check against `{ruleset.name}`")
             return None
         return [imp for imp in imp_seq if imp]
 
@@ -209,6 +209,6 @@ class Check(EvidentlyJudge, Propose, ABC):
         imp_seq = await gather(*[self.check_obj_against_rule(obj, rule, reference, **kwargs) for rule in ruleset.rules])
 
         if imp_seq is None:
-            logger.warning(f"Generation Failed for `{obj.__class__.__name__}` against Ruleset `{ruleset.name}`")
+            logger.warn(f"Generation Failed for `{obj.__class__.__name__}` against Ruleset `{ruleset.name}`")
             return None
         return [i for i in imp_seq if i]

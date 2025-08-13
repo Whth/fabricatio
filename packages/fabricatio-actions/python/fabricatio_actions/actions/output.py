@@ -125,7 +125,7 @@ class PersistentAll(Action, UseLLM):
 
         count = 0
         if persist_dir.is_file():
-            logger.warning("Dump should be a directory, but it is a file. Skip dumping.")
+            logger.warn("Dump should be a directory, but it is a file. Skip dumping.")
             return count
         if self.override and persist_dir.is_dir():
             logger.info(f"Override the existing directory {persist_dir.as_posix()}.")
@@ -164,7 +164,7 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     async def _execute(self, /, **_) -> Optional[T | List[T]]:
         logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
-            logger.warning(f"Path {self.load_path} does not exist")
+            logger.warn(f"Path {self.load_path} does not exist")
             return None
 
         if p.is_dir():
@@ -179,7 +179,7 @@ class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMappi
     async def _execute(self, /, **_) -> Optional[T]:
         logger.info(f"Retrieve latest `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
-            logger.warning(f"Path {self.load_path} does not exist")
+            logger.warn(f"Path {self.load_path} does not exist")
             return None
 
         if p.is_dir():
@@ -240,7 +240,7 @@ class Forward(Action, FromMapping, FromSequence):
     async def _execute(self, *_: Any, **cxt) -> Any:
         source = cxt.get(self.original)
         if source is None:
-            logger.warning(f"Original object {self.original} not found in the context")
+            logger.warn(f"Original object {self.original} not found in the context")
         return source
 
     @classmethod
@@ -258,7 +258,7 @@ class Forward(Action, FromMapping, FromSequence):
             elif isinstance(output_val, Sequence):
                 actions.extend(cls(original=original_key, output_key=output_key, **kwargs) for output_key in output_val)
             else:
-                logger.warning(
+                logger.warn(
                     f"Invalid type for output key value in mapping: {type(output_val)} for original key {original_key}. Expected str or Sequence[str]."
                 )
         return actions

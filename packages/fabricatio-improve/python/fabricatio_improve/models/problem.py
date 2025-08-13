@@ -49,7 +49,7 @@ class ProblemSolutions(SketchedAble):
     def model_post_init(self, context: Any, /) -> None:
         """Initialize the problem-solution pair with a problem and a list of solutions."""
         if len(self.solutions) == 0:
-            logger.warning(f"No solution found for problem {self.problem.name}, please add more solutions manually.")
+            logger.warn(f"No solution found for problem {self.problem.name}, please add more solutions manually.")
 
     def update_from_inner(self, other: Self) -> Self:
         """Update the current instance with another instance's attributes."""

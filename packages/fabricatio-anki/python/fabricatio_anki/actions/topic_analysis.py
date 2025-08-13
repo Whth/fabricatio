@@ -52,7 +52,7 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
             if not reader.fieldnames:
                 raise ValueError(f"CSV file {input_path} is empty or malformed.")
             if self.append_col_name in reader.fieldnames:
-                logger.warning(f"'{self.append_col_name}' already exists in {input_path.as_posix()}")
+                logger.warn(f"'{self.append_col_name}' already exists in {input_path.as_posix()}")
                 return input_path
 
             # Read all rows and prepare for analysis

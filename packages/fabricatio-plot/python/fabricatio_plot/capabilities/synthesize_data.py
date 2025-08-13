@@ -79,10 +79,10 @@ class SynthesizeData(UseLLM, ABC):
             df = read_csv(StringIO(raw_csv), sep=plot_config.csv_sep, encoding="utf-8")
             if (d_header := df.columns.tolist()) == header:
                 return df
-            logger.warning(f"Header mismatch: {d_header} != {header}")
+            logger.warn(f"Header mismatch: {d_header} != {header}")
             return None
         except ValueError as e:
-            logger.warning(f"Failed to parse CSV: \n{e}")
+            logger.warn(f"Failed to parse CSV: \n{e}")
             return None
 
     async def synthesize_data(
@@ -111,7 +111,7 @@ class SynthesizeData(UseLLM, ABC):
         from pandas import concat
 
         if rows <= 0:
-            logger.warning("Row count must be greater than 0.")
+            logger.warn("Row count must be greater than 0.")
             return None
 
         # Calculate batch sizes upfront
@@ -133,7 +133,7 @@ class SynthesizeData(UseLLM, ABC):
         batches = []
         for idx, df in enumerate(batch_results):
             if df is None:
-                logger.warning(f"Failed to generate batch {idx + 1}.")
+                logger.warn(f"Failed to generate batch {idx + 1}.")
             else:
                 batches.append(df)
 

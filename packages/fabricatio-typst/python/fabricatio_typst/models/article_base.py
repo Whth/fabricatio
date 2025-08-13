@@ -479,7 +479,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
             dump_text(file, updated)
             logger.success(f"Successfully updated {file.as_posix()}.")
         else:
-            logger.warning(f"Failed to update {file.as_posix()}. Please make sure there are paired `{ARTICLE_WRAPPER}`")
+            logger.warn(f"Failed to update {file.as_posix()}. Please make sure there are paired `{ARTICLE_WRAPPER}`")
         return self
 
     @classmethod

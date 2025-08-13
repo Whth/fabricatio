@@ -44,7 +44,7 @@ class DraftRuleSet(Action, Check, FromMapping):
         if ruleset:
             logger.info(f"Drafted Ruleset length: {len(ruleset.rules)}\n{ruleset.display()}")
         else:
-            logger.warning(f"Drafting Rule Failed for:\n{ruleset_requirement}")
+            logger.warn(f"Drafting Rule Failed for:\n{ruleset_requirement}")
         return ruleset
 
     @classmethod

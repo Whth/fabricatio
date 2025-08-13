@@ -30,7 +30,7 @@ def confirm_to_execute[**P, R](
                 instruction="Please input [Yes/No] to proceed (default: Yes):",
             ).ask_async():
                 return await func(*args, **kwargs)
-            logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
+            logger.warn(f"Function: {func.__name__}{signature(func)} canceled by user.")
             return None
 
         return _async_wrapper
@@ -42,7 +42,7 @@ def confirm_to_execute[**P, R](
             instruction="Please input [Yes/No] to proceed (default: Yes):",
         ).ask():
             return func(*args, **kwargs)
-        logger.warning(f"Function: {func.__name__}{signature(func)} canceled by user.")
+        logger.warn(f"Function: {func.__name__}{signature(func)} canceled by user.")
         return None
 
     return _wrapper

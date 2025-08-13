@@ -75,7 +75,7 @@ class Team:
         member_to_inform = [member for member in self.members if isinstance(member, Cooperate)]
 
         if not member_to_inform:
-            logger.warning("No members that need to be informed found in the team. Skipping...")
+            logger.warn("No members that need to be informed found in the team. Skipping...")
             return self
 
         for m in member_to_inform:

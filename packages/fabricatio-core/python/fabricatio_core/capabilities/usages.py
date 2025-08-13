@@ -299,7 +299,7 @@ class UseLLM(LLMScopedConfig, ABC):
                         return validated
 
                 except RateLimitError as e:
-                    logger.warning(f"Rate limit error:\n{e}")
+                    logger.warn(f"Rate limit error:\n{e}")
                     continue
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation:\n{e}")

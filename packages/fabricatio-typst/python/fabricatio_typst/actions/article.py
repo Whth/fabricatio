@@ -62,7 +62,7 @@ class ExtractArticleEssence(Action, Propose):
             TEMPLATE_MANAGER.render_template(typst_config.extract_essence_template, [{"content": c} for c in contents]),
         ):
             if ess is None:
-                logger.warning("Could not extract article essence")
+                logger.warn("Could not extract article essence")
             else:
                 out.append(ess)
         logger.info(f"Extracted {len(out)} article essence from {len(task_input.dependencies)} files.")
@@ -92,10 +92,10 @@ class FixArticleEssence(Action):
                 logger.info(f"Updated {a.title} with {key}")
                 out.append(a)
             else:
-                logger.warning(f"No key found for {a.title}")
+                logger.warn(f"No key found for {a.title}")
                 count += 1
         if count:
-            logger.warning(f"{count} articles have no key")
+            logger.warn(f"{count} articles have no key")
         return out
 
 
@@ -219,7 +219,7 @@ class FixIntrospectedErrors(Action, Censor):
         origin = article_outline
         while pack := article_outline.gather_introspected():
             logger.info(f"Found {counter}th introspected errors")
-            logger.warning(f"Found introspected error: {pack}")
+            logger.warn(f"Found introspected error: {pack}")
             article_outline = ok(
                 await self.censor_obj(
                     article_outline,
@@ -230,7 +230,7 @@ class FixIntrospectedErrors(Action, Censor):
             ).update_ref(origin)
 
             if self.max_error_count and counter > self.max_error_count:
-                logger.warning("Max error count reached, stopping.")
+                logger.warn("Max error count reached, stopping.")
                 break
             counter += 1
 
@@ -262,7 +262,7 @@ class GenerateArticle(Action, Censor):
                     reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
                 )
                 for _, _, subsec in article.iter_subsections()
-                if (err := subsec.introspect()) and logger.warning(f"Found Introspection Error:\n{err}") is None
+                if (err := subsec.introspect()) and logger.warn(f"Found Introspection Error:\n{err}") is None
             ],
         )
 
@@ -311,7 +311,7 @@ class WriteChapterSummary(Action, UseLLM):
                 retained_chapters.append(chapter_candidate)
             else:
                 # Log c warning for each chapter skipped due to lack of sections
-                logger.warning(
+                logger.warn(
                     f"Chapter '{chapter_candidate.title}' has no sections and will be skipped for summary generation."
                 )
 

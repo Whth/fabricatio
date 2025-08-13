@@ -20,7 +20,7 @@ from fabricatio_translate.config import translate_config
 def fill_empty(source: List[str], translated: List[str] | List[str | None] | None) -> List[str]:
     """Fill empty translations."""
     if translated is None:
-        logger.warning("No translations provided, returning source text.")
+        logger.warn("No translations provided, returning source text.")
         return source
 
     return [t or s for s, t in zip(source, translated, strict=True)]

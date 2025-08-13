@@ -44,7 +44,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
             Optional[List[ToolBox]]: The selected toolboxes.
         """
         if not self.toolboxes:
-            logger.warning("No toolboxes available.")
+            logger.warn("No toolboxes available.")
             return []
         return await self.achoose(
             instruction=request,
@@ -69,7 +69,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
             Optional[List[Tool]]: The selected tools.
         """
         if not toolbox.tools:
-            logger.warning(f"No tools available in toolbox {toolbox.name}.")
+            logger.warn(f"No tools available in toolbox {toolbox.name}.")
             return []
         return await self.achoose(
             instruction=request,

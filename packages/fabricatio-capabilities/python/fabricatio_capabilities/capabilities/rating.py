@@ -392,11 +392,11 @@ class Rating(Propose, ABC):
             List[str]: The best candidates.
         """
         if (leng := len(candidates)) == 0:
-            logger.warning(f"No candidates, got {leng}, return None.")
+            logger.warn(f"No candidates, got {leng}, return None.")
             return None
 
         if leng == 1:
-            logger.warning(f"Only one candidate, got {leng}, return it.")
+            logger.warn(f"Only one candidate, got {leng}, return it.")
             return candidates
         logger.info(f"Choose best {k} from {leng} candidates.")
 

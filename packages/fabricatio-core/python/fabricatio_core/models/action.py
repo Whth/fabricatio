@@ -175,7 +175,7 @@ class WorkFlow(WithBriefing):
                 act_task = create_task(step.act(context))
                 # Handle task cancellation
                 if task.is_cancelled():
-                    logger.warning(f"Workflow cancelled by task: {task.name}")
+                    logger.warn(f"Workflow cancelled by task: {task.name}")
                     act_task.cancel(f"Cancelled by task: {task.name}")
                     break
 
@@ -193,7 +193,7 @@ class WorkFlow(WithBriefing):
             result = final_ctx.get(self.task_output_key)
 
             if self.task_output_key not in final_ctx:
-                logger.warning(
+                logger.warn(
                     f"Task output key: `{self.task_output_key}` not found in the context, None will be returned. "
                     f"You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`."
                 )

@@ -210,7 +210,7 @@ class ToolExecutor:
             for toolbox in toolboxes:
                 tool = toolbox.get(tool_name)
                 if tool is None:
-                    logger.warning(f"Tool {tool_name} not found in any toolbox.")
+                    logger.warn(f"Tool {tool_name} not found in any toolbox.")
                     continue
                 tools.append(tool)
                 break
