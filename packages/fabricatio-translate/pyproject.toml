@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-translate"
-version = "0.1.3"
+version = "0.1.4-dev0"
 description = "An extension of fabricatio, which provide capabilities to translate text."
 readme = "README.md"
 license = { file = "LICENSE" }
