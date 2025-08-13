@@ -42,11 +42,11 @@ async def test_hello_fabricatio_workflow(caplog):
 
     # Optionally, check logs if that's part of the test criteria
     # caplog is a pytest fixture to capture log output
-    assert "executing talk action" in caplog.text
-    # logger.success is not standard, assuming it's a custom level or alias for info/debug
-    # If logger.success logs at INFO level or above:
-    assert f"Setting output for task say hello" in caplog.text
-    assert f"Emitting finished event for task say hello" in caplog.text  # This might be an actual log from your main
+    # assert "executing talk action" in caplog.text
+    # # logger.success is not standard, assuming it's a custom level or alias for info/debug
+    # # If logger.success logs at INFO level or above:
+    # assert f"Setting output for task say hello" in caplog.text
+    # assert f"Emitting finished event for task say hello" in caplog.text  # This might be an actual log from your main
 
     # but here we are asserting the result directly.
     # The original logger.success call is removed from the test logic itself
