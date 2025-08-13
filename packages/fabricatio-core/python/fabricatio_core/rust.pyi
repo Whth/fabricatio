@@ -548,18 +548,11 @@ def is_turkish(string: str) -> bool:
 def is_vietnamese(string: str) -> bool:
     """Check if the given string is in Vietnamese."""
 
-
-
 class Logger:
     """Python logger wrapper that captures source information from Python stack frames."""
 
-    def __init__(self) -> None:
-        """Initialize the logger."""
-        pass
-
     def info(self, msg: str) -> None:
-        """
-        Log an info message with Python source information.
+        """Log an info message with Python source information.
 
         The log will automatically include the Python module and function name
         where this method was called from.
@@ -567,11 +560,9 @@ class Logger:
         Args:
             msg: The message to log
         """
-        pass
 
     def debug(self, msg: str) -> None:
-        """
-        Log a debug message with Python source information.
+        """Log a debug message with Python source information.
 
         The log will automatically include the Python module and function name
         where this method was called from.
@@ -579,11 +570,9 @@ class Logger:
         Args:
             msg: The message to log
         """
-        pass
 
     def error(self, msg: str) -> None:
-        """
-        Log an error message with Python source information.
+        """Log an error message with Python source information.
 
         The log will automatically include the Python module and function name
         where this method was called from.
@@ -591,11 +580,9 @@ class Logger:
         Args:
             msg: The message to log
         """
-        pass
 
     def warn(self, msg: str) -> None:
-        """
-        Log a warning message with Python source information.
+        """Log a warning message with Python source information.
 
         The log will automatically include the Python module and function name
         where this method was called from.
@@ -603,11 +590,9 @@ class Logger:
         Args:
             msg: The message to log
         """
-        pass
 
     def trace(self, msg: str) -> None:
-        """
-        Log a trace message with Python source information.
+        """Log a trace message with Python source information.
 
         The log will automatically include the Python module and function name
         where this method was called from.
@@ -615,7 +600,5 @@ class Logger:
         Args:
             msg: The message to log
         """
-        pass
-    
-    
-logger:Logger
+
+logger: Logger

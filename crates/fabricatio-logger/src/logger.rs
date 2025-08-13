@@ -12,7 +12,6 @@ pub struct Logger;
 impl Logger {
     #[inline]
     fn extract_py_source(inspect: &Bound<PyModule>, frames: &Bound<PyList>) -> String {
-
         let mut module_paths: String = frames
             .iter()
             .rev()
@@ -32,7 +31,9 @@ impl Logger {
             .join(".");
         module_paths.push(':');
         module_paths.push_str(
-            frames.iter().nth(0)
+            frames
+                .iter()
+                .nth(0)
                 .expect("Failed to get frame info")
                 .get_item(3)
                 .unwrap()
@@ -55,7 +56,7 @@ impl Logger {
 
 #[pymethods]
 impl Logger {
-    fn info(&self, msg: String)->PyResult<()> {
+    fn info(&self, msg: String) -> PyResult<()> {
         Python::with_gil(|py| {
             if let Ok(inspect) = py.import("inspect")
                 && let Some(frames) = Self::acquire_frames(&inspect)
@@ -63,8 +64,10 @@ impl Logger {
                 let source = Self::extract_py_source(&inspect, &frames);
                 info!(py_source = source, "{}", msg);
                 Ok(())
-            }else {
-                Err(PyRuntimeError::new_err("Failed to import and use inspect module to extract frames."))
+            } else {
+                Err(PyRuntimeError::new_err(
+                    "Failed to import and use inspect module to extract frames.",
+                ))
             }
         })
     }

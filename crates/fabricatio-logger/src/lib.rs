@@ -42,7 +42,6 @@ mod logger;
 
 use crate::logger::PY_SOURCE_KEY;
 use chrono::{DateTime, Local};
-use colored::*;
 use fabricatio_config::CONFIG_VARNAME;
 use fabricatio_constants::NAME;
 pub use logger::Logger;
@@ -51,10 +50,10 @@ use pyo3::prelude::*;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 struct PySourceVisitor {
     py_source_value: Option<String>,
@@ -65,7 +64,7 @@ impl Visit for PySourceVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         match field.name() {
             PY_SOURCE_KEY => {
-                self.py_source_value = Some(format!("{:?}", value).replace("\"",""));
+                self.py_source_value = Some(format!("{:?}", value).replace("\"", ""));
             }
             "message" => {
                 self.message = Some(format!("{:?}", value));
@@ -101,17 +100,19 @@ where
         let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
 
         let level = event.metadata().level();
-        let colored_level: ColoredString = match *level {
-            tracing::Level::ERROR => "ERROR".red().bold(),
-            tracing::Level::WARN => "WARN ".yellow(),
-            tracing::Level::INFO => "INFO ".blue(),
-            tracing::Level::DEBUG => "DEBUG".blue().bold(),
-            tracing::Level::TRACE => "TRACE".dimmed(),
+
+        let level_color: &str = match *level {
+            tracing::Level::ERROR => "\x1b[31m\x1b[1m",
+            tracing::Level::WARN => "\x1b[33m\x1b[1m",
+            tracing::Level::INFO => "\x1b[0m\x1b[1m",
+            tracing::Level::DEBUG => "\x1b[34m\x1b[1m",
+            tracing::Level::TRACE => "\x1b[2m\x1b[1m",
         };
 
         // 1. Time (dimmed green)
         let local: DateTime<Local> = Local::now();
-        let time = local.format("%H:%M:%S").to_string().green();
+        let time = local.format("%H:%M:%S").to_string();
+        let time = format!("{}{}{}", "\x1b[32m", time, "\x1b[0m");
 
         // 3. Target (cyan)
         let formatted_target = if let Some(py_source) = visitor.py_source_value {
@@ -122,24 +123,23 @@ where
                 .map(|(before, after)| format!("{}::<rust>::{}", before, after))
                 .unwrap_or_else(|| meta.target().to_string())
         };
-
+        let formatted_target = format!("{}{}{}", "\x1b[36m", formatted_target, "\x1b[0m");
         // 4. Write formatted parts
         write!(
             writer,
-            "{} | {:<7} | {} - ",
+            "{} \x1b[31m| {}{:<7}\x1b[0m \x1b[31m| {} \x1b[31m- ",
             time,
-            colored_level,
-            formatted_target.cyan()
+            level_color,
+            level.as_str(),
+            formatted_target
         )?;
 
-        let colored_msg: &str = match *level {
-            tracing::Level::ERROR => "\x1b[31m\x1b[1m",
-            tracing::Level::WARN => "\x1b[33m",
-            tracing::Level::INFO => "\x1b[34m",
-            tracing::Level::DEBUG => "\x1b[34m\x1b[1m",
-            tracing::Level::TRACE => "\x1b[2m",
-        };
-        write!(writer, "{}{}\x1b[0m", colored_msg, visitor.message.unwrap_or_default())?;
+        write!(
+            writer,
+            "{}{}\x1b[0m",
+            level_color,
+            visitor.message.unwrap_or_default()
+        )?;
         writeln!(writer)
     }
 }
@@ -196,6 +196,5 @@ pub fn init_logger_auto() -> PyResult<()> {
     init_logger(level.as_str());
     Ok(())
 }
-
 
 pub const LOGGER_VARNAME: &str = "logger";
