@@ -402,9 +402,7 @@ class WriteResearchContentSummary(Action, UseLLM):
                 },
             )
         )
-        logger.info(
-            f"{self.summary_title}|Wordcount: {word_count(suma)}|Expected: {self.summary_word_count}\n{suma}"
-        )
+        logger.info(f"{self.summary_title}|Wordcount: {word_count(suma)}|Expected: {self.summary_word_count}\n{suma}")
 
         if chap_1.sections[-1].title == self.summary_title:
             # remove old
