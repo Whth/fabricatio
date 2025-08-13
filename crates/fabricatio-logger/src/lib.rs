@@ -45,17 +45,38 @@ use chrono::{DateTime, Local};
 use colored::*;
 use fabricatio_config::CONFIG_VARNAME;
 use fabricatio_constants::NAME;
+pub use logger::Logger;
 use pyo3::exceptions::PyModuleNotFoundError;
 use pyo3::prelude::*;
+use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
+use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{fmt, EnvFilter};
+
+struct PySourceVisitor {
+    py_source_value: Option<String>,
+    message: Option<String>,
+}
+
+impl Visit for PySourceVisitor {
+    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        match field.name() {
+            PY_SOURCE_KEY => {
+                self.py_source_value = Some(format!("{:?}", value).replace("\"",""));
+            }
+            "message" => {
+                self.message = Some(format!("{:?}", value));
+            }
+            _ => {}
+        }
+    }
+}
 
 /// Custom event formatter that mimics loguru-style output.
-/// Format: "HH:MM:SS | LEVEL   | target:span - k=v message"
+/// Format: "HH:MM:SS | LEVEL   | target:span - message"
 struct MyFormatter;
 
 impl<S, N> FormatEvent<S, N> for MyFormatter
@@ -65,16 +86,17 @@ where
 {
     fn format_event(
         &self,
-        ctx: &FmtContext<'_, S, N>,
+        _ctx: &FmtContext<'_, S, N>,
         mut writer: format::Writer<'_>,
         event: &Event<'_>,
     ) -> std::fmt::Result {
         let normalized_meta = event.normalized_metadata();
-        let py_source = event
-            .fields()
-            .filter(|field| field.name() == PY_SOURCE_KEY)
-            .last()
-            .map(|field| field.to_string());
+
+        let mut visitor = PySourceVisitor {
+            py_source_value: None,
+            message: None,
+        };
+        event.record(&mut visitor);
 
         let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
 
@@ -92,7 +114,7 @@ where
         let time = local.format("%H:%M:%S").to_string().green();
 
         // 3. Target (cyan)
-        let formatted_target = if let Some(py_source) = py_source {
+        let formatted_target = if let Some(py_source) = visitor.py_source_value {
             py_source
         } else {
             meta.target()
@@ -117,11 +139,7 @@ where
             tracing::Level::DEBUG => "\x1b[34m\x1b[1m",
             tracing::Level::TRACE => "\x1b[2m",
         };
-
-        write!(writer, "{}", colored_msg)?;
-        ctx.format_fields(writer.by_ref(), event)?;
-        write!(writer, "\x1b[0m")?;
-
+        write!(writer, "{}{}\x1b[0m", colored_msg, visitor.message.unwrap_or_default())?;
         writeln!(writer)
     }
 }
@@ -178,3 +196,6 @@ pub fn init_logger_auto() -> PyResult<()> {
     init_logger(level.as_str());
     Ok(())
 }
+
+
+pub const LOGGER_VARNAME: &str = "logger";
