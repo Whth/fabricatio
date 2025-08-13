@@ -24,4 +24,4 @@ class Hello(Action):
     .dispatch()
 )
 
-logger.success(Task(name="say hi").delegate_blocking("talk"))
+logger.info(Task(name="say hi").delegate_blocking("talk"))

@@ -52,7 +52,7 @@ async def main() -> None:
 
     proposed_task: Task[RuleSet] = Task(name="write an ruleset")
     ruleset = ok(await proposed_task.delegate(ns), "Failed to generate ruleset")
-    logger.success(f"The rule is: \n{ruleset.display()}")
+    logger.info(f"The rule is: \n{ruleset.display()}")
 
 
 if __name__ == "__main__":

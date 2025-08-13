@@ -151,7 +151,7 @@ class UseLLM(LLMScopedConfig, ABC):
             return resp.choices
         if isinstance(resp, CustomStreamWrapper) and (pack := stream_chunk_builder(await asyncstdlib.list(resp))):
             return pack.choices
-        logger.critical(err := f"Unexpected response type: {type(resp)}")
+        logger.error(err := f"Unexpected response type: {type(resp)}")
         raise ValueError(err)
 
     @overload

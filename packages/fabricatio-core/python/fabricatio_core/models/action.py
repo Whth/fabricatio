@@ -181,12 +181,12 @@ class WorkFlow(WithBriefing):
 
                 # Update context with modified values
                 modified_ctx = await act_task
-                logger.success(f"Step [{i}] `{current_action}` execution finished.")
+                logger.info(f"Step [{i}] `{current_action}` execution finished.")
                 if step.output_key:
-                    logger.success(f"Setting action `{current_action}` output to `{step.output_key}`")
+                    logger.info(f"Setting action `{current_action}` output to `{step.output_key}`")
                 await self._context.put(modified_ctx)
 
-            logger.success(f"Workflow `{self.name}` execution finished.")
+            logger.info(f"Workflow `{self.name}` execution finished.")
 
             # Get final context and extract result
             final_ctx = await self._context.get()
@@ -201,8 +201,8 @@ class WorkFlow(WithBriefing):
             await task.finish(result)
 
         except Exception as e:  # noqa: BLE001
-            logger.critical(f"Error during task: {current_action} execution: {e}")
-            logger.critical(traceback.format_exc())
+            logger.error(f"Error during task: {current_action} execution: {e}")
+            logger.error(traceback.format_exc())
             await task.fail()
 
     async def _init_context[T](self, task: Task[T]) -> None:

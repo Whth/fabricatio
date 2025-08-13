@@ -130,19 +130,19 @@ async def main() -> None:
     )
     rating = await task.delegate("rate_food")
 
-    logger.success(f"Result: \n{rating}")
+    logger.info(f"Result: \n{rating}")
 
     generated_criteria = await task.delegate("make_criteria_for_food")
 
-    logger.success(f"Generated Criteria: \n{generated_criteria}")
+    logger.info(f"Generated Criteria: \n{generated_criteria}")
 
     composite_score = await task.delegate("make_composite_score")
 
-    logger.success(f"Composite Score: \n{composite_score}")
+    logger.info(f"Composite Score: \n{composite_score}")
 
     best = await task.delegate("best")
 
-    logger.success(f"Best: \n{best}")
+    logger.info(f"Best: \n{best}")
 
 
 if __name__ == "__main__":

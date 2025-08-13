@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-core"
-version = "0.3.27-dev2"
+version = "0.3.27-dev3"
 description = "A foundational Python library providing core components for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,7 +22,6 @@ dependencies = [
     "asyncstdlib>=3.13.0",
     "json-repair>=0.39.1",
     "litellm>=1.60.0",
-    "loguru>=0.7.3",
     "more-itertools>=10.6.0",
     "pydantic>=2.10.6",
     "rich>=13.9.4",

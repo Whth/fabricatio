@@ -26,7 +26,7 @@ async def main() -> None:
         "Extract the essence of the article from the file at './7.md'"
     )
     ess = (await task.delegate("article")).pop()
-    logger.success(f"Essence:\n{ess.display()}")
+    logger.info(f"Essence:\n{ess.display()}")
 
 
 if __name__ == "__main__":

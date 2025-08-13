@@ -18,12 +18,12 @@ async def main() -> None:
         "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation, you should using derive mode of clap."
     )
 
-    logger.success(f"Code: \n{code}")
+    logger.info(f"Code: \n{code}")
 
     while await confirm("Do you want to review the code?").ask_async():
         code = await role.correct_string(code, topic="If the cli app is of good design", supervisor_check=False)
         r_print(code)
-    logger.success(f"Corrected: \n{code}")
+    logger.info(f"Corrected: \n{code}")
 
 
 if __name__ == "__main__":

@@ -22,10 +22,10 @@ async def main() -> None:
     )
 
     ruleset = await role.draft_ruleset("should not use clap to write cli.", rule_count=1)
-    logger.success(f"Code: \n{code}")
+    logger.info(f"Code: \n{code}")
     code = await role.censor_string(code, ruleset)
 
-    logger.success(f"Code: \n{code}")
+    logger.info(f"Code: \n{code}")
 
 
 if __name__ == "__main__":

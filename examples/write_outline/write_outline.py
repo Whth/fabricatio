@@ -20,7 +20,7 @@ async def main() -> None:
         "You need to read the `./article_briefing.txt` file and write an outline for the article in typst format. The outline should be saved in the `./out.typ` file.",
     )
     path = await ok(proposed_task).delegate(ns)
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.info(f"The outline is saved in:\n{path}")
 
 
 if __name__ == "__main__":

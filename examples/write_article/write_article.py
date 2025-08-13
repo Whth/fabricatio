@@ -147,7 +147,7 @@ def finish(
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.info(f"The outline is saved in:\n{path}")
 
 
 @app.command()
@@ -177,7 +177,7 @@ def completion(
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.info(f"The outline is saved in:\n{path}")
 
 
 @app.command()
@@ -211,7 +211,7 @@ def write(
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.info(f"The outline is saved in:\n{path}")
 
 
 @app.command()
@@ -235,7 +235,7 @@ def suma(
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{article_path.as_posix()}")
+    logger.info(f"The outline is saved in:\n{article_path.as_posix()}")
 
 
 @app.command()
@@ -259,7 +259,7 @@ def rcsuma(
         ),
         "Failed to generate an article ",
     )
-    logger.success(f"The outline is saved in:\n{article_path.as_posix()}")
+    logger.info(f"The outline is saved in:\n{article_path.as_posix()}")
 
 
 if __name__ == "__main__":

@@ -33,4 +33,4 @@ if __name__ == "__main__":
     )
 
     poem = task.delegate_blocking(ns)
-    logger.success(f"Poem:\n\n{poem}")
+    logger.info(f"Poem:\n\n{poem}")

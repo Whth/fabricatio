@@ -41,4 +41,4 @@ Role(
 if __name__ == "__main__":
     task: Task[ArticleOutline] = Task(name="write outline")
     article_outline = ok(task.delegate_blocking("talk"))
-    logger.success(f"article_outline:\n{article_outline.display()}")
+    logger.info(f"article_outline:\n{article_outline.display()}")

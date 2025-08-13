@@ -402,7 +402,7 @@ class WriteResearchContentSummary(Action, UseLLM):
                 },
             )
         )
-        logger.success(
+        logger.info(
             f"{self.summary_title}|Wordcount: {word_count(suma)}|Expected: {self.summary_word_count}\n{suma}"
         )
 

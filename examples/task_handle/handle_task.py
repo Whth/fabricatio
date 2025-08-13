@@ -103,7 +103,7 @@ async def main() -> None:
         )
     )
     path = ok(await proposed_task.delegate("coding"))
-    logger.success(f"Code Path: {path}")
+    logger.info(f"Code Path: {path}")
 
     proposed_task = ok(
         await role.propose_task(
@@ -112,7 +112,7 @@ async def main() -> None:
     )
     proposed_task.override_dependencies(path)
     doc = await proposed_task.delegate("doc")
-    logger.success(f"Documentation: \n{doc}")
+    logger.info(f"Documentation: \n{doc}")
 
     proposed_task.publish("cancel_test")
     await proposed_task.cancel()

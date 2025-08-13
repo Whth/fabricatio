@@ -22,10 +22,10 @@ async def main() -> None:
         "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation"
     )
 
-    logger.success(f"Code: \n{code}")
+    logger.info(f"Code: \n{code}")
 
     corrected = await role.correct_string(code, topic="If the cli app is of good design", supervisor_check=False)
-    logger.success(f"Corrected: \n{corrected}")
+    logger.info(f"Corrected: \n{corrected}")
 
 
 if __name__ == "__main__":

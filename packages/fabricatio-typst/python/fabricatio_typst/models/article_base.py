@@ -477,7 +477,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         string = Path(file).read_text(encoding="utf-8")
         if updated := replace_thesis_body(string, ARTICLE_WRAPPER, f"\n\n{self.to_typst_code()}\n\n"):
             dump_text(file, updated)
-            logger.success(f"Successfully updated {file.as_posix()}.")
+            logger.info(f"Successfully updated {file.as_posix()}.")
         else:
             logger.warn(f"Failed to update {file.as_posix()}. Please make sure there are paired `{ARTICLE_WRAPPER}`")
         return self

@@ -69,7 +69,7 @@ class Correct(Rating, ABC):
             if any(not (violated := ps).decided() for ps in improvement.problem_solutions):
                 logger.error(f"Some problem_solutions are not decided: {violated}")
             else:
-                logger.success(f"All problem_solutions are decided '{improvement.focused_on}'")
+                logger.info(f"All problem_solutions are decided '{improvement.focused_on}'")
         else:
             logger.error(f"No problem_solutions found in Improvement, Skip: {improvement}")
         return improvement

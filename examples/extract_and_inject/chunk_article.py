@@ -33,7 +33,7 @@ async def main() -> None:
 
     task: Task[str] = Task(name="Chunk Article")
     res = ok(await task.delegate(e))
-    logger.success(f"Injected to {res}")
+    logger.info(f"Injected to {res}")
 
 
 if __name__ == "__main__":

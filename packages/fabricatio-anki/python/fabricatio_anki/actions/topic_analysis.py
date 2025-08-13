@@ -80,5 +80,5 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
             writer.writeheader()
             writer.writerows(rows)
 
-        logger.success(f"'{self.append_col_name}' column added to {output_path.as_posix()}")
+        logger.info(f"'{self.append_col_name}' column added to {output_path.as_posix()}")
         return output_path

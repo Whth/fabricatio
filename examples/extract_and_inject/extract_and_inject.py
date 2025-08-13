@@ -60,7 +60,7 @@ async def main() -> None:
     if col_name is None:
         logger.error("No essence found")
         return
-    logger.success(f"Injected to collection: {col_name}")
+    logger.info(f"Injected to collection: {col_name}")
 
 
 if __name__ == "__main__":

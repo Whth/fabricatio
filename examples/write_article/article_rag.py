@@ -71,7 +71,7 @@ async def main() -> None:
 
     proposed_task = Task(name="write an article")
     path = await proposed_task.delegate(ns)
-    logger.success(f"The outline is saved in:\n{path}")
+    logger.info(f"The outline is saved in:\n{path}")
 
 
 if __name__ == "__main__":
