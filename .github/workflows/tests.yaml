@@ -69,6 +69,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         run: |
           uv run coveralls
         env:
