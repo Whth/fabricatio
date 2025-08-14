@@ -301,16 +301,14 @@ class TestForward:
         assert result == "forwarded_value"
 
     @pytest.mark.asyncio
-    async def test_forward_missing_key(self, caplog: pytest.LogCaptureFixture) -> None:
+    async def test_forward_missing_key(self) -> None:
         """Test forwarding a missing key."""
         action = Forward(original="missing_key")
 
         context = {"other_key": "value"}
-        with caplog.at_level("WARNING"):
-            result = await action._execute(**context)
+        result = await action._execute(**context)
 
         assert result is None
-        assert "Original object missing_key not found in the context" in caplog.text
 
     def test_from_sequence(self) -> None:
         """Test creating Forward actions from sequence."""

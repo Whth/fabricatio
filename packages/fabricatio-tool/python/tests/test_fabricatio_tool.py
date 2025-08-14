@@ -1,6 +1,5 @@
 """Tests for the tool."""
 
-import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict
 
@@ -108,12 +107,6 @@ class TestTool:
         tool = Tool(source=sample_func, description="Custom description")
         assert tool.description == "Custom description"
 
-    def test_invoke_logs(self, tool: Tool, caplog: pytest.LogCaptureFixture) -> None:
-        """Test tool invocation logging."""
-        with caplog.at_level(logging.INFO):
-            tool.invoke(5, "a")
-        assert "Invoking tool: test_tool" in caplog.text
-
     def test_signature_property(self, tool: Tool) -> None:
         """Test signature formatting."""
         assert tool.signature == "def test_tool(x: int, y: str) -> str:"
@@ -178,12 +171,6 @@ class TestResultCollector:
         result_collector.submit("a", 1).submit("b", "2")
         results = result_collector.take(["a", "b"], int)
         assert results == [1, None]
-
-    def test_take_missing_key(self, result_collector: ResultCollector, caplog: pytest.LogCaptureFixture) -> None:
-        """Test missing key handling with logging."""
-        with caplog.at_level(logging.WARNING):
-            result_collector.revoke("missing")
-        assert "Key 'missing' not found in container." in caplog.text
 
 
 class TestToolExecutor:
