@@ -127,7 +127,7 @@ where
         // 4. Write formatted parts
         write!(
             writer,
-            "{} \x1b[31m| {}{:<7}\x1b[0m \x1b[31m| {} \x1b[31m- ",
+            "{} \x1b[31m| {}{:<5}\x1b[0m \x1b[31m| {} \x1b[31m- ",
             time,
             level_color,
             level.as_str(),
