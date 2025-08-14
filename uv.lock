@@ -386,7 +386,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.19.5.dev0"
+version = "0.19.5"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -567,7 +567,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.8.dev1"
+version = "0.1.8"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -635,7 +635,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.2.5.dev1"
+version = "0.2.5"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -658,7 +658,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.3.3.dev0"
+version = "0.3.3"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -706,7 +706,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.27.dev3"
+version = "0.3.27"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -741,7 +741,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.1.2.dev0"
+version = "0.1.2"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -785,7 +785,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-improve"
-version = "0.1.8.dev1"
+version = "0.1.8"
 source = { editable = "packages/fabricatio-improve" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -810,7 +810,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-judge"
-version = "0.1.10.dev0"
+version = "0.1.10"
 source = { editable = "packages/fabricatio-judge" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -901,7 +901,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-plot"
-version = "0.1.3.dev0"
+version = "0.1.3"
 source = { editable = "packages/fabricatio-plot" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -985,7 +985,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rule"
-version = "0.1.10.dev0"
+version = "0.1.10"
 source = { editable = "packages/fabricatio-rule" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -1023,7 +1023,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-team"
-version = "0.1.3.dev0"
+version = "0.1.3"
 source = { editable = "packages/fabricatio-team" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1061,7 +1061,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.6.6.dev1"
+version = "0.6.6"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1086,7 +1086,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-translate"
-version = "0.1.4.dev0"
+version = "0.1.4"
 source = { editable = "packages/fabricatio-translate" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1105,7 +1105,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.14.dev2"
+version = "0.1.14"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-core" },
