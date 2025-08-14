@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1008,7 +1008,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-logger"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "chrono",
  "fabricatio-config",
