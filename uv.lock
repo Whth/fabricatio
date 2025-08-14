@@ -489,7 +489,6 @@ dev = [
     { name = "coveralls" },
     { name = "fabricatio-mock" },
     { name = "maturin" },
-    { name = "maturin-import-hook" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -545,7 +544,6 @@ dev = [
     { name = "coveralls", specifier = ">=4.0.1" },
     { name = "fabricatio-mock", editable = "packages/fabricatio-mock" },
     { name = "maturin", specifier = ">=1.8.2" },
-    { name = "maturin-import-hook", specifier = ">=0.2.0" },
     { name = "pyright", specifier = ">=1.1.402" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=0.25.3" },
@@ -569,7 +567,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.8.dev0"
+version = "0.1.8.dev1"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -1063,7 +1061,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.6.6.dev0"
+version = "0.6.6.dev1"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1724,18 +1722,6 @@ wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/e2/d4/6be70e1df56c803bbfb3725418e84ef767de13c71908368dcc898068b0c3/maturin-1.9.3-py3-none-win32.whl", hash = "sha256:8c8ba5fb75827d037c6ccddda43a3cbcb428778cc6d3c6972785bb0b351f2786" },
     { url = "https://mirrors.aliyun.com/pypi/packages/a6/59/42c83e3234a57b6132b2a875137818aabe79ec3621f08320ff52798fd352/maturin-1.9.3-py3-none-win_amd64.whl", hash = "sha256:3dbd698ddc8ebd415ed9f5558730677b6b07984e19769c8194c249145d19aa14" },
     { url = "https://mirrors.aliyun.com/pypi/packages/e9/ea/cd66332cfb2c4f5a264c15da7f98333c63daa00180a03d0b188899b1be76/maturin-1.9.3-py3-none-win_arm64.whl", hash = "sha256:fb2ee86861e72495eb9afd83f3672de0e4061740247f14492703c189829e7928" },
-]
-
-[[package]]
-name = "maturin-import-hook"
-version = "0.3.0"
-source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-dependencies = [
-    { name = "filelock" },
-]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/75/a1/3b007a4132265d5da19096d6835cd4c7e9908afb9156afb96d19ff190f39/maturin_import_hook-0.3.0.tar.gz", hash = "sha256:cdd51ce267663c437c4aea1bfd5f7ee5884b54a9d866ea924227d68d758bbba2" }
-wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/9f/55/0c17a1fccec90dffbb1d904d7ddb7971e4e95f994c6264637e8fe66a5b86/maturin_import_hook-0.3.0-py3-none-any.whl", hash = "sha256:f5d20b4bc3056d84170dc08fe655160421b28d2b5128b48f55312315cdbb2cfe" },
 ]
 
 [[package]]

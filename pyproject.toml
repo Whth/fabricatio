@@ -48,7 +48,6 @@ data = "extra"
 [dependency-groups]
 dev = [
     "maturin>=1.8.2",
-    "maturin-import-hook>=0.2.0",
     "ruff>=0.9.4",
     "uv>=0.5.29",
     "pytest>=8.3.4",
