@@ -20,8 +20,13 @@ use pyo3::prelude::*;
 #[pyo3(name = "rust")]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     config::register(python, m)?;
-    let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
-    fabricatio_logger::init_logger(conf.debug.log_level.as_str());
+    let conf: Config = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
+    let rotation = if let Some(rotation) = conf.debug.rotation {
+        rotation.parse().ok()
+    } else {
+        None
+    };
+    fabricatio_logger::init_logger(conf.debug.log_level.as_str(), conf.debug.log_dir, rotation);
     m.add(LOGGER_VARNAME, Logger)?;
     language::register(python, m)?;
     templates::register(python, m)?;

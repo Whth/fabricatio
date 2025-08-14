@@ -20,7 +20,7 @@
 //! use fabricatio_logger::{init_logger, init_logger_auto};
 //!
 //! // Manual initialization with specified level
-//! init_logger("debug");
+//! init_logger("debug",None,None);
 //!
 //! // Or automatic configuration from Python settings
 //! init_logger_auto().expect("Failed to initialize logger from Python config");
@@ -47,6 +47,8 @@ use fabricatio_constants::NAME;
 pub use logger::Logger;
 use pyo3::exceptions::PyModuleNotFoundError;
 use pyo3::prelude::*;
+use std::path::PathBuf;
+use std::str::FromStr;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
@@ -160,9 +162,34 @@ where
 ///
 /// ```
 /// use fabricatio_logger::init_logger;
-/// init_logger("debug");
+/// init_logger("debug",None,None);
 /// ```
-pub fn init_logger(level: &str) {
+use tracing_appender::rolling::{daily, hourly, minutely, never};
+
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub enum RotationType {
+    #[default]
+    Never,
+    Minutely,
+    Hourly,
+    Daily,
+}
+
+impl FromStr for RotationType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "never" => Ok(RotationType::Never),
+            "minutely" => Ok(RotationType::Minutely),
+            "hourly" => Ok(RotationType::Hourly),
+            "daily" => Ok(RotationType::Daily),
+            _ => Err("Invalid rotation type".to_string()),
+        }
+    }
+}
+
+pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<RotationType>) {
     let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter); // Use custom event format
 
     tracing_subscriber::registry()
@@ -172,18 +199,42 @@ pub fn init_logger(level: &str) {
         )))
         .with(fmt_layer)
         .init();
+
+    if let Some(sink) = log_dir {
+        let name = format!("{}.log", env!("CARGO_CRATE_NAME"));
+        match rotation.unwrap_or_default() {
+            RotationType::Never => {
+                never(sink, name);
+            }
+            RotationType::Minutely => {
+                minutely(sink, name);
+            }
+            RotationType::Hourly => {
+                hourly(sink, name);
+            }
+            RotationType::Daily => {
+                daily(sink, name);
+            }
+        }
+    }
 }
 
 pub fn init_logger_auto() -> PyResult<()> {
-    let level = Python::with_gil(|py| {
+    let (level, sink, rotation) = Python::with_gil(|py| {
         let mut n = NAME.to_string();
         n.push_str("_core");
         if let Ok(m) = py.import(n) {
             if let Ok(conf_obj) = m.getattr(CONFIG_VARNAME) {
-                conf_obj
-                    .getattr("debug")?
-                    .getattr("log_level")?
-                    .extract::<String>()
+                let debug_conf = conf_obj.getattr("debug")?;
+
+                let level = debug_conf.getattr("log_level")?.extract::<String>()?;
+                let log_dir = debug_conf
+                    .getattr("log_dir")?
+                    .extract::<Option<PathBuf>>()?;
+                let rotation = debug_conf
+                    .getattr("rotation")?
+                    .extract::<Option<String>>()?;
+                Ok((level, log_dir, rotation))
             } else {
                 Err(PyModuleNotFoundError::new_err(
                     "CONFIG_VARNAME not found in module",
@@ -193,7 +244,13 @@ pub fn init_logger_auto() -> PyResult<()> {
             Err(PyModuleNotFoundError::new_err("Config module not found"))
         }
     })?;
-    init_logger(level.as_str());
+    let rotation = if let Some(rotation) = rotation {
+        rotation.parse().ok()
+    } else {
+        None
+    };
+
+    init_logger(level.as_str(), sink, rotation);
     Ok(())
 }
 

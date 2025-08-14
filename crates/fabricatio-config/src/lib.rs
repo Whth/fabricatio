@@ -230,20 +230,17 @@ pub struct EmbeddingConfig {
 pub struct DebugConfig {
     pub log_level: String,
 
-    log_file: Option<PathBuf>,
+    pub log_dir: Option<PathBuf>,
 
-    rotation: Option<usize>,
-
-    retention: Option<usize>,
+    pub rotation: Option<String>,
 }
 
 impl Default for DebugConfig {
     fn default() -> Self {
         DebugConfig {
             log_level: "INFO".to_string(),
-            log_file: None,
+            log_dir: None,
             rotation: None,
-            retention: None,
         }
     }
 }

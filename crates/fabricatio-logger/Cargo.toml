@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-logger"
-version = "0.1.3"
+version = "0.1.4-dev0"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -13,3 +13,4 @@ tracing-log = "0.2.0"
 pyo3 = "0.25.1"
 fabricatio-constants = {path = "../fabricatio-constants"}
 fabricatio-config = {path = "../fabricatio-config"}
+tracing-appender = "0.2.3"
