@@ -13,4 +13,3 @@ tracing-log = "0.2.0"
 pyo3 = "0.25.1"
 fabricatio-constants = {path = "../fabricatio-constants"}
 fabricatio-config = {path = "../fabricatio-config"}
-tracing-test = "0.2.5"
