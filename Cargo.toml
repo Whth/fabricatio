@@ -48,6 +48,7 @@ members = [
     "packages/fabricatio-locale",
     "packages/fabricatio-thinking",
     "packages/fabricatio-agent",
+    "packages/fabricatio-diff",
 ]
 
 [workspace.package]

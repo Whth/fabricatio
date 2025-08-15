@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-diff"
-version = "0.1.2"
-description = "An extension of fabricatio, which brings up the diff edit capabilities"
+version = "0.1.1-dev0"
+description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -14,13 +14,10 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",
 ]
-
 requires-python = ">=3.12,<3.14"
-
 dependencies = [
-    "fabricatio-core",
-    "levenshtein>=0.27.1",
-    "more-itertools>=10.7.0",
+
+    "fabricatio-core"
 ]
 
 [dependency-groups]
@@ -29,22 +26,15 @@ dev = [
 ]
 
 
+
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
-[tool.hatch.build.targets.wheel]
-sources = ["python"]
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_diff.rust"
 
-[[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple"
-default = true
-
-[[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
-[[tool.uv.index]]
-url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"

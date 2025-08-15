@@ -1,21 +1,14 @@
 """Module containing configuration classes for fabricatio-diff."""
-
 from dataclasses import dataclass
-
 from fabricatio_core import CONFIG
-
 
 @dataclass(frozen=True)
 class DiffConfig:
-    """Configuration for fabricatio-diff."""
-
-    match_precision: float = 1.0
-    """Precision threshold for matching."""
-
-    diff_template: str = """diff"""
-    """Template string for diff output."""
+    """ Configuration for fabricatio-diff"""
 
 
-diff_config = CONFIG.load("diff", DiffConfig)
+diff_config = CONFIG.load("diff",  DiffConfig)
 
-__all__ = ["diff_config"]
+__all__ = [
+    "diff_config"
+]

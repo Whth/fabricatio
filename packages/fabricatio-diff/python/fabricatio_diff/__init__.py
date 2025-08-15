@@ -1,1 +1,1 @@
-"""An extension of fabricatio, which brings up the diff edit capabilities."""
+"""An extension of fabricatio."""
