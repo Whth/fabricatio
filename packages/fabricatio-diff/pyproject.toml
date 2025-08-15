@@ -19,7 +19,6 @@ requires-python = ">=3.12,<3.14"
 
 dependencies = [
     "fabricatio-core",
-    "more-itertools>=10.7.0",
 ]
 
 [dependency-groups]
