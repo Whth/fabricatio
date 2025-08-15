@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-diff"
-version = "0.1.1-dev0"
-description = "An extension of fabricatio"
+version = "0.1.3-dev0"
+description = "An extension of fabricatio, which brings up the diff edit capabilities"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -14,10 +14,12 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<3.14"
-dependencies = [
 
-    "fabricatio-core"
+requires-python = ">=3.12,<3.14"
+
+dependencies = [
+    "fabricatio-core",
+    "more-itertools>=10.7.0",
 ]
 
 [dependency-groups]
