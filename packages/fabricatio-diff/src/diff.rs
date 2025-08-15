@@ -121,7 +121,7 @@ fn match_lines(haystack: &str, needle: &str, match_precision: Option<f64>) -> Op
 fn show_diff(a: &str, b: &str) -> String {
     let diff = TextDiff::from_lines(a, b);
     let mut result = String::new();
-    
+
     for change in diff.iter_all_changes() {
         let sign = match change.tag() {
             ChangeTag::Delete => "-",
@@ -132,7 +132,6 @@ fn show_diff(a: &str, b: &str) -> String {
     }
     result
 }
-
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(show_diff, m)?)?;

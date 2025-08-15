@@ -43,10 +43,8 @@ def match_lines(haystack: str, needle: str, match_precision: float = 0.9) -> str
             assert matched is not None
     """
 
-
-
 def show_diff(a: str, b: str) -> str:
-    """Generates a unified diff between two strings showing line-level changes.
+    r"""Generates a unified diff between two strings showing line-level changes.
 
     The diff output follows unified diff format conventions where:
     - Lines prefixed with `-` indicate deletions from `a`

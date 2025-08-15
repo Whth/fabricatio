@@ -1,6 +1,6 @@
 """Diff module providing a dataclass for managing text diffs."""
 
-from fabricatio_diff.rust import match_lines
+from fabricatio_diff.rust import match_lines, show_diff
 
 from fabricatio_core.models.generic import Display
 from fabricatio_diff.utils import Delimiters
@@ -29,6 +29,10 @@ class Diff(Display):
             return text.replace(match, self.replace)
         return None
 
+    @property
+    def diff(self):
+        """Returns the diff between the search and replace patterns."""
+        return show_diff(self.search, self.replace)
     def reverse(self) -> "Diff":
         """Reverses the diff operation.
 

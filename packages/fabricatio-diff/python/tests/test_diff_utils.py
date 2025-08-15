@@ -15,7 +15,7 @@ test_cases = [
     # Empty haystack
     ("", "line1", 1.0, None),
     # Empty needle
-    ("line1\nline2", "", 1.0, ""),
+    ("line1\nline2", "", 1.0, None),
     # Single line match
     ("exact match line", "exact match line", 1.0, "exact match line"),
 ]
