@@ -19,7 +19,6 @@ log = "0.4.27"
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
-fabricatio-constants = {path = "../../crates/fabricatio-constants"}
 fabricatio-logger = {path = "../../crates/fabricatio-logger"}
 fabricatio-config = {path = "../../crates/fabricatio-config"}
 chrono = "0.4.41"
