@@ -45,7 +45,7 @@ use chrono::{DateTime, Local};
 use fabricatio_config::CONFIG_VARNAME;
 use fabricatio_constants::NAME;
 pub use logger::Logger;
-use pyo3::exceptions::PyModuleNotFoundError;
+use pyo3::exceptions::{PyModuleNotFoundError, PyRuntimeError};
 use pyo3::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -220,6 +220,7 @@ pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<Rotat
             }
         }
     }
+    Ok(())
 }
 
 pub fn init_logger_auto() -> PyResult<()> {
@@ -253,7 +254,7 @@ pub fn init_logger_auto() -> PyResult<()> {
         None
     };
 
-    init_logger(level.as_str(), sink, rotation)?;
+    init_logger(level.as_str(), sink, rotation).map_err(|e| PyRuntimeError::new_err(e))?;
     Ok(())
 }
 
