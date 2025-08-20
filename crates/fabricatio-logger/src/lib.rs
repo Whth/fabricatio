@@ -192,34 +192,29 @@ impl FromStr for RotationType {
 
 pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<RotationType>) -> Result<(),String>{
     tracing_log::LogTracer::init().map_err(|e| e.to_string())?;
-
-    let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter); // Use custom event format
-
-    tracing_subscriber::registry()
-        .with(EnvFilter::new(format!(
-            "{},SUCCESS=info,CRITICAL=error",
-            level
-        )))
-        .with(fmt_layer)
-        .init();
-
-    if let Some(sink) = log_dir {
+    let writer =if let Some(sink) = log_dir {
         let name = format!("{}.log", env!("CARGO_CRATE_NAME"));
         match rotation.unwrap_or_default() {
             RotationType::Never => {
-                never(sink, name);
+                never(sink, name)
             }
             RotationType::Minutely => {
-                minutely(sink, name);
+                minutely(sink, name)
             }
             RotationType::Hourly => {
-                hourly(sink, name);
+                hourly(sink, name)
             }
             RotationType::Daily => {
-                daily(sink, name);
+                daily(sink, name)
             }
         }
-    }
+    };
+    let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter).with_writer(writer); // Use custom event format
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::new(level))
+        .with(fmt_layer)
+        .init();
     Ok(())
 }
 
