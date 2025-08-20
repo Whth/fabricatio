@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-logger"
-version = "0.1.5-dev1"
+version = "0.1.5-dev2"
 dependencies = [
  "chrono",
  "fabricatio-config",
