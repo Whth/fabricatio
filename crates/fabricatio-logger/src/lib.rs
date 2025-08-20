@@ -20,7 +20,7 @@
 //! use fabricatio_logger::{init_logger, init_logger_auto};
 //!
 //! // Manual initialization with specified level
-//! init_logger("debug",None,None);
+//! init_logger("debug",None,None)?;
 //!
 //! // Or automatic configuration from Python settings
 //! init_logger_auto().expect("Failed to initialize logger from Python config");
@@ -52,10 +52,10 @@ use std::str::FromStr;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
+use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{fmt, EnvFilter};
 
 struct PySourceVisitor {
     py_source_value: Option<String>,
@@ -162,9 +162,10 @@ where
 ///
 /// ```
 /// use fabricatio_logger::init_logger;
-/// init_logger("debug",None,None);
+/// init_logger("debug",None,None)?;
 /// ```
 use tracing_appender::rolling::{daily, hourly, minutely, never};
+
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum RotationType {
@@ -189,7 +190,9 @@ impl FromStr for RotationType {
     }
 }
 
-pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<RotationType>) {
+pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<RotationType>) -> Result<(),String>{
+    tracing_log::LogTracer::init().map_err(|e| e.to_string())?;
+
     let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter); // Use custom event format
 
     tracing_subscriber::registry()
@@ -250,7 +253,7 @@ pub fn init_logger_auto() -> PyResult<()> {
         None
     };
 
-    init_logger(level.as_str(), sink, rotation);
+    init_logger(level.as_str(), sink, rotation)?;
     Ok(())
 }
 

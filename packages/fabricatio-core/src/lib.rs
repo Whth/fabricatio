@@ -9,8 +9,8 @@ mod language;
 mod templates;
 mod word_split;
 
-use fabricatio_config::{CONFIG_VARNAME, Config};
-use fabricatio_logger::{LOGGER_VARNAME, Logger};
+use fabricatio_config::{Config, CONFIG_VARNAME};
+use fabricatio_logger::{Logger, LOGGER_VARNAME};
 use pyo3::prelude::*;
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -26,7 +26,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     } else {
         None
     };
-    fabricatio_logger::init_logger(conf.debug.log_level.as_str(), conf.debug.log_dir, rotation);
+    fabricatio_logger::init_logger(conf.debug.log_level.as_str(), conf.debug.log_dir, rotation)?;
     m.add(LOGGER_VARNAME, Logger)?;
     language::register(python, m)?;
     templates::register(python, m)?;
