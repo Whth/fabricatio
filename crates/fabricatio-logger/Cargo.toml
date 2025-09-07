@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-logger"
-version = "0.1.5-dev4"
+version = "0.1.5"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true

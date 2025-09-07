@@ -51,12 +51,12 @@ use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::field::{Field, Visit};
-pub use tracing::{debug, error, info, trace, warn};
 use tracing::{Event, Subscriber};
-use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
+pub use tracing::{debug, error, info, trace, warn};
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 struct PySourceVisitor {
     py_source_value: Option<String>,
@@ -92,7 +92,6 @@ where
         mut writer: format::Writer<'_>,
         event: &Event<'_>,
     ) -> std::fmt::Result {
-
         let mut visitor = PySourceVisitor {
             py_source_value: None,
             message: None,
@@ -166,7 +165,6 @@ where
 /// ```
 use tracing_appender::rolling::{daily, hourly, minutely, never};
 
-
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum RotationType {
     #[default]
@@ -195,27 +193,24 @@ pub fn init_logger(
     log_dir: Option<PathBuf>,
     rotation: Option<RotationType>,
 ) -> Result<(), String> {
-
-
     if let Some(sink) = log_dir {
         let name = format!("{}.log", env!("CARGO_CRATE_NAME"));
-        let writer =
-            match rotation.unwrap_or_default() {
-                RotationType::Never => never(sink, name),
-                RotationType::Minutely => minutely(sink, name),
-                RotationType::Hourly => hourly(sink, name),
-                RotationType::Daily => daily(sink, name),
-            };
+        let writer = match rotation.unwrap_or_default() {
+            RotationType::Never => never(sink, name),
+            RotationType::Minutely => minutely(sink, name),
+            RotationType::Hourly => hourly(sink, name),
+            RotationType::Daily => daily(sink, name),
+        };
         let fmt_layer = fmt::layer()
             .with_target(true)
             .event_format(MyFormatter)
-            .with_writer( writer);
+            .with_writer(writer);
 
         tracing_subscriber::registry()
             .with(EnvFilter::new(level))
             .with(fmt_layer)
             .init();
-    }else {
+    } else {
         let fmt_layer = fmt::layer()
             .with_target(true)
             .event_format(MyFormatter)
