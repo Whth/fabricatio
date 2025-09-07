@@ -16,4 +16,3 @@ mcp-manager = { path = "./crates/mcp-manager" }
 signify =  { path = "./crates/signify" }
 rmcp = "0.4.0"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
-log = "0.4.27"

@@ -8,4 +8,4 @@ license-file.workspace = true
 [dependencies]
 tex2typst-rs = "0.4.1"
 regex = "1.11.1"
-log = "0.4.27"
+fabricatio-logger = {path = "../../../../crates/fabricatio-logger"}

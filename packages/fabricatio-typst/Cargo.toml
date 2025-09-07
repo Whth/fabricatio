@@ -18,4 +18,3 @@ typst_conversion = { path = "src/typst_conversion" }
 clap = { version = "4.5.29", features = ["derive"] }
 
 fabricatio-logger = {path = "../../crates/fabricatio-logger"}
-log = "0.4.27"

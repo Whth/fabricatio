@@ -3,7 +3,6 @@ use fabricatio_constants::{CONFIG_FILE, GLOBAL_CONFIG_FILE, NAME, ROAMING};
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
-use log::debug;
 use macro_utils::TemplateDefault;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -515,9 +514,7 @@ impl Config {
     fn figment() -> Figment {
         Figment::new()
             .join({
-                if let Ok(env_file) = dotenv_override() {
-                    debug!("Using env file: {}", env_file.display())
-                }
+                let _ = dotenv_override();
                 Env::prefixed(format!("{}_", NAME.to_uppercase()).as_str()).split("__")
             })
             .join(Toml::file(CONFIG_FILE))

@@ -15,7 +15,6 @@ serde_json = "1.0.138"
 unicode-segmentation = "1.12.0"
 walkdir = "2.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
-log = "0.4.27"
 strum = { version = "0.27.1", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"

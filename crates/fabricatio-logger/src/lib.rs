@@ -47,11 +47,12 @@ use fabricatio_constants::NAME;
 pub use logger::Logger;
 use pyo3::exceptions::{PyModuleNotFoundError, PyRuntimeError};
 use pyo3::prelude::*;
+use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::field::{Field, Visit};
+pub use tracing::{debug, error, info, trace, warn};
 use tracing::{Event, Subscriber};
-use tracing_log::NormalizeEvent;
 use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
@@ -91,7 +92,6 @@ where
         mut writer: format::Writer<'_>,
         event: &Event<'_>,
     ) -> std::fmt::Result {
-        let normalized_meta = event.normalized_metadata();
 
         let mut visitor = PySourceVisitor {
             py_source_value: None,
@@ -99,7 +99,7 @@ where
         };
         event.record(&mut visitor);
 
-        let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
+        let meta = event.metadata();
 
         let level = event.metadata().level();
 
@@ -190,31 +190,41 @@ impl FromStr for RotationType {
     }
 }
 
-pub fn init_logger(level: &str, log_dir: Option<PathBuf>, rotation: Option<RotationType>) -> Result<(),String>{
-    tracing_log::LogTracer::init().map_err(|e| e.to_string())?;
-    let writer =if let Some(sink) = log_dir {
-        let name = format!("{}.log", env!("CARGO_CRATE_NAME"));
-        match rotation.unwrap_or_default() {
-            RotationType::Never => {
-                never(sink, name)
-            }
-            RotationType::Minutely => {
-                minutely(sink, name)
-            }
-            RotationType::Hourly => {
-                hourly(sink, name)
-            }
-            RotationType::Daily => {
-                daily(sink, name)
-            }
-        }
-    };
-    let fmt_layer = fmt::layer().with_target(true).event_format(MyFormatter).with_writer(writer); // Use custom event format
+pub fn init_logger(
+    level: &str,
+    log_dir: Option<PathBuf>,
+    rotation: Option<RotationType>,
+) -> Result<(), String> {
 
-    tracing_subscriber::registry()
-        .with(EnvFilter::new(level))
-        .with(fmt_layer)
-        .init();
+
+    if let Some(sink) = log_dir {
+        let name = format!("{}.log", env!("CARGO_CRATE_NAME"));
+        let writer =
+            match rotation.unwrap_or_default() {
+                RotationType::Never => never(sink, name),
+                RotationType::Minutely => minutely(sink, name),
+                RotationType::Hourly => hourly(sink, name),
+                RotationType::Daily => daily(sink, name),
+            };
+        let fmt_layer = fmt::layer()
+            .with_target(true)
+            .event_format(MyFormatter)
+            .with_writer( writer);
+
+        tracing_subscriber::registry()
+            .with(EnvFilter::new(level))
+            .with(fmt_layer)
+            .init();
+    }else {
+        let fmt_layer = fmt::layer()
+            .with_target(true)
+            .event_format(MyFormatter)
+            .with_writer(io::stderr);
+        tracing_subscriber::registry()
+            .with(EnvFilter::new(level))
+            .with(fmt_layer)
+            .init();
+    };
     Ok(())
 }
 
