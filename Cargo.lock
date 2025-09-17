@@ -1033,6 +1033,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-novel"
+version = "0.0.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
 name = "fabricatio-rag"
 version = "0.0.0"
 dependencies = [

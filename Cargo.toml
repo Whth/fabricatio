@@ -49,6 +49,7 @@ members = [
     "packages/fabricatio-thinking",
     "packages/fabricatio-agent",
     "packages/fabricatio-diff",
+    "packages/fabricatio-novel",
 ]
 
 [workspace.package]
