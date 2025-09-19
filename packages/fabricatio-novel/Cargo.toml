@@ -6,6 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+epub-builder = "0.8.0"
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 

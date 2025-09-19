@@ -1,6 +1,6 @@
 [project]
-name = "fabricatio-novel"
-version = "0.1.1-dev3"
+name = "fabricatio-character"
+version = "0.1.1-dev1"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -14,11 +14,11 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",
 ]
+
 requires-python = ">=3.12,<3.14"
+
 dependencies = [
-    "fabricatio-character",
     "fabricatio-core",
-    "pydantic>=2.11.9",
 ]
 
 [dependency-groups]
@@ -27,30 +27,14 @@ dev = [
 ]
 
 
-
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
-build-backend = "maturin"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.maturin]
-python-source = "python"
-module-name = "fabricatio_novel.rust"
-
+[tool.hatch.build.targets.wheel]
+sources = ["python"]
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
-
-[[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple/"
-default = true
-
-[tool.uv.sources]
-fabricatio-character = { workspace = true }
-
-[[tool.uv.index]]
-url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
-
-[[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
