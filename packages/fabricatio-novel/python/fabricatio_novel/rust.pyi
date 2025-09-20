@@ -15,6 +15,12 @@ class NovelBuilder:
             RuntimeError: If initialization fails.
         """
 
+    def set_title(self, title: str) -> NovelBuilder:
+        """Sets the novel title.
+
+        Raises:
+            RuntimeError: If novel is not initialized.
+        """
     def add_author(self, author: str) -> NovelBuilder:
         """Adds an author to the novel metadata.
 

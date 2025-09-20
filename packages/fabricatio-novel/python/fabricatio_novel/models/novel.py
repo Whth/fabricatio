@@ -2,7 +2,10 @@
 
 from typing import List
 
+from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import SketchedAble, Titled
+
+from fabricatio_novel.config import novel_config
 
 
 class NovelDraft(SketchedAble, Titled):
@@ -29,7 +32,13 @@ class Chapter(SketchedAble, Titled):
     content: str
     """The content of the chapter."""
 
+    def to_xhtml(self) -> str:
+        """Convert the chapter to XHTML format."""
+        return TEMPLATE_MANAGER.render_template(novel_config.render_chapter_xhtml_template, self.model_dump())
+
 
 class Novel(SketchedAble, Titled):
+    """A novel."""
+
     chapters: List[Chapter]
     """List of chapters in the novel."""

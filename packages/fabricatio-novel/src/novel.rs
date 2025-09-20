@@ -50,6 +50,11 @@ impl NovelBuilder {
         Ok(slf)
     }
 
+    fn set_title(mut slf: PyRefMut<Self>, title: String) -> PyResult<PyRefMut<Self>> {
+        slf.ensure_initialized_mut()?.set_title(title);
+        Ok(slf)
+    }
+
     /// Adds an author to the novel metadata.
     fn add_author(mut slf: PyRefMut<Self>, author: String) -> PyResult<PyRefMut<Self>> {
         slf.ensure_initialized_mut()?.add_author(author);
