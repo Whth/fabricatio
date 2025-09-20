@@ -1074,7 +1074,9 @@ name = "fabricatio-novel"
 version = "0.0.0"
 dependencies = [
  "epub-builder",
+ "mime_guess",
  "pyo3",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -2205,6 +2207,16 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "mime_guess"
+version = "2.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
+dependencies = [
+ "mime",
+ "unicase",
+]
 
 [[package]]
 name = "minimal-lexical"

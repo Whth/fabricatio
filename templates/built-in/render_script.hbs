@@ -1,0 +1,29 @@
+# {{title}}
+
+## Global Writing Guidance
+> {{global_prompt}}
+
+---
+
+## Scenes
+
+{{#each scenes}}
+    ### Scene {{@index}}
+
+    **Prompt Guidance:**
+    > {{{prompt}}}
+
+    **Tags:**
+    {{#if tags.length}}
+        {{#each tags}}#{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+    {{else}}
+        _No tags provided._
+    {{/if}}
+
+    **Content:**
+    {{{narrative}}}
+
+    {{#unless @last}}
+        ---
+    {{/unless}}
+{{/each}}

@@ -1,3 +1,1 @@
-{{#each this }}===== Start of `{{@key}}` =====
-{{this}}
-===== End of `{{@key}}` ====={{/each}}
+{{#each this as |field key|}}{{ block field key }}{{/each}}

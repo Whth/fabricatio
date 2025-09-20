@@ -11,6 +11,9 @@ class CapabilitiesConfig:
 
     extract_template: str = "extract"
     """The name of the extract template which will be used to extract model from string."""
+    as_prompt_template: str = "as_prompt"
+    """The name of the as prompt template which will be used to convert a string to a prompt."""
+
     # Code Generation Templates
 
     dispatch_task_template: str = "dispatch_task"

@@ -113,17 +113,13 @@ impl BibManager {
     }
 
     fn get_author_by_key(&self, key: String) -> Option<Vec<String>> {
-        if let Some(en) = self.source.get(key.as_str()) {
-            Some(
-                en.author()
-                    .unwrap()
-                    .iter()
-                    .map(|auther| format!("{}", auther).to_string())
-                    .collect(),
-            )
-        } else {
-            None
-        }
+        self.source.get(key.as_str()).map(|en| {
+            en.author()
+                .unwrap()
+                .iter()
+                .map(|auther| format!("{}", auther).to_string())
+                .collect()
+        })
     }
 
     fn get_year_by_key(&self, key: String) -> Option<i32> {

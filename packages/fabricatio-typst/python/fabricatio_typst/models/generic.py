@@ -1,14 +1,11 @@
 """base classes for all research components."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union, final, overload
+from typing import Optional, Union, overload
 
-from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Base
 from fabricatio_core.utils import ok
 from pydantic import PrivateAttr
-
-from fabricatio_typst.config import typst_config
 
 
 class WithRef[T](Base, ABC):
@@ -56,35 +53,6 @@ class WithRef[T](Base, ABC):
         else:
             self._reference = reference  # pyright: ignore [reportAttributeAccessIssue]
         return self
-
-
-class AsPrompt:
-    """Class that provides a method to generate a prompt from the model.
-
-    This class includes a method to generate a prompt based on the model's attributes.
-    """
-
-    @final
-    def as_prompt(self) -> str:
-        """Generate a prompt from the model.
-
-        Returns:
-            str: The generated prompt.
-        """
-        return TEMPLATE_MANAGER.render_template(
-            typst_config.as_prompt_template,
-            self._as_prompt_inner(),
-        )
-
-    @abstractmethod
-    def _as_prompt_inner(self) -> Dict[str, str]:
-        """Generate the inner part of the prompt.
-
-        This method should be implemented by subclasses to provide the specific data for the prompt.
-
-        Returns:
-            Dict[str, str]: The data for the prompt.
-        """
 
 
 class Introspect(ABC):

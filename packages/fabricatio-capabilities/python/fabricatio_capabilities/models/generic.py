@@ -3,15 +3,18 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Self, Set, Type, final
+from typing import Any, ClassVar, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
+from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
 from fabricatio_core.rust import blake3_hash
 from pydantic import (
     BaseModel,
 )
+
+from fabricatio_capabilities.config import capabilities_config
 
 
 class ModelHash(Base, ABC):
@@ -399,3 +402,34 @@ class PersistentAble(Base, ABC):
             ValueError: If the file content is invalid for the model.
         """
         return cls.model_validate_json(Path(path).read_text(encoding="utf-8"))
+
+
+class AsPrompt(ABC):
+    """Class that provides a method to generate a prompt from the model.
+
+    This class includes a method to generate a prompt based on the model's attributes.
+    """
+
+    rendering_template: ClassVar[str] = capabilities_config.as_prompt_template
+
+    @final
+    def as_prompt(self) -> str:
+        """Generate a prompt from the model.
+
+        Returns:
+            str: The generated prompt.
+        """
+        return TEMPLATE_MANAGER.render_template(
+            self.rendering_template,
+            self._as_prompt_inner(),
+        )
+
+    @abstractmethod
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        """Generate the inner part of the prompt.
+
+        This method should be implemented by subclasses to provide the specific data for the prompt.
+
+        Returns:
+            Dict[str, str]: The data for the prompt.
+        """
