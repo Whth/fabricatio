@@ -1,10 +1,10 @@
 """This module contains the models for the novel."""
 
-from typing import List
+from typing import Any, List
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
-from fabricatio_core.rust import word_count
+from fabricatio_core.rust import logger, word_count
 from fabricatio_typst.models.generic import WordCount
 
 from fabricatio_novel.config import novel_config
@@ -29,6 +29,27 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
 
     expected_word_count: int
     """The expected word count of the novel."""
+
+    chapter_expected_word_counts: List[int]
+    """List of expected word counts for each chapter in the novel. should be the same length as chapter_synopses."""
+
+    def model_post_init(self, context: Any, /) -> None:
+        """Make sure that the chapter expected word counts are aligned with the chapter synopses."""
+        if len(self.chapter_synopses) != len(self.chapter_expected_word_counts):
+            if self.chapter_expected_word_counts:
+                logger.warn(
+                    "Chapter expected word counts are not aligned with chapter synopses, using the last valid one to fill the rest."
+                )
+                # If word counts are not aligned, copy the last valid chapter's word count
+                last_valid_wc = self.chapter_expected_word_counts[-1]
+                self.chapter_expected_word_counts.extend(
+                    [last_valid_wc] * (len(self.chapter_synopses) - len(self.chapter_expected_word_counts))
+                )
+            else:
+                logger.warn("No chapter expected word counts provided, using the expected word count to fill the list.")
+                # If the word count list is totally empty, distribute the expected word count evenly
+                avg_wc = self.expected_word_count // len(self.chapter_synopses)
+                self.chapter_expected_word_counts = [avg_wc] * len(self.chapter_synopses)
 
 
 class Chapter(SketchedAble, Titled, WordCount):

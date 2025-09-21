@@ -102,7 +102,10 @@ class DumpNovel(Action):
         """
         novel = ok(self.novel)
         path = ok(self.output_path)
-        logger.info(f'Novel word count: [{novel.exact_word_count}/{novel.expected_word_count}] | Compliance ratio: {novel.word_count_compliance_ratio:.2%}')
+        logger.info(
+            f"Novel word count: [{novel.exact_word_count}/{novel.expected_word_count}] | Compliance ratio: {novel.word_count_compliance_ratio:.2%}"
+        )
+        logger.info(f"Novel Chapter count: {len(novel.chapters)}")
         logger.info(f"Dumping novel {novel.title} to {path}")
 
         builder = (
