@@ -124,4 +124,4 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             for content, script in zip(chapter_contents, scripts, strict=False)
         ]
 
-        return Novel(title=draft.title, chapters=chapters)
+        return Novel(title=draft.title, chapters=chapters, synopsis=draft.synopsis)

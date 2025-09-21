@@ -55,6 +55,13 @@ impl NovelBuilder {
         Ok(slf)
     }
 
+    /// Sets the novel description.
+    fn set_description(mut slf: PyRefMut<Self>, description: String) -> PyResult<PyRefMut<Self>> {
+        slf.ensure_initialized_mut()?
+            .set_description(description.lines().map(String::from).collect::<Vec<_>>());
+
+        Ok(slf)
+    }
     /// Adds an author to the novel metadata.
     fn add_author(mut slf: PyRefMut<Self>, author: String) -> PyResult<PyRefMut<Self>> {
         slf.ensure_initialized_mut()?.add_author(author);
@@ -74,12 +81,6 @@ impl NovelBuilder {
         builder
             .add_content(chapter_content)
             .map_err(LocalError::Epub)?;
-        Ok(slf)
-    }
-
-    /// Adds a description to the novel metadata.
-    fn add_description(mut slf: PyRefMut<Self>, description: String) -> PyResult<PyRefMut<Self>> {
-        slf.ensure_initialized_mut()?.add_description(description);
         Ok(slf)
     }
 

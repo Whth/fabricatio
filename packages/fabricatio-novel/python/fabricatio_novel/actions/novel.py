@@ -103,7 +103,7 @@ class DumpNovel(Action):
         novel = ok(self.novel)
         path = ok(self.path)
 
-        builder = NovelBuilder().set_title(novel.title)
+        builder = NovelBuilder().set_title(novel.title).set_description(novel.synopsis)
 
         for chapter in novel.chapters:
             builder.add_chapter(chapter.title, chapter.to_xhtml())

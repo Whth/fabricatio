@@ -35,8 +35,8 @@ class NovelBuilder:
             RuntimeError: If novel is not initialized or chapter creation fails.
         """
 
-    def add_description(self, description: str) -> NovelBuilder:
-        """Adds a description to the novel metadata.
+    def set_description(self, description: str) -> NovelBuilder:
+        """Sets the novel description.
 
         Raises:
             RuntimeError: If novel is not initialized.

@@ -18,7 +18,7 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
     """The genres of the novel."""
 
     synopsis: str
-    """A brief summary of the novel's plot."""
+    """A summary of the novel's plot."""
 
     character_desc: List[str]
     """List of descriptions for each character in the novel."""
@@ -44,5 +44,7 @@ class Chapter(SketchedAble, Titled, WordCount):
 class Novel(SketchedAble, Titled):
     """A novel."""
 
+    synopsis: str
+    """A summary of the novel's plot."""
     chapters: List[Chapter]
     """List of chapters in the novel."""
