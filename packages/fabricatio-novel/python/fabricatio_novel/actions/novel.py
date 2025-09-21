@@ -25,7 +25,7 @@ class GenerateNovel(NovelCompose, Action):
     The generated novel is returned as a Novel object.
     """
 
-    novel_prompt: Optional[str]
+    novel_prompt: Optional[str] = None
     """
     The prompt used to generate the novel. If not provided, execution will fail.
     """
@@ -63,12 +63,12 @@ class DumpNovel(Action):
     title and chapters but does not yet persist the content to disk.
     """
 
-    path: Optional[Path]
+    path: Optional[Path] = None
     """
     The file system path where the novel should be saved. Required for execution.
     """
 
-    novel: Optional[Novel]
+    novel: Optional[Novel] = None
     """
     The novel object to be saved. Must be provided for successful execution.
     """
