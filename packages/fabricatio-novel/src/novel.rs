@@ -1,3 +1,4 @@
+use epub_builder::EpubVersion::V30;
 use epub_builder::{EpubBuilder, EpubContent, Error as EpubError, ZipCommand};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -45,7 +46,8 @@ impl NovelBuilder {
     /// Initializes a new EPUB novel builder.
     fn new_novel(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
         let zip = ZipCommand::new().map_err(LocalError::Epub)?;
-        let builder = EpubBuilder::new(zip).map_err(LocalError::Epub)?;
+        let mut builder = EpubBuilder::new(zip).map_err(LocalError::Epub)?;
+        builder.epub_version(V30);
         slf.inner = Some(builder);
         Ok(slf)
     }

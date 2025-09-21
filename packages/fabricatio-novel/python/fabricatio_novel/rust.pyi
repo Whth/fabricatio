@@ -80,3 +80,13 @@ class NovelBuilder:
         Raises:
             RuntimeError: If novel not initialized, generation fails, or file write fails.
         """
+
+def text_to_xhtml_paragraphs(source: str) -> str:
+    """Converts plain text to XHTML paragraphs.
+
+    Args:
+        source: Plain text to convert.
+
+    Returns:
+        XHTML string with paragraphs.
+    """

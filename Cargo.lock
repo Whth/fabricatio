@@ -1076,6 +1076,7 @@ dependencies = [
  "epub-builder",
  "mime_guess",
  "pyo3",
+ "regex",
  "thiserror 2.0.16",
 ]
 

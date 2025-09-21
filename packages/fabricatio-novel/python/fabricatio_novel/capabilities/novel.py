@@ -16,6 +16,7 @@ from fabricatio_core.utils import ok, override_kwargs
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.novel import Chapter, Novel, NovelDraft
 from fabricatio_novel.models.scripting import Script
+from fabricatio_novel.rust import text_to_xhtml_paragraphs
 
 
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
@@ -120,8 +121,13 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     def assemble_novel(draft: NovelDraft, scripts: List[Script], chapter_contents: List[str]) -> Novel:
         """Assemble the final novel from components."""
         chapters = [
-            Chapter(title=script.title, content=content, expected_word_count=0)
+            Chapter(title=script.title, content=text_to_xhtml_paragraphs(content), expected_word_count=0)
             for content, script in zip(chapter_contents, scripts, strict=False)
         ]
 
-        return Novel(title=draft.title, chapters=chapters, synopsis=draft.synopsis)
+        return Novel(
+            title=draft.title,
+            chapters=chapters,
+            synopsis=draft.synopsis,
+            expected_word_count=draft.expected_word_count,
+        )

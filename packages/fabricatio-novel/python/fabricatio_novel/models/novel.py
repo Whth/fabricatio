@@ -4,6 +4,7 @@ from typing import List
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
+from fabricatio_core.rust import word_count
 from fabricatio_typst.models.generic import WordCount
 
 from fabricatio_novel.config import novel_config
@@ -40,11 +41,26 @@ class Chapter(SketchedAble, Titled, WordCount):
         """Convert the chapter to XHTML format."""
         return TEMPLATE_MANAGER.render_template(novel_config.render_chapter_xhtml_template, self.model_dump())
 
+    @property
+    def exact_word_count(self) -> int:
+        """Calculate the exact word count of the chapter."""
+        return word_count(self.content)
 
-class Novel(SketchedAble, Titled):
+
+class Novel(SketchedAble, Titled, WordCount):
     """A novel."""
 
     synopsis: str
     """A summary of the novel's plot."""
     chapters: List[Chapter]
     """List of chapters in the novel."""
+
+    @property
+    def exact_word_count(self) -> int:
+        """Calculate the exact word count of the novel."""
+        return sum(chapter.exact_word_count for chapter in self.chapters)
+
+    @property
+    def word_count_compliance_ratio(self) -> float:
+        """Calculate the compliance ratio of the novel's word count."""
+        return self.exact_word_count / self.expected_word_count

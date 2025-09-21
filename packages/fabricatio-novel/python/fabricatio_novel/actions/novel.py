@@ -9,7 +9,7 @@ Rust components to perform their tasks.
 from pathlib import Path
 from typing import Any, ClassVar, Optional
 
-from fabricatio_core import Action
+from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
@@ -63,7 +63,7 @@ class DumpNovel(Action):
     title and chapters but does not yet persist the content to disk.
     """
 
-    path: Optional[Path] = None
+    output_path: Optional[Path] = None
     """
     The file system path where the novel should be saved. Required for execution.
     """
@@ -101,9 +101,17 @@ class DumpNovel(Action):
             ValueError: If novel or path is not provided (via ok() utility).
         """
         novel = ok(self.novel)
-        path = ok(self.path)
+        path = ok(self.output_path)
+        logger.info(f'Novel word count: [{novel.exact_word_count}/{novel.expected_word_count}] | Compliance ratio: {novel.word_count_compliance_ratio:.2%}')
+        logger.info(f"Dumping novel {novel.title} to {path}")
 
-        builder = NovelBuilder().set_title(novel.title).set_description(novel.synopsis)
+        builder = (
+            NovelBuilder()
+            .new_novel()
+            .set_title(novel.title)
+            .set_description(novel.synopsis)
+            .set_stylesheet("p { text-indent: 2em; margin: 1em 0; line-height: 1.5; text-align: justify; }")
+        )
 
         for chapter in novel.chapters:
             builder.add_chapter(chapter.title, chapter.to_xhtml())
