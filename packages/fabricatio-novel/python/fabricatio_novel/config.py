@@ -20,6 +20,8 @@ class NovelConfig:
     """template used to render chapter requirements."""
     render_chapter_xhtml_template: str = "render_chapter_xhtml"
     """template used to render chapter xhtml."""
+    novel_draft_requirement_template: str = "novel_draft_requirement"
+    """template used to render novel draft requirements."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)

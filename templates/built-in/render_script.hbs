@@ -1,29 +1,30 @@
-# {{title}}
+{{#if title}}
+## {{title}}
 
-## Global Writing Guidance
-> {{global_prompt}}
+{{/if}}{{#if scenes}}
+### Scenes
+
+{{#each scenes as |scene index|}}
+#### Scene {{index}}{{#if scene.tags}} [{{join scene.tags ", "}}]{{/if}}
+
+{{#if scene.narrative}}
+{{scene.narrative}}
+{{/if}}
+
+{{#if scene.prompt}}
+> **Prompt for this scene:**
+> {{scene.prompt}}
+{{/if}}
 
 ---
 
-## Scenes
-
-{{#each scenes}}
-    ### Scene {{@index}}
-
-    **Prompt Guidance:**
-    > {{{prompt}}}
-
-    **Tags:**
-    {{#if tags.length}}
-        {{#each tags}}#{{this}}{{#unless @last}}, {{/unless}}{{/each}}
-    {{else}}
-        _No tags provided._
-    {{/if}}
-
-    **Content:**
-    {{{narrative}}}
-
-    {{#unless @last}}
-        ---
-    {{/unless}}
 {{/each}}
+{{/if}}{{#if global_prompt}}
+### Global Guidance
+{{global_prompt}}
+
+{{/if}}{{#if expected_word_count}}
+### Expected Length
+Approximately {{expected_word_count}} words.
+
+{{/if}}

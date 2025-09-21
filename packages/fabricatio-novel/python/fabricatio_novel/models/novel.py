@@ -3,12 +3,13 @@
 from typing import List
 
 from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.models.generic import SketchedAble, Titled
+from fabricatio_core.models.generic import Language, SketchedAble, Titled
+from fabricatio_typst.models.generic import WordCount
 
 from fabricatio_novel.config import novel_config
 
 
-class NovelDraft(SketchedAble, Titled):
+class NovelDraft(SketchedAble, Titled, Language, WordCount):
     """A draft representing a novel, including its title, genre, characters, chapters, and synopsis."""
 
     title: str
@@ -25,8 +26,11 @@ class NovelDraft(SketchedAble, Titled):
     chapter_synopses: List[str]
     """List of synopses for each chapter in the novel."""
 
+    expected_word_count: int
+    """The expected word count of the novel."""
 
-class Chapter(SketchedAble, Titled):
+
+class Chapter(SketchedAble, Titled, WordCount):
     """A chapter in a novel."""
 
     content: str
