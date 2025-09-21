@@ -204,27 +204,23 @@ pub fn init_logger(
         let fmt_layer = fmt::layer()
             .with_target(true)
             .event_format(MyFormatter)
-            .with_writer(writer);
+            .with_writer(writer)
+            .with_filter(EnvFilter::new(level));
 
-        tracing_subscriber::registry()
-            .with(EnvFilter::new(level))
-            .with(fmt_layer)
-            .init();
+        tracing_subscriber::registry().with(fmt_layer).init();
     } else {
         let fmt_layer = fmt::layer()
             .with_target(true)
             .event_format(MyFormatter)
-            .with_writer(io::stderr);
-        tracing_subscriber::registry()
-            .with(EnvFilter::new(level))
-            .with(fmt_layer)
-            .init();
+            .with_writer(io::stderr)
+            .with_filter(EnvFilter::new(level));
+        tracing_subscriber::registry().with(fmt_layer).init();
     };
     Ok(())
 }
 
 pub fn init_logger_auto() -> PyResult<()> {
-    let (level, sink, rotation) = Python::with_gil(|py| {
+    let (level, sink, rotation) = Python::attach(|py| {
         let mut n = NAME.to_string();
         n.push_str("_core");
         if let Ok(m) = py.import(n) {
@@ -254,7 +250,7 @@ pub fn init_logger_auto() -> PyResult<()> {
         None
     };
 
-    init_logger(level.as_str(), sink, rotation).map_err(|e| PyRuntimeError::new_err(e))?;
+    init_logger(level.as_str(), sink, rotation).map_err(PyRuntimeError::new_err)?;
     Ok(())
 }
 

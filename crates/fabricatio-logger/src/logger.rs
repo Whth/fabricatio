@@ -34,7 +34,7 @@ impl Logger {
 #[pymethods]
 impl Logger {
     fn info(&self, msg: String) -> PyResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             if let Ok(inspect) = py.import("inspect") {
                 let source = Self::extract_py_source(&inspect)?;
                 info!(py_source = source, "{}", msg);
@@ -48,7 +48,7 @@ impl Logger {
     }
 
     fn debug(&self, msg: String) -> PyResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             if let Ok(inspect) = py.import("inspect") {
                 let source = Self::extract_py_source(&inspect)?;
                 debug!(py_source = source, "{}", msg);
@@ -62,7 +62,7 @@ impl Logger {
     }
 
     fn error(&self, msg: String) -> PyResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             if let Ok(inspect) = py.import("inspect") {
                 let source = Self::extract_py_source(&inspect)?;
                 error!(py_source = source, "{}", msg);
@@ -76,7 +76,7 @@ impl Logger {
     }
 
     fn warn(&self, msg: String) -> PyResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             if let Ok(inspect) = py.import("inspect") {
                 let source = Self::extract_py_source(&inspect)?;
                 warn!(py_source = source, "{}", msg);
@@ -90,7 +90,7 @@ impl Logger {
     }
 
     fn trace(&self, msg: String) -> PyResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             if let Ok(inspect) = py.import("inspect") {
                 let source = Self::extract_py_source(&inspect)?;
                 trace!(py_source = source, "{}", msg);

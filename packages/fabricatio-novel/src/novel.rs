@@ -1,5 +1,5 @@
 use epub_builder::EpubVersion::V30;
-use epub_builder::{EpubBuilder, EpubContent, Error as EpubError, ZipCommand};
+use epub_builder::{EpubBuilder, EpubContent, Error as EpubError, ZipLibrary};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::fs::{read, write};
@@ -26,12 +26,19 @@ impl From<LocalError> for PyErr {
 #[pyclass]
 #[derive(Default)]
 struct NovelBuilder {
-    inner: Option<EpubBuilder<ZipCommand>>,
+    inner: Option<EpubBuilder<ZipLibrary>>,
+    css: String,
 }
 
 impl NovelBuilder {
-    fn ensure_initialized_mut(&mut self) -> Result<&mut EpubBuilder<ZipCommand>, LocalError> {
+    fn ensure_initialized_mut(&mut self) -> Result<&mut EpubBuilder<ZipLibrary>, LocalError> {
         self.inner.as_mut().ok_or(LocalError::NotInitialized)
+    }
+
+    fn add_css_inner(&mut self, css: String) -> Result<(), LocalError> {
+        self.css.push('\n');
+        self.css.push_str(&css);
+        Ok(())
     }
 }
 
@@ -45,10 +52,11 @@ impl NovelBuilder {
 
     /// Initializes a new EPUB novel builder.
     fn new_novel(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        let zip = ZipCommand::new().map_err(LocalError::Epub)?;
+        let zip = ZipLibrary::new().map_err(LocalError::Epub)?;
         let mut builder = EpubBuilder::new(zip).map_err(LocalError::Epub)?;
         builder.epub_version(V30);
         slf.inner = Some(builder);
+        slf.css.clear();
         Ok(slf)
     }
 
@@ -115,11 +123,58 @@ impl NovelBuilder {
         Ok(slf)
     }
 
-    /// Sets the CSS stylesheet for the novel.
-    fn set_stylesheet(mut slf: PyRefMut<Self>, stylesheet: String) -> PyResult<PyRefMut<Self>> {
-        slf.ensure_initialized_mut()?
-            .stylesheet(stylesheet.as_bytes())
+    /// Adds CSS styles to the novel.
+    fn add_css(mut slf: PyRefMut<Self>, css: String) -> PyResult<PyRefMut<Self>> {
+        slf.add_css_inner(css)?;
+        Ok(slf)
+    }
+
+    /// Adds a resource file to the novel.
+    fn add_resource(
+        mut slf: PyRefMut<Self>,
+        path: PathBuf,
+        source: PathBuf,
+    ) -> PyResult<PyRefMut<Self>> {
+        let builder = slf.ensure_initialized_mut()?;
+        let data = read(&source).map_err(LocalError::Io)?;
+
+        builder
+            .add_resource(
+                path,
+                &data[..],
+                mime_guess::from_path(&source)
+                    .first_or_octet_stream()
+                    .to_string(),
+            )
             .map_err(LocalError::Epub)?;
+        Ok(slf)
+    }
+
+    /// Adds a font file to the novel.
+    fn add_font(
+        mut slf: PyRefMut<Self>,
+        font_family: String,
+        source: PathBuf,
+    ) -> PyResult<PyRefMut<Self>> {
+        let data = read(&source).map_err(LocalError::Io)?;
+        slf.ensure_initialized_mut()?
+            .add_resource(
+                format!("fonts/{}.ttf", font_family),
+                &data[..],
+                mime_guess::from_path(&source)
+                    .first_or_octet_stream()
+                    .to_string(),
+            )
+            .map_err(LocalError::Epub)?;
+
+        slf.add_css_inner(format!(
+            "@font-face {{
+                    font-family: '{}';
+                    src: url('fonts/{}.ttf');
+                }}",
+            font_family, font_family
+        ))?;
+
         Ok(slf)
     }
 
@@ -131,9 +186,14 @@ impl NovelBuilder {
 
     /// Exports the built novel to the specified file path.
     fn export(mut slf: PyRefMut<Self>, path: PathBuf) -> PyResult<PyRefMut<Self>> {
-        let builder = slf.inner.take().ok_or(LocalError::NotInitialized)?;
+        let mut builder = slf.inner.take().ok_or(LocalError::NotInitialized)?;
         let mut bytes = vec![];
+
+        builder
+            .stylesheet(slf.css.drain(..).as_str().as_bytes())
+            .map_err(LocalError::Epub)?;
         builder.generate(&mut bytes).map_err(LocalError::Epub)?;
+
         write(path.as_path(), bytes).map_err(LocalError::Io)?;
         Ok(slf)
     }

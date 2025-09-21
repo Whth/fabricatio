@@ -1,15 +1,15 @@
 [package]
 name = "fabricatio-logger"
-version = "0.1.5"
+version = "0.1.6-dev0"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
 chrono = "0.4.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
+tracing-subscriber = { version = "0.3.19", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.41"
 pyo3 = "0.26.0"
-fabricatio-constants = {path = "../fabricatio-constants"}
-fabricatio-config = {path = "../fabricatio-config"}
+fabricatio-constants = { path = "../fabricatio-constants" }
+fabricatio-config = { path = "../fabricatio-config" }
 tracing-appender = "0.2.3"

@@ -68,6 +68,11 @@ class DumpNovel(Action):
     The file system path where the novel should be saved. Required for execution.
     """
 
+    novel_font_file: Optional[Path] = None
+    """
+    The file system path to the novel font file. like .ttf file.
+    """
+
     novel: Optional[Novel] = None
     """
     The novel object to be saved. Must be provided for successful execution.
@@ -113,8 +118,15 @@ class DumpNovel(Action):
             .new_novel()
             .set_title(novel.title)
             .set_description(novel.synopsis)
-            .set_stylesheet("p { text-indent: 2em; margin: 1em 0; line-height: 1.5; text-align: justify; }")
+            .add_css("p { text-indent: 2em; margin: 1em 0; line-height: 1.5; text-align: justify; }")
         )
+
+        if self.novel_font_file:
+            (
+                builder.add_font(self.novel_font_file.stem, self.novel_font_file).add_css(
+                    f"p {{ font-family: '{self.novel_font_file.stem}', 'sans-serif'; }}"
+                )
+            )
 
         for chapter in novel.chapters:
             builder.add_chapter(chapter.title, chapter.to_xhtml())
