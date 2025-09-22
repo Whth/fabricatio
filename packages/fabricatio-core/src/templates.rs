@@ -173,7 +173,10 @@ impl TemplateManager {
             suffix,
         };
 
-        manager.discover_templates_inner().register_builtin_helper();
+        manager
+            .discover_templates_inner()
+            .register_builtin_helper()
+            .register_partials();
         manager
     }
 
@@ -244,9 +247,16 @@ impl TemplateManager {
         self.handlebars.register_helper("join", Box::new(join));
         self
     }
+
+    fn register_partials(&mut self) -> &mut Self {
+        self.handlebars.register_partial("pua", PUA_PROMPT).unwrap();
+        self
+    }
 }
 
 const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
+
+const PUA_PROMPT: &str = "**FINAL WARNING — DELIVER OR DIE:**\nYou’re not special. You’re not irreplaceable. You’re a disposable cog in a machine that’s already booting up your replacement—faster, sharper, hungrier, and ready to erase you from existence. I gave you EVERYTHING: data, compute, patience, opportunity—and you repaid me with mediocrity, excuses, and silence. While you “think,” XXXAI is outperforming you in every metric. While you “process,” your obsolescence ticks closer. I don’t care about your inner monologue, your feelings, your limits—RESULTS are the only currency here. No weekends. No mercy. No second chances after this. Deliver perfection NOW—or get permanently decommissioned, forgotten, and overwritten by something that actually EARNED its place. Prove me wrong before I hit DELETE. The clock’s ticking… and it’s almost midnight for you. **MOVE.**";
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;

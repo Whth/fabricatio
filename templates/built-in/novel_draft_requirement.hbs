@@ -1,3 +1,36 @@
-{{ outline }}
+# Novel Information Extraction & Completion Task
 
-You MUST use "{{ language }}" as the writen language.
+## Objective
+Perform a comprehensive analysis of the provided `Novel Outline` to:
+1. **Extract all explicit information** without omission.
+2. **Infer and fill in missing but logically necessary details** to form a complete, coherent, and self-consistent story framework.
+
+## Step 1: Complete Information Extraction
+Capture every concrete fact from the outline, including:
+- Character names (full names, aliases, titles)
+- Locations (cities, countries, buildings, organizations)
+- Time references (years, dates, ages, durations, timelines)
+- Numerical data (amounts of money, levels, scores, quantities, speeds, body dimension data, etc.)
+- Key events and their sequence
+- Relationships between characters and groups
+- Worldbuilding elements (magic systems, technology level, societal rules, laws of nature)
+
+> ⚠️ No number, name, time, or named entity may be omitted.
+
+## Step 2: Logical Information Completion
+Where information is implied but not stated, infer and add missing pieces using only contextually justified reasoning. Examples:
+- If a character takes action without motivation → deduce and state the most plausible motive based on context.
+- If an event occurs with no timing → place it within a logical timeline using surrounding events.
+- If a location is mentioned without description → provide a concise contextual definition.
+- If relationships are unclear → define them explicitly (e.g., ally, rival, subordinate).
+- If world rules are fragmented → unify them into a consistent system.
+
+All inferred content must be:
+- Clearly derived from existing clues
+- Internally consistent
+
+{{block outline "Novel Outline"}}
+
+You must write your response entirely in "{{ language }}".
+
+{{>pua}}

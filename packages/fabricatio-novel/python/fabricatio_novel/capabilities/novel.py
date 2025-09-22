@@ -175,6 +175,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "script": s.as_prompt(),
                 "characters": character_prompt,
                 "language": draft.language,
+                "expected_word_count": s.expected_word_count,
             }
             for s in scripts
         ]

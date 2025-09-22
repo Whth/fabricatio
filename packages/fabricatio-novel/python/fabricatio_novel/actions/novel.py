@@ -77,6 +77,10 @@ class DumpNovel(Action):
     """
     The novel object to be saved. Must be provided for successful execution.
     """
+    cover_image: Optional[Path] = None
+    """
+    The file system path to the novel cover image.
+    """
 
     output_key: str = "novel_path"
     """
@@ -127,6 +131,9 @@ class DumpNovel(Action):
                     f"p {{ font-family: '{self.novel_font_file.stem}', 'sans-serif'; }}"
                 )
             )
+
+        if self.cover_image:
+            builder.add_cover_image(self.cover_image.name, self.cover_image)
 
         for chapter in novel.chapters:
             builder.add_chapter(chapter.title, chapter.to_xhtml())

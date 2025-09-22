@@ -16,16 +16,16 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
     title: str
     """The title of the novel."""
     genre: List[str]
-    """The genres of the novel."""
+    """The genres of the novel. Comprehensive coverage is preferred than few ones."""
 
     synopsis: str
     """A summary of the novel's plot."""
 
     character_desc: List[str]
-    """List of descriptions for each character in the novel."""
+    """List of extremely detailed descriptions for each character in the novel. which should contains everything about the character in the reference material."""
 
     chapter_synopses: List[str]
-    """List of synopses for each chapter in the novel."""
+    """List of extremely detailed synopses for each chapter in the novel."""
 
     expected_word_count: int
     """The expected word count of the novel."""
