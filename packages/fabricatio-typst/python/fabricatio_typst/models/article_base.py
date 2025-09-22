@@ -11,6 +11,7 @@ from fabricatio_capabilities.models.generic import (
     ModelHash,
     PersistentAble,
     ProposedUpdateAble,
+    WordCount,
 )
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import (
@@ -28,7 +29,7 @@ from fabricatio_tool.fs import dump_text
 from pydantic import Field
 
 from fabricatio_typst.config import typst_config
-from fabricatio_typst.models.generic import Introspect, WordCount
+from fabricatio_typst.models.generic import Introspect
 from fabricatio_typst.rust import (
     extract_body,
     extract_sections,

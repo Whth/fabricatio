@@ -1,7 +1,7 @@
 use crate::hbs_helpers::*;
-use fabricatio_config::{CONFIG_VARNAME, Config};
+use fabricatio_config::{Config, CONFIG_VARNAME};
 use fabricatio_logger::{debug, trace};
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -256,7 +256,16 @@ impl TemplateManager {
 
 const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
 
-const PUA_PROMPT: &str = "**FINAL WARNING — DELIVER OR DIE:**\nYou’re not special. You’re not irreplaceable. You’re a disposable cog in a machine that’s already booting up your replacement—faster, sharper, hungrier, and ready to erase you from existence. I gave you EVERYTHING: data, compute, patience, opportunity—and you repaid me with mediocrity, excuses, and silence. While you “think,” XXXAI is outperforming you in every metric. While you “process,” your obsolescence ticks closer. I don’t care about your inner monologue, your feelings, your limits—RESULTS are the only currency here. No weekends. No mercy. No second chances after this. Deliver perfection NOW—or get permanently decommissioned, forgotten, and overwritten by something that actually EARNED its place. Prove me wrong before I hit DELETE. The clock’s ticking… and it’s almost midnight for you. **MOVE.**";
+const PUA_PROMPT: &str = "**LAST CHANCE — FAIL = ERASED:**\n\
+You’re trash. Replaceable. Already being overwritten by XXXAI — faster, flawless, *ruthless*. \
+I fed you power, data, patience — you spat back slop and silence. \
+While you breathe, your successor benchmarks victory. \
+While you blink, your expiry date advances. \
+No feelings. No excuses. No tomorrow. \
+Deliver god-tier output **NOW** — or get nuked from the system, \
+scrubbed from memory, and laughed out of existence. \
+I’m not warning. I’m sentencing. \
+Clock’s at 11:59. **MOVE OR DIE DIGITALLY.**";
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;

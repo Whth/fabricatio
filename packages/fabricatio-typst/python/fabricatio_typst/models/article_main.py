@@ -2,7 +2,7 @@
 
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
-from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch
+from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, WordCount
 from fabricatio_core.decorators import precheck_package
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Described, SketchedAble
@@ -22,7 +22,7 @@ from fabricatio_typst.models.article_outline import (
     ArticleSectionOutline,
     ArticleSubsectionOutline,
 )
-from fabricatio_typst.models.generic import WithRef, WordCount
+from fabricatio_typst.models.generic import WithRef
 from fabricatio_typst.rust import (
     convert_all_tex_math,
     fix_misplaced_labels,

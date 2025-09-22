@@ -2,10 +2,10 @@
 
 from typing import Any, List
 
+from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
 from fabricatio_core.rust import logger, word_count
-from fabricatio_typst.models.generic import WordCount
 
 from fabricatio_novel.config import novel_config
 

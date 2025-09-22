@@ -1,5 +1,6 @@
 {{#if scenes}}
 First,{{#each scenes as |scene index|}}{{#if scene.narrative}}{{scene.narrative}}{{/if}}({{#if
+        scene.expected_word_count}}write {{scene.expected_word_count}} words for this scene at least, {{/if}}{{#if
         scene.prompt}}{{scene.prompt}}{{/if}}). {{#unless @last}}Then,{{/unless}}
 {{/each}}
 {{/if}}
@@ -7,5 +8,5 @@ First,{{#each scenes as |scene index|}}{{#if scene.narrative}}{{scene.narrative}
 {{#if global_prompt}}
 Note that,{{global_prompt}}
 {{/if}}{{#if expected_word_count}}
-Body paragraphs should be approximately {{expected_word_count}} words.
+Body paragraphs you write must over {{expected_word_count}} words.
 {{/if}}

@@ -5,23 +5,27 @@ Together, these classes form a foundation for creating structured yet flexible n
 
 from typing import Any, ClassVar, Dict, List, Self
 
-from fabricatio_capabilities.models.generic import AsPrompt
+from fabricatio_capabilities.models.generic import AsPrompt, WordCount
 from fabricatio_core.models.generic import SketchedAble, Titled
+from pydantic import Field
 
 from fabricatio_novel.config import novel_config
 
 
-class Scene(SketchedAble):
+class Scene(SketchedAble, WordCount):
     """A self-contained narrative moment for storytelling, games, film, or AI generation."""
-
-    narrative: str
-    """dialogue, description, log, poem, monologue, etc."""
+    
+    expected_word_count:int 
+    """Expected word count when writing the scene."""
+    
+    tags: List[str]
+    """free-form semantic labels for filtering, grouping, or post-processing."""
 
     prompt: str
     """natural language guidance for tone, style, or constraint."""
-
-    tags: List[str]
-    """free-form semantic labels for filtering, grouping, or post-processing."""
+    
+    narrative: str
+    """dialogue, description, log, poem, monologue, etc."""
 
     def append_prompt(self, prompt: str) -> Self:
         """Add a prompt to the scene.
@@ -33,20 +37,20 @@ class Scene(SketchedAble):
         return self
 
 
-class Script(SketchedAble, Titled, AsPrompt):
-    """A sequence of scenes forming a cohesive narrative unit."""
+class Script(SketchedAble, Titled, AsPrompt, WordCount):
+    """A sequence of scenes forming a cohesive narrative unit especially for a novel chapter."""
 
-    title: str
-    """Title of the thing the script is about"""
+    title: str = Field(examples=["Chapter 1: The Beginning", "第一章：起始"])
+    """Title of the chapter."""
 
-    scenes: List[Scene]
-    """Ordered list of scenes. Must contain at least one scene. Sequence implies narrative flow."""
+    expected_word_count: int
+    """Expected word count for this chapter."""
 
     global_prompt: str
     """global writing guidance applied to all scenes."""
 
-    expected_word_count: int
-    """Expected word count for the script."""
+    scenes: List[Scene]
+    """Ordered list of scenes. Must contain at least one scene. Sequence implies narrative flow."""
 
     rendering_template: ClassVar[str] = novel_config.render_script_template
 

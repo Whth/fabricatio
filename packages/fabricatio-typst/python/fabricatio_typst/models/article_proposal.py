@@ -5,6 +5,7 @@ from typing import Dict, List
 from fabricatio_capabilities.models.generic import (
     AsPrompt,
     PersistentAble,
+    WordCount,
 )
 from fabricatio_core.models.generic import (
     Described,
@@ -16,7 +17,6 @@ from pydantic import Field
 
 from fabricatio_typst.models.generic import (
     WithRef,
-    WordCount,
 )
 
 
