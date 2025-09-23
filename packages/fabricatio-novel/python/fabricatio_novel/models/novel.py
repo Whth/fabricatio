@@ -2,7 +2,7 @@
 
 from typing import Any, List
 
-from fabricatio_capabilities.models.generic import WordCount
+from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
 from fabricatio_core.rust import logger, word_count
@@ -10,7 +10,7 @@ from fabricatio_core.rust import logger, word_count
 from fabricatio_novel.config import novel_config
 
 
-class NovelDraft(SketchedAble, Titled, Language, WordCount):
+class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
     """A draft representing a novel, including its title, genre, characters, chapters, and synopsis."""
 
     title: str
@@ -24,15 +24,15 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
     character_descriptions: List[str]
     """
     Every string in this list MUST be at least 200 words.
-    Super detailed descriptions for each main character. 
+    Super detailed descriptions for each main character.
     Include: looks, personality, backstory, goals, relationships, inner struggles, and their role in the story.
     Goal: Make every character feel real, consistent, and fully fleshed out — no vague or shallow summaries.
     """
-    
+
     chapter_synopses: List[str]
     """
     Every string in this list MUST be at least 350 words.
-    Super detailed summaries for each chapter. 
+    Super detailed summaries for each chapter.
     Cover: what happens, how characters change, key scenes/dialogue, setting shifts, emotional tone, and hints or themes.
     Goal: Lock in every important detail so nothing gets lost later — like a mini-script for each chapter.
     """
@@ -61,7 +61,7 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
                 self.chapter_expected_word_counts = [avg_wc] * len(self.chapter_synopses)
 
 
-class Chapter(SketchedAble, Titled, WordCount):
+class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
     """A chapter in a novel."""
 
     content: str
@@ -77,7 +77,7 @@ class Chapter(SketchedAble, Titled, WordCount):
         return word_count(self.content)
 
 
-class Novel(SketchedAble, Titled, WordCount):
+class Novel(SketchedAble, PersistentAble, Titled, WordCount):
     """A novel."""
 
     synopsis: str

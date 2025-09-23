@@ -5,14 +5,14 @@ Together, these classes form a foundation for creating structured yet flexible n
 
 from typing import Any, ClassVar, Dict, List, Self
 
-from fabricatio_capabilities.models.generic import AsPrompt, WordCount
+from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble, WordCount
 from fabricatio_core.models.generic import SketchedAble, Titled
 from pydantic import Field
 
 from fabricatio_novel.config import novel_config
 
 
-class Scene(SketchedAble, WordCount):
+class Scene(PersistentAble, SketchedAble, WordCount):
     """A self-contained narrative moment for storytelling, games, film, or AI generation."""
 
     expected_word_count: int
@@ -37,7 +37,7 @@ class Scene(SketchedAble, WordCount):
         return self
 
 
-class Script(SketchedAble, Titled, AsPrompt, WordCount):
+class Script(SketchedAble, PersistentAble, Titled, AsPrompt, WordCount):
     """A sequence of scenes forming a cohesive narrative unit especially for a novel chapter."""
 
     title: str = Field(examples=["Ch1: A Chapter Title For Example", "Ch1: 一个示例章节标题"])

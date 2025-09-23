@@ -22,7 +22,7 @@ from fabricatio_novel.rust import text_to_xhtml_paragraphs
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     """This class contains the capabilities for the novel."""
 
-    async def novel(
+    async def compose_novel(
         self, outline: str, language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[Novel]]
     ) -> Novel | None:
         """Main novel composition pipeline."""
@@ -113,7 +113,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         )
         logger.debug(f"Character requirement template rendered (length: {len(character_requirement)})")
 
-        result = await self.characters(character_requirement, **kwargs)
+        result = await self.compose_characters(character_requirement, **kwargs)
         valid_chars = [c for c in (ok(result) or []) if c is not None]
         logger.info(f"Generated {len(valid_chars)} valid character(s) out of {len(result or [])}")
         return result
@@ -189,8 +189,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         logger.debug(f"Chapter requirement template length: {len(chapter_requirement)}")
 
         response = ok(await self.aask(chapter_requirement, **kwargs))
-        
-        
+
         logger.info(f"Generated {len(response)} chapter content(s)")
         return response
 

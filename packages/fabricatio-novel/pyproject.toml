@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-novel"
-version = "0.1.1-dev14"
+version = "0.1.1-dev15"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -26,6 +26,8 @@ dev = [
     "pytest",
 ]
 
+[optional-dependencies]
+workflows = ["fabricatio-actions"]
 
 
 [build-system]

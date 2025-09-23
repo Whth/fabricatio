@@ -13,24 +13,24 @@ class CharacterCompose(Propose, ABC):
     """This class contains the capabilities for the character."""
 
     @overload
-    async def characters(
+    async def compose_characters(
         self, requirements: str, **kwargs: Unpack[ValidateKwargs[CharacterCard]]
     ) -> None | CharacterCard:
         """Fetch a single character matching the requirement string, or None."""
 
     @overload
-    async def characters(
+    async def compose_characters(
         self, requirements: list[str], **kwargs: Unpack[ValidateKwargs[None]]
     ) -> List[CharacterCard | None]:
         """Fetch multiple characters by requirements; may include None for unmatched."""
 
     @overload
-    async def characters(
+    async def compose_characters(
         self, requirements: list[str], **kwargs: Unpack[ValidateKwargs[CharacterCard]]
     ) -> List[CharacterCard]:
         """Fetch multiple characters; raises or filters to ensure all results are valid."""
 
-    async def characters(
+    async def compose_characters(
         self, requirements: str | list[str], **kwargs: Unpack[ValidateKwargs[CharacterCard]]
     ) -> None | CharacterCard | List[CharacterCard | None] | List[CharacterCard]:
         """Delegate to propose() to resolve character(s) based on requirements."""

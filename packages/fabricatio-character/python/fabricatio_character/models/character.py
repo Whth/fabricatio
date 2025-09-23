@@ -2,13 +2,13 @@
 
 from typing import ClassVar, Dict
 
-from fabricatio_capabilities.models.generic import AsPrompt
+from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_core.models.generic import Named, SketchedAble
 
 from fabricatio_character.config import character_config
 
 
-class CharacterCard(SketchedAble, Named, AsPrompt):
+class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """A structured character profile for storytelling, role-playing, or AI narrative generation.
 
     Each field captures a core dimension of the character to ensure consistent and vivid portrayal.
