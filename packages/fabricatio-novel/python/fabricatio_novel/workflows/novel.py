@@ -3,6 +3,10 @@
 Each workflow is designed for specific use cases: full generation, debugging, component regeneration, validation, etc.
 """
 
+
+from fabricatio_core.utils import cfg
+
+cfg("fabricatio_actions", feats=["workflows"])
 from pathlib import Path
 
 from fabricatio_actions.actions.output import PersistentAll

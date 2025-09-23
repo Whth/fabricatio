@@ -1,5 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
+from importlib.util import find_spec
 from typing import Any, Dict, Iterable, Mapping, Optional
 
 
@@ -32,6 +33,63 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
+def cfg(*manifest: str, feats: Iterable[str]) -> None:
+    """Configure the package based on the provided manifest and features.
+
+    If any module in `manifest` is missing, raises ModuleNotFoundError with
+    ready-to-run installation commands for both pip and uv.
+
+    Automatically converts '_' to '-' in package name to match PyPI naming convention.
+
+    Example:
+        Missing dependencies. Please install with:
+          pip install my-novel-pkg[workflow,debug]
+          uv add "my-novel-pkg[workflow,debug]"
+
+    Args:
+        *manifest: Module names to check for availability.
+        feats: Extra feature names required (e.g., ["workflow", "debug"]).
+
+    Raises:
+        ModuleNotFoundError: If any module is not found.
+    """
+    if not all(find_spec(m) for m in manifest):
+        # Default fallback package name
+        pkg = "unknown"
+
+        # Try to infer package name from caller
+        import inspect
+        frame = inspect.currentframe()
+        if frame and frame.f_back:
+            mod = inspect.getmodule(frame.f_back)
+            if mod and hasattr(mod, "__name__") and mod.__name__ != "__main__":
+                pkg = mod.__name__.split(".")[0]  # Top-level package name
+
+        # 🔥 Convert Python-style underscores to PyPI-style hyphens
+        pkg = pkg.replace("_", "-")
+
+        # Build features string
+        feat_str = ",".join(feats) if feats else ""
+        extras = f"[{feat_str}]" if feat_str else ""
+
+        # Generate commands
+        pip_cmd = f"pip install {pkg}{extras}"
+        uv_cmd = f'uv pip install {pkg}{extras}'  
+
+        # Build error message
+        msg = (
+            f"Missing dependencies. You may install them with:\n"
+            f"  with pip: {pip_cmd}\n"
+            f"  with uv: {uv_cmd}"
+        )
+
+        if pkg == "unknown":
+            msg += (
+                f"\n\nNote: Package name could not be auto-detected. "
+                f"Replace 'unknown' with the correct package name (PyPI names use hyphens, e.g., 'my-package')."
+            )
+
+        raise ModuleNotFoundError(msg)
 def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available item found in the iterable.") -> T:
     """Return the first available item in the iterable that's not None.
 
