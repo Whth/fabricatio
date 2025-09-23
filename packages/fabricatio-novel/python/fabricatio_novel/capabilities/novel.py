@@ -9,7 +9,7 @@ from fabricatio_character.utils import dump_card
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
-from fabricatio_core.models.kwargs_types import GenerateKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import detect_language
 from fabricatio_core.utils import ok, override_kwargs
 
@@ -22,14 +22,16 @@ from fabricatio_novel.rust import text_to_xhtml_paragraphs
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     """This class contains the capabilities for the novel."""
 
-    async def novel(self, outline: str, **kwargs: Unpack[ValidateKwargs[Novel]]) -> Novel | None:
+    async def novel(
+        self, outline: str, language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[Novel]]
+    ) -> Novel | None:
         """Main novel composition pipeline."""
         logger.info(f"Starting novel generation for outline: {outline[:100]}...")
         okwargs = override_kwargs(kwargs, default=None)
 
         # Step 1: Generate draft
         logger.debug("Step 1: Generating novel draft from outline")
-        draft = ok(await self.create_draft(outline, **okwargs))
+        draft = ok(await self.create_draft(outline, language, **okwargs))
         if not draft:
             logger.warn("Failed to generate novel draft.")
             return None
@@ -77,7 +79,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             novel_config.novel_draft_requirement_template,
             {"outline": outline, "language": detected_language},
         )
-        logger.debug(f"Rendered draft prompt (first 300 chars): {prompt[:300]}...")
+        logger.debug(f"Rendered draft prompt:\n{prompt}")
 
         result = await self.propose(NovelDraft, prompt, **kwargs)
         if result:
@@ -91,7 +93,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     ) -> None | List[CharacterCard] | List[CharacterCard | None]:
         """Generate characters based on draft."""
         logger.debug(f"Generating characters for novel: '{draft.title}'")
-        if not draft.character_desc:
+        if not draft.character_descriptions:
             logger.warn("No character descriptions found in draft.")
             return []
 
@@ -102,7 +104,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "character_desc": c,
                 "language": draft.language,
             }
-            for c in draft.character_desc
+            for c in draft.character_descriptions
         ]
         logger.debug(f"Prepared {len(character_prompts)} character prompts")
 
@@ -159,8 +161,8 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         draft: NovelDraft,
         scripts: List[Script],
         characters: List[CharacterCard],
-        **kwargs: Unpack[GenerateKwargs],
-    ) -> List[str]:
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> List[str] | List[str | None]:
         """Generate actual chapter contents from scripts."""
         logger.debug(f"Generating chapter contents for {len(scripts)} script(s)")
         if not scripts:
@@ -181,12 +183,14 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         ]
         logger.debug(f"Prepared {len(chapter_prompts)} chapter generation prompts")
 
-        chapter_requirement = TEMPLATE_MANAGER.render_template(
+        chapter_requirement: List[str] = TEMPLATE_MANAGER.render_template(
             novel_config.chapter_requirement_template, chapter_prompts
         )
         logger.debug(f"Chapter requirement template length: {len(chapter_requirement)}")
 
-        response = await self.aask(chapter_requirement, **kwargs)
+        response = ok(await self.aask(chapter_requirement, **kwargs))
+        
+        
         logger.info(f"Generated {len(response)} chapter content(s)")
         return response
 

@@ -30,6 +30,11 @@ class GenerateNovel(NovelCompose, Action):
     The prompt used to generate the novel. If not provided, execution will fail.
     """
 
+    novel_language: Optional[str] = None
+    """
+    The language of the novel. If not provided, will infer from the prompt.
+    """
+
     output_key: str = "novel"
     """
     The key under which the generated novel will be stored in the context.
@@ -52,7 +57,7 @@ class GenerateNovel(NovelCompose, Action):
         Returns:
             Novel | None: The generated novel object, or None if generation fails.
         """
-        return await self.novel(ok(self.novel_prompt))
+        return await self.novel(ok(self.novel_prompt), self.novel_language)
 
 
 class DumpNovel(Action):

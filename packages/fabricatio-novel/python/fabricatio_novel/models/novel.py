@@ -21,12 +21,21 @@ class NovelDraft(SketchedAble, Titled, Language, WordCount):
     synopsis: str
     """A summary of the novel's plot."""
 
-    character_desc: List[str]
-    """List of extremely detailed descriptions for each character in the novel. which should contains everything about the character in the reference material."""
-
+    character_descriptions: List[str]
+    """
+    Every string in this list MUST be at least 200 words.
+    Super detailed descriptions for each main character. 
+    Include: looks, personality, backstory, goals, relationships, inner struggles, and their role in the story.
+    Goal: Make every character feel real, consistent, and fully fleshed out — no vague or shallow summaries.
+    """
+    
     chapter_synopses: List[str]
-    """List of extremely detailed synopses for each chapter in the novel."""
-
+    """
+    Every string in this list MUST be at least 350 words.
+    Super detailed summaries for each chapter. 
+    Cover: what happens, how characters change, key scenes/dialogue, setting shifts, emotional tone, and hints or themes.
+    Goal: Lock in every important detail so nothing gets lost later — like a mini-script for each chapter.
+    """
     expected_word_count: int
     """The expected word count of the novel."""
 

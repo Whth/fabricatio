@@ -14,16 +14,16 @@ from fabricatio_novel.config import novel_config
 
 class Scene(SketchedAble, WordCount):
     """A self-contained narrative moment for storytelling, games, film, or AI generation."""
-    
-    expected_word_count:int 
+
+    expected_word_count: int
     """Expected word count when writing the scene."""
-    
+
     tags: List[str]
     """free-form semantic labels for filtering, grouping, or post-processing."""
 
     prompt: str
     """natural language guidance for tone, style, or constraint."""
-    
+
     narrative: str
     """dialogue, description, log, poem, monologue, etc."""
 
@@ -40,7 +40,7 @@ class Scene(SketchedAble, WordCount):
 class Script(SketchedAble, Titled, AsPrompt, WordCount):
     """A sequence of scenes forming a cohesive narrative unit especially for a novel chapter."""
 
-    title: str = Field(examples=["Chapter 1: The Beginning", "第一章：起始"])
+    title: str = Field(examples=["Ch1: A Chapter Title For Example", "Ch1: 一个示例章节标题"])
     """Title of the chapter."""
 
     expected_word_count: int
