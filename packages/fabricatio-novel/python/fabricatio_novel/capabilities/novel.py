@@ -23,7 +23,11 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     """This class contains the capabilities for the novel."""
 
     async def compose_novel(
-        self, outline: str, language: Optional[str] = None,chapter_guidance: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[Novel]]
+        self,
+        outline: str,
+        language: Optional[str] = None,
+        chapter_guidance: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[Novel]],
     ) -> Novel | None:
         """Main novel composition pipeline."""
         logger.info(f"Starting novel generation for outline: {outline[:100]}...")
@@ -55,7 +59,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
         # Step 4: Generate chapter contents
         logger.debug("Step 4: Generating full chapter contents from scripts")
-        chapter_contents = await self.create_chapters(draft, clean_scripts, characters,chapter_guidance, **okwargs)
+        chapter_contents = await self.create_chapters(draft, clean_scripts, characters, chapter_guidance, **okwargs)
         if not chapter_contents:
             logger.warn("Chapter content generation returned no results.")
             return None

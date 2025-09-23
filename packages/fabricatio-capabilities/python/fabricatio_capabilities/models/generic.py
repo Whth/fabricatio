@@ -349,7 +349,7 @@ class PersistentAble(Base, ABC):
             p.mkdir(exist_ok=True, parents=True)
             p.write_text(out, encoding="utf-8")
 
-        logger.info(f"Persisted `{self.__class__.__name__}` to {p.as_posix()}")
+        logger.info(f"Persisted `{self.__class__.__name__}` to {p.absolute().as_posix()}")
         return self
 
     @classmethod

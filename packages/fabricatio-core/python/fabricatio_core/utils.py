@@ -59,6 +59,7 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
 
         # Try to infer package name from caller
         import inspect
+
         frame = inspect.currentframe()
         if frame and frame.f_back:
             mod = inspect.getmodule(frame.f_back)
@@ -74,22 +75,20 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
 
         # Generate commands
         pip_cmd = f"pip install {pkg}{extras}"
-        uv_cmd = f'uv pip install {pkg}{extras}'  
+        uv_cmd = f"uv pip install {pkg}{extras}"
 
         # Build error message
-        msg = (
-            f"Missing dependencies. You may install them with:\n"
-            f"  with pip: {pip_cmd}\n"
-            f"  with uv: {uv_cmd}"
-        )
+        msg = f"Missing dependencies. You may install them with:\n  with pip: {pip_cmd}\n  with uv: {uv_cmd}"
 
         if pkg == "unknown":
             msg += (
-                f"\n\nNote: Package name could not be auto-detected. "
-                f"Replace 'unknown' with the correct package name (PyPI names use hyphens, e.g., 'my-package')."
+                "\n\nNote: Package name could not be auto-detected. "
+                "Replace 'unknown' with the correct package name (PyPI names use hyphens, e.g., 'my-package')."
             )
 
         raise ModuleNotFoundError(msg)
+
+
 def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available item found in the iterable.") -> T:
     """Return the first available item in the iterable that's not None.
 

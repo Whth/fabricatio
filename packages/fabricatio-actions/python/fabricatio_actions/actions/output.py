@@ -117,9 +117,9 @@ class PersistentAll(Action, UseLLM):
             or self.persist_dir
             or ok(
                 await self.awhich_pathstr(
-                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will persist the data."
+                    f"{ok(task_input, 'Neither `task_input` and `persist_dir` is provided.').briefing}\n\nExtract a single path of the dir, to which I will persist the data."
                 ),
-                "Can not find the path of file to persist the data.",
+                "Can not find the path of dir to persist the data.",
             )
         )
 

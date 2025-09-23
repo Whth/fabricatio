@@ -114,7 +114,7 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
         characters = ok(self.novel_characters)
 
         logger.info(f"Generating {len(scripts)} chapter contents for '{draft.title}'.")
-        chapter_contents = await self.create_chapters(draft, scripts, characters,self.chapter_guidance)
+        chapter_contents = await self.create_chapters(draft, scripts, characters, self.chapter_guidance)
         if not chapter_contents:
             logger.warn("Chapter content generation returned empty or None.")
             return None
@@ -266,7 +266,7 @@ class GenerateNovel(NovelCompose, Action):
         Returns:
             Novel | None: The generated novel object, or None if generation fails.
         """
-        return await self.compose_novel(ok(self.novel_outline), self.novel_language,self.chapter_guidance)
+        return await self.compose_novel(ok(self.novel_outline), self.novel_language, self.chapter_guidance)
 
 
 class DumpNovel(Action):
