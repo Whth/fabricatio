@@ -1,6 +1,8 @@
 {{block characters "Characters Info Board"}}
 {{block script "Chapter Script"}}
+{{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
+You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
 You MUST use "{{ language }}" as the writen language.
-output Body paragraphs only, do not include any other text. (like explanation or paragraph title, etc.)
+output Body paragraphs only, joined with a blank line. Do not include any other text. (like explanation or paragraph title, etc.)
 You MUST output content meet the expected word cont constrain, that is, output at least {{ expected_word_count }} words.
-{{>pua}}
+you don't need to explain how you allocate the words to the paragraphs. output only the final paragraphs. Your response will be written directly into the document.So I don't want see anything that is irrelevant to the chapter content.

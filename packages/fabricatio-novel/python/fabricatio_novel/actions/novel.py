@@ -96,6 +96,10 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
     """
     The list of characters to provide context.
     """
+    chapter_guidance: Optional[str] = None
+    """
+    Guidance for writing chapter.
+    """
 
     output_key: str = "novel_chapter_contents"
     """
@@ -110,7 +114,7 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
         characters = ok(self.novel_characters)
 
         logger.info(f"Generating {len(scripts)} chapter contents for '{draft.title}'.")
-        chapter_contents = await self.create_chapters(draft, scripts, characters)
+        chapter_contents = await self.create_chapters(draft, scripts, characters,self.chapter_guidance)
         if not chapter_contents:
             logger.warn("Chapter content generation returned empty or None.")
             return None
@@ -238,6 +242,11 @@ class GenerateNovel(NovelCompose, Action):
     The language of the novel. If not provided, will infer from the prompt.
     """
 
+    chapter_guidance: Optional[str] = None
+    """
+    Guidance for writing chapter.
+    """
+
     output_key: str = "novel"
     """
     The key under which the generated novel will be stored in the context.
@@ -257,7 +266,7 @@ class GenerateNovel(NovelCompose, Action):
         Returns:
             Novel | None: The generated novel object, or None if generation fails.
         """
-        return await self.compose_novel(ok(self.novel_outline), self.novel_language)
+        return await self.compose_novel(ok(self.novel_outline), self.novel_language,self.chapter_guidance)
 
 
 class DumpNovel(Action):
