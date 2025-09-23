@@ -40,9 +40,13 @@ DebugNovelWorkflow = WorkFlow(
     description="Step-by-step novel generation for inspection and debugging.",
     steps=(
         GenerateNovelDraft,
+        PersistentAll,
         GenerateCharactersFromDraft,
+        PersistentAll,
         GenerateScriptsFromDraftAndCharacters,
+        PersistentAll,
         GenerateChaptersFromScripts,
+        PersistentAll,
         AssembleNovelFromComponents,
         DumpNovel().to_task_output(),
         PersistentAll,

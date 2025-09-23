@@ -22,7 +22,7 @@ from fabricatio_novel.rust import NovelBuilder
 class GenerateCharactersFromDraft(NovelCompose, Action):
     """Generate character cards from a NovelDraft."""
 
-    draft: Optional[NovelDraft] = None
+    novel_draft: Optional[NovelDraft] = None
     """
     The novel draft from which to generate characters.
     """
@@ -35,7 +35,7 @@ class GenerateCharactersFromDraft(NovelCompose, Action):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, *_: Any, **cxt) -> List[CharacterCard] | None:
-        draft = ok(self.draft)
+        draft = ok(self.novel_draft,"`novel_draft` is required for character generation")
         logger.info(f"Generating characters for novel draft: '{draft.title}'")
         characters = await self.create_characters(draft)
         if characters is None:
@@ -49,7 +49,7 @@ class GenerateCharactersFromDraft(NovelCompose, Action):
 class GenerateScriptsFromDraftAndCharacters(NovelCompose, Action):
     """Generate chapter scripts from a draft and list of characters."""
 
-    draft: Optional[NovelDraft] = None
+    novel_draft: Optional[NovelDraft] = None
     """
     The novel draft containing chapter synopses.
     """
@@ -67,7 +67,7 @@ class GenerateScriptsFromDraftAndCharacters(NovelCompose, Action):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, *_: Any, **cxt) -> List[Script] | None:
-        draft = ok(self.draft)
+        draft = ok(self.novel_draft)
         characters = ok(self.novel_characters)  # ← consume from context as "novel_characters"
         logger.info(f"Generating scripts for '{draft.title}' with {len(characters)} character(s).")
         scripts = await self.create_scripts(draft, characters)
@@ -82,7 +82,7 @@ class GenerateScriptsFromDraftAndCharacters(NovelCompose, Action):
 class GenerateChaptersFromScripts(NovelCompose, Action):
     """Generate full chapter contents from scripts and characters."""
 
-    draft: Optional[NovelDraft] = None
+    novel_draft: Optional[NovelDraft] = None
     """
     The novel draft (for language, metadata).
     """
@@ -109,7 +109,7 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, *_: Any, **cxt) -> List[str] | List[str | None] | None:
-        draft = ok(self.draft)
+        draft = ok(self.novel_draft)
         scripts = ok(self.novel_scripts)
         characters = ok(self.novel_characters)
 
@@ -125,7 +125,7 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
 class AssembleNovelFromComponents(NovelCompose, Action):
     """Assemble final Novel object from draft, scripts, and chapter contents."""
 
-    draft: Optional[NovelDraft] = None
+    novel_draft: Optional[NovelDraft] = None
     """
     The original draft containing title, synopsis, etc.
     """
@@ -148,7 +148,7 @@ class AssembleNovelFromComponents(NovelCompose, Action):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, *_: Any, **cxt) -> Novel:
-        draft = ok(self.draft)
+        draft = ok(self.novel_draft)
         scripts = ok(self.novel_scripts)
         chapter_contents = ok(self.novel_chapter_contents)
 

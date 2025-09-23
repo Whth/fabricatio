@@ -23,7 +23,7 @@ class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
 
     character_descriptions: List[str]
     """
-    Every string in this list MUST be at least 200 words.
+    Every string in this list MUST be at least 180 words.
     Super detailed descriptions for each main character.
     Include: looks, personality, backstory, goals, relationships, inner struggles, and their role in the story.
     Goal: Make every character feel real, consistent, and fully fleshed out — no vague or shallow summaries.
@@ -31,7 +31,7 @@ class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
 
     chapter_synopses: List[str]
     """
-    Every string in this list MUST be at least 350 words.
+    Every string in this list MUST be at least 270 words.
     Super detailed summaries for each chapter.
     Cover: what happens, how characters change, key scenes/dialogue, setting shifts, emotional tone, and hints or themes.
     Goal: Lock in every important detail so nothing gets lost later — like a mini-script for each chapter.

@@ -2,10 +2,19 @@ use epub_builder::EpubVersion::V30;
 use epub_builder::{EpubBuilder, EpubContent, Error as EpubError, ZipLibrary};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use std::collections::hash_map::DefaultHasher;
 use std::fs::{read, write};
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use thiserror::Error;
 
+#[inline]
+fn hash_to_filename(s: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    s.hash(&mut hasher);
+    let hash = hasher.finish();
+    format!("{:x}", hash)
+}
 #[derive(Error, Debug)]
 enum LocalError {
     #[error(transparent)]
@@ -85,9 +94,12 @@ impl NovelBuilder {
         content: String,
     ) -> PyResult<PyRefMut<Self>> {
         let builder = slf.ensure_initialized_mut()?;
-        let chapter_content = EpubContent::new(format!("{}.xhtml", title), content.as_bytes())
-            .level(1)
-            .title(&title);
+        let chapter_content = EpubContent::new(
+            format!("{}.xhtml", hash_to_filename(&title)),
+            content.as_bytes(),
+        )
+        .level(1)
+        .title(&title);
         builder
             .add_content(chapter_content)
             .map_err(LocalError::Epub)?;
