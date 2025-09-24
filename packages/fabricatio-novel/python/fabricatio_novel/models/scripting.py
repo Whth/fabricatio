@@ -13,10 +13,10 @@ from fabricatio_novel.config import novel_config
 
 
 class Scene(PersistentAble, SketchedAble, WordCount):
-    """A self-contained narrative moment for storytelling, games, film, or AI generation."""
+    """The most basic narrative unit."""
 
     expected_word_count: int
-    """Expected word count when writing the scene."""
+    """Expected word count when writing the content that the Scene is narrating."""
 
     tags: List[str]
     """free-form semantic labels for filtering, grouping, or post-processing."""

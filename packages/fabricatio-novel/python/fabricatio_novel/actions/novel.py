@@ -35,7 +35,7 @@ class GenerateCharactersFromDraft(NovelCompose, Action):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, *_: Any, **cxt) -> List[CharacterCard] | None:
-        draft = ok(self.novel_draft,"`novel_draft` is required for character generation")
+        draft = ok(self.novel_draft, "`novel_draft` is required for character generation")
         logger.info(f"Generating characters for novel draft: '{draft.title}'")
         characters = await self.create_characters(draft)
         if characters is None:
