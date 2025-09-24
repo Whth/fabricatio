@@ -342,5 +342,5 @@ async def test_order_invalid_input(
         role (OrderingRole): OrderingRole fixture
         seq (List[Union[str, WithBriefing, int]]): Invalid input sequence
     """
-    with pytest.raises(ValueError, match="The sequence must be a list of strings or a list of WithBriefing objects."):
+    with pytest.raises(ValueError, match=r"The sequence must be a list of strings or a list of WithBriefing objects\."):
         await role.order(seq, "test requirement")

@@ -103,7 +103,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        os: [ windows-latest, ubuntu-latest, ubuntu-24.04-arm, macos-latest ]
         python-version: [ "3.12", "3.13" ]
 
     steps:
@@ -124,6 +124,8 @@ jobs:
       - name: Install deps
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
+        env:
+          UV_HTTP_TIMEOUT: 300
 
       - name: Cache cargo registry
         id: cache-registry

@@ -222,28 +222,31 @@ class TestToolExecutor:
 async def test_forbidden_import_check(tool_executor: ToolExecutor, sample_func: Callable[[int, str], str]) -> None:
     """Test detection of forbidden imports."""
     source = "import os\nx=32*6"
-    with pytest.raises(ValueError, match="Forbidden import module: os"):
+    with pytest.raises(ValueError, match=r"Forbidden import module: os"):
         await tool_executor.execute(source)
 
     source = "from os import path"
-    with pytest.raises(ValueError, match="Forbidden import module: os"):
+    with pytest.raises(ValueError, match=r"Forbidden import module: os"):
         await tool_executor.execute(source)
 
     source = "import sys"
-    with pytest.raises(ValueError, match="Forbidden import module: sys"):
+    with pytest.raises(ValueError, match=r"Forbidden import module: sys"):
         await tool_executor.execute(source)
+
     source = "exec(\"print('hi')\")"
-    with pytest.raises(ValueError, match="Forbidden function call: exec()"):
+    with pytest.raises(ValueError, match=r"Forbidden function call: exec\(\)"):
         await tool_executor.execute(source)
+
     source = "print(\"exec('hi=1')\")"
-    with pytest.raises(ValueError, match="Forbidden function call: print()"):
+    with pytest.raises(ValueError, match=r"Forbidden function call: print\(\)"):
         await tool_executor.execute(source)
+
     source = f"res={sample_func.__name__}(5, 'a')\n{tool_executor.collector_varname}.submit('result', res)"
     col = await tool_executor.execute(source)
     assert col.take("result") == "5a"
 
     source = f"res={sample_func.__name__}_var(5, 'a')\n{tool_executor.collector_varname}.submit('result', res)"
-    with pytest.raises(ValueError, match=f"Forbidden function call: {sample_func.__name__}_var()"):
+    with pytest.raises(ValueError, match=rf"Forbidden function call: {sample_func.__name__}_var\(\)"):
         await tool_executor.execute(source)
 
 
