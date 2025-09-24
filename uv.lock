@@ -585,11 +585,12 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.8"
+version = "0.1.9.dev1"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
     { name = "fabricatio-core" },
+    { name = "fabricatio-tool" },
 ]
 
 [package.dev-dependencies]
@@ -601,6 +602,7 @@ dev = [
 requires-dist = [
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
 ]
 
 [package.metadata.requires-dev]
@@ -676,7 +678,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capabilities"
-version = "0.3.4.dev1"
+version = "0.3.4.dev2"
 source = { editable = "packages/fabricatio-capabilities" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -747,7 +749,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.30.dev3"
+version = "0.3.30.dev4"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -936,12 +938,27 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-novel"
-version = "0.1.1.dev16"
+version = "0.1.1.dev20"
 source = { editable = "packages/fabricatio-novel" }
 dependencies = [
     { name = "fabricatio-character" },
     { name = "fabricatio-core" },
     { name = "pydantic" },
+]
+
+[package.optional-dependencies]
+cli = [
+    { name = "fabricatio-actions" },
+    { name = "questionary" },
+    { name = "typer-slim", extra = ["standard"] },
+]
+full = [
+    { name = "fabricatio-actions" },
+    { name = "questionary" },
+    { name = "typer-slim", extra = ["standard"] },
+]
+workflows = [
+    { name = "fabricatio-actions" },
 ]
 
 [package.dev-dependencies]
@@ -951,10 +968,16 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fabricatio-actions", marker = "extra == 'workflows'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-character", editable = "packages/fabricatio-character" },
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-novel", extras = ["workflows"], marker = "extra == 'cli'", editable = "packages/fabricatio-novel" },
+    { name = "fabricatio-novel", extras = ["workflows", "cli"], marker = "extra == 'full'", editable = "packages/fabricatio-novel" },
     { name = "pydantic", specifier = ">=2.11.9" },
+    { name = "questionary", marker = "extra == 'cli'", specifier = ">=2.1.0" },
+    { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
+provides-extras = ["full", "workflows", "cli"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]

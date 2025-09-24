@@ -77,7 +77,6 @@ class RenderedDump(Action, UseLLM):
                 self.template_name, {to_dump.__class__.__name__: to_dump.finalized_dump()}
             ),
         )
-
         return dump_path.as_posix()
 
 

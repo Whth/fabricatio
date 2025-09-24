@@ -53,7 +53,7 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
     Raises:
         ModuleNotFoundError: If any module is not found.
     """
-    if not all(find_spec(m) for m in manifest):
+    if not_found:= list(m for m in manifest if not find_spec(m)):
         # Default fallback package name
         pkg = "unknown"
 
@@ -78,7 +78,7 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
         uv_cmd = f"uv pip install {pkg}{extras}"
 
         # Build error message
-        msg = f"Missing dependencies. You may install them with:\n  with pip: {pip_cmd}\n  with uv: {uv_cmd}"
+        msg = f"imports failed for the following modules:\n{'\n'.join(f"  {m}" for m in not_found)}\nYou may install them with:\n  with pip: {pip_cmd}\n  with uv: {uv_cmd}"
 
         if pkg == "unknown":
             msg += (

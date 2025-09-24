@@ -226,7 +226,7 @@ class EmbeddingConfig:
 class DebugConfig:
     """Debug configuration structure."""
 
-    log_level: Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+    log_level: Literal["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]
     """The logging level to use."""
 
     log_file: Optional[Path] = None

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-novel"
-version = "0.1.1-dev20"
+version = "0.1.1-dev21"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -26,8 +26,18 @@ dev = [
     "pytest",
 ]
 
-[optional-dependencies]
+[project.optional-dependencies]
+
+full = [
+    "fabricatio-novel[workflows,cli]"
+]
+
 workflows = ["fabricatio-actions"]
+cli = [
+    "fabricatio-novel[workflows]",
+    "questionary>=2.1.0",
+    "typer-slim[standard]>=0.15.2",
+]
 
 
 [build-system]
@@ -38,6 +48,9 @@ build-backend = "maturin"
 python-source = "python"
 module-name = "fabricatio_novel.rust"
 
+
+[project.scripts]
+fanvl = "fabricatio_novel.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
