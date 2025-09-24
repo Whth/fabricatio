@@ -1,40 +1,58 @@
-"""
-CLI Application for generating novels using Fabricatio.
-"""
+"""CLI Application for generating novels using Fabricatio."""
+
 from pathlib import Path
 
-from fabricatio_core.utils import cfg, ok
+from fabricatio_core.utils import cfg
+
 cfg("fabricatio_novel.workflows", "questionary", "typer", feats=["cli"])
 import typer
 from fabricatio_core import Event, Role, Task
-from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 
+from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
 
 # Register the writer role and workflow
-writer_role = Role(name="writer").register_workflow(
-    Event.quick_instantiate(ns := "write"), DebugNovelWorkflow
-).dispatch()
+writer_role = (
+    Role(name="writer").register_workflow(Event.quick_instantiate(ns := "write"), DebugNovelWorkflow).dispatch()
+)
 
 
 @app.command(name="w")
 def write_novel(
-        outline: str = typer.Option(..., "--outline", "-o", help="The novel's outline or premise."),
-        output_path: Path = typer.Option("./zh_novel.epub", "--output", "-out", dir_okay=False,
-                                         help="Output EPUB file path."),
-        font_file: Path = typer.Option(None, "--font", "-f", exists=True, dir_okay=False,
-                                       help="Path to custom font file (TTF)."),
-        cover_image: Path = typer.Option(None, "--cover", "-c", exists=True, dir_okay=False,
-                                         help="Path to cover image (PNG/JPG)."),
-        language: str = typer.Option("English", "--lang", "-l", help="Language of the novel (e.g., 简体中文, English, jp)."),
-        chapter_guidance: str = typer.Option("", "--guidance", "-g", help="Guidelines for chapter generation."),
-        persist_dir: Path = typer.Option("./persist", "--persist-dir", help="Directory to save intermediate states."),
-):
-    """
-    Generate a novel based on the provided outline and settings.
-    """
-
+    outline: str = typer.Option(..., "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"),
+    output_path: Path = typer.Option(
+        "./zh_novel.epub", "--output", "-out", dir_okay=False, help="Output EPUB file path.", envvar="NOVEL_OUTPUT_PATH"
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English", "--lang", "-l", help="Language of the novel (e.g., 简体中文, English, jp).", envvar="NOVEL_LANGUAGE"
+    ),
+    chapter_guidance: str = typer.Option(
+        "", "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+) -> None:
+    """Generate a novel based on the provided outline and settings."""
     typer.echo(f"Starting novel generation: '{outline[:30]}...'")
 
     task = Task(name="Write novel").update_init_context(
@@ -47,7 +65,7 @@ def write_novel(
         persist_dir=persist_dir,
     )
 
-    result =  task.delegate_blocking(ns)
+    result = task.delegate_blocking(ns)
 
     if result:
         typer.secho(f"✅ Novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
@@ -56,9 +74,8 @@ def write_novel(
         raise typer.Exit(1)
 
 
-
 @app.command()
-def info():
+def info() -> None:
     """Show information about this CLI tool."""
     typer.echo("📘 Fabricatio Novel Generator CLI")
     typer.echo("Generate AI-assisted novels in various languages with customizable styling.")
