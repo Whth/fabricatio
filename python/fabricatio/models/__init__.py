@@ -66,3 +66,13 @@ if find_spec("fabricatio_thinking"):
     from fabricatio_thinking.models.thinking import Thought
 
     __all__ += ["Thought"]
+if find_spec("fabricatio_novel"):
+    from fabricatio_novel.models.novel import Novel, NovelDraft
+    from fabricatio_novel.models.scripting import Scene, Script
+
+    __all__ += ["Novel", "NovelDraft", "Scene", "Script"]
+
+if find_spec("fabricatio_character"):
+    from fabricatio_character.models.character import CharacterCard
+
+    __all__ += ["CharacterCard"]

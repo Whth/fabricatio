@@ -101,3 +101,12 @@ if find_spec("fabricatio_thinking"):
     from fabricatio_thinking.capabilities.thinking import Thinking
 
     __all__ += ["Thinking"]
+if find_spec("fabricatio_novel"):
+    from fabricatio_novel.capabilities.novel import NovelCompose
+
+    __all__ += ["NovelCompose"]
+
+if find_spec("fabricatio_character"):
+    from fabricatio_character.capabilities.character import CharacterCompose
+
+    __all__ += ["CharacterCompose"]

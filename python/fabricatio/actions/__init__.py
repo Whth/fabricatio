@@ -77,3 +77,25 @@ if find_spec("fabricatio_locale"):
     from fabricatio_locale.actions.localize import LocalizePoFile
 
     __all__ += ["LocalizePoFile"]
+if find_spec("fabricatio_novel"):
+    from fabricatio_novel.actions.novel import (
+        AssembleNovelFromComponents,
+        DumpNovel,
+        GenerateChaptersFromScripts,
+        GenerateCharactersFromDraft,
+        GenerateNovel,
+        GenerateNovelDraft,
+        GenerateScriptsFromDraftAndCharacters,
+        ValidateNovel,
+    )
+
+    __all__ += [
+        "AssembleNovelFromComponents",
+        "DumpNovel",
+        "GenerateChaptersFromScripts",
+        "GenerateCharactersFromDraft",
+        "GenerateNovel",
+        "GenerateNovelDraft",
+        "GenerateScriptsFromDraftAndCharacters",
+        "ValidateNovel",
+    ]
