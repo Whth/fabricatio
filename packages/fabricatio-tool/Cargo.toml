@@ -11,8 +11,8 @@ pyo3-async-runtimes = { version = "0.26.0", features = ["tokio-runtime"] }
 pythonize = "0.26.0"
 rustpython-ast = { version = "0.4.0", features = ["visitor"] }
 rustpython-parser = { version = "0.4.0"  }
-serde_json = "1.0.142"
+serde_json = "1.0.145"
 mcp-manager = { path = "./crates/mcp-manager" }
 signify =  { path = "./crates/signify" }
-rmcp = "0.4.0"
+rmcp = "0.4.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }

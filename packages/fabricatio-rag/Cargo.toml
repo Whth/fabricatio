@@ -7,17 +7,17 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.26.0", features = ["extension-module"] }
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.227", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
 
 pyo3-async-runtimes = { version = "0.26.0", features = ["tokio-runtime"] }
-tonic-prost = "0.14.0"
-tonic = "0.14.0"
+tonic-prost = "0.14.2"
+tonic = "0.14.2"
 prost = "0.14.1"
 fabricatio-logger = {path = "../../crates/fabricatio-logger"}
 
 [build-dependencies]
-tonic-prost-build = "0.14.0"
+tonic-prost-build = "0.14.2"
 
 
 

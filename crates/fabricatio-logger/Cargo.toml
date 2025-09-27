@@ -6,8 +6,8 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-chrono = "0.4.41"
-tracing-subscriber = { version = "0.3.19", default-features = false, features = ["env-filter", "chrono"] }
+chrono = "0.4.42"
+tracing-subscriber = { version = "0.3.20", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.41"
 pyo3 = "0.26.0"
 fabricatio-constants = { path = "../fabricatio-constants" }

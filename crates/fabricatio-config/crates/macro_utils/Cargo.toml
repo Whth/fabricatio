@@ -6,7 +6,7 @@ license-file.workspace = true
 
 [dependencies]
 quote = "1.0.40"
-syn = "2.0.101"
+syn = "2.0.106"
 
 
 [lib]
