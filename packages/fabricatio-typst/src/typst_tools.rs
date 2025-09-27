@@ -1,9 +1,9 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
+use pyo3::{wrap_pyfunction, Bound, PyResult, Python};
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
-use serde_yml::Value;
+use serde_yaml2::wrapper::YamlNodeWrapper;
 use tex2typst_rs::tex2typst;
 use typst_conversion::convert_all_tex_math as conv_to_typst;
 
@@ -114,7 +114,7 @@ fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a,
         .collect::<Vec<&str>>()
         .join("\n");
 
-    if let Ok(value) = serde_yml::from_str::<Value>(metadata.uncomment().as_str()) {
+    if let Ok(value) = serde_yaml2::from_str::<YamlNodeWrapper>(metadata.uncomment().as_str()) {
         (
             Some(pythonize(python, &value).unwrap()),
             string
@@ -130,10 +130,10 @@ fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a,
 /// Convert a Python object to a YAML string.
 #[pyfunction]
 fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
-    depythonize::<Value>(data)
+    depythonize::<YamlNodeWrapper>(data)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         .and_then(|value| {
-            serde_yml::to_string(&value)
+            serde_yaml2::to_string(&value)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
                 .map(|s| s.comment())
         })
