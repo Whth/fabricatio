@@ -1,8 +1,9 @@
-use deck_loader::loader::{AnkiDeckLoader, constants};
+use deck_loader::loader::{constants, AnkiDeckLoader};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pythonize::depythonize;
-use serde_yml::Value;
+
+use serde_yaml2::wrapper::YamlNodeWrapper;
 use std::fs;
 use std::path::PathBuf;
 
@@ -39,11 +40,11 @@ fn create_deck_project(
 #[pyfunction]
 fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyResult<()> {
     fs::create_dir_all(&dir_path)?;
-    depythonize::<Value>(&data)
+    depythonize::<YamlNodeWrapper>(&data)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
         .and_then(|value| {
             let content =
-                serde_yml::to_string(&value).map_err(|e| PyRuntimeError::new_err(e.to_string()));
+                serde_yaml2::to_string(value).map_err(|e| PyRuntimeError::new_err(e.to_string()));
             content.and_then(|content| {
                 let path = dir_path.join(format!("{}.yaml", name));
                 fs::write(path, content).map_err(|e| PyRuntimeError::new_err(e.to_string()))

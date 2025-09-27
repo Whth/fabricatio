@@ -11,8 +11,8 @@ clap = { version = "4.5.39", features = ["derive"] }
 pyo3 = { version = "0.26.0", features = ["extension-module"] }
 deck_loader = { path = "./src/deck_loader" }
 pythonize = "0.26.0"
-serde_yml = "0.0.12"
 sanitize-filename = "0.6.0"
 regex = "1.11.1"
-fabricatio-logger = {path = "../../crates/fabricatio-logger"}
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+serde_yaml2 = "0.1.3"
 

@@ -36,6 +36,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeckConfig {
     name: String,
@@ -98,7 +100,7 @@ impl AnkiDeckLoader {
         let content = fs::read_to_string(&file_path)
             .map_err(|e| format!("Failed to read {}: {}", context, e))?;
 
-        serde_yml::from_str(&content).map_err(|e| format!("Failed to parse {}: {}", context, e))
+        serde_yaml2::from_str(&content).map_err(|e| format!("Failed to parse {}: {}", context, e))
     }
 
     /// Collects all files from a directory (non-recursive, depth 1).
@@ -370,7 +372,7 @@ impl AnkiDeckLoader {
         data: &T,
         context: &str,
     ) -> Result<(), String> {
-        let yaml_content = serde_yml::to_string(data)
+        let yaml_content = serde_yaml2::to_string(data)
             .map_err(|e| format!("Failed to serialize {}: {}", context, e))?;
         fs::write(path, yaml_content).map_err(|e| format!("Failed to write {}: {}", context, e))
     }
