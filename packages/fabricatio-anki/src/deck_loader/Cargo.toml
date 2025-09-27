@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-genanki-rs = "0.4.0"
+genanki-rs-rev = { git = "https://github.com/Whth/genanki-rs-rev" }
 csv = "1.3.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_yaml2 = "0.1.3"

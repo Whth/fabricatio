@@ -31,7 +31,7 @@
 /// │   └── grammar_card.csv
 /// └── media/                    # Global media resources (images, audio, etc.)
 /// ```
-use genanki_rs::{Deck, Field, Model, Note, Package, Template};
+use genanki_rs_rev::{Deck, Field, Model, Note, Package, Template};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
