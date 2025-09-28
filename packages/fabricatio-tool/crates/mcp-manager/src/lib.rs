@@ -1,12 +1,12 @@
 use futures::future::BoxFuture;
-use futures::{FutureExt, StreamExt, TryFutureExt, stream};
+use futures::{stream, FutureExt, StreamExt, TryFutureExt};
 use rmcp::model::{CallToolRequestParam, Tool};
 use rmcp::service::{DynService, RunningService};
-use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::sse_client::SseClientTransport;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
@@ -16,7 +16,6 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fmt::Debug;
-use std::sync::Arc;
 use tokio::process::Command;
 use which::which;
 
@@ -128,9 +127,7 @@ impl MCPManager {
                     }
                     Transport::Stream if config.url.is_some() => {
                         ().into_dyn()
-                            .serve(StreamableHttpClientTransport::from_uri(*Arc::new(
-                                config.url.unwrap().as_str(),
-                            )))
+                            .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
                             .map_err(|e| McpError::ServiceError(e.to_string()))
                             .await
                     }
