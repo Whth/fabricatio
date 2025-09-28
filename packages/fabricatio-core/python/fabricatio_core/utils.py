@@ -54,20 +54,15 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
         ModuleNotFoundError: If any module is not found.
     """
     if not_found := [m for m in manifest if not find_spec(m)]:
-        # Default fallback package name
-        pkg = "unknown"
-
         # Try to infer package name from caller
         import inspect
-
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            mod = inspect.getmodule(frame.f_back)
-            if mod and hasattr(mod, "__name__") and mod.__name__ != "__main__":
-                pkg = mod.__name__.split(".")[0]  # Top-level package name
-
-        # 🔥 Convert Python-style underscores to PyPI-style hyphens
-        pkg = pkg.replace("_", "-")
+        
+        if (frame:=inspect.currentframe()) and (mod:=inspect.getmodule(frame.f_back)):
+            pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
+        else:
+            # Default fallback package name
+            pkg = "unknown"
+            
 
         # Build features string
         feat_str = ",".join(feats) if feats else ""
