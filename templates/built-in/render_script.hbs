@@ -1,7 +1,7 @@
 {{#if scenes}}
-First,{{#each scenes as |scene index|}}{{#if scene.narrative}}{{scene.narrative}}{{/if}}({{#if
-        scene.expected_word_count}}write {{scene.expected_word_count}} words for this scene at least, {{/if}}{{#if
-        scene.prompt}}{{scene.prompt}}{{/if}}). {{#unless @last}}Then,{{/unless}}
+{{#each scenes as |scene index|}}{{#if scene.narrative}}{{scene.narrative}}{{/if}}({{#if
+        scene.expected_word_count}}about {{scene.expected_word_count}} words, {{/if}}{{#if
+        scene.prompt}}{{scene.prompt}}{{/if}})
 {{/each}}
 {{/if}}
 

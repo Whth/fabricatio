@@ -426,9 +426,7 @@ class WithFormatedJsonSchema(Base, ABC):
         Returns:
             str: The JSON schema of the model in a formatted string.
         """
-        return orjson.dumps(cls.model_json_schema(schema_generator=UnsortGenerate), option=orjson.OPT_INDENT_2).decode(
-            "utf-8"
-        )
+        return orjson.dumps(cls.model_json_schema(schema_generator=UnsortGenerate), option=orjson.OPT_INDENT_2).decode()
 
 
 class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):

@@ -171,3 +171,4 @@ templates/customed
 tei.rs
 .python-version
 /fabricatio.toml
+result.json

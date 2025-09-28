@@ -6,13 +6,13 @@ Together, these classes form a foundation for creating structured yet flexible n
 from typing import Any, ClassVar, Dict, List, Self
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble, WordCount
-from fabricatio_core.models.generic import SketchedAble, Titled
+from fabricatio_core.models.generic import Described, SketchedAble, Titled
 from pydantic import Field
 
 from fabricatio_novel.config import novel_config
 
 
-class Scene(PersistentAble, SketchedAble, WordCount):
+class Scene(PersistentAble, SketchedAble, WordCount, Described):
     """The most basic narrative unit."""
 
     expected_word_count: int
@@ -24,7 +24,7 @@ class Scene(PersistentAble, SketchedAble, WordCount):
     prompt: str
     """natural language guidance for tone, style, or constraint."""
 
-    narrative: str
+    description: str = Field(alias="narrative")
     """dialogue, description, log, poem, monologue, etc."""
 
     def append_prompt(self, prompt: str) -> Self:
@@ -55,7 +55,7 @@ class Script(SketchedAble, PersistentAble, Titled, AsPrompt, WordCount):
     rendering_template: ClassVar[str] = novel_config.render_script_template
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
-        return self.model_dump()
+        return self.model_dump(by_alias=True)
 
     def append_global_prompt(self, prompt: str) -> Self:
         """Add a global prompt to the script.

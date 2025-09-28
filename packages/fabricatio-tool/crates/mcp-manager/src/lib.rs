@@ -1,12 +1,12 @@
 use futures::future::BoxFuture;
-use futures::{stream, FutureExt, StreamExt, TryFutureExt};
+use futures::{FutureExt, StreamExt, TryFutureExt, stream};
 use rmcp::model::{CallToolRequestParam, Tool};
 use rmcp::service::{DynService, RunningService};
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::sse_client::SseClientTransport;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
-use rmcp::transport::ConfigureCommandExt;
 use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
