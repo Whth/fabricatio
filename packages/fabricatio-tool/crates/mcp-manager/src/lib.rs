@@ -16,6 +16,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fmt::Debug;
+use std::sync::Arc;
 use tokio::process::Command;
 use which::which;
 
@@ -127,7 +128,9 @@ impl MCPManager {
                     }
                     Transport::Stream if config.url.is_some() => {
                         ().into_dyn()
-                            .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
+                            .serve(StreamableHttpClientTransport::from_uri(*Arc::new(
+                                config.url.unwrap().as_str(),
+                            )))
                             .map_err(|e| McpError::ServiceError(e.to_string()))
                             .await
                     }

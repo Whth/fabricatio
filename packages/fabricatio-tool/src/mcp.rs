@@ -266,11 +266,11 @@ impl MCPManager {
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-            Ok(result.content.map(|ve| {
-                ve.into_iter()
-                    .map(|v| v.raw.as_text().map(|t| t.text.clone()).unwrap_or_default())
-                    .collect::<Vec<_>>()
-            }))
+            Ok(result
+                .content
+                .into_iter()
+                .map(|v| v.raw.as_text().map(|t| t.text.clone()).unwrap_or_default())
+                .collect::<Vec<String>>())
         })
     }
 

@@ -37,7 +37,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeckConfig {
     name: String,

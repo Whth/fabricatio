@@ -56,13 +56,12 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
     if not_found := [m for m in manifest if not find_spec(m)]:
         # Try to infer package name from caller
         import inspect
-        
-        if (frame:=inspect.currentframe()) and (mod:=inspect.getmodule(frame.f_back)):
+
+        if (frame := inspect.currentframe()) and (mod := inspect.getmodule(frame.f_back)):
             pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
         else:
             # Default fallback package name
             pkg = "unknown"
-            
 
         # Build features string
         feat_str = ",".join(feats) if feats else ""

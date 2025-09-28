@@ -1,4 +1,4 @@
-use deck_loader::loader::{constants, AnkiDeckLoader};
+use deck_loader::loader::{AnkiDeckLoader, constants};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pythonize::depythonize;
