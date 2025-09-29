@@ -5,7 +5,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-quote = "1.0.40"
+quote = "1.0.41"
 syn = "2.0.106"
 
 
