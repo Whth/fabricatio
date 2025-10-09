@@ -10,7 +10,7 @@ pyo3 = { version = "0.26.0", features = ["extension-module"] }
 
 reqwest = { version = "0.12.23", features = ["blocking", "json"] }
 tar = "0.4.44"
-flate2 = "1.1.2"
+flate2 = "1.1.4"
 serde_json = "1.0.145"
 clap = { version = "4.5.48", features = ["derive"] }
 fabricatio-constants = { path = "crates/fabricatio-constants" }
