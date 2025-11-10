@@ -6,7 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-regex = "1.11.3"
+regex = "1.12.2"
 epub-builder = "0.8.0"
 thiserror = "2.0.17"
 mime_guess = "2.0.5"

@@ -6,7 +6,7 @@ from typing import Dict, List
 from fabricatio_core import CONFIG
 from fabricatio_core.decorators import once
 from pydantic import BaseModel, ConfigDict, Field
-from ujson import load
+from orjson import loads
 
 genres_path = Path(__file__).parent / "top_200_tags.json"
 
@@ -21,7 +21,7 @@ class YueConfig(BaseModel):
     )
     """List of valid segment types for music composition."""
 
-    genre: Dict[str, List[str]] = Field(default_factory=once(lambda: load(genres_path.open(encoding="utf-8"))))
+    genre: Dict[str, List[str]] = Field(default_factory=once(lambda: loads(genres_path.read_bytes())))
     """Dictionary mapping genre categories to lists of specific genres."""
 
     lyricize_template: str = "lyricize"

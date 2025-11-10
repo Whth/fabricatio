@@ -9,7 +9,7 @@ license-file.workspace = true
 chrono = "0.4.42"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.41"
-pyo3 = "0.26.0"
+pyo3 = "0.27.1"
 fabricatio-constants = { path = "../fabricatio-constants" }
 fabricatio-config = { path = "../fabricatio-config" }
 tracing-appender = "0.2.3"
