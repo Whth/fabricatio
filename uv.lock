@@ -404,7 +404,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.20.6"
+version = "0.20.7"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1243,11 +1243,12 @@ provides-extras = ["full", "rag", "qa", "workflows", "actions"]
 
 [[package]]
 name = "fabricatio-yue"
-version = "0.2.7"
+version = "0.2.8"
 source = { editable = "packages/fabricatio-yue" }
 dependencies = [
     { name = "fabricatio-core" },
     { name = "more-itertools" },
+    { name = "orjson" },
     { name = "pydantic" },
 ]
 
@@ -1266,6 +1267,7 @@ dev = [
 requires-dist = [
     { name = "fabricatio-core", editable = "packages/fabricatio-core" },
     { name = "more-itertools", specifier = ">=10.7.0" },
+    { name = "orjson", specifier = ">=3.11.4" },
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "questionary", marker = "extra == 'cli'", specifier = ">=2.1.0" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },

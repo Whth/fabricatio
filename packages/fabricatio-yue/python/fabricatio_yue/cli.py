@@ -1,14 +1,9 @@
 """Command-line interface for Fabricatio Yue song composition."""
 
-from importlib.util import find_spec
-
 from fabricatio_core.decorators import precheck_package
+from fabricatio_core.utils import cfg
 
-if not find_spec("typer"):
-    raise ModuleNotFoundError(
-        "Please install fabricatio-yue with 'pip install fabricatio-yue[cli]' or 'uv tool install fabricatio-yue[cli]'"
-    )
-
+cfg("typer", "questionary", feats=["cli"])
 from pathlib import Path
 
 from typer import Option, Typer

@@ -5,8 +5,8 @@ from typing import Dict, List
 
 from fabricatio_core import CONFIG
 from fabricatio_core.decorators import once
-from pydantic import BaseModel, ConfigDict, Field
 from orjson import loads
+from pydantic import BaseModel, ConfigDict, Field
 
 genres_path = Path(__file__).parent / "top_200_tags.json"
 
