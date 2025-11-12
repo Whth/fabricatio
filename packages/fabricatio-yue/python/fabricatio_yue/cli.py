@@ -1,9 +1,8 @@
 """Command-line interface for Fabricatio Yue song composition."""
 
-from fabricatio_core.decorators import cfg_on
 from fabricatio_core.utils import cfg
 
-cfg("typer", "questionary", feats=["cli"])
+cfg(feats=["cli"])
 from pathlib import Path
 
 from typer import Option, Typer
@@ -17,7 +16,6 @@ app = Typer(
 
 
 @app.command()
-@cfg_on("questionary", feats=["cli"])
 def compose(
     requirement: str = Option(None, "-r", "--requirement", help="Song requirement/prompt"),
     output: Path = Option(Path("song"), "-o", "--output", help="Output file folder"),

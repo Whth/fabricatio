@@ -265,7 +265,7 @@ class Article(
             a.update_metadata(o)
         return self.update_ref(article_outline)
 
-    @cfg_on("questionary", feats=["qa"])
+    @cfg_on(feats=["qa"])
     async def edit_titles(self) -> Self:
         """Edits the titles of the article."""
         from questionary import text

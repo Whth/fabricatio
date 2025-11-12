@@ -2,15 +2,15 @@
 
 __all__ = []
 
-from importlib.util import find_spec
+from fabricatio_core.rust import is_installed
 
-if find_spec("fabricatio_typst") and find_spec("fabricatio_actions"):
+if is_installed("fabricatio_typst") and is_installed("fabricatio_actions"):
     from fabricatio_typst.workflows.articles import WriteOutlineCorrectedWorkFlow
 
     __all__ += ["WriteOutlineCorrectedWorkFlow"]
 
 
-if find_spec("fabricatio_actions") and find_spec("fabricatio_novel"):
+if is_installed("fabricatio_actions") and is_installed("fabricatio_novel"):
     from fabricatio_novel.workflows.novel import (
         DebugNovelWorkflow,
         DumpOnlyWorkflow,

@@ -33,7 +33,7 @@ def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
 
 
 @data_toolbox.collect_tool
-@cfg_on("openpyxl", feats=["excel"])
+@cfg_on(feats=["excel"])
 def load_excel(file_path: Union[str, Path], sheet_name: str = "Sheet1") -> pd.DataFrame:
     """Load data from an Excel file into a pandas DataFrame.
 

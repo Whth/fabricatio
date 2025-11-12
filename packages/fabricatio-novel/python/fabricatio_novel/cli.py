@@ -5,12 +5,12 @@ It utilizes the Fabricatio Core library and includes functionality for generatin
 with customizable outlines, chapter guidance, language options, styling, and more.
 """
 
+from fabricatio_core.utils import cfg
+
+cfg(feats=["cli"])
 from pathlib import Path
 from typing import NoReturn
 
-from fabricatio_core.utils import cfg
-
-cfg("fabricatio_novel.workflows", "questionary", "typer", feats=["cli"])
 import typer
 from fabricatio_core import Event, Role, Task
 

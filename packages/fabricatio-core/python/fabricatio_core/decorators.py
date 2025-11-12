@@ -11,7 +11,7 @@ from fabricatio_core.utils import cfg
 
 
 def cfg_on[**P, R](
-    *manifest: str, feats: Sequence[str]
+    feats: Sequence[str],
 ) -> Callable[
     [Callable[P, R] | Callable[P, Coroutine[None, None, R]]], Callable[P, R] | Callable[P, Coroutine[None, None, R]]
 ]:
@@ -22,7 +22,6 @@ def cfg_on[**P, R](
     `ModuleNotFoundError` will be raised with clear installation instructions.
 
     Args:
-        *manifest (str): Module names to check for availability before function execution.
         feats (Iterable[str]): Extra feature names required for the function
             (e.g., ["workflow", "debug"]).
 
@@ -38,14 +37,14 @@ def cfg_on[**P, R](
 
             @wraps(func)
             async def _async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
-                cfg(*manifest, feats=feats)
+                cfg(feats=feats)
                 return await func(*args, **kwargs)
 
             return _async_inner
 
         @wraps(func)
         def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            cfg(*manifest, feats=feats)
+            cfg(feats=feats)
             return func(*args, **kwargs)  # pyright: ignore [reportReturnType]
 
         return _inner

@@ -56,7 +56,7 @@ class MilvusDataBase(Base, Vectorizable, ABC):
         return {**self.model_dump(exclude_none=True, by_alias=True), self.vector_field_name: vector}
 
     @classmethod
-    @cfg_on("pymilvus", feats=["rag"])
+    @cfg_on(feats=["rag"])
     def as_milvus_schema(cls, dimension: int = 1024) -> "CollectionSchema":
         """Generates the schema for Milvus collection."""
         from pymilvus import CollectionSchema, DataType, FieldSchema

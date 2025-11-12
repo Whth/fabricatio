@@ -34,7 +34,7 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
-def cfg(*manifest: str, feats: Sequence[str]) -> None:
+def cfg(feats: Sequence[str]) -> None:
     """Configure the package based on the provided manifest and features.
 
     If any module in `manifest` is missing, raises ModuleNotFoundError with
@@ -48,16 +48,13 @@ def cfg(*manifest: str, feats: Sequence[str]) -> None:
           uv add "my-novel-pkg[workflow,debug]"
 
     Args:
-        *manifest: Module names to check for availability.
         feats: Extra feature names required (e.g., ["workflow", "debug"]).
 
     Raises:
         ModuleNotFoundError: If any module is not found.
     """
-    if not manifest:
-        raise ValueError("No manifest provided.")
     pkg_name = get_source_pkgname()
-    if extras_satisfied(pkg_name, feats):
+    if not extras_satisfied(pkg_name, feats):
         raise ModuleNotFoundError(build_install_msg(feats, pkg_name))
 
 
@@ -105,7 +102,7 @@ def get_source_pkgname() -> str:
     # Try to infer package name from caller
     import inspect
 
-    if (frame := inspect.currentframe()) and (mod := inspect.getmodule(frame.f_back)):
+    if (frame := inspect.currentframe().f_back) and (mod := inspect.getmodule(frame.f_back)):  # pyright: ignore [reportOptionalMemberAccess]
         pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
     else:
         # Default fallback package name

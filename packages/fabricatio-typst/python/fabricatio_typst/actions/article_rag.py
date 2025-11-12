@@ -96,7 +96,7 @@ class WriteArticleContentRAG(Action, Extract, CitationRAG):
             )
         return article.convert_tex()
 
-    @cfg_on("questionary", feats=["qa"])
+    @cfg_on(feats=["qa"])
     async def _supervisor_inner(
         self,
         article: Article,
@@ -247,7 +247,7 @@ class ArticleConsultRAG(Action, CitationRAG):
     """The request for the rag model."""
     tei_endpoint: Optional[str] = None
 
-    @cfg_on("questionary", feats=["qa"])
+    @cfg_on(feats=["qa"])
     async def _execute(self, collection_name: Optional[str] = None, **cxt) -> int:
         from questionary import confirm, text
         from rich import print as r_print
