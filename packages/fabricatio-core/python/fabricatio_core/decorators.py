@@ -12,44 +12,52 @@ from fabricatio_core.utils import cfg
 
 def cfg_on[**P, R](
     feats: Sequence[str],
-) -> Callable[
-    [Callable[P, R] | Callable[P, Coroutine[None, None, R]]], Callable[P, R] | Callable[P, Coroutine[None, None, R]]
-]:
-    """Decorator to configure the package based on the provided manifest and features before executing the decorated function.
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """Synchronous version of the cfg_on decorator.
 
-    This decorator utilizes the `cfg` utility function to verify the availability of
-    specified modules and features. If any required module is missing, a
-    `ModuleNotFoundError` will be raised with clear installation instructions.
+    Ensures configuration is applied before executing a synchronous function.
 
     Args:
-        feats (Iterable[str]): Extra feature names required for the function
-            (e.g., ["workflow", "debug"]).
+        feats (Sequence[str]): Required feature names (e.g., ["workflow", "debug"]).
 
     Returns:
-        Callable: A decorator that wraps the function to perform configuration checks
-        before execution. The wrapper handles both synchronous and asynchronous functions.
+        Callable: Decorator for synchronous functions.
     """
 
-    def _wrapper(
-        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
-    ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
-        if iscoroutinefunction(func):
-
-            @wraps(func)
-            async def _async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
-                cfg(feats=feats)
-                return await func(*args, **kwargs)
-
-            return _async_inner
-
+    def _decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            cfg(feats=feats)
-            return func(*args, **kwargs)  # pyright: ignore [reportReturnType]
+        def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            cfg(feats=feats, pkg_name=func.__module__.split(".")[0])
+            return func(*args, **kwargs)
 
-        return _inner
+        return _wrapper
 
-    return _wrapper
+    return _decorator
+
+
+def cfg_on_async[**P, R](
+    feats: Sequence[str],
+) -> Callable[[Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]]:
+    """Asynchronous version of the cfg_on decorator.
+
+    Ensures configuration is applied before executing an asynchronous function.
+
+    Args:
+        feats (Sequence[str]): Required feature names (e.g., ["workflow", "debug"]).
+
+    Returns:
+        Callable: Decorator for asynchronous functions.
+    """
+
+    def _decorator(func: Callable[P, Coroutine[None, None, R]]) -> Callable[P, Coroutine[None, None, R]]:
+        @wraps(func)
+        async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            cfg(feats=feats, pkg_name=func.__module__.split(".")[0])
+            return await func(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
 
 
 def depend_on_external_cmd[**P, R](

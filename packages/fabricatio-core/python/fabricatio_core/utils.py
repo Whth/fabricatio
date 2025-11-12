@@ -34,7 +34,7 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
-def cfg(feats: Sequence[str]) -> None:
+def cfg(feats: Sequence[str], pkg_name: Optional[str] = None) -> None:
     """Configure the package based on the provided manifest and features.
 
     If any module in `manifest` is missing, raises ModuleNotFoundError with
@@ -49,11 +49,11 @@ def cfg(feats: Sequence[str]) -> None:
 
     Args:
         feats: Extra feature names required (e.g., ["workflow", "debug"]).
-
+        pkg_name: Optional package name, defaults to detected source package name
     Raises:
         ModuleNotFoundError: If any module is not found.
     """
-    pkg_name = get_source_pkgname()
+    pkg_name = (pkg_name or get_source_pkgname()).replace("_", "-")
     if not extras_satisfied(pkg_name, feats):
         raise ModuleNotFoundError(build_install_msg(feats, pkg_name))
 
@@ -89,24 +89,43 @@ def build_install_msg(feats: Iterable[str], pkg: Optional[str] = None) -> str:
     return msg
 
 
-def get_source_pkgname() -> str:
-    """Get the top-level package name from the calling module.
+def get_source_pkgname(depth: int = 2) -> str:
+    """Get the top-level package name from a module at the given call stack depth.
 
     Attempts to automatically detect the package name by inspecting the caller's
-    module information. Converts underscores to hyphens to match PyPI naming
-    convention. Returns 'unknown' if package name cannot be determined.
+    module information at the specified depth. Converts underscores to hyphens
+    to match PyPI naming convention. Returns 'unknown' if package name cannot be determined.
+
+    Args:
+        depth (int): The number of frames to go back in the call stack.
+                     Depth 1 means the immediate caller, 2 is the caller's caller, etc.
+                     Must be >= 1.
 
     Returns:
-        str: The detected package name or 'unknown' as fallback.
+        str: The detected top-level package name or 'unknown' as fallback.
     """
-    # Try to infer package name from caller
     import inspect
 
-    if (frame := inspect.currentframe().f_back) and (mod := inspect.getmodule(frame.f_back)):  # pyright: ignore [reportOptionalMemberAccess]
-        pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
-    else:
-        # Default fallback package name
+    frame = inspect.currentframe()
+
+    # Traverse up the call stack 'depth' times
+    for _ in range(depth):
+        if frame is None:
+            break
+        frame = frame.f_back
+
+    if frame is None:
+        return "unknown"
+
+    mod = inspect.getmodule(frame)
+    if mod is None:
+        return "unknown"
+
+    try:
+        pkg = mod.__name__.split(".")[0]
+    except AttributeError:
         pkg = "unknown"
+
     return pkg
 
 

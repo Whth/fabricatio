@@ -10,11 +10,10 @@ from fabricatio_core.utils import ok
 from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
 
 if TYPE_CHECKING:
-    from importlib.util import find_spec
-
+    from fabricatio_core.rust import is_installed
     from pydantic.fields import FieldInfo
 
-    if find_spec("pymilvus"):
+    if is_installed("pymilvus"):
         from pymilvus import CollectionSchema
 
 

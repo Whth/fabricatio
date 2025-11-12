@@ -14,12 +14,12 @@ Each test ensures correct behavior of the corresponding function,
 including proper error handling for invalid inputs.
 """
 
-from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import pytest
+from fabricatio_core.rust import is_installed
 from fabricatio_plot.toolboxes import data as dt
 
 
@@ -50,7 +50,7 @@ def temp_csv(tmp_path: Path) -> Path:
 @pytest.fixture
 def temp_excel(tmp_path: Path) -> Path:
     """Create a temporary Excel file for testing."""
-    pytest.skip("openpyxl library is not installed") if not find_spec("openpyxl") else None
+    pytest.skip("openpyxl library is not installed") if not is_installed("openpyxl") else None
 
     file_path = tmp_path / "test.xlsx"
     df = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
@@ -100,7 +100,7 @@ def test_save_data_csv(tmp_path: Path, sample_dataframe: pd.DataFrame) -> None:
 
 def test_save_data_excel(tmp_path: Path, sample_dataframe: pd.DataFrame) -> None:
     """Test saving DataFrame to Excel format."""
-    pytest.skip("openpyxl library is not installed") if not find_spec("openpyxl") else None
+    pytest.skip("openpyxl library is not installed") if not is_installed("openpyxl") else None
 
     file_path: Path = tmp_path / "output.xlsx"
     dt.save_data(sample_dataframe, file_path, fmt="excel")
