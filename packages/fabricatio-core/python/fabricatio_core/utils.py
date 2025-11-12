@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, Sequence
+from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
 from fabricatio_core.rust import extras_satisfied
 

@@ -4,7 +4,7 @@ from asyncio import iscoroutinefunction
 from functools import wraps
 from inspect import signature
 from shutil import which
-from typing import Callable, Coroutine, Iterable, Optional, overload, Sequence
+from typing import Callable, Coroutine, Optional, Sequence, overload
 
 from fabricatio_core.journal import logger
 from fabricatio_core.utils import cfg
