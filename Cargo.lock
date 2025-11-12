@@ -949,7 +949,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.1.4-dev0"
+version = "0.1.4"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1013,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-logger"
-version = "0.1.7-dev0"
+version = "0.1.7"
 dependencies = [
  "chrono",
  "fabricatio-config",
@@ -3520,7 +3520,7 @@ dependencies = [
 
 [[package]]
 name = "scanner"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "moka",
  "pep508_rs",

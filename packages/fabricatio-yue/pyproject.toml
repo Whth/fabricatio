@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-yue"
-version = "0.2.9-dev3"
+version = "0.2.9"
 description = "An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE."
 readme = "README.md"
 license = { file = "LICENSE" }
