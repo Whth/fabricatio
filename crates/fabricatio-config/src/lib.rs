@@ -500,7 +500,7 @@ impl Config {
     ) -> PyResult<Bound<'a, PyAny>> {
         if let Some(data) = self.ext.get(name) {
             let any = pythonize(python, data)?;
-            cls.call((), Some(&any.downcast_into_exact::<PyDict>()?))
+            cls.call((), Some(&any.cast_into_exact::<PyDict>()?))
         } else {
             cls.call((), None)
         }

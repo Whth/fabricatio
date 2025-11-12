@@ -3,7 +3,7 @@
 from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
 
 from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, WordCount
-from fabricatio_core.decorators import precheck_package
+from fabricatio_core.decorators import cfg_on
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Described, SketchedAble
 from fabricatio_core.rust import word_count
@@ -265,9 +265,7 @@ class Article(
             a.update_metadata(o)
         return self.update_ref(article_outline)
 
-    @precheck_package(
-        "questionary", "'questionary' is required to run this function. Have you installed `fabricatio[qa]`?."
-    )
+    @cfg_on("questionary", feats=["qa"])
     async def edit_titles(self) -> Self:
         """Edits the titles of the article."""
         from questionary import text

@@ -13,7 +13,7 @@ Key Features:
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Self, Type, Union, overload
+from typing import Any, Dict, List, Literal, Optional, Self, Sequence, Type, Union, overload
 
 class TemplateManager:
     """Template rendering engine using Handlebars templates.
@@ -600,5 +600,44 @@ class Logger:
         Args:
             msg: The message to log
         """
+
+def is_installed(pkg_name: str) -> bool:
+    """Check if a Python package is installed.
+
+    Args:
+        pkg_name: Name of the package to check.
+
+    Returns:
+        True if the package is installed, False otherwise.
+    """
+
+def list_installed() -> List[str]:
+    """Lists all installed Python packages.
+
+    Returns:
+        A list containing the names of all installed packages.
+    """
+
+def extra_satisfied(pkg_name: str, extra_name: str) -> bool:
+    """Check if a specific extra (optional dependency) of a package is satisfied.
+
+    Args:
+        pkg_name: Name of the package.
+        extra_name: Name of the extra/optional dependency (e.g., 'cli', 'dev').
+
+    Returns:
+        True if all dependencies of the extra are installed, False otherwise.
+    """
+
+def extras_satisfied(pkg_name: str, extras: Sequence[str]) -> bool:
+    """Check if all specified extras (optional dependencies) of a Python package are satisfied.
+
+    Args:
+        pkg_name: Name of the package.
+        extras: A list containing the names of the extras/optional dependencies.
+
+    Returns:
+        True if all extras are satisfied, False otherwise.
+    """
 
 logger: Logger

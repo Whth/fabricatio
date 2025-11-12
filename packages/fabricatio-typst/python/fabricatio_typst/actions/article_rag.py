@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import ClassVar, List, Optional
 
 from fabricatio_capabilities.capabilities.extract import Extract
-from fabricatio_core.decorators import precheck_package
+from fabricatio_core.decorators import cfg_on
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
@@ -96,9 +96,7 @@ class WriteArticleContentRAG(Action, Extract, CitationRAG):
             )
         return article.convert_tex()
 
-    @precheck_package(
-        "questionary", "`questionary` is required for supervisor mode, please install it by `fabricatio[qa]`"
-    )
+    @cfg_on("questionary", feats=["qa"])
     async def _supervisor_inner(
         self,
         article: Article,
@@ -249,9 +247,7 @@ class ArticleConsultRAG(Action, CitationRAG):
     """The request for the rag model."""
     tei_endpoint: Optional[str] = None
 
-    @precheck_package(
-        "questionary", "`questionary` is required for supervisor mode, please install it by `fabricatio[qa]`"
-    )
+    @cfg_on("questionary", feats=["qa"])
     async def _execute(self, collection_name: Optional[str] = None, **cxt) -> int:
         from questionary import confirm, text
         from rich import print as r_print

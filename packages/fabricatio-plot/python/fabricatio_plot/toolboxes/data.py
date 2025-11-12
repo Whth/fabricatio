@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
-from fabricatio_core.decorators import precheck_package
+from fabricatio_core.decorators import cfg_on
 from fabricatio_tool.models.tool import ToolBox
 
 data_toolbox = ToolBox(name="DataToolBox", description="A toolbox for data operations with pandas and numpy")
@@ -33,10 +33,7 @@ def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
 
 
 @data_toolbox.collect_tool
-@precheck_package(
-    "openpyxl",
-    "openpyxl is required to load Excel files, you can install it using 'pip install fabricatio-plot[excel]' or 'uv pip install fabricatio-plot[excel]'",
-)
+@cfg_on("openpyxl", feats=["excel"])
 def load_excel(file_path: Union[str, Path], sheet_name: str = "Sheet1") -> pd.DataFrame:
     """Load data from an Excel file into a pandas DataFrame.
 

@@ -18,7 +18,7 @@ impl Logger {
         for frame_info in stack.iter() {
             if let Ok(frame) = frame_info.getattr("frame")
                 && let Ok(m) = inspect.call_method1("getmodule", (&frame,))
-                && let Ok(m) = m.downcast::<PyModule>()
+                && let Ok(m) = m.cast::<PyModule>()
                 && let Ok(m_name) = m.name()
                 && !m_name.to_string().starts_with("asyncio.")
             {

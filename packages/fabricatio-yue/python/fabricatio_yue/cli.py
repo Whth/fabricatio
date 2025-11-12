@@ -1,6 +1,6 @@
 """Command-line interface for Fabricatio Yue song composition."""
 
-from fabricatio_core.decorators import precheck_package
+from fabricatio_core.decorators import cfg_on
 from fabricatio_core.utils import cfg
 
 cfg("typer", "questionary", feats=["cli"])
@@ -17,10 +17,7 @@ app = Typer(
 
 
 @app.command()
-@precheck_package(
-    "questionary",
-    "Please install fabricatio-yue with 'pip install fabricatio-yue[cli]' or 'uv tool install fabricatio-yue[cli]'",
-)
+@cfg_on("questionary", feats=["cli"])
 def compose(
     requirement: str = Option(None, "-r", "--requirement", help="Song requirement/prompt"),
     output: Path = Option(Path("song"), "-o", "--output", help="Output file folder"),

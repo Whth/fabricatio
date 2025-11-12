@@ -4,7 +4,7 @@ from abc import ABC
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Sequence, Set
 
-from fabricatio_core.decorators import precheck_package
+from fabricatio_core.decorators import cfg_on
 from fabricatio_core.models.generic import Base, ScopedConfig, Vectorizable
 from fabricatio_core.utils import ok
 from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
@@ -56,9 +56,7 @@ class MilvusDataBase(Base, Vectorizable, ABC):
         return {**self.model_dump(exclude_none=True, by_alias=True), self.vector_field_name: vector}
 
     @classmethod
-    @precheck_package(
-        "pymilvus", "pymilvus is not installed. Have you installed `fabricatio[rag]` instead of `fabricatio`?"
-    )
+    @cfg_on("pymilvus", feats=["rag"])
     def as_milvus_schema(cls, dimension: int = 1024) -> "CollectionSchema":
         """Generates the schema for Milvus collection."""
         from pymilvus import CollectionSchema, DataType, FieldSchema

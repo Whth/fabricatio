@@ -50,7 +50,7 @@ pub struct Memory {
 #[pymethods]
 impl Memory {
     pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        Ok(pythonize(python, self)?.downcast_into::<PyDict>()?)
+        Ok(pythonize(python, self)?.cast_into::<PyDict>()?)
     }
 }
 

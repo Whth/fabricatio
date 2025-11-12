@@ -6,6 +6,7 @@ mod hash;
 mod hbs_helpers;
 
 mod language;
+mod scan;
 mod templates;
 mod word_split;
 
@@ -35,5 +36,6 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     hash::register(python, m)?;
     word_split::register(python, m)?;
     event::register(python, m)?;
+    scan::register(python, m)?;
     Ok(())
 }

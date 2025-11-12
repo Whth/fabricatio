@@ -34,7 +34,7 @@ impl Event {
             let delimiter = DELIMITER.get().expect("Delimiter not set!");
             let segments: Vec<String> = event_str.split(delimiter).map(|s| s.to_string()).collect();
             Ok(Event { segments })
-        } else if let Ok(event_list) = event.downcast::<PyList>() {
+        } else if let Ok(event_list) = event.cast::<PyList>() {
             let mut segments = Vec::new();
             for item in event_list.iter() {
                 if let Ok(s) = item.extract::<String>() {

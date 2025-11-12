@@ -2,37 +2,33 @@
 
 from asyncio import iscoroutinefunction
 from functools import wraps
-from importlib.util import find_spec
 from inspect import signature
 from shutil import which
-from typing import Callable, Coroutine, Optional, overload
+from typing import Callable, Coroutine, Iterable, Optional, overload, Sequence
 
 from fabricatio_core.journal import logger
+from fabricatio_core.utils import cfg
 
 
-def precheck_package[**P, R](
-    package_name: str, msg: str
+def cfg_on[**P, R](
+    *manifest: str, feats: Sequence[str]
 ) -> Callable[
     [Callable[P, R] | Callable[P, Coroutine[None, None, R]]], Callable[P, R] | Callable[P, Coroutine[None, None, R]]
 ]:
-    """Decorator to check if a required package exists in the current environment before executing a function.
+    """Decorator to configure the package based on the provided manifest and features before executing the decorated function.
 
-    This decorator ensures that a specified package is available in the environment. If the package is not found,
-    it raises a `RuntimeError` with a custom error message.
+    This decorator utilizes the `cfg` utility function to verify the availability of
+    specified modules and features. If any required module is missing, a
+    `ModuleNotFoundError` will be raised with clear installation instructions.
 
     Args:
-        package_name (str): The name of the package to check for existence.
-        msg (str): Custom error message to be raised if the package is not found.
-
-    Raises:
-        RuntimeError: If the specified package is not found in the current environment.
-
-    Note:
-        - This decorator can be applied to both synchronous and asynchronous functions.
-        - It uses `importlib.util.find_spec` internally to determine package availability.
+        *manifest (str): Module names to check for availability before function execution.
+        feats (Iterable[str]): Extra feature names required for the function
+            (e.g., ["workflow", "debug"]).
 
     Returns:
-        Callable[[Callable[P, R]], Callable[P, R]]: A wrapped function that performs the package check before execution.
+        Callable: A decorator that wraps the function to perform configuration checks
+        before execution. The wrapper handles both synchronous and asynchronous functions.
     """
 
     def _wrapper(
@@ -42,17 +38,15 @@ def precheck_package[**P, R](
 
             @wraps(func)
             async def _async_inner(*args: P.args, **kwargs: P.kwargs) -> R:
-                if find_spec(package_name):
-                    return await func(*args, **kwargs)
-                raise RuntimeError(msg)
+                cfg(*manifest, feats=feats)
+                return await func(*args, **kwargs)
 
             return _async_inner
 
         @wraps(func)
         def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            if find_spec(package_name):
-                return func(*args, **kwargs)  # pyright: ignore [reportReturnType]
-            raise RuntimeError(msg)
+            cfg(*manifest, feats=feats)
+            return func(*args, **kwargs)  # pyright: ignore [reportReturnType]
 
         return _inner
 

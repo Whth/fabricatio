@@ -1,7 +1,8 @@
 """A collection of utility functions for the fabricatio package."""
 
-from importlib.util import find_spec
-from typing import Any, Dict, Iterable, Mapping, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, Sequence
+
+from fabricatio_core.rust import extras_satisfied
 
 
 def override_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
@@ -33,7 +34,7 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
-def cfg(*manifest: str, feats: Iterable[str]) -> None:
+def cfg(*manifest: str, feats: Sequence[str]) -> None:
     """Configure the package based on the provided manifest and features.
 
     If any module in `manifest` is missing, raises ModuleNotFoundError with
@@ -53,34 +54,63 @@ def cfg(*manifest: str, feats: Iterable[str]) -> None:
     Raises:
         ModuleNotFoundError: If any module is not found.
     """
-    if not_found := [m for m in manifest if not find_spec(m)]:
-        # Try to infer package name from caller
-        import inspect
+    if not manifest:
+        raise ValueError("No manifest provided.")
+    pkg_name = get_source_pkgname()
+    if extras_satisfied(pkg_name, feats):
+        raise ModuleNotFoundError(build_install_msg(feats, pkg_name))
 
-        if (frame := inspect.currentframe()) and (mod := inspect.getmodule(frame.f_back)):
-            pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
-        else:
-            # Default fallback package name
-            pkg = "unknown"
 
-        # Build features string
-        feat_str = ",".join(feats) if feats else ""
-        extras = f"[{feat_str}]" if feat_str else ""
+def build_install_msg(feats: Iterable[str], pkg: Optional[str] = None) -> str:
+    """Builds an installation message for missing modules with pip and uv commands.
 
-        # Generate commands
-        pip_cmd = f"pip install {pkg}{extras}"
-        uv_cmd = f"uv pip install {pkg}{extras}"
+    Args:
+        feats: Iterable of feature names required
+        pkg: Optional package name, defaults to detected source package name
 
-        # Build error message
-        msg = f"imports failed for the following modules:\n{'\n'.join(f'  {m}' for m in not_found)}\nYou may install them with:\n  with pip: {pip_cmd}\n  with uv: {uv_cmd}"
+    Returns:
+        str: Formatted error message with installation instructions for both pip and uv
+    """
+    pkg = pkg or get_source_pkgname()
 
-        if pkg == "unknown":
-            msg += (
-                "\n\nNote: Package name could not be auto-detected. "
-                "Replace 'unknown' with the correct package name (PyPI names use hyphens, e.g., 'my-package')."
-            )
+    # Build features string
+    feat_str = ",".join(feats) if feats else ""
+    extras = f"[{feat_str}]" if feat_str else ""
 
-        raise ModuleNotFoundError(msg)
+    # Generate commands
+    pip_cmd = f"pip install {pkg}{extras}"
+    uv_cmd = f"uv pip install {pkg}{extras}"
+
+    # Build error message
+    msg = f"Module imports failed for {pkg} because of missing dependencies.\nYou may install them with one of the following commands:\n  with pip: {pip_cmd}\n  with uv: {uv_cmd}"
+
+    if pkg == "unknown":
+        msg += (
+            "\n\nNote: Package name could not be auto-detected. "
+            "Replace 'unknown' with the correct package name (PyPI names use hyphens, e.g., 'my-package')."
+        )
+    return msg
+
+
+def get_source_pkgname() -> str:
+    """Get the top-level package name from the calling module.
+
+    Attempts to automatically detect the package name by inspecting the caller's
+    module information. Converts underscores to hyphens to match PyPI naming
+    convention. Returns 'unknown' if package name cannot be determined.
+
+    Returns:
+        str: The detected package name or 'unknown' as fallback.
+    """
+    # Try to infer package name from caller
+    import inspect
+
+    if (frame := inspect.currentframe()) and (mod := inspect.getmodule(frame.f_back)):
+        pkg = mod.__name__.split(".")[0].replace("_", "-")  # Top-level package name
+    else:
+        # Default fallback package name
+        pkg = "unknown"
+    return pkg
 
 
 def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available item found in the iterable.") -> T:

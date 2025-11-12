@@ -18,7 +18,9 @@ serde = { version = "1.0.228", features = ["derive"] }
 strum = { version = "0.27.2", features = ["derive"] }
 bincode = { version = "2.0.1", features = ["serde"] }
 whichlang = "0.1.1"
-fabricatio-logger = {path = "../../crates/fabricatio-logger"}
-fabricatio-config = {path = "../../crates/fabricatio-config"}
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+fabricatio-config = { path = "../../crates/fabricatio-config" }
+scanner = { path = "../../crates/scanner" }
 chrono = "0.4.42"
+once_cell = "1.21.3"
 
