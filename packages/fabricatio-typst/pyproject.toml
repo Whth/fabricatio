@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-typst"
-version = "0.1.19"
+version = "0.1.20-dev0"
 description = "A Python library for generating, validating and converting academic content using Typst format."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -12,12 +12,13 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
     "Framework :: Pydantic :: 2",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 dependencies = [
     "fabricatio-core",
     "fabricatio-tool",

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-actions"
-version = "0.1.9"
+version = "0.1.10-dev0"
 description = "A Python library providing foundational actions for file system operations and output management in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -11,12 +11,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
     "Framework :: Pydantic :: 2",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 
 dependencies = [
 

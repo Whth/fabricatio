@@ -172,3 +172,4 @@ tei.rs
 .python-version
 /fabricatio.toml
 result.json
+logs

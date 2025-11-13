@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-yue"
-version = "0.2.9"
+version = "0.2.10-dev0"
 description = "An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -11,11 +11,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",
 ]
 
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 
 dependencies = [
     "fabricatio-core",

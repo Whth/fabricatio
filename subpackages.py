@@ -6,23 +6,25 @@ import subprocess
 import tomllib
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 PACKAGES_DIR = (Path.cwd() / "packages").absolute()
 DIST = (Path.cwd() / "dist").absolute()
 SCRIPTS_DIR = Path("extra") / "scripts"
+LOG_DIR = (Path.cwd() / "logs").absolute()
 
 PYTHON_VERSION = "3.13"
 
 POOL = ThreadPoolExecutor()
 
 
-def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
+def run_cmd(cmd_sequence: List[List[str]], desc: str, log_file: Optional[Path] = None) -> bool:
     """Run a sequence of shell commands and log output.
 
     Args:
         cmd_sequence: A list of command sequences to execute.
         desc: Description of the command being executed for logging.
+        log_file: Optional path to a file where stderr and stdout should be redirected.
 
     Returns:
         True if all commands succeed, False otherwise.
@@ -31,11 +33,21 @@ def run_cmd(cmd_sequence: List[List[str]], desc: str) -> bool:
         for cmd in cmd_sequence:
             logging.info(f"Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")  # noqa: S603
+            if log_file:
+                with log_file.open("a", encoding="utf-8") as f:
+                    f.write(f"Command: {' '.join(cmd)}\n")
+                    f.write(f"Stdout:\n{result.stdout}\n")
+                    f.write(f"Stderr:\n{result.stderr}\n")
+                    f.write("-" * 50 + "\n")
             logging.info(f"Command output: {' '.join(cmd)} \n{result.stdout}")
         logging.info(f"{desc} completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
         logging.error(f"Error occurred during '{desc}': {e.stderr}")
+        if log_file:
+            with log_file.open("a", encoding="utf-8") as f:
+                f.write(f"Error during '{desc}': {e.stderr}\n")
+                f.write("-" * 50 + "\n")
         return False
 
 
@@ -70,10 +82,12 @@ def make_maturin_dev(project_root: Union[str, Path]) -> bool:
         True if the operation succeeds, False otherwise.
     """
     project_root = Path(project_root)
+    log_file = LOG_DIR / f"{project_root.name}_dev.log"
 
     return run_cmd(
         [["uvx", "--directory", project_root.as_posix(), "maturin", "develop", "-r", "--uv"]],
         f"maturin develop mode for {project_root.name}",
+        log_file=log_file,
     )
 
 
@@ -87,6 +101,7 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
         True if the operation succeeds, False otherwise.
     """
     project_root = Path(project_root)
+    log_file = LOG_DIR / f"{project_root.name}_bins.log"
 
     scripts_dir = project_root.joinpath(SCRIPTS_DIR)
     scripts_dir.mkdir(parents=True, exist_ok=True)
@@ -106,6 +121,7 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
             ],
         ],
         f"Build and clean binaries for {project_root.name}",
+        log_file=log_file,
     )
     for f in [*list(scripts_dir.rglob("*.pdb")), *list(scripts_dir.rglob("*.dwarf"))]:
         f.unlink()
@@ -116,9 +132,11 @@ def make_dist_dir_publish() -> None:
     """Publish all packages in the dist directory."""
     success_count = 0
     for path in [f for f in DIST.iterdir() if f.is_file() and f.suffix in {".whl", ".tar.gz"}]:
+        log_file = LOG_DIR / f"publish_{path.stem}.log"
         suc = run_cmd(
             [["uv", "publish", path.as_posix()]],
             f"Publish {path.name}",
+            log_file=log_file,
         )
         if suc:
             logging.info(f"{path.name} publish succeeded.")
@@ -131,6 +149,7 @@ def make_dist_dir_publish() -> None:
 def make_dist(project_root: Union[str, Path]) -> bool:
     """Build a package using maturin."""
     project_root = Path(project_root)
+    log_file = LOG_DIR / f"{project_root.name}_dist.log"
     if is_using_maturin(project_root):
         src_dir = project_root / "python"
         for f in [*list(src_dir.rglob("*.pyd")), *list(src_dir.rglob("*.so"))]:
@@ -152,6 +171,7 @@ def make_dist(project_root: Union[str, Path]) -> bool:
                 ],
             ],
             f"Build {project_root.name}",
+            log_file=log_file,
         )
     return run_cmd(
         [
@@ -169,6 +189,7 @@ def make_dist(project_root: Union[str, Path]) -> bool:
             ]
         ],
         f"Build {project_root.name}",
+        log_file=log_file,
     )
 
 
@@ -252,8 +273,10 @@ if __name__ == "__main__":
     args = parse_arguments()
     PYTHON_VERSION = args.pyversion
     DIST_DIR = Path(args.distdir).absolute()
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
     logging.info(f"Using Python version: {PYTHON_VERSION}")
     logging.info(f"Using distribution directory: {DIST_DIR.as_posix()}")
+    logging.info(f"Using log directory: {LOG_DIR.as_posix()}")
     # Update DIST global variable based on command line argument
     globals()['DIST'] = DIST_DIR
     success = make_all(

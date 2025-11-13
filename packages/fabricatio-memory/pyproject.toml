@@ -1,13 +1,13 @@
 [project]
 name = "fabricatio-memory"
-version = "0.2.5"
+version = "0.2.6-dev0"
 description = "An Extension of fabricatio aiming to extend the context llm could handle."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
 license = { file = "LICENSE" }
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 dependencies = [
 
     "fabricatio-core"

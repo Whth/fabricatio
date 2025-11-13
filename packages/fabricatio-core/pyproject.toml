@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-core"
-version = "0.3.32"
+version = "0.3.33-dev0"
 description = "A foundational Python library providing core components for building LLM-driven applications using an event-based agent structure."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -11,12 +11,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
     "Framework :: Pydantic :: 2",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 dependencies = [
     "asyncio>=3.4.3",
     "asyncstdlib>=3.13.0",

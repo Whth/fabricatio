@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.20.8"
+version = "0.20.9-dev0"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -12,6 +12,7 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Framework :: AsyncIO",
     "Framework :: Pydantic :: 2",
@@ -26,7 +27,7 @@ keywords = [
 ]
 
 
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 dependencies = [
     "fabricatio-core",
 ]
@@ -117,7 +118,7 @@ include = [
 include = [
     "docs/source/conf.py",
     "pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py",
-    "packages/**/*.py","packages/**/*.pyi", "packages/*/pyproject.toml"]
+    "packages/**/*.py", "packages/**/*.pyi", "packages/*/pyproject.toml"]
 line-length = 120
 target-version = "py312"
 [tool.ruff.format]
@@ -195,18 +196,18 @@ fabricatio-anki = { workspace = true }
 fabricatio-question = { workspace = true }
 fabricatio-tagging = { workspace = true }
 fabricatio-yue = { workspace = true }
-fabricatio-tool = {workspace = true}
-fabricatio-plot = {workspace = true}
-fabricatio-translate = {workspace = true}
-fabricatio-locale = {workspace = true}
-fabricatio-mock = {workspace = true}
-fabricatio-diff = {workspace = true}
-fabricatio-thinking = {workspace = true}
-fabricatio-agent = {workspace = true}
-fabricatio-team = {workspace = true}
-fabricatio-capable = {workspace = true}
-fabricatio-novel = {workspace = true}
-fabricatio-character = {workspace = true}
+fabricatio-tool = { workspace = true }
+fabricatio-plot = { workspace = true }
+fabricatio-translate = { workspace = true }
+fabricatio-locale = { workspace = true }
+fabricatio-mock = { workspace = true }
+fabricatio-diff = { workspace = true }
+fabricatio-thinking = { workspace = true }
+fabricatio-agent = { workspace = true }
+fabricatio-team = { workspace = true }
+fabricatio-capable = { workspace = true }
+fabricatio-novel = { workspace = true }
+fabricatio-character = { workspace = true }
 
 
 

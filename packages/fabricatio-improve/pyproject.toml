@@ -1,13 +1,13 @@
 [project]
 name = "fabricatio-improve"
-version = "0.1.8"
+version = "0.1.9-dev0"
 description = "A Python library for content review, correction, and improvement in LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<=3.14"
 
 dependencies = [
 
