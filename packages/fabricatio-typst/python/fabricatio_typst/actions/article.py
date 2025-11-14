@@ -12,7 +12,7 @@ from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
-from fabricatio_core.utils import ok, wrapp_in_block
+from fabricatio_core.utils import ok, wrap_in_block
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_rule.capabilities.censor import Censor
@@ -169,11 +169,11 @@ class GenerateInitialOutline(Action, Extract, Correct):
                 raw_imp = await text("Enter the improvement:").ask_async()
 
                 imp = ok(
-                    await self.propose(Improvement, f"{wrapp_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}")
+                    await self.propose(Improvement, f"{wrap_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}")
                 )
                 raw_outline = (
                     await self.correct_string(
-                        raw_outline, imp, wrapp_in_block(article_proposal.as_prompt(), "Article Proposal")
+                        raw_outline, imp, wrap_in_block(article_proposal.as_prompt(), "Article Proposal")
                     )
                 ) or raw_outline
                 r_print(raw_outline)

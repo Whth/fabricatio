@@ -9,7 +9,7 @@ from typing import ClassVar, Dict, List, Optional, Self, Unpack
 from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import blake3_hash, split_into_chunks
-from fabricatio_core.utils import ok, wrapp_in_block
+from fabricatio_core.utils import ok, wrap_in_block
 from fabricatio_rag.models.rag import MilvusDataBase
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
@@ -227,7 +227,7 @@ class CitationManager(AsPrompt):
             g = list(g_iter)
 
             logger.debug(f"Group [{k}]: {len(g)}")
-            seg.append(wrapp_in_block("\n\n".join(a.chunk for a in g), first(g).reference_header))
+            seg.append(wrap_in_block("\n\n".join(a.chunk for a in g), first(g).reference_header))
         return {"References": "\n".join(seg)}
 
     def apply(self, string: str) -> str:

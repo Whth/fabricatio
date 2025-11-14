@@ -160,7 +160,7 @@ def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available
     raise ValueError(msg)
 
 
-def wrapp_in_block(string: str, title: str, style: str = "-") -> str:
+def wrap_in_block(string: str, title: str, style: str = "-") -> str:
     """Wraps a string in a block with a title.
 
     Args:

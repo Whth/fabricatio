@@ -1,6 +1,7 @@
 """Decorators for Fabricatio."""
 
 from asyncio import iscoroutinefunction
+
 from functools import wraps
 from inspect import signature
 from shutil import which
@@ -11,7 +12,7 @@ from fabricatio_core.utils import cfg
 
 
 def cfg_on[**P, R](
-    feats: Sequence[str],
+        feats: Sequence[str],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Synchronous version of the cfg_on decorator.
 
@@ -25,9 +26,11 @@ def cfg_on[**P, R](
     """
 
     def _decorator(func: Callable[P, R]) -> Callable[P, R]:
+        m_name = func.__module__.split(".")[0]
+
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            cfg(feats=feats, pkg_name=func.__module__.split(".")[0])
+            cfg(feats=feats, pkg_name=m_name)
             return func(*args, **kwargs)
 
         return _wrapper
@@ -36,7 +39,7 @@ def cfg_on[**P, R](
 
 
 def cfg_on_async[**P, R](
-    feats: Sequence[str],
+        feats: Sequence[str],
 ) -> Callable[[Callable[P, Coroutine[None, None, R]]], Callable[P, Coroutine[None, None, R]]]:
     """Asynchronous version of the cfg_on decorator.
 
@@ -50,9 +53,11 @@ def cfg_on_async[**P, R](
     """
 
     def _decorator(func: Callable[P, Coroutine[None, None, R]]) -> Callable[P, Coroutine[None, None, R]]:
+        m_name = func.__module__.split(".")[0]
+
         @wraps(func)
         async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            cfg(feats=feats, pkg_name=func.__module__.split(".")[0])
+            cfg(feats=feats, pkg_name=m_name)
             return await func(*args, **kwargs)
 
         return _wrapper
@@ -61,7 +66,7 @@ def cfg_on_async[**P, R](
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
+        bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 
@@ -115,7 +120,7 @@ def logging_execution_info[**P, R](func: Callable[P, R]) -> Callable[P, R]:
 
 
 def logging_exec_time[**P, R](
-    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
     """Decorator to log the execution time of a function.
 
@@ -128,7 +133,6 @@ def logging_exec_time[**P, R](
     from time import time
 
     if iscoroutinefunction(func):
-
         @wraps(func)
         async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start_time = time()
@@ -160,18 +164,18 @@ def logging_exec_time[**P, R](
 
 @overload
 def once[**P, R](
-    func: Callable[P, Coroutine[None, None, R]],
+        func: Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, Coroutine[None, None, R]]: ...
 
 
 @overload
 def once[**P, R](
-    func: Callable[P, R],
+        func: Callable[P, R],
 ) -> Callable[P, R]: ...
 
 
 def once[**P, R](
-    func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
+        func: Callable[P, R] | Callable[P, Coroutine[None, None, R]],
 ) -> Callable[P, R] | Callable[P, Coroutine[None, None, R]]:
     """Decorator to ensure a function is called only once.
 
