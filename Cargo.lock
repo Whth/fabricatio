@@ -948,6 +948,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-checkpoint"
+version = "0.0.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
 name = "fabricatio-config"
 version = "0.1.4"
 dependencies = [
