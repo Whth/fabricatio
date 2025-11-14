@@ -3,6 +3,9 @@
 It combines functionalities from Remember and AdvancedJudge classes.
 """
 
+from fabricatio_core.utils import cfg
+
+cfg(feats=["selective"])
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
