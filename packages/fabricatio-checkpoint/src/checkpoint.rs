@@ -5,14 +5,14 @@
 //! gets its own bare Git repository for tracking changes independently.
 
 use blake3::hash;
-use git2::{DiffOptions, IndexAddOption, Oid, Repository};
+use fabricatio_logger::*;
+use git2::{DiffOptions, IndexAddOption, Oid, Repository, RepositoryInitOptions};
 use moka::sync::Cache;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{absolute, PathBuf};
 use std::sync::{Arc, LockResult, Mutex};
-
 /// Trait for converting types into cache-friendly string keys.
 trait AsKey {
     /// Converts the implementing type into a unique string key.
@@ -111,26 +111,50 @@ impl ShadowRepoManager {
     ///
     /// Returns a `PyErr` if repository operations fail
     fn get_repo(&self, worktree_dir: PathBuf) -> PyResult<RepoEntry> {
+        let worktree_dir =
+            absolute(worktree_dir).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+
         if let Some(repo) = self.cache.get(&worktree_dir) {
+            debug!("Found cached repo for {}", worktree_dir.display());
             Ok(repo)
         } else {
             let repo_path = self.shadow_root.join(worktree_dir.as_key());
 
             if repo_path.exists() {
                 let repo = wrap(Repository::open(repo_path).into_pyresult()?);
+                debug!("Opened repo for {}", worktree_dir.display());
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
             } else {
-                let repo = wrap(Repository::init_bare(repo_path.clone()).into_pyresult()?);
+                let mut opts = RepositoryInitOptions::new();
+                opts.no_dotgit_dir(true)
+                    .workdir_path(worktree_dir.as_path());
 
-                repo.lock()
+                let repo = Repository::init_opts(repo_path.clone(), &opts).into_pyresult()?;
+                debug!("Created repo for {}", worktree_dir.display());
+
+                let tree_id = repo
+                    .treebuilder(None)
                     .into_pyresult()?
-                    .worktree(
-                        &worktree_dir.to_string_lossy(),
-                        worktree_dir.as_path(),
-                        None,
+                    .write()
+                    .into_pyresult()?;
+                {
+                    let tree = repo.find_tree(tree_id).into_pyresult()?;
+
+                    let sig = repo.signature().into_pyresult()?;
+                    repo.commit(
+                        Some("refs/heads/master"),
+                        &sig,
+                        &sig,
+                        "Initial commit",
+                        &tree,
+                        &[],
                     )
                     .into_pyresult()?;
+                }
+
+                debug!("Create worktree for {}", worktree_dir.display());
+                let repo = wrap(repo);
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
             }
@@ -178,40 +202,36 @@ impl ShadowRepoManager {
     /// - The shadow repository is not found
     /// - Git operations fail (staging, committing, etc.)
     pub fn save(&self, worktree_dir: PathBuf, commit_msg: Option<String>) -> PyResult<String> {
-        if let Ok(repo_entry) = self.get_repo(worktree_dir)
-            && let Ok(repo) = repo_entry.lock()
-            && let Ok(index) = repo.index().as_mut()
-        {
-            let sig = repo.signature().into_pyresult()?;
-            index.update_all(["*"].iter(), None).into_pyresult()?;
-            index
-                .add_all(["*"].iter(), IndexAddOption::default(), None)
-                .into_pyresult()?;
+        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo = repo_entry.lock().into_pyresult()?;
+        let mut index = repo.index().into_pyresult()?;
+        let sig = repo.signature().into_pyresult()?;
+        index.update_all(["*"].iter(), None).into_pyresult()?;
+        index
+            .add_all(["*"].iter(), IndexAddOption::default(), None)
+            .into_pyresult()?;
 
-            let tree = {
-                let tree_id = index.write_tree().into_pyresult()?;
-                repo.find_tree(tree_id).into_pyresult()?
-            };
+        let tree = {
+            let tree_id = index.write_tree().into_pyresult()?;
+            repo.find_tree(tree_id).into_pyresult()?
+        };
 
-            let parent: Vec<_> = if let Ok(commit) = repo.head().into_pyresult()?.peel_to_commit() {
-                vec![commit]
-            } else {
-                vec![]
-            };
-
-            repo.commit(
-                Some("HEAD"),
-                &sig,
-                &sig,
-                commit_msg.unwrap_or_default().as_str(),
-                &tree,
-                &parent.iter().collect::<Vec<_>>(),
-            )
-            .into_pyresult()
-            .map(|oid| oid.to_string())
+        let parent: Vec<_> = if let Ok(commit) = repo.head().into_pyresult()?.peel_to_commit() {
+            vec![commit]
         } else {
-            Err(PyRuntimeError::new_err("Shadow repo not found".to_string()))
-        }
+            vec![]
+        };
+
+        repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            commit_msg.unwrap_or_default().as_str(),
+            &tree,
+            &parent.iter().collect::<Vec<_>>(),
+        )
+        .into_pyresult()
+        .map(|oid| oid.to_string())
     }
 
     /// Resets the worktree to a specific commit state.
@@ -231,17 +251,13 @@ impl ShadowRepoManager {
     /// - The commit ID is invalid
     /// - The reset operation fails
     pub fn reset(&self, worktree_dir: PathBuf, commit_id: String) -> PyResult<()> {
-        if let Ok(repo) = self.get_repo(worktree_dir)
-            && let Ok(repo) = repo.lock()
-        {
-            let commit = repo
-                .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
-                .into_pyresult()?;
-            repo.reset(&commit.into_object(), git2::ResetType::Mixed, None)
-                .into_pyresult()
-        } else {
-            Err(PyRuntimeError::new_err("Shadow repo not found".to_string()))
-        }
+        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo = repo_entry.lock().into_pyresult()?;
+        let commit = repo
+            .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
+            .into_pyresult()?;
+        repo.reset(&commit.into_object(), git2::ResetType::Mixed, None)
+            .into_pyresult()
     }
 
     /// Restores a specific file from a commit.
@@ -268,25 +284,21 @@ impl ShadowRepoManager {
         commit_id: String,
         file_path: PathBuf,
     ) -> PyResult<()> {
-        if let Ok(repo) = self.get_repo(worktree_dir)
-            && let Ok(repo) = repo.lock()
-        {
-            let commit = repo
-                .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
-                .into_pyresult()?;
+        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo = repo_entry.lock().into_pyresult()?;
+        let commit = repo
+            .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
+            .into_pyresult()?;
 
-            let file_obj = commit
-                .tree()
-                .into_pyresult()?
-                .get_path(&file_path)
-                .into_pyresult()?
-                .to_object(&repo)
-                .into_pyresult()?;
+        let file_obj = commit
+            .tree()
+            .into_pyresult()?
+            .get_path(&file_path)
+            .into_pyresult()?
+            .to_object(&repo)
+            .into_pyresult()?;
 
-            repo.checkout_tree(&file_obj, None).into_pyresult()
-        } else {
-            Err(PyRuntimeError::new_err("Shadow repo not found".to_string()))
-        }
+        repo.checkout_tree(&file_obj, None).into_pyresult()
     }
 
     /// Retrieves the diff for a specific file at a given commit.
@@ -317,44 +329,40 @@ impl ShadowRepoManager {
         commit_id: String,
         file_path: String,
     ) -> PyResult<String> {
-        if let Ok(repo) = self.get_repo(worktree_dir)
-            && let Ok(repo) = repo.lock()
-        {
-            let commit = repo
-                .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
-                .into_pyresult()?;
-
-            let file_obj = commit.tree().into_pyresult()?;
-
-            let parent_tree_obj = if let Ok(parent) = commit.parent(0).as_ref() {
-                parent.tree().into_pyresult()?
-            } else {
-                let id = repo
-                    .treebuilder(None)
-                    .into_pyresult()?
-                    .write()
-                    .into_pyresult()?;
-                repo.find_tree(id).into_pyresult()?
-            };
-
-            let mut opts = DiffOptions::new();
-            opts.pathspec(&file_path);
-
-            let diff = repo
-                .diff_tree_to_tree(Some(&parent_tree_obj), Some(&file_obj), Some(&mut opts))
-                .into_pyresult()?;
-            let mut ret = String::new();
-
-            diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
-                ret.push_str(std::str::from_utf8(line.content()).unwrap_or("<invalid utf8>"));
-                true
-            })
+        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo = repo_entry.lock().into_pyresult()?;
+        let commit = repo
+            .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
             .into_pyresult()?;
 
-            Ok(ret)
+        let file_obj = commit.tree().into_pyresult()?;
+
+        let parent_tree_obj = if let Ok(parent) = commit.parent(0).as_ref() {
+            parent.tree().into_pyresult()?
         } else {
-            Err(PyRuntimeError::new_err("Shadow repo not found".to_string()))
-        }
+            let id = repo
+                .treebuilder(None)
+                .into_pyresult()?
+                .write()
+                .into_pyresult()?;
+            repo.find_tree(id).into_pyresult()?
+        };
+
+        let mut opts = DiffOptions::new();
+        opts.pathspec(&file_path);
+
+        let diff = repo
+            .diff_tree_to_tree(Some(&parent_tree_obj), Some(&file_obj), Some(&mut opts))
+            .into_pyresult()?;
+        let mut ret = String::new();
+
+        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
+            ret.push_str(std::str::from_utf8(line.content()).unwrap_or("<invalid utf8>"));
+            true
+        })
+        .into_pyresult()?;
+
+        Ok(ret)
     }
 }
 
