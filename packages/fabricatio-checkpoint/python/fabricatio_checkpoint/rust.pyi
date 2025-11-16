@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import Optional
 
-
 class ShadowRepoManager:
     """Manages shadow Git repositories for file checkpointing.
 
@@ -19,7 +18,6 @@ class ShadowRepoManager:
             shadow_root: Root directory where shadow repositories will be stored.
             cache_size: Maximum number of repositories to keep in the cache.
         """
-        ...
 
     def save(self, worktree_dir: Path, commit_msg: Optional[str] = None) -> str:
         """Saves the current state of the worktree as a new commit.
@@ -38,7 +36,6 @@ class ShadowRepoManager:
             RuntimeError: If the shadow repository is not found or Git operations fail
                 (staging, committing, etc.).
         """
-        ...
 
     def reset(self, worktree_dir: Path, commit_id: str) -> None:
         """Resets the worktree to a specific commit state.
@@ -54,9 +51,8 @@ class ShadowRepoManager:
             RuntimeError: If the shadow repository is not found, the commit ID is invalid,
                 or the reset operation fails.
         """
-        ...
 
-    def rollback(self, worktree_dir: Path, commit_id: str, file_path: str) -> None:
+    def rollback(self, worktree_dir: Path, commit_id: str, file_path: Path) -> None:
         """Restores a specific file from a commit.
 
         This rolls back a single file to its state at the specified commit,
@@ -71,7 +67,6 @@ class ShadowRepoManager:
             RuntimeError: If the shadow repository is not found, the commit ID is invalid,
                 the file is not found in the commit, or the checkout operation fails.
         """
-        ...
 
     def get_file_diff(self, worktree_dir: Path, commit_id: str, file_path: str) -> str:
         """Retrieves the diff for a specific file at a given commit.
@@ -92,7 +87,5 @@ class ShadowRepoManager:
             RuntimeError: If the shadow repository is not found, the commit ID is invalid,
                 or Git diff operations fail.
         """
-        ...
-
 
 __all__ = ["ShadowRepoManager"]

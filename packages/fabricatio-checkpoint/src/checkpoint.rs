@@ -264,7 +264,7 @@ impl ShadowRepoManager {
         &self,
         worktree_dir: PathBuf,
         commit_id: String,
-        file_path: String,
+        file_path: PathBuf,
     ) -> PyResult<()> {
         if let Ok(repo) = self.get_repo(worktree_dir)
             && let Ok(repo) = repo.lock()
@@ -276,8 +276,8 @@ impl ShadowRepoManager {
             let file_obj = commit
                 .tree()
                 .into_pyresult()?
-                .get_name(&file_path)
-                .ok_or_else(|| PyRuntimeError::new_err("file not found"))?
+                .get_path(&file_path)
+                .into_pyresult()?
                 .to_object(&repo)
                 .into_pyresult()?;
 
