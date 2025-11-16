@@ -1,7 +1,7 @@
 """Tests for the checkpoint."""
-import pytest
-from fabricatio_mock.models.mock_role import LLMTestRole
+
 from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
+from fabricatio_mock.models.mock_role import LLMTestRole
 
 
 class CheckpointRole(LLMTestRole, Checkpoint):
