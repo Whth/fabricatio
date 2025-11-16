@@ -9,6 +9,7 @@ use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, LockResult, Mutex};
 
@@ -151,6 +152,7 @@ impl ShadowRepoManager {
     /// A new `ShadowRepoManager` instance
     #[new]
     fn new(shadow_root: PathBuf, cache_size: u64) -> Self {
+        fs::create_dir_all(&shadow_root).expect("Failed to create shadow root directory");
         Self {
             shadow_root,
             cache: Cache::new(cache_size),
