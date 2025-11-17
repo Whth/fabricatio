@@ -37,6 +37,19 @@ class ShadowRepoManager:
                 (staging, committing, etc.).
         """
 
+    def drop(self, worktree_dir: Path) -> None:
+        """Deletes the shadow repository associated with a worktree directory.
+
+        This method deletes the shadow repository associated with the specified worktree directory.
+        It removes the repository from the cache and deletes the directory.
+
+        Args:
+            worktree_dir: The worktree directory to delete.
+
+        Raises:
+            RuntimeError: If the shadow repository is not found or deletion fails.
+        """
+
     def reset(self, worktree_dir: Path, commit_id: str) -> None:
         """Hard resets the worktree directory to a specific commit.
 
@@ -51,7 +64,7 @@ class ShadowRepoManager:
             RuntimeError: If the shadow repository is not found or the commit ID is invalid.
         """
 
-    def rollback(self, worktree_dir: Path, commit_id: str, file_path: Path) -> None:
+    def rollback(self, worktree_dir: Path, commit_id: str, file_path: Path | str) -> None:
         """Restores a specific file from a commit.
 
         This rolls back a single file to its state at the specified commit,
@@ -67,7 +80,7 @@ class ShadowRepoManager:
                 the file is not found in the commit, or the checkout operation fails.
         """
 
-    def get_file_diff(self, worktree_dir: Path, commit_id: str, file_path: str) -> str:
+    def get_file_diff(self, worktree_dir: Path, commit_id: str, file_path: Path | str) -> str:
         """Retrieves the diff for a specific file at a given commit.
 
         Compares the file state at the specified commit with its state in the parent commit,

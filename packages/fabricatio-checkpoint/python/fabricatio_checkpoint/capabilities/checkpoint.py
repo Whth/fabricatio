@@ -16,18 +16,22 @@ class Checkpoint(UseLLM, ABC):
     worktree_dir: Optional[Path] = None
     """The worktree directory."""
 
-    def save(self, msg: str) -> str:
+    def save_checkpoint(self, msg: str) -> str:
         """Save a checkpoint."""
         return SHADOW_REPO_MANAGER.save(ok(self.worktree_dir), msg)
 
-    def rollback(self, commit_id: str, file_path: Path) -> None:
+    def drop_checkpoint(self) -> None:
+        """Drop the checkpoint."""
+        SHADOW_REPO_MANAGER.drop(ok(self.worktree_dir))
+
+    def rollback(self, commit_id: str, file_path: Path | str) -> None:
         """Rollback to a checkpoint."""
         SHADOW_REPO_MANAGER.rollback(ok(self.worktree_dir), commit_id, file_path)
 
-    def reset(self, commit_id: str) -> None:
+    def reset_to_checkpoint(self, commit_id: str) -> None:
         """Reset the checkpoint."""
         SHADOW_REPO_MANAGER.reset(ok(self.worktree_dir), commit_id)
 
-    def get_file_diff(self, commit_id: str, file_path: str) -> str:
+    def get_file_diff(self, commit_id: str, file_path: Path | str) -> str:
         """Get the diff for a specific file at a given commit."""
         return SHADOW_REPO_MANAGER.get_file_diff(ok(self.worktree_dir), commit_id, file_path)

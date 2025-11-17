@@ -6,7 +6,7 @@
 
 use blake3::hash;
 use fabricatio_logger::*;
-use git2::{DiffOptions, IndexAddOption, Oid, Repository, RepositoryInitOptions};
+use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::prelude::*;
@@ -93,6 +93,13 @@ impl<T> AsPyErr<T> for LockResult<T> {
     }
 }
 
+impl<T> AsPyErr<T> for Result<T, std::io::Error> {
+    /// Converts a `std::io::Error` into a Python `OSError`.
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyOSError::new_err(e.to_string()))
+    }
+}
+
 impl ShadowRepoManager {
     /// Gets or creates a shadow repository for the given worktree directory.
     ///
@@ -112,8 +119,7 @@ impl ShadowRepoManager {
     ///
     /// Returns a `PyErr` if repository operations fail
     fn get_repo(&self, worktree_dir: PathBuf) -> PyResult<RepoEntry> {
-        let worktree_dir =
-            absolute(worktree_dir).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
 
         if let Some(repo) = self.cache.get(&worktree_dir) {
             debug!("Found cached repo for {}", worktree_dir.display());
@@ -189,7 +195,7 @@ impl ShadowRepoManager {
     /// Returns a `PyErr` if the shadow root directory cannot be created
     #[new]
     fn new(shadow_root: PathBuf, cache_size: u64) -> PyResult<Self> {
-        fs::create_dir_all(&shadow_root).map_err(|e| PyOSError::new_err(e.to_string()))?;
+        fs::create_dir_all(&shadow_root).into_pyresult()?;
         Ok(Self {
             shadow_root,
             cache: Cache::new(cache_size),
@@ -252,6 +258,29 @@ impl ShadowRepoManager {
         }
     }
 
+    /// Drops the shadow repository for the given worktree directory.
+    ///
+    /// This method removes the shadow repository from both the file system and the cache.
+    /// It deletes the entire repository directory and removes the cache entry.
+    ///
+    /// # Arguments
+    ///
+    /// * `worktree_dir` - The worktree directory whose shadow repository should be dropped
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if:
+    /// - The shadow repository directory cannot be removed from the file system
+    pub fn drop(&self, worktree_dir: PathBuf) -> PyResult<()> {
+        let repo_path = self.shadow_root.join(worktree_dir.as_key());
+        if !repo_path.exists() {
+            return Ok(());
+        }
+        fs::remove_dir_all(&repo_path).into_pyresult()?;
+        self.cache.remove(&worktree_dir);
+        Ok(())
+    }
+
     /// Resets the worktree to a specific commit.
     ///
     /// Performs a hard reset of the worktree directory to match the state at the specified commit.
@@ -302,21 +331,25 @@ impl ShadowRepoManager {
         commit_id: String,
         file_path: PathBuf,
     ) -> PyResult<()> {
-        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo_entry = self.get_repo(worktree_dir.clone())?;
         let repo = repo_entry.lock().into_pyresult()?;
         let commit = repo
             .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
             .into_pyresult()?;
 
+        debug!(
+            "Rolling back file {} to commit {}",
+            file_path.display(),
+            commit_id
+        );
         let file_obj = commit
             .tree()
             .into_pyresult()?
             .get_path(&file_path)
-            .into_pyresult()?
-            .to_object(&repo)
             .into_pyresult()?;
 
-        repo.checkout_tree(&file_obj, None).into_pyresult()
+        let blob = repo.find_blob(file_obj.id()).into_pyresult()?;
+        fs::write(worktree_dir.join(file_path), blob.content()).into_pyresult()
     }
 
     /// Retrieves the diff for a specific file at a given commit.
