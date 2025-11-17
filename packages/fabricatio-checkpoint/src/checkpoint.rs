@@ -6,11 +6,12 @@
 
 use blake3::hash;
 use fabricatio_logger::*;
-use git2::{DiffOptions, IndexAddOption, Oid, Repository, RepositoryInitOptions};
+use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::fs;
+use std::fs::read_dir;
 use std::path::{absolute, PathBuf};
 use std::sync::{Arc, LockResult, Mutex};
 /// Trait for converting types into cache-friendly string keys.
@@ -120,17 +121,22 @@ impl ShadowRepoManager {
         } else {
             let repo_path = self.shadow_root.join(worktree_dir.as_key());
 
-            if repo_path.exists() {
+            if repo_path.is_dir() && read_dir(&repo_path).iter().next().is_some() {
                 let repo = wrap(Repository::open(repo_path).into_pyresult()?);
                 debug!("Opened repo for {}", worktree_dir.display());
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
             } else {
-                let mut opts = RepositoryInitOptions::new();
-                opts.no_dotgit_dir(true)
-                    .workdir_path(worktree_dir.as_path());
-
-                let repo = Repository::init_opts(repo_path.clone(), &opts).into_pyresult()?;
+                let repo = Repository::init_bare(&repo_path).into_pyresult()?;
+                let mut config = repo.config().into_pyresult()?;
+                config.set_bool("core.bare", false).into_pyresult()?;
+                config
+                    .set_bool("core.logallrefupdates", true)
+                    .into_pyresult()?;
+                config
+                    .set_str("core.worktree", &worktree_dir.to_string_lossy())
+                    .into_pyresult()?;
+                let repo = Repository::open(repo_path).into_pyresult()?;
                 debug!("Created repo for {}", worktree_dir.display());
 
                 let tree_id = repo
@@ -153,7 +159,7 @@ impl ShadowRepoManager {
                     .into_pyresult()?;
                 }
 
-                debug!("Create worktree for {}", worktree_dir.display());
+                debug!("Add initial commit to {}", worktree_dir.display());
                 let repo = wrap(repo);
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
@@ -201,6 +207,7 @@ impl ShadowRepoManager {
     /// Returns a `PyErr` if:
     /// - The shadow repository is not found
     /// - Git operations fail (staging, committing, etc.)
+    #[pyo3(signature=(worktree_dir, commit_msg=None))]
     pub fn save(&self, worktree_dir: PathBuf, commit_msg: Option<String>) -> PyResult<String> {
         let repo_entry = self.get_repo(worktree_dir)?;
         let repo = repo_entry.lock().into_pyresult()?;
@@ -211,27 +218,31 @@ impl ShadowRepoManager {
             .add_all(["*"].iter(), IndexAddOption::default(), None)
             .into_pyresult()?;
 
+        let head_commit = repo
+            .head()
+            .into_pyresult()?
+            .peel_to_commit()
+            .into_pyresult()?;
         let tree = {
             let tree_id = index.write_tree().into_pyresult()?;
             repo.find_tree(tree_id).into_pyresult()?
         };
 
-        let parent: Vec<_> = if let Ok(commit) = repo.head().into_pyresult()?.peel_to_commit() {
-            vec![commit]
+        if tree.id() == head_commit.tree_id() {
+            debug!("No changes to commit, returning head commit...");
+            Ok(head_commit.id().to_string())
         } else {
-            vec![]
-        };
-
-        repo.commit(
-            Some("HEAD"),
-            &sig,
-            &sig,
-            commit_msg.unwrap_or_default().as_str(),
-            &tree,
-            &parent.iter().collect::<Vec<_>>(),
-        )
-        .into_pyresult()
-        .map(|oid| oid.to_string())
+            repo.commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                commit_msg.unwrap_or_default().as_str(),
+                &tree,
+                &[&head_commit],
+            )
+            .into_pyresult()
+            .map(|oid| oid.to_string())
+        }
     }
 
     /// Resets the worktree to a specific commit state.
@@ -256,7 +267,7 @@ impl ShadowRepoManager {
         let commit = repo
             .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
             .into_pyresult()?;
-        repo.reset(&commit.into_object(), git2::ResetType::Mixed, None)
+        repo.reset(&commit.into_object(), git2::ResetType::Hard, None)
             .into_pyresult()
     }
 
