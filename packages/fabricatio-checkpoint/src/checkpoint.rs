@@ -12,7 +12,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, PathBuf};
+use std::path::{PathBuf, absolute};
 use std::sync::{Arc, LockResult, Mutex};
 /// Trait for converting types into cache-friendly string keys.
 trait AsKey {
