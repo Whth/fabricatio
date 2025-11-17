@@ -12,7 +12,7 @@ use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{PathBuf, absolute};
+use std::path::{absolute, PathBuf};
 use std::sync::{Arc, LockResult, Mutex};
 /// Trait for converting types into cache-friendly string keys.
 trait AsKey {
@@ -378,7 +378,7 @@ impl ShadowRepoManager {
         &self,
         worktree_dir: PathBuf,
         commit_id: String,
-        file_path: String,
+        file_path: PathBuf,
     ) -> PyResult<String> {
         let repo_entry = self.get_repo(worktree_dir)?;
         let repo = repo_entry.lock().into_pyresult()?;
