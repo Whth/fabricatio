@@ -6,9 +6,9 @@
 
 use blake3::hash;
 use fabricatio_logger::*;
-use git2::{DiffOptions, IndexAddOption, Oid, Repository};
+use git2::{DiffOptions, IndexAddOption, Oid, Repository, RepositoryInitOptions};
 use moka::sync::Cache;
-use pyo3::exceptions::PyRuntimeError;
+use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
@@ -121,7 +121,7 @@ impl ShadowRepoManager {
         } else {
             let repo_path = self.shadow_root.join(worktree_dir.as_key());
 
-            if repo_path.is_dir() && read_dir(&repo_path).iter().next().is_some() {
+            if repo_path.is_dir() && read_dir(&repo_path).is_ok_and(|mut i| i.next().is_some()) {
                 let repo = wrap(Repository::open(repo_path).into_pyresult()?);
                 debug!("Opened repo for {}", worktree_dir.display());
                 self.cache.insert(worktree_dir, repo.clone());
@@ -172,21 +172,28 @@ impl ShadowRepoManager {
 impl ShadowRepoManager {
     /// Creates a new `ShadowRepoManager` instance.
     ///
+    /// Initializes a shadow repository manager with the specified root directory
+    /// and cache size. Creates the shadow root directory if it doesn't exist.
+    ///
     /// # Arguments
     ///
-    /// * `shadow_root` - Root directory where shadow repositories will be stored
-    /// * `cache_size` - Maximum number of repositories to keep in the cache
+    /// * `shadow_root` - The root directory where shadow repositories will be stored
+    /// * `cache_size` - Maximum number of repositories to keep in the in-memory cache
     ///
     /// # Returns
     ///
     /// A new `ShadowRepoManager` instance
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if the shadow root directory cannot be created
     #[new]
-    fn new(shadow_root: PathBuf, cache_size: u64) -> Self {
-        fs::create_dir_all(&shadow_root).expect("Failed to create shadow root directory");
-        Self {
+    fn new(shadow_root: PathBuf, cache_size: u64) -> PyResult<Self> {
+        fs::create_dir_all(&shadow_root).map_err(|e| PyOSError::new_err(e.to_string()))?;
+        Ok(Self {
             shadow_root,
             cache: Cache::new(cache_size),
-        }
+        })
     }
     /// Saves the current state of the worktree as a new commit.
     ///
@@ -245,10 +252,10 @@ impl ShadowRepoManager {
         }
     }
 
-    /// Resets the worktree to a specific commit state.
+    /// Resets the worktree to a specific commit.
     ///
-    /// This performs a mixed reset, updating the index but leaving the working directory unchanged.
-    /// Similar to `git reset --mixed <commit_id>`.
+    /// Performs a hard reset of the worktree directory to match the state at the specified commit.
+    /// This discards all changes in the working directory and index, making them match the commit.
     ///
     /// # Arguments
     ///

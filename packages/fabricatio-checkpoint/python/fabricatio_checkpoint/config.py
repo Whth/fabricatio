@@ -13,7 +13,7 @@ class CheckpointConfig:
     checkpoint_dir: Path = Path.home() / ".fabricatio-checkpoint"
     """Directory to store checkpoints. Aka the shadow repositories."""
     cache_size: int = 100
-    """Maximum number of checkpoints to keep in the mem."""
+    """Maximum number of checkpoints to keep in memory."""
 
 
 checkpoint_config = CONFIG.load("checkpoint", CheckpointConfig)

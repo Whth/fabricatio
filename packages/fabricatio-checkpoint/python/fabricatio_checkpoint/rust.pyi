@@ -38,18 +38,17 @@ class ShadowRepoManager:
         """
 
     def reset(self, worktree_dir: Path, commit_id: str) -> None:
-        """Resets the worktree to a specific commit state.
+        """Hard resets the worktree directory to a specific commit.
 
-        This performs a mixed reset, updating the index but leaving the working directory
-        unchanged. Similar to `git reset --mixed <commit_id>`.
+        This method resets the worktree directory to the specified commit,
+        overwriting any changes made since the last save.
 
         Args:
             worktree_dir: The worktree directory to reset.
             commit_id: The commit ID (OID as string) to reset to.
 
         Raises:
-            RuntimeError: If the shadow repository is not found, the commit ID is invalid,
-                or the reset operation fails.
+            RuntimeError: If the shadow repository is not found or the commit ID is invalid.
         """
 
     def rollback(self, worktree_dir: Path, commit_id: str, file_path: Path) -> None:
