@@ -27,3 +27,7 @@ class Checkpoint(UseLLM, ABC):
     def reset(self, commit_id: str) -> None:
         """Reset the checkpoint."""
         SHADOW_REPO_MANAGER.reset(ok(self.worktree_dir), commit_id)
+
+    def get_file_diff(self, commit_id: str, file_path: str) -> str:
+        """Get the diff for a specific file at a given commit."""
+        return SHADOW_REPO_MANAGER.get_file_diff(ok(self.worktree_dir), commit_id, file_path)
