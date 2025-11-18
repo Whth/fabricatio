@@ -74,7 +74,7 @@ docs = [
 
 [project.optional-dependencies]
 full = [
-    "fabricatio[rag,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,improve,rag,yue,tool,plot,translate,locale,diff,thinking,agent,team,capable,novel,character]",
+    "fabricatio[rag,typst,rule,judge,capabilities,actions,improve,digest,memory,anki,question,tagging,yue,tool,plot,translate,locale,diff,thinking,agent,team,capable,novel,character,checkpoint]",
 ]
 
 anki = ["fabricatio-anki"]
@@ -101,6 +101,7 @@ team = ["fabricatio-team"]
 capable = ["fabricatio-capable"]
 novel = ["fabricatio-novel"]
 character = ["fabricatio-character"]
+checkpoint = ["fabricatio-checkpoint"]
 
 
 [tool.pyright]
@@ -208,6 +209,7 @@ fabricatio-team = { workspace = true }
 fabricatio-capable = { workspace = true }
 fabricatio-novel = { workspace = true }
 fabricatio-character = { workspace = true }
+fabricatio-checkpoint = { workspace = true }
 
 
 

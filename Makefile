@@ -26,7 +26,7 @@ bins: dirs
 	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --bins
 
 dev: dirs
-	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST) --bins --dev
+	uv run --only-dev subpackages.py -py $(PY) -dd $(DIST)  --dev
 
 clean_dist:
 	rm -rf $(DIST)/*

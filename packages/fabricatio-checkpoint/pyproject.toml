@@ -1,0 +1,43 @@
+[project]
+name = "fabricatio-checkpoint"
+version = "0.1.1-dev15"
+description = "An extension of fabricatio"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Typing :: Typed",
+]
+requires-python = ">=3.12,<=3.14"
+dependencies = [
+
+    "fabricatio-core"
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_checkpoint.rust"
+
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"

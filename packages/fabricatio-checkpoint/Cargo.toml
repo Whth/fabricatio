@@ -1,0 +1,15 @@
+[package]
+name = "fabricatio-checkpoint"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+blake3 = "1.8.2"
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+git2 = { version = "0.20.2", features = ["vendored-libgit2"] }
+moka = { version = "0.12.11", features = ["sync"] }
+
+pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
+
