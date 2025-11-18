@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Packing templates
         run: |
           tar -czf templates.tar.gz templates
@@ -108,10 +108,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v6.0.1
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
       - name: Install nightly rust
@@ -149,13 +149,13 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
       - name: Move Generic whl
-        if: github.event_name != 'pull_request'
+        if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
           mkdir ${{ matrix.os }}-${{ matrix.python-version }}-generic
           mv ${{ matrix.os }}-${{ matrix.python-version }}/*-none-any.whl ${{ matrix.os }}-${{ matrix.python-version }}-generic/
 
       - name: Upload assets
-        if: github.event_name != 'pull_request'
+        if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
@@ -165,7 +165,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
 
       - name: Upload generic assets
-        if: github.event_name != 'pull_request'
+        if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
