@@ -68,16 +68,40 @@ def test_rollback(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
     # Save second checkpoint
     role.save_checkpoint("test2")
 
-    # Attempting to rollback with absolute path should raise RuntimeError (if design enforces relative paths)
-    with pytest.raises(RuntimeError):
-        role.rollback(id_1, tmp_worktree_dir / "test1.txt")
-
     # Rollback only 'test1.txt' to the first checkpoint
     role.rollback(id_1, "test1.txt")
 
     # Assert: only test1.txt is reverted; test2.txt remains modified
     assert file1.read_text() == content_v1_file1
     assert file2.read_text() == content_v2_file2  # Unaffected by rollback
+
+
+def test_rollback_with_absolute_path(role: CheckpointRole, tmp_worktree_dir: Path, tmp_path: Path) -> None:
+    """Test rolling back with absolute path."""
+    texts = "hello world"
+    file1 = tmp_worktree_dir / "test1.txt"
+    file1.write_text(texts)
+    id_1 = role.save_checkpoint("test1")
+    file1.write_text(texts * 3)
+
+    role.rollback(id_1, file1.absolute())
+    assert file1.read_text() == texts
+
+
+def test_rollback_with_external_absolute_path(role: CheckpointRole, tmp_worktree_dir: Path, tmp_path: Path) -> None:
+    """Test rolling back with absolute path."""
+    texts = "hello world"
+    file1 = tmp_worktree_dir / "test1.txt"
+    file1.write_text(texts)
+    id_1 = role.save_checkpoint("test1")
+    file1.write_text(texts * 3)
+
+    external_file = tmp_path / "test1.txt"
+    external_file.write_text(texts * 3)
+
+    with pytest.raises(OSError, match="prefix not found"):
+        role.rollback(id_1, external_file.absolute())
+    role.rollback(id_1, file1.absolute())
 
 
 def test_reset(role: CheckpointRole, tmp_worktree_dir: Path) -> None:

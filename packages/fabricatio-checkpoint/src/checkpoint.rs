@@ -12,7 +12,7 @@ use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, PathBuf};
+use std::path::{PathBuf, absolute};
 use std::sync::{Arc, LockResult, Mutex};
 /// Trait for converting types into cache-friendly string keys.
 trait AsKey {
@@ -54,6 +54,17 @@ type RepoEntry = Arc<Mutex<Repository>>;
 fn wrap(repo: Repository) -> RepoEntry {
     Arc::new(Mutex::new(repo))
 }
+
+fn sanitize_path(root: &PathBuf, path: PathBuf) -> PyResult<PathBuf> {
+    if path.is_relative() {
+        Ok(path)
+    } else {
+        path.strip_prefix(root)
+            .map(|p| p.to_path_buf())
+            .map_err(|e| PyOSError::new_err(e.to_string()))
+    }
+}
+
 /// Manages shadow Git repositories for file checkpointing.
 ///
 /// A shadow repository manager creates and maintains separate bare Git repositories
@@ -119,8 +130,6 @@ impl ShadowRepoManager {
     ///
     /// Returns a `PyErr` if repository operations fail
     fn get_repo(&self, worktree_dir: PathBuf) -> PyResult<RepoEntry> {
-        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
-
         if let Some(repo) = self.cache.get(&worktree_dir) {
             debug!("Found cached repo for {}", worktree_dir.display());
             Ok(repo)
@@ -201,7 +210,7 @@ impl ShadowRepoManager {
     fn new(shadow_root: PathBuf, cache_size: u64) -> PyResult<Self> {
         fs::create_dir_all(&shadow_root).into_pyresult()?;
         Ok(Self {
-            shadow_root,
+            shadow_root: shadow_root.canonicalize().into_pyresult()?,
             cache: Cache::new(cache_size),
         })
     }
@@ -226,6 +235,7 @@ impl ShadowRepoManager {
     /// - Git operations fail (staging, committing, etc.)
     #[pyo3(signature=(worktree_dir, commit_msg=None))]
     pub fn save(&self, worktree_dir: PathBuf, commit_msg: Option<String>) -> PyResult<String> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
         let repo_entry = self.get_repo(worktree_dir)?;
         let repo = repo_entry.lock().into_pyresult()?;
         let mut index = repo.index().into_pyresult()?;
@@ -303,6 +313,8 @@ impl ShadowRepoManager {
     /// - The commit ID is invalid
     /// - The reset operation fails
     pub fn reset(&self, worktree_dir: PathBuf, commit_id: String) -> PyResult<()> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
+
         let repo_entry = self.get_repo(worktree_dir)?;
         let repo = repo_entry.lock().into_pyresult()?;
         let commit = repo
@@ -336,6 +348,9 @@ impl ShadowRepoManager {
         commit_id: String,
         file_path: PathBuf,
     ) -> PyResult<()> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
+
+        let file_path = sanitize_path(&worktree_dir, file_path)?;
         let repo_entry = self.get_repo(worktree_dir.clone())?;
         let repo = repo_entry.lock().into_pyresult()?;
         let commit = repo
@@ -385,6 +400,9 @@ impl ShadowRepoManager {
         commit_id: String,
         file_path: PathBuf,
     ) -> PyResult<String> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
+
+        let file_path = sanitize_path(&worktree_dir, file_path)?;
         let repo_entry = self.get_repo(worktree_dir)?;
         let repo = repo_entry.lock().into_pyresult()?;
         let commit = repo
