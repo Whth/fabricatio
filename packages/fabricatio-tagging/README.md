@@ -31,32 +31,21 @@ It offers features for managing the tags. This includes creating, editing, and d
 ### Integration with Fabricatio
 The package is designed to work seamlessly with the Fabricatio framework. It can integrate with other modules in the Fabricatio ecosystem, such as the agent framework, to use the tagged data in more complex workflows.
 
-...
-
-
-
 ## 🧩 Key Features
 
-### Intelligent Tagging
-The intelligent tagging feature uses advanced algorithms to automatically assign tags to data. It can understand the semantics of the data and make accurate tag assignments. For example, it can recognize the context of a sentence in a text and assign appropriate tags based on the meaning.
-
-### Customizable Tagging Rules
-Users can define their own tagging rules according to their specific needs. This allows for flexibility in the tagging process. For example, in a business application, users can define rules to tag transactions based on their amount, type, and other criteria.
-
-### Tag Search and Retrieval
-The package provides functionality for searching and retrieving tagged data. Users can search for data based on specific tags or combinations of tags. This is useful for quickly finding relevant information in a large dataset.
-
-...
-
+- **Intelligent Tagging**: Advanced algorithms to automatically assign semantically relevant tags to data based on content analysis
+- **Customizable Tagging Rules**: User-defined rules for flexible tagging strategies tailored to specific use cases and data types
+- **Tag Search and Retrieval**: Efficient search functionality for finding data by tags, supporting complex tag combinations and queries
+- **Tag Management**: Comprehensive tools for organizing, categorizing, and maintaining tag hierarchies
+- **Multi-format Support**: Support for tagging various data types including text, structured objects, and numerical data
+- **Agent Integration**: Seamless integration with fabricatio agents for automated tagging workflows
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-This dependency provides the fundamental building blocks for the Fabricatio framework. It includes interfaces for task management, event handling, and data models. The `fabricatio-tagging` package uses these interfaces to interact with other modules in the Fabricatio ecosystem and ensure the smooth operation of the tagging process.
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

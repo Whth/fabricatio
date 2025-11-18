@@ -25,27 +25,25 @@ Or install all components:
 ```bash
 pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides AI-powered lyrics composition capabilities specifically designed for music generation with YuE, enabling the creation of structured song lyrics with genre-specific characteristics and musical compatibility. It integrates genre selection with intelligent lyric generation for seamless music production workflows.
 ## 🧩 Key Features
 
-...
+- **Intelligent Genre Selection**: Automatic genre detection and selection based on requirements for contextually appropriate lyrics
+- **Structured Lyric Generation**: AI-powered creation of song lyrics with proper structure, rhyme schemes, and musical flow
+- **Batch Processing**: Support for generating multiple song lyrics simultaneously for efficient content creation
+- **YuE Integration**: Specifically designed for compatibility with YuE music generation systems
+- **Template-Driven Composition**: Configurable templates for consistent and high-quality lyric generation
+- **Requirement-Based Creation**: Flexible system that adapts to various musical themes, moods, and styles
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

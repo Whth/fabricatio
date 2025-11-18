@@ -31,32 +31,21 @@ By asking questions, it can gather crucial information from the user. This infor
 ### Integration with Fabricatio
 It is designed to work seamlessly with the Fabricatio framework. It can communicate with other modules in the Fabricatio ecosystem to ensure that the questions asked are relevant to the overall context and that the gathered information is used appropriately.
 
-...
-
-
-
 ## 🧩 Key Features
 
-### Intelligent Question Generation
-The package uses advanced algorithms to generate intelligent questions. It takes into account the current context, the user's previous responses, and the overall goal of the task. This ensures that the questions are relevant, clear, and likely to elicit useful information.
-
-### Response Analysis
-It can analyze the user's responses to the questions. It can extract relevant information from the responses, understand the user's intentions, and use this information to guide the next steps in the planning process.
-
-### Context Awareness
-The system is context - aware, meaning it can adapt the questions based on the current state of the conversation or task. It can remember previous questions and responses, and use this knowledge to ask more targeted and meaningful questions.
-
-...
-
+- **Intelligent Question Generation**: Advanced algorithms to create relevant, context-aware questions based on task requirements and current state
+- **Response Analysis**: Extract and process user responses to enhance planning and decision-making capabilities
+- **Context Awareness**: Maintain conversation context to ask increasingly targeted and meaningful questions
+- **Interactive Planning**: Enable collaborative planning through strategic questioning and information gathering
+- **Dynamic Adaptation**: Adjust questioning strategy based on evolving task requirements and user responses
+- **Integration Support**: Seamless communication with other fabricatio modules for enhanced workflow orchestration
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-This dependency provides the fundamental building blocks for the Fabricatio framework. It includes interfaces for task management, event handling, and data models. The `fabricatio-question` package uses these interfaces to interact with other modules in the Fabricatio ecosystem and ensure that the questioning process is integrated with the overall system.
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

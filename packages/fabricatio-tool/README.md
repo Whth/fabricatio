@@ -27,27 +27,25 @@ Or install all components:
 ```bash
 pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides native tool execution capabilities for fabricatio agents, enabling seamless integration and usage of Python-based tools within LLM workflows. It supports dynamic tool discovery, code generation for tool usage, and execution of complex tool chains with result collection and management.
 ## 🧩 Key Features
 
-...
+- **Dynamic Tool Discovery**: Automatic gathering and selection of relevant tools based on task requirements
+- **Code Generation**: AI-powered generation of Python code for tool usage and execution
+- **Tool Chain Execution**: Support for executing sequences of tools with data flow between operations
+- **Result Collection**: Structured collection and management of tool execution results
+- **Fine-Grained Control**: Configurable tool selection with box and tool-level filtering options
+- **Error Handling**: Robust error handling and validation for tool execution workflows
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

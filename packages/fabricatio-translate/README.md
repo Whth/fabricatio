@@ -25,27 +25,25 @@ Or install all components:
 ```bash
 pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides advanced text translation capabilities for fabricatio agents, supporting both single text and batch translation operations. It enables seamless multilingual communication with configurable translation specifications and supports chunked processing for large texts.
 ## 🧩 Key Features
 
-...
+- **Multi-language Support**: Translate text between various languages with accurate context preservation
+- **Batch Processing**: Handle multiple translation requests simultaneously for efficiency
+- **Chunked Translation**: Process large texts by splitting them into manageable chunks with proper reassembly
+- **Configurable Specifications**: Customize translation style, tone, and terminology through specifications
+- **Fallback Handling**: Graceful handling of translation failures with source text preservation
+- **Async Processing**: High-performance asynchronous translation operations
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)
