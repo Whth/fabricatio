@@ -6,16 +6,20 @@ An Extension of fabricatio aiming to extend the context llm could handle..
 
 ## 📦 Installation
 
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
 
 ```bash
 pip install fabricatio[memory]
+# or
+uv pip install fabricatio[memory]
 ```
 
-Or install all components:
+For a full installation that includes this package and all other components of `fabricatio`:
 
 ```bash
 pip install fabricatio[full]
+# or
+uv pip install fabricatio[full]
 ```
 
 ## 🔍 Overview

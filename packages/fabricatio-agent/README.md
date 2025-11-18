@@ -16,23 +16,20 @@ An extension of fabricatio.
 
 ## 📦 Installation
 
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
 
 ```bash
 pip install fabricatio[agent]
-
-# or with uv
-# uv pip install fabricatio[agent]
+# or
+uv pip install fabricatio[agent]
 ```
 
-Or install `fabricatio-diff` along with all other components of `fabricatio`:
+For a full installation that includes this package and all other components of `fabricatio`:
 
 ```bash
 pip install fabricatio[full]
-
-# or with uv
-# uv pip install fabricatio[full]
+# or
+uv pip install fabricatio[full]
 ```
 ## 🔍 Overview
 

@@ -14,16 +14,20 @@ An extension of fabricatio, provide capability to compose lyrics that can be use
 
 ## 📦 Installation
 
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
 
 ```bash
 pip install fabricatio[yue]
+# or
+uv pip install fabricatio[yue]
 ```
 
-Or install all components:
+For a full installation that includes this package and all other components of `fabricatio`:
 
 ```bash
 pip install fabricatio[full]
+# or
+uv pip install fabricatio[full]
 ```
 ## 🔍 Overview
 

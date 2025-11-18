@@ -5,10 +5,20 @@ structure.
 
 ## 📦 Installation
 
-This package is part of the `fabricatio` monorepo and is available as a single package:
+This package is part of the `fabricatio` monorepo and is available as a single package using either pip or uv:
 
 ```bash
 pip install fabricatio
+# or
+uv pip install fabricatio
+```
+
+For a full installation that includes this package and all other components of `fabricatio`:
+
+```bash
+pip install fabricatio[full]
+# or
+uv pip install fabricatio[full]
 ```
 
 ## 🔍 Overview
