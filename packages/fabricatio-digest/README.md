@@ -31,32 +31,21 @@ Based on the analyzed requirements, it can generate a detailed task list. Each t
 ### Integration with Fabricatio
 It is designed to work seamlessly with the Fabricatio framework. It can communicate with other modules in the Fabricatio ecosystem to ensure that the generated task list is compatible with the overall system.
 
-...
-
-
-
 ## 🧩 Key Features
 
-### Intelligent Parsing
-The package uses advanced parsing algorithms to understand the semantics of the raw requirements. It can handle complex sentences and extract relevant information accurately.
-
-### Dependency Management
-It can identify dependencies between tasks in the generated task list. This helps in scheduling the tasks in the correct order and ensuring that all prerequisites are met before a task is executed.
-
-### Customization
-Users can customize the task generation process according to their specific needs. For example, they can define their own rules for task categorization and prioritization.
-
-...
-
+- **Intelligent Parsing**: Advanced natural language processing to understand complex requirements and extract key information
+- **Dependency Management**: Automatic identification of task dependencies and proper sequencing for execution
+- **Customization**: Configurable rules for task categorization, prioritization, and workflow generation
+- **Team Coordination**: Support for multi-agent task distribution and collaborative task execution
+- **Validation System**: Built-in validation to ensure generated tasks are actionable and well-defined
+- **Template-Driven Generation**: Uses configurable templates for consistent task breakdown and planning
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-This dependency provides the fundamental building blocks for the Fabricatio framework. It includes interfaces for task management, event handling, and data models. The `fabricatio-digest` package uses these interfaces to interact with other modules in the Fabricatio ecosystem and ensure the smooth generation of task lists.
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

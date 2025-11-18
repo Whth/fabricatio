@@ -31,27 +31,27 @@ pip install fabricatio[full]
 # or with uv
 # uv pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides capability assessment and validation framework for fabricatio agents, enabling intelligent evaluation of whether specific tasks can be performed using available tools and context. It integrates judgment capabilities with tool usage assessment to determine agent feasibility for complex requests.
 ## 🧩 Key Features
 
-...
+- **Capability Assessment**: Evaluate whether agents can handle specific requests based on available tools and context
+- **Intelligent Judgment**: Use advanced judgment mechanisms to assess task feasibility and requirements
+- **Tool Integration**: Seamlessly work with toolboxes to validate capability against available resources
+- **Batch Processing**: Support both single and batch capability assessments for multiple requests
+- **Template-Driven Evaluation**: Configurable assessment templates for consistent capability evaluation
+- **Context-Aware Validation**: Leverage briefing and context information for accurate capability determination
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-  ...
+- `fabricatio-tool` - Tool usage and toolbox management
+- `fabricatio-judge` - Advanced judgment and evaluation capabilities
 
+No additional dependencies required.
 ## 📄 License
 
 This project is licensed under the MIT License.

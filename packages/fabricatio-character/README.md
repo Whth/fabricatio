@@ -31,27 +31,25 @@ pip install fabricatio[full]
 # or with uv
 # uv pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides character creation and composition capabilities for fabricatio applications, enabling the generation of detailed character profiles and personalities for use in storytelling, role-playing, and narrative content creation. It leverages AI to compose rich, consistent character arcs and backgrounds.
 ## 🧩 Key Features
 
-...
+- **Character Composition**: Generate complete character profiles with backgrounds, personalities, and motivations
+- **Flexible Requirements**: Support both single character and batch character generation based on specific requirements
+- **Story Integration**: Create characters that fit seamlessly into existing narratives and story arcs
+- **Personality Depth**: Generate complex, multi-dimensional characters with consistent behavioral traits
+- **Validation System**: Ensure generated characters meet specified criteria and requirements
+- **Template-Driven Generation**: Use configurable templates for consistent character creation across projects
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-  ...
 
+No additional dependencies required.
 ## 📄 License
 
 This project is licensed under the MIT License.

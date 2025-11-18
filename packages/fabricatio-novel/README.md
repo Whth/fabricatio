@@ -34,27 +34,27 @@ pip install fabricatio[full]
 # or with uv
 # uv pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides comprehensive AI-powered novel generation capabilities, enabling the creation of complete novels from outline to publication-ready chapters. It orchestrates character development, plot structuring, and content generation through an integrated pipeline that produces coherent, engaging narratives with rich character arcs and consistent storytelling.
 ## 🧩 Key Features
 
-...
+- **Complete Novel Pipeline**: End-to-end novel generation from initial outline to final chapters
+- **Character Integration**: Automatic character creation and integration throughout the narrative
+- **Script-Based Writing**: Structured chapter scripting with detailed scene planning
+- **Language Detection**: Automatic language detection and consistent language usage
+- **Content Formatting**: XHTML output formatting for publication-ready content
+- **Scalable Generation**: Support for novels of varying lengths and complexity
+- **Quality Assurance**: Built-in validation and improvement capabilities for generated content
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-...
+- `fabricatio-character` - Character creation and management
 
+No additional dependencies required.
 ## 📄 License
 
 This project is licensed under the MIT License.

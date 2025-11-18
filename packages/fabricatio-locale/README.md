@@ -27,27 +27,26 @@ Or install all components:
 ```bash
 pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides localization capabilities for fabricatio applications, enabling the translation and adaptation of text content for different languages and regions using PO file standards. It facilitates seamless internationalization workflows in AI-driven content creation and processing.
 ## 🧩 Key Features
 
-...
+- **PO File Processing**: Parse and process standard gettext PO files for localization
+- **Message Translation**: Translate message texts while preserving identifiers and context
+- **Batch Localization**: Handle multiple messages simultaneously for efficient processing
+- **Translation Integration**: Leverages advanced translation capabilities for accurate localization
+- **Format Preservation**: Maintains message structure and metadata during translation
+- **Internationalization Support**: Enables global content adaptation for diverse audiences
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-...
+- `fabricatio-translate` - Translation capabilities
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

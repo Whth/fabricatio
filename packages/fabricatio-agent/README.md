@@ -34,27 +34,35 @@ pip install fabricatio[full]
 # or with uv
 # uv pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides a comprehensive AI agent framework that integrates multiple capabilities for autonomous task fulfillment. The agent combines thinking, memory, team cooperation, and various specialized capabilities to process and execute complex requests, making it a central orchestrator in the fabricatio ecosystem for intelligent workflow automation.
 ## 🧩 Key Features
 
-...
+- **Multi-Capability Integration**: Combines thinking, memory, judgment, task dispatching, and team cooperation capabilities
+- **Autonomous Task Fulfillment**: Processes requests through sequential thinking and task decomposition
+- **Memory-Augmented Processing**: Recalls relevant information to enhance decision making and context awareness
+- **Team Collaboration**: Supports cooperative workflows with multiple specialized agents
+- **Configurable Behavior**: Customizable settings for thinking mode, memory usage, and capability checking
+- **Template-Driven Execution**: Uses configurable prompt templates for consistent and adaptable behavior
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-...
-
+- `fabricatio-digest` - Request digestion and task planning
+- `fabricatio-memory` - Memory management and recall
+- `fabricatio-improve` - Content improvement capabilities
+- `fabricatio-rule` - Rule-based content processing
+- `fabricatio-judge` - Advanced judgment and evaluation
+- `fabricatio-capabilities` - Base capability patterns
+- `fabricatio-diff` - Difference editing operations
+- `fabricatio-thinking` - Sequential thinking processes
+- `fabricatio-question` - Interactive questioning
+- `fabricatio-tool` - Tool handling and execution
+- `fabricatio-team` - Team cooperation mechanisms
+- `fabricatio-capable` - Capability assessment
 ## 📄 License
 
 This project is licensed under the MIT License.

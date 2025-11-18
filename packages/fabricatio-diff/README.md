@@ -34,27 +34,25 @@ pip install fabricatio[full]
 # or with uv
 # uv pip install fabricatio[full]
 ```
-
 ## 🔍 Overview
 
-Provides essential tools for:
-
-...
-
-
-
+Provides intelligent diff-based editing capabilities for fabricatio workflows, enabling precise text modifications through AI-generated search and replace operations. It allows agents to perform targeted edits on source content based on natural language requirements, with configurable match precision for reliable transformations.
 ## 🧩 Key Features
 
-...
+- **Intelligent Diff Generation**: Generate precise search and replace operations from natural language requirements
+- **Precision Control**: Configurable match precision for accurate text modifications
+- **Template-Driven Processing**: Uses configurable prompt templates for consistent diff generation
+- **Validation System**: Built-in validation to ensure generated diffs are syntactically correct
+- **Source Content Analysis**: Analyzes source text to create contextually appropriate edits
+- **Rust-Accelerated Performance**: High-performance diff application using Rust extensions
 
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-...
 
+No additional dependencies required.
 ## 📄 License
 
 This project is licensed under the MIT License.

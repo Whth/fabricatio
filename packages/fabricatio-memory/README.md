@@ -31,32 +31,21 @@ It offers features for managing the memory used by the LLM. This includes tasks 
 ### Integration with Fabricatio
 The package is designed to work seamlessly with the Fabricatio framework. It can leverage the capabilities of Fabricatio's agent framework to manage the memory in a more intelligent way and integrate with other modules in the ecosystem.
 
-...
-
-
-
 ## 🧩 Key Features
 
-### Long - Term Memory Storage
-The long - term memory storage feature allows the LLM to store information over an extended period. It can save important data such as user profiles, historical conversations, and domain knowledge. This information can be retrieved later to provide more personalized and context - aware responses.
-
-### Short - Term Memory Buffer
-The short - term memory buffer is used to store the most recent information. It helps the LLM to maintain a context for the current conversation and respond more coherently. For example, it can remember the last few messages in a chat session.
-
-### Memory Retrieval Mechanisms
-The package provides efficient memory retrieval mechanisms. It can search through the stored memory based on keywords, context, or other criteria to find the relevant information. This ensures that the LLM can access the necessary data quickly and accurately.
-
-...
-
+- **Long-Term Memory Storage**: Persistent storage of important information including user profiles, historical conversations, and domain knowledge for personalized responses
+- **Short-Term Memory Buffer**: Maintains recent context and conversation history to ensure coherent and contextually appropriate responses
+- **Intelligent Memory Retrieval**: Advanced search mechanisms to find relevant information based on keywords, context, and semantic similarity
+- **Memory Optimization**: Efficient memory allocation and cleanup to maintain performance while maximizing context retention
+- **Agent Integration**: Seamless integration with fabricatio agents for memory-augmented decision making and context awareness
+- **Scalable Architecture**: Supports various storage backends and can handle large volumes of memory data
 
 ## 🔗 Dependencies
-
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
-This dependency provides the fundamental building blocks for the Fabricatio framework. It includes interfaces for task management, event handling, and data models. The `fabricatio-memory` package uses these interfaces to interact with other modules in the Fabricatio ecosystem and manage the memory effectively.
-...
 
+No additional dependencies required.
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)
