@@ -142,6 +142,10 @@ impl ShadowRepoManager {
                 config
                     .set_str("core.worktree", &worktree_dir.to_string_lossy())
                     .into_pyresult()?;
+                config.set_str("user.name", "Agent").into_pyresult()?;
+                config
+                    .set_str("user.email", "placeholder@example.com")
+                    .into_pyresult()?;
                 let repo = Repository::open(repo_path).into_pyresult()?;
                 debug!("Created repo for {}", worktree_dir.display());
 
