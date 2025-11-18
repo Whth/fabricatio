@@ -32,11 +32,14 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides a comprehensive AI agent framework that integrates multiple capabilities for autonomous task fulfillment. The agent combines thinking, memory, team cooperation, and various specialized capabilities to process and execute complex requests, making it a central orchestrator in the fabricatio ecosystem for intelligent workflow automation.
+Provides a comprehensive AI agent framework that integrates multiple capabilities for autonomous task fulfillment. The
+agent combines thinking, memory, team cooperation, and various specialized capabilities to process and execute complex
+requests, making it a central orchestrator in the fabricatio ecosystem for intelligent workflow automation.
 
 ## 🧩 Key Features
 
-- **Multi-Capability Integration**: Combines thinking, memory, judgment, task dispatching, and team cooperation capabilities
+- **Multi-Capability Integration**: Combines thinking, memory, judgment, task dispatching, and team cooperation
+  capabilities
 - **Autonomous Task Fulfillment**: Processes requests through sequential thinking and task decomposition
 - **Memory-Augmented Processing**: Recalls relevant information to enhance decision making and context awareness
 - **Team Collaboration**: Supports cooperative workflows with multiple specialized agents
@@ -63,6 +66,5 @@ Core dependencies:
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

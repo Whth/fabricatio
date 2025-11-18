@@ -1,5 +1,12 @@
 # `fabricatio-judge`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-judge)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-judge)](https://pypi.org/project/fabricatio-judge/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-judge/week)](https://pepy.tech/projects/fabricatio-judge)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-judge)](https://pepy.tech/projects/fabricatio-judge)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
+
 A Python module for evidence-based decision making in LLM applications.
 
 ## 📦 Installation
@@ -23,19 +30,34 @@ uv pip install fabricatio[full]
 ## 🔍 Overview
 
 Provides the `AdvancedJudge` class for structured judgment tasks, using collected evidence to determine a final boolean
-The `AdvancedJudge` class is the core of this module. It uses a structured approach to collect and analyze evidence. It can handle different types of evidence, such as text, numerical data, and expert opinions. The evidence is then used to make a binary decision (true or false) based on predefined rules and algorithms.
+The `AdvancedJudge` class is the core of this module. It uses a structured approach to collect and analyze evidence. It
+can handle different types of evidence, such as text, numerical data, and expert opinions. The evidence is then used to
+make a binary decision (true or false) based on predefined rules and algorithms.
 verdict.
 
 ### Key Features:
 
 - Asynchronous judgment execution
-Asynchronous judgment execution allows the module to perform multiple judgment tasks simultaneously without blocking the main thread. This is particularly useful in applications where real - time responses are required. For example, in a chatbot application, the judge can evaluate multiple user queries concurrently, improving the overall performance and responsiveness.
+  Asynchronous judgment execution allows the module to perform multiple judgment tasks simultaneously without blocking
+  the main thread. This is particularly useful in applications where real - time responses are required. For example, in
+  a chatbot application, the judge can evaluate multiple user queries concurrently, improving the overall performance
+  and responsiveness.
 - Evidence tracking (affirmative & denying)
-The evidence tracking feature keeps a record of both affirmative and denying evidence. Affirmative evidence supports the positive outcome of the judgment, while denying evidence supports the negative outcome. This helps in making more informed decisions and provides transparency in the judgment process. For example, in a legal application, the judge can track the evidence presented by both the prosecution and the defense.
+  The evidence tracking feature keeps a record of both affirmative and denying evidence. Affirmative evidence supports
+  the positive outcome of the judgment, while denying evidence supports the negative outcome. This helps in making more
+  informed decisions and provides transparency in the judgment process. For example, in a legal application, the judge
+  can track the evidence presented by both the prosecution and the defense.
 - Integration with Fabricatio agent framework
-The integration with the Fabricatio agent framework allows the `AdvancedJudge` class to communicate and collaborate with other agents in the system. It can receive evidence from other agents, share its judgment results, and participate in complex workflows. This enables the creation of more sophisticated and intelligent applications. For example, in a multi - agent system for project management, the judge can interact with agents responsible for task management and resource allocation.
+  The integration with the Fabricatio agent framework allows the `AdvancedJudge` class to communicate and collaborate
+  with other agents in the system. It can receive evidence from other agents, share its judgment results, and
+  participate in complex workflows. This enables the creation of more sophisticated and intelligent applications. For
+  example, in a multi - agent system for project management, the judge can interact with agents responsible for task
+  management and resource allocation.
 - Extensible for custom logic
-The module is designed to be extensible, allowing users to implement custom logic. Users can subclass the `AdvancedJudge` class and override its methods to add their own rules and algorithms. This provides flexibility and adaptability to different application requirements. For example, in a domain - specific application, users can define their own evidence evaluation criteria and decision - making processes.
+  The module is designed to be extensible, allowing users to implement custom logic. Users can subclass the
+  `AdvancedJudge` class and override its methods to add their own rules and algorithms. This provides flexibility and
+  adaptability to different application requirements. For example, in a domain - specific application, users can define
+  their own evidence evaluation criteria and decision - making processes.
 
 ## 🧩 Usage
 
@@ -132,7 +154,7 @@ fabricatio-judge/
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)
+
 

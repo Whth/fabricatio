@@ -1,5 +1,12 @@
 # `fabricatio-digest`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-digest)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-digest)](https://pypi.org/project/fabricatio-digest/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-digest/week)](https://pepy.tech/projects/fabricatio-digest)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-digest)](https://pepy.tech/projects/fabricatio-digest)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
+
 An extension for fabricatio, providing capabilities to handle raw requirement, digesting it into a task list.
 
 ---
@@ -24,11 +31,14 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides intelligent requirement analysis and task list generation capabilities for fabricatio workflows. The package transforms raw requirements into well-structured, actionable task lists with dependency management and validation, enabling seamless integration with Fabricatio's agent framework.
+Provides intelligent requirement analysis and task list generation capabilities for fabricatio workflows. The package
+transforms raw requirements into well-structured, actionable task lists with dependency management and validation,
+enabling seamless integration with Fabricatio's agent framework.
 
 ## 🧩 Key Features
 
-- **Intelligent Parsing**: Advanced natural language processing to understand complex requirements and extract key information
+- **Intelligent Parsing**: Advanced natural language processing to understand complex requirements and extract key
+  information
 - **Dependency Management**: Automatic identification of task dependencies and proper sequencing for execution
 - **Customization**: Configurable rules for task categorization, prioritization, and workflow generation
 - **Team Coordination**: Support for multi-agent task distribution and collaborative task execution
@@ -45,6 +55,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

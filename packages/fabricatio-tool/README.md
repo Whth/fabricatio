@@ -32,7 +32,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides native tool execution capabilities for fabricatio agents, enabling seamless integration and usage of Python-based tools within LLM workflows. It supports dynamic tool discovery, code generation for tool usage, and execution of complex tool chains with result collection and management.
+Provides native tool execution capabilities for fabricatio agents, enabling seamless integration and usage of
+Python-based tools within LLM workflows. It supports dynamic tool discovery, code generation for tool usage, and
+execution of complex tool chains with result collection and management.
 
 ## 🧩 Key Features
 
@@ -53,6 +55,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

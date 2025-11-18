@@ -32,7 +32,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides intelligent diff-based editing capabilities for fabricatio workflows, enabling precise text modifications through AI-generated search and replace operations. It allows agents to perform targeted edits on source content based on natural language requirements, with configurable match precision for reliable transformations.
+Provides intelligent diff-based editing capabilities for fabricatio workflows, enabling precise text modifications
+through AI-generated search and replace operations. It allows agents to perform targeted edits on source content based
+on natural language requirements, with configurable match precision for reliable transformations.
 
 ## 🧩 Key Features
 
@@ -53,6 +55,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

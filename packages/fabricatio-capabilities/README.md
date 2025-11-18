@@ -1,5 +1,12 @@
 # `fabricatio-capabilities`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-capabilities)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-capabilities)](https://pypi.org/project/fabricatio-capabilities/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-capabilities/week)](https://pepy.tech/projects/fabricatio-capabilities)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-capabilities)](https://pepy.tech/projects/fabricatio-capabilities)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
+
 A foundational Python library providing core capabilities for building LLM-driven applications using an event-based
 agent structure.
 
@@ -23,7 +30,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides core capabilities for content extraction, proposal generation, task execution, and quality assessment in LLM-driven applications. The package enables structured information gathering, intelligent decision-making, and comprehensive workflow management with built-in evaluation systems.
+Provides core capabilities for content extraction, proposal generation, task execution, and quality assessment in
+LLM-driven applications. The package enables structured information gathering, intelligent decision-making, and
+comprehensive workflow management with built-in evaluation systems.
 
 ## 🧩 Key Features
 
@@ -56,6 +65,5 @@ Core dependencies:
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

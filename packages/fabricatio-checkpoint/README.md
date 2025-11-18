@@ -32,7 +32,10 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides version control and checkpointing capabilities for fabricatio workflows, allowing users to save, rollback, and manage states of their worktrees using a git-like shadow repository system. It enables seamless state management during complex AI-driven processes, supporting both individual file rollbacks and full worktree resets to maintain workflow consistency and enable experimentation.
+Provides version control and checkpointing capabilities for fabricatio workflows, allowing users to save, rollback, and
+manage states of their worktrees using a git-like shadow repository system. It enables seamless state management during
+complex AI-driven processes, supporting both individual file rollbacks and full worktree resets to maintain workflow
+consistency and enable experimentation.
 
 ## 🧩 Key Features
 
@@ -53,6 +56,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

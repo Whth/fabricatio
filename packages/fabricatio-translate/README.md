@@ -1,7 +1,5 @@
 # `fabricatio-translate`
 
-# `fabricatio-translate`
-
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-translate)
 [![PyPI Version](https://img.shields.io/pypi/v/fabricatio-translate)](https://pypi.org/project/fabricatio-translate/)
@@ -33,7 +31,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides advanced text translation capabilities for fabricatio agents, supporting both single text and batch translation operations. It enables seamless multilingual communication with configurable translation specifications and supports chunked processing for large texts.
+Provides advanced text translation capabilities for fabricatio agents, supporting both single text and batch translation
+operations. It enables seamless multilingual communication with configurable translation specifications and supports
+chunked processing for large texts.
 
 ## 🧩 Key Features
 
@@ -54,6 +54,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

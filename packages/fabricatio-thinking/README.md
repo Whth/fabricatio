@@ -32,7 +32,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides structured thinking and reasoning capabilities for fabricatio agents, implementing a version-controlled thought process that enables iterative analysis, revision, and branching of ideas. It supports complex problem-solving through systematic thought progression with built-in revision and branching mechanisms.
+Provides structured thinking and reasoning capabilities for fabricatio agents, implementing a version-controlled thought
+process that enables iterative analysis, revision, and branching of ideas. It supports complex problem-solving through
+systematic thought progression with built-in revision and branching mechanisms.
 
 ## 🧩 Key Features
 
@@ -53,6 +55,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

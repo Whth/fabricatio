@@ -1,5 +1,13 @@
 # `fabricatio-typst`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-typst)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-typst)](https://pypi.org/project/fabricatio-typst/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-typst/week)](https://pepy.tech/projects/fabricatio-typst)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-typst)](https://pepy.tech/projects/fabricatio-typst)
+[![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
+[![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
+
 A Python library for generating, validating and converting academic content using Typst format.
 
 ## 📦 Installation
@@ -21,15 +29,32 @@ pip install fabricatio[full]
 Provides tools for:
 
 - Generating academic article proposals and outlines
-This feature uses natural language processing and machine learning techniques to generate well - structured academic article proposals and outlines. It analyzes the research topic and relevant literature to come up with a comprehensive proposal that includes a proposed title, research problem, technical approaches, and an outline of the article's structure. For example, given a research topic on "The impact of climate change on coastal ecosystems", it can generate a proposal with a clear statement of the problem, possible methods for data collection and analysis, and an outline of the main sections of the article.
+  This feature uses natural language processing and machine learning techniques to generate well - structured academic
+  article proposals and outlines. It analyzes the research topic and relevant literature to come up with a comprehensive
+  proposal that includes a proposed title, research problem, technical approaches, and an outline of the article's
+  structure. For example, given a research topic on "The impact of climate change on coastal ecosystems", it can
+  generate a proposal with a clear statement of the problem, possible methods for data collection and analysis, and an
+  outline of the main sections of the article.
 - Writing full articles using RAG (Retrieval-Augmented Generation)
-The RAG - based article writing feature combines retrieval and generation capabilities. It retrieves relevant information from a knowledge base, such as academic papers, reports, and datasets, and uses this information to generate high - quality article content. For example, it can search for existing research on a particular topic, extract relevant facts and figures, and incorporate them into the article while maintaining a coherent narrative.
+  The RAG - based article writing feature combines retrieval and generation capabilities. It retrieves relevant
+  information from a knowledge base, such as academic papers, reports, and datasets, and uses this information to
+  generate high - quality article content. For example, it can search for existing research on a particular topic,
+  extract relevant facts and figures, and incorporate them into the article while maintaining a coherent narrative.
 - Converting LaTeX math to Typst format
-This feature is designed to help users convert LaTeX math expressions to the Typst format. It parses the LaTeX math code and translates it into the equivalent Typst syntax. This is useful for users who are migrating from LaTeX to Typst or want to use Typst for academic writing with math content. For example, it can convert a LaTeX equation like "\(E = mc^2\)" to the Typst format.
+  This feature is designed to help users convert LaTeX math expressions to the Typst format. It parses the LaTeX math
+  code and translates it into the equivalent Typst syntax. This is useful for users who are migrating from LaTeX to
+  Typst or want to use Typst for academic writing with math content. For example, it can convert a LaTeX equation like "
+  \(E = mc^2\)" to the Typst format.
 - Managing bibliographies and citations
-The bibliography and citation management feature allows users to easily manage references in their academic articles. It can import bibliographic data from various sources, such as BibTeX files, and generate formatted citations and bibliographies in the desired style. For example, it can generate APA, MLA, or Chicago style citations and bibliographies based on the user's requirements.
+  The bibliography and citation management feature allows users to easily manage references in their academic articles.
+  It can import bibliographic data from various sources, such as BibTeX files, and generate formatted citations and
+  bibliographies in the desired style. For example, it can generate APA, MLA, or Chicago style citations and
+  bibliographies based on the user's requirements.
 - Validating and improving article structure
-This feature checks the structure of the academic article for coherence and logical flow. It can identify issues such as missing sections, inconsistent headings, or weak transitions between paragraphs. It then provides suggestions for improving the structure, such as adding or reordering sections, and strengthening the connections between different parts of the article.
+  This feature checks the structure of the academic article for coherence and logical flow. It can identify issues such
+  as missing sections, inconsistent headings, or weak transitions between paragraphs. It then provides suggestions for
+  improving the structure, such as adding or reordering sections, and strengthening the connections between different
+  parts of the article.
 
 Built on top of Fabricatio's agent framework with support for asynchronous execution.
 
@@ -91,6 +116,5 @@ Includes Rust extensions for:
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

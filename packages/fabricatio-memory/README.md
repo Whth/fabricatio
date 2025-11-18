@@ -1,5 +1,12 @@
 # `fabricatio-memory`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-memory)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-memory)](https://pypi.org/project/fabricatio-memory/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-memory/week)](https://pepy.tech/projects/fabricatio-memory)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-memory)](https://pepy.tech/projects/fabricatio-memory)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
+
 An extension of fabricatio aiming to extend the context LLM could handle.
 
 ---
@@ -24,15 +31,22 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides comprehensive memory management capabilities for fabricatio agents, enabling extended context handling and intelligent information retrieval. The package combines long-term and short-term memory systems with agent integration for enhanced decision-making and context-aware processing.
+Provides comprehensive memory management capabilities for fabricatio agents, enabling extended context handling and
+intelligent information retrieval. The package combines long-term and short-term memory systems with agent integration
+for enhanced decision-making and context-aware processing.
 
 ## 🧩 Key Features
 
-- **Long-Term Memory Storage**: Persistent storage of important information including user profiles, historical conversations, and domain knowledge for personalized responses
-- **Short-Term Memory Buffer**: Maintains recent context and conversation history to ensure coherent and contextually appropriate responses
-- **Intelligent Memory Retrieval**: Advanced search mechanisms to find relevant information based on keywords, context, and semantic similarity
-- **Memory Optimization**: Efficient memory allocation and cleanup to maintain performance while maximizing context retention
-- **Agent Integration**: Seamless integration with fabricatio agents for memory-augmented decision making and context awareness
+- **Long-Term Memory Storage**: Persistent storage of important information including user profiles, historical
+  conversations, and domain knowledge for personalized responses
+- **Short-Term Memory Buffer**: Maintains recent context and conversation history to ensure coherent and contextually
+  appropriate responses
+- **Intelligent Memory Retrieval**: Advanced search mechanisms to find relevant information based on keywords, context,
+  and semantic similarity
+- **Memory Optimization**: Efficient memory allocation and cleanup to maintain performance while maximizing context
+  retention
+- **Agent Integration**: Seamless integration with fabricatio agents for memory-augmented decision making and context
+  awareness
 - **Scalable Architecture**: Supports various storage backends and can handle large volumes of memory data
 
 ## 🔗 Dependencies
@@ -45,6 +59,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

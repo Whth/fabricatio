@@ -32,7 +32,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides localization capabilities for fabricatio applications, enabling the translation and adaptation of text content for different languages and regions using PO file standards. It facilitates seamless internationalization workflows in AI-driven content creation and processing.
+Provides localization capabilities for fabricatio applications, enabling the translation and adaptation of text content
+for different languages and regions using PO file standards. It facilitates seamless internationalization workflows in
+AI-driven content creation and processing.
 
 ## 🧩 Key Features
 
@@ -54,6 +56,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

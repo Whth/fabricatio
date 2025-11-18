@@ -31,7 +31,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides comprehensive testing utilities and mock implementations for fabricatio applications, enabling reliable unit testing and integration testing of AI-powered workflows. It offers mock roles, test fixtures, and utilities to simulate LLM interactions and agent behaviors without external dependencies.
+Provides comprehensive testing utilities and mock implementations for fabricatio applications, enabling reliable unit
+testing and integration testing of AI-powered workflows. It offers mock roles, test fixtures, and utilities to simulate
+LLM interactions and agent behaviors without external dependencies.
 
 ## 🧩 Key Features
 
@@ -52,6 +54,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

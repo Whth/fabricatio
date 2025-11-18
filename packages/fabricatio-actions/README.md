@@ -1,5 +1,12 @@
 # `fabricatio-actions`
 
+[MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-actions)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-actions)](https://pypi.org/project/fabricatio-actions/)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-actions/week)](https://pepy.tech/projects/fabricatio-actions)
+[![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-actions)](https://pepy.tech/projects/fabricatio-actions)
+[![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
+
 A Python library providing foundational actions for file system operations and output management in LLM applications.
 
 ---
@@ -24,7 +31,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides foundational actions for file system operations and output management in LLM applications. The package offers robust functionality for reading and writing files, handling file paths, and formatting output for clear presentation in AI-driven workflows.
+Provides foundational actions for file system operations and output management in LLM applications. The package offers
+robust functionality for reading and writing files, handling file paths, and formatting output for clear presentation in
+AI-driven workflows.
 
 ## 🧩 Key Features
 
@@ -76,6 +85,5 @@ Core dependencies:
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

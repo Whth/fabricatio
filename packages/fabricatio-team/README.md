@@ -31,7 +31,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides team coordination and cooperation capabilities for fabricatio agents, enabling multi-agent collaboration and orchestrated workflows. It facilitates the management of specialized agent teams that can work together on complex tasks through coordinated role assignments and shared responsibilities.
+Provides team coordination and cooperation capabilities for fabricatio agents, enabling multi-agent collaboration and
+orchestrated workflows. It facilitates the management of specialized agent teams that can work together on complex tasks
+through coordinated role assignments and shared responsibilities.
 
 ## 🧩 Key Features
 
@@ -52,6 +54,5 @@ No additional dependencies required.
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

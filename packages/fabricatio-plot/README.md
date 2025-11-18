@@ -31,7 +31,9 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides data visualization capabilities for fabricatio applications, enabling the creation of publication-quality plots and charts from dataframes using matplotlib. It supports automated chart generation with intelligent styling and formatting for effective data presentation in AI-driven workflows.
+Provides data visualization capabilities for fabricatio applications, enabling the creation of publication-quality plots
+and charts from dataframes using matplotlib. It supports automated chart generation with intelligent styling and
+formatting for effective data presentation in AI-driven workflows.
 
 ## 🧩 Key Features
 
@@ -54,6 +56,5 @@ External dependencies:
 
 ## 📄 License
 
-MIT – see [LICENSE](LICENSE)
+MIT – see [LICENSE](../../LICENSE)
 
-GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)
