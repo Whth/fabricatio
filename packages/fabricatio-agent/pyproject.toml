@@ -30,6 +30,7 @@ dependencies = [
     "fabricatio-tool",
     "fabricatio-team",
     "fabricatio-capable",
+    "fabricatio-checkpoint"
 ]
 
 [dependency-groups]
