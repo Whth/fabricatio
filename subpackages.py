@@ -194,7 +194,11 @@ def make_dist(project_root: Union[str, Path]) -> bool:
 
 
 def _pack(project_root: str | Path) -> bool:
-    return make_all_bins(project_root) and make_dist(project_root)
+    return make_all_bins(project_root) and make_maturin_dev(project_root) and make_dist(project_root)
+
+
+def _dev(project_root: str | Path) -> bool:
+    return make_all_bins(project_root) and make_maturin_dev(project_root)
 
 
 def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
@@ -205,18 +209,22 @@ def make_all(bins: bool, dev_mode: bool, bdist: bool, publish: bool) -> bool:
     """
     futures = []
     for path in [d for d in (*list(PACKAGES_DIR.iterdir()), Path.cwd()) if d.is_dir()]:
-        if is_using_maturin(path) and dev_mode:
-            future = POOL.submit(make_maturin_dev, path)
-            future.add_done_callback(lambda f, p=path: logging.info(f"Finished maturin dev build for {p.name}"))
-            futures.append(future)
-        if is_using_maturin(path) and bins and not bdist:
-            future = POOL.submit(make_all_bins, path)
-            future.add_done_callback(lambda f, p=path: logging.info(f"Finished binary build for {p.name}"))
-            futures.append(future)
+
         if bdist or publish:
             future = POOL.submit(_pack if is_using_maturin(path) else make_dist, path)
             future.add_done_callback(lambda f, p=path: logging.info(f"Finished dist build for {p.name}"))
             futures.append(future)
+        elif is_using_maturin(path):
+            if dev_mode:
+                future = POOL.submit(_dev, path)
+                future.add_done_callback(lambda f, p=path: logging.info(f"Finished maturin dev build for {p.name}"))
+                futures.append(future)
+            elif bins:
+                future = POOL.submit(make_all_bins, path)
+                future.add_done_callback(lambda f, p=path: logging.info(f"Finished binary build for {p.name}"))
+                futures.append(future)
+        else:
+            logging.info(f"{path.name} is not using maturin, skipping...")
 
     results = [future.result() for future in futures]
     if publish:
