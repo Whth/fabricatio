@@ -1,6 +1,6 @@
 # `fabricatio-anki`
 
-An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package.
+An extension of fabricatio, which brings up the capability of creating fully explained anki deck package.
 
 ---
 
@@ -24,16 +24,7 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides essential tools for:
-
-### Anki Deck Creation
-This package enables the creation of fully explained Anki deck packages. It allows users to define card templates, add questions and answers, and organize them into decks. For example, you can create decks for different subjects or topics, and each card can have detailed explanations and additional information.
-
-### Content Management
-It offers features for managing the content of Anki decks. This includes adding media files such as images, audio, and video to cards, as well as categorizing and tagging cards for easy retrieval.
-
-### Integration with Fabricatio
-The package is designed to work seamlessly with the Fabricatio framework. It can leverage the capabilities of Fabricatio's agent framework to automate the deck creation process and integrate with other modules.
+Provides comprehensive capabilities for creating, managing, and organizing Anki flashcard decks. The package enables AI-powered deck generation with support for multimedia content, custom templates, and seamless integration with Fabricatio workflows for automated educational content creation.
 
 ## 🧩 Key Features
 
@@ -45,11 +36,13 @@ The package is designed to work seamlessly with the Fabricatio framework. It can
 - **Quality Assurance**: Built-in validation and improvement capabilities for card content accuracy and effectiveness
 
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

@@ -7,8 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-yue)](https://pepy.tech/projects/fabricatio-yue)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-An extension of fabricatio, provide capability to compose lyrics that can be used in music generation with YuE..
+An extension of fabricatio, which provides capability to compose lyrics that can be used in music generation with YuE.
 
 ---
 
@@ -29,9 +28,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides AI-powered lyrics composition capabilities specifically designed for music generation with YuE, enabling the creation of structured song lyrics with genre-specific characteristics and musical compatibility. It integrates genre selection with intelligent lyric generation for seamless music production workflows.
+
 ## 🧩 Key Features
 
 - **Intelligent Genre Selection**: Automatic genre detection and selection based on requirements for contextually appropriate lyrics
@@ -41,13 +42,14 @@ Provides AI-powered lyrics composition capabilities specifically designed for mu
 - **Template-Driven Composition**: Configurable templates for consistent and high-quality lyric generation
 - **Requirement-Based Creation**: Flexible system that adapts to various musical themes, moods, and styles
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

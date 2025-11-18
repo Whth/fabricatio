@@ -7,7 +7,6 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-plot)](https://pepy.tech/projects/fabricatio-plot)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
 An extension of fabricatio, which brings up the capability to plot dataframe with matplotlib.
 
 ---
@@ -29,9 +28,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides data visualization capabilities for fabricatio applications, enabling the creation of publication-quality plots and charts from dataframes using matplotlib. It supports automated chart generation with intelligent styling and formatting for effective data presentation in AI-driven workflows.
+
 ## 🧩 Key Features
 
 - **Automated Plotting**: Generate plots from dataframes with minimal configuration
@@ -41,14 +42,16 @@ Provides data visualization capabilities for fabricatio applications, enabling t
 - **Multiple Chart Types**: Support for various plot types (line, bar, scatter, etc.)
 - **Data Formatting**: Smart data preprocessing and formatting for optimal visualization
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 External dependencies:
+
 - `matplotlib` - Plotting and visualization library
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

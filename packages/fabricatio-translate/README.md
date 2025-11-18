@@ -1,5 +1,7 @@
 # `fabricatio-translate`
 
+# `fabricatio-translate`
+
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-translate)
 [![PyPI Version](https://img.shields.io/pypi/v/fabricatio-translate)](https://pypi.org/project/fabricatio-translate/)
@@ -7,8 +9,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-translate)](https://pepy.tech/projects/fabricatio-translate)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-An extension of fabricatio, which provide capabilities to translate text..
+An extension of fabricatio, which provides capabilities to translate text.
 
 ---
 
@@ -29,9 +30,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides advanced text translation capabilities for fabricatio agents, supporting both single text and batch translation operations. It enables seamless multilingual communication with configurable translation specifications and supports chunked processing for large texts.
+
 ## 🧩 Key Features
 
 - **Multi-language Support**: Translate text between various languages with accurate context preservation
@@ -41,13 +44,14 @@ Provides advanced text translation capabilities for fabricatio agents, supportin
 - **Fallback Handling**: Graceful handling of translation failures with source text preservation
 - **Async Processing**: High-performance asynchronous translation operations
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

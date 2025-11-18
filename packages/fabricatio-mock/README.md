@@ -7,8 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-mock)](https://pepy.tech/projects/fabricatio-mock)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-
-An extension of fabricatio, which provides mocks and other test utils..
+An extension of fabricatio, which provides mocks and other test utilities.
 
 ---
 
@@ -29,9 +28,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides comprehensive testing utilities and mock implementations for fabricatio applications, enabling reliable unit testing and integration testing of AI-powered workflows. It offers mock roles, test fixtures, and utilities to simulate LLM interactions and agent behaviors without external dependencies.
+
 ## 🧩 Key Features
 
 - **Mock LLM Roles**: Pre-configured test roles with mock LLM capabilities for isolated testing
@@ -41,13 +42,14 @@ Provides comprehensive testing utilities and mock implementations for fabricatio
 - **Integration Testing**: Support for testing complex workflows and agent interactions
 - **Test Data Generation**: Tools for generating realistic test data and scenarios
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

@@ -8,8 +8,6 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
 An extension of fabricatio.
 
 ---
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides comprehensive AI-powered novel generation capabilities, enabling the creation of complete novels from outline to publication-ready chapters. It orchestrates character development, plot structuring, and content generation through an integrated pipeline that produces coherent, engaging narratives with rich character arcs and consistent storytelling.
+
 ## 🧩 Key Features
 
 - **Complete Novel Pipeline**: End-to-end novel generation from initial outline to final chapters
@@ -44,14 +44,17 @@ Provides comprehensive AI-powered novel generation capabilities, enabling the cr
 - **Scalable Generation**: Support for novels of varying lengths and complexity
 - **Quality Assurance**: Built-in validation and improvement capabilities for generated content
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 - `fabricatio-character` - Character creation and management
 
 No additional dependencies required.
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

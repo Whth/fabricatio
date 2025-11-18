@@ -8,8 +8,6 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
 An extension of fabricatio.
 
 ---
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides intelligent diff-based editing capabilities for fabricatio workflows, enabling precise text modifications through AI-generated search and replace operations. It allows agents to perform targeted edits on source content based on natural language requirements, with configurable match precision for reliable transformations.
+
 ## 🧩 Key Features
 
 - **Intelligent Diff Generation**: Generate precise search and replace operations from natural language requirements
@@ -43,13 +43,16 @@ Provides intelligent diff-based editing capabilities for fabricatio workflows, e
 - **Source Content Analysis**: Analyzes source text to create contextually appropriate edits
 - **Rust-Accelerated Performance**: High-performance diff application using Rust extensions
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

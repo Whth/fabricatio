@@ -1,6 +1,6 @@
 # `fabricatio-question`
 
-An extension of fabricatio, which provide the capability to question user to make better planning and etc..
+An extension of fabricatio, which provides the capability to question users to make better planning and decision-making.
 
 ---
 
@@ -24,16 +24,7 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides essential tools for:
-
-### User Questioning
-This package enables the system to ask relevant questions to the user. It analyzes the current state of the task or conversation and determines what information is needed to make better planning decisions. For example, in a project planning scenario, it might ask about the project's budget, timeline, or specific requirements.
-
-### Information Gathering
-By asking questions, it can gather crucial information from the user. This information is then used to improve the accuracy and effectiveness of the planning process. It can handle different types of responses and integrate the collected data into the overall system.
-
-### Integration with Fabricatio
-It is designed to work seamlessly with the Fabricatio framework. It can communicate with other modules in the Fabricatio ecosystem to ensure that the questions asked are relevant to the overall context and that the gathered information is used appropriately.
+Provides intelligent questioning capabilities for fabricatio agents, enabling dynamic information gathering and collaborative planning through strategic user interactions. The package combines context-aware question generation with response analysis to enhance decision-making and workflow optimization.
 
 ## 🧩 Key Features
 
@@ -45,11 +36,13 @@ It is designed to work seamlessly with the Fabricatio framework. It can communic
 - **Integration Support**: Seamless communication with other fabricatio modules for enhanced workflow orchestration
 
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

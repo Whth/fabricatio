@@ -8,9 +8,7 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
-An extension of fabricatio, which brings up the capability to use tool with native python..
+An extension of fabricatio, which brings up the capability to use tools with native Python.
 
 ---
 
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides native tool execution capabilities for fabricatio agents, enabling seamless integration and usage of Python-based tools within LLM workflows. It supports dynamic tool discovery, code generation for tool usage, and execution of complex tool chains with result collection and management.
+
 ## 🧩 Key Features
 
 - **Dynamic Tool Discovery**: Automatic gathering and selection of relevant tools based on task requirements
@@ -43,13 +43,14 @@ Provides native tool execution capabilities for fabricatio agents, enabling seam
 - **Fine-Grained Control**: Configurable tool selection with box and tool-level filtering options
 - **Error Handling**: Robust error handling and validation for tool execution workflows
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

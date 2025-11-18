@@ -1,6 +1,6 @@
 # `fabricatio-tagging`
 
-An extension of fabricatio, provide capalability to tag on data.
+An extension of fabricatio, which provides capability to tag data.
 
 ---
 
@@ -24,16 +24,7 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides essential tools for:
-
-### Data Tagging
-This package enables the tagging of data. It can analyze the input data, whether it's text, numerical data, or structured objects, and assign relevant tags based on predefined rules or machine - learning algorithms. For example, in a text document, it can tag entities such as names, locations, and dates.
-
-### Tag Management
-It offers features for managing the tags. This includes creating, editing, and deleting tags, as well as organizing them into hierarchies or categories. For instance, users can group related tags together for easier management and retrieval.
-
-### Integration with Fabricatio
-The package is designed to work seamlessly with the Fabricatio framework. It can integrate with other modules in the Fabricatio ecosystem, such as the agent framework, to use the tagged data in more complex workflows.
+Provides comprehensive data tagging and management capabilities for fabricatio applications. The package enables intelligent data classification through semantic analysis, customizable tagging rules, and efficient retrieval systems, supporting seamless integration with AI-driven workflows.
 
 ## 🧩 Key Features
 
@@ -45,11 +36,13 @@ The package is designed to work seamlessly with the Fabricatio framework. It can
 - **Agent Integration**: Seamless integration with fabricatio agents for automated tagging workflows
 
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

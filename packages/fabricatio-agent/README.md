@@ -8,8 +8,6 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
 An extension of fabricatio.
 
 ---
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides a comprehensive AI agent framework that integrates multiple capabilities for autonomous task fulfillment. The agent combines thinking, memory, team cooperation, and various specialized capabilities to process and execute complex requests, making it a central orchestrator in the fabricatio ecosystem for intelligent workflow automation.
+
 ## 🧩 Key Features
 
 - **Multi-Capability Integration**: Combines thinking, memory, judgment, task dispatching, and team cooperation capabilities
@@ -43,8 +43,8 @@ Provides a comprehensive AI agent framework that integrates multiple capabilitie
 - **Configurable Behavior**: Customizable settings for thinking mode, memory usage, and capability checking
 - **Template-Driven Execution**: Uses configurable prompt templates for consistent and adaptable behavior
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
@@ -60,6 +60,9 @@ Core dependencies:
 - `fabricatio-tool` - Tool handling and execution
 - `fabricatio-team` - Team cooperation mechanisms
 - `fabricatio-capable` - Capability assessment
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

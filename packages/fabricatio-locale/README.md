@@ -8,9 +8,7 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-
-
-An extension of fabricatio, which brings up the capability to generate locolization based on po file..
+An extension of fabricatio, which brings up the capability to generate localization based on PO file.
 
 ---
 
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides localization capabilities for fabricatio applications, enabling the translation and adaptation of text content for different languages and regions using PO file standards. It facilitates seamless internationalization workflows in AI-driven content creation and processing.
+
 ## 🧩 Key Features
 
 - **PO File Processing**: Parse and process standard gettext PO files for localization
@@ -43,14 +43,15 @@ Provides localization capabilities for fabricatio applications, enabling the tra
 - **Format Preservation**: Maintains message structure and metadata during translation
 - **Internationalization Support**: Enables global content adaptation for diverse audiences
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 - `fabricatio-translate` - Translation capabilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

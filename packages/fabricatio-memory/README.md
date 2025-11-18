@@ -1,6 +1,6 @@
 # `fabricatio-memory`
 
-An Extension of fabricatio aiming to extend the context llm could handle..
+An extension of fabricatio aiming to extend the context LLM could handle.
 
 ---
 
@@ -24,16 +24,7 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides essential tools for:
-
-### Context Expansion
-This package enables the extension of the context that an LLM can handle. It does this by storing and retrieving relevant information from a memory system. For example, it can keep track of previous conversations, user preferences, and domain - specific knowledge, allowing the LLM to have a more comprehensive understanding of the current input.
-
-### Memory Management
-It offers features for managing the memory used by the LLM. This includes tasks such as memory allocation, deallocation, and optimization. It ensures that the memory is used efficiently and that the LLM can access the necessary information quickly.
-
-### Integration with Fabricatio
-The package is designed to work seamlessly with the Fabricatio framework. It can leverage the capabilities of Fabricatio's agent framework to manage the memory in a more intelligent way and integrate with other modules in the ecosystem.
+Provides comprehensive memory management capabilities for fabricatio agents, enabling extended context handling and intelligent information retrieval. The package combines long-term and short-term memory systems with agent integration for enhanced decision-making and context-aware processing.
 
 ## 🧩 Key Features
 
@@ -45,11 +36,13 @@ The package is designed to work seamlessly with the Fabricatio framework. It can
 - **Scalable Architecture**: Supports various storage backends and can handle large volumes of memory data
 
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

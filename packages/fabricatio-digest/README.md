@@ -1,6 +1,6 @@
 # `fabricatio-digest`
 
-A extension for fabricatio, providing capabilities to handle raw requirment, digesting it into a task list.
+An extension for fabricatio, providing capabilities to handle raw requirement, digesting it into a task list.
 
 ---
 
@@ -24,16 +24,7 @@ uv pip install fabricatio[full]
 
 ## 🔍 Overview
 
-Provides essential tools for:
-
-### Requirement Analysis
-This package can analyze raw requirements provided in various formats, such as natural language descriptions or structured documents. It uses natural language processing techniques to understand the requirements and extract key information.
-
-### Task List Generation
-Based on the analyzed requirements, it can generate a detailed task list. Each task in the list is well - defined, with clear objectives, dependencies, and estimated time requirements.
-
-### Integration with Fabricatio
-It is designed to work seamlessly with the Fabricatio framework. It can communicate with other modules in the Fabricatio ecosystem to ensure that the generated task list is compatible with the overall system.
+Provides intelligent requirement analysis and task list generation capabilities for fabricatio workflows. The package transforms raw requirements into well-structured, actionable task lists with dependency management and validation, enabling seamless integration with Fabricatio's agent framework.
 
 ## 🧩 Key Features
 
@@ -45,11 +36,13 @@ It is designed to work seamlessly with the Fabricatio framework. It can communic
 - **Template-Driven Generation**: Uses configurable templates for consistent task breakdown and planning
 
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
 MIT – see [LICENSE](LICENSE)

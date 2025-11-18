@@ -7,7 +7,6 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-team)](https://pepy.tech/projects/fabricatio-team)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-
 An extension of fabricatio.
 
 ---
@@ -29,9 +28,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides team coordination and cooperation capabilities for fabricatio agents, enabling multi-agent collaboration and orchestrated workflows. It facilitates the management of specialized agent teams that can work together on complex tasks through coordinated role assignments and shared responsibilities.
+
 ## 🧩 Key Features
 
 - **Team Member Management**: Organized management of multiple agent roles with clear responsibilities and capabilities
@@ -41,13 +42,16 @@ Provides team coordination and cooperation capabilities for fabricatio agents, e
 - **Cooperative Workflows**: Support for collaborative task execution across multiple specialized agents
 - **Role-based Coordination**: Structured approach to multi-agent interactions and task distribution
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

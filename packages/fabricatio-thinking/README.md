@@ -8,8 +8,6 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
 An extension of fabricatio.
 
 ---
@@ -31,9 +29,11 @@ pip install fabricatio[full]
 # or
 uv pip install fabricatio[full]
 ```
+
 ## 🔍 Overview
 
 Provides structured thinking and reasoning capabilities for fabricatio agents, implementing a version-controlled thought process that enables iterative analysis, revision, and branching of ideas. It supports complex problem-solving through systematic thought progression with built-in revision and branching mechanisms.
+
 ## 🧩 Key Features
 
 - **Sequential Thinking Process**: Step-by-step reasoning with version control for thought progression
@@ -43,13 +43,16 @@ Provides structured thinking and reasoning capabilities for fabricatio agents, i
 - **Configurable Depth**: Adjustable maximum steps for thinking processes with automatic termination
 - **Structured Thought Modeling**: Pydantic-based models for consistent thought representation and validation
 
-
 ## 🔗 Dependencies
+
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 
 No additional dependencies required.
+
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)

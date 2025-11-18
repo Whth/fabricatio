@@ -14,30 +14,25 @@ An extension of fabricatio.
 
 ## 📦 Installation
 
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
 
 ```bash
 pip install fabricatio[checkpoint]
-
-# or with uv
-# uv pip install fabricatio[checkpoint]
+# or
+uv pip install fabricatio[checkpoint]
 ```
 
-Or install `fabricatio-checkpoint` along with all other components of `fabricatio`:
+For a full installation that includes this package and all other components of `fabricatio`:
 
 ```bash
 pip install fabricatio[full]
-
-# or with uv
-# uv pip install fabricatio[full]
+# or
+uv pip install fabricatio[full]
 ```
 
 ## 🔍 Overview
 
-Provides version control and checkpointing capabilities for fabricatio workflows, allowing users to save, rollback, and
-manage states of their worktrees using a git-like shadow repository system. It enables seamless state management during
-complex AI-driven processes, supporting both individual file rollbacks and full worktree resets to maintain workflow
-consistency and enable experimentation.
+Provides version control and checkpointing capabilities for fabricatio workflows, allowing users to save, rollback, and manage states of their worktrees using a git-like shadow repository system. It enables seamless state management during complex AI-driven processes, supporting both individual file rollbacks and full worktree resets to maintain workflow consistency and enable experimentation.
 
 ## 🧩 Key Features
 
@@ -58,4 +53,6 @@ No additional dependencies required.
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT – see [LICENSE](LICENSE)
+
+GitHub: [github.com/Whth/fabricatio](https://github.com/Whth/fabricatio)
