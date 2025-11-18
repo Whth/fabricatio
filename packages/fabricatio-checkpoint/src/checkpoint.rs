@@ -276,6 +276,7 @@ impl ShadowRepoManager {
     /// Returns a `PyErr` if:
     /// - The shadow repository directory cannot be removed from the file system
     pub fn drop(&self, worktree_dir: PathBuf) -> PyResult<()> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
         let repo_path = self.shadow_root.join(worktree_dir.as_key());
         if !repo_path.exists() {
             return Ok(());
