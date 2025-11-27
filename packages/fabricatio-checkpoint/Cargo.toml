@@ -12,4 +12,5 @@ git2 = { version = "0.20.2", features = ["vendored-libgit2"], default-features =
 moka = { version = "0.12.11", features = ["sync"] }
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
-
+error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
+utils = { path = "../../crates/utils" }

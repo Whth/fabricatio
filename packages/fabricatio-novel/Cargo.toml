@@ -7,8 +7,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 regex = "1.12.2"
-epub-builder = "0.8.0"
-thiserror = "2.0.17"
+epub-builder = { version = "0.8.2" }
 mime_guess = "2.0.5"
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 
+error-mapping = { path = "../../crates/error-mapping", features = ["epub-builder"] }
+utils = { path = "../../crates/utils" }

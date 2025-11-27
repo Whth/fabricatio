@@ -5,15 +5,17 @@
 //! gets its own bare Git repository for tracking changes independently.
 
 use blake3::hash;
+use error_mapping::*;
 use fabricatio_logger::*;
 use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
-use pyo3::exceptions::{PyOSError, PyRuntimeError};
+use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{PathBuf, absolute};
-use std::sync::{Arc, LockResult, Mutex};
+use std::path::{absolute, PathBuf};
+use std::sync::{Arc, Mutex};
+use utils::mwrap;
 /// Trait for converting types into cache-friendly string keys.
 trait AsKey {
     /// Converts the implementing type into a unique string key.
@@ -41,20 +43,6 @@ impl AsKey for PathBuf {
 /// from multiple threads while maintaining interior mutability.
 type RepoEntry = Arc<Mutex<Repository>>;
 
-/// Wraps a Git repository in a thread-safe container.
-///
-/// # Arguments
-///
-/// * `repo` - The Git repository to wrap
-///
-/// # Returns
-///
-/// An `Arc<Mutex<Repository>>` that can be safely shared across threads.
-#[inline]
-fn wrap(repo: Repository) -> RepoEntry {
-    Arc::new(Mutex::new(repo))
-}
-
 fn sanitize_path(root: &PathBuf, path: PathBuf) -> PyResult<PathBuf> {
     if path.is_relative() {
         Ok(path)
@@ -79,36 +67,6 @@ fn sanitize_path(root: &PathBuf, path: PathBuf) -> PyResult<PathBuf> {
 struct ShadowRepoManager {
     shadow_root: PathBuf,
     cache: Cache<PathBuf, RepoEntry>,
-}
-
-/// Trait for converting various error types to PyO3 results.
-///
-/// Provides a uniform interface for converting Git and synchronization errors
-/// into Python exceptions that can be propagated across the FFI boundary.
-trait AsPyErr<T> {
-    /// Converts the implementing type into a `PyResult`.
-    fn into_pyresult(self) -> PyResult<T>;
-}
-
-impl<T> AsPyErr<T> for Result<T, git2::Error> {
-    /// Converts a `git2::Error` into a Python `RuntimeError`.
-    fn into_pyresult(self) -> PyResult<T> {
-        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
-    }
-}
-
-impl<T> AsPyErr<T> for LockResult<T> {
-    /// Converts a poisoned lock error into a Python `RuntimeError`.
-    fn into_pyresult(self) -> PyResult<T> {
-        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
-    }
-}
-
-impl<T> AsPyErr<T> for Result<T, std::io::Error> {
-    /// Converts a `std::io::Error` into a Python `OSError`.
-    fn into_pyresult(self) -> PyResult<T> {
-        self.map_err(|e| PyOSError::new_err(e.to_string()))
-    }
 }
 
 impl ShadowRepoManager {
@@ -137,7 +95,7 @@ impl ShadowRepoManager {
             let repo_path = self.shadow_root.join(worktree_dir.as_key());
 
             if repo_path.is_dir() && read_dir(&repo_path).is_ok_and(|mut i| i.next().is_some()) {
-                let repo = wrap(Repository::open(repo_path).into_pyresult()?);
+                let repo = mwrap(Repository::open(repo_path).into_pyresult()?);
                 debug!("Opened repo for {}", worktree_dir.display());
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
@@ -179,7 +137,7 @@ impl ShadowRepoManager {
                 }
 
                 debug!("Add initial commit to {}", worktree_dir.display());
-                let repo = wrap(repo);
+                let repo = mwrap(repo);
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
             }

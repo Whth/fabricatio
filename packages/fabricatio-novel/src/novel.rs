@@ -1,12 +1,12 @@
 use epub_builder::EpubVersion::V30;
-use epub_builder::{EpubBuilder, EpubContent, Error as EpubError, ZipLibrary};
+use epub_builder::{EpubBuilder, EpubContent, ZipLibrary};
+use error_mapping::AsPyErr;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::collections::hash_map::DefaultHasher;
 use std::fs::{read, write};
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use thiserror::Error;
 
 #[inline]
 fn hash_to_filename(s: &str) -> String {
@@ -14,21 +14,6 @@ fn hash_to_filename(s: &str) -> String {
     s.hash(&mut hasher);
     let hash = hasher.finish();
     format!("{:x}", hash)
-}
-#[derive(Error, Debug)]
-enum LocalError {
-    #[error(transparent)]
-    Epub(#[from] EpubError),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-    #[error("Novel not initialized")]
-    NotInitialized,
-}
-
-impl From<LocalError> for PyErr {
-    fn from(err: LocalError) -> PyErr {
-        PyRuntimeError::new_err(err.to_string())
-    }
 }
 
 /// A Python-exposed builder for creating EPUB novels.
@@ -40,11 +25,13 @@ struct NovelBuilder {
 }
 
 impl NovelBuilder {
-    fn ensure_initialized_mut(&mut self) -> Result<&mut EpubBuilder<ZipLibrary>, LocalError> {
-        self.inner.as_mut().ok_or(LocalError::NotInitialized)
+    fn ensure_initialized_mut(&mut self) -> PyResult<&mut EpubBuilder<ZipLibrary>> {
+        self.inner
+            .as_mut()
+            .ok_or(PyRuntimeError::new_err("NovelBuilder not initialized"))
     }
 
-    fn add_css_inner(&mut self, css: String) -> Result<(), LocalError> {
+    fn add_css_inner(&mut self, css: String) -> PyResult<()> {
         self.css.push('\n');
         self.css.push_str(&css);
         Ok(())
@@ -61,8 +48,8 @@ impl NovelBuilder {
 
     /// Initializes a new EPUB novel builder.
     fn new_novel(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        let zip = ZipLibrary::new().map_err(LocalError::Epub)?;
-        let mut builder = EpubBuilder::new(zip).map_err(LocalError::Epub)?;
+        let zip = ZipLibrary::new().into_pyresult()?;
+        let mut builder = EpubBuilder::new(zip).into_pyresult()?;
         builder.epub_version(V30);
         slf.inner = Some(builder);
         slf.css.clear();
@@ -100,9 +87,7 @@ impl NovelBuilder {
         )
         .level(1)
         .title(&title);
-        builder
-            .add_content(chapter_content)
-            .map_err(LocalError::Epub)?;
+        builder.add_content(chapter_content).into_pyresult()?;
         Ok(slf)
     }
 
@@ -113,13 +98,13 @@ impl NovelBuilder {
         source: PathBuf,
     ) -> PyResult<PyRefMut<Self>> {
         let builder = slf.ensure_initialized_mut()?;
-        let data = read(&source).map_err(LocalError::Io)?;
+        let data = read(&source).into_pyresult()?;
         let mime = mime_guess::from_path(&source)
             .first_or_octet_stream()
             .to_string();
         builder
             .add_cover_image(path, &data[..], mime)
-            .map_err(LocalError::Epub)?;
+            .into_pyresult()?;
         Ok(slf)
     }
 
@@ -131,7 +116,7 @@ impl NovelBuilder {
     ) -> PyResult<PyRefMut<Self>> {
         slf.ensure_initialized_mut()?
             .metadata(key, value)
-            .map_err(LocalError::Epub)?;
+            .into_pyresult()?;
         Ok(slf)
     }
 
@@ -148,7 +133,7 @@ impl NovelBuilder {
         source: PathBuf,
     ) -> PyResult<PyRefMut<Self>> {
         let builder = slf.ensure_initialized_mut()?;
-        let data = read(&source).map_err(LocalError::Io)?;
+        let data = read(&source).into_pyresult()?;
 
         builder
             .add_resource(
@@ -158,7 +143,7 @@ impl NovelBuilder {
                     .first_or_octet_stream()
                     .to_string(),
             )
-            .map_err(LocalError::Epub)?;
+            .into_pyresult()?;
         Ok(slf)
     }
 
@@ -168,7 +153,7 @@ impl NovelBuilder {
         font_family: String,
         source: PathBuf,
     ) -> PyResult<PyRefMut<Self>> {
-        let data = read(&source).map_err(LocalError::Io)?;
+        let data = read(&source).into_pyresult()?;
         slf.ensure_initialized_mut()?
             .add_resource(
                 format!("fonts/{}.ttf", font_family),
@@ -177,7 +162,7 @@ impl NovelBuilder {
                     .first_or_octet_stream()
                     .to_string(),
             )
-            .map_err(LocalError::Epub)?;
+            .into_pyresult()?;
 
         slf.add_css_inner(format!(
             "@font-face {{
@@ -198,15 +183,18 @@ impl NovelBuilder {
 
     /// Exports the built novel to the specified file path.
     fn export(mut slf: PyRefMut<Self>, path: PathBuf) -> PyResult<PyRefMut<Self>> {
-        let mut builder = slf.inner.take().ok_or(LocalError::NotInitialized)?;
+        let mut builder = slf
+            .inner
+            .take()
+            .ok_or(PyRuntimeError::new_err("NovelBuilder not initialized"))?;
         let mut bytes = vec![];
 
         builder
             .stylesheet(slf.css.drain(..).as_str().as_bytes())
-            .map_err(LocalError::Epub)?;
-        builder.generate(&mut bytes).map_err(LocalError::Epub)?;
+            .into_pyresult()?;
+        builder.generate(&mut bytes).into_pyresult()?;
 
-        write(path.as_path(), bytes).map_err(LocalError::Io)?;
+        write(path.as_path(), bytes).into_pyresult()?;
         Ok(slf)
     }
 }

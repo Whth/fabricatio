@@ -12,4 +12,4 @@ tracing = "0.1.41"
 pyo3 = "0.27.1"
 fabricatio-constants = { path = "../fabricatio-constants" }
 fabricatio-config = { path = "../fabricatio-config" }
-tracing-appender = "0.2.3"
+tracing-appender = "0.2.4"

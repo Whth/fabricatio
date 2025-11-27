@@ -6,7 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-clap = { version = "4.5.52", features = ["derive"] }
+clap = { version = "4.5.53", features = ["derive"] }
 
 pyo3 = { version = "0.27.1", features = ["extension-module"] }
 deck_loader = { path = "./src/deck_loader" }
