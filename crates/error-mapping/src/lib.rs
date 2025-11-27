@@ -1,5 +1,5 @@
-use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::PyResult;
+use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use std::sync::LockResult;
 
 /// Trait for converting various error types to PyO3 results.

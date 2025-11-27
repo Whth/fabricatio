@@ -13,7 +13,7 @@ use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, PathBuf};
+use std::path::{PathBuf, absolute};
 use std::sync::{Arc, Mutex};
 use utils::mwrap;
 /// Trait for converting types into cache-friendly string keys.

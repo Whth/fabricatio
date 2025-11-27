@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-checkpoint"
-version = "0.1.2-dev3"
+version = "0.1.2-dev4"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
