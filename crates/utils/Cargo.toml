@@ -1,0 +1,8 @@
+[package]
+name = "utils"
+version = "0.1.1-dev1"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
