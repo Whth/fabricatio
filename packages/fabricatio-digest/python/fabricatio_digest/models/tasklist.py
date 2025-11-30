@@ -6,11 +6,12 @@ interface and provides implementations for task sequence generation.
 """
 
 from asyncio import gather
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 from fabricatio_core import Task
 from fabricatio_core.models.generic import ProposedAble
 from fabricatio_core.rust import TEMPLATE_MANAGER
+from pydantic import PrivateAttr
 
 from fabricatio_digest.config import digest_config
 
@@ -24,6 +25,44 @@ class TaskList(ProposedAble):
     """The tasks sequence that aims to achieve the ultimate target."""
     parallel: bool = False
     """Whether the tasks should be executed in parallel."""
+
+    _before_exec_hooks: List[Callable[[], Any]] = PrivateAttr(default_factory=list)
+    """A list of callables to be executed before each task in the task list"""
+
+    _after_exec_hooks: List[Callable[[], Any]] = PrivateAttr(default_factory=list)
+    """A list of callables to be executed after each task in the task list"""
+
+    def _run_before_exec_hooks(self) -> None:
+        for hook in self._before_exec_hooks:
+            hook()
+
+    def _run_after_exec_hooks(self) -> None:
+        for hook in self._after_exec_hooks:
+            hook()
+
+    def add_before_exec_hook(self, hook: Callable[[], Any]) -> None:
+        """Adds a hook to be executed before each task in the task list.
+
+        Args:
+            hook (Callable[[],Any]): The hook to be added.
+        """
+        self._before_exec_hooks.append(hook)
+
+    def add_after_exec_hook(self, hook: Callable[[], Any]) -> None:
+        """Adds a hook to be executed after each task in the task list.
+
+        Args:
+            hook (Callable[[],Any]): The hook to be added.
+        """
+        self._after_exec_hooks.append(hook)
+
+    def clear_before_exec_hooks(self) -> None:
+        """Clears all before execution hooks."""
+        self._before_exec_hooks.clear()
+
+    def clear_after_exec_hooks(self) -> None:
+        """Clears all after execution hooks."""
+        self._after_exec_hooks.clear()
 
     async def execute(self, parallel: Optional[bool] = None) -> List[Any]:
         """Asynchronously executes the sequence of tasks in the task list.
@@ -42,11 +81,21 @@ class TaskList(ProposedAble):
                 the order of tasks as stored in the instance.
         """
         if parallel if parallel is not None else self.parallel:
-            return await gather(*[task.delegate() for task in self.tasks])
-
+            self._run_before_exec_hooks()
+            res = await gather(*[task.delegate() for task in self.tasks])
+            self._run_after_exec_hooks()
+            return res
         res = []
         for task in self.tasks:
-            res.append(await task.delegate())
+
+            async def _task_wrapper[T](cur_task: Task[T] = task) -> T | None:
+                """Wrapper function for task execution."""
+                self._run_before_exec_hooks()
+                result = await cur_task.delegate()
+                self._run_after_exec_hooks()
+                return result
+
+            res.append(await _task_wrapper())
 
         return res
 

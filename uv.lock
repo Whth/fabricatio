@@ -503,7 +503,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.21.0"
+version = "0.21.1"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -865,7 +865,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-checkpoint"
-version = "0.1.2.dev0"
+version = "0.1.2"
 source = { editable = "packages/fabricatio-checkpoint" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1073,7 +1073,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-novel"
-version = "0.1.6.dev0"
+version = "0.1.6"
 source = { editable = "packages/fabricatio-novel" }
 dependencies = [
     { name = "fabricatio-character" },

@@ -5,6 +5,7 @@ from typing import Any, List, Optional, Unpack
 
 from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
+from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
 from fabricatio_core.models.kwargs_types import GenerateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
@@ -22,6 +23,7 @@ from fabricatio_agent.config import agent_config
 
 
 class Agent(
+    Checkpoint,
     Capable,
     Digest,
     Cooperate,
@@ -95,5 +97,6 @@ class Agent(
                 **kwargs,
             )
         )
+        task_list.add_before_exec_hook(lambda: self.save_checkpoint(f"{request[:50]}..."))
 
         return await task_list.execute()
