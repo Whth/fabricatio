@@ -13,7 +13,7 @@ class Checkpoint(UseLLM, ABC):
     """This class contains the capabilities for the checkpoint."""
 
     worktree_dir: Path = Field(default_factory=Path.cwd)
-    """The worktree directory."""
+    """The worktree directory. Use the current working directory by default."""
 
     def save_checkpoint(self, msg: str) -> str:
         """Save a checkpoint."""
