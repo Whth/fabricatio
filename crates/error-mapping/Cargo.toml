@@ -8,7 +8,7 @@ license-file.workspace = true
 [dependencies]
 epub-builder = { version = "0.8.2", default-features = false, optional = true }
 git2 = { version = "0.20.2", default-features = false, optional = true }
-pyo3 = { version = "0.27.1", default-features = false }
+pyo3 = { version = "0.27.2", default-features = false }
 
 
 [features]
