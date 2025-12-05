@@ -604,6 +604,12 @@ class Logger:
 def is_installed(pkg_name: str) -> bool:
     """Check if a Python package is installed.
 
+    Use the existence of the `<pkg_name>-x.x.x.dist-info` as the clue to judge if package names `pkg_name` is installed,
+    which is much more fast than Check using 'inspect.find_spec' or `importlib.import`.
+
+    Note:
+        The installation check is lazily cached, with 10000 max cache size.
+
     Args:
         pkg_name: Name of the package to check.
 
@@ -621,6 +627,8 @@ def list_installed() -> List[str]:
 def extra_satisfied(pkg_name: str, extra_name: str) -> bool:
     """Check if a specific extra (optional dependency) of a package is satisfied.
 
+    Analyzing the METADATA in the `dist.info` directory bundled with the package.
+
     Args:
         pkg_name: Name of the package.
         extra_name: Name of the extra/optional dependency (e.g., 'cli', 'dev').
@@ -631,6 +639,8 @@ def extra_satisfied(pkg_name: str, extra_name: str) -> bool:
 
 def extras_satisfied(pkg_name: str, extras: Sequence[str]) -> bool:
     """Check if all specified extras (optional dependencies) of a Python package are satisfied.
+
+    Analyzing the METADATA in the `dist.info` directory bundled with the package.
 
     Args:
         pkg_name: Name of the package.
