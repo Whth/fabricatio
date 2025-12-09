@@ -1,6 +1,6 @@
 [package]
 name = "error-mapping"
-version = "0.2.0-dev0"
+version = "0.2.0-dev1"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
