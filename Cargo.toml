@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
 
-reqwest = { version = "0.12.24", features = ["blocking", "json"] }
+reqwest = { version = "0.12.25", features = ["blocking", "json"] }
 tar = "0.4.44"
 flate2 = "1.1.5"
 serde_json = "1.0.145"

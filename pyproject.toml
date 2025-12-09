@@ -229,3 +229,5 @@ members = [
     "packages/*",
 ]
 
+[tool.uv]
+override-dependencies = ["grpcio>=1.76;python_version >= '3.14'"]

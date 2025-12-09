@@ -1,12 +1,11 @@
 use futures::future::BoxFuture;
-use futures::{FutureExt, StreamExt, TryFutureExt, stream};
+use futures::{stream, FutureExt, StreamExt, TryFutureExt};
 use rmcp::model::{CallToolRequestParam, Tool};
 use rmcp::service::{DynService, RunningService};
-use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
-use rmcp::transport::sse_client::SseClientTransport;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
@@ -122,9 +121,6 @@ impl MCPManager {
                     Transport::Stdio if config.command.is_some() => {
                         Self::make_stdio_client_future(&config).await
                     }
-                    Transport::Sse if config.url.is_some() => {
-                        Self::make_sse_client_future(&config).await
-                    }
                     Transport::Stream if config.url.is_some() => {
                         ().into_dyn()
                             .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
@@ -155,22 +151,6 @@ impl MCPManager {
             .await;
 
         Self { clients }
-    }
-
-    fn make_sse_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
-        let url = config.url.as_ref().unwrap().clone();
-        async move {
-            match SseClientTransport::start(url).await {
-                Ok(transport) => {
-                    ().into_dyn()
-                        .serve(transport)
-                        .map_err(|e| McpError::ServiceError(e.to_string()))
-                        .await
-                }
-                Err(_) => Err(McpError::ServiceError("Invalid SSE URL".to_string())),
-            }
-        }
-        .boxed()
     }
 
     fn make_stdio_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
