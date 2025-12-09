@@ -911,7 +911,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.1.2-dev0"
+version = "0.2.0-dev0"
 dependencies = [
  "epub-builder",
  "git2",
