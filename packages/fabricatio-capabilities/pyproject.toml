@@ -17,7 +17,7 @@ classifiers = [
     "Framework :: Pydantic :: 2",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12,<=3.14"
+requires-python = ">=3.12,<3.15"
 dependencies = [
     "fabricatio-core",
     "orjson>=3.10.18",

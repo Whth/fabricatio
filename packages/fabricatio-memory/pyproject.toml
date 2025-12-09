@@ -7,7 +7,7 @@ authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
 ]
 license = { file = "LICENSE" }
-requires-python = ">=3.12,<=3.14"
+requires-python = ">=3.12,<3.15"
 dependencies = [
 
     "fabricatio-core"
