@@ -23,7 +23,7 @@ from litellm.types.utils import ModelResponse
 from pydantic import BaseModel
 
 
-class TestModel(BaseModel):
+class FakeModel(BaseModel):
     """Test model for testing purposes."""
 
     name: str
@@ -257,7 +257,7 @@ class TestReturnModelJsonString:
     @pytest.mark.asyncio
     async def test_model_serialization(self) -> None:
         """Test return_model_json_string properly serializes Pydantic models."""
-        model = TestModel(name="Alice", age=25)
+        model = FakeModel(name="Alice", age=25)
         mock_router = return_model_json_string(model)
         response = await mock_router.acompletion(**kw)
 
@@ -274,8 +274,8 @@ class TestReturnModelJsonString:
     @pytest.mark.asyncio
     async def test_multiple_models(self) -> None:
         """Test return_model_json_string with multiple models."""
-        model1 = TestModel(name="Alice", age=25)
-        model2 = TestModel(name="Bob", age=30, active=False)
+        model1 = FakeModel(name="Alice", age=25)
+        model2 = FakeModel(name="Bob", age=30, active=False)
         mock_router = return_model_json_string(model1, model2)
 
         response1 = await mock_router.acompletion(**kw)
@@ -304,7 +304,7 @@ class TestValue:
 
     def test_model_type_conversion(self) -> None:
         """Test Value with model type."""
-        model = TestModel(name="Test", age=20)
+        model = FakeModel(name="Test", age=20)
         value = Value(source=model, type="model")
         result = value.to_string()
 
@@ -364,7 +364,7 @@ class TestReturnMixedString:
     @pytest.mark.asyncio
     async def test_mixed_value_types(self) -> None:
         """Test return_mixed_string with different value types."""
-        model = TestModel(name="Alice", age=25)
+        model = FakeModel(name="Alice", age=25)
         json_data = {"type": "json"}
         code = "x = 1"
 
