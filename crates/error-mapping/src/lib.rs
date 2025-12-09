@@ -1,6 +1,5 @@
-use pyo3::PyResult;
 use pyo3::exceptions::{PyOSError, PyRuntimeError};
-use std::sync::LockResult;
+pub use pyo3::PyResult;
 
 /// Trait for converting various error types to PyO3 results.
 ///
@@ -11,19 +10,22 @@ pub trait AsPyErr<T> {
     fn into_pyresult(self) -> PyResult<T>;
 }
 
-impl<T> AsPyErr<T> for LockResult<T> {
+#[cfg(feature = "std")]
+impl<T> AsPyErr<T> for std::sync::LockResult<T> {
     /// Converts a poisoned lock error into a Python `RuntimeError`.
     fn into_pyresult(self) -> PyResult<T> {
         self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 }
 
-impl<T> AsPyErr<T> for Result<T, std::io::Error> {
+#[cfg(feature = "std")]
+impl<T> AsPyErr<T> for std::io::Result<T> {
     /// Converts a `std::io::Error` into a Python `OSError`.
     fn into_pyresult(self) -> PyResult<T> {
         self.map_err(|e| PyOSError::new_err(e.to_string()))
     }
 }
+
 #[cfg(feature = "git2")]
 impl<T> AsPyErr<T> for Result<T, git2::Error> {
     /// Converts a `git2::Error` into a Python `RuntimeError`.
@@ -33,8 +35,23 @@ impl<T> AsPyErr<T> for Result<T, git2::Error> {
 }
 
 #[cfg(feature = "epub-builder")]
-impl<T> AsPyErr<T> for Result<T, epub_builder::Error> {
+impl<T> AsPyErr<T> for epub_builder::Result<T> {
     /// Converts an `epub_builder::Error` into a Python `RuntimeError`.
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+}
+
+#[cfg(feature = "pythonize")]
+impl<T> AsPyErr<T> for pythonize::Result<T> {
+    /// Converts a `pythonize::Error` into a Python `RuntimeError`.
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+}
+
+#[cfg(feature = "serde_json")]
+impl<T> AsPyErr<T> for serde_json::Result<T> {
     fn into_pyresult(self) -> PyResult<T> {
         self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }

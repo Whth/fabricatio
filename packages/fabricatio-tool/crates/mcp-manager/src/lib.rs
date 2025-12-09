@@ -1,3 +1,7 @@
+mod error;
+
+pub use error::McpError;
+use error::McpError::RmcpError;
 use futures::future::BoxFuture;
 use futures::{stream, FutureExt, StreamExt, TryFutureExt};
 use rmcp::model::{CallToolRequestParam, Tool};
@@ -11,27 +15,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use std::collections::HashMap;
 use std::default::Default;
-use std::error::Error;
 use std::ffi::OsStr;
-use std::fmt;
 use std::fmt::Debug;
 use tokio::process::Command;
 use which::which;
-
-/// Represents possible errors that can occur in MCP operations
-#[derive(Debug)]
-pub enum McpError {
-    /// I/O related errors
-    IoError(String),
-    /// Errors originating from RMCP operations
-    RmcpError(Box<dyn Error + Send + Sync>),
-    /// Requested client not found
-    ClientNotFound(String),
-    /// General service errors
-    ServiceError(String),
-    /// Tool not found
-    ToolNotFound(String),
-}
 
 /// Transport protocol types for service communication
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -41,8 +28,6 @@ enum Transport {
     /// Standard input/output communication
     #[default]
     Stdio,
-    /// Server-Sent Events (SSE) protocol
-    Sse,
     /// HTTP streaming transport protocol
     Stream,
     /// Web worker transport protocol
@@ -80,28 +65,6 @@ pub struct MCPConfig {
     pub servers: HashMap<String, ServiceConfig>,
 }
 
-impl fmt::Display for McpError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            McpError::IoError(e) => write!(f, "IO error: {}", e),
-            McpError::RmcpError(e) => write!(f, "RMCP error: {}", e),
-            McpError::ClientNotFound(id) => write!(f, "Client {} not found", id),
-            McpError::ServiceError(e) => write!(f, "Service error: {}", e),
-            McpError::ToolNotFound(e) => write!(f, "Tool not found: {}", e),
-        }
-    }
-}
-
-impl Error for McpError {}
-
-impl From<std::io::Error> for McpError {
-    fn from(error: std::io::Error) -> Self {
-        McpError::IoError(error.to_string())
-    }
-}
-
-/// Result type alias for MCP operations
-pub type Result<T> = std::result::Result<T, McpError>;
 type MCPService = RunningService<RoleClient, Box<dyn DynService<RoleClient>>>;
 
 /// Inner manager structure handling client connections
@@ -110,7 +73,7 @@ pub struct MCPManager {
     clients: HashMap<String, MCPService>,
 }
 
-type ClientFuture<'a> = BoxFuture<'a, Result<MCPService>>;
+type ClientFuture<'a> = BoxFuture<'a, error::Result<MCPService>>;
 
 impl MCPManager {
     /// Creates a new MCP manager from configuration
@@ -124,19 +87,16 @@ impl MCPManager {
                     Transport::Stream if config.url.is_some() => {
                         ().into_dyn()
                             .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
-                            .map_err(|e| McpError::ServiceError(e.to_string()))
+                            .map_err(|e| McpError::ServiceInitError(e.to_string()))
                             .await
                     }
                     Transport::Worker if config.url.is_some() => {
                         ().into_dyn()
                             .serve(WorkerTransport::from_uri(config.url.unwrap()))
-                            .map_err(|e| McpError::ServiceError(e.to_string()))
+                            .map_err(|e| McpError::ServiceInitError(e.to_string()))
                             .await
                     }
-                    _ => {
-                        async { Err(McpError::ServiceError("Invalid service type".to_string())) }
-                            .await
-                    }
+                    _ => async { Err(McpError::ServiceNotSupportedError) }.await,
                 };
                 (name, serv_res)
             })
@@ -155,8 +115,9 @@ impl MCPManager {
 
     fn make_stdio_client_future(config: &'_ ServiceConfig) -> ClientFuture<'_> {
         let cmd_str = config.command.as_ref().unwrap();
-        let cmd = if let Ok(cmd_path) = which(cmd_str) {
-            Command::new(cmd_path.as_os_str()).configure(|cmd| {
+
+        let cmd = match which(cmd_str) {
+            Ok(cmd_path) => Command::new(cmd_path.as_os_str()).configure(|cmd| {
                 cmd.args(config.args.iter().map(OsStr::new));
                 cmd.envs(config.env.iter().map(|(k, v)| {
                     let v = match v {
@@ -165,40 +126,29 @@ impl MCPManager {
                     };
                     (k.clone(), v)
                 }));
-            })
-        } else {
-            return async move {
-                Err(McpError::IoError(format!(
-                    "Failed to find executable: {cmd_str}"
-                )))
-            }
-            .boxed();
+            }),
+            Err(e) => return async move { Err(McpError::CommandNotFound(e)) }.boxed(),
         };
 
         match TokioChildProcess::new(cmd) {
             Ok(proc) => {
                 ().into_dyn()
                     .serve(proc)
-                    .map_err(|e| McpError::ServiceError(e.to_string()))
+                    .map_err(|e| McpError::ServiceInitError(e.to_string()))
                     .boxed()
             }
-            Err(e) => async move {
-                Err(McpError::ServiceError(format!(
-                    "Failed to start service with command: {cmd_str}, {e}"
-                )))
-            }
-            .boxed(),
+            Err(e) => async move { Err(McpError::IoError(e)) }.boxed(),
         }
     }
 
-    pub async fn ping(&self, client_id: &str) -> Result<bool> {
+    pub async fn ping(&self, client_id: &str) -> error::Result<bool> {
         self.clients
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_string()))?
             .list_tools(None)
             .await
             .map(|_| true)
-            .map_err(|e| McpError::ServiceError(format!("Failed to ping service: {e}")))
+            .map_err(RmcpError)
     }
 
     /// Returns a list of all server names currently managed by the MCP manager
@@ -212,16 +162,11 @@ impl MCPManager {
     }
 
     /// Lists available tools from a client
-    pub async fn list_tools(&self, client_id: &str) -> Result<Vec<Tool>> {
+    pub async fn list_tools(&self, client_id: &str) -> error::Result<Vec<Tool>> {
         self.clients
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
-            .map(|client| async move {
-                client
-                    .list_all_tools()
-                    .await
-                    .map_err(|e| McpError::RmcpError(Box::new(e)))
-            })?
+            .map(|client| async move { client.list_all_tools().await.map_err(RmcpError) })?
             .await
     }
     /// Retrieves a specific tool from a client by name
@@ -235,7 +180,7 @@ impl MCPManager {
     ///
     /// * `Result<Tool>` - The requested tool if found, or an error if the client
     ///   doesn't exist, there's a communication issue, or the tool is not found
-    pub async fn get_tool(&self, client_id: &str, tool_name: &str) -> Result<Tool> {
+    pub async fn get_tool(&self, client_id: &str, tool_name: &str) -> error::Result<Tool> {
         self.clients
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
@@ -243,7 +188,7 @@ impl MCPManager {
                 client
                     .list_all_tools()
                     .await
-                    .map_err(|e| McpError::RmcpError(Box::new(e)))?
+                    .map_err(RmcpError)?
                     .into_iter()
                     .filter(|tool| tool.name == tool_name)
                     .last()
@@ -257,7 +202,7 @@ impl MCPManager {
         client_id: &str,
         tool_name: &str,
         arguments: Option<serde_json::Map<String, Value>>,
-    ) -> Result<rmcp::model::CallToolResult> {
+    ) -> error::Result<rmcp::model::CallToolResult> {
         self.clients
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
@@ -268,7 +213,7 @@ impl MCPManager {
                 })
             })?
             .await
-            .map_err(|e| McpError::RmcpError(Box::new(e)))
+            .map_err(RmcpError)
     }
 
     /// Checks if a client with the given ID exists in the manager
@@ -287,7 +232,7 @@ impl MCPManager {
     ///
     /// * `Result<bool>` - Ok(true) if the tool exists, Ok(false) if it doesn't,
     ///   or an error if the client doesn't exist or there's a communication issue
-    pub async fn has_tool(&self, client_id: &str, tool_name: &str) -> Result<bool> {
+    pub async fn has_tool(&self, client_id: &str, tool_name: &str) -> error::Result<bool> {
         self.clients
             .get(client_id)
             .map(|client| async move {
@@ -295,7 +240,7 @@ impl MCPManager {
                     .list_all_tools()
                     .await
                     .map(|tools| tools.iter().any(|t| t.name == tool_name))
-                    .map_err(|e| McpError::RmcpError(Box::new(e)))
+                    .map_err(RmcpError)
             })
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))?
             .await
@@ -399,22 +344,10 @@ mod tests {
 
     #[test]
     fn test_mcp_error_display() {
-        let io_error = McpError::IoError("test io error".to_string());
-        assert_eq!(format!("{}", io_error), "IO error: test io error");
-
-        let rmcp_error = McpError::RmcpError("test rmcp error".into());
-        assert_eq!(format!("{}", rmcp_error), "RMCP error: test rmcp error");
-
         let client_not_found = McpError::ClientNotFound("test_client".to_string());
         assert_eq!(
             format!("{}", client_not_found),
             "Client test_client not found"
-        );
-
-        let service_error = McpError::ServiceError("test service error".to_string());
-        assert_eq!(
-            format!("{}", service_error),
-            "Service error: test service error"
         );
     }
 

@@ -1,4 +1,5 @@
-use mcp_manager::{MCPConfig, MCPManager as MCPManagerInner, ServiceConfig};
+use error_mapping::AsPyErr;
+use mcp_manager::{MCPConfig, MCPManager as MCPManagerInner, McpError, ServiceConfig};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -33,7 +34,7 @@ impl From<Tool> for ToolMetaData {
 impl ToolMetaData {
     /// Serializes the tool metadata to a Python dictionary
     fn dump_dict<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        pythonize(python, &self.inner).map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+        pythonize(python, &self.inner).into_pyresult()
     }
 
     #[getter]
@@ -52,8 +53,7 @@ impl ToolMetaData {
 
     #[getter]
     fn input_schema<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        pythonize(python, &self.inner.input_schema)
-            .map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+        pythonize(python, &self.inner.input_schema).into_pyresult()
     }
 
     #[getter]
@@ -63,8 +63,7 @@ impl ToolMetaData {
 
     #[getter]
     fn annotations<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        pythonize(python, &self.inner.annotations)
-            .map_err(move |e| PyRuntimeError::new_err(e.to_string()))
+        pythonize(python, &self.inner.annotations).into_pyresult()
     }
     #[getter]
     fn annotations_string(&self) -> String {
@@ -77,11 +76,8 @@ impl ToolMetaData {
         Ok(format!(
             "async def {}{}->list[str]:",
             inner.name,
-            schema_to_signature(
-                &serde_json::to_value(inner.clone().input_schema)
-                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
-            )
-            .ok_or(PyRuntimeError::new_err("Invalid input schema"))?
+            schema_to_signature(&serde_json::to_value(inner.clone().input_schema).into_pyresult()?)
+                .ok_or(PyRuntimeError::new_err("Invalid input schema"))?
         ))
     }
     #[getter]
@@ -91,8 +87,7 @@ impl ToolMetaData {
             "{}\n{}\nReturn:\n    list[str]: The strings of execution info.",
             inner.clone().description.unwrap_or_default(),
             schema_to_docstring_args(
-                &serde_json::to_value(inner.clone().input_schema)
-                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+                &serde_json::to_value(inner.clone().input_schema).into_pyresult()?
             )
             .unwrap_or_default()
         ))
@@ -123,7 +118,7 @@ impl MCPManager {
     ) -> PyResult<Bound<'a, PyAny>> {
         let conf = MCPConfig {
             servers: depythonize::<HashMap<String, ServiceConfig>>(&server_configs)
-                .map_err(move |e| PyRuntimeError::new_err(e.to_string()))?,
+                .into_pyresult()?,
         };
         future_into_py(python, async move {
             Ok(Self {
@@ -140,7 +135,8 @@ impl MCPManager {
             let tools = inner
                 .list_tools(client_id.as_str())
                 .await
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+                .map_err(McpError::into_pyerr)?;
+
             Ok(tools
                 .into_iter()
                 .map(ToolMetaData::from)
@@ -179,13 +175,16 @@ impl MCPManager {
     ) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         future_into_py(python, async move {
-            match inner.list_tools(client_id.as_str()).await {
-                Ok(tools) => Ok(tools
-                    .into_iter()
-                    .map(|tool| tool.name.to_string())
-                    .collect::<Vec<_>>()),
-                Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
-            }
+            inner
+                .list_tools(client_id.as_str())
+                .await
+                .map(|tools| {
+                    tools
+                        .into_iter()
+                        .map(|tool| tool.name.to_string())
+                        .collect::<Vec<_>>()
+                })
+                .map_err(McpError::into_pyerr)
         })
     }
 
@@ -203,18 +202,21 @@ impl MCPManager {
     ) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         future_into_py(python, async move {
-            match inner.list_tools(client_id.as_str()).await {
-                Ok(tools) => Ok(tools
-                    .into_iter()
-                    .map(|tool| {
-                        (
-                            tool.name.to_string(),
-                            tool.description.unwrap_or_default().to_string(),
-                        )
-                    })
-                    .collect::<HashMap<String, String>>()),
-                Err(e) => Err(PyRuntimeError::new_err(e.to_string())),
-            }
+            inner
+                .list_tools(client_id.as_str())
+                .await
+                .map(|tools| {
+                    tools
+                        .into_iter()
+                        .map(|tool| {
+                            (
+                                tool.name.to_string(),
+                                tool.description.unwrap_or_default().to_string(),
+                            )
+                        })
+                        .collect::<HashMap<String, String>>()
+                })
+                .map_err(McpError::into_pyerr)
         })
     }
 
@@ -238,10 +240,7 @@ impl MCPManager {
     fn ping<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         future_into_py(python, async move {
-            inner
-                .ping(&client_id)
-                .await
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+            inner.ping(&client_id).await.map_err(McpError::into_pyerr)
         })
     }
     /// Executes a tool on a client and returns the result
@@ -253,8 +252,8 @@ impl MCPManager {
         arguments: Option<Bound<'_, PyDict>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let arguments = if let Some(arguments) = arguments {
-            let arguments = depythonize::<serde_json::Map<String, Value>>(&arguments)
-                .map_err(move |e| PyRuntimeError::new_err(e.to_string()))?;
+            let arguments =
+                depythonize::<serde_json::Map<String, Value>>(&arguments).into_pyresult()?;
             Some(arguments)
         } else {
             None
@@ -265,7 +264,7 @@ impl MCPManager {
             let result: CallToolResult = inner
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+                .map_err(McpError::into_pyerr)?;
             Ok(result
                 .content
                 .into_iter()
@@ -305,7 +304,7 @@ impl MCPManager {
             inner
                 .has_tool(client_id.as_str(), tool_name.as_str())
                 .await
-                .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+                .map_err(McpError::into_pyerr)
         })
     }
 }

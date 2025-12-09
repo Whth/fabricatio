@@ -1,6 +1,6 @@
 [package]
 name = "error-mapping"
-version = "0.1.2-dev0"
+version = "0.1.2-dev1"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -8,9 +8,16 @@ license-file.workspace = true
 [dependencies]
 epub-builder = { version = "0.8.2", default-features = false, optional = true }
 git2 = { version = "0.20.3", default-features = false, optional = true }
+pythonize = { version = "0.27.0", default-features = false, optional = true }
 pyo3 = { version = "0.27.2", default-features = false }
+serde_json = { version = "1.0.82", default-features = false, optional = true }
+
 
 
 [features]
+default = ["std"]
 git2 = ["dep:git2"]
 epub-builder = ["dep:epub-builder"]
+pythonize = ["dep:pythonize"]
+serde_json = ["dep:serde_json"]
+std = []

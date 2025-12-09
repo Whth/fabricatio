@@ -916,6 +916,8 @@ dependencies = [
  "epub-builder",
  "git2",
  "pyo3",
+ "pythonize",
+ "serde_json",
 ]
 
 [[package]]
@@ -1097,6 +1099,7 @@ dependencies = [
 name = "fabricatio-tool"
 version = "0.0.0"
 dependencies = [
+ "error-mapping",
  "fabricatio-logger",
  "mcp-manager",
  "pyo3",
@@ -2227,9 +2230,11 @@ name = "mcp-manager"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "pyo3",
  "rmcp",
  "serde",
  "serde_json",
+ "thiserror 2.0.17",
  "tokio",
  "which",
 ]
