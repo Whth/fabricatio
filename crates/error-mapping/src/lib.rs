@@ -56,3 +56,10 @@ impl<T> AsPyErr<T> for serde_json::Result<T> {
         self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 }
+
+#[cfg(feature = "handlebars")]
+impl<T> AsPyErr<T> for Result<T, handlebars::RenderError> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+}

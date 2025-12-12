@@ -911,10 +911,11 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.0"
+version = "0.2.1-dev0"
 dependencies = [
  "epub-builder",
  "git2",
+ "handlebars",
  "pyo3",
  "pythonize",
  "serde_json",
@@ -1001,6 +1002,7 @@ dependencies = [
  "bincode",
  "blake3",
  "chrono",
+ "error-mapping",
  "fabricatio-config",
  "fabricatio-logger",
  "handlebars",

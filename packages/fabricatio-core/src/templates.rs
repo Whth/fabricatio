@@ -1,4 +1,5 @@
 use crate::hbs_helpers::*;
+use error_mapping::*;
 use fabricatio_config::{CONFIG_VARNAME, Config};
 use fabricatio_logger::{debug, trace};
 use handlebars::{Handlebars, no_escape};
@@ -10,7 +11,6 @@ use rayon::prelude::*;
 use serde_json::Value;
 use std::path::PathBuf;
 use walkdir::WalkDir;
-
 /// Python bindings for the TemplateManager struct.
 #[pyclass]
 pub struct TemplateManager {
@@ -77,8 +77,7 @@ impl TemplateManager {
                 )));
             }
 
-            let seq = depythonize::<Vec<Value>>(data)
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
+            let seq = depythonize::<Vec<Value>>(data).into_pyresult()?;
 
             let mut rendered_raw: Vec<(usize, String)> = seq
                 .iter()
@@ -88,25 +87,20 @@ impl TemplateManager {
                     (
                         idx,
                         self.handlebars.render(name, item).unwrap_or_else(|_| {
-                            panic!("Rendering error for {name} when rendering {item}")
+                            panic!("Rendering error for '{name}' when rendering \n{item}")
                         }),
                     )
                 })
                 .collect();
             rendered_raw.sort_by_key(|x| x.0);
             let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
-            let py_list = PyList::new(py, rendered).expect("Failed to create PyList");
+            let py_list = PyList::new(py, rendered)?;
             Ok(py_list.as_any().clone())
         } else {
             debug!("Rendering single template");
-            let json_data = depythonize::<Value>(data)
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
+            let json_data = depythonize::<Value>(data).into_pyresult()?;
 
-            let rendered_content = self.handlebars.render(name, &json_data).map_err(|e| {
-                PyErr::new::<PyRuntimeError, _>(format!(
-                    "Rendering error {e} for {name} when rendering {json_data}"
-                ))
-            })?;
+            let rendered_content = self.handlebars.render(name, &json_data).into_pyresult()?;
 
             let py_string = PyString::new(py, &rendered_content);
             Ok(py_string.as_any().clone())
@@ -120,8 +114,7 @@ impl TemplateManager {
         data: &Bound<'_, PyAny>,
     ) -> PyResult<Bound<'a, PyAny>> {
         if data.is_instance_of::<PyList>() {
-            let seq = depythonize::<Vec<Value>>(data)
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
+            let seq = depythonize::<Vec<Value>>(data).into_pyresult()?;
 
             let mut rendered_raw: Vec<(usize, String)> = seq
                 .iter()
@@ -140,18 +133,15 @@ impl TemplateManager {
                 .collect();
             rendered_raw.sort_by_key(|x| x.0);
             let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
-            let py_list = PyList::new(py, &rendered).expect("Failed to create PyList");
+            let py_list = PyList::new(py, &rendered)?;
             Ok(py_list.as_any().clone())
         } else {
-            let json_data = depythonize::<Value>(data)
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))?;
+            let json_data = depythonize::<Value>(data).into_pyresult()?;
 
             let rendered_content = self
                 .handlebars
                 .render_template(template, &json_data)
-                .unwrap_or_else(|_| {
-                    panic!("Rendering error for {template} when rendering {json_data}")
-                });
+                .into_pyresult()?;
 
             let py_string = PyString::new(py, &rendered_content);
             Ok(py_string.as_any().clone())

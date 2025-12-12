@@ -76,3 +76,10 @@ if is_installed("fabricatio_character"):
     from fabricatio_character.models.character import CharacterCard
 
     __all__ += ["CharacterCard"]
+
+
+if is_installed("fabricatio_improve"):
+    from fabricatio_improve.models.improve import Improvement
+    from fabricatio_improve.models.problem import ProblemSolutions, Solution
+
+    __all__ += ["Improvement", "ProblemSolutions", "Solution"]
