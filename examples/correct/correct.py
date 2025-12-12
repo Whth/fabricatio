@@ -4,17 +4,18 @@ import asyncio
 
 from fabricatio import Role as BaseRole
 from fabricatio import logger
-from fabricatio.capabilities import Correct
+from fabricatio.capabilities import Correct, Review
+from fabricatio_core.utils import ok
 
 
-class Role(BaseRole, Correct):
+class Role(BaseRole, Review, Correct):
     """Reviewer role."""
 
 
 async def main() -> None:
     """Main function."""
     role = Role(
-        name="Reviewer",
+        name="Correction Officer",
         description="A role that reviews the code.",
     )
 
@@ -24,7 +25,9 @@ async def main() -> None:
 
     logger.info(f"Code: \n{code}")
 
-    corrected = await role.correct_string(code, topic="If the cli app is of good design", supervisor_check=False)
+    imp = ok(await role.review_string(code, topic="If the cli app is build with the derive feat enabled"))
+
+    corrected = await role.correct_string(code, improvement=imp)
     logger.info(f"Corrected: \n{corrected}")
 
 

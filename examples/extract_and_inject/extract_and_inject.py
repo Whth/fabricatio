@@ -4,8 +4,10 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-from fabricatio import Event, Role, Task, WorkFlow, logger
+from fabricatio import Event, Task, WorkFlow, logger
+from fabricatio import Role as BaseRole
 from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
+from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_tool.fs import gather_files
 from fabricatio_typst.rust import BibManager
 from litellm.utils import token_counter
@@ -22,6 +24,10 @@ def _reader(path: str) -> Optional[str]:
         return None
     logger.info(f"Read {path} get {leng} tokens.")
     return string
+
+
+class Role(BaseRole, UseLLM):
+    """Role class for article writing."""
 
 
 async def main() -> None:
