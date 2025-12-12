@@ -1,8 +1,9 @@
 use crate::hbs_helpers::*;
 use error_mapping::*;
-use fabricatio_config::{CONFIG_VARNAME, Config};
+use fabricatio_config::{Config, CONFIG_VARNAME};
 use fabricatio_logger::{debug, trace};
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
+use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -54,24 +55,18 @@ impl TemplateManager {
         slf
     }
 
-    /// Get the source code of a template.
-    fn get_template_source(&self, name: &str) -> Option<String> {
-        self.gather_templates()
-            .iter()
-            .filter(|&path| path.file_stem().unwrap().to_string_lossy() == name)
-            .map(|path| path.to_string_lossy().to_string())
-            .next_back()
-    }
     /// Render a template with the given data.
     fn render_template<'a>(
         &self,
         py: Python<'a>,
-        name: &str,
+        name: PathBuf,
         data: &Bound<'_, PyAny>,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let name = name.clean().to_string_lossy().to_string();
+
         if data.is_instance_of::<PyList>() {
             debug!("Rendering list of templates");
-            if self.handlebars.get_template(name).is_none() {
+            if self.handlebars.get_template(&name).is_none() {
                 return Err(PyErr::new::<PyRuntimeError, _>(format!(
                     "Template {name} not found"
                 )));
@@ -86,7 +81,7 @@ impl TemplateManager {
                 .map(|(idx, item)| {
                     (
                         idx,
-                        self.handlebars.render(name, item).unwrap_or_else(|_| {
+                        self.handlebars.render(&name, item).unwrap_or_else(|_| {
                             panic!("Rendering error for '{name}' when rendering \n{item}")
                         }),
                     )
@@ -100,7 +95,7 @@ impl TemplateManager {
             debug!("Rendering single template");
             let json_data = depythonize::<Value>(data).into_pyresult()?;
 
-            let rendered_content = self.handlebars.render(name, &json_data).into_pyresult()?;
+            let rendered_content = self.handlebars.render(&name, &json_data).into_pyresult()?;
 
             let py_string = PyString::new(py, &rendered_content);
             Ok(py_string.as_any().clone())
@@ -188,15 +183,21 @@ impl TemplateManager {
     /// Returns a mutable reference to self for method chaining.
     fn discover_templates_inner(&mut self) -> &mut Self {
         self.handlebars.clear_templates();
-        self.gather_templates().iter().for_each(|path| {
-            let name = path.file_stem().unwrap().to_str().unwrap();
+        self.gather_templates().iter().for_each(|(name, path)| {
             self.handlebars.register_template_file(name, path).unwrap();
         });
         self
     }
 
-    /// Returns a list of all discovered templates.
-    fn gather_templates(&self) -> Vec<PathBuf> {
+    /// Gathers template files from all registered template stores.
+    ///
+    /// Scans through directories in reverse order to collect template files that match
+    /// the configured suffix. For each matching file, generates a tuple containing:
+    /// - Template name (derived from file path, without directory prefix and suffix)
+    /// - Full path to the template file
+    ///
+    /// Later directories in the list take precedence over earlier ones when template names conflict.
+    fn gather_templates(&self) -> Vec<(String, PathBuf)> {
         self.templates_stores
             .iter()
             .rev()
@@ -208,15 +209,21 @@ impl TemplateManager {
                     .filter(|e| {
                         e.path().extension().and_then(|s| s.to_str()) == Some(self.suffix.as_str())
                     })
-                    .map(|e| e.path().to_path_buf())
+                    .map(move |e| {
+                        (
+                            e.path()
+                                .strip_prefix(dir)
+                                .unwrap()
+                                .clean()
+                                .to_string_lossy()
+                                .strip_suffix(self.suffix.as_str())
+                                .unwrap()
+                                .to_string(),
+                            e.path().to_path_buf(),
+                        )
+                    })
             })
-            .inspect(|path| {
-                trace!(
-                    "Discovered template: {}=>{}",
-                    path.file_stem().unwrap_or_default().to_string_lossy(),
-                    path.display()
-                )
-            })
+            .inspect(|(name, path)| trace!("Discovered template: {}=>{}", name, path.display()))
             .collect()
     }
 
