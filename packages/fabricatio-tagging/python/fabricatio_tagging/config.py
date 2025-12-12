@@ -9,7 +9,7 @@ from fabricatio_core import CONFIG
 class TaggingConfig:
     """Configuration for fabricatio-tagging."""
 
-    tagging_template: str = "tagging"
+    tagging_template: str = "built-in/tagging"
     """The template to use for tagging."""
 
 

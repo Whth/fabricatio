@@ -9,7 +9,7 @@ from fabricatio_core import CONFIG
 class TranslateConfig:
     """Configuration for fabricatio-translate."""
 
-    translate_template: str = "translate"
+    translate_template: str = "built-in/translate"
     """The template to use for translation."""
 
 

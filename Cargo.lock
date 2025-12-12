@@ -974,7 +974,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.1.4"
+version = "0.1.5-dev0"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",

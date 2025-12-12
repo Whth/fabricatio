@@ -12,7 +12,7 @@ class DiffConfig:
     match_precision: float = 1.0
     """Precision threshold for matching."""
 
-    diff_template: str = """diff"""
+    diff_template: str = "built-in/diff"
     """Template string for diff output."""
 
 

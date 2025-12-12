@@ -9,9 +9,9 @@ from fabricatio_core import CONFIG
 class PlotConfig:
     """Configuration for fabricatio-plot."""
 
-    generate_header_template: str = "generate_header"
+    generate_header_template: str = "built-in/generate_header"
     """Template for generating header."""
-    generate_csv_data_template: str = "generate_csv_data"
+    generate_csv_data_template: str = "built-in/generate_csv_data"
     """Template for generating CSV data."""
 
     csv_sep: str = ","

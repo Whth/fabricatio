@@ -24,12 +24,12 @@ class YueConfig(BaseModel):
     genre: Dict[str, List[str]] = Field(default_factory=once(lambda: loads(genres_path.read_bytes())))
     """Dictionary mapping genre categories to lists of specific genres."""
 
-    lyricize_template: str = "lyricize"
+    lyricize_template: str = "built-in/lyricize"
     """Template name for lyric generation."""
-    select_genre_template: str = "select_genre"
+    select_genre_template: str = "built-in/select_genre"
     """Template name for genre selection."""
 
-    song_save_template: str = "song_save"
+    song_save_template: str = "built-in/song_save"
     """Template name for saving a song."""
 
 

@@ -1,8 +1,8 @@
 use crate::hbs_helpers::*;
 use error_mapping::*;
-use fabricatio_config::{Config, CONFIG_VARNAME};
+use fabricatio_config::{CONFIG_VARNAME, Config};
 use fabricatio_logger::{debug, trace};
-use handlebars::{no_escape, Handlebars};
+use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -216,7 +216,7 @@ impl TemplateManager {
                                 .unwrap()
                                 .clean()
                                 .to_string_lossy()
-                                .strip_suffix(self.suffix.as_str())
+                                .strip_suffix(format!(".{}", self.suffix).as_str())
                                 .unwrap()
                                 .to_string(),
                             e.path().to_path_buf(),

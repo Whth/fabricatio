@@ -9,11 +9,11 @@ from fabricatio_core import CONFIG
 class MemoryConfig:
     """Configuration for fabricatio-memory."""
 
-    memory_record_template: str = "memory_record"
+    memory_record_template: str = "built-in/memory_record"
     """Template for recording memory."""
-    memory_recall_template: str = "memory_recall"
+    memory_recall_template: str = "built-in/memory_recall"
     """Template for recalling memory."""
-    sremember_template: str = "sremember"
+    sremember_template: str = "built-in/sremember"
     """Template for selective remembering."""
 
 

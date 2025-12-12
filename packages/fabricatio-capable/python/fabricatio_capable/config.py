@@ -9,7 +9,7 @@ from fabricatio_core import CONFIG
 class CapableConfig:
     """Configuration for fabricatio-capable."""
 
-    capable_template: str = "capable"
+    capable_template: str = "built-in/capable"
     """Template for checking whether a capability is capable of fulfilling a request."""
 
 

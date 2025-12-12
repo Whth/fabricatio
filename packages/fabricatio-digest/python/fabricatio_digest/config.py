@@ -9,10 +9,10 @@ from fabricatio_core import CONFIG
 class DigestConfig:
     """Configuration for fabricatio-digest."""
 
-    digest_template: str = "digest"
+    digest_template: str = "built-in/digest"
     """Template name for digest"""
 
-    task_list_explain_template: str = "task_list_explain"
+    task_list_explain_template: str = "built-in/task_list_explain"
     """Template name for task list explain."""
 
 

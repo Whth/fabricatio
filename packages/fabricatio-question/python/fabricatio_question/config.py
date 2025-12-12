@@ -9,10 +9,10 @@ from fabricatio_core import CONFIG
 class QuestionConfig:
     """Configuration for fabricatio-question."""
 
-    selection_template: str = "selection"
+    selection_template: str = "built-in/selection"
     """Template name for selection question"""
 
-    selection_display_template: str = "selection_display"
+    selection_display_template: str = "built-in/selection_display"
     """Template name for selection display."""
 
 

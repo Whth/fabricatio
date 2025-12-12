@@ -9,7 +9,7 @@ from fabricatio_core import CONFIG
 class CharacterConfig:
     """Configuration for fabricatio-character."""
 
-    render_character_card_template: str = "render_character_card"
+    render_character_card_template: str = "built-in/render_character_card"
     """Template to use for rendering character cards."""
 
 

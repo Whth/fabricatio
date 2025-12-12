@@ -12,7 +12,7 @@ class RagConfig:
     """Configuration for fabricatio-rag."""
 
     # Query and Search Templates
-    refined_query_template: str = "refined_query"
+    refined_query_template: str = "built-in/refined_query"
     """The name of the refined query template which will be used to refine a query."""
 
     milvus_uri: Optional[str] = None

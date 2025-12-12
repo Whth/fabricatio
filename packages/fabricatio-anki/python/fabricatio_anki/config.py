@@ -17,28 +17,28 @@ class AnkiConfig:
         - Ensure all template names are correctly set according to your use case.
     """
 
-    generate_anki_card_front_side_template: str = "generate_anki_card_front_side"
+    generate_anki_card_front_side_template: str = "built-in/generate_anki_card_front_side"
     """
     The template name used for generating the front side of Anki cards.
 
     If this value is incorrect or missing, Anki card front side generation will fail.
     """
 
-    generate_anki_card_back_side_template: str = "generate_anki_card_back_side"
+    generate_anki_card_back_side_template: str = "built-in/generate_anki_card_back_side"
     """
     The template name used for generating the back side of Anki cards.
 
     If this value is incorrect or missing, Anki card back side generation will fail.
     """
 
-    generate_anki_card_template_template: str = "generate_anki_card_template"
+    generate_anki_card_template_template: str = "built-in/generate_anki_card_template"
     """
     The template name used for generating Anki card types.
 
     If this value is incorrect or missing, Anki card generation will fail.
     """
 
-    generate_anki_model_name_template: str = "generate_anki_model_name"
+    generate_anki_model_name_template: str = "built-in/generate_anki_model_name"
     """
     The template name used for generating Anki model names.
 
@@ -46,7 +46,7 @@ class AnkiConfig:
     """
 
     generate_anki_card_template_generation_requirements_template: str = (
-        "generate_anki_card_template_generation_requirements"
+        "built-in/generate_anki_card_template_generation_requirements"
     )
     """
     The template name used for generating Anki card template generation requirements.
@@ -54,24 +54,24 @@ class AnkiConfig:
     If this value is incorrect or missing, Anki card template generation will fail.
     """
 
-    generate_anki_deck_metadata_template: str = "generate_anki_deck_metadata"
+    generate_anki_deck_metadata_template: str = "built-in/generate_anki_deck_metadata"
     """
     The template name used for generating Anki deck metadata.
 
     If this value is incorrect or missing, Anki deck metadata generation will fail.
     """
 
-    generate_anki_model_generation_requirements_template: str = "generate_anki_model_generation_requirements"
+    generate_anki_model_generation_requirements_template: str = "built-in/generate_anki_model_generation_requirements"
     """
     The template name used for generating Anki model generation requirements.
 
     If this value is incorrect or missing, Anki model generation will fail.
     """
 
-    topic_analysis_assemble_template: str = "topic_analysis_assemble"
+    topic_analysis_assemble_template: str = "built-in/topic_analysis_assemble"
     """The template name used for assembling topic analysis."""
 
-    generate_topic_analysis_template: str = "generate_topic_analysis"
+    generate_topic_analysis_template: str = "built-in/generate_topic_analysis"
     """The template name used for generating analysis."""
 
 
