@@ -15,7 +15,7 @@ class AgentConfig:
     """Whether to think sequentially."""
     check_capable: bool = False
     """Whether to check if the agent is capable of performing the task."""
-    fulfill_prompt_template: str = "fulfill_prompt"
+    fulfill_prompt_template: str = "built-in/fulfill_prompt"
     """The prompt template to use for fulfill."""
 
 

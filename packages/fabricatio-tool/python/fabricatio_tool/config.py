@@ -45,10 +45,8 @@ class ServiceConfig(TypedDict, total=False):
 class ToolConfig(BaseModel):
     """Configuration for fabricatio-tool."""
 
-    draft_tool_usage_code_template: str = "draft_tool_usage_code"
+    draft_tool_usage_code_template: str = "built-in/draft_tool_usage_code"
     """The name of the draft tool usage code template which will be used to draft tool usage code."""
-    list_mcp_tools_template: str = "list_mcp_tools"
-    """The name of the list mcp tools template which will be used to list mcp tools."""
 
     check_modules: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """Modules that are forbidden to be imported."""
@@ -68,6 +66,5 @@ class ToolConfig(BaseModel):
 
 
 tool_config = CONFIG.load("tool", ToolConfig)
-
 
 __all__ = ["CheckConfigModel", "ServiceConfig", "ToolConfig", "tool_config"]

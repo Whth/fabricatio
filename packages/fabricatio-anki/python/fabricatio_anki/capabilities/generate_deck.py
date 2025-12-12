@@ -123,12 +123,14 @@ class GenerateDeck(Propose):
         if isinstance(requirement, str):
             name = ok(
                 fname_santitize(
-                    await self.ageneric_string(
-                        TEMPLATE_MANAGER.render_template(
-                            anki_config.generate_anki_model_name_template,
-                            {"fields": fields, "requirement": requirement},
-                        ),
-                        **override_kwargs(kwargs, defualt=None),
+                    ok(
+                        await self.ageneric_string(
+                            TEMPLATE_MANAGER.render_template(
+                                anki_config.generate_anki_model_name_template,
+                                {"fields": fields, "requirement": requirement},
+                            ),
+                            **override_kwargs(kwargs, defualt=None),
+                        )
                     )
                 )
             )
@@ -162,7 +164,7 @@ class GenerateDeck(Propose):
                 )
             )
 
-            names = [fname_santitize(name) for name in names]
+            names = [fname_santitize(ok(name)) for name in names]
             template_generation_requirements_seq = ok(
                 await self.alist_str(
                     TEMPLATE_MANAGER.render_template(
@@ -257,7 +259,7 @@ class GenerateDeck(Propose):
         name_rendered = TEMPLATE_MANAGER.render_template(
             anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement}
         )
-        name = fname_santitize(await self.ageneric_string(name_rendered, **okwargs))
+        name = fname_santitize(ok(await self.ageneric_string(name_rendered, **okwargs)))
         if not name:
             return None
 
@@ -289,11 +291,11 @@ class GenerateDeck(Propose):
         name_rendered = TEMPLATE_MANAGER.render_template(
             anki_config.generate_anki_model_name_template, [{"fields": fields, "requirement": r} for r in requirement]
         )
-        names = await self.ageneric_string(name_rendered, **okwargs)
+        names = ok(await self.ageneric_string(name_rendered, **okwargs))
         if not names:
             return None
 
-        names = [fname_santitize(name) for name in names]
+        names = [fname_santitize(ok(name)) for name in names]
 
         # Generate front and back sides for all requirements
         fronts = await self.generate_front_side(fields, requirement, **okwargs)
@@ -338,7 +340,9 @@ class GenerateDeck(Propose):
         else:
             raise ValueError("requirement must be a string or a list of strings")
 
-        source_code = await self.acode_string(rendered, "html", **kwargs)
+        okwargs = override_kwargs(kwargs, default=None)
+
+        source_code = ok(await self.acode_string(rendered, "html", **okwargs))
         if not source_code:
             return None
 
@@ -364,7 +368,7 @@ class GenerateDeck(Propose):
     @overload
     async def generate_front_side(
         self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Side]]
-    ) -> List[Side] | None:
+    ) -> List[Side | None] | None:
         """Overloaded version for multiple front side generation.
 
         Args:
@@ -411,7 +415,7 @@ class GenerateDeck(Propose):
     @overload
     async def generate_back_side(
         self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Side]]
-    ) -> List[Side] | None:
+    ) -> List[Side | None] | None:
         """Overloaded version for multiple back side generation.
 
         Args:

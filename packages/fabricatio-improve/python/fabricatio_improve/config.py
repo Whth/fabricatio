@@ -9,13 +9,13 @@ from fabricatio_core import CONFIG
 class ImproveConfig:
     """Configuration for fabricatio-improve."""
 
-    review_string_template: str = "review_string"
+    review_string_template: str = "built-in/review_string"
     """The name of the review string template which will be used to review a string."""
 
-    fix_troubled_string_template: str = "fix_troubled_string"
+    fix_troubled_string_template: str = "built-in/fix_troubled_string"
     """The name of the fix troubled string template which will be used to fix a troubled string."""
 
-    fix_troubled_obj_template: str = "fix_troubled_obj"
+    fix_troubled_obj_template: str = "built-in/fix_troubled_obj"
     """The name of the fix troubled object template which will be used to fix a troubled object."""
 
 

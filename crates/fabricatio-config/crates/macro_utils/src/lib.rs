@@ -40,7 +40,7 @@ pub fn derive_template_default(input: TokenStream) -> TokenStream {
         }
 
         let new_name = name_str.strip_suffix("_template").unwrap().to_string();
-        field_names.push((ident.clone(), new_name));
+        field_names.push((ident.clone(), format!("built-in/{new_name}")));
     }
 
     // Generate field initializers

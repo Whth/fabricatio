@@ -10,10 +10,10 @@ class TypstConfig:
     """Configuration for fabricatio-typst."""
 
     # Content Summary Templates
-    chap_summary_template: str = "chap_summary"
+    chap_summary_template: str = "built-in/chap_summary"
     """The name of the chap summary template which will be used to generate a chapter summary."""
 
-    research_content_summary_template: str = "research_content_summary"
+    research_content_summary_template: str = "built-in/research_content_summary"
     """The name of the research content summary template which will be used to generate a summary of research content."""
 
     paragraph_sep: str = "// - - -"
@@ -22,10 +22,10 @@ class TypstConfig:
     article_wrapper = "// =-=-=-=-=-=-=-=-=-="
     """The wrapper used to wrap an article."""
 
-    extract_essence_template: str = "extract_essence"
+    extract_essence_template: str = "built-in/extract_essence"
     """The name of the extract essence template which will be used to extract the essence of a text."""
 
-    generate_outline_template: str = "generate_outline"
+    generate_outline_template: str = "built-in/generate_outline"
     """The name of the generate outline template which will be used to generate an outline."""
 
 

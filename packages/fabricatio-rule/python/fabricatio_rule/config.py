@@ -10,12 +10,12 @@ class RuleConfig:
     """Configuration for fabricatio-rule."""
 
     # Rule and Requirement Templates
-    ruleset_requirement_breakdown_template: str = "ruleset_requirement_breakdown"
+    ruleset_requirement_breakdown_template: str = "built-in/ruleset_requirement_breakdown"
     """The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement."""
 
-    rule_requirement_template: str = "rule_requirement"
+    rule_requirement_template: str = "built-in/rule_requirement"
     """The name of the rule requirement template which will be used to generate a rule requirement."""
-    check_string_template: str = "check_string"
+    check_string_template: str = "built-in/check_string"
     """The name of the check string template which will be used to check a string."""
 
 

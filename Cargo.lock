@@ -974,7 +974,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.1.4"
+version = "0.1.5-dev0"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1007,6 +1007,7 @@ dependencies = [
  "fabricatio-logger",
  "handlebars",
  "once_cell",
+ "path-clean",
  "pyo3",
  "pythonize",
  "rayon",
@@ -2541,6 +2542,12 @@ name = "pastey"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57d6c094ee800037dff99e02cab0eaf3142826586742a270ab3d7a62656bd27a"
+
+[[package]]
+name = "path-clean"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
 
 [[package]]
 name = "pbkdf2"
