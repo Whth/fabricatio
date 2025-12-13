@@ -1,13 +1,15 @@
 mod download;
+mod error;
+mod releases;
 mod repo;
 
 use clap::{Parser, Subcommand};
 use colored::*;
 use fabricatio_constants::{ROAMING, TEMPLATES};
-use flate2::read::GzDecoder;
-use reqwest::blocking::Client;
-use std::fs::{self, File};
-use std::io::{self, Write};
+use flate2::bufread::GzDecoder;
+use reqwest::Client;
+use std::fs::{self};
+use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use tar::Archive;
 
@@ -41,17 +43,9 @@ enum Commands {
         #[arg(short, long, default_value = ROAMING.as_os_str())]
         output_dir: PathBuf,
 
-        /// Keep the downloaded archive file after extraction
-        #[arg(short, long)]
-        keep_archive: bool,
-
         /// Download a specific release version (default: latest)
         #[arg(short, long)]
         version: Option<String>,
-
-        /// Skip extraction and only download the archive
-        #[arg(long)]
-        download_only: bool,
     },
 
     /// List available templates in the local directory
@@ -67,7 +61,7 @@ enum Commands {
 
         /// Filter templates by pattern
         #[arg(short, long)]
-        filter: Option<String>,
+        pattern: Option<String>,
     },
 
     /// Remove templates from the local directory
@@ -83,16 +77,7 @@ enum Commands {
     },
 
     /// Show information about available releases
-    #[command(alias = "info")]
-    Info {
-        /// Show information about a specific version
-        #[arg(short, long)]
-        version: Option<String>,
-
-        /// Show all available releases
-        #[arg(short, long)]
-        all: bool,
-    },
+    Info {},
 
     /// Update templates to the latest version
     #[command(alias = "up")]
@@ -107,62 +92,28 @@ enum Commands {
     },
 }
 
-fn retrieve_release(
-    client: &Client,
-    version: Option<&str>,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let repo_url = match version {
-        Some(v) => format!(
-            "https://api.github.com/repos/Whth/fabricatio/releases/tags/{}",
-            v
-        ),
-        None => "https://api.github.com/repos/Whth/fabricatio/releases/latest".to_string(),
-    };
-
-    let response = client
-        .get(&repo_url)
-        .header("User-Agent", "fabricatio_template_downloader")
-        .send()?;
-
-    if !response.status().is_success() {
-        return Err(format!("Failed to fetch release information: {}", response.status()).into());
-    }
-
-    Ok(response.json()?)
-}
-
-fn retrieve_all_releases(
-    client: &Client,
-) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
-    let repo_url = "https://api.github.com/repos/Whth/fabricatio/releases";
-    let response = client
-        .get(repo_url)
-        .header("User-Agent", "fabricatio_template_downloader")
-        .send()?;
-
-    if !response.status().is_success() {
-        return Err(format!("Failed to fetch releases: {}", response.status()).into());
-    }
-
-    Ok(response.json()?)
-}
-
-fn extract_release(
+pub fn extract_release(
     tar_gz_path: &PathBuf,
     output_dir: &PathBuf,
     verbose: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> error::Result<()> {
     if verbose {
         println!(
-            "{} Extracting to {}",
+            "{} Extracting {} to {}",
             "Extracting".blue(),
+            tar_gz_path.display(),
             output_dir.display()
         );
     }
 
-    let tar_gz = File::open(tar_gz_path)?;
-    let decoder = GzDecoder::new(tar_gz);
+    let file = fs::File::open(tar_gz_path)?;
+
+    let decoder = GzDecoder::new(BufReader::new(file));
+
     let mut archive = Archive::new(decoder);
+
+    fs::create_dir_all(output_dir)?;
+
     archive.unpack(output_dir)?;
 
     if verbose {
@@ -171,12 +122,11 @@ fn extract_release(
 
     Ok(())
 }
-
 fn collect_templates_recursive(
     dir: &PathBuf,
     filter: Option<&str>,
     base_dir: &PathBuf,
-) -> Result<Vec<(PathBuf, String)>, Box<dyn std::error::Error>> {
+) -> error::Result<Vec<(PathBuf, String)>> {
     let mut templates = Vec::new();
 
     for entry in fs::read_dir(dir)? {
@@ -187,7 +137,7 @@ fn collect_templates_recursive(
             // Recursively scan subdirectories
             let mut sub_templates = collect_templates_recursive(&path, filter, base_dir)?;
             templates.append(&mut sub_templates);
-        } else if path.is_file() && path.extension().map_or(false, |ext| ext == "hbs") {
+        } else if path.is_file() && path.extension().is_some_and(|ext| ext == "hbs") {
             // Get relative path from base directory for display
             let relative_path = path
                 .strip_prefix(base_dir)
@@ -195,7 +145,7 @@ fn collect_templates_recursive(
                 .to_string_lossy()
                 .to_string();
 
-            if filter.map_or(true, |f| relative_path.contains(f)) {
+            if filter.is_none_or(|f| relative_path.contains(f)) {
                 templates.push((path, relative_path));
             }
         }
@@ -203,11 +153,12 @@ fn collect_templates_recursive(
 
     Ok(templates)
 }
+
 fn list_templates(
     template_dir: &PathBuf,
     detailed: bool,
     filter: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> error::Result<()> {
     if !template_dir.exists() {
         println!(
             "{} Template directory does not exist: {}",
@@ -260,7 +211,7 @@ fn list_templates(
     Ok(())
 }
 
-fn confirm_removal(relative_path: &str) -> Result<bool, Box<dyn std::error::Error>> {
+fn confirm_removal(relative_path: &str) -> error::Result<bool> {
     print!(
         "{} Remove template '{}'? [y/N]: ",
         "?".yellow(),
@@ -279,7 +230,7 @@ fn remove_single_template(
     relative_path: &str,
     force: bool,
     verbose: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> error::Result<()> {
     if !force && !confirm_removal(relative_path)? && verbose {
         println!("{} Skipped {}", "→".yellow(), relative_path);
         return Ok(());
@@ -299,7 +250,7 @@ fn remove_templates(
     template_dir: &PathBuf,
     force: bool,
     verbose: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> error::Result<()> {
     use glob::Pattern;
 
     templates.iter().try_for_each(|pattern| {
@@ -327,64 +278,7 @@ fn remove_templates(
     })
 }
 
-fn show_release_info(
-    client: &Client,
-    version: Option<&str>,
-    show_all: bool,
-    verbose: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if show_all {
-        let releases = retrieve_all_releases(client)?;
-        println!("{} Available releases:", "Releases".green().bold());
-
-        for release in releases.iter().take(10) {
-            let tag = release["tag_name"].as_str().unwrap_or("unknown");
-            let name = release["name"].as_str().unwrap_or("Unnamed");
-            let published = release["published_at"].as_str().unwrap_or("unknown");
-
-            println!("  {} {} - {} ({})", "→".cyan(), tag, name, published);
-        }
-
-        if releases.len() > 10 {
-            println!(
-                "  {} ... and {} more releases",
-                "ℹ".blue(),
-                releases.len() - 10
-            );
-        }
-    } else {
-        let release = retrieve_release(client, version)?;
-        let tag = release["tag_name"].as_str().unwrap_or("unknown");
-        let name = release["name"].as_str().unwrap_or("Unnamed");
-        let published = release["published_at"].as_str().unwrap_or("unknown");
-        let body = release["body"].as_str().unwrap_or("No description");
-
-        println!("{} Release Information:", "Release".green().bold());
-        println!("  {} Version: {}", "→".cyan(), tag);
-        println!("  {} Name: {}", "→".cyan(), name);
-        println!("  {} Published: {}", "→".cyan(), published);
-
-        if verbose {
-            println!("  {} Description:", "→".cyan());
-            for line in body.lines().take(10) {
-                println!("    {}", line);
-            }
-        }
-
-        if let Some(assets) = release["assets"].as_array() {
-            println!("  {} Assets:", "→".cyan());
-            assets.iter().for_each(|asset| {
-                let asset_name = asset["name"].as_str().unwrap_or("unknown");
-                let size = asset["size"].as_u64().unwrap_or(0);
-                println!("    {} {} ({} bytes)", "→".cyan(), asset_name, size);
-            });
-        }
-    }
-
-    Ok(())
-}
-
-fn create_backup(template_dir: &PathBuf, verbose: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn create_backup(template_dir: &PathBuf, verbose: bool) -> error::Result<()> {
     let backup_dir = template_dir.join("backup");
     fs::create_dir_all(&backup_dir)?;
 
@@ -396,7 +290,7 @@ fn create_backup(template_dir: &PathBuf, verbose: bool) -> Result<(), Box<dyn st
         for entry in fs::read_dir(template_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "hbs") {
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "hbs") {
                 let backup_path = backup_dir.join(entry.file_name());
                 fs::copy(&path, &backup_path)?;
             }
@@ -406,29 +300,23 @@ fn create_backup(template_dir: &PathBuf, verbose: bool) -> Result<(), Box<dyn st
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), error::Error> {
     let cli = Cli::parse();
     let client = Client::new();
 
     match &cli.command {
         Commands::Download {
             output_dir,
-            keep_archive,
             version,
-            download_only,
-        } => download::handle_download(
-            &client,
-            output_dir,
-            keep_archive,
-            version.as_deref(),
-            *download_only,
-            cli.verbose,
-        )?,
+        } => {
+            download::handle_download(&client, output_dir, version.as_deref(), cli.verbose).await?
+        }
 
         Commands::List {
             template_dir,
             detailed,
-            filter,
+            pattern: filter,
         } => list_templates(template_dir, *detailed, filter.as_deref())?,
 
         Commands::Remove {
@@ -436,14 +324,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             template_dir,
         } => remove_templates(templates, template_dir, cli.force, cli.verbose)?,
 
-        Commands::Info { version, all } => {
-            show_release_info(&client, version.as_deref(), *all, cli.verbose)?
+        Commands::Info {} => {
+            releases::show_releases().await?;
         }
 
         Commands::Update {
             template_dir,
             backup,
-        } => download::handle_update(&client, template_dir, *backup, cli.verbose)?,
+        } => download::handle_update(&client, template_dir, *backup, cli.verbose).await?,
     }
 
     Ok(())
