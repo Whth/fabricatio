@@ -1,4 +1,6 @@
 mod download;
+mod repo;
+
 use clap::{Parser, Subcommand};
 use colored::*;
 use fabricatio_constants::{ROAMING, TEMPLATES};
