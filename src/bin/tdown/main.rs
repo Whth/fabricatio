@@ -17,14 +17,12 @@ use walkdir::WalkDir;
 
 static CLI_NAME: &str = "fabricatio_template_downloader";
 
-/// A full-featured command-line interface for managing Fabricatio templates.
 #[derive(Parser)]
 #[command(
     name = CLI_NAME,
-    about = "Manage Fabricatio templates - download, install, and manage template files",
-    version,
     author
 )]
+/// A full-featured command-line interface for managing Fabricatio templates.
 struct Cli {
     /// Enable verbose output
     #[arg(long, global = true)]
