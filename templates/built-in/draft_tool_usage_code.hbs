@@ -1,40 +1,39 @@
 ## Available Resources
 **Available Data:**
 {{#each data }}
-    {{ block this @key }}
+{{ block this @key }}
 {{/each }}
 
 
 **Available Tools:**
 {{#each tools}}
-    {{block this.briefing this.name}}
+{{block this.briefing this.name}}
 {{/each}}
-
-## Task
-
-{{block request "Vital Requirements"}}
 
 **ResultCollector Usage Help:**
 {{collector_help}}
 
 I have set up a global variable called `{{collector_varname}}` which is an instance of the ResultCollector class. You can use it to submit the result if required.
 
-
 ## Constrain
 
 ```python
 {{fn_header}}
 
-# -----
+    # -----
 
-#TODO: fill in the function body that can finish the task, submit all required result to the collector.
+    #TODO: fill in the function body that can finish the task, submit all required result to the collector.
 
-# -----
+    # -----
 
-return None
+    return None
 
 ```
+
+{{block request "Vital Requirements"}}
+
 Your response SHALL only contain the body of the function, no signature or return statement.
 Your code will be placed between `# -----`.
 You SHALL never use package that needs import, use ONLY the provided `Available Tools` above to finish the job.
 You SHALL put the `Vital Requirements` as the top guideline.
+
