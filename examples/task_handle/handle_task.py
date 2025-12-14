@@ -38,7 +38,7 @@ class DumpText(Action, HandleTask):
         task_input.update_task(
             goal=[
                 "dump the text contained in `text_to_dump` to a file",
-                f"only submit the pathstr of the written file to the '{self.save_key}]' slot.",
+                f"ONLY submit the pathstr of the written file to the result collector under the key of '{self.save_key}]'.",
             ]
         )
 
