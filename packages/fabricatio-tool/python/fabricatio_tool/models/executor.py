@@ -133,7 +133,7 @@ class ToolExecutor:
             CheckConfig(**self.validate_callcheck_config(check_calls or tool_config.check_calls).model_dump()),
         ):
             raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
-
+        logger.debug(f"Starting compile and execution of function: \n{source}")
         exec(source, cxt)  # noqa: S102
         compiled_fn = cxt[self.fn_name]
         await compiled_fn()

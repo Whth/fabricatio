@@ -116,11 +116,15 @@ def delete_directory(dir_path: Union[str, Path]) -> None:
         FileNotFoundError: If directory doesn't exist
         OSError: If directory is not empty and can't be removed
     """
+    p = Path(dir_path)
+    if p == p.root:
+        logger.error(f"Should not delete root directory: {p}")
+
     try:
-        shutil.rmtree(dir_path)
-        logger.info(f"Deleted directory: {dir_path}")
+        shutil.rmtree(p)
+        logger.info(f"Deleted directory: {p}")
     except OSError as e:
-        logger.error(f"Failed to delete directory {dir_path}: {e!s}")
+        logger.error(f"Failed to delete directory {p}: {e!s}")
         raise
 
 
