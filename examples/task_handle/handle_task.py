@@ -3,9 +3,10 @@
 import asyncio
 from typing import Any, Set
 
-from fabricatio import Action, Event, Task, ToolBox, WorkFlow, logger, toolboxes
+from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
 from fabricatio.capabilities import HandleTask, ProposeTask
+from fabricatio.models import ToolBox, fs_toolbox
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
 from pydantic import Field
@@ -27,7 +28,7 @@ class WriteCode(Action, UseLLM):
 class DumpText(Action, HandleTask):
     """Dump the text to a file."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
+    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
     output_key: str = "task_output"
 
     save_key: str = "save_path"
@@ -35,7 +36,7 @@ class DumpText(Action, HandleTask):
     async def _execute(self, task_input: Task, dump_text: str, **_) -> Any:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
-            [
+            goal=[
                 "dump the text contained in `text_to_dump` to a file",
                 f"only submit the pathstr of the written file to the '{self.save_key}]' slot.",
             ]
@@ -43,7 +44,7 @@ class DumpText(Action, HandleTask):
 
         collector = ok(
             await self.handle(
-                task_input,
+                task_input.briefing,
                 {"text_to_dump": dump_text},
             )
         )
