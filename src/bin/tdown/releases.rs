@@ -1,18 +1,15 @@
 use crate::error::Error;
 use crate::repo::REPO;
-use cached::proc_macro::io_cached;
 use colored::Colorize;
 use human_units::iec::Byte;
 use octocrab::models::repos::Asset;
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use std::time::Duration;
 
 pub const TEMPLATES_ASSET_NAME: &str = "templates.tar.gz";
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct TemplateAssetItem {
+#[derive(Debug)]
+pub(crate) struct TemplateAssetItem {
     tag: String,
     source: Asset,
 }
@@ -21,13 +18,12 @@ impl Display for TemplateAssetItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{:<15}  {:<6}  {:<8}  {:}",
+            "{:<15}  {:<6}  {:}",
             self.tag.to_string().bright_green(),
             Byte::from_iec(self.source.size as u64)
                 .format_iec()
                 .to_string(),
-            self.source.state,
-            self.source.updated_at
+            self.source.updated_at.to_string().bright_blue()
         )
     }
 }
@@ -50,7 +46,7 @@ pub async fn show_releases() -> crate::error::Result<()> {
 }
 
 #[derive(Debug, Clone)]
-struct Query {
+pub(crate) struct Query {
     page_size: u8,
     page_num: u32,
 }
@@ -64,14 +60,7 @@ impl Default for Query {
     }
 }
 
-impl Display for Query {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.page_num, self.page_size)
-    }
-}
-
-#[io_cached(map_error = r##"|e| Error::from(e)"##, disk = true, time = 3600)]
-pub async fn get_releases(query: Query) -> crate::error::Result<Vec<TemplateAssetItem>> {
+pub(crate) async fn get_releases(query: Query) -> crate::error::Result<Vec<TemplateAssetItem>> {
     println!("Fetching releases...");
     Ok(REPO
         .releases()

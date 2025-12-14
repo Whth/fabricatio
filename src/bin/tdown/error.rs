@@ -6,9 +6,6 @@ pub enum Error {
     #[error("Failed to get release info: {0}")]
     ReleaseInfo(#[from] octocrab::Error),
 
-    #[error("Failed to retrieve from cache: {0}")]
-    Cache(#[from] cached::DiskCacheError),
-
     #[error("Release not found, please check the version number.")]
     ReleaseNotFound,
 

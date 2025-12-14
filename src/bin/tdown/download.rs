@@ -13,6 +13,7 @@ pub async fn handle_download(
     output_dir: &PathBuf,
     version: Option<&str>,
     verbose: bool,
+    mirror: Option<String>,
 ) -> crate::error::Result<()> {
     let path = PathBuf::from(output_dir);
     fs::create_dir_all(&path)?;
@@ -24,7 +25,7 @@ pub async fn handle_download(
     let tar_gz_path = output_dir.join(TEMPLATES_ASSET_NAME);
     let download_url = crate::releases::get_asset_url(version).await?;
 
-    download_release(client, &download_url, &tar_gz_path, verbose).await?;
+    download_release(client, &download_url, &tar_gz_path, verbose, mirror).await?;
 
     crate::extract_release(&tar_gz_path, &path, verbose)?;
     fs::remove_file(&tar_gz_path)?;
@@ -38,12 +39,16 @@ pub async fn download_release(
     download_url: &Url,
     output_path: &PathBuf,
     verbose: bool,
+    mirror: Option<String>,
 ) -> crate::error::Result<()> {
     if verbose {
         println!("{} {}", "Downloading".green(), download_url);
     }
 
-    let response = client.get(download_url.as_str()).send().await?;
+    let response = client
+        .get(format!("{}{}", mirror.unwrap_or_default(), download_url))
+        .send()
+        .await?;
 
     let total_size = response.content_length().unwrap_or(0);
     let mut downloaded = 0u64;
@@ -81,6 +86,7 @@ pub async fn handle_update(
     template_dir: &PathBuf,
     backup: bool,
     verbose: bool,
+    mirror: Option<String>,
 ) -> crate::error::Result<()> {
     if backup {
         crate::create_backup(template_dir, verbose)?;
@@ -89,7 +95,7 @@ pub async fn handle_update(
     let tar_gz_path = template_dir.join(TEMPLATES_ASSET_NAME);
 
     let download_url = crate::releases::get_asset_url(None).await?;
-    download_release(client, &download_url, &tar_gz_path, verbose).await?;
+    download_release(client, &download_url, &tar_gz_path, verbose, mirror).await?;
     crate::extract_release(&tar_gz_path, template_dir, verbose)?;
     fs::remove_file(tar_gz_path)?;
 

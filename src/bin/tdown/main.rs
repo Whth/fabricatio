@@ -7,16 +7,20 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use fabricatio_constants::{ROAMING, TEMPLATES};
 use flate2::bufread::GzDecoder;
+use human_units::iec::Byte;
 use reqwest::Client;
 use std::fs::{self};
 use std::io::{self, BufReader, Write};
 use std::path::PathBuf;
 use tar::Archive;
+use walkdir::WalkDir;
+
+static CLI_NAME: &str = "fabricatio_template_downloader";
 
 /// A full-featured command-line interface for managing Fabricatio templates.
 #[derive(Parser)]
 #[command(
-    name = "fabricatio_template_downloader",
+    name = CLI_NAME,
     about = "Manage Fabricatio templates - download, install, and manage template files",
     version,
     author
@@ -29,6 +33,10 @@ struct Cli {
     /// Force operations without confirmation prompts
     #[arg(short, long, global = true)]
     force: bool,
+
+    /// Use a GitHub mirror for downloading releases, the string will be added as prefix to the asset download url.
+    #[arg(short, long, global = true, env = "GITHUB_MIRROR")]
+    mirror: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -122,34 +130,31 @@ pub fn extract_release(
 
     Ok(())
 }
+
 fn collect_templates_recursive(
     dir: &PathBuf,
     filter: Option<&str>,
     base_dir: &PathBuf,
 ) -> error::Result<Vec<(PathBuf, String)>> {
-    let mut templates = Vec::new();
-
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.is_dir() {
-            // Recursively scan subdirectories
-            let mut sub_templates = collect_templates_recursive(&path, filter, base_dir)?;
-            templates.append(&mut sub_templates);
-        } else if path.is_file() && path.extension().is_some_and(|ext| ext == "hbs") {
-            // Get relative path from base directory for display
-            let relative_path = path
+    let templates = WalkDir::new(dir)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(Result::ok) // 跳过无法访问的条目
+        .filter(|entry| {
+            let path = entry.path();
+            path.is_file() && path.extension().is_some_and(|ext| ext == "hbs")
+        })
+        .map(|entry| {
+            let full_path = entry.path().to_path_buf();
+            let relative_path = full_path
                 .strip_prefix(base_dir)
-                .unwrap_or(&path)
+                .unwrap_or(&full_path)
                 .to_string_lossy()
                 .to_string();
-
-            if filter.is_none_or(|f| relative_path.contains(f)) {
-                templates.push((path, relative_path));
-            }
-        }
-    }
+            (full_path, relative_path)
+        })
+        .filter(|(_, rel_path)| filter.map(|f| rel_path.contains(f)).unwrap_or(true))
+        .collect::<Vec<_>>();
 
     Ok(templates)
 }
@@ -195,13 +200,13 @@ fn list_templates(
                 .as_secs();
 
             println!(
-                "  {} {} ({} bytes, modified: {})",
+                "  {} {:<50}  {:<10}  {:>20}",
                 "→".cyan(),
                 relative_path,
-                size,
+                Byte::from_iec(size).format_iec(),
                 chrono::DateTime::from_timestamp(modified as i64, 0)
-                    .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
-                    .unwrap_or_else(|| "unknown".to_string())
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string().bright_blue())
+                    .unwrap_or_else(|| "unknown".to_string().dimmed())
             );
         } else {
             println!("  {} {}", "→".cyan(), relative_path);
@@ -303,14 +308,21 @@ fn create_backup(template_dir: &PathBuf, verbose: bool) -> error::Result<()> {
 #[tokio::main]
 async fn main() -> Result<(), error::Error> {
     let cli = Cli::parse();
-    let client = Client::new();
+    let client = Client::builder().user_agent(CLI_NAME).build()?;
 
     match &cli.command {
         Commands::Download {
             output_dir,
             version,
         } => {
-            download::handle_download(&client, output_dir, version.as_deref(), cli.verbose).await?
+            download::handle_download(
+                &client,
+                output_dir,
+                version.as_deref(),
+                cli.verbose,
+                cli.mirror,
+            )
+            .await?
         }
 
         Commands::List {
@@ -331,7 +343,9 @@ async fn main() -> Result<(), error::Error> {
         Commands::Update {
             template_dir,
             backup,
-        } => download::handle_update(&client, template_dir, *backup, cli.verbose).await?,
+        } => {
+            download::handle_update(&client, template_dir, *backup, cli.verbose, cli.mirror).await?
+        }
     }
 
     Ok(())
