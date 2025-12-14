@@ -8,6 +8,12 @@ pub const NAME: &str = "fabricatio";
 /// The default configuration file name used by the application.
 pub const CONFIG_FILE: &str = "fabricatio.toml";
 
+/// The GitHub repository owner for the application.
+pub const REPO_OWNER: &str = "Whth";
+
+/// The GitHub repository name for the application.
+pub const REPO_NAME: &str = NAME;
+
 /// Returns the path to the user's config directory based on the operating system.
 ///
 /// |Platform | Value                                 | Example                          |
