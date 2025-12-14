@@ -15,7 +15,7 @@ class Checkpoint(UseLLM, ABC):
     worktree_dir: Path = Field(default_factory=Path.cwd)
     """The worktree directory. Use the current working directory by default."""
 
-    def save_checkpoint(self, msg: str) -> str:
+    def save_checkpoint(self, msg: str = "Changes") -> str:
         """Save a checkpoint."""
         return SHADOW_REPO_MANAGER.save(self.worktree_dir, msg)
 

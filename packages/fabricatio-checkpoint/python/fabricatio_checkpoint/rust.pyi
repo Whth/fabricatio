@@ -35,6 +35,9 @@ class ShadowRepoManager:
         Raises:
             RuntimeError: If the shadow repository is not found or Git operations fail
                 (staging, committing, etc.).
+
+        Notes:
+            If there is no changes to commit, this method returns the ID of the last commit, AKA the HEAD.
         """
 
     def drop(self, worktree_dir: Path) -> None:
