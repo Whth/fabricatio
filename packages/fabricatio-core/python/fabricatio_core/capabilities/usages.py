@@ -554,7 +554,10 @@ class UseLLM(LLMScopedConfig, ABC):
 
         def _validate(response: str) -> List[T] | None:
             ret = JsonCapture.validate_with(response, target_type=List, elements_type=str, length=k)
-            if ret is None or set(ret) - names:
+            if ret is None:
+                return None
+            if not_found := set(ret) - names:
+                logger.error(f"Invalid choices that were not found: {not_found}")
                 return None
             return [
                 next(candidate for candidate in choices if candidate.name == candidate_name) for candidate_name in ret

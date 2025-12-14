@@ -281,7 +281,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Args:
             new_namespace (EventLike, optional): The new namespace to move the task to.
-            event (EventLike, optional): The event to publish.
+            event (EventLike, optional): The event to publish, overrides the event in this instance and the `new_namespace`.
 
         Returns:
             T|None: The output of the task.

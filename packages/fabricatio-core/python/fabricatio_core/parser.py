@@ -71,7 +71,7 @@ class Capture:
             - It only considers the first group of the match.
         """
         compiled = re.compile(self.pattern, self.flags)
-        match = compiled.match(text) or compiled.search(text)
+        match = compiled.search(text)
         if match is None:
             logger.debug(f"Capture Failed: {text!r}")
             return None
