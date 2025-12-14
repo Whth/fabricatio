@@ -17,12 +17,14 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 
 ## Constrain
 
+{{block request "Vital Requirements"}}
+
 ```python
 {{fn_header}}
 
     # -----
 
-    #TODO: fill in the function body that can finish the task, submit all required result to the collector.
+    #TODO: fill in the function body that can satisfy the `Vital Requirements`, submit all required result to the collector.
 
     # -----
 
@@ -30,10 +32,8 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 
 ```
 
-{{block request "Vital Requirements"}}
-
 Your response SHALL only contain the body of the function, no signature or return statement.
 Your code will be placed between `# -----`.
-You SHALL never use package that needs import, use ONLY the provided `Available Tools` above to finish the job.
+You SHALL never use package that needs import, while any import here is considered as treason. Use ONLY the provided `Available Tools` above to finish the job.
 You SHALL put the `Vital Requirements` as the top guideline.
 
