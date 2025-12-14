@@ -1,18 +1,18 @@
 ## Available Resources
 **Available Data:**
 {{#each data }}
-{{ block this @key }}
+    {{ block this @key }}
 {{/each }}
 
 
 **Available Tools:**
 {{#each tools}}
-{{block this.briefing this.name}}
+    {{block this.briefing this.name}}
 {{/each}}
 
 ## Task
 
-{{block reqest "Vital Requirements"}}
+{{block request "Vital Requirements"}}
 
 **ResultCollector Usage Help:**
 {{collector_help}}
@@ -25,13 +25,13 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 ```python
 {{fn_header}}
 
-    # -----
+# -----
 
-    #TODO: fill in the function body that can finish the task, submit all required result to the collector.
+#TODO: fill in the function body that can finish the task, submit all required result to the collector.
 
-    # -----
+# -----
 
-    return None
+return None
 
 ```
 Your response SHALL only contain the body of the function, no signature or return statement.
