@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.1.4-dev0"
+version = "0.1.4-dev1"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -37,6 +37,9 @@ dependencies = [
 dev = [
     "pytest",
 ]
+cli = [
+    "typer-slim[standard]>=0.15.2",
+]
 
 
 
@@ -61,6 +64,8 @@ url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 url = "https://mirrors.aliyun.com/pypi/simple/"
 default = true
 
+[project.scripts]
+falcon = "fabricatio_agent.cli:__main__"
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
