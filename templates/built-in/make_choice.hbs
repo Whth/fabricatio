@@ -1,6 +1,6 @@
 ----- Start of Available Options -----
 {{#each options}}
-    {{block this.briefing this.name}}
+{{block this.briefing this.name}}
 {{/each}}
 ----- End of Available Options -----
 
@@ -29,6 +29,6 @@ Return your selection as a JSON array of option names within a code block.
 ## Format Requirements
 - Each selected option MUST be from the provided `Available Options`:
 - No explanations or additional text outside the JSON code block
-- Response MUST be a valid JSON array containing only option names. candidate values are [{{#each
-        options}}{{this.name}}, {{/each}}].
+- Response MUST be a valid JSON array containing only provided candidate names. Not their children!
+- Candidate values of Option names are [{{#each options}}"{{this.name}}", {{/each}}].
 {{#if k}}- The array MUST contain EXACTLY {{k}} options{{/if}}

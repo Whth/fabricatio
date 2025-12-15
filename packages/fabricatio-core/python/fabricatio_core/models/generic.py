@@ -111,7 +111,7 @@ class WithBriefing(Named, Described, ABC):
     generation by combining these two attributes.
     """
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Get the briefing of the object.
 

@@ -27,6 +27,7 @@ class Handle(UseTool, ABC):
         request: str,
         tools: List[Tool],
         data: Dict[str, Any],
+        output_spec: Optional[Dict[str, str]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
@@ -46,6 +47,7 @@ class Handle(UseTool, ABC):
                 "request": request,
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
                 "data": data,
+                "output_spec": output_spec or {},
             },
         )
         logger.debug(f"Code Drafting Question: \n{q}")
@@ -56,6 +58,7 @@ class Handle(UseTool, ABC):
         self,
         request: str,
         data: Dict[str, Any],
+        output_spec: Optional[Dict[str, str]] = None,
         box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
         tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
@@ -66,13 +69,17 @@ class Handle(UseTool, ABC):
         tools = await self.gather_tools_fine_grind(request, box_choose_kwargs, tool_choose_kwargs)
         logger.info(f"Gathered {[t.name for t in tools]}")
 
-        if tools and (source := await self.draft_tool_usage_code(request, tools, data, **kwargs)):
+        if tools and (source := await self.draft_tool_usage_code(request, tools, data, output_spec, **kwargs)):
             return await ToolExecutor(candidates=tools, data=data).execute(source)
 
         return None
 
     async def handle(
-        self, request: str, data: Optional[Dict[str, Any]] = None, **kwargs: Unpack[ValidateKwargs[str]]
+        self,
+        request: str,
+        data: Optional[Dict[str, Any]] = None,
+        output_spec: Optional[Dict[str, str]] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
         okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
@@ -80,6 +87,7 @@ class Handle(UseTool, ABC):
         return await self.handle_fine_grind(
             request,
             data or {},
+            output_spec,
             box_choose_kwargs=okwargs,
             tool_choose_kwargs=okwargs,
             **kwargs,

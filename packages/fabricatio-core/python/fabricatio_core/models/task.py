@@ -311,7 +311,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return run(self.delegate(new_namespace, event=event))
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Return a briefing of the task including its goal.
 

@@ -35,17 +35,9 @@ class DumpText(Action, HandleTask):
 
     async def _execute(self, task_input: Task, dump_text: str, **_) -> Any:
         logger.debug(f"Dumping text: \n{dump_text}")
-        task_input.update_task(
-            goal=[
-                "dump the text contained in `text_to_dump` to a file",
-                f"ONLY submit the pathstr of the written file to the result collector under the key of '{self.save_key}]'.",
-            ]
-        )
-
         collector = ok(
             await self.handle(
-                task_input.briefing,
-                {"text_to_dump": dump_text},
+                task_input.briefing, {"text_to_dump": dump_text}, {self.save_key: "the pathstr of the written file"}
             )
         )
 

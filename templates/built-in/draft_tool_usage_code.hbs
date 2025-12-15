@@ -26,6 +26,9 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 
     #TODO: fill in the function body that can satisfy the `Vital Requirements`, submit all required result to the collector.
 
+    {{#if output_spec}}{{#each output_spec}}# You Must submit: {{this}}
+    # {{@root.collector_varname}}.submit("{{@key}}", \* Value you need to submit*\)
+    {{/each}}{{/if}}
     # -----
 
     return None
@@ -35,5 +38,5 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 Your response SHALL only contain the body of the function, no signature or return statement.
 Your code will be placed between `# -----`.
 You SHALL never use package that needs import, while any import here is considered as treason. Use ONLY the provided `Available Tools` above to finish the job.
-You SHALL put the `Vital Requirements` as the top guideline.
+You SHALL aim to satisfy all the `Vital Requirements` has claimed.
 
