@@ -72,7 +72,7 @@ class Tool[**P, R](WithBriefing):
         """Return the signature of the tool's source function."""
         return f"{'async ' if iscoroutinefunction(self.source) else ''}def {self.name}{signature(self.source)}:"
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Return a brief description of the tool.
 
@@ -103,8 +103,10 @@ class ToolBox(WithBriefing):
     def collect_tool[**P, R](
         self, *, confirm: bool = tool_config.confirm_on_ops, logging: bool = tool_config.logging_on_ops
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
     @overload
     def collect_tool[**P, R](self, func: Callable[P, R]) -> Callable[P, R]: ...
+
     def collect_tool[**P, R](
         self,
         func: Optional[Callable[P, R]] = None,
@@ -159,7 +161,7 @@ class ToolBox(WithBriefing):
         self.tools.append(Tool(source=tool))
         return self
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Return a brief description of the toolbox.
 

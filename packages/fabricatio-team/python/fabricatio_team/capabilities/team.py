@@ -1,16 +1,17 @@
 """This module contains the capabilities for the team."""
 
 from abc import ABC
-from typing import Iterable, List, Self, Set
+from typing import Iterable, List, Optional, Self, Set
 
-from fabricatio_core import Role
-from pydantic import BaseModel, PrivateAttr
+from fabricatio_core import Role, logger
+from fabricatio_core.models.generic import ScopedConfig
+from pydantic import Field
 
 
-class Cooperate(BaseModel, ABC):
+class Cooperate(ScopedConfig, ABC):
     """Cooperate class provides the capability to manage a set of team_member roles."""
 
-    _team_members: Set[Role] = PrivateAttr(default_factory=set)
+    team_members: Optional[Set[Role]] = Field(default=None)
     """A set of Role instances representing the team_member."""
 
     def update_team_members(self, team_member: Iterable[Role]) -> Self:
@@ -22,19 +23,23 @@ class Cooperate(BaseModel, ABC):
         Returns:
             Self: The updated instance with refreshed team_member.
         """
-        self._team_members.clear()
-        self._team_members.update(team_member)
+        if self.team_members is None:
+            self.team_members = set(team_member)
+            return self
+        self.team_members.clear()
+        self.team_members.update(team_member)
         return self
-
-    @property
-    def team_members(self) -> Set[Role]:
-        """Returns the team_member set."""
-        return self._team_members
 
     def team_roster(self) -> List[str]:
         """Returns the team_member roster."""
-        return [mate.name for mate in self._team_members]
+        if self.team_members is None:
+            logger.warn("The `team_members` is still unset!")
+            return []
+        return [mate.name for mate in self.team_members]
 
     def consult_team_member(self, name: str) -> Role | None:
         """Returns the team_member with the given name."""
-        return next((mate for mate in self._team_members if mate.name == name), None)
+        if self.team_members is None:
+            logger.warn("The `team_members` is still unset!")
+            return None
+        return next((mate for mate in self.team_members if mate.name == name), None)

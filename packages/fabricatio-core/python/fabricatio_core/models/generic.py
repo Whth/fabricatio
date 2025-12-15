@@ -282,6 +282,7 @@ class ScopedConfig(Base, ABC):
         # noinspection PydanticTypeChecker,PyTypeChecker
         for attr_name in self.__class__.model_fields:
             if attr_name in exclude:
+                logger.trace(f"Excluding `{attr_name}` from fallback")
                 continue
             # Check if both self and other have the attribute before accessing
             if (
@@ -289,6 +290,7 @@ class ScopedConfig(Base, ABC):
                 and getattr(self, attr_name) is None
                 and (attr := getattr(other, attr_name)) is not None
             ):
+                logger.trace(f"Falling back `{attr_name}` to `{attr}`")
                 # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
                 setattr(self, attr_name, attr)
 

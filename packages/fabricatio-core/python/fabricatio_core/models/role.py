@@ -1,6 +1,5 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from functools import cached_property
 from typing import Any, Dict, Self
 
 from pydantic import ConfigDict, Field
@@ -30,7 +29,7 @@ class Role(WithBriefing):
     dispatch_on_init: bool = Field(default=False, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Get the briefing of the role.
 

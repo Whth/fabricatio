@@ -10,7 +10,7 @@ Classes:
 """
 
 import traceback
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from asyncio import Queue, create_task
 from typing import Any, ClassVar, Dict, Generator, Self, Sequence, Tuple, Type, Union, final
 
@@ -26,7 +26,7 @@ OUTPUT_KEY = "task_output"
 INPUT_KEY = "task_input"
 
 
-class Action(WithBriefing):
+class Action(WithBriefing, ABC):
     """Class that represents an action to be executed in a workflow.
 
     Actions are the atomic units of work in a workflow. Each action performs
