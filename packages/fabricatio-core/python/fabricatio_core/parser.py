@@ -142,11 +142,12 @@ class Capture:
 
     @classmethod
     @lru_cache(32)
-    def capture_code_block(cls, language: str) -> Self:
+    def capture_code_block(cls, language: Optional[str]=None) -> Self:
         """Capture a code block of the given language.
 
         Args:
-            language (str): The programming language of the code block.
+            language (Optional[str]): The programming language of the code block.
+            Capture all kinds of code block if it set to None.
 
         Returns:
             Self: An instance of Capture configured to capture code blocks.
@@ -154,6 +155,8 @@ class Capture:
         Note:
             - This method creates a Capture instance with a pattern specific to code blocks.
         """
+        language = language or ".*"
+        
         return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
 
     @classmethod
