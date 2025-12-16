@@ -41,6 +41,10 @@ impl Default for TextHeuristic {
 ///
 /// ⚠️ This is a heuristic — not 100% accurate, but extremely fast.
 pub fn is_text<P: AsRef<Path>>(path: P, heuristic: &TextHeuristic) -> io::Result<bool> {
+    if !path.as_ref().exists() || path.as_ref().is_dir() {
+        return Ok(false);
+    }
+
     if heuristic.sample_size == 0 {
         return Ok(true); // Treat zero-sample as text
     }
@@ -98,8 +102,8 @@ fn is_strict_control_char(b: u8) -> bool {
     )
 }
 
-#[pyfunction]
-/// Convenience function using default heuristics.
+#[pyfunction] 
+/// judge if a file is likely text, dir or path not exist are considered false.
 pub fn is_likely_text(path: PathBuf) -> PyResult<bool> {
     is_text(path, &TextHeuristic::default()).into_pyresult()
 }

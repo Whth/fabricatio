@@ -18,7 +18,7 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.journal import logger
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
 
 
 class Base(BaseModel, ABC):
@@ -211,14 +211,15 @@ class WithDependency(Base, ABC):
         return TEMPLATE_MANAGER.render_template(
             CONFIG.templates.dependencies_template,
             {
-                (pth := Path(p)).name: {
+                (pth := Path(p).absolute().relative_to(Path.cwd())).name: {
                     "path": pth.as_posix(),
                     "exists": (exi := pth.exists()),
-                    "size": f"{pth.stat().st_size / (1024 * 1024) if exi and pth.is_file() else 0:.3f} MB",
-                    "content": (text := pth.read_text(encoding="utf-8", errors="ignore") if exi else ""),
-                    "lines": len(text.splitlines()) if exi else 0,
+                    "is_text":(is_f:=is_likely_text(pth)),
+                    "size": f"{pth.stat().st_size / 1024 if exi and pth.is_file() else 0:.3f} KiB",
+                    "content": (text := pth.read_text(encoding="utf-8", errors="ignore") if is_f else ""),
+                    "lines": len(text.splitlines()) if is_f else 0,
                     "checksum": blake3_hash(pth.read_bytes()) if exi and pth.is_file() else "unknown",
-                }
+                } 
                 for p in self.dependencies
             },
         )

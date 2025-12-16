@@ -1,17 +1,17 @@
 extern crate core;
-
 mod config;
 mod event;
 mod hash;
 mod hbs_helpers;
+mod text_file;
 
 mod language;
 mod scan;
 mod templates;
 mod word_split;
 
-use fabricatio_config::{CONFIG_VARNAME, Config};
-use fabricatio_logger::{LOGGER_VARNAME, Logger};
+use fabricatio_config::{Config, CONFIG_VARNAME};
+use fabricatio_logger::{Logger, LOGGER_VARNAME};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
@@ -37,5 +37,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     word_split::register(python, m)?;
     event::register(python, m)?;
     scan::register(python, m)?;
+    text_file::register(python, m)?;
+
     Ok(())
 }
