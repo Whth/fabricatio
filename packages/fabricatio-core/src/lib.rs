@@ -29,7 +29,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         None
     };
     fabricatio_logger::init_logger(conf.debug.log_level.as_str(), conf.debug.log_dir, rotation)
-        .map_err(|e| PyRuntimeError::new_err(e))?;
+        .map_err(PyRuntimeError::new_err)?;
     m.add(LOGGER_VARNAME, Logger)?;
     language::register(python, m)?;
     templates::register(python, m)?;
