@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Set
 
 from pydantic import JsonValue
 
-def treeview(directory: str | Path, max_depth: int = 8) -> str:
+def treeview(directory: str | Path, max_depth: int = 10) -> str:
     """Return a tree view of the given directory.
 
     The directory is traversed recursively up to a specified depth.

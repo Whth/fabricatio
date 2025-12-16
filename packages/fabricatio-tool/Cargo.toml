@@ -19,3 +19,4 @@ fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 ignore = { version = "0.4.25" }
 
 error-mapping = { path = "../../crates/error-mapping", features = ["pythonize", "serde_json"] }
+rayon = "1.11.0"

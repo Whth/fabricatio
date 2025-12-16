@@ -1,11 +1,11 @@
 use ignore::WalkBuilder;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use std::collections::HashMap;
-use std::path::PathBuf;
-
+use std::path::{absolute, PathBuf};
 #[pyfunction]
-#[pyo3(signature = (directory, max_depth = 8))]
+#[pyo3(signature = (directory, max_depth = 10))]
 /// Generates a tree-like string representation of a directory structure.
 ///
 /// Skips hidden files and respects .gitignore.
@@ -19,31 +19,31 @@ use std::path::PathBuf;
 ///
 /// A formatted string resembling the Unix `tree` command output.
 pub fn treeview(directory: PathBuf, max_depth: usize) -> PyResult<String> {
-    let dir = directory.canonicalize()?;
-    let root_name = dir
+    let root_name = absolute(&directory)?
         .file_name()
         .and_then(|s| s.to_str())
         .ok_or_else(|| PyValueError::new_err("Invalid directory path"))?
         .to_string();
-
     // Build walker
-    let walker_entries: Vec<_> = WalkBuilder::new(&dir)
+    let mut walker_entries: Vec<_> = WalkBuilder::new(directory)
         .max_depth(Some(max_depth))
-        .min_depth(Some(1))
-        .follow_links(false)
         .build()
+        .skip(1)
         .filter_map(Result::ok)
-        .map(|entry| {
+        .enumerate() // skip the root
+        .par_bridge()
+        .map(|(i, entry)| {
             let path = entry.path().to_path_buf();
             let depth = entry.depth();
             let name = path.file_name().unwrap().to_string_lossy().into_owned();
             let parent_key = path.parent().map(|p| p.to_path_buf());
-            (depth, name, parent_key, path)
+            (i, (depth, name, parent_key, path))
         })
         .collect();
+    walker_entries.sort_by(|(id1, _), (id2, _)| id1.cmp(id2));
 
     // Determine last entries for each parent directory
-    let entries = if walker_entries.is_empty() {
+    let mut entries = if walker_entries.is_empty() {
         vec![]
     } else {
         let mut parent_last = HashMap::new();
@@ -51,36 +51,43 @@ pub fn treeview(directory: PathBuf, max_depth: usize) -> PyResult<String> {
         walker_entries
             .iter()
             .rev()
-            .for_each(|(depth, _, parent_key, path)| {
+            .for_each(|(_, (depth, _, parent_key, path))| {
                 let key = (parent_key.clone(), *depth);
                 parent_last.entry(key).or_insert_with(|| path.clone());
             });
 
         // Create TreeEntry with correct is_last flags
         walker_entries
-            .into_iter()
-            .map(|(depth, name, parent_key, path)| {
+            .into_par_iter()
+            .map(|(id, (depth, name, parent_key, path))| {
                 let key = (parent_key, depth);
                 let is_last = parent_last
                     .get(&key)
                     .map(|last_path| last_path == &path)
                     .unwrap_or(false);
-                TreeEntry {
-                    depth,
-                    name,
-                    is_last,
-                }
+                (
+                    id,
+                    TreeEntry {
+                        depth,
+                        name,
+                        is_last,
+                    },
+                )
             })
             .collect()
     };
 
-    let tree_lines = build_tree_lines(entries);
+    entries.sort_by(|(id1, _), (id2, _)| id1.cmp(id2));
+    let tree_lines = build_tree_lines(entries.into_iter().map(|(_, entry)| entry));
 
     Ok(format!("{root_name}\n{tree_lines}"))
 }
 
 /// Builds a tree-like string from a list of TreeEntry structs.
-fn build_tree_lines(entries: Vec<TreeEntry>) -> String {
+fn build_tree_lines<E>(entries: E) -> String
+where
+    E: IntoIterator<Item = TreeEntry>,
+{
     let mut levels = Vec::new(); // For each level, whether to draw "│   "
 
     entries
