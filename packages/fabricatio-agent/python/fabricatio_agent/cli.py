@@ -12,7 +12,7 @@ from fabricatio_core import Event, Role, Task, WorkFlow
 from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_team.models.team import Team
 from pydantic import Field
-from typer import Argument, Option, Typer
+from typer import Argument, Typer
 
 from fabricatio_agent.actions.code import Architect, WriteCode
 

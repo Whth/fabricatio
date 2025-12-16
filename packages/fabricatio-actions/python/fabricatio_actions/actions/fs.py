@@ -1,7 +1,7 @@
 """A module for file system utilities."""
 
 from pathlib import Path
-from typing import Any, List, Mapping, Self, Optional, ClassVar
+from typing import Any, ClassVar, List, Mapping, Optional, Self
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.usages import UseLLM
@@ -14,14 +14,15 @@ from fabricatio_actions.models.generic import FromMapping
 
 class ReadText(Action, FromMapping):
     """Read text from a file."""
-    ctx_override:ClassVar[bool] =True 
+
+    ctx_override: ClassVar[bool] = True
 
     output_key: str = "read_text"
-    read_path: Optional[str | Path]=None
+    read_path: Optional[str | Path] = None
     """Path to the file to read."""
 
     async def _execute(self, *_: Any, **cxt) -> str:
-        p=Path(ok(self.read_path))
+        p = Path(ok(self.read_path))
         logger.info(f"Read text from {p.as_posix()} to {self.output_key}")
         return p.read_text(encoding="utf-8")
 
@@ -33,9 +34,10 @@ class ReadText(Action, FromMapping):
 
 class DumpText(Action, FromMapping):
     """Dump text to a file."""
-    ctx_override:ClassVar[bool] =True
 
-    dump_path: Optional[str | Path]=None 
+    ctx_override: ClassVar[bool] = True
+
+    dump_path: Optional[str | Path] = None
     """Path to the file to dump."""
     text_key: str = "text"
     """Key of the text to dump."""
@@ -57,7 +59,10 @@ class SmartReadText(ReadText, UseLLM):
 
     async def _execute(self, task_input: Task[str], *_: Any, **cxt) -> str:
         self.read_path = ok(
-            self.read_path or await self.awhich_pathstr(f"{task_input.briefing}\n\nwhat is the file system path that the task needs to read?")
+            self.read_path
+            or await self.awhich_pathstr(
+                f"{task_input.briefing}\n\nwhat is the file system path that the task needs to read?"
+            )
         )
 
         return await super()._execute(*_, **cxt)
@@ -69,7 +74,9 @@ class SmartDumpText(DumpText, UseLLM):
     async def _execute(self, task_input: Task[str], *_: Any, **cxt) -> str:
         self.dump_path = ok(
             self.dump_path
-            or await self.awhich_pathstr(f"{task_input.briefing}\n\nWhat is the file system path that the task needs write texts to?")
+            or await self.awhich_pathstr(
+                f"{task_input.briefing}\n\nWhat is the file system path that the task needs write texts to?"
+            )
         )
 
         return await super()._execute(*_, **cxt)
