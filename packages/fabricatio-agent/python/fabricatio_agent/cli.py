@@ -33,8 +33,8 @@ class Developer(Role, Cooperate):
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.CODING): WorkFlow(
                 name="WriteCodeWorkFlow",
-                description="write the code according to you requirements with language and specification you provide, will return written code as string, will not write to disk.",
-                steps=(WriteCode(output_key="code"), SmartDumpText(text_key="code")),
+                description="Write the code to a SINGLE FILE in the file system according to you requirements with language and specification you provide, None will always be returned.",
+                steps=(WriteCode(output_key="code"), SmartDumpText(text_key="code").to_task_output()),
             ),
             Event.quick_instantiate(TaskType.ARCHITECT): WorkFlow(
                 name="ArchitectWorkFlow",
@@ -54,14 +54,11 @@ class QualityAssurance(Role, Cooperate):
 @app.command()
 def code(
     prompt: str = Argument(..., help="The prompt to generate the code."),
-    sequential_thinking: bool = Option(False, "--sqt", help="Whether to use sequential thinking."),
 ) -> None:
     """Generate a basic manifest of a standard rust project."""
     team = Team().join(Developer()).inform()
     team.dispatch()
-    task = Task(name="Write code", description=prompt).update_init_context(
-        enable_seq_thinking=sequential_thinking, prompt=prompt
-    )
+    task = Task(name="Write code", description=prompt)
     task.delegate_blocking(TaskType.ARCHITECT)
 
 

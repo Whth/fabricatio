@@ -83,12 +83,14 @@ class Team:
             logger.debug(f"{m.name} is now informed with members: {m.team_roster()}")
         return self
 
-    def dispatch(self) -> Self:
+    def dispatch(self,resolve_config: bool = True) -> Self:
         """Dispatches the team members.
 
         Returns:
             The updated team instance.
         """
         for m in self.members:
+            if resolve_config:
+                m.resolve_configuration()
             m.dispatch()
         return self
