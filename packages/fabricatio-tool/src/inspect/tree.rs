@@ -3,7 +3,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::path::{absolute, PathBuf};
+use std::path::{PathBuf, absolute};
 #[pyfunction]
 #[pyo3(signature = (directory, max_depth = 10))]
 /// Generates a tree-like string representation of a directory structure.

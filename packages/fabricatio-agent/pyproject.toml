@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.1.4-dev17"
+version = "0.1.4-dev18"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -42,6 +42,7 @@ dev = [
 [project.optional-dependencies]
 cli = [
     "typer-slim[standard]>=0.15.2",
+    "fabricatio-actions",
 ]
 
 

@@ -102,7 +102,7 @@ fn is_strict_control_char(b: u8) -> bool {
     )
 }
 
-#[pyfunction] 
+#[pyfunction]
 /// judge if a file is likely text, dir or path not exist are considered false.
 pub fn is_likely_text(path: PathBuf) -> PyResult<bool> {
     is_text(path, &TextHeuristic::default()).into_pyresult()

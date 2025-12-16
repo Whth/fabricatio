@@ -11,7 +11,6 @@ def treeview(directory: str | Path, max_depth: int = 10) -> str:
     The directory is traversed recursively up to a specified depth.
     """
 
-
 class CheckConfig:
     def __init__(self, targets: Set[str], mode: Literal["whitelist", "blacklist"]) -> None:
         """Initialize a CheckConfig instance with specified targets and mode.

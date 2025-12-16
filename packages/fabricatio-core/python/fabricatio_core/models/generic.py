@@ -214,12 +214,12 @@ class WithDependency(Base, ABC):
                 (pth := Path(p).absolute().relative_to(Path.cwd())).name: {
                     "path": pth.as_posix(),
                     "exists": (exi := pth.exists()),
-                    "is_text":(is_f:=is_likely_text(pth)),
+                    "is_text": (is_f := is_likely_text(pth)),
                     "size": f"{pth.stat().st_size / 1024 if exi and pth.is_file() else 0:.3f} KiB",
                     "content": (text := pth.read_text(encoding="utf-8", errors="ignore") if is_f else ""),
                     "lines": len(text.splitlines()) if is_f else 0,
                     "checksum": blake3_hash(pth.read_bytes()) if exi and pth.is_file() else "unknown",
-                } 
+                }
                 for p in self.dependencies
             },
         )

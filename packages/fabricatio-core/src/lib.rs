@@ -10,8 +10,8 @@ mod scan;
 mod templates;
 mod word_split;
 
-use fabricatio_config::{Config, CONFIG_VARNAME};
-use fabricatio_logger::{Logger, LOGGER_VARNAME};
+use fabricatio_config::{CONFIG_VARNAME, Config};
+use fabricatio_logger::{LOGGER_VARNAME, Logger};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
