@@ -4,11 +4,11 @@
 while `FromSequence` provides a method to generate a list of objects from a sequence.
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, List, Mapping, Sequence
 
 
-class FromMapping:
+class FromMapping(ABC):
     """Class that provides a method to generate a list of objects from a mapping."""
 
     @classmethod
@@ -17,7 +17,7 @@ class FromMapping:
         """Generate a list of objects from a mapping."""
 
 
-class FromSequence:
+class FromSequence(ABC):
     """Class that provides a method to generate a list of objects from a sequence."""
 
     @classmethod
