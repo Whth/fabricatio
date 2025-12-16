@@ -1,12 +1,10 @@
 """File system create, update, read, delete operations."""
 
 import shutil
-import subprocess
 from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from fabricatio_core.decorators import depend_on_external_cmd
 from fabricatio_core.journal import logger
 
 
@@ -93,17 +91,6 @@ def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok:
     except OSError as e:
         logger.error(f"Failed to create directory {dir_path}: {e!s}")
         raise
-
-
-@depend_on_external_cmd(
-    "erd",
-    "Please install `erd` using `cargo install erdtree` or `scoop install erdtree`.",
-    "https://github.com/solidiquis/erdtree",
-)
-def tree(dir_path: Union[str, Path]) -> str:
-    """Generate a tree representation of the directory structure. Requires `erd` to be installed."""
-    dir_path = Path(dir_path)
-    return subprocess.check_output(("erd", dir_path.as_posix()), encoding="utf-8")  # noqa: S603
 
 
 def delete_directory(dir_path: Union[str, Path]) -> None:

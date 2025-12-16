@@ -11,7 +11,7 @@ from fabricatio_tool.fs import (
     move_file,
     safe_json_read,
     safe_text_read,
-    tree,
+    treeview,
 )
 from fabricatio_tool.models.tool import ToolBox
 
@@ -21,7 +21,7 @@ fs_toolbox = (
     .add_tool(copy_file)
     .add_tool(move_file)
     .add_tool(delete_file)
-    .add_tool(tree)
+    .add_tool(treeview)
     .add_tool(delete_directory)
     .add_tool(create_directory)
     .add_tool(absolute_path)
