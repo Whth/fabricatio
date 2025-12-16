@@ -24,3 +24,22 @@ class ReadText(Action, FromMapping):
     def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:
         """Create a list of ReadText actions from a mapping of output_key to read_path."""
         return [cls(read_path=p, output_key=k, **kwargs) for k, p in mapping.items()]
+
+
+class DumpText(Action, FromMapping):
+    """Dump text to a file."""
+
+    dump_path: str | Path
+    """Path to the file to dump."""
+    text_key: str = "text"
+    """Key of the text to dump."""
+
+    async def _execute(self, *_: Any, **cxt) -> Any:
+        p = Path(self.dump_path)
+        logger.info(f"Dump text from `{self.text_key}` to {p.as_posix()}")
+        p.write_text(cxt[self.text_key], encoding="utf-8", errors="ignore")
+
+    @classmethod
+    def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:
+        """Create a list of DumpText actions from a mapping of output_key to dump_path."""
+        return [cls(dump_path=p, text_key=k, **kwargs) for k, p in mapping.items()]
