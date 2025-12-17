@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Sequence, Unpack, overload
+from typing import Callable, Dict, List, Optional, Sequence, Set, Unpack, overload
 
 import asyncstdlib
 from litellm import (
@@ -579,6 +579,7 @@ class UseLLM(LLMScopedConfig, ABC):
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
+        is_included_fn: Optional[Callable[[Set[str], T], bool]] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
@@ -587,12 +588,18 @@ class UseLLM(LLMScopedConfig, ABC):
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
+            is_included_fn (Optional[Callable[[Set[str],T], bool]] = None): A function to check whether a choice is included in the query.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
         from fabricatio_core.parser import JsonCapture
+
+        def _is_included_fn(query: Set[str], choice: T) -> bool:
+            return choice.name in query
+
+        is_included_fn = _is_included_fn if is_included_fn is None else is_included_fn
 
         if dup := list(duplicates_everseen(choices, key=lambda x: x.name)):
             logger.error(err := f"Redundant choices: {dup}")
@@ -613,12 +620,14 @@ class UseLLM(LLMScopedConfig, ABC):
             ret = JsonCapture.validate_with(response, target_type=List, elements_type=str, length=k)
             if ret is None:
                 return None
-            if not_found := set(ret) - names:
-                logger.error(f"Invalid choices that were not found: {not_found}")
+            q = set(ret)
+            final_ret = [cho for cho in choices if is_included_fn(q, cho)]
+
+            if ret and not final_ret:
+                logger.error(f"Invalid choices that nothing got selected: {ret}")
                 return None
-            return [
-                next(candidate for candidate in choices if candidate.name == candidate_name) for candidate_name in ret
-            ]
+
+            return final_ret
 
         return await self.aask_validate(
             question=prompt,

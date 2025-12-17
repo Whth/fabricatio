@@ -46,9 +46,14 @@ class UseTool(UseLLM, ToolConfig, ABC):
         if not self.toolboxes:
             logger.warn("No toolboxes available.")
             return []
+
+        def _is_included_fn(query: Set[str], toolbox: ToolBox) -> bool:
+            return toolbox.name in query or any(t.name in query for t in toolbox.tools)
+
         return await self.achoose(
             instruction=request,
             choices=list(self.toolboxes),
+            is_included_fn=_is_included_fn,
             **kwargs,
         )
 

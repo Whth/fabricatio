@@ -63,7 +63,7 @@ class ProjectLeader(Role, Cooperate):
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Orchestrate): WorkFlow(
                 name="OrchestrateWorkFlow",
-                description="This workflow is extremely expensive, so use this less as possible, you can use this only when necessary. Capable to finish task that is completely beyond your reach, but do add enough detailed context into task metadata. ",
+                description="This workflow is extremely expensive, so YOU SHALL use this as less as possible, you can use this only when necessary. Capable to finish task that is completely beyond your reach, but do add enough detailed context into task metadata. ",
                 steps=(Planning().to_task_output(),),
             ),
         },
