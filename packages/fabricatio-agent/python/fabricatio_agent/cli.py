@@ -11,9 +11,9 @@ from fabricatio_core import Event, Role, Task, WorkFlow
 from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_team.models.team import Team
 from pydantic import Field
-from typer import Argument, Typer
+from typer import Argument, Option, Typer
 
-from fabricatio_agent.actions.code import Architect, WriteCode
+from fabricatio_agent.actions.code import CleanUp, Planning, WriteCode
 
 app = Typer()
 
@@ -22,23 +22,28 @@ class TaskType(StrEnum):
     """Task types."""
 
     CODING = "coding"
-    ARCHITECT = "architect"
+    Orchestrate = "orchestrate"
 
 
 class Developer(Role, Cooperate):
-    """A developer role."""
+    """A developer role capable of handling coding tasks.
+
+    This role implements the Cooperate capability and maintains a registry of workflows
+    for different task types. The developer can execute coding tasks through the
+    WriteCodeWorkFlow which generates and writes code to specified files.
+    """
 
     registry: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.CODING): WorkFlow(
                 name="WriteCodeWorkFlow",
-                description="Operate on a single file, generate the desired code according to you requirements and write it to where you want.",
+                description="Generate desired code and then write that code to a file",
                 steps=(WriteCode().to_task_output(),),
             ),
-            Event.quick_instantiate(TaskType.ARCHITECT): WorkFlow(
-                name="ArchitectWorkFlow",
-                description="If your task is too complex and need to break down into some smaller ones you should submit you task to this workflow.",
-                steps=(Architect().to_task_output(),),
+            Event.quick_instantiate(TaskType.CODING): WorkFlow(
+                name="CleanWorkFlow",
+                description="Clean unwanted files or directories.",
+                steps=(CleanUp().to_task_output(),),
             ),
         },
         frozen=True,
@@ -46,19 +51,43 @@ class Developer(Role, Cooperate):
     """The registry of events and workflows."""
 
 
-class QualityAssurance(Role, Cooperate):
-    """A quality assurance role."""
+class ProjectLeader(Role, Cooperate):
+    """A project leader role capable of handling planning tasks.
+
+    This role implements the Cooperate capability and maintains a registry of workflows
+    for different task types. The project leader can execute planning tasks through the
+    PlanningWorkFlow which breaks down complex tasks into smaller subtasks.
+    """
+
+    registry: Dict[Event, WorkFlow] = Field(
+        default_factory=lambda: {
+            Event.quick_instantiate(TaskType.Orchestrate): WorkFlow(
+                name="OrchestrateWorkFlow",
+                description="This workflow is extremely expensive, so use this less as possible, you can use this only when necessary. Capable to finish task that is completely beyond your reach, but do add enough detailed context into task metadata. ",
+                steps=(Planning().to_task_output(),),
+            ),
+        },
+        frozen=True,
+    )
+    """The registry of events and workflows."""
 
 
-@app.command()
+@app.command(no_args_is_help=True)
 def code(
-    prompt: str = Argument(..., help="The prompt to generate the code."),
+    prompt: str = Argument(..., help="The prompt to generate code from."),
+    sequential_thinking: bool = Option(
+        False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking."
+    ),
 ) -> None:
-    """Generate a basic manifest of a standard rust project."""
-    team = Team().join(Developer()).inform()
-    team.dispatch()
-    task = Task(name="Write code", description=prompt)
-    task.delegate_blocking(TaskType.ARCHITECT)
+    """Generate code based on the provided prompt.
+
+    This function creates a development team with a Developer role and dispatches
+    a coding task. If the task is complex, it will be broken down into smaller
+    subtasks through the architect workflow.
+    """
+    Team().join(Developer()).join(ProjectLeader()).inform().dispatch()
+    task = Task(name="Write code", description=prompt).update_init_context(sequential_thinking=sequential_thinking)
+    task.delegate_blocking(TaskType.Orchestrate)
 
 
 if __name__ == "__main__":

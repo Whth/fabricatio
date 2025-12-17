@@ -73,6 +73,26 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
         return self
 
+    def append_extra_description(self, description: str) -> Self:
+        r"""Append a description to the task.
+
+        Args:
+            description (str): The description to append.
+
+        Returns:
+            Task: The updated instance of the `Task` class.
+
+        Example:
+            .. code-block:: python
+
+                task = Task(name="example_task", description="This is an example task.")
+                task.append_extra_description("This task is important.")
+                assert task.description == "This is an example task.\nThis task is important."
+
+        """
+        self.description += f"\n{description}"
+        return self
+
     def update_task(self, *, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
         """Update the goal and description of the task.
 
