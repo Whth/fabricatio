@@ -1,9 +1,8 @@
 use ignore::WalkBuilder;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::path::{PathBuf, absolute};
+use std::path::PathBuf;
 #[pyfunction]
 #[pyo3(signature = (directory=None, max_depth = 10))]
 /// Generates a tree-like string representation of a directory structure.
@@ -21,11 +20,6 @@ use std::path::{PathBuf, absolute};
 pub fn treeview(directory: Option<PathBuf>, max_depth: usize) -> PyResult<String> {
     let directory = directory.unwrap_or_else(|| PathBuf::from("."));
 
-    let root_name = absolute(&directory)?
-        .file_name()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| PyValueError::new_err("Invalid directory path"))?
-        .to_string();
     // Build walker
     let mut walker_entries: Vec<_> = WalkBuilder::new(directory)
         .max_depth(Some(max_depth))
@@ -82,7 +76,7 @@ pub fn treeview(directory: Option<PathBuf>, max_depth: usize) -> PyResult<String
     entries.sort_by(|(id1, _), (id2, _)| id1.cmp(id2));
     let tree_lines = build_tree_lines(entries.into_iter().map(|(_, entry)| entry));
 
-    Ok(format!("{root_name}\n{tree_lines}"))
+    Ok(format!(".\n{tree_lines}"))
 }
 
 /// Builds a tree-like string from a list of TreeEntry structs.

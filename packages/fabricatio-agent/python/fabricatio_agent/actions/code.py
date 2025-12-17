@@ -2,7 +2,7 @@
 
 from typing import ClassVar, Optional, Set
 
-from fabricatio_core import Action, Task
+from fabricatio_core import Action, Task, logger
 from fabricatio_core.utils import ok
 from fabricatio_tool.models.tool import ToolBox
 from fabricatio_tool.rust import treeview
@@ -25,13 +25,15 @@ class WriteCode(Action, Agent):
     """The coding language to use, will automatically be inferred from the prompt if not specified."""
 
     async def _execute(self, task_input: Task, **cxt) -> Optional[str]:
-        br = task_input.briefing
-        code_lang = self.coding_language or await self.ageneric_string(
-            f"{task_input.dependencies_prompt}\n{task_input.briefing}\n\nAccording to the briefing above, what is the required coding language?"
-            f"Your response shall contains only the coding language' official name, you MUST not output any other stuffs."
+        c = ok(
+            await self.acode_snippet(
+                f"current directory tree:\n{treeview()}\n\n{task_input.dependencies_prompt}\n\n{task_input.briefing}",
+                code_language=self.coding_language,
+            )
         )
-
-        return await self.acode_string(f"{task_input.dependencies_prompt}\n{br}", ok(code_lang))
+        logger.info(f"Writing code to {c.write_to}")
+        c.write()
+        return c.source
 
 
 class MakeSpecification(Action, Agent):

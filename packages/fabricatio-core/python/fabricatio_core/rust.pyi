@@ -272,7 +272,10 @@ class TemplateConfig:
 
     # String Processing Templates
     code_string_template: str
-    """The name of the code string template which will be used to process a code string."""
+    """The name of the code string template which will be used to generate a code string."""
+    code_snippet_template: str
+    """The name of the code snippet template which will be used to generate a code snippet."""
+
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
 

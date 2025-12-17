@@ -24,7 +24,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     """Objectives the task aims to achieve."""
 
     dependencies: List[str] = Field(default_factory=list)
-    """File paths needed to complete the task. Either read or write."""
+    """File paths necessarily needed to read or write to complete the task. Do add path(s) needed!"""
 
     description: str = Field(default="")
     """Detailed explanation of the task with 5W1H rule."""

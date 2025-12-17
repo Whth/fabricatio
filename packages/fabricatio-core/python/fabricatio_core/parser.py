@@ -155,7 +155,7 @@ class Capture:
         Note:
             - This method creates a Capture instance with a pattern specific to code blocks.
         """
-        language = language or ".*"
+        language = language or ".*?"
 
         return cls(pattern=f"```{language}\n(.*?)\n```", capture_type=language)
 

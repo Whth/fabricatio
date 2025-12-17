@@ -49,7 +49,7 @@ class Thinking(Propose, ABC):
             thought = ok(
                 await self.propose(
                     Thought,
-                    f"{wrap_in_block(question, 'Question')}\n\n{wrap_in_block(vcs.export_branch_string(), 'Previous Thoughts for Question')}\n\nYou are now required to give out the next one.",
+                    f"{wrap_in_block(question, 'Question')}\n\n{wrap_in_block(vcs.export_branch_string(), 'Previous Chain of Thoughts for Question')}\n\nYou need to finish the remaining of the CoT.",
                     **kwargs,
                 ),
                 "Failed to propose thought",

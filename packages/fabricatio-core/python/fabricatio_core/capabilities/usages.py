@@ -31,6 +31,7 @@ from pydantic import NonNegativeInt, PositiveInt
 
 from fabricatio_core import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.decorators import logging_exec_time
+from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.models.llm import Messages, get_router
@@ -480,16 +481,16 @@ class UseLLM(LLMScopedConfig, ABC):
 
     @overload
     async def acode_string(
-        self, requirement: str, code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: str, code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[str]: ...
 
     @overload
     async def acode_string(
-        self, requirement: List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> List[Optional[str]]: ...
 
     async def acode_string(
-        self, requirement: str | List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: str | List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> None | str | List[str | None]:
         """Asynchronously generates code strings based on given requirements and code language.
 
@@ -514,6 +515,62 @@ class UseLLM(LLMScopedConfig, ABC):
                 else [{"requirement": r, "code_language": code_language} for r in requirement],
             ),
             validator=lambda resp: cap.capture(resp),
+            **kwargs,
+        )
+
+    @overload
+    async def acode_snippet(
+        self,
+        requirement: str,
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> Optional[CodeSnippet]: ...
+
+    @overload
+    async def acode_snippet(
+        self,
+        requirement: List[str],
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> List[Optional[CodeSnippet]]: ...
+
+    async def acode_snippet(
+        self,
+        requirement: str | List[str],
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> None | CodeSnippet | List[CodeSnippet | None]:
+        """Asynchronously generates code snippets based on given requirements and code language.
+
+        Args:
+            requirement (str | List[str]): The requirement(s) for generating code snippets.
+            code_language (str): The programming language for the generated code.
+            **kwargs (Unpack[ValidateKwargs[CodeSnippet]]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            None | CodeSnippet | List[CodeSnippet | None]: The generated code snippet(s). Returns a single CodeSnippet if requirement
+            is a string, or a list of CodeSnippet/None values if requirement is a list.
+        """
+        from fabricatio_core.parser import Capture
+
+        cap = Capture.capture_code_block(code_language)
+
+        def _validator(resp: str) -> Optional[CodeSnippet]:
+            seq = resp.split("\n", 1)
+            if len(seq) != 2:
+                return None
+            path, codeblock = seq
+            code = cap.capture(codeblock)
+            return CodeSnippet(write_to=path, source=code) if code else None
+
+        return await self.aask_validate(
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.code_snippet_template,
+                {"requirement": requirement, "code_language": code_language}
+                if isinstance(requirement, str)
+                else [{"requirement": r, "code_language": code_language} for r in requirement],
+            ),
+            validator=_validator,
             **kwargs,
         )
 
