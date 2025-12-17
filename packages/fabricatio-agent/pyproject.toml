@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.1.4-dev21"
+version = "0.1.4-dev22"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
