@@ -1282,6 +1282,7 @@ dependencies = [
 name = "fabricatio-thinking"
 version = "0.0.0"
 dependencies = [
+ "fabricatio-logger",
  "pyo3",
 ]
 

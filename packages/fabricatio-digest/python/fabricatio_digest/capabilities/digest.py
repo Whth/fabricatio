@@ -39,7 +39,11 @@ class Digest(Propose, ABC):
         """
         # get the instruction to build the raw_task sequence
         instruct = TEMPLATE_MANAGER.render_template(
-            digest_config.digest_template, {"requirement": requirement, "receptions": [r.briefing for r in receptions]}
+            digest_config.digest_template,
+            {
+                "requirement": requirement,
+                "receptions": [r.briefing for r in receptions],
+            },
         )
 
         return await self.propose(TaskList, instruct, **kwargs)

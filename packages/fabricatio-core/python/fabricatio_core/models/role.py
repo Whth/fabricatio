@@ -1,6 +1,6 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from typing import Any, Dict, Self
+from typing import Any, Dict, List, Self
 
 from pydantic import ConfigDict, Field
 
@@ -41,6 +41,15 @@ class Role(WithBriefing):
         abilities = "\n".join(f"  - `{k.collapse()}` ==> {w.briefing}" for (k, w) in self.registry.items())
 
         return f"{base}\nEvent Mapping:\n{abilities}"
+
+    @property
+    def accept_events(self) -> List[str]:
+        """Get the set of events that the role accepts.
+
+        Returns:
+            Set[Event]: The set of events that the role accepts.
+        """
+        return [k.collapse() for k in self.registry]
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.

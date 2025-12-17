@@ -6,6 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 

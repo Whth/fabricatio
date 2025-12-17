@@ -5,6 +5,8 @@ from typing import Iterable, List, Optional, Self, Set
 
 from fabricatio_core import Role, logger
 from fabricatio_core.models.generic import ScopedConfig
+from fabricatio_core.utils import ok
+from more_itertools.recipes import flatten
 from pydantic import Field
 
 
@@ -43,3 +45,7 @@ class Cooperate(ScopedConfig, ABC):
             logger.warn("The `team_members` is still unset!")
             return None
         return next((mate for mate in self.team_members if mate.name == name), None)
+
+    def gather_accept_events(self) -> List[str]:
+        """Gathers all accept_events from all team_member roles."""
+        return list(flatten(mate.accept_events for mate in ok(self.team_members, "Team member not specified!")))

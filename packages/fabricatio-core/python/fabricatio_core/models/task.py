@@ -23,6 +23,9 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     goals: List[str] = Field(default_factory=list)
     """Objectives the task aims to achieve."""
 
+    dependencies: List[str] = Field(default_factory=list)
+    """File paths needed to complete the task. Either read or write."""
+
     description: str = Field(default="")
     """Detailed explanation of the task with 5W1H rule."""
 
@@ -30,10 +33,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     """Concise and descriptive name of the task."""
 
     namespace: List[str] = Field(default_factory=list)
-    """Segments indicating where the task will be sent. Using ['work'] as namespace and `::` as sep results in `work::task_name::Pending` when the task submitted."""
-
-    dependencies: List[str] = Field(default_factory=list)
-    """File paths needed to complete the task."""
+    """Segments indicating where the task will be sent. For example, ['work'] => `work::*::Pending`, ['write', 'book'] => `write::book::*::Pending`. Should always not send to a namespace that is not exist."""
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""

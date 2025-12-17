@@ -33,7 +33,8 @@ class Developer(Role, Cooperate):
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.CODING): WorkFlow(
                 name="WriteCodeWorkFlow",
-                description="Write the code to a SINGLE FILE in the file system according to you requirements with language and specification you provide, None will always be returned.",
+                description="Write the desired code to a SINGLE FILE in the file system according to you requirements with language and specification you provide, None will always be returned. "
+                "Write one file at a time, You SHALL clearly describe the path to write. Also if you need to read some files you can specify their paths in the `dependencies` field of the task.",
                 steps=(WriteCode(output_key="code"), SmartDumpText(text_key="code").to_task_output()),
             ),
             Event.quick_instantiate(TaskType.ARCHITECT): WorkFlow(

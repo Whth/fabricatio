@@ -27,11 +27,11 @@ class WriteCode(Action, Agent):
     async def _execute(self, task_input: Task, **cxt) -> Optional[str]:
         br = task_input.briefing
         code_lang = self.coding_language or await self.ageneric_string(
-            f"{task_input.briefing}\n\nAccording to the briefing above, what is the required coding language?"
+            f"{task_input.dependencies_prompt}\n{task_input.briefing}\n\nAccording to the briefing above, what is the required coding language?"
             f"Your response shall contains only the coding language' official name, you MUST not output any other stuffs."
         )
 
-        return await self.acode_string(br, ok(code_lang))
+        return await self.acode_string(f"{task_input.dependencies_prompt}\n{br}", ok(code_lang))
 
 
 class MakeSpecification(Action, Agent):
@@ -71,8 +71,6 @@ class Architect(Action, Agent):
             )
         )
         await tk.execute()
-
-        # TODO impl
         return True
 
 

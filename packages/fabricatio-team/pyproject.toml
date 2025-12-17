@@ -26,6 +26,10 @@ dependencies = [
 dev = [
     "pytest",
 ]
+[project.optional-dependencies]
+digest = [
+    "fabricatio-digest"
+]
 
 
 [build-system]
