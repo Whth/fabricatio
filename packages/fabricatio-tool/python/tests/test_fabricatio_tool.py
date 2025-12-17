@@ -113,10 +113,10 @@ class TestTool:
 
     def test_briefing_property(self, tool: Tool) -> None:
         """Test briefing generation."""
-        expected = '''def test_tool(x: int, y: str) -> str:
-    """
-    Test tool description
-    """'''
+        expected = ('def test_tool(x: int, y: str) -> str:\n'
+                    '    """\n'
+                    '    Test tool description\n'
+                    '    """')
         assert tool.briefing == expected
 
 

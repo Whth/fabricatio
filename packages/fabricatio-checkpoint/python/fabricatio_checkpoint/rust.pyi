@@ -37,7 +37,7 @@ class ShadowRepoManager:
                 (staging, committing, etc.).
 
         Notes:
-            If there is no changes to commit, this method returns the ID of the last commit, AKA the HEAD.
+            If there are no changes to commit, this method returns the ID of the last commit, AKA the HEAD.
         """
 
     def drop(self, worktree_dir: Path) -> None:

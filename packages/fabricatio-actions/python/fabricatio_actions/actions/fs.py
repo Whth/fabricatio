@@ -46,7 +46,8 @@ class DumpText(Action, FromMapping):
         p = Path(ok(self.dump_path))
         p.parent.mkdir(parents=True, exist_ok=True)
         logger.info(f"Dump text from `{self.text_key}` to {p.as_posix()}")
-        p.write_text(cxt[self.text_key], encoding="utf-8", errors="ignore")
+        text = ok(cxt.get(self.text_key), f"Context key '{self.text_key}' not found")
+        p.write_text(text, encoding="utf-8", errors="ignore")
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:
@@ -71,7 +72,7 @@ class SmartReadText(ReadText, UseLLM):
 class SmartDumpText(DumpText, UseLLM):
     """Dump text to a file using LLM."""
 
-    async def _execute(self, task_input: Task[str], *_: Any, **cxt) -> str:
+    async def _execute(self, task_input: Task[str], *_: Any, **cxt) -> None:
         self.dump_path = ok(
             self.dump_path
             or await self.awhich_pathstr(
@@ -79,4 +80,4 @@ class SmartDumpText(DumpText, UseLLM):
             )
         )
 
-        return await super()._execute(*_, **cxt)
+        await super()._execute(*_, **cxt)

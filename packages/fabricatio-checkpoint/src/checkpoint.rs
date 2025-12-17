@@ -194,9 +194,9 @@ impl ShadowRepoManager {
     /// - The shadow repository is not found
     /// - Git operations fail (staging, committing, etc.)
     ///
-    /// #Note
+    /// # Note
     ///
-    /// If there is no changes to commit, this method returns the ID of the last commit, AKA the HEAD.
+    /// If there are no changes to commit, this method returns the ID of the last commit (the HEAD).
     #[pyo3(signature=(worktree_dir, commit_msg=None))]
     pub fn save(&self, worktree_dir: PathBuf, commit_msg: Option<String>) -> PyResult<String> {
         let worktree_dir = absolute(worktree_dir).into_pyresult()?;

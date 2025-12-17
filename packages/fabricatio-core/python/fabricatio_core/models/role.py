@@ -129,12 +129,12 @@ class Role(WithBriefing):
 
     def __hash__(self) -> int:
         """Use the briefing as the hash value."""
-        return hash(self.briefing)
+        return hash(self.name)
 
     def __eq__(self, other: object) -> bool:
         """Compare two roles for equality."""
         if isinstance(other, Role):
-            return self.briefing == other.briefing
+            return self.name == other.name
         return False
 
 
