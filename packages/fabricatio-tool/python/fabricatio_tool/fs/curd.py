@@ -102,10 +102,13 @@ def delete_directory(dir_path: Union[str, Path]) -> None:
     Raises:
         FileNotFoundError: If directory doesn't exist
         OSError: If directory is not empty and can't be removed
+        ValueError: If attempting to delete root directory
     """
-    p = Path(dir_path)
+    p = Path(dir_path).resolve()  # Use resolved absolute path
     if p == p.root:
-        logger.error(f"Should not delete root directory: {p}")
+        error_msg = f"Refusing to delete root directory: {p}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     try:
         shutil.rmtree(p)

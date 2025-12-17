@@ -71,7 +71,7 @@ class Team:
         Returns:
             The updated team instance.
         """
-        # only the Corporate members have slot to store member info.
+        # only the members have slot to store member info.
         member_to_inform = [member for member in self.members if isinstance(member, Cooperate)]
 
         if not member_to_inform:

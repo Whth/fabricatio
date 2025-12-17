@@ -53,7 +53,7 @@ class ToolConfig(BaseModel):
     check_imports: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """Imports that are forbidden/allowed to be used."""
     check_calls: CheckConfigModel = Field(default_factory=CheckConfigModel)
-    """"Calls that are forbidden/allowed to be used."""
+    """Calls that are forbidden/allowed to be used."""
 
     mcp_servers: Dict[str, ServiceConfig] = Field(default_factory=dict)
     """MCP servers that are allowed to be used."""
