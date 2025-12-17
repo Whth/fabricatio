@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::{PathBuf, absolute};
 #[pyfunction]
-#[pyo3(signature = (directory, max_depth = 10))]
+#[pyo3(signature = (directory=None, max_depth = 10))]
 /// Generates a tree-like string representation of a directory structure.
 ///
 /// Skips hidden files and respects .gitignore.
@@ -18,7 +18,9 @@ use std::path::{PathBuf, absolute};
 /// # Returns
 ///
 /// A formatted string resembling the Unix `tree` command output.
-pub fn treeview(directory: PathBuf, max_depth: usize) -> PyResult<String> {
+pub fn treeview(directory: Option<PathBuf>, max_depth: usize) -> PyResult<String> {
+    let directory = directory.unwrap_or_else(|| PathBuf::from("."));
+
     let root_name = absolute(&directory)?
         .file_name()
         .and_then(|s| s.to_str())

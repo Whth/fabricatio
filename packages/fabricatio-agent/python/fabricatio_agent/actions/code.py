@@ -5,6 +5,7 @@ from typing import ClassVar, Optional, Set
 from fabricatio_core import Action, Task
 from fabricatio_core.utils import ok
 from fabricatio_tool.models.tool import ToolBox
+from fabricatio_tool.rust import treeview
 from fabricatio_tool.toolboxes import fs_toolbox
 from pydantic import Field
 
@@ -62,7 +63,7 @@ class Architect(Action, Agent):
     async def _execute(self, task_input: Task, **cxt) -> bool:
         """Execute the action."""
         br = task_input.briefing
-        planning = await self.thinking(br)
+        planning = await self.thinking(f"Current directory tree:\n{treeview()}\n\n{br}")
 
         tk = ok(
             await self.digest(
