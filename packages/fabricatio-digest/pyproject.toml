@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-digest"
-version = "0.1.8-dev3"
+version = "0.2.0"
 description = "A extension for fabricatio, providing capabilities to handle raw requirment, digesting it into a task list"
 readme = "README.md"
 license = { file = "LICENSE" }

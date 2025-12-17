@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.1-dev0"
+version = "0.2.1"
 dependencies = [
  "epub-builder",
  "git2",
@@ -1160,7 +1160,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.1.5-dev1"
+version = "0.1.5"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1175,7 +1175,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-constants"
-version = "0.2.2-dev0"
+version = "0.2.2"
 dependencies = [
  "directories-next",
  "once_cell",

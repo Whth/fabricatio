@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-tagging"
-version = "0.1.3-dev0"
+version = "0.1.3"
 description = "An extension of fabricatio, provide capalability to tag on data."
 readme = "README.md"
 license = { file = "LICENSE" }
