@@ -272,7 +272,10 @@ class TemplateConfig:
 
     # String Processing Templates
     code_string_template: str
-    """The name of the code string template which will be used to process a code string."""
+    """The name of the code string template which will be used to generate a code string."""
+    code_snippet_template: str
+    """The name of the code snippet template which will be used to generate a code snippet."""
+
     generic_string_template: str
     """The name of the generic string template which will be used to review a string."""
 
@@ -649,5 +652,8 @@ def extras_satisfied(pkg_name: str, extras: Sequence[str]) -> bool:
     Returns:
         True if all extras are satisfied, False otherwise.
     """
+
+def is_likely_text(path: str | Path) -> bool:
+    """Judge if a file is likely text, dir or path not exist are considered false."""
 
 logger: Logger

@@ -10,31 +10,31 @@ from fabricatio_core import logger
 class ResultCollector:
     """Used for collecting results as the task requests.
 
-    use .submit(to: str, val: Any) to submit a value that are required to the container with the specified key.
-    use .revoke(target: str) to remove a value from the container by its source key.
+    use .submit(key: str, val: Any) submit a result value `val` with the to the `key` slot.
+    use .revoke(key: str) revoke a result from the container by its source `key`.
     """
 
     container: Dict[str, Any] = field(default_factory=dict)
     """A dictionary to store results."""
 
-    def submit(self, to: str, val: Any) -> Self:
+    def submit(self, key: str, val: Any) -> Self:
         """Submit a result to the container with the specified key.
 
         Args:
-            to (str): The key to store the result under.
+            key (str): The key to store the result under.
             val (Any): The result to store in the container.
 
         Returns:
             Self: The current instance for method chaining.
         """
-        self.container[to] = val
+        self.container[key] = val
         return self
 
-    def revoke(self, target: str) -> Self:
+    def revoke(self, key: str) -> Self:
         """Remove a result from the container by its source key.
 
         Args:
-            target (str): The key of the result to remove.
+            key (str): The key of the result to remove.
 
         Returns:
             Self: The current instance for method chaining.
@@ -42,10 +42,10 @@ class ResultCollector:
         Raises:
             KeyError: If the key is not found in the container.
         """
-        if target in self.container:
-            self.container.pop(target)
+        if key in self.container:
+            self.container.pop(key)
             return self
-        logger.warn(f"Key '{target}' not found in container.")
+        logger.warn(f"Key '{key}' not found in container.")
         return self
 
     @overload

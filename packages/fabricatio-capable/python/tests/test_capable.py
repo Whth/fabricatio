@@ -10,7 +10,6 @@ from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string, return_string
 from fabricatio_mock.utils import install_router
 from fabricatio_tool.models.tool import ToolBox
-from fabricatio_tool.toolboxes import arithmetic_toolbox
 
 
 class CapableRole(LLMTestRole, Capable):
@@ -24,7 +23,7 @@ def toolbox_set() -> Set[ToolBox]:
     Returns:
         set: A set containing the arithmetic_toolbox.
     """
-    return {arithmetic_toolbox}
+    return {ToolBox(name="arithmetic_toolbox")}
 
 
 @pytest.fixture

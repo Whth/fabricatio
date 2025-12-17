@@ -7,7 +7,7 @@ from typing import Optional, Unpack
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok
+from fabricatio_core.utils import ok, wrap_in_block
 
 from fabricatio_thinking.models.thinking import Thought
 from fabricatio_thinking.rust import ThoughtVCS
@@ -45,27 +45,34 @@ class Thinking(Propose, ABC):
         vcs = vcs or ThoughtVCS()
         logger.debug("Initialized ThoughtVCS")
 
-        for step in count():
-            thought = ok(await self.propose(Thought, question, **kwargs), "Failed to propose thought")
-            logger.debug(f"Step {step}: Received thought - {thought}")
+        for step in range(1, max_steps + 1) if max_steps is not None else count():
+            thought = ok(
+                await self.propose(
+                    Thought,
+                    f"{wrap_in_block(question, 'Question')}\n\n{wrap_in_block(vcs.export_branch_string(), 'Previous Chain of Thoughts for Question')}\n\nYou need to finish the remaining of the CoT.",
+                    **kwargs,
+                ),
+                "Failed to propose thought",
+            )
+            logger.debug(f"Step {step}: Received thought")
+            # Revise if needed
+            if thought.revision and thought.revises_thought is not None:
+                logger.debug(f"Revising thought: {thought.revises_thought} with new content: {thought.thought}")
+                vcs.revise(content=thought.thought, serial=thought.revises_thought, branch=thought.branch)
+                continue
+
+            # Checkout (branch) if needed
+            if thought.checkout is not None and thought.branch is not None:
+                logger.debug(f"Checking out branch: {thought.branch} at serial: {thought.checkout}")
+                vcs.checkout(branch=thought.branch, serial=thought.checkout)
+                continue
 
             # Commit the current thought
             logger.debug(f"Committing thought: {thought.serial} - {thought.thought}")
             vcs.commit(
                 content=thought.thought, serial=thought.serial, estimated=thought.estimated, branch=thought.branch
             )
-
-            # Revise if needed
-            if thought.revision and thought.revises_thought is not None:
-                logger.debug(f"Revising thought: {thought.revises_thought} with new content: {thought.thought}")
-                vcs.revise(content=thought.thought, serial=thought.revises_thought, branch=thought.branch)
-
-            # Checkout (branch) if needed
-            if thought.checkout is not None and thought.branch is not None:
-                logger.debug(f"Checking out branch: {thought.branch} at serial: {thought.checkout}")
-                vcs.checkout(branch=thought.branch, serial=thought.checkout)
-
-            if thought.end or (max_steps and step >= max_steps):
+            if thought.end:
                 logger.debug("End of thinking process reached.")
                 break
 

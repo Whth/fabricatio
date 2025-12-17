@@ -113,10 +113,7 @@ class TestTool:
 
     def test_briefing_property(self, tool: Tool) -> None:
         """Test briefing generation."""
-        expected = '''def test_tool(x: int, y: str) -> str:
-    """
-    Test tool description
-    """'''
+        expected = 'def test_tool(x: int, y: str) -> str:\n    """\n    Test tool description\n    """'
         assert tool.briefing == expected
 
 
@@ -143,10 +140,12 @@ class TestToolBox:
     def test_briefing_property(self, toolbox: ToolBox, sample_func: Callable[[int, str], str]) -> None:
         """Test toolbox briefing generation."""
         toolbox.add_tool(sample_func)
-        expected = """## test_box: Test toolbox
-## 2 tools available:
-def func(x: int, y: str) -> str:
-def func(x: int, y: str) -> str:"""
+        expected = (
+            "## test_box: Test toolbox\n"
+            "## 2 tools available:\n"
+            "def func(x: int, y: str) -> str:\n"
+            "async def func(x: int, y: str) -> str:"
+        )
         assert toolbox.briefing == expected
 
 

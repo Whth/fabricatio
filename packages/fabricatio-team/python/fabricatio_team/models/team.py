@@ -1,6 +1,6 @@
 """This module contains the models for the team."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Self, Set
 
 from fabricatio_core import Role, logger
@@ -34,7 +34,7 @@ class Team:
 
     """
 
-    members: Set[Role]
+    members: Set[Role] = field(default_factory=set)
     """The team members."""
 
     def join(self, teammate: Role) -> Self:
@@ -71,7 +71,7 @@ class Team:
         Returns:
             The updated team instance.
         """
-        # only the Cooperate members have slot to store member info.
+        # only the members have slot to store member info.
         member_to_inform = [member for member in self.members if isinstance(member, Cooperate)]
 
         if not member_to_inform:
@@ -81,4 +81,16 @@ class Team:
         for m in member_to_inform:
             m.update_team_members(self.members)
             logger.debug(f"{m.name} is now informed with members: {m.team_roster()}")
+        return self
+
+    def dispatch(self, resolve_config: bool = True) -> Self:
+        """Dispatches the team members.
+
+        Returns:
+            The updated team instance.
+        """
+        for m in self.members:
+            if resolve_config:
+                m.resolve_configuration()
+            m.dispatch()
         return self

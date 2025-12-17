@@ -29,5 +29,3 @@ class Thought(SketchedAble):
     """The step number from which a branch is created."""
     branch: Optional[str] = None
     """Unique identifier for the branch."""
-    further: bool = False
-    """Whether more thought steps are needed"""

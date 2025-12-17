@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Sequence, Unpack, overload
+from typing import Callable, Dict, List, Optional, Sequence, Set, Unpack, overload
 
 import asyncstdlib
 from litellm import (
@@ -31,6 +31,7 @@ from pydantic import NonNegativeInt, PositiveInt
 
 from fabricatio_core import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.decorators import logging_exec_time
+from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.models.llm import Messages, get_router
@@ -480,16 +481,16 @@ class UseLLM(LLMScopedConfig, ABC):
 
     @overload
     async def acode_string(
-        self, requirement: str, code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: str, code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[str]: ...
 
     @overload
     async def acode_string(
-        self, requirement: List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> List[Optional[str]]: ...
 
     async def acode_string(
-        self, requirement: str | List[str], code_language: str, **kwargs: Unpack[ValidateKwargs[str]]
+        self, requirement: str | List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> None | str | List[str | None]:
         """Asynchronously generates code strings based on given requirements and code language.
 
@@ -517,11 +518,68 @@ class UseLLM(LLMScopedConfig, ABC):
             **kwargs,
         )
 
+    @overload
+    async def acode_snippet(
+        self,
+        requirement: str,
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> Optional[CodeSnippet]: ...
+
+    @overload
+    async def acode_snippet(
+        self,
+        requirement: List[str],
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> List[Optional[CodeSnippet]]: ...
+
+    async def acode_snippet(
+        self,
+        requirement: str | List[str],
+        code_language: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
+    ) -> None | CodeSnippet | List[CodeSnippet | None]:
+        """Asynchronously generates code snippets based on given requirements and code language.
+
+        Args:
+            requirement (str | List[str]): The requirement(s) for generating code snippets.
+            code_language (str): The programming language for the generated code.
+            **kwargs (Unpack[ValidateKwargs[CodeSnippet]]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            None | CodeSnippet | List[CodeSnippet | None]: The generated code snippet(s). Returns a single CodeSnippet if requirement
+            is a string, or a list of CodeSnippet/None values if requirement is a list.
+        """
+        from fabricatio_core.parser import Capture
+
+        cap = Capture.capture_code_block(code_language)
+
+        def _validator(resp: str) -> Optional[CodeSnippet]:
+            seq = resp.split("\n", 1)
+            if len(seq) != 2:
+                return None
+            path, codeblock = seq
+            code = cap.capture(codeblock)
+            return CodeSnippet(write_to=path, source=code) if code else None
+
+        return await self.aask_validate(
+            TEMPLATE_MANAGER.render_template(
+                CONFIG.templates.code_snippet_template,
+                {"requirement": requirement, "code_language": code_language}
+                if isinstance(requirement, str)
+                else [{"requirement": r, "code_language": code_language} for r in requirement],
+            ),
+            validator=_validator,
+            **kwargs,
+        )
+
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
         choices: List[T],
         k: NonNegativeInt = 0,
+        is_included_fn: Optional[Callable[[Set[str], T], bool]] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
@@ -530,12 +588,18 @@ class UseLLM(LLMScopedConfig, ABC):
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
+            is_included_fn (Optional[Callable[[Set[str],T], bool]] = None): A function to check whether a choice is included in the query.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
         from fabricatio_core.parser import JsonCapture
+
+        def _is_included_fn(query: Set[str], choice: T) -> bool:
+            return choice.name in query
+
+        is_included_fn = _is_included_fn if is_included_fn is None else is_included_fn
 
         if dup := list(duplicates_everseen(choices, key=lambda x: x.name)):
             logger.error(err := f"Redundant choices: {dup}")
@@ -554,11 +618,16 @@ class UseLLM(LLMScopedConfig, ABC):
 
         def _validate(response: str) -> List[T] | None:
             ret = JsonCapture.validate_with(response, target_type=List, elements_type=str, length=k)
-            if ret is None or set(ret) - names:
+            if ret is None:
                 return None
-            return [
-                next(candidate for candidate in choices if candidate.name == candidate_name) for candidate_name in ret
-            ]
+            q = set(ret)
+            final_ret = [cho for cho in choices if is_included_fn(q, cho)]
+
+            if ret and not final_ret:
+                logger.error(f"Invalid choices that nothing got selected: {ret}")
+                return None
+
+            return final_ret
 
         return await self.aask_validate(
             question=prompt,

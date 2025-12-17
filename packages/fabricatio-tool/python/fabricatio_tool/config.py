@@ -49,11 +49,11 @@ class ToolConfig(BaseModel):
     """The name of the draft tool usage code template which will be used to draft tool usage code."""
 
     check_modules: CheckConfigModel = Field(default_factory=CheckConfigModel)
-    """Modules that are forbidden to be imported."""
+    """Modules that are forbidden/allowed to be imported."""
     check_imports: CheckConfigModel = Field(default_factory=CheckConfigModel)
-    """Imports that are forbidden to be used."""
+    """Imports that are forbidden/allowed to be used."""
     check_calls: CheckConfigModel = Field(default_factory=CheckConfigModel)
-    """"Calls that are forbidden to be used."""
+    """Calls that are forbidden/allowed to be used."""
 
     mcp_servers: Dict[str, ServiceConfig] = Field(default_factory=dict)
     """MCP servers that are allowed to be used."""

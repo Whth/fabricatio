@@ -101,6 +101,8 @@ impl ShadowRepoManager {
                 Ok(repo)
             } else {
                 let repo = Repository::init_bare(&repo_path).into_pyresult()?;
+
+                // Configure the repository manually, since the git2-rs always try to put a `.git` file in the source, which pollutes the source directory.
                 let mut config = repo.config().into_pyresult()?;
                 config.set_bool("core.bare", false).into_pyresult()?;
                 config
@@ -191,6 +193,10 @@ impl ShadowRepoManager {
     /// Returns a `PyErr` if:
     /// - The shadow repository is not found
     /// - Git operations fail (staging, committing, etc.)
+    ///
+    /// # Note
+    ///
+    /// If there are no changes to commit, this method returns the ID of the last commit (the HEAD).
     #[pyo3(signature=(worktree_dir, commit_msg=None))]
     pub fn save(&self, worktree_dir: PathBuf, commit_msg: Option<String>) -> PyResult<String> {
         let worktree_dir = absolute(worktree_dir).into_pyresult()?;

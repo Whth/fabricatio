@@ -1,0 +1,11 @@
+{{block requirement "Requirement"}}
+You need to generate code that satisfy `Requirement` and the path where it should be wrritten.
+{{#if code_language}}You MUST use {{code_language}}.{{/if}}
+Output format: code should be wrapped with ```, the path should be placed just above the codeblock. MUST NOT include any other texts.
+
+e.g.
+
+<path placeholder>
+```{{#if code_language}}{{code_language}}{{else}}<language placeholder>{{/if}}
+<code placeholder>
+```

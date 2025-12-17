@@ -6,7 +6,7 @@ interface and provides implementations for task sequence generation.
 """
 
 from asyncio import gather
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Self
 
 from fabricatio_core import Task
 from fabricatio_core.models.generic import ProposedAble
@@ -63,6 +63,18 @@ class TaskList(ProposedAble):
     def clear_after_exec_hooks(self) -> None:
         """Clears all after execution hooks."""
         self._after_exec_hooks.clear()
+
+    def inject_context(self, /, **kwargs) -> Self:
+        """Injects the provided context into all tasks in the task list."""
+        for t in self.tasks:
+            t.update_init_context(**kwargs)
+        return self
+
+    def inject_description(self, desc: str) -> Self:
+        """Injects the provided description into all tasks in the task list."""
+        for t in self.tasks:
+            t.append_extra_description(desc)
+        return self
 
     async def execute(self, parallel: Optional[bool] = None) -> List[Any]:
         """Asynchronously executes the sequence of tasks in the task list.

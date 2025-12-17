@@ -1,7 +1,6 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from functools import cached_property
-from typing import Any, Dict, Self
+from typing import Any, Dict, List, Self
 
 from pydantic import ConfigDict, Field
 
@@ -30,7 +29,7 @@ class Role(WithBriefing):
     dispatch_on_init: bool = Field(default=False, frozen=True)
     """Whether to dispatch registered workflows on initialization."""
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Get the briefing of the role.
 
@@ -42,6 +41,15 @@ class Role(WithBriefing):
         abilities = "\n".join(f"  - `{k.collapse()}` ==> {w.briefing}" for (k, w) in self.registry.items())
 
         return f"{base}\nEvent Mapping:\n{abilities}"
+
+    @property
+    def accept_events(self) -> List[str]:
+        """Get the set of events that the role accepts.
+
+        Returns:
+            Set[Event]: The set of events that the role accepts.
+        """
+        return [k.collapse() for k in self.registry]
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -127,6 +135,16 @@ class Role(WithBriefing):
                 )
                 continue
         return self
+
+    def __hash__(self) -> int:
+        """Use the briefing as the hash value."""
+        return hash(self.name)
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two roles for equality."""
+        if isinstance(other, Role):
+            return self.name == other.name
+        return False
 
 
 EXCLUDED_FIELDS = set(

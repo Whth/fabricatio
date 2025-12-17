@@ -507,7 +507,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.21.3"
+version = "0.21.4.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -703,7 +703,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.10"
+version = "0.1.11.dev3"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -728,7 +728,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.1.4.dev0"
+version = "0.1.4.dev22"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -747,6 +747,12 @@ dependencies = [
     { name = "fabricatio-tool" },
 ]
 
+[package.optional-dependencies]
+cli = [
+    { name = "fabricatio-actions" },
+    { name = "typer-slim", extra = ["standard"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
@@ -754,6 +760,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fabricatio-actions", marker = "extra == 'cli'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-capable", editable = "packages/fabricatio-capable" },
     { name = "fabricatio-checkpoint", editable = "packages/fabricatio-checkpoint" },
@@ -768,7 +775,9 @@ requires-dist = [
     { name = "fabricatio-team", editable = "packages/fabricatio-team" },
     { name = "fabricatio-thinking", editable = "packages/fabricatio-thinking" },
     { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
+    { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
+provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -821,7 +830,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-capable"
-version = "0.1.3.dev0"
+version = "0.1.3.dev1"
 source = { editable = "packages/fabricatio-capable" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -869,7 +878,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-checkpoint"
-version = "0.1.3"
+version = "0.1.4.dev5"
 source = { editable = "packages/fabricatio-checkpoint" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -888,7 +897,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.3.35.dev2"
+version = "0.3.35.dev17"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -942,7 +951,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-digest"
-version = "0.1.8.dev0"
+version = "0.1.8.dev3"
 source = { editable = "packages/fabricatio-digest" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1245,10 +1254,15 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-team"
-version = "0.1.4"
+version = "0.1.5.dev6"
 source = { editable = "packages/fabricatio-team" }
 dependencies = [
     { name = "fabricatio-core" },
+]
+
+[package.optional-dependencies]
+digest = [
+    { name = "fabricatio-digest" },
 ]
 
 [package.dev-dependencies]
@@ -1257,14 +1271,18 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-digest", marker = "extra == 'digest'", editable = "packages/fabricatio-digest" },
+]
+provides-extras = ["digest"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-thinking"
-version = "0.1.3"
+version = "0.1.4.dev0"
 source = { editable = "packages/fabricatio-thinking" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1283,7 +1301,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.7.1.dev0"
+version = "0.7.1.dev15"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },

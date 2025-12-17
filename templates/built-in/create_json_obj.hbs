@@ -4,23 +4,21 @@
 ```
 --- BEGIN of JSON SCHEMA ---
 
---- BEGIN of REQUIREMENT ---
-{{requirement}}
---- END of REQUIREMENT ---
-
-# Task:
-To satisfy the given requirements, Generate a JSON object that strictly adheres to the above `JSON SCHEMA` specification. The output must be a concrete instance satisfying all defined constraints.
-
 # Critical Constraints:
 ‼️ Output MUST contain ONLY the JSON object within the Markdown format codeblock
 ‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.)
 ‼️ PROPERLY ESCAPE special characters in strings (quotes, newlines, etc.)
 ‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
 ‼️ Handle optional parameters context-appropriately
+
+--- BEGIN of REQUIREMENT ---
+{{requirement}}
+--- END of REQUIREMENT ---
 ‼️ Your response MUST be a valid JSON object wrapped in a Markdown JSON codeblock. which is
 ```json
 <Fill in your response JSON>
 ```
 ‼️It's recommended to not add space indents, which can save a lot of spaces.
+‼️To satisfy the given requirements, Generate a JSON object that strictly adheres to the above `JSON SCHEMA` specification with The output satisfying all defined constraints.
 
-`REQUIREMENT` is absolute and the highest priority!!!
+`REQUIREMENT` is absolute and the highest priority to satisfy, even higher than `Critical Constraints`!!!

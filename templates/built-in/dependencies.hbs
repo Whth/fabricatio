@@ -1,13 +1,23 @@
 {{#each this}}
 ### {{@key}}
+
 - **Path:** {{path}}
 - **Exists:** {{exists}}
+- **Is Text File:** {{is_text}}
+{{#if exists}}
 - **Size:** {{size}}
 - **Checksum:** {{checksum}}
-{{#if content}}- **Lines:** {{lines}}
+    {{#if is_text}}
+- **Lines:** {{lines}}
 - **Content:**
 
-```filecontent
-{{content}}
-```{{/if}}
+{{block content @key}}
+    {{else}}
+- **Content:** <path is not text file, skipping display...>
+    {{/if}}
+{{else}}
+- **Size:** N/A
+- **Checksum:** N/A
+- **Content:** <File does not exist, skipping display...>
+{{/if}}
 {{/each}}

@@ -1,6 +1,6 @@
+use fabricatio_logger::*;
 use pyo3::prelude::*;
 use std::collections::HashMap;
-
 /// Represents a branch in the version control system, containing a list of commits and an estimated total number of commits.
 #[derive(Default, Debug)]
 struct Branch {
@@ -23,6 +23,11 @@ impl Branch {
     /// Returns `Some(new_commit_count)` if the commit was added, or `None` if the serial does not match.
     fn commit(&mut self, content: String, serial: usize) -> Option<usize> {
         if serial - 1 != self.commits.len() {
+            warn!(
+                "Serial mismatch: expected {}, got {}, discard this commit: {content}",
+                serial,
+                self.commits.len()
+            );
             None
         } else {
             self.commits.push(content);
@@ -203,7 +208,7 @@ impl ThoughtVCS {
     fn export_branch(&mut self, branch: Option<String>) -> Vec<String> {
         self.branch(branch, false)
             .map(|branch| branch.commits.clone())
-            .unwrap_or_else(|| vec![])
+            .unwrap_or_default()
     }
 
     ///
@@ -223,11 +228,11 @@ impl ThoughtVCS {
                 branch
                     .commits
                     .iter()
-                    .map(|commit| format!("- {commit}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                    .enumerate()
+                    .map(|(i, commit)| format!("Serial {}: {commit}\n", i + 1))
+                    .collect::<String>()
             })
-            .unwrap_or_else(|| "".to_string())
+            .unwrap_or_default()
     }
 }
 

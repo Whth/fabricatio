@@ -16,5 +16,10 @@ mcp-manager = { path = "./crates/mcp-manager", features = ["into_pyerr"] }
 signify = { path = "./crates/signify" }
 rmcp = { version = "0.11.0", features = ["transport-streamable-http-client-reqwest"] }
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+ignore = { version = "0.4.25" }
 
 error-mapping = { path = "../../crates/error-mapping", features = ["pythonize", "serde_json"] }
+rayon = "1.11.0"
+
+
+

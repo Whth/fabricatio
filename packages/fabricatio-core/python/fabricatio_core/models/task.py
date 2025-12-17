@@ -23,6 +23,9 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     goals: List[str] = Field(default_factory=list)
     """Objectives the task aims to achieve."""
 
+    dependencies: List[str] = Field(default_factory=list)
+    """File paths necessarily needed to read or write to complete the task. Do add path(s) needed!"""
+
     description: str = Field(default="")
     """Detailed explanation of the task with 5W1H rule."""
 
@@ -30,10 +33,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     """Concise and descriptive name of the task."""
 
     namespace: List[str] = Field(default_factory=list)
-    """Segments indicating where the task will be sent. Using ['work'] as namespace and `::` as sep results in `work::task_name::Pending` when the task submitted."""
-
-    dependencies: List[str] = Field(default_factory=list)
-    """File paths needed to complete the task."""
+    """Segments indicating where the task will be sent. For example, ['work'] => `work::*::Pending`, ['write', 'book'] => `write::book::*::Pending`. Should always not send to a namespace that is not exist."""
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""
@@ -71,6 +71,26 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
         self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
+        return self
+
+    def append_extra_description(self, description: str) -> Self:
+        r"""Append a description to the task.
+
+        Args:
+            description (str): The description to append.
+
+        Returns:
+            Task: The updated instance of the `Task` class.
+
+        Example:
+            .. code-block:: python
+
+                task = Task(name="example_task", description="This is an example task.")
+                task.append_extra_description("This task is important.")
+                assert task.description == "This is an example task.\nThis task is important."
+
+        """
+        self.description += f"\n{description}"
         return self
 
     def update_task(self, *, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
@@ -281,7 +301,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
         Args:
             new_namespace (EventLike, optional): The new namespace to move the task to.
-            event (EventLike, optional): The event to publish.
+            event (EventLike, optional): The event to publish, overrides the event in this instance and the `new_namespace`.
 
         Returns:
             T|None: The output of the task.
@@ -311,7 +331,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         """
         return run(self.delegate(new_namespace, event=event))
 
-    @cached_property
+    @property
     def briefing(self) -> str:
         """Return a briefing of the task including its goal.
 

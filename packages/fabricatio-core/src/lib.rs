@@ -1,9 +1,9 @@
 extern crate core;
-
 mod config;
 mod event;
 mod hash;
 mod hbs_helpers;
+mod text_file;
 
 mod language;
 mod scan;
@@ -29,7 +29,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         None
     };
     fabricatio_logger::init_logger(conf.debug.log_level.as_str(), conf.debug.log_dir, rotation)
-        .map_err(|e| PyRuntimeError::new_err(e))?;
+        .map_err(PyRuntimeError::new_err)?;
     m.add(LOGGER_VARNAME, Logger)?;
     language::register(python, m)?;
     templates::register(python, m)?;
@@ -37,5 +37,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     word_split::register(python, m)?;
     event::register(python, m)?;
     scan::register(python, m)?;
+    text_file::register(python, m)?;
+
     Ok(())
 }

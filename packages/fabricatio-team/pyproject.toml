@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-team"
-version = "0.1.4"
+version = "0.1.5-dev6"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -25,6 +25,10 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
+]
+[project.optional-dependencies]
+digest = [
+    "fabricatio-digest"
 ]
 
 

@@ -1,7 +1,7 @@
 use crate::hbs_helpers::*;
 use error_mapping::*;
 use fabricatio_config::{CONFIG_VARNAME, Config};
-use fabricatio_logger::{debug, trace};
+use fabricatio_logger::trace;
 use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
@@ -65,7 +65,7 @@ impl TemplateManager {
         let name = name.clean().to_string_lossy().to_string();
 
         if data.is_instance_of::<PyList>() {
-            debug!("Rendering list of templates");
+            trace!("Rendering list of templates: {name}");
             if self.handlebars.get_template(&name).is_none() {
                 return Err(PyErr::new::<PyRuntimeError, _>(format!(
                     "Template {name} not found"
@@ -92,7 +92,7 @@ impl TemplateManager {
             let py_list = PyList::new(py, rendered)?;
             Ok(py_list.as_any().clone())
         } else {
-            debug!("Rendering single template");
+            trace!("Rendering single template: {name}");
             let json_data = depythonize::<Value>(data).into_pyresult()?;
 
             let rendered_content = self.handlebars.render(&name, &json_data).into_pyresult()?;

@@ -1,12 +1,10 @@
 """File system create, update, read, delete operations."""
 
 import shutil
-import subprocess
 from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from fabricatio_core.decorators import depend_on_external_cmd
 from fabricatio_core.journal import logger
 
 
@@ -95,17 +93,6 @@ def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok:
         raise
 
 
-@depend_on_external_cmd(
-    "erd",
-    "Please install `erd` using `cargo install erdtree` or `scoop install erdtree`.",
-    "https://github.com/solidiquis/erdtree",
-)
-def tree(dir_path: Union[str, Path]) -> str:
-    """Generate a tree representation of the directory structure. Requires `erd` to be installed."""
-    dir_path = Path(dir_path)
-    return subprocess.check_output(("erd", dir_path.as_posix()), encoding="utf-8")  # noqa: S603
-
-
 def delete_directory(dir_path: Union[str, Path]) -> None:
     """Delete a directory and its contents.
 
@@ -115,12 +102,19 @@ def delete_directory(dir_path: Union[str, Path]) -> None:
     Raises:
         FileNotFoundError: If directory doesn't exist
         OSError: If directory is not empty and can't be removed
+        ValueError: If attempting to delete root directory
     """
+    p = Path(dir_path).resolve()  # Use resolved absolute path
+    if p == p.root:
+        error_msg = f"Refusing to delete root directory: {p}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
     try:
-        shutil.rmtree(dir_path)
-        logger.info(f"Deleted directory: {dir_path}")
+        shutil.rmtree(p)
+        logger.info(f"Deleted directory: {p}")
     except OSError as e:
-        logger.error(f"Failed to delete directory {dir_path}: {e!s}")
+        logger.error(f"Failed to delete directory {p}: {e!s}")
         raise
 
 

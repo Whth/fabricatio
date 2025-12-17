@@ -4,6 +4,15 @@ __all__ = []
 
 from fabricatio_core.rust import is_installed
 
+if is_installed("fabricatio_tool"):
+    from fabricatio_tool.models.collector import ResultCollector
+    from fabricatio_tool.models.executor import ToolExecutor
+    from fabricatio_tool.models.tool import Tool, ToolBox
+    from fabricatio_tool.toolboxes import fs_toolbox
+
+    __all__ += ["ResultCollector", "Tool", "ToolBox", "ToolExecutor", "fs_toolbox"]
+
+
 if is_installed("fabricatio_typst"):
     from fabricatio_typst.models.article_essence import ArticleEssence
     from fabricatio_typst.models.article_main import Article

@@ -10,7 +10,7 @@ from fabricatio_core import logger
 
 def confirm_to_execute[**P, R](
     func: Callable[P, R],
-) -> Callable[P, Optional[R]] | Callable[P, Coroutine[None, None, Optional[R]]]:
+) -> Callable[P, Coroutine[None, None, Optional[R]]]:
     """Decorator to confirm before executing a function.
 
     Args:
@@ -18,6 +18,10 @@ def confirm_to_execute[**P, R](
 
     Returns:
         Callable: A decorator that wraps the function to confirm before execution.
+
+    Note:
+        All functions, no matter async or sync, will be wrapped into an async functions,
+        since confirm internally rely on async, It can not create another event loop if one is already executing.
     """
     from questionary import confirm
 
@@ -36,11 +40,11 @@ def confirm_to_execute[**P, R](
         return _async_wrapper
 
     @wraps(func)
-    def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
-        if confirm(
+    async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+        if await confirm(
             f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
             instruction="Please input [Yes/No] to proceed (default: Yes):",
-        ).ask():
+        ).ask_async():
             return func(*args, **kwargs)
         logger.warn(f"Function: {func.__name__}{signature(func)} canceled by user.")
         return None
