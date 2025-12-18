@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.2.0"
+version = "0.2.1-dev0"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -44,6 +44,17 @@ cli = [
     "typer-slim[standard]>=0.15.2",
     "fabricatio-actions",
 ]
+cli-plot = [
+    "fabricatio-agent[cli]",
+    "fabricatio-plot"
+]
+
+cli-full = [
+    "fabricatio-agent[cli]",
+    "fabricatio-agent[cli-plot]",
+]
+
+
 
 
 

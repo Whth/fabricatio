@@ -1,13 +1,13 @@
 """CLI entry point."""
 
-from enum import StrEnum
-
 from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
+from enum import StrEnum
 from typing import Dict
 
 from fabricatio_core import Event, Role, Task, WorkFlow
+from fabricatio_core.rust import is_installed
 from fabricatio_team.capabilities.team import Cooperate
 from fabricatio_team.models.team import Team
 from pydantic import Field
@@ -15,14 +15,43 @@ from typer import Argument, Option, Typer
 
 from fabricatio_agent.actions.code import CleanUp, Planning, WriteCode
 
-app = Typer()
-
 
 class TaskType(StrEnum):
     """Task types."""
 
-    CODING = "coding"
+    Coding = "coding"
     Orchestrate = "orchestrate"
+    CleanUp = "cleanup"
+    Plot = "plot"
+
+
+app = Typer()
+
+dev_reg = {
+    Event.quick_instantiate(TaskType.Coding): WorkFlow(
+        name="WriteCodeWorkFlow",
+        description="Generate desired code and then write that code to a file",
+        steps=(WriteCode().to_task_output(),),
+    ),
+    Event.quick_instantiate(TaskType.CleanUp): WorkFlow(
+        name="CleanWorkFlow",
+        description="Clean unwanted files or directories.",
+        steps=(CleanUp().to_task_output(),),
+    ),
+}
+
+if is_installed("fabricatio_plot"):
+    from fabricatio_plot.actions.plot import MakeCharts
+
+    dev_reg.update(
+        {
+            Event.quick_instantiate(TaskType.Plot): WorkFlow(
+                name="PlotWorkFlow",
+                description="Generate plots and charts using matplotlib and save to fs.",
+                steps=(MakeCharts().to_task_output(),),
+            ),
+        }
+    )
 
 
 class Developer(Role, Cooperate):
@@ -34,18 +63,7 @@ class Developer(Role, Cooperate):
     """
 
     registry: Dict[Event, WorkFlow] = Field(
-        default_factory=lambda: {
-            Event.quick_instantiate(TaskType.CODING): WorkFlow(
-                name="WriteCodeWorkFlow",
-                description="Generate desired code and then write that code to a file",
-                steps=(WriteCode().to_task_output(),),
-            ),
-            Event.quick_instantiate(TaskType.CODING): WorkFlow(
-                name="CleanWorkFlow",
-                description="Clean unwanted files or directories.",
-                steps=(CleanUp().to_task_output(),),
-            ),
-        },
+        default_factory=lambda: dev_reg,
         frozen=True,
     )
     """The registry of events and workflows."""

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ListStringKwargs, ValidateKwargs
+from fabricatio_core.utils import ok
 
 from fabricatio_plot.config import plot_config
 
@@ -66,20 +67,24 @@ class SynthesizeData(UseLLM, ABC):
         """
         from pandas import read_csv
 
-        header = header or await self.generate_header(requirement)
+        true_header = ok(
+            header or await self.generate_header(requirement),
+            "header not specified and attempts to generate it from the requirement is also failed.",
+        )
 
         raw_csv = await self.acode_string(
             TEMPLATE_MANAGER.render_template(
-                plot_config.generate_csv_data_template, {"requirement": requirement, "rows": rows, "header": header}
+                plot_config.generate_csv_data_template,
+                {"requirement": requirement, "rows": rows, "header": true_header},
             ),
             plot_config.csv_codeblock_lang,
             **kwargs,
         )
         try:
             df = read_csv(StringIO(raw_csv), sep=plot_config.csv_sep, encoding="utf-8")
-            if (d_header := df.columns.tolist()) == header:
+            if (d_header := df.columns.tolist()) == true_header:
                 return df
-            logger.warn(f"Header mismatch: {d_header} != {header}")
+            logger.warn(f"Header mismatch: {d_header} != {true_header}")
             return None
         except ValueError as e:
             logger.warn(f"Failed to parse CSV: \n{e}")

@@ -50,9 +50,13 @@ class ToolConfig(BaseModel):
 
     check_modules: CheckConfigModel = Field(default_factory=CheckConfigModel)
     """Modules that are forbidden/allowed to be imported."""
-    check_imports: CheckConfigModel = Field(default_factory=CheckConfigModel)
+    check_imports: CheckConfigModel = Field(default_factory=lambda: CheckConfigModel(targets={"math"}))
     """Imports that are forbidden/allowed to be used."""
-    check_calls: CheckConfigModel = Field(default_factory=CheckConfigModel)
+    check_calls: CheckConfigModel = Field(
+        default_factory=lambda: CheckConfigModel(
+            targets={"str", "int", "float", "bool", "dict", "set", "list", "pathlib.Path"}
+        )
+    )
     """Calls that are forbidden/allowed to be used."""
 
     mcp_servers: Dict[str, ServiceConfig] = Field(default_factory=dict)

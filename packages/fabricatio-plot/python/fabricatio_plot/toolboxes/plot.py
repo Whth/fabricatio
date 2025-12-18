@@ -18,12 +18,12 @@ plot_toolbox = ToolBox(name="PlottingToolBox", description="A toolbox for plotti
 
 
 @plot_toolbox.collect_tool
-def create_figure(figsize: Tuple[float, float] = (8, 6), dpi: int = 100) -> Figure:
+def create_figure(figsize: Tuple[float, float] = (8, 6), dpi: int = 200) -> Figure:
     """Create a new matplotlib figure.
 
     Args:
         figsize: Width and height of the figure in inches (default: (8, 6)).
-        dpi: Dots per inch resolution (default: 100).
+        dpi: Dots per inch resolution (default: 200).
 
     Returns:
         Newly created Figure object.
@@ -167,9 +167,3 @@ def save_plot(fig: Figure, save_path: str | Path, dpi: int = 300, transparent: b
         transparent: Save with transparent background (default: False).
     """
     fig.savefig(save_path, dpi=dpi, transparent=transparent, bbox_inches="tight")
-
-
-@plot_toolbox.collect_tool
-def display_plot() -> None:
-    """Display the current figure (for notebook environments)."""
-    plt.show()

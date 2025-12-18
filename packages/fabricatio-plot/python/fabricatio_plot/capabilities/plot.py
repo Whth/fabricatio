@@ -5,7 +5,7 @@ It utilizes various toolboxes to fulfill plotting requirements and provides an a
 for handling plot tasks.
 """
 
-from typing import Set, Unpack
+from typing import Any, Dict, Optional, Set, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_tool.capabilities.handle import Handle
@@ -23,15 +23,23 @@ class Plot(Handle):
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_toolbox})
     """A set of toolboxes used by the Plot handler, including plot_toolbox and data_toolbox by default."""
 
-    async def plot(self, requirement: str, **kwargs: Unpack[ValidateKwargs[str]]) -> ResultCollector | None:
+    async def plot(
+        self,
+        requirement: str,
+        data: Optional[Dict[str, Any]] = None,
+        output_spec: Optional[Dict[str, str]] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
+    ) -> ResultCollector | None:
         """An asynchronous method that initiates a plot operation based on the given requirement and keyword arguments.
 
         Args:
             requirement (str): A string describing the plot requirement or command.
+            data (Optional[Dict[str, Any]]): A dictionary containing data for plotting.
+            output_spec (Optional[Dict[str, str]]): A dictionary specifying the output format and location.
             **kwargs (ValidateKwargs[str]): Additional unpacked keyword arguments for customizing the plot operation.
 
         Returns:
             ResultCollector | None: A ResultCollector instance containing the results of the plot operation,
                 or None if not applicable.
         """
-        return await self.handle(requirement, **kwargs)
+        return await self.handle(requirement, data, output_spec, **kwargs)

@@ -54,6 +54,11 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.extra_init_context.update(kwargs)
         return self
 
+    @property
+    def assembled_prompt(self) -> str:
+        """Assemble both dependencies and briefing prompt for the task."""
+        return f"{self.dependencies_prompt}\n\n{self.briefing}"
+
     def move_to(self, new_namespace: NameSpace) -> Self:
         """Move the task to a new namespace.
 
