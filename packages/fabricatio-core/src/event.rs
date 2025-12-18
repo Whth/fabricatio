@@ -2,7 +2,7 @@ use fabricatio_config::{CONFIG_VARNAME, Config};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
-use bincode::{Decode, Encode};
+use postcard::{from_bytes, to_stdvec};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -200,8 +200,6 @@ impl Event {
     IntoStaticStr,
     Serialize,
     Deserialize,
-    Decode,
-    Encode,
 )]
 #[pyclass]
 pub enum TaskStatus {
@@ -233,15 +231,14 @@ impl TaskStatus {
     }
 
     fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
-        (*self, _) = bincode::decode_from_slice(state.as_bytes(), bincode::config::standard())
-            .map_err(|_| {
-                pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus")
-            })?;
+        *self = from_bytes(state.as_bytes()).map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus")
+        })?;
         Ok(())
     }
 
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        let bytes = bincode::encode_to_vec(self, bincode::config::standard()).map_err(|_| {
+        let bytes = to_stdvec(self).map_err(|_| {
             pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus")
         })?;
         Ok(PyBytes::new(py, &bytes))
