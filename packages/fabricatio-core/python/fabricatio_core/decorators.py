@@ -1,8 +1,7 @@
 """Decorators for Fabricatio."""
 
-from asyncio import iscoroutinefunction
 from functools import wraps
-from inspect import signature
+from inspect import iscoroutinefunction, signature
 from shutil import which
 from typing import Callable, Coroutine, Optional, Sequence, overload
 
