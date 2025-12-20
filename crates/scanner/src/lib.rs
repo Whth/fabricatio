@@ -31,6 +31,7 @@
 //! including their dependencies and extras requirements.
 
 use moka::sync::Cache;
+use once_cell::sync::Lazy;
 use pep508_rs::{ExtraName, MarkerExpression, Requirement, VerbatimUrl};
 use pyo3::prelude::*;
 use rayon::prelude::*;
@@ -59,6 +60,17 @@ impl From<PathBuf> for PackageItem {
     }
 }
 
+static SITE_PACKAGES: Lazy<PathBuf> = Lazy::new(|| {
+    Python::attach(|py| {
+        let sys = py.import("sys").expect("Failed to import sys");
+        let paths = sys.getattr("prefix").expect("Failed to get sys.path");
+        paths
+            .extract::<PathBuf>()
+            .unwrap()
+            .join("Lib/site-packages")
+    })
+});
+
 /// A scanner for Python packages that caches package information.
 ///
 /// This struct maintains a cache of installed Python packages and provides
@@ -68,6 +80,12 @@ pub struct PythonPackageScanner {
     cache: Cache<String, PackageItem>,
     /// Path to the site-packages directory.
     site_packages: PathBuf,
+}
+
+impl Default for PythonPackageScanner {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PythonPackageScanner {
@@ -80,18 +98,10 @@ impl PythonPackageScanner {
     ///
     /// A new instance of `PythonPackageScanner`.
     pub fn new() -> Self {
-        let cache = Cache::builder().max_capacity(10000).build();
-        let site_packages = Python::attach(|py| {
-            let sys = py.import("sys").expect("Failed to import sys");
-            let paths = sys.getattr("prefix").expect("Failed to get sys.path");
-            paths
-                .extract::<PathBuf>()
-                .unwrap()
-                .join("Lib/site-packages")
-        });
+        let cache = Cache::builder().build();
         Self {
             cache,
-            site_packages,
+            site_packages: SITE_PACKAGES.clone(),
         }
         .refresh()
     }
@@ -232,18 +242,15 @@ impl PythonPackageScanner {
 
         metadata
             .lines()
-            .filter(|line: &&str| line.starts_with("Requires-Dist:"))
-            .filter(|line: &&str| line.contains("extra =="))
             .filter_map(|line: &str| line.strip_prefix("Requires-Dist:"))
+            .filter(|line: &&str| line.contains("extra =="))
             .filter_map(|line: &str| Requirement::<VerbatimUrl>::from_str(line).ok())
             .for_each(|req| {
-                match req.marker.top_level_extra().unwrap() {
-                    MarkerExpression::Extra { name, .. } => {
-                        reg.entry(name.to_string())
-                            .or_default()
-                            .push(req.name.to_string().replace("-", "_"));
-                    }
-                    _ => {}
+                if let MarkerExpression::Extra { name, .. } = req.marker.top_level_extra().unwrap()
+                {
+                    reg.entry(name.to_string())
+                        .or_default()
+                        .push(req.name.to_string().replace("-", "_"));
                 };
             });
         reg

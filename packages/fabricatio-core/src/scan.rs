@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use scanner::PythonPackageScanner;
 
 /// A static scanner instance used to check Python package installations and extras.
-static SCANNER: Lazy<PythonPackageScanner> = Lazy::new(|| PythonPackageScanner::new());
+static SCANNER: Lazy<PythonPackageScanner> = Lazy::new(PythonPackageScanner::default);
 
 /// Checks if a Python package is installed.
 ///
