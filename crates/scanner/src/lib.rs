@@ -177,6 +177,8 @@ impl PythonPackageScanner {
     /// # Returns
     ///
     /// `true` if all dependencies for the extras are satisfied, `false` otherwise.
+    ///
+    /// # Note this function currently works only on requirement with top level extra, not on nested extra.
     pub fn extras_satisfied(&self, pkg_name: &str, extras: Vec<String>) -> bool {
         let pkg_name = pkg_name.replace("-", "_");
         if let Some(all_extra) = self.get_extra_all(pkg_name.as_str()) {
@@ -242,16 +244,17 @@ impl PythonPackageScanner {
 
         metadata
             .lines()
-            .filter_map(|line: &str| line.strip_prefix("Requires-Dist:"))
+            .filter_map(|line: &str| line.strip_prefix("Requires-Dist: "))
             .filter(|line: &&str| line.contains("extra =="))
             .filter_map(|line: &str| Requirement::<VerbatimUrl>::from_str(line).ok())
-            .for_each(|req| {
-                if let MarkerExpression::Extra { name, .. } = req.marker.top_level_extra().unwrap()
-                {
+            .filter_map(|req| req.marker.top_level_extra())
+            .for_each(|expr| {
+                if let MarkerExpression::Extra { name, .. } = expr {
                     reg.entry(name.to_string())
                         .or_default()
-                        .push(req.name.to_string().replace("-", "_"));
-                };
+                        .push(name.to_string().replace("-", "_"))
+                }
+                //TODO: add complex extra analytics
             });
         reg
     }

@@ -4151,7 +4151,7 @@ dependencies = [
 
 [[package]]
 name = "scanner"
-version = "0.1.2-dev0"
+version = "0.1.2-dev1"
 dependencies = [
  "moka",
  "once_cell",
