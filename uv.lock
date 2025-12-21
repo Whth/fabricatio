@@ -622,6 +622,7 @@ dev = [
     { name = "coveralls" },
     { name = "fabricatio-mock" },
     { name = "maturin" },
+    { name = "pip" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -680,6 +681,7 @@ dev = [
     { name = "coveralls", specifier = ">=4.0.1" },
     { name = "fabricatio-mock", editable = "packages/fabricatio-mock" },
     { name = "maturin", specifier = ">=1.8.2" },
+    { name = "pip", specifier = ">=25.3" },
     { name = "pyright", specifier = ">=1.1.402" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=0.25.3" },
@@ -728,7 +730,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -752,6 +754,16 @@ cli = [
     { name = "fabricatio-actions" },
     { name = "typer-slim", extra = ["standard"] },
 ]
+cli-full = [
+    { name = "fabricatio-actions" },
+    { name = "fabricatio-plot" },
+    { name = "typer-slim", extra = ["standard"] },
+]
+cli-plot = [
+    { name = "fabricatio-actions" },
+    { name = "fabricatio-plot" },
+    { name = "typer-slim", extra = ["standard"] },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -761,6 +773,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fabricatio-actions", marker = "extra == 'cli'", editable = "packages/fabricatio-actions" },
+    { name = "fabricatio-agent", extras = ["cli"], marker = "extra == 'cli-full'", editable = "packages/fabricatio-agent" },
+    { name = "fabricatio-agent", extras = ["cli"], marker = "extra == 'cli-plot'", editable = "packages/fabricatio-agent" },
+    { name = "fabricatio-agent", extras = ["cli-plot"], marker = "extra == 'cli-full'", editable = "packages/fabricatio-agent" },
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-capable", editable = "packages/fabricatio-capable" },
     { name = "fabricatio-checkpoint", editable = "packages/fabricatio-checkpoint" },
@@ -770,6 +785,7 @@ requires-dist = [
     { name = "fabricatio-improve", editable = "packages/fabricatio-improve" },
     { name = "fabricatio-judge", editable = "packages/fabricatio-judge" },
     { name = "fabricatio-memory", editable = "packages/fabricatio-memory" },
+    { name = "fabricatio-plot", marker = "extra == 'cli-plot'", editable = "packages/fabricatio-plot" },
     { name = "fabricatio-question", editable = "packages/fabricatio-question" },
     { name = "fabricatio-rule", editable = "packages/fabricatio-rule" },
     { name = "fabricatio-team", editable = "packages/fabricatio-team" },
@@ -777,7 +793,7 @@ requires-dist = [
     { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["cli"]
+provides-extras = ["cli", "cli-plot", "cli-full"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -884,20 +900,29 @@ dependencies = [
     { name = "fabricatio-core" },
 ]
 
+[package.optional-dependencies]
+cli = [
+    { name = "typer-slim", extra = ["standard"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
+]
+provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.4.1"
+version = "0.4.3"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1132,7 +1157,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-plot"
-version = "0.1.6"
+version = "0.1.7"
 source = { editable = "packages/fabricatio-plot" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1301,7 +1326,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.8.0"
+version = "0.8.2"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -2569,6 +2594,15 @@ wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/a2/2f/16cabcc6426c32218ace36bf0d55955e813f2958afddbf1d391849fee9d1/pillow-12.0.0-cp314-cp314t-win32.whl", hash = "sha256:3830c769decf88f1289680a59d4f4c46c72573446352e2befec9a8512104fa52" },
     { url = "https://mirrors.aliyun.com/pypi/packages/35/73/e29aa0c9c666cf787628d3f0dcf379f4791fba79f4936d02f8b37165bdf8/pillow-12.0.0-cp314-cp314t-win_amd64.whl", hash = "sha256:905b0365b210c73afb0ebe9101a32572152dfd1c144c7e28968a331b9217b94a" },
     { url = "https://mirrors.aliyun.com/pypi/packages/c1/70/6b41bdcddf541b437bbb9f47f94d2db5d9ddef6c37ccab8c9107743748a4/pillow-12.0.0-cp314-cp314t-win_arm64.whl", hash = "sha256:99353a06902c2e43b43e8ff74ee65a7d90307d82370604746738a1e0661ccca7" },
+]
+
+[[package]]
+name = "pip"
+version = "25.3"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/fe/6e/74a3f0179a4a73a53d66ce57fdb4de0080a8baa1de0063de206d6167acc2/pip-25.3.tar.gz", hash = "sha256:8d0538dbbd7babbd207f261ed969c65de439f6bc9e5dbd3b3b9a77f25d95f343" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/44/3c/d717024885424591d5376220b5e836c2d5293ce2011523c9de23ff7bf068/pip-25.3-py3-none-any.whl", hash = "sha256:9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd" },
 ]
 
 [[package]]

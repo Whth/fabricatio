@@ -1171,6 +1171,7 @@ dependencies = [
  "git2",
  "moka",
  "pyo3",
+ "rayon",
  "utils",
 ]
 
@@ -4150,9 +4151,10 @@ dependencies = [
 
 [[package]]
 name = "scanner"
-version = "0.1.1"
+version = "0.1.2-dev0"
 dependencies = [
  "moka",
+ "once_cell",
  "pep508_rs",
  "pyo3",
  "rayon",

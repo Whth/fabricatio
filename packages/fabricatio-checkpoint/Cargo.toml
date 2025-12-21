@@ -14,3 +14,4 @@ moka = { version = "0.12.11", features = ["sync"] }
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
+rayon = "1.11.0"

@@ -1,7 +1,7 @@
 """Rust bindings for the Rust API of fabricatio-checkpoint."""
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 class ShadowRepoManager:
     """Manages shadow Git repositories for file checkpointing.
@@ -38,6 +38,36 @@ class ShadowRepoManager:
 
         Notes:
             If there are no changes to commit, this method returns the ID of the last commit, AKA the HEAD.
+        """
+
+    def commits(self, worktree_dir: Path) -> List[str]:
+        """Retrieves the list of commit IDs in the shadow repository.
+
+        This method returns a chronologically ordered list of commit IDs (OIDs)
+        in the shadow repository associated with the specified worktree directory.
+
+        Args:
+            worktree_dir: The worktree directory whose shadow repository's commit history is requested.
+
+        Returns:
+            A list of commit IDs (OIDs as strings) in chronological order (oldest first).
+
+        Raises:
+            RuntimeError: If the shadow repository is not found or Git operations fail.
+        """
+    def workspaces(self, cached_only: bool = True) -> List[Path]:
+        """Retrieves the list of worktree directories with shadow repositories.
+
+        This method returns a list of worktree directories that have shadow repositories.
+
+        Args:
+            cached_only: If True, only returns worktree directories with cached shadow repositories.
+
+        Returns:
+            A list of worktree directories with shadow repositories.
+
+        Raises:
+            RuntimeError: If the shadow repository storage root is not found.
         """
 
     def drop(self, worktree_dir: Path) -> None:
