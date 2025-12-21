@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-webui"
-version = "0.1.1-dev2"
+version = "0.1.1-dev4"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -17,8 +17,7 @@ classifiers = [
 ]
 requires-python = ">=3.12,<=3.14"
 dependencies = [
-
-    "fabricatio-core"
+    "fabricatio-core",
 ]
 
 [dependency-groups]
@@ -26,6 +25,15 @@ dev = [
     "pytest",
 ]
 
+
+
+[project.scripts]
+fc-webui = "fabricatio_webui.cli:app"
+
+[project.optional-dependencies]
+cli = [
+    "typer-slim[standard]>=0.15.2",
+]
 
 
 [build-system]
@@ -37,7 +45,19 @@ python-source = "python"
 module-name = "fabricatio_webui.rust"
 
 
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

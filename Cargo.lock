@@ -1352,8 +1352,10 @@ name = "fabricatio-webui"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "error-mapping",
+ "fabricatio-logger",
  "pyo3",
- "serde",
+ "pyo3-async-runtimes",
  "tokio",
  "tower-http",
 ]

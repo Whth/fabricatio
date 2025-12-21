@@ -1,6 +1,6 @@
 version = 1
 revision = 3
-requires-python = ">=3.12, <3.15"
+requires-python = ">=3.12, <=3.14"
 resolution-markers = [
     "python_full_version >= '3.14'",
     "python_full_version < '3.14'",
@@ -35,6 +35,7 @@ members = [
     "fabricatio-tool",
     "fabricatio-translate",
     "fabricatio-typst",
+    "fabricatio-webui",
     "fabricatio-yue",
 ]
 overrides = [{ name = "grpcio", marker = "python_full_version >= '3.14'", specifier = ">=1.76" }]
@@ -566,6 +567,7 @@ full = [
     { name = "fabricatio-tool" },
     { name = "fabricatio-translate" },
     { name = "fabricatio-typst" },
+    { name = "fabricatio-webui" },
     { name = "fabricatio-yue" },
 ]
 improve = [
@@ -613,6 +615,9 @@ translate = [
 typst = [
     { name = "fabricatio-typst" },
 ]
+webui = [
+    { name = "fabricatio-webui" },
+]
 yue = [
     { name = "fabricatio-yue" },
 ]
@@ -645,7 +650,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-agent", marker = "extra == 'agent'", editable = "packages/fabricatio-agent" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
@@ -671,9 +676,10 @@ requires-dist = [
     { name = "fabricatio-tool", marker = "extra == 'tool'", editable = "packages/fabricatio-tool" },
     { name = "fabricatio-translate", marker = "extra == 'translate'", editable = "packages/fabricatio-translate" },
     { name = "fabricatio-typst", marker = "extra == 'typst'", editable = "packages/fabricatio-typst" },
+    { name = "fabricatio-webui", marker = "extra == 'webui'", editable = "packages/fabricatio-webui" },
     { name = "fabricatio-yue", marker = "extra == 'yue'", editable = "packages/fabricatio-yue" },
 ]
-provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint"]
+provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -728,7 +734,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -752,6 +758,16 @@ cli = [
     { name = "fabricatio-actions" },
     { name = "typer-slim", extra = ["standard"] },
 ]
+cli-full = [
+    { name = "fabricatio-actions" },
+    { name = "fabricatio-plot" },
+    { name = "typer-slim", extra = ["standard"] },
+]
+cli-plot = [
+    { name = "fabricatio-actions" },
+    { name = "fabricatio-plot" },
+    { name = "typer-slim", extra = ["standard"] },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -761,6 +777,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fabricatio-actions", marker = "extra == 'cli'", editable = "packages/fabricatio-actions" },
+    { name = "fabricatio-agent", extras = ["cli"], marker = "extra == 'cli-full'", editable = "packages/fabricatio-agent" },
+    { name = "fabricatio-agent", extras = ["cli"], marker = "extra == 'cli-plot'", editable = "packages/fabricatio-agent" },
+    { name = "fabricatio-agent", extras = ["cli-plot"], marker = "extra == 'cli-full'", editable = "packages/fabricatio-agent" },
     { name = "fabricatio-capabilities", editable = "packages/fabricatio-capabilities" },
     { name = "fabricatio-capable", editable = "packages/fabricatio-capable" },
     { name = "fabricatio-checkpoint", editable = "packages/fabricatio-checkpoint" },
@@ -770,6 +789,7 @@ requires-dist = [
     { name = "fabricatio-improve", editable = "packages/fabricatio-improve" },
     { name = "fabricatio-judge", editable = "packages/fabricatio-judge" },
     { name = "fabricatio-memory", editable = "packages/fabricatio-memory" },
+    { name = "fabricatio-plot", marker = "extra == 'cli-plot'", editable = "packages/fabricatio-plot" },
     { name = "fabricatio-question", editable = "packages/fabricatio-question" },
     { name = "fabricatio-rule", editable = "packages/fabricatio-rule" },
     { name = "fabricatio-team", editable = "packages/fabricatio-team" },
@@ -777,7 +797,7 @@ requires-dist = [
     { name = "fabricatio-tool", editable = "packages/fabricatio-tool" },
     { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
 ]
-provides-extras = ["cli"]
+provides-extras = ["cli", "cli-plot", "cli-full"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -897,7 +917,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.4.1"
+version = "0.4.3"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1132,7 +1152,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-plot"
-version = "0.1.6"
+version = "0.1.7"
 source = { editable = "packages/fabricatio-plot" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1301,7 +1321,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.8.0"
+version = "0.8.2"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1380,6 +1400,34 @@ requires-dist = [
     { name = "questionary", marker = "extra == 'actions'" },
 ]
 provides-extras = ["full", "workflows", "actions"]
+
+[[package]]
+name = "fabricatio-webui"
+version = "0.1.1.dev2"
+source = { editable = "packages/fabricatio-webui" }
+dependencies = [
+    { name = "fabricatio-core" },
+]
+
+[package.optional-dependencies]
+cli = [
+    { name = "typer-slim", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "typer-slim", extras = ["standard"], marker = "extra == 'cli'", specifier = ">=0.15.2" },
+]
+provides-extras = ["cli"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-yue"

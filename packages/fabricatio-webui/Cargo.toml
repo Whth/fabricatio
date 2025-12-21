@@ -9,7 +9,9 @@ crate-type = ["cdylib"]
 axum = "0.8.7"
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
-serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
 tower-http = { version = "0.6.8", features = ["cors", "fs"] }
+pyo3-async-runtimes = { version = "0.27.0", features = ["tokio-runtime"] }
 
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+error-mapping = { path = "../../crates/error-mapping" }
