@@ -42,14 +42,17 @@ use std::str::FromStr;
 use std::sync::Arc;
 use walkdir::WalkDir;
 
+/// Get the lib path using `sysconfig.get_paths()["purelib"]`
 static SITE_PACKAGES: Lazy<PathBuf> = Lazy::new(|| {
     Python::attach(|py| {
-        let sys = py.import("sys").expect("Failed to import sys");
-        let paths = sys.getattr("prefix").expect("Failed to get sys.path");
-        paths
+        py.import("sysconfig")
+            .expect("Failed to import sysconfig module")
+            .call_method0("get_paths")
+            .expect("Failed to get paths")
+            .get_item("purelib")
+            .expect("Failed to get purelib path")
             .extract::<PathBuf>()
-            .unwrap()
-            .join("Lib/site-packages")
+            .expect("Failed to extract purelib path")
     })
 });
 
