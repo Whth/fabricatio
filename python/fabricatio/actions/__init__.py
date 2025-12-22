@@ -99,3 +99,8 @@ if is_installed("fabricatio_novel"):
         "GenerateScriptsFromDraftAndCharacters",
         "ValidateNovel",
     ]
+if is_installed("fabricatio_plot"):
+    from fabricatio_plot.actions.plot import MakeCharts
+    from fabricatio_plot.actions.synthesize import MakeSynthesizedData
+
+    __all__ += ["MakeCharts", "MakeSynthesizedData"]
