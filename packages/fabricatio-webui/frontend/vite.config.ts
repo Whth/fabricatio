@@ -16,6 +16,7 @@ export default defineConfig({
         },
     },
     build: {
-        outDir: '../python/fabricatio_webui/www'
+        outDir: '../python/fabricatio_webui/www',
+        emptyOutDir: true,
     },
 })
