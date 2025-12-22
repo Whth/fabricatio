@@ -8,6 +8,7 @@ for handling plot tasks.
 from typing import Any, Dict, Optional, Set, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_plot.toolboxes.dataframe_io import data_io_toolbox
 from fabricatio_tool.capabilities.handle import Handle
 from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.tool import ToolBox
@@ -20,7 +21,7 @@ from fabricatio_plot.toolboxes.plot import plot_toolbox
 class Plot(Handle):
     """A class representing a Plot handler, which manages plot-related operations and toolboxes."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_crud_toolbox})
+    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_crud_toolbox,data_io_toolbox})
     """A set of toolboxes used by the Plot handler, including plot_toolbox and data_toolbox by default."""
 
     async def plot(
