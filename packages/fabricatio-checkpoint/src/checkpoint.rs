@@ -7,13 +7,14 @@
 use blake3::hash;
 use error_mapping::*;
 use fabricatio_logger::*;
-use git2::{DiffOptions, IndexAddOption, Oid, Repository};
+use git2::{Config, DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyOSError;
 use pyo3::prelude::*;
+use rayon::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{PathBuf, absolute};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::{Arc, Mutex};
 use utils::mwrap;
 /// Trait for converting types into cache-friendly string keys.
@@ -94,9 +95,13 @@ impl ShadowRepoManager {
         } else {
             let repo_path = self.shadow_root.join(worktree_dir.as_key());
 
-            if repo_path.is_dir() && read_dir(&repo_path).is_ok_and(|mut i| i.next().is_some()) {
-                let repo = mwrap(Repository::open(repo_path).into_pyresult()?);
-                debug!("Opened repo for {}", worktree_dir.display());
+            if read_dir(&repo_path).is_ok_and(|mut i| i.next().is_some()) {
+                let repo = mwrap(Repository::open(&repo_path).into_pyresult()?);
+                debug!(
+                    "Opened repo for {} at {}",
+                    worktree_dir.display(),
+                    repo_path.display()
+                );
                 self.cache.insert(worktree_dir, repo.clone());
                 Ok(repo)
             } else {
@@ -104,19 +109,13 @@ impl ShadowRepoManager {
 
                 // Configure the repository manually, since the git2-rs always try to put a `.git` file in the source, which pollutes the source directory.
                 let mut config = repo.config().into_pyresult()?;
-                config.set_bool("core.bare", false).into_pyresult()?;
-                config
-                    .set_bool("core.logallrefupdates", true)
-                    .into_pyresult()?;
-                config
-                    .set_str("core.worktree", &worktree_dir.to_string_lossy())
-                    .into_pyresult()?;
-                config.set_str("user.name", "Agent").into_pyresult()?;
-                config
-                    .set_str("user.email", "placeholder@example.com")
-                    .into_pyresult()?;
-                let repo = Repository::open(repo_path).into_pyresult()?;
-                debug!("Created repo for {}", worktree_dir.display());
+                Self::configure(&worktree_dir, &mut config)?;
+                let repo = Repository::open(&repo_path).into_pyresult()?;
+                debug!(
+                    "Created repo for {} at {}",
+                    worktree_dir.display(),
+                    repo_path.display()
+                );
 
                 let tree_id = repo
                     .treebuilder(None)
@@ -144,6 +143,36 @@ impl ShadowRepoManager {
                 Ok(repo)
             }
         }
+    }
+
+    #[inline]
+    /// Configures a newly created repository with essential settings.
+    ///
+    /// Sets up the repository configuration to work properly as a shadow repository,
+    /// including disabling bare mode, enabling ref logging, setting the worktree path,
+    /// and configuring default user identity.
+    ///
+    /// # Arguments
+    ///
+    /// * `worktree_dir` - The worktree directory that this repository will track
+    /// * `config` - Mutable reference to the repository's configuration object
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if any configuration operation fails
+    fn configure(worktree_dir: &Path, config: &mut Config) -> Result<(), PyErr> {
+        config.set_bool("core.bare", false).into_pyresult()?;
+        config
+            .set_bool("core.logallrefupdates", true)
+            .into_pyresult()?;
+        config
+            .set_str("core.worktree", &worktree_dir.to_string_lossy())
+            .into_pyresult()?;
+        config.set_str("user.name", "Agent").into_pyresult()?;
+        config
+            .set_str("user.email", "placeholder@example.com")
+            .into_pyresult()?;
+        Ok(())
     }
 }
 
@@ -235,7 +264,6 @@ impl ShadowRepoManager {
             .map(|oid| oid.to_string())
         }
     }
-
     /// Drops the shadow repository for the given worktree directory.
     ///
     /// This method removes the shadow repository from both the file system and the cache.
@@ -258,6 +286,77 @@ impl ShadowRepoManager {
         fs::remove_dir_all(&repo_path).into_pyresult()?;
         self.cache.remove(&worktree_dir);
         Ok(())
+    }
+    /// Lists all commit IDs in the shadow repository's history.
+    ///
+    /// This method retrieves the complete commit history from the current HEAD
+    /// backwards through the parent commits. The commits are returned in reverse
+    /// chronological order (newest first).
+    ///
+    /// # Arguments
+    ///
+    /// * `worktree_dir` - The worktree directory whose commit history to retrieve
+    ///
+    /// # Returns
+    ///
+    /// A vector of commit IDs (OIDs as strings) in reverse chronological order
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if:
+    /// - The shadow repository is not found
+    /// - Git operations fail while walking the commit history
+    pub fn commits(&self, worktree_dir: PathBuf) -> PyResult<Vec<String>> {
+        let worktree_dir = absolute(worktree_dir).into_pyresult()?;
+        let repo_entry = self.get_repo(worktree_dir)?;
+        let repo = repo_entry.lock().into_pyresult()?;
+        let mut revwk = repo.revwalk().into_pyresult()?;
+        revwk.push_head().into_pyresult()?;
+        Ok(revwk
+            .filter_map(Result::ok)
+            .map(|oid| oid.to_string())
+            .skip(1) // skip the Initial commit which is a placeholder
+            .collect())
+    }
+
+    /// Lists all workspaces managed by this shadow repository manager.
+    ///
+    /// This method returns a list of worktree directories that have associated
+    /// shadow repositories. When `cached_only` is true, it returns only the
+    /// workspaces currently in the in-memory cache. When false, it scans the
+    /// filesystem to discover all existing shadow repositories.
+    ///
+    /// # Arguments
+    ///
+    /// * `cached_only` - If true, return only cached workspaces; if false, scan filesystem
+    ///
+    /// # Returns
+    ///
+    /// A vector of worktree directory paths
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if filesystem operations fail during scanning
+    #[pyo3(signature=(cached_only=true))]
+    pub fn workspaces(&self, cached_only: bool) -> PyResult<Vec<PathBuf>> {
+        if cached_only {
+            debug!("Returning cached workspaces...");
+            Ok(self
+                .cache
+                .iter()
+                .map(|(k, _)| k.to_path_buf())
+                .collect::<Vec<_>>())
+        } else {
+            Ok(read_dir(&self.shadow_root)
+                .into_pyresult()?
+                .par_bridge()
+                .filter_map(Result::ok)
+                .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_dir()))
+                .map(|entry| entry.path().to_path_buf())
+                .filter_map(|entry| Repository::open(entry).ok())
+                .filter_map(|repo| repo.workdir().map(|p| p.to_path_buf()))
+                .collect::<Vec<_>>())
+        }
     }
 
     /// Resets the worktree to a specific commit.

@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-plot"
-version = "0.1.7"
+version = "0.1.8"
 description = "An extension of fabricatio, which brings up the capability to plot dataframe with matplotlib"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -35,6 +35,12 @@ dev = [
 excel = [
     "openpyxl>=3.1.5",
 ]
+parquet = [
+    "pyarrow>= 15.0.0",
+]
+
+
+
 
 
 [build-system]
@@ -44,20 +50,17 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 sources = ["python"]
 
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
-
-[[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
 
 [[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+[[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple/"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

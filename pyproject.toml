@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.22.0"
+version = "0.22.1"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -59,6 +59,7 @@ dev = [
     "viztracer>=1.0.2",
     "coveralls>=4.0.1",
     "pyright>=1.1.402",
+    "pip>=25.3",
 ]
 docs = [
     "myst-parser>=4.0.1",
@@ -217,14 +218,14 @@ fabricatio-webui = {workspace = true}
 
 
 [[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+url = "https://mirrors.aliyun.com/pypi/simple/"
 default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple/"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [tool.uv.workspace]
 members = [

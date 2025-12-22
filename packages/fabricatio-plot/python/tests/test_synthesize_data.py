@@ -1,390 +1,381 @@
-"""Tests for the synthesize_data module."""
+"""Test suite for DataSynToolbox in fabricatio_plot package.
 
-from typing import List, Optional
+This test suite covers functionality related to synthetic data generation:
+- Schema definition and validation
+- Column generation for different data types
+- Complete DataFrame construction
+- Post-processing operations (correlation, missing values)
+- Error handling for invalid inputs and edge cases
 
+Each test ensures correct behavior of the corresponding function,
+including proper error handling and reproducibility guarantees.
+"""
+
+import re
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
 import pytest
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_code_string, return_json_obj_string, return_string
-from fabricatio_mock.utils import install_router
-from fabricatio_plot.capabilities.synthesize_data import SynthesizeData
-from fabricatio_plot.config import plot_config
-from litellm import Router
+from fabricatio_plot.toolboxes import synthesize as dt
 
 
-class SynthesizeDataRole(LLMTestRole, SynthesizeData):
-    """Test role that combines LLMTestRole with SynthesizeData for testing."""
-
-
+# =====================
+# Test Data Setup
+# =====================
 @pytest.fixture
-def mock_csv_router(ret_values: List[str]) -> Router:
-    """Returns a Router instance with a mocked return_code_string function."""
-    return return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
+def basic_schema() -> Dict[str, Any]:
+    """Create a basic schema for testing."""
+    return {
+        "columns": {
+            "id": {"type": "numeric", "params": {"dist": "uniform", "low": 1, "high": 1000}},
+            "category": {"type": "categorical", "params": {"categories": ["A", "B", "C"], "weights": [0.5, 0.3, 0.2]}},
+            "date": {"type": "datetime", "params": {"start": "2022-01-01", "end": "2023-12-31", "freq": "D"}},
+        },
+        "n_rows": 100,
+        "random_seed": 42,
+    }
 
 
-@pytest.fixture
-def mock_router(ret_values: List[str]) -> Router:
-    """Returns a Router instance with a mocked return_json_obj_string function."""
-    return return_json_obj_string(*ret_values)
+# =====================
+# Schema Definition Tests
+# =====================
+def test_define_schema() -> None:
+    """Test schema definition with basic parameters."""
+    columns = {
+        "numeric_col": {"type": "numeric", "params": {"dist": "normal", "mean": 0, "std": 1}},
+        "cat_col": {"type": "categorical", "params": {"categories": ["X", "Y"]}},
+    }
+
+    schema = dt.define_schema(columns, n_rows=50, random_seed=123)
+
+    assert "columns" in schema
+    assert schema["n_rows"] == 50
+    assert schema["random_seed"] == 123
+    assert "rg" in schema
+    assert schema["columns"] == columns
 
 
-@pytest.fixture
-def role() -> SynthesizeDataRole:
-    """Create a SynthesizeDataRole instance for testing.
+def test_define_schema_default_values() -> None:
+    """Test schema definition with default parameters."""
+    columns = {"col1": {"type": "numeric"}}
+    schema = dt.define_schema(columns)
 
-    Returns:
-        SynthesizeDataRole: Test role instance
-    """
-    return SynthesizeDataRole()
-
-
-@pytest.mark.parametrize(
-    ("requirement", "ret_values"),
-    [
-        ("user data", [["name", "email", "age"]]),
-        ("sales data", [["product", "price", "quantity", "date"]]),
-        ("weather data", [["temperature", "humidity", "pressure"]]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_header_single_requirement(
-    role: SynthesizeDataRole, requirement: str, ret_values: List[List[str]]
-) -> None:
-    """Test generate_header with single requirement string.
-
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Single requirement string
-        ret_values: Expected return values from mock
-    """
-    mock_router_instance = return_json_obj_string(*ret_values)
-    with install_router(mock_router_instance):
-        result = await role.generate_header(requirement)
-        assert result == ret_values[0]
+    assert schema["n_rows"] == 100
+    assert schema["random_seed"] is None
 
 
-@pytest.mark.parametrize(
-    ("requirements", "ret_values"),
-    [
-        (["user data", "sales data"], [["name", "email", "age"], ["product", "price", "quantity"]]),
-        (["weather data"], [["temperature", "humidity", "pressure"]]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_header_multiple_requirements(
-    role: SynthesizeDataRole, requirements: List[str], ret_values: List[List[str]]
-) -> None:
-    """Test generate_header with multiple requirement strings.
+# =====================
+# Column Generation Tests
+# =====================
+def test_generate_numeric_column_uniform() -> None:
+    """Test generating numeric column with uniform distribution."""
+    schema = dt.define_schema(
+        {"col": {"type": "numeric", "params": {"dist": "uniform", "low": 10, "high": 20}}}, n_rows=1000, random_seed=42
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirements: List of requirement strings to test
-        ret_values: Expected header values for the given requirements
-    """
-    mock_router_instance = return_json_obj_string(*ret_values)
-    with install_router(mock_router_instance):
-        result = await role.generate_header(requirements)
-        assert result == ret_values
+    series = dt.generate_column(schema, "col")
+
+    assert len(series) == 1000
+    assert series.min() >= 10
+    assert series.max() <= 20
+    assert series.dtype in [np.float64, np.int64]
 
 
-@pytest.mark.parametrize(
-    ("requirements", "ret_values"),
-    [
-        ("user data", [["product", "price", "quantity"]]),
-        (["user data"], [["product", "price", "quantity"]]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_header_returns_none(
-    role: SynthesizeDataRole, requirements: str | List[str], ret_values: List[List[str]]
-) -> None:
-    """Test generate_header when LLM returns None.
+def test_generate_numeric_column_normal() -> None:
+    """Test generating numeric column with normal distribution."""
+    schema = dt.define_schema(
+        {"col": {"type": "numeric", "params": {"dist": "normal", "mean": 100, "std": 15}}}, n_rows=1000, random_seed=42
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirements: List of requirement strings to test
-        ret_values: Expected header values for the given requirements
-    """
-    with install_router(return_string("invalid response")):
-        result = await role.generate_header(requirements)
-        if isinstance(requirements, str):
-            assert result is None
-        else:
-            assert all(r is None for r in result)
+    series = dt.generate_column(schema, "col")
+
+    assert len(series) == 1000
+    assert series.mean() == pytest.approx(100, rel=0.1)
+    assert series.std() == pytest.approx(15, rel=0.1)
 
 
-@pytest.mark.parametrize(
-    ("requirements", "header", "ret_values"),
-    [
-        ("user data", ["name", "age", "email"], ["name,age,email\nJohn,25,john@example.com\nJane,30,jane@example.com"]),
-        ("user data", ["name", "age"], ["name,age\nJohn,25\nJane,30"]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_csv_data_with_header(
-    role: SynthesizeDataRole, requirements: str, header: List[str], ret_values: List[str]
-) -> None:
-    """Test generate_csv_data with provided header.
+def test_generate_categorical_column() -> None:
+    """Test generating categorical column with weights."""
+    schema = dt.define_schema(
+        {
+            "col": {
+                "type": "categorical",
+                "params": {"categories": ["High", "Medium", "Low"], "weights": [0.6, 0.3, 0.1]},
+            }
+        },
+        n_rows=1000,
+        random_seed=42,
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirements: Data requirements
-        header: Expected header columns
-        ret_values: Mock CSV data return values
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.generate_csv_data(requirements, header, rows=2)
-        assert result is not None
-        assert result.shape[0] == 2
-        assert list(result.columns) == header
+    series = dt.generate_column(schema, "col")
+
+    assert len(series) == 1000
+    assert set(series.unique()) == {"High", "Medium", "Low"}
+
+    # Check approximate distribution
+    value_counts = series.value_counts(normalize=True)
+    assert value_counts["High"] == pytest.approx(0.6, abs=0.05)
+    assert value_counts["Medium"] == pytest.approx(0.3, abs=0.05)
+    assert value_counts["Low"] == pytest.approx(0.1, abs=0.05)
 
 
-@pytest.mark.parametrize(
-    ("expected_header", "ret_values"),
-    [
-        (["name", "age", "email"], ["username,years,contact\nJohn,25,john@example.com"]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_csv_data_header_mismatch(
-    role: SynthesizeDataRole,
-    expected_header: List[str],
-    ret_values: List[str],
-) -> None:
-    """Test generate_csv_data when CSV header doesn't match expected header.
+def test_generate_datetime_column() -> None:
+    """Test generating datetime column."""
+    schema = dt.define_schema(
+        {"col": {"type": "datetime", "params": {"start": "2022-01-01", "end": "2022-12-31", "freq": "D"}}},
+        n_rows=100,
+        random_seed=42,
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        expected_header: Expected header for the CSV
-        ret_values: Mock CSV data return values
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.generate_csv_data("user data", expected_header, rows=1)
-        assert result is None
+    series = dt.generate_column(schema, "col")
+
+    assert len(series) == 100
+    assert pd.api.types.is_datetime64_any_dtype(series)
+    assert series.min() >= pd.Timestamp("2022-01-01")
+    assert series.max() <= pd.Timestamp("2022-12-31")
 
 
-@pytest.mark.parametrize(
-    ("requirements", "header", "ret_values"),
-    [
-        (
-            "user data",
-            ["name", "age", "email"],
-            ["namea,age,email\nJohn,25,john@example.com\nJane,30,jane@example.com"],
-        ),
-        (
-            "user data",
-            ["name", "age"],
-            ["namesc,age\nJohn,25\nJane,30"],
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_generate_csv_data_parse_error(
-    role: SynthesizeDataRole,
-    requirements: str,
-    header: List[str],
-    ret_values: List[str],
-) -> None:
-    """Test generate_csv_data with malformed CSV content.
+def test_generate_text_column() -> None:
+    """Test generating text column."""
+    schema = dt.define_schema(
+        {"col": {"type": "text", "params": {"prefix": "prod_", "suffix": "_end", "min_len": 4, "max_len": 8}}},
+        n_rows=10,
+        random_seed=42,
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirements: Description of the data to be synthesized
-        header: Expected header for the CSV
-        ret_values: Malformed CSV content to trigger parsing error
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.generate_csv_data(requirements, header, rows=2)
-        assert result is None
+    series = dt.generate_column(schema, "col")
+
+    assert len(series) == 10
+    for text in series:
+        assert text.startswith("prod_")
+        assert text.endswith("_end")
+        assert 4 <= len(text) - len("prod__end") <= 8  # Subtract prefix/suffix length
 
 
-@pytest.mark.parametrize(
-    ("requirement", "header", "rows", "batch_size", "expected_shape", "ret_values"),
-    [
-        (
-            "user data",
-            ["name", "age"],
-            4,
-            2,
-            (4, 2),
-            ["name,age\nJohn,25\nJane,30", "name,age\nBob,40\nAlice,28"],
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_synthesize_data_success(
-    role: SynthesizeDataRole,
-    requirement: str,
-    header: List[str],
-    rows: int,
-    batch_size: int,
-    expected_shape: tuple,
-    ret_values: List[str],
-) -> None:
-    """Test successful synthesize_data operation.
+def test_generate_column_invalid_type() -> None:
+    """Test error handling for unsupported column type."""
+    schema = dt.define_schema({"col": {"type": "invalid_type"}}, n_rows=10)
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Description of the data requirements
-        header: List of column names
-        rows: Number of rows to generate
-        batch_size: Size of each batch
-        expected_shape: Expected shape of the resulting DataFrame
-        ret_values: Mocked CSV data response from LLM
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.synthesize_data(requirement, header=header, rows=rows, batch_size=batch_size)
-        assert result is not None
-        assert result.shape == expected_shape
-        assert list(result.columns) == ["name", "age"]
+    with pytest.raises(ValueError, match="Unsupported column type"):
+        dt.generate_column(schema, "col")
 
 
-@pytest.mark.parametrize(
-    ("requirement", "rows", "batch_size", "expected_shape", "header", "ret_values"),
-    [
-        (
-            "sales data",
-            2,
-            2,
-            (2, 2),
-            ["product", "price"],
-            ["product,price\nWidget,9.99\nGadget,19.99"],
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_synthesize_data_with_explicit_header(
-    role: SynthesizeDataRole,
-    requirement: str,
-    rows: int,
-    batch_size: int,
-    expected_shape: tuple,
-    header: List[str],
-    ret_values: List[str],
-) -> None:
-    """Test synthesize_data with explicitly provided header.
+def test_generate_categorical_invalid_weights() -> None:
+    """Test error handling for invalid categorical weights."""
+    schema = dt.define_schema(
+        {
+            "col": {
+                "type": "categorical",
+                "params": {
+                    "categories": ["A", "B", "C"],
+                    "weights": [0.5, 0.5],  # Wrong length
+                },
+            }
+        },
+        n_rows=10,
+    )
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Description of the data requirements
-        rows: Number of rows to generate
-        batch_size: Size of each batch
-        expected_shape: Expected shape of the resulting DataFrame
-        header: Explicit column headers to use
-        ret_values: Mocked CSV data response from LLM
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.synthesize_data(requirement, rows=rows, batch_size=batch_size, header=header)
-        assert result is not None
-        assert result.shape == expected_shape
-        assert list(result.columns) == header
+    with pytest.raises(ValueError, match="Length of weights must match"):
+        dt.generate_column(schema, "col")
 
 
-@pytest.mark.parametrize(
-    ("requirement", "batch_size", "ret_values", "expected_rows", "header"),
-    [
-        (
-            "user data",
-            2,
-            ["name,age\nJohn,25\nJane,30", "name,age\nBob,40\nAlice,35"],
-            4,
-            ["name", "age"],
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_synthesize_data_partial_batch_failure(
-    role: SynthesizeDataRole,
-    requirement: str,
-    batch_size: int,
-    ret_values: List[str],
-    expected_rows: int,
-    header: List[str],
-) -> None:
-    """Test synthesize_data when some batches fail.
+# =====================
+# DataFrame Construction Tests
+# =====================
+def test_build_dataframe_basic(basic_schema: Dict[str, Any]) -> None:
+    """Test building complete DataFrame from schema."""
+    # Extract just the columns part for the function
+    columns_only = basic_schema["columns"]
+    schema = dt.define_schema(columns_only, n_rows=100, random_seed=42)
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Description of the data requirements
-        batch_size: Size of each batch
-        ret_values: Responses including malformed CSV
-        expected_rows: Number of rows expected to succeed
-        header: Explicit column headers to use
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.synthesize_data(requirement, rows=expected_rows, batch_size=batch_size, header=header)
-        assert result is not None
-        assert result.shape[0] == expected_rows
+    df = dt.build_dataframe(schema)
+
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape == (100, 3)
+    assert set(df.columns) == {"id", "category", "date"}
+    assert len(df["id"].unique()) > 0
+    assert set(df["category"].unique()).issubset({"A", "B", "C"})
+    assert pd.api.types.is_datetime64_any_dtype(df["date"])
 
 
-@pytest.mark.parametrize(
-    ("requirement", "rows", "batch_size", "ret_values", "header"),
-    [
-        (
-            "user data",
-            4,
-            2,
-            ["", "ascasc"],
-            ["name", "age"],
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_synthesize_data_all_batches_fail(
-    role: SynthesizeDataRole,
-    requirement: str,
-    rows: int,
-    batch_size: int,
-    ret_values: List[str],
-    header: List[str],
-) -> None:
-    """Test synthesize_data when all batches fail.
+def test_build_dataframe_specific_columns(basic_schema: Dict[str, Any]) -> None:
+    """Test building DataFrame with specific columns only."""
+    columns_only = basic_schema["columns"]
+    schema = dt.define_schema(columns_only, n_rows=50, random_seed=42)
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Description of the data requirements
-        rows: Total number of rows to generate
-        batch_size: Size of each batch
-        ret_values: Response simulating malformed CSV that will fail parsing
-        header: Explicit column headers to use
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        result = await role.synthesize_data(requirement, rows=rows, batch_size=batch_size, header=header)
-        assert result is None
+    df = dt.build_dataframe(schema, columns=["id", "category"])
+
+    assert df.shape == (50, 2)
+    assert set(df.columns) == {"id", "category"}
+    assert "date" not in df.columns
 
 
-@pytest.mark.parametrize(
-    ("requirement", "row_count", "expected_result", "ret_values", "header"),
-    [
-        ("user data", 0, None, ["name,age\nJohn,25"], ["name", "age"]),
-        ("user data", -1, None, ["name,age\nJohn,25"], ["name", "age"]),
-    ],
-)
-@pytest.mark.asyncio
-async def test_synthesize_data_invalid_row_count(
-    role: SynthesizeDataRole,
-    requirement: str,
-    row_count: int,
-    expected_result: Optional[int],
-    ret_values: List[str],
-    header: List[str],
-) -> None:
-    """Test synthesize_data with invalid row counts.
+def test_build_dataframe_empty_columns() -> None:
+    """Test building DataFrame with empty schema."""
+    schema = dt.define_schema({}, n_rows=10)
+    df = dt.build_dataframe(schema)
 
-    Args:
-        role: SynthesizeDataRole fixture
-        requirement: Description of the data requirements
-        row_count: Invalid number of rows to request
-        expected_result: Expected result (None for invalid requests)
-        ret_values: Mock CSV data return values
-        header: Explicit column headers to use
-    """
-    mock_csv_router_instance = return_code_string(*ret_values, lang=plot_config.csv_codeblock_lang)
-    with install_router(mock_csv_router_instance):
-        assert await role.synthesize_data(requirement, rows=row_count, header=header) is expected_result
+    assert df.shape == (10, 0)
+
+
+# =====================
+# Post-Processing Tests
+# =====================
+def test_add_correlated_column() -> None:
+    """Test adding correlated column."""
+    # Use fixed data for reproducible test
+    np.random.seed(42)
+    base_data = np.random.normal(50, 10, 1000)
+    df = pd.DataFrame({"base": base_data})
+
+    df_corr = dt.add_correlated_column(df, base_column="base", new_column="correlated", correlation=0.8, random_seed=42)
+
+    assert "correlated" in df_corr.columns
+    assert len(df_corr) == 1000
+
+    # Calculate actual correlation
+    actual_corr = df_corr["base"].corr(df_corr["correlated"])
+    # With proper algorithm, should be very close to target
+    assert actual_corr == pytest.approx(0.8, abs=0.02)  # Tighter tolerance
+
+
+def test_add_correlated_column_uniform_dist() -> None:
+    """Test adding correlated column (distribution parameter is ignored in current implementation)."""
+    # Note: The dist parameter is not used in the current correlation algorithm
+    # since we work in standardized space
+    np.random.seed(42)
+    base_data = np.random.uniform(0, 100, 500)
+    df = pd.DataFrame({"base": base_data})
+
+    df_corr = dt.add_correlated_column(df, base_column="base", new_column="correlated", correlation=0.6, random_seed=42)
+
+    assert "correlated" in df_corr.columns
+    actual_corr = df_corr["base"].corr(df_corr["correlated"])
+    assert actual_corr == pytest.approx(0.6, abs=0.02)
+
+
+def test_add_correlated_column_invalid_correlation() -> None:
+    """Test error handling for invalid correlation values."""
+    df = pd.DataFrame({"base": [1, 2, 3, 4, 5]})
+
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
+        dt.add_correlated_column(df, "base", "new_col", correlation=1.5)
+
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
+        dt.add_correlated_column(df, "base", "new_col", correlation=-0.1)
+
+
+def test_add_correlated_column_nonexistent_base() -> None:
+    """Test error handling for nonexistent base column."""
+    df = pd.DataFrame({"other": [1, 2, 3]})
+
+    with pytest.raises(KeyError):
+        dt.add_correlated_column(df, "nonexistent", "new_col")
+
+
+def test_inject_missing_values() -> None:
+    """Test injecting missing values."""
+    df = pd.DataFrame({"col1": range(100), "col2": ["A"] * 100, "col3": np.random.random(100)})
+
+    df_missing = dt.inject_missing_values(df, missing_rate=0.1, random_seed=42)
+
+    assert df_missing.shape == df.shape
+    assert df_missing.isnull().sum().sum() > 0
+
+    # Approximate missing rate check
+    total_cells = 100 * 3
+    actual_missing_rate = df_missing.isnull().sum().sum() / total_cells
+    assert actual_missing_rate == pytest.approx(0.1, abs=0.03)
+
+
+def test_inject_missing_values_specific_columns() -> None:
+    """Test injecting missing values in specific columns."""
+    df = pd.DataFrame({"col1": range(10), "col2": range(10, 20), "col3": range(20, 30)})
+
+    df_missing = dt.inject_missing_values(df, missing_rate=0.3, columns=["col1", "col3"], random_seed=42)
+
+    # col2 should have no missing values
+    assert df_missing["col2"].isnull().sum() == 0
+    assert df_missing["col1"].isnull().sum() > 0
+    assert df_missing["col3"].isnull().sum() > 0
+
+
+def test_inject_missing_values_invalid_rate() -> None:
+    """Test error handling for invalid missing rate."""
+    df = pd.DataFrame({"col": [1, 2, 3]})
+
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
+        dt.inject_missing_values(df, missing_rate=1.5)
+
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
+        dt.inject_missing_values(df, missing_rate=-0.1)
+
+
+# =====================
+# Reproducibility Tests
+# =====================
+def test_reproducible_generation() -> None:
+    """Test that generation is reproducible with same seed."""
+    columns = {
+        "numeric": {"type": "numeric", "params": {"dist": "normal", "mean": 0, "std": 1}},
+        "category": {"type": "categorical", "params": {"categories": ["X", "Y", "Z"]}},
+    }
+
+    # Generate twice with same seed
+    schema1 = dt.define_schema(columns, n_rows=50, random_seed=123)
+    df1 = dt.build_dataframe(schema1)
+
+    schema2 = dt.define_schema(columns, n_rows=50, random_seed=123)
+    df2 = dt.build_dataframe(schema2)
+
+    pd.testing.assert_frame_equal(df1, df2)
+
+
+def test_different_seeds_produce_different_results() -> None:
+    """Test that different seeds produce different results."""
+    columns = {"col": {"type": "numeric", "params": {"dist": "uniform", "low": 0, "high": 1}}}
+
+    schema1 = dt.define_schema(columns, n_rows=10, random_seed=1)
+    df1 = dt.build_dataframe(schema1)
+
+    schema2 = dt.define_schema(columns, n_rows=10, random_seed=2)
+    df2 = dt.build_dataframe(schema2)
+
+    # Should be different (very high probability)
+    assert not df1.equals(df2)
+
+
+# =====================
+# Integration Tests
+# =====================
+def test_complete_workflow() -> None:
+    """Test complete synthetic data generation workflow."""
+    # Define schema
+    schema = dt.define_schema(
+        columns={
+            "product_id": {"type": "text", "params": {"prefix": "PROD-", "min_len": 5, "max_len": 8}},
+            "region": {"type": "categorical", "params": {"categories": ["North", "South", "East", "West"]}},
+            "sales": {"type": "numeric", "params": {"dist": "poisson", "lam": 25}},
+            "date": {"type": "datetime", "params": {"start": "2023-01-01", "end": "2023-12-31"}},
+        },
+        n_rows=200,
+        random_seed=42,
+    )
+
+    # Build base DataFrame
+    df = dt.build_dataframe(schema)
+
+    # Add correlated column
+    df = dt.add_correlated_column(df, base_column="sales", new_column="revenue", correlation=0.85, random_seed=42)
+
+    # Inject missing values
+    df = dt.inject_missing_values(df, missing_rate=0.05, columns=["sales", "revenue"], random_seed=42)
+
+    # Validate final result
+    assert df.shape == (200, 5)
+    assert set(df.columns) == {"product_id", "region", "sales", "date", "revenue"}
+    assert df["product_id"].str.startswith("PROD-").all()
+    assert set(df["region"].dropna().unique()).issubset({"North", "South", "East", "West"})
+    assert pd.api.types.is_datetime64_any_dtype(df["date"])
+    assert df.isnull().sum().sum() > 0  # Should have some missing values

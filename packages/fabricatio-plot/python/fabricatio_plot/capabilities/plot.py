@@ -13,14 +13,14 @@ from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.tool import ToolBox
 from pydantic import Field
 
-from fabricatio_plot.toolboxes.data import data_toolbox
+from fabricatio_plot.toolboxes.dataframe_curd import data_crud_toolbox
 from fabricatio_plot.toolboxes.plot import plot_toolbox
 
 
 class Plot(Handle):
     """A class representing a Plot handler, which manages plot-related operations and toolboxes."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_toolbox})
+    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_crud_toolbox})
     """A set of toolboxes used by the Plot handler, including plot_toolbox and data_toolbox by default."""
 
     async def plot(
