@@ -6,7 +6,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-axum = "0.8.7"
+axum = "0.8.8"
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }

@@ -1,3 +1,5 @@
+"""Command line interface for fabricatio-webui service."""
+
 from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
