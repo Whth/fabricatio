@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-plot"
-version = "0.1.8"
+version = "0.1.9"
 description = "An extension of fabricatio, which brings up the capability to plot dataframe with matplotlib"
 readme = "README.md"
 license = { file = "LICENSE" }
