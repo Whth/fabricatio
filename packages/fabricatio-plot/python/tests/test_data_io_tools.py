@@ -164,7 +164,7 @@ def test_save_data_unsupported_format(tmp_path: Path, sample_dataframe: pd.DataF
 
 def test_save_data_invalid_path(sample_dataframe: pd.DataFrame) -> None:
     """Test error handling for invalid save path."""
-    with pytest.raises(OSError):
+    with pytest.raises(OSError, match="Cannot save file into a non-existent directory"):
         dt.save_data(sample_dataframe, "/nonexistent/path/file.csv", fmt="csv")
 
 

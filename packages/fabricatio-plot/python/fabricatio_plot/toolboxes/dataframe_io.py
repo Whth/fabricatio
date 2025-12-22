@@ -42,9 +42,7 @@ def load_parquet(file_path: Union[str, Path]) -> pd.DataFrame:
 
 
 @data_io_toolbox.collect_tool
-def save_data(
-    df: pd.DataFrame, file_path: Union[str, Path], fmt: Literal["csv", "excel", "parquet"] | str = "csv"
-) -> None:
+def save_data(df: pd.DataFrame, file_path: Union[str, Path], fmt: Literal["csv", "excel", "parquet"] = "csv") -> None:
     """Save DataFrame to file (CSV/Excel/Parquet)."""
     if fmt == "csv":
         df.to_csv(file_path, index=False)

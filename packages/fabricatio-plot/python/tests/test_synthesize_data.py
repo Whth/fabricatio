@@ -11,6 +11,7 @@ Each test ensures correct behavior of the corresponding function,
 including proper error handling and reproducibility guarantees.
 """
 
+import re
 from typing import Any, Dict
 
 import numpy as np
@@ -258,10 +259,10 @@ def test_add_correlated_column_invalid_correlation() -> None:
     """Test error handling for invalid correlation values."""
     df = pd.DataFrame({"base": [1, 2, 3, 4, 5]})
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
         dt.add_correlated_column(df, "base", "new_col", correlation=1.5)
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
         dt.add_correlated_column(df, "base", "new_col", correlation=-0.1)
 
 
@@ -304,10 +305,10 @@ def test_inject_missing_values_invalid_rate() -> None:
     """Test error handling for invalid missing rate."""
     df = pd.DataFrame({"col": [1, 2, 3]})
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
         dt.inject_missing_values(df, missing_rate=1.5)
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=re.escape("between 0.0 and 1.0")):
         dt.inject_missing_values(df, missing_rate=-0.1)
 
 

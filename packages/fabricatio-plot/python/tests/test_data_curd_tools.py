@@ -84,7 +84,9 @@ def test_add_computed_column_with_dtype(sample_dataframe: pd.DataFrame) -> None:
 
 def test_add_computed_column_invalid_expression(sample_dataframe: pd.DataFrame) -> None:
     """Test error handling for invalid expressions."""
-    with pytest.raises(Exception):  # pandas.eval throws various exceptions
+    from pandas.errors import UndefinedVariableError
+
+    with pytest.raises(UndefinedVariableError):  # pandas.eval throws various exceptions
         dt.add_computed_column(sample_dataframe, new_column="invalid", expression="nonexistent_column * 2")
 
 
