@@ -2,7 +2,11 @@ use polib::message::{Message as PoMessage, MessageMutView};
 use polib::po_file::{parse, write};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use std::fs;
+use std::io::BufWriter;
 use std::path::PathBuf;
+
+use error_mapping::*;
 
 #[derive(Clone, Default)]
 #[pyclass(get_all)]
@@ -55,9 +59,9 @@ fn update_pofile(file_path: PathBuf, messages: Vec<Msg>) -> PyResult<()> {
     for msg in messages {
         catalog.append_or_update(PoMessage::from(msg))
     }
-
+    let mut w = BufWriter::new(fs::File::open(file_path).into_pyresult()?);
     // Write the updated catalog back to file
-    write(&catalog, file_path.as_path()).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    write(&catalog, &mut w).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
     Ok(())
 }

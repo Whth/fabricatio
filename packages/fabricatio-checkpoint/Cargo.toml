@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 blake3 = "1.8.2"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 git2 = { version = "0.20.3", features = ["vendored-libgit2"], default-features = false }
-moka = { version = "0.12.11", features = ["sync"] }
+moka = { version = "0.12.12", features = ["sync"] }
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }

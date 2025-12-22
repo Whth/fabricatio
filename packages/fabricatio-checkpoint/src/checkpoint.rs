@@ -127,7 +127,7 @@ impl ShadowRepoManager {
 
                     let sig = repo.signature().into_pyresult()?;
                     repo.commit(
-                        Some("refs/heads/main"),
+                        Some("refs/heads/master"),
                         &sig,
                         &sig,
                         "Initial commit",

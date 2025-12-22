@@ -6,7 +6,8 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-polib = ">=0.2.0"
+polib = "0.3.0"
 
 pyo3 = { version = ">=0.25.0", features = ["extension-module"] }
+error-mapping = { path = "../../crates/error-mapping" }
 

@@ -32,33 +32,15 @@
 
 use moka::sync::Cache;
 use once_cell::sync::Lazy;
-use pep508_rs::{ExtraName, MarkerExpression, Requirement, VerbatimUrl};
+use pep508_rs::{MarkerExpression, Requirement, VerbatimUrl};
 use pyo3::prelude::*;
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use walkdir::WalkDir;
-
-/// Represents a Python package item with its root directory and extra mapping information.
-#[derive(Debug, Clone)]
-struct PackageItem {
-    /// The root directory of the package.
-    root_dir: PathBuf,
-    /// Optional mapping of extras to their required dependencies.
-    extra_mapping: Option<Arc<HashMap<String, Vec<String>>>>,
-}
-
-impl From<PathBuf> for PackageItem {
-    fn from(root_dir: PathBuf) -> Self {
-        Self {
-            root_dir,
-            extra_mapping: None,
-        }
-    }
-}
 
 static SITE_PACKAGES: Lazy<PathBuf> = Lazy::new(|| {
     Python::attach(|py| {
@@ -71,13 +53,19 @@ static SITE_PACKAGES: Lazy<PathBuf> = Lazy::new(|| {
     })
 });
 
+type PackageExtras = HashMap<String, Vec<String>>;
+
+type PackageRoot = PathBuf;
 /// A scanner for Python packages that caches package information.
 ///
 /// This struct maintains a cache of installed Python packages and provides
 /// methods to query package information such as dependencies and extras.
 pub struct PythonPackageScanner {
     /// Cache storing package names mapped to their items.
-    cache: Cache<String, PackageItem>,
+    known_packages: Cache<String, PackageRoot>,
+
+    /// Cache storing package names mapped to their extra mappings.
+    extras_mappings: Cache<String, Arc<PackageExtras>>,
     /// Path to the site-packages directory.
     site_packages: PathBuf,
 }
@@ -98,16 +86,19 @@ impl PythonPackageScanner {
     ///
     /// A new instance of `PythonPackageScanner`.
     pub fn new() -> Self {
-        let cache = Cache::builder().build();
         Self {
-            cache,
+            known_packages: Cache::builder().build(),
+            extras_mappings: Cache::builder().build(),
             site_packages: SITE_PACKAGES.clone(),
         }
         .refresh()
     }
 
     pub fn list_installed(&self) -> Vec<String> {
-        self.cache.iter().map(|(k, _)| k.to_string()).collect()
+        self.known_packages
+            .iter()
+            .map(|(k, _)| k.to_string())
+            .collect()
     }
     /// Refreshes the package cache by scanning the site-packages directory.
     ///
@@ -119,7 +110,7 @@ impl PythonPackageScanner {
     ///
     /// The same instance with refreshed cache.
     pub fn refresh(self) -> Self {
-        self.cache.invalidate_all();
+        self.known_packages.invalidate_all();
         WalkDir::new(&self.site_packages)
             .max_depth(1)
             .min_depth(1)
@@ -135,68 +126,49 @@ impl PythonPackageScanner {
             .filter(|(_, dir_name)| dir_name.ends_with(".dist-info"))
             .for_each(|(entry_path, dir_name)| {
                 let (pkg_name, _) = dir_name.split_once("-").unwrap();
-                self.cache.insert(pkg_name.to_string(), entry_path.into());
+                self.known_packages.insert(pkg_name.to_string(), entry_path);
             });
         self
     }
 
-    /// Checks if all dependencies for a specific package extra are satisfied.
+    /// Checks whether **all** given extras of a package have their dependencies satisfied.
     ///
-    /// Determines whether all dependencies required by a specific extra of
-    /// a package are installed.
+    /// This function returns `true` only if **every** extra in `extras` is defined
+    /// and all of its dependencies are installed.
     ///
     /// # Arguments
-    ///
-    /// * `pkg_name` - The name of the package.
-    /// * `extra` - The name of the extra feature.
+    /// * `pkg_name` - The normalized package name (dashes `-` are replaced with underscores `_` internally).
+    /// * `extras` - An iterator of extra names (e.g., `["dev", "test"]`).
     ///
     /// # Returns
+    /// `true` if all listed extras exist and their dependencies are installed; `false` otherwise.
     ///
-    /// `true` if all dependencies for the extra are satisfied, `false` otherwise.
-    pub fn extra_satisfied(&self, pkg_name: &str, extra: &str) -> bool {
+    /// # Note
+    /// - If any extra is not defined in the package metadata, this returns `false`.
+    /// - Only top-level `extra == "..."` markers are supported (no complex marker expressions).
+    pub fn extras_satisfied<I, S>(&self, pkg_name: &str, extras: I) -> bool
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         let pkg_name = pkg_name.replace("-", "_");
-        if let Some(all_extra) = self.get_extra_all(pkg_name.as_str())
-            && let Some(extra_deps) = all_extra.get(extra)
-        {
-            extra_deps.iter().all(|dep| self.cache.get(dep).is_some())
+        if let Some(all_extra) = self.get_extra_all(&pkg_name) {
+            extras.into_iter().all(|extra| {
+                if let Some(deps) = all_extra.get(extra.as_ref()) {
+                    deps.iter()
+                        .all(|dep| self.known_packages.get(dep.as_str()).is_some())
+                } else {
+                    false // extra not defined → not satisfied
+                }
+            })
         } else {
-            false
+            false // package not found
         }
     }
 
-    /// Checks if all dependencies for a specific package extras are satisfied.
-    ///
-    /// Determines whether all dependencies required by a specific extras of
-    /// a package are installed.
-    ///
-    /// # Arguments
-    ///
-    /// * `pkg_name` - The name of the package.
-    /// * `extras` - The names of the extras features.
-    ///
-    /// # Returns
-    ///
-    /// `true` if all dependencies for the extras are satisfied, `false` otherwise.
-    ///
-    /// # Note this function currently works only on requirement with top level extra, not on nested extra.
-    pub fn extras_satisfied(&self, pkg_name: &str, extras: Vec<String>) -> bool {
-        let pkg_name = pkg_name.replace("-", "_");
-        if let Some(all_extra) = self.get_extra_all(pkg_name.as_str()) {
-            for extra in extras {
-                if let Some(deps) = all_extra.get(extra.as_str())
-                    && deps
-                        .iter()
-                        .all(|dep| self.cache.get(dep.as_str()).is_some())
-                {
-                    continue;
-                } else {
-                    return false;
-                }
-            }
-            true
-        } else {
-            false
-        }
+    /// Checks whether a specific extra of a package has its dependencies satisfied.
+    pub fn extra_satisfied(&self, pkg_name: &str, extra: &str) -> bool {
+        self.extras_satisfied(pkg_name, std::iter::once(extra))
     }
 
     /// Retrieves all extras and their dependencies for a given package.
@@ -210,17 +182,14 @@ impl PythonPackageScanner {
     /// # Returns
     ///
     /// An optional reference to the extras mapping if the package exists, `None` otherwise.
-    pub fn get_extra_all(&self, pkg_name: &str) -> Option<Arc<HashMap<String, Vec<String>>>> {
-        if let Some(mut pkg_item) = self.cache.get(pkg_name) {
-            if pkg_item.extra_mapping.is_none()
-                && let Ok(metadata) = fs::read_to_string(pkg_item.root_dir.join("METADATA"))
-            {
-                let mut extras_set = HashSet::new();
-                extras_set.insert(ExtraName::from_str(pkg_name).unwrap());
-                pkg_item.extra_mapping = Some(Arc::new(Self::acquire_extra_mapping(metadata)));
-                self.cache.insert(pkg_name.to_string(), pkg_item.clone());
-            }
-            pkg_item.extra_mapping
+    fn get_extra_all(&self, pkg_name: &str) -> Option<Arc<PackageExtras>> {
+        if let Some(pkg_root) = self.known_packages.get(pkg_name) {
+            Some(self.extras_mappings.get_with_by_ref(pkg_name, || {
+                Arc::new(Self::acquire_extra_mapping(
+                    fs::read_to_string(pkg_root.join("METADATA"))
+                        .expect("Failed to read METADATA file"),
+                ))
+            }))
         } else {
             None
         }
@@ -239,20 +208,24 @@ impl PythonPackageScanner {
     ///
     /// A map of extras to their dependency lists.
     #[inline]
-    fn acquire_extra_mapping(metadata: String) -> HashMap<String, Vec<String>> {
-        let mut reg: HashMap<String, Vec<String>> = HashMap::new();
+    fn acquire_extra_mapping(metadata: String) -> PackageExtras {
+        let mut reg: PackageExtras = HashMap::new();
 
         metadata
             .lines()
             .filter_map(|line: &str| line.strip_prefix("Requires-Dist: "))
             .filter(|line: &&str| line.contains("extra =="))
             .filter_map(|line: &str| Requirement::<VerbatimUrl>::from_str(line).ok())
-            .filter_map(|req| req.marker.top_level_extra())
-            .for_each(|expr| {
+            .filter_map(|req| {
+                req.marker
+                    .top_level_extra()
+                    .map(|expr| (req.name.to_string(), expr))
+            })
+            .for_each(|(req_name, expr)| {
                 if let MarkerExpression::Extra { name, .. } = expr {
                     reg.entry(name.to_string())
                         .or_default()
-                        .push(name.to_string().replace("-", "_"))
+                        .push(req_name.replace("-", "_"))
                 }
                 //TODO: add complex extra analytics
             });
@@ -271,6 +244,8 @@ impl PythonPackageScanner {
     ///
     /// `true` if the package is installed, `false` otherwise.
     pub fn is_installed(&self, name: &str) -> bool {
-        self.cache.get(name.replace("-", "_").as_str()).is_some()
+        self.known_packages
+            .get(name.replace("-", "_").as_str())
+            .is_some()
     }
 }
