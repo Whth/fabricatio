@@ -1,13 +1,9 @@
-use dotenvy::dotenv_override;
-use fabricatio_constants::{CONFIG_FILE, GLOBAL_CONFIG_FILE, NAME, ROAMING};
-use figment::providers::{Data, Env, Format, Toml};
-use figment::value::{Dict, Map};
-use figment::{Error, Figment, Metadata, Profile, Provider};
+use crate::constants::ROAMING;
 use macro_utils::TemplateDefault;
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
+use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -15,11 +11,10 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use validator::Validate;
-
 #[derive(Clone)]
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct SecretStr {
     source: String,
@@ -74,6 +69,7 @@ impl Serialize for SecretStr {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl SecretStr {
     #[new]
@@ -153,6 +149,7 @@ impl Display for SecretStr {
 /// * `frequency_penalty` - Penalizes new tokens based on their frequency in the text so far.
 ///   Range from -2.0 to 2.0. Positive values discourage repetition.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct LLMConfig {
     #[validate(url)]
@@ -205,6 +202,7 @@ pub struct LLMConfig {
 
 /// Embedding configuration structure
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct EmbeddingConfig {
     pub model: Option<String>,
@@ -225,6 +223,7 @@ pub struct EmbeddingConfig {
 }
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct DebugConfig {
     pub log_level: String,
@@ -245,6 +244,7 @@ impl Default for DebugConfig {
 }
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct TemplateManagerConfig {
     /// The directory containing the templates.
@@ -269,6 +269,7 @@ impl Default for TemplateManagerConfig {
 
 /// Template configuration structure
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct TemplateConfig {
     pub mapping_template: String,
@@ -312,6 +313,7 @@ pub struct TemplateConfig {
 }
 /// Routing configuration structure for controlling request dispatching behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct RoutingConfig {
     /// The maximum number of parallel requests. None means not checked.
@@ -339,6 +341,7 @@ impl Default for RoutingConfig {
 }
 /// General configuration structure for application-wide settings
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct GeneralConfig {
     /// Whether to automatically repair malformed JSON
@@ -357,6 +360,7 @@ impl Default for GeneralConfig {
 ///
 /// Contains settings for controlling event emission and listener behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
 pub struct EmitterConfig {
     /// The delimiter used to separate the event name into segments
@@ -373,6 +377,7 @@ impl Default for EmitterConfig {
 
 /// Configuration structure containing all system components
 #[derive(Default, Clone, Serialize, Deserialize)]
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Config {
     /// Embedding configuration
@@ -473,6 +478,7 @@ pub struct Config {
     pub ext: HashMap<String, Value>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Config {
     /// Load configuration data for a given section name and instantiate a Python class
@@ -509,77 +515,3 @@ impl Config {
         }
     }
 }
-
-impl Config {
-    pub fn new() -> PyResult<Self> {
-        Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
-    }
-    fn figment() -> Figment {
-        Figment::new()
-            .join({
-                let _ = dotenv_override();
-                Env::prefixed(format!("{}_", NAME.to_uppercase()).as_str()).split("__")
-            })
-            .join(Toml::file(CONFIG_FILE))
-            .join(PyprojectToml::new("pyproject.toml", vec!["tool", NAME]))
-            .join(Toml::file(GLOBAL_CONFIG_FILE.deref()))
-            .join(Config::default())
-    }
-
-    // Allow the configuration to be extracted from any `Provider`.
-    fn from<T: Provider>(provider: T) -> Result<Config, String> {
-        Figment::from(provider).extract().map_err(|e| e.to_string())
-    }
-}
-
-/// discover extra config within the pyproject.toml file
-struct PyprojectToml {
-    toml: Data<Toml>,
-    header: Vec<&'static str>,
-}
-
-impl PyprojectToml {
-    fn new<P: AsRef<Path>>(path: P, header: Vec<&'static str>) -> Self {
-        Self {
-            toml: Toml::file(path),
-            header,
-        }
-    }
-}
-
-impl Provider for PyprojectToml {
-    fn metadata(&self) -> Metadata {
-        Metadata::named("Pyproject Toml File")
-    }
-
-    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
-        self.toml.data().map(|map| {
-            map.into_iter()
-                .map(|(profile, dict)| {
-                    let mut body: Option<&Dict> = Some(&dict);
-
-                    for &h in self.header.iter() {
-                        if !body.unwrap().contains_key(h) {
-                            return (profile, Dict::new());
-                        }
-                        body = body.unwrap().get(h).unwrap().as_dict();
-                    }
-                    (profile, body.unwrap().to_owned())
-                })
-                .collect()
-        })
-    }
-}
-
-// Make `Config` a provider itself for composability.
-impl Provider for Config {
-    fn metadata(&self) -> Metadata {
-        Metadata::named("Fabricatio Default Config")
-    }
-
-    fn data(&self) -> Result<Map<Profile, Dict>, Error> {
-        figment::providers::Serialized::defaults(Config::default()).data()
-    }
-}
-
-pub const CONFIG_VARNAME: &str = "CONFIG";

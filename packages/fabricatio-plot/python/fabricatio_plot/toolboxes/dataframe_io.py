@@ -11,8 +11,6 @@ from fabricatio_core.decorators import cfg_on
 from fabricatio_core.utils import cfg
 from fabricatio_tool.models.tool import ToolBox
 
-cfg(feats=["excel"])
-
 # =====================
 # Dedicated I/O Toolbox
 # =====================

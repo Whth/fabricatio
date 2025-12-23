@@ -1,11 +1,16 @@
+mod initializer;
+pub use initializer::*;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use tracing::{debug, error, info, trace, warn};
+use pyo3_stub_gen::derive::*;
+pub use tracing::{debug, error, info, trace, warn};
 
+pub const LOGGER_VARNAME: &str = "logger";
 pub const PY_SOURCE_KEY: &str = "py_source";
 
 #[derive(Default)]
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Logger;
 
@@ -31,6 +36,7 @@ impl Logger {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Logger {
     fn info(&self, msg: String) -> PyResult<()> {

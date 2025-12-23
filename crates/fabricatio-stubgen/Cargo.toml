@@ -1,0 +1,12 @@
+[package]
+name = "fabricatio-stubgen"
+version = "0.1.1-dev0"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
+pyo3-stub-gen = "0.17.2"
+fabricatio-core = { path = "../../packages/fabricatio-core", features = ["stubgen"] }
+fabricatio-memory = { path = "../../packages/fabricatio-memory", features = ["stubgen"] }
+fabricatio-diff = { path = "../../packages/fabricatio-diff", features = ["stubgen"] }

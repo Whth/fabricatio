@@ -38,13 +38,10 @@
 //! [`FormatEvent`]: tracing_subscriber::fmt::FormatEvent
 //! [`tracing_subscriber`]: https://docs.rs/tracing-subscriber
 
-mod logger;
-
+use crate::config::CONFIG_VARNAME;
+use crate::constants::NAME;
 use crate::logger::PY_SOURCE_KEY;
 use chrono::{DateTime, Local};
-use fabricatio_config::CONFIG_VARNAME;
-use fabricatio_constants::NAME;
-pub use logger::Logger;
 use pyo3::exceptions::{PyModuleNotFoundError, PyRuntimeError};
 use pyo3::prelude::*;
 use std::io;
@@ -52,7 +49,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
-pub use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
@@ -253,5 +249,3 @@ pub fn init_logger_auto() -> PyResult<()> {
     init_logger(level.as_str(), sink, rotation).map_err(PyRuntimeError::new_err)?;
     Ok(())
 }
-
-pub const LOGGER_VARNAME: &str = "logger";

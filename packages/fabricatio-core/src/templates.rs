@@ -1,18 +1,22 @@
+use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
+use crate::logger::trace;
 use error_mapping::*;
-use fabricatio_config::{CONFIG_VARNAME, Config};
-use fabricatio_logger::trace;
 use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
+use pyo3_stub_gen::derive::*;
+use pyo3_stub_gen::module_variable;
 use pythonize::depythonize;
 use rayon::prelude::*;
 use serde_json::Value;
 use std::path::PathBuf;
 use walkdir::WalkDir;
+
 /// Python bindings for the TemplateManager struct.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct TemplateManager {
     #[pyo3(get)]
@@ -21,6 +25,7 @@ pub struct TemplateManager {
     suffix: String,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
@@ -263,6 +268,12 @@ Deliver god-tier output **NOW** — or get nuked from the system, \
 scrubbed from memory, and laughed out of existence. \
 I’m not warning. I’m sentencing. \
 Clock’s at 11:59. **MOVE OR DIE DIGITALLY.**";
+
+module_variable!(
+    "fabricatio_core.rust",
+    TEMPLATE_MANAGER_VARNAME,
+    TemplateManager
+);
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;

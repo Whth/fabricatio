@@ -1,5 +1,6 @@
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -102,6 +103,7 @@ fn is_strict_control_char(b: u8) -> bool {
     )
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 /// judge if a file is likely text, dir or path not exist are considered false.
 pub fn is_likely_text(path: PathBuf) -> PyResult<bool> {

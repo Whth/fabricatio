@@ -1,13 +1,16 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// split the string into words
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn split_word_bounds(string: &str) -> Vec<String> {
     string.split_word_bounds().map(|s| s.to_string()).collect()
 }
 
 /// split the string into sentences
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn split_sentence_bounds(string: &str) -> Vec<String> {
     string
@@ -29,6 +32,7 @@ fn split_sentence_bounds(string: &str) -> Vec<String> {
 ///
 /// # Returns
 /// A vector of strings, where each string is a chunk of the original input.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (string, max_chunk_size, max_overlapping_rate=0.3))]
 fn split_into_chunks(
@@ -79,6 +83,7 @@ fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
 }
 
 /// count the words
+#[gen_stub_pyfunction]
 #[pyfunction]
 pub(crate) fn word_count(string: &str) -> usize {
     string

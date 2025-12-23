@@ -11,6 +11,8 @@ from fabricatio_core.utils import ok
 
 from fabricatio_actions.models.generic import FromMapping
 
+__all__ = ["DumpText", "ReadText", "SmartDumpText", "SmartReadText"]
+
 
 class ReadText(Action, FromMapping):
     """Read text from a file."""

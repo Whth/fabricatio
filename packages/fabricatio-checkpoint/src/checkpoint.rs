@@ -6,7 +6,7 @@
 
 use blake3::hash;
 use error_mapping::*;
-use fabricatio_logger::*;
+use fabricatio_core::logger::*;
 use git2::{Config, DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyOSError;

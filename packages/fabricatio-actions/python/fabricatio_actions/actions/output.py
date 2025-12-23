@@ -14,6 +14,16 @@ from fabricatio_tool.fs import dump_text
 
 from fabricatio_actions.models.generic import FromMapping, FromSequence
 
+__all__ = [
+    "DumpFinalizedOutput",
+    "Forward",
+    "GatherAsList",
+    "PersistentAll",
+    "RenderedDump",
+    "RetrieveFromLatest",
+    "RetrieveFromPersistent",
+]
+
 
 class DumpFinalizedOutput(Action, UseLLM):
     """Dump the finalized output to a file."""

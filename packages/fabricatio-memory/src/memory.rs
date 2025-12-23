@@ -2,6 +2,7 @@ use chrono::Utc;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
+use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -16,6 +17,7 @@ pub(crate) use crate::constants::{FIELDS, SCHEMA};
 use tantivy::directory::MmapDirectory;
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[gen_stub_pyclass]
 #[pyclass(get_all)]
 pub struct MemoryStats {
     pub total_memories: u64,
@@ -24,6 +26,7 @@ pub struct MemoryStats {
     pub avg_age_days: f64,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl MemoryStats {
     /// Display memory statistics in a formatted string
@@ -36,6 +39,7 @@ impl MemoryStats {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[gen_stub_pyclass]
 #[pyclass(get_all)]
 pub struct Memory {
     pub id: u64,
@@ -47,6 +51,7 @@ pub struct Memory {
     pub last_accessed: i64,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Memory {
     pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
@@ -83,6 +88,7 @@ impl Memory {
     }
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct MemorySystem {
     index: Index,
@@ -142,6 +148,7 @@ impl MemorySystem {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl MemorySystem {
     /// Create a new MemorySystem with optional index path and writer buffer size

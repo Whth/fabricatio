@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::gen_stub_pyfunction;
 use rayon::prelude::*;
 use similar::{ChangeTag, TextDiff};
 use strsim::normalized_damerau_levenshtein;
-
 /// Calculates the similarity rate between two strings using the normalized Damerau-Levenshtein distance.
 ///
 /// This function returns a float value between 0.0 and 1.0, where:
@@ -26,6 +26,8 @@ use strsim::normalized_damerau_levenshtein;
 /// let similarity = rate("hello", "helo");
 /// assert!(similarity > 0.8);
 /// ```
+
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn rate(a: &str, b: &str) -> f64 {
     normalized_damerau_levenshtein(a, b)
@@ -57,9 +59,10 @@ fn rate(a: &str, b: &str) -> f64 {
 /// let matched = match_lines(haystack, needle, Some(0.8));
 /// assert!(matched.is_some());
 /// ```
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (haystack, needle, match_precision = 0.9))]
-fn match_lines(haystack: &str, needle: &str, match_precision: Option<f64>) -> Option<String> {
+fn match_lines(haystack: &str, needle: &str, match_precision: f64) -> Option<String> {
     // Split both inputs into lines for windowed comparison
     let haystack_lines: Vec<&str> = haystack.split('\n').collect();
     let needle_lines: Vec<&str> = needle.split('\n').collect();
@@ -81,7 +84,7 @@ fn match_lines(haystack: &str, needle: &str, match_precision: Option<f64>) -> Op
             // Calculate similarity score between needle and current window
             let similarity = normalized_damerau_levenshtein(needle, &window_block);
             // Check against precision threshold (default 0.9 if not specified)
-            if similarity >= match_precision.unwrap_or(0.9) {
+            if similarity >= match_precision {
                 Some(window_block)
             } else {
                 None
@@ -117,6 +120,7 @@ fn match_lines(haystack: &str, needle: &str, match_precision: Option<f64>) -> Op
 /// assert!(diff.contains("+Hallo"));
 /// assert!(diff.contains("+!"));
 /// ```
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn show_diff(a: &str, b: &str) -> String {
     let diff = TextDiff::from_lines(a, b);
