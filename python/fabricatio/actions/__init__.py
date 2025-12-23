@@ -46,26 +46,33 @@ if is_installed("fabricatio_rag"):
     __all__ += ["InjectToDB", "RAGTalk"]
 
 if is_installed("fabricatio_actions"):
-    from fabricatio_actions.actions.fs import ReadText
-    from fabricatio_actions.actions.output import (
+    from fabricatio_actions.actions import (
         DumpFinalizedOutput,
+        DumpText,
         Forward,
         GatherAsList,
         PersistentAll,
+        ReadText,
         RenderedDump,
         RetrieveFromLatest,
         RetrieveFromPersistent,
+        SmartDumpText,
+        SmartReadText,
     )
 
     __all__ += [
         "DumpFinalizedOutput",
+        "DumpText",
         "Forward",
         "GatherAsList",
         "PersistentAll",
         "ReadText",
+        "ReadText",
         "RenderedDump",
         "RetrieveFromLatest",
         "RetrieveFromPersistent",
+        "SmartDumpText",
+        "SmartReadText",
     ]
 
 if is_installed("fabricatio_yue"):
