@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use scanner::PythonPackageScanner;
 
 /// A static scanner instance used to check Python package installations and extras.
@@ -14,6 +15,7 @@ static SCANNER: Lazy<PythonPackageScanner> = Lazy::new(PythonPackageScanner::def
 /// # Returns
 ///
 /// * `bool` - True if the package is installed, false otherwise.
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_installed(pkg_name: &str) -> bool {
     SCANNER.is_installed(pkg_name)
@@ -24,6 +26,7 @@ fn is_installed(pkg_name: &str) -> bool {
 /// # Returns
 ///
 /// * `Vec<String>` - A vector containing the names of all installed packages.
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn list_installed() -> Vec<String> {
     SCANNER.list_installed()
@@ -39,6 +42,7 @@ fn list_installed() -> Vec<String> {
 /// # Returns
 ///
 /// * `bool` - True if the extra is satisfied, false otherwise.
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn extra_satisfied(pkg_name: &str, extra_name: &str) -> bool {
     SCANNER.extra_satisfied(pkg_name, extra_name)
@@ -54,6 +58,7 @@ fn extra_satisfied(pkg_name: &str, extra_name: &str) -> bool {
 /// # Returns
 ///
 /// * `bool` - True if all extras are satisfied, false otherwise.
+#[gen_stub_pyfunction]
 #[pyfunction]
 pub fn extras_satisfied(pkg_name: &str, extras: Vec<String>) -> bool {
     SCANNER.extras_satisfied(pkg_name, extras)

@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 use whichlang::{Lang, detect_language as dl};
 
+use pyo3_stub_gen::derive::*;
+
 /// convert the language to a string
 pub(crate) fn convert_to_string_respectively(lang: Lang) -> String {
     match lang {
@@ -24,79 +26,87 @@ pub(crate) fn convert_to_string_respectively(lang: Lang) -> String {
 }
 
 /// detect the language of a string
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (string))]
 fn detect_language(string: &str) -> String {
     convert_to_string_respectively(dl(string))
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
+
 fn is_chinese(string: &str) -> bool {
     dl(string) == Lang::Cmn
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_english(string: &str) -> bool {
     dl(string) == Lang::Eng
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_japanese(string: &str) -> bool {
     dl(string) == Lang::Jpn
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_korean(string: &str) -> bool {
     dl(string) == Lang::Kor
 }
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_arabic(string: &str) -> bool {
     dl(string) == Lang::Ara
 }
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_russian(string: &str) -> bool {
     dl(string) == Lang::Rus
 }
+
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_german(string: &str) -> bool {
     dl(string) == Lang::Deu
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_french(string: &str) -> bool {
     dl(string) == Lang::Fra
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_hindi(string: &str) -> bool {
     dl(string) == Lang::Hin
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_italian(string: &str) -> bool {
     dl(string) == Lang::Ita
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_dutch(string: &str) -> bool {
     dl(string) == Lang::Nld
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_portuguese(string: &str) -> bool {
     dl(string) == Lang::Por
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_swedish(string: &str) -> bool {
     dl(string) == Lang::Swe
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_turkish(string: &str) -> bool {
     dl(string) == Lang::Tur
 }
-
+#[gen_stub_pyfunction]
 #[pyfunction]
 fn is_vietnamese(string: &str) -> bool {
     dl(string) == Lang::Vie

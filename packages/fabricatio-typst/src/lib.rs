@@ -1,7 +1,9 @@
 mod bib_tools;
+pub mod converter;
 mod typst_tools;
 
-use fabricatio_logger::init_logger_auto;
+pub use converter::convert_all_tex_math;
+use fabricatio_core::logger::init_logger_auto;
 use pyo3::prelude::*;
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to

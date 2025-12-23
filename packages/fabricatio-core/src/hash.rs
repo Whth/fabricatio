@@ -1,10 +1,13 @@
 use blake3::hash;
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 
 /// calculate hash with blake3 as backbone
+
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature=(content))]
-fn blake3_hash(content: &[u8]) -> String {
+fn blake3_hash(#[gen_stub(override_type(type_repr = "bytes"))] content: &[u8]) -> String {
     hash(content).to_string()
 }
 

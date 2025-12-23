@@ -5,7 +5,7 @@ mod repo;
 
 use clap::{Parser, Subcommand};
 use colored::*;
-use fabricatio_constants::{ROAMING, TEMPLATES};
+use fabricatio_core::constants::{ROAMING, TEMPLATES};
 use flate2::bufread::GzDecoder;
 use human_units::iec::Byte;
 use reqwest::Client;

@@ -9,10 +9,11 @@ crate-type = ["cdylib"]
 clap = { version = "4.5.53", features = ["derive"] }
 
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
-deck_loader = { path = "./src/deck_loader" }
+deck_loader = { path = "../../crates/deck_loader" }
 pythonize = "0.27.0"
 sanitize-filename = "0.6.0"
 regex = "1.12.2"
-fabricatio-logger = { path = "../../crates/fabricatio-logger" }
+fabricatio-core = { path = "../fabricatio-core", default-features = false }
+
 serde_yaml2 = "0.1.3"
 

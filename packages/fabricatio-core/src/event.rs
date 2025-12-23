@@ -1,14 +1,18 @@
-use fabricatio_config::{CONFIG_VARNAME, Config};
+use crate::config::{CONFIG_VARNAME, Config};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
 use postcard::{from_bytes, to_stdvec};
+use pyo3::exceptions::PyValueError;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 use strum::{Display, EnumString, IntoStaticStr};
 
+use pyo3_stub_gen::derive::*;
+
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 struct Event {
@@ -18,6 +22,7 @@ struct Event {
 
 static DELIMITER: OnceLock<String> = OnceLock::new();
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Event {
     #[new]
@@ -201,6 +206,7 @@ impl Event {
     Serialize,
     Deserialize,
 )]
+#[gen_stub_pyclass_enum]
 #[pyclass]
 pub enum TaskStatus {
     Pending,
@@ -210,6 +216,7 @@ pub enum TaskStatus {
     Cancelled,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl TaskStatus {
     // Pickling support
@@ -260,7 +267,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     DELIMITER
         .set(conf.emitter.delimiter)
-        .expect("Failed to set delimiter!");
+        .map_err(PyValueError::new_err)?;
     m.add_class::<TaskStatus>()?;
     m.add_class::<Event>()?;
     Ok(())
