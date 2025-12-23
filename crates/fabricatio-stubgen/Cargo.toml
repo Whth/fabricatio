@@ -7,7 +7,6 @@ license-file.workspace = true
 
 [dependencies]
 pyo3-stub-gen = "0.17.2"
-
 fabricatio-core = { path = "../../packages/fabricatio-core", features = ["stubgen"] }
 fabricatio-memory = { path = "../../packages/fabricatio-memory", features = ["stubgen"] }
 fabricatio-diff = { path = "../../packages/fabricatio-diff", features = ["stubgen"] }
