@@ -1,5 +1,9 @@
-use cfg_if::cfg_if;
+#![cfg_attr(
+    any(feature = "stubgen", not(feature = "pymodule")),
+    allow(dead_code, unused,)
+)]
 
+use cfg_if::cfg_if;
 pub mod config;
 pub mod constants;
 mod event;
@@ -22,7 +26,7 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
         define_stub_info_gatherer!(stub_info);
 
-    }else {
+    }else if #[cfg(feature = "pymodule")] {
 
         use crate::config::SecretStr;
         use pyo3::exceptions::PyRuntimeError;
@@ -34,7 +38,7 @@ cfg_if!(
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[cfg(not(feature = "stubgen"))]
+#[cfg(all(not(feature = "stubgen"), feature = "pymodule"))]
 #[pymodule]
 #[pyo3(name = "rust")]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
