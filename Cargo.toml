@@ -12,7 +12,7 @@ reqwest = { version = "0.12.28" }
 tar = "0.4.44"
 flate2 = "1.1.5"
 clap = { version = "4.5.53", features = ["derive", "env"] }
-fabricatio-core = { path = "packages/fabricatio-core" }
+fabricatio-core = { path = "packages/fabricatio-core", default-features = false }
 colored = "3.0.0"
 chrono = "0.4.42"
 indicatif = "0.18.3"

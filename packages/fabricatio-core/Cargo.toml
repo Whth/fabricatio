@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 blake3 = "1.8.2"
 handlebars = "6.3.2"
-pyo3 = { version = "0.27.2", features = ["extension-module"] }
+pyo3 = { version = "0.27.2" }
 pythonize = "0.27.0"
 rayon = "1.11.0"
 serde_json = "1.0.147"
@@ -39,6 +39,6 @@ tempfile = "3.24.0"
 
 [features]
 default = ["pymodule"]
-stubgen = []
-pymodule = []
+stubgen = ["pyo3/extension-module"]
+pymodule = ["pyo3/extension-module"]
 
