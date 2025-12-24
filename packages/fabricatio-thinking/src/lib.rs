@@ -1,7 +1,8 @@
 extern crate core;
 
-use fabricatio_core::logger::init_logger_auto;
+use fabricatio_logger::init_logger_auto;
 use pyo3::prelude::*;
+
 mod thinking;
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to

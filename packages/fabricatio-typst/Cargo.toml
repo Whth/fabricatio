@@ -15,5 +15,5 @@ tex2typst-rs = "0.4.1"
 
 clap = { version = "4.5.53", features = ["derive"] }
 
-fabricatio-core = { path = "../fabricatio-core", default-features = false }
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 serde_yaml2 = "0.1.3"

@@ -6,7 +6,7 @@
 
 use blake3::hash;
 use error_mapping::*;
-use fabricatio_core::logger::*;
+use fabricatio_logger::*;
 use git2::{Config, DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyOSError;
@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{Path, PathBuf, absolute};
+use std::path::{absolute, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use utils::mwrap;
 /// Trait for converting types into cache-friendly string keys.

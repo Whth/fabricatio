@@ -1,8 +1,9 @@
-use crate::constants::ROAMING;
+use fabricatio_constants::{ROAMING, TEMPLATES, TEMPLATES_DIRNAME};
 use macro_utils::TemplateDefault;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
+use crate::secstr::SecretStr;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use serde::de::Visitor;
@@ -13,93 +14,6 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use validator::Validate;
-#[derive(Clone)]
-#[gen_stub_pyclass]
-#[pyclass]
-pub struct SecretStr {
-    source: String,
-}
-
-struct SecStrVisitor;
-
-impl<'de> Visitor<'de> for SecStrVisitor {
-    type Value = SecretStr;
-
-    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-        formatter.write_str("A string containing a secret value.")
-    }
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(v.into())
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(v.into())
-    }
-}
-
-impl<S: AsRef<str>> From<S> for SecretStr {
-    fn from(source: S) -> Self {
-        Self {
-            source: source.as_ref().to_string(),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for SecretStr {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_string(SecStrVisitor)
-    }
-}
-
-impl Serialize for SecretStr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str("SecretStr(REDACTED)")
-    }
-}
-
-#[gen_stub_pymethods]
-#[pymethods]
-impl SecretStr {
-    #[new]
-    pub fn new(source: &str) -> Self {
-        source.into()
-    }
-    fn get_secret_value(&self) -> &str {
-        self.source.as_str()
-    }
-
-    fn __str__(&self) -> &str {
-        "SecretStr(REDACTED)"
-    }
-
-    fn __repr__(&self) -> &str {
-        "SecretStr(REDACTED)"
-    }
-}
-
-impl Debug for SecretStr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("SecretStr(REDACTED)")
-    }
-}
-
-impl Display for SecretStr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("REDACTED")
-    }
-}
 
 /// Configuration for Language Learning Models (LLMs) like OpenAI's GPT.
 ///
@@ -221,7 +135,6 @@ pub struct EmbeddingConfig {
 
     pub api_key: Option<SecretStr>,
 }
-
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
 #[pyclass(get_all, set_all)]
@@ -229,10 +142,8 @@ pub struct DebugConfig {
     pub log_level: String,
 
     pub log_dir: Option<PathBuf>,
-
     pub rotation: Option<String>,
 }
-
 impl Default for DebugConfig {
     fn default() -> Self {
         DebugConfig {
@@ -260,7 +171,7 @@ pub struct TemplateManagerConfig {
 impl Default for TemplateManagerConfig {
     fn default() -> Self {
         TemplateManagerConfig {
-            template_stores: vec![PathBuf::from("templates"), ROAMING.join("templates")],
+            template_stores: vec![PathBuf::from(TEMPLATES_DIRNAME), TEMPLATES.clone()],
             active_loading: false,
             template_suffix: "hbs".to_string(),
         }
@@ -509,7 +420,7 @@ impl Config {
     ) -> PyResult<Bound<'a, PyAny>> {
         if let Some(data) = self.ext.get(name) {
             let any = pythonize(python, data)?;
-            cls.call((), Some(&any.cast_into_exact::<PyDict>()?))
+            cls.call((), Some(&any.cast_into_exact()?))
         } else {
             cls.call((), None)
         }

@@ -1,4 +1,5 @@
-use fabricatio_core::logger::*;
+use fabricatio_logger::*;
+use fabricatio_logger::*;
 use pyo3::prelude::*;
 use std::collections::HashMap;
 /// Represents a branch in the version control system, containing a list of commits and an estimated total number of commits.

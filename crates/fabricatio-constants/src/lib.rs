@@ -5,12 +5,13 @@ use std::path::PathBuf;
 /// The application name used across the project.
 pub const NAME: &str = "fabricatio";
 
+/// The name of the core package used by the application.
+pub const CORE_PACKAGE_NAME: &str = "fabricatio_core";
+
 /// The default configuration file name used by the application.
 pub const CONFIG_FILE: &str = "fabricatio.toml";
-
 /// The GitHub repository owner for the application.
 pub const REPO_OWNER: &str = "Whth";
-
 /// The GitHub repository name for the application.
 pub const REPO_NAME: &str = NAME;
 
@@ -34,10 +35,17 @@ fn get_roaming_dir(app_name: &str) -> Option<PathBuf> {
 /// A global static instance of the user's roaming configuration directory for the application.
 pub static ROAMING: Lazy<PathBuf> =
     Lazy::new(|| get_roaming_dir(NAME).expect("Failed to get roaming directory"));
-
+/// The name of the templates' directory.
+pub const TEMPLATES_DIRNAME: &str = "templates";
 /// A global static instance of the templates directory located within the roaming configuration directory.
-pub static TEMPLATES: Lazy<PathBuf> = Lazy::new(|| ROAMING.join("templates"));
-
+pub static TEMPLATES: Lazy<PathBuf> = Lazy::new(|| ROAMING.join(TEMPLATES_DIRNAME));
 /// A global static instance of the global configuration file path, constructed by joining
 /// the roaming directory with the application-specific configuration file name.
 pub static GLOBAL_CONFIG_FILE: Lazy<PathBuf> = Lazy::new(|| ROAMING.join(CONFIG_FILE));
+
+/// The name of the logger variable used by the application.
+pub const LOGGER_VARNAME: &str = "logger";
+/// The name of the configuration variable used by the application.
+pub const CONFIG_VARNAME: &str = "CONFIG";
+/// The key used to store the Python source code path.
+pub const PY_SOURCE_KEY: &str = "py_source";

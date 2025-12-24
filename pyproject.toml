@@ -46,7 +46,6 @@ build-backend = "maturin"
 python-source = "python"
 module-name = "fabricatio.rust"
 data = "extra"
-features = ["pyo3/extension-module"]
 [dependency-groups]
 dev = [
     "maturin>=1.8.2",
