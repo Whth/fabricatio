@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 use axum::Router;
 use error_mapping::AsPyErr;
-use fabricatio_logger::*;
+use fabricatio_core::logger::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use std::path::PathBuf;
 use tower_http::cors::CorsLayer;
