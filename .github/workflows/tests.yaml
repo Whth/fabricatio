@@ -64,10 +64,6 @@ jobs:
       - name: Install deps
         run: |
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }}
-      - name: Set macOS-specific RUSTFLAGS for PyO3 linking
-        if: runner.os == 'macOS'
-        run: |
-          echo "RUSTFLAGS=-C link-arg=-undefined -C link-arg=dynamic_lookup" >> $GITHUB_ENV
 
       - name: Compile extensions
         run: |
