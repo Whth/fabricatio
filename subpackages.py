@@ -1,11 +1,12 @@
 """Build packages with customizable Python version."""
 
+from pathlib import Path
+
 import argparse
 import logging
 import subprocess
 import tomllib
 from concurrent.futures.thread import ThreadPoolExecutor
-from pathlib import Path
 from typing import List, Optional, Union
 
 PACKAGES_DIR = (Path.cwd() / "packages").absolute()
@@ -18,21 +19,23 @@ PYTHON_VERSION = "3.13"
 POOL = ThreadPoolExecutor()
 
 
-def run_cmd(cmd_sequence: List[List[str]], desc: str, log_file: Optional[Path] = None) -> bool:
+def run_cmd(cmd_sequence: List[List[str]], desc: str, log_file: Optional[Path] = None,
+            cwd: Optional[Path] = None) -> bool:
     """Run a sequence of shell commands and log output.
 
     Args:
         cmd_sequence: A list of command sequences to execute.
         desc: Description of the command being executed for logging.
         log_file: Optional path to a file where stderr and stdout should be redirected.
-
+        cwd: Optional path to a directory where the command should be executed.
     Returns:
         True if all commands succeed, False otherwise.
     """
     try:
         for cmd in cmd_sequence:
             logging.info(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")  # noqa: S603
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8",
+                                    cwd=cwd)  # noqa: S603
             if log_file:
                 with log_file.open("a", encoding="utf-8") as f:
                     f.write(f"Command: {' '.join(cmd)}\n")
@@ -85,9 +88,10 @@ def make_maturin_dev(project_root: Union[str, Path]) -> bool:
     log_file = LOG_DIR / f"{project_root.name}_dev.log"
 
     return run_cmd(
-        [["uvx", "--directory", project_root.as_posix(), "maturin", "develop", "-r", "--uv"]],
+        [["uvx", "maturin", "develop", "-r", "--uv"]],
         f"maturin develop mode for {project_root.name}",
         log_file=log_file,
+        cwd=project_root
     )
 
 
