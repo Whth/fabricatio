@@ -16,8 +16,8 @@ mod templates;
 mod text_file;
 mod word_split;
 
-use crate::config::{Config, CONFIG_VARNAME};
-use crate::logger::{Logger, LOGGER_VARNAME};
+use crate::config::{CONFIG_VARNAME, Config};
+use crate::logger::{LOGGER_VARNAME, Logger};
 
 cfg_if!(
     if #[cfg(feature = "stubgen")]    {
