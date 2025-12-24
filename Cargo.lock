@@ -1148,7 +1148,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.1"
+version = "0.2.2-dev1"
 dependencies = [
  "epub-builder",
  "git2",
@@ -1165,7 +1165,7 @@ dependencies = [
  "chrono",
  "clap",
  "colored",
- "fabricatio-core",
+ "fabricatio-constants",
  "flate2",
  "glob",
  "human-units",
@@ -1193,7 +1193,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "deck_loader",
- "fabricatio-core",
+ "fabricatio-logger",
  "pyo3",
  "pythonize",
  "regex",
@@ -1207,12 +1207,36 @@ version = "0.0.0"
 dependencies = [
  "blake3",
  "error-mapping",
- "fabricatio-core",
+ "fabricatio-logger",
  "git2",
  "moka",
  "pyo3",
  "rayon",
  "utils",
+]
+
+[[package]]
+name = "fabricatio-config"
+version = "0.2.1-dev0"
+dependencies = [
+ "dotenvy",
+ "fabricatio-constants",
+ "figment",
+ "macro-utils",
+ "pyo3",
+ "pyo3-stub-gen",
+ "pythonize",
+ "serde",
+ "serde_json",
+ "validator",
+]
+
+[[package]]
+name = "fabricatio-constants"
+version = "0.2.1-dev1"
+dependencies = [
+ "directories-next",
+ "once_cell",
 ]
 
 [[package]]
@@ -1222,12 +1246,11 @@ dependencies = [
  "blake3",
  "cfg-if",
  "chrono",
- "directories-next",
- "dotenvy",
  "error-mapping",
- "figment",
+ "fabricatio-config",
+ "fabricatio-constants",
+ "fabricatio-logger",
  "handlebars",
- "macro-utils",
  "once_cell",
  "path-clean",
  "postcard",
@@ -1240,11 +1263,7 @@ dependencies = [
  "serde_json",
  "strum",
  "tempfile",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "unicode-segmentation",
- "validator",
  "walkdir",
  "whichlang",
 ]
@@ -1267,6 +1286,20 @@ dependencies = [
  "error-mapping",
  "polib",
  "pyo3",
+]
+
+[[package]]
+name = "fabricatio-logger"
+version = "0.2.1-dev1"
+dependencies = [
+ "chrono",
+ "fabricatio-constants",
+ "pyo3",
+ "pyo3-stub-gen",
+ "strum",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1299,7 +1332,7 @@ dependencies = [
 name = "fabricatio-rag"
 version = "0.0.0"
 dependencies = [
- "fabricatio-core",
+ "fabricatio-logger",
  "prost",
  "pyo3",
  "pyo3-async-runtimes",
@@ -1312,7 +1345,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-stubgen"
-version = "0.1.1-dev0"
+version = "0.1.1-dev1"
 dependencies = [
  "fabricatio-core",
  "fabricatio-diff",
@@ -1324,7 +1357,7 @@ dependencies = [
 name = "fabricatio-thinking"
 version = "0.0.0"
 dependencies = [
- "fabricatio-core",
+ "fabricatio-logger",
  "pyo3",
 ]
 
@@ -1333,7 +1366,7 @@ name = "fabricatio-tool"
 version = "0.0.0"
 dependencies = [
  "error-mapping",
- "fabricatio-core",
+ "fabricatio-logger",
  "ignore",
  "mcp-manager",
  "pyo3",
@@ -1353,7 +1386,7 @@ version = "0.0.0"
 dependencies = [
  "biblatex",
  "clap",
- "fabricatio-core",
+ "fabricatio-logger",
  "nucleo-matcher",
  "pyo3",
  "pythonize",

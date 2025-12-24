@@ -1,6 +1,5 @@
-use pyo3::exceptions::{PyOSError, PyRuntimeError};
-use pyo3::FromPyObject;
 pub use pyo3::PyResult;
+use pyo3::exceptions::{PyOSError, PyRuntimeError};
 
 /// Trait for converting various error types to PyO3 results.
 ///
@@ -60,16 +59,6 @@ impl<T> AsPyErr<T> for serde_json::Result<T> {
 
 #[cfg(feature = "handlebars")]
 impl<T> AsPyErr<T> for Result<T, handlebars::RenderError> {
-    fn into_pyresult(self) -> PyResult<T> {
-        self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
-    }
-}
-
-#[cfg(feature = "pyo3_extract")]
-impl<T> AsPyErr<T> for Result<T, T::Error>
-where
-    T: FromPyObject,
-{
     fn into_pyresult(self) -> PyResult<T> {
         self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }

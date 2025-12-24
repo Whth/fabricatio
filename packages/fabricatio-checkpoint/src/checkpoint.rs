@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::{Arc, Mutex};
 use utils::mwrap;
 /// Trait for converting types into cache-friendly string keys.

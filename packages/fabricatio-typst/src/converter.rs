@@ -1,4 +1,4 @@
-use fabricatio_core::logger::{debug, error};
+use fabricatio_logger::*;
 use regex::Regex;
 use tex2typst_rs::tex2typst;
 

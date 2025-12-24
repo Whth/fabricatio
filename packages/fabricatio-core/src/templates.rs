@@ -1,7 +1,8 @@
-use crate::config::{CONFIG_VARNAME, Config};
 use crate::hbs_helpers::*;
-use crate::logger::trace;
 use error_mapping::*;
+use fabricatio_config::Config;
+use fabricatio_constants::*;
+use fabricatio_logger::*;
 use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;

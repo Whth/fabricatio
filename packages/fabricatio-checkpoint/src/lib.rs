@@ -7,7 +7,7 @@ mod checkpoint;
 #[pymodule]
 
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    fabricatio_core::logger::init_logger_auto()?;
+    fabricatio_logger::init_logger_auto()?;
     checkpoint::register(python, m)?;
     Ok(())
 }

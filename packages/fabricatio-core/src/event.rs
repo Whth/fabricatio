@@ -1,4 +1,5 @@
-use fabricatio_constants::{Config, CONFIG_VARNAME};
+use fabricatio_config::Config;
+use fabricatio_constants::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 

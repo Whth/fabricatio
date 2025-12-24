@@ -2,7 +2,6 @@ mod initializer;
 mod renderer;
 
 pub use initializer::*;
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use pyo3_stub_gen::derive::*;

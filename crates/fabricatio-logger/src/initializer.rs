@@ -43,11 +43,8 @@ use fabricatio_constants::CORE_PACKAGE_NAME;
 use pyo3::prelude::*;
 use std::io;
 use std::path::PathBuf;
-use std::str::FromStr;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::{fmt, EnvFilter};
-
-use error_mapping::AsPyErr;
+use tracing_subscriber::{EnvFilter, fmt};
 
 use crate::renderer::MyFormatter;
 use strum::EnumString;
@@ -96,19 +93,14 @@ pub fn init_logger_auto() -> PyResult<()> {
             .getattr(CONFIG_VARNAME)?
             .getattr("debug")?;
 
-        Ok((
-            debug_config
-                .getattr("log_level")?
-                .extract::<String>()
-                .into_pyresult()?,
+        Ok::<(String, Option<PathBuf>, Option<String>), PyErr>((
+            debug_config.getattr("log_level")?.extract::<String>()?,
             debug_config
                 .getattr("log_dir")?
-                .extract::<Option<PathBuf>>()
-                .into_pyresult()?,
+                .extract::<Option<PathBuf>>()?,
             debug_config
                 .getattr("rotation")?
-                .extract::<Option<String>>()
-                .into_pyresult()?,
+                .extract::<Option<String>>()?,
         ))
     })?;
 

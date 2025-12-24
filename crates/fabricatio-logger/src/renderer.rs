@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use fabricatio_constants::PY_SOURCE_KEY;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
-use tracing_subscriber::fmt::{format, FmtContext, FormatEvent, FormatFields};
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
 use tracing_subscriber::registry::LookupSpan;
 
 struct PySourceVisitor {
