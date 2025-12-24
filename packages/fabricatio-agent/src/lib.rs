@@ -5,7 +5,7 @@ mod agent;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     agent::register(python, m)?;
     Ok(())

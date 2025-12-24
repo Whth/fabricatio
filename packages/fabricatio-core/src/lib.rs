@@ -40,7 +40,7 @@ cfg_if!(
 /// import the module.
 #[cfg(all(not(feature = "stubgen"), feature = "pymodule"))]
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
     m.add_class::<Config>()?;

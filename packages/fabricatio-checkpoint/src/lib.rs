@@ -5,7 +5,7 @@ mod checkpoint;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     fabricatio_core::logger::init_logger_auto()?;
     checkpoint::register(python, m)?;

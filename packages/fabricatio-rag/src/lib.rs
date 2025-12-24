@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     init_logger_auto()?;
     tei_client::register(python, m)?;

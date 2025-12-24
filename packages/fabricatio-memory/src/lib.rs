@@ -11,7 +11,7 @@ use pyo3_stub_gen::define_stub_info_gatherer;
 
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     memory::register(python, m)?;
     Ok(())
