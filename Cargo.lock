@@ -5036,7 +5036,7 @@ dependencies = [
 
 [[package]]
 name = "tex-convertor"
-version = "0.1.0"
+version = "0.1.1-dev0"
 dependencies = [
  "fabricatio-logger",
  "regex",
