@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - "crates/*/Cargo.toml"
       - "src/**"
       - "python/**"
       - "packages/*/python/**"
@@ -15,6 +16,7 @@ on:
     branches:
       - master
     paths:
+      - "crates/*/Cargo.toml"
       - "src/**"
       - "python/**"
       - "packages/*/python/**"
@@ -121,12 +123,22 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.PAT }}
-
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: "latest"
+          cache: true
+          standalone: true
+      - uses: actions/setup-node@v6
+        name: Setup Node.js
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          
+
       - name: Install deps
         run: |
           uv sync --no-install-project --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }} 
