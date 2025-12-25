@@ -1,3 +1,34 @@
+//! # Fabricatio Logger
+//!
+//! A comprehensive logging crate for the Fabricatio ecosystem, featuring loguru-inspired structured logging with rich ANSI color output and seamless Python/Rust interoperability through PyO3 bindings.
+//!
+//! ## Features
+//!
+//! - **Loguru-Style Formatting**: Rich ANSI color output with module/line context tracking
+//! - **Python/Rust Integration**: Automatic configuration from Python settings with PyO3 bindings
+//! - **Advanced Configuration**: Log rotation, thread-safe initialization, and customizable output destinations
+//! - **Structured Logging**: Key-value logging via tracing subsystem with custom formatting
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use fabricatio_logger::{init_logger, init_logger_auto, info, debug, warn, error};
+//!
+//! // Manual initialization
+//! init_logger("debug", None, None);
+//!
+//! // Or automatic configuration from Python
+//! init_logger_auto().expect("Failed to initialize logger from Python config");
+//!
+//! // Use the logging macros
+//! info!("Application started successfully");
+//! debug!("Debug information: {:?}", some_data);
+//! warn!("Warning: something might be wrong");
+//! error!("Error occurred: {}", error_message);
+//! ```
+//!
+//! For more information, see the [README](https://github.com/Whth/fabricatio/blob/main/crates/fabricatio-logger/README.md).
+
 mod initializer;
 mod renderer;
 

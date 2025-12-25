@@ -1,7 +1,8 @@
 [package]
 name = "fabricatio-logger"
-version = "0.2.1-dev1"
+version = "0.2.1-dev2"
 edition = "2024"
+readme = "README.md"
 authors.workspace = true
 license-file.workspace = true
 
