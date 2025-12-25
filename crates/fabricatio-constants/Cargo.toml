@@ -1,8 +1,8 @@
 [package]
 name = "fabricatio-constants"
-version = "0.2.1"
+version = "0.2.2"
 readme = "README.md"
-
+description = "Constants for the fabricatio."
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
