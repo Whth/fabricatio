@@ -894,7 +894,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-checkpoint"
-version = "0.2.2.dev4"
+version = "0.2.2.dev5"
 source = { editable = "packages/fabricatio-checkpoint" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -922,7 +922,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.4.5.dev4"
+version = "0.4.5.dev7"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -957,7 +957,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.2.4.dev1"
+version = "0.2.4.dev2"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1066,7 +1066,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.2.9.dev1"
+version = "0.2.9.dev3"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1220,7 +1220,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.13.dev2"
+version = "0.1.13.dev4"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1374,7 +1374,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.23.dev3"
+version = "0.1.23.dev6"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-capabilities" },

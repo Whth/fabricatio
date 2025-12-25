@@ -857,7 +857,7 @@ dependencies = [
 
 [[package]]
 name = "deck_loader"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "csv",
  "genanki-rs-rev",
@@ -1151,7 +1151,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.2-dev5"
+version = "0.2.2"
 dependencies = [
  "biblatex",
  "cfg-if",
@@ -1227,7 +1227,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.2.1-dev1"
+version = "0.2.1"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1243,7 +1243,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-constants"
-version = "0.2.1-dev1"
+version = "0.2.1"
 dependencies = [
  "directories-next",
  "once_cell",
@@ -1300,7 +1300,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-logger"
-version = "0.2.1-dev1"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "fabricatio-constants",
@@ -1358,7 +1358,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-stubgen"
-version = "0.1.1-dev3"
+version = "0.1.1"
 dependencies = [
  "fabricatio-core",
  "fabricatio-diff",
@@ -2586,7 +2586,7 @@ dependencies = [
 
 [[package]]
 name = "macro-utils"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
@@ -5073,7 +5073,7 @@ dependencies = [
 
 [[package]]
 name = "tex-convertor"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "fabricatio-logger",
  "regex",
