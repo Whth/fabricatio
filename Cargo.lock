@@ -1428,7 +1428,7 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "error-mapping",
- "fabricatio-core",
+ "fabricatio-logger",
  "pyo3",
  "pyo3-async-runtimes",
  "tokio",
