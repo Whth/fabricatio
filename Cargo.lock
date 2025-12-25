@@ -1173,6 +1173,7 @@ dependencies = [
  "octocrab",
  "once_cell",
  "pyo3",
+ "pyo3-build-config",
  "reqwest",
  "tar",
  "thiserror 2.0.17",
@@ -1345,11 +1346,12 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-stubgen"
-version = "0.1.1-dev1"
+version = "0.1.1-dev2"
 dependencies = [
  "fabricatio-core",
  "fabricatio-diff",
  "fabricatio-memory",
+ "pyo3-build-config",
  "pyo3-stub-gen",
 ]
 
@@ -1389,6 +1391,7 @@ dependencies = [
  "fabricatio-logger",
  "nucleo-matcher",
  "pyo3",
+ "pyo3-build-config",
  "pythonize",
  "rayon",
  "regex",

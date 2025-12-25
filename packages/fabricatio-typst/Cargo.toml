@@ -17,3 +17,5 @@ clap = { version = "4.5.53", features = ["derive"] }
 
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 serde_yaml2 = "0.1.3"
+[build-dependencies]
+pyo3-build-config = "0.27.0"

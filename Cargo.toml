@@ -25,6 +25,8 @@ human-units = { version = "0.5.3", features = ["iec-units"] }
 walkdir = "2.5.0"
 fabricatio-constants = { path = "crates/fabricatio-constants" }
 
+[build-dependencies]
+pyo3-build-config = "0.27.0"
 
 
 [workspace]
@@ -43,6 +45,8 @@ members = [
     "packages/fabricatio-novel",
     "packages/fabricatio-checkpoint",
 ]
+
+
 
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]

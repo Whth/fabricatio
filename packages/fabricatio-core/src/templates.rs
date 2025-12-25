@@ -74,7 +74,7 @@ impl TemplateManager {
             trace!("Rendering list of templates: {name}");
             if self.handlebars.get_template(&name).is_none() {
                 return Err(PyErr::new::<PyRuntimeError, _>(format!(
-                    "Template {name} not found"
+                    "Template '{name}' not found"
                 )));
             }
 
