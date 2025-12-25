@@ -19,6 +19,8 @@ fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 tex-convertor = { path = "../../crates/tex-convertor" }
 serde_yaml2 = "0.1.3"
 
+error-mapping = { path = "../../crates/error-mapping", features = ["biblatex"] }
+
 [build-dependencies]
 pyo3-build-config = "0.27.0"
 

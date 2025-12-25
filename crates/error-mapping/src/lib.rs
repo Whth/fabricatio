@@ -1,5 +1,6 @@
+use cfg_if::cfg_if;
 pub use pyo3::PyResult;
-use pyo3::exceptions::{PyOSError, PyRuntimeError};
+use pyo3::exceptions::*;
 
 /// Trait for converting various error types to PyO3 results.
 ///
@@ -63,3 +64,25 @@ impl<T> AsPyErr<T> for Result<T, handlebars::RenderError> {
         self.map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 }
+
+cfg_if!(if #[cfg(feature = "biblatex")] {
+
+impl <T> AsPyErr<T> for Result<T, biblatex::ParseError> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+}
+
+impl <T> AsPyErr<T> for Result<T, biblatex::RetrievalError> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyOSError::new_err(e.to_string()))
+    }
+}
+
+impl <T> AsPyErr<T> for Result<T, biblatex::TypeError> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyTypeError::new_err(e.to_string()))
+    }
+}
+
+});
