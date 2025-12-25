@@ -1,6 +1,6 @@
 [package]
 name = "error-mapping"
-version = "0.2.2-dev4"
+version = "0.2.2-dev5"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -17,6 +17,7 @@ validator = { version = "0.20.0", default-features = false, optional = true }
 tonic = { version = "0.14.2", default-features = false, optional = true, features = ["server"] }
 http = { version = "1.4.0", default-features = false, optional = true }
 cfg-if = "1.0.4"
+tantivy = { version = "0.25.0", default-features = false, optional = true }
 
 
 
@@ -32,6 +33,7 @@ biblatex = ["dep:biblatex"]
 validator = ["dep:validator"]
 tonic = ["dep:tonic"]
 http = ["dep:http"]
+tantivy = ["dep:tantivy"]
 pyo3_extract = []
 std = []
 

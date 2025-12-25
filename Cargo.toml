@@ -26,7 +26,7 @@ walkdir = "2.5.0"
 fabricatio-constants = { path = "crates/fabricatio-constants" }
 
 [build-dependencies]
-pyo3-build-config = "0.27.0"
+pyo3-build-config = "0.27.2"
 
 
 [workspace]
