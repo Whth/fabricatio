@@ -44,6 +44,7 @@ members = [
     "packages/fabricatio-diff",
     "packages/fabricatio-novel",
     "packages/fabricatio-checkpoint",
+    "packages/fabricatio-webui",
 ]
 
 

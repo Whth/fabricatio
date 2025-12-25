@@ -1,0 +1,63 @@
+[project]
+name = "fabricatio-webui"
+version = "0.1.1-dev8"
+description = "An extension of fabricatio"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Whth", email = "zettainspector@foxmail.com" }
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Typing :: Typed",
+]
+requires-python = ">=3.12,<=3.14"
+dependencies = [
+    "fabricatio-core",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+
+
+[project.scripts]
+fc-webui = "fabricatio_webui.cli:app"
+
+[project.optional-dependencies]
+cli = [
+    "typer-slim[standard]>=0.15.2",
+]
+
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "fabricatio_webui.rust"
+
+
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+
+[project.urls]
+Homepage = "https://github.com/Whth/fabricatio"
+Repository = "https://github.com/Whth/fabricatio"
+Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

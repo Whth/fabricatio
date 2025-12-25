@@ -69,7 +69,6 @@
 
 
 
-
 ---
 
 ## Overview
@@ -104,17 +103,20 @@ uv add fabricatio[rag,rule]
 ```
 
 You can download the templates from the github release manually and extract them to the work directory.
+
 ```bash
 curl -L https://github.com/Whth/fabricatio/releases/download/v0.19.1/templates.tar.gz | tar -xz
 ```
+
 Or you can use the cli `tdown` bundled with `fabricatio` to achieve the same result.
 
 ```bash
 tdown download --verbose -o ./
 ```
-> Note: `fabricatio` performs template discovery across multiple sources with filename-based identification. Template resolution follows a priority hierarchy where working directory templates override templates located in `<ROAMING>/fabricatio/templates`.
 
-
+> Note: `fabricatio` performs template discovery across multiple sources with filename-based identification. Template
+> resolution follows a priority hierarchy where working directory templates override templates located in
+`<ROAMING>/fabricatio/templates`.
 
 ## Usage
 
@@ -128,10 +130,11 @@ from typing import Any
 # Import necessary classes from the namespace package.
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
+
 # Create an action.
 class Hello(Action):
     """Action that says hello."""
-    
+
     output_key: str = "task_output"
 
     async def _execute(self, **_) -> Any:
@@ -144,7 +147,6 @@ class Hello(Action):
 (Role()
  .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
  .dispatch())
-
 
 # Make a task and delegate it to the workflow registered above.
 assert Task(name="say hello").delegate_blocking("talk") == "Hello fabricatio!"
@@ -167,11 +169,13 @@ _(For full example details, see [Examples](./examples))_
 ## Configuration
 
 Fabricatio supports flexible configuration through multiple sources, with the following priority order:
-`Call Arguments` > `./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` > `<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`.
+`Call Arguments` > `./.env` > `Environment Variables` > `./fabricatio.toml` > `./pyproject.toml` >
+`<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`.
 
 Below is a unified view of the same configuration expressed in different formats:
 
 ### Environment variables or dotenv file
+
 ```dotenv
 FABRICATIO_LLM__API_ENDPOINT=https://api.openai.com
 FABRICATIO_LLM__API_KEY=your_openai_api_key
@@ -187,6 +191,7 @@ FABRICATIO_DEBUG__LOG_LEVEL=INFO
 ```
 
 ### `fabricatio.toml` file
+
 ```toml
 [llm]
 api_endpoint = "https://api.openai.com"
@@ -205,6 +210,7 @@ log_level = "INFO"
 ```
 
 ### `pyproject.toml` file
+
 ```toml
 [tool.fabricatio.llm]
 api_endpoint = "https://api.openai.com"
@@ -224,7 +230,8 @@ log_level = "INFO"
 
 ## Contributing
 
-We welcome contributions from everyone! Before contributing, please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+We welcome contributions from everyone! Before contributing, please read our [Contributing Guide](CONTRIBUTING.md)
+and [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
