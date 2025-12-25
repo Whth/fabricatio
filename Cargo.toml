@@ -51,3 +51,4 @@ members = [
 [workspace.package]
 authors = ["Whth <zettainspector@foxmail.com>"]
 license-file = "LICENSE"
+repository = "https://github.com/Whth/fabricatio"
