@@ -2,15 +2,21 @@
 
 import asyncio
 from datetime import datetime
-from typing import Optional, Set, Unpack
+from typing import Dict, Optional, Set, Unpack
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger, toolboxes
-from fabricatio.fs.readers import safe_json_read
-from fabricatio.models.tool import ToolBox
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as RoleBase
+from fabricatio.capabilities import Handle
+from fabricatio.models import ToolBox
+from fabricatio_capabilities.capabilities.task import ProposeTask
+from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.utils import ok
+from fabricatio_tool import toolboxes
+from fabricatio_tool.fs import safe_json_read
 from pydantic import Field
 
 
-class WriteDiary(Action):
+class WriteDiary(Action, UseLLM):
     """Write a diary according to the given commit messages in json format."""
 
     output_key: str = "dump_text"
@@ -45,7 +51,7 @@ class WriteDiary(Action):
         return "\n\n\n".join(res)
 
 
-class DumpText(Action):
+class DumpText(Action, Handle):
     """Dump the text to a file."""
 
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
@@ -54,12 +60,11 @@ class DumpText(Action):
     async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Optional[str]:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
-            ["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
+            goal=["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
         )
 
         path = await self.handle_fine_grind(
-            task_input,
-            {"text_to_dump": dump_text},
+            task_input.assembled_prompt, {"text_to_dump": dump_text}, {"written_file_path": "path of the written file"}
         )
         if path:
             return path[0]
@@ -67,20 +72,26 @@ class DumpText(Action):
         return None
 
 
-async def main() -> None:
-    """Main function."""
-    role = Role(
-        name="Coder",
-        description="A python coder who can ",
-        registry={
+class Coder(RoleBase, ProposeTask):
+    """A role that can write a diary according to the given commit messages in json format."""
+
+    registry: Dict[Event, WorkFlow] = Field(
+        default={
             Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDiary, DumpText)),
-        },
+        }
     )
 
-    task = await role.propose_task(
-        "Write a diary according to the given commit messages in json format. and dump to `diary.md` at `output` dir,"
-        "In the json the key is the day in which the commit messages in value was committed,"
-        "you need to separately write diary for each day.",
+
+async def main() -> None:
+    """Main function."""
+    role = Coder()
+
+    task = ok(
+        await role.propose_task(
+            "Write a diary according to the given commit messages in json format. and dump to `diary.md` at `output` dir,"
+            "In the json the key is the day in which the commit messages in value was committed,"
+            "you need to separately write diary for each day.",
+        )
     )
     task.override_dependencies("./commits.json")
     await task.move_to("doc").delegate()
