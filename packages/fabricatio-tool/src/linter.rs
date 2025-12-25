@@ -1,4 +1,4 @@
-use fabricatio_core::logger::{debug, error, info, warn};
+use fabricatio_logger::{debug, error, info, warn};
 use rustpython_ast::text_size::TextRange;
 use rustpython_ast::{Expr, Stmt, Visitor};
 use rustpython_parser::{Mode, parse};

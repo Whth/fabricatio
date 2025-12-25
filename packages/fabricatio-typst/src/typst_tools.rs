@@ -1,10 +1,10 @@
-use crate::converter::convert_all_tex_math as conv_to_typst;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yaml2::wrapper::YamlNodeWrapper;
+use tex_convertor::convert_all_tex_math as conv_to_typst;
 use tex2typst_rs::tex2typst;
 
 /// A trait to add and remove comments from a string-like type.

@@ -1,6 +1,6 @@
-use crate::config::Config;
-use crate::constants::{CONFIG_FILE, GLOBAL_CONFIG_FILE, NAME};
+use crate::configs::Config;
 use dotenvy::dotenv_override;
+use fabricatio_constants::{CONFIG_FILE, GLOBAL_CONFIG_FILE, NAME};
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
@@ -20,7 +20,10 @@ impl Config {
                 Env::prefixed(format!("{}_", NAME.to_uppercase()).as_str()).split("__")
             })
             .join(Toml::file(CONFIG_FILE))
-            .join(PyprojectToml::new("pyproject.toml", vec!["tool", NAME]))
+            .join(PyprojectToml::new(
+                "../../../pyproject.toml",
+                vec!["tool", NAME],
+            ))
             .join(Toml::file(GLOBAL_CONFIG_FILE.deref()))
             .join(Config::default())
     }

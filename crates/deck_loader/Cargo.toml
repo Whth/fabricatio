@@ -1,10 +1,10 @@
 [package]
 name = "deck_loader"
-version = "0.1.1-dev0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
-genanki-rs-rev = { version = "0.1.0", git = "https://github.com/Whth/genanki-rs-rev" }
+genanki-rs-rev = { version = "0.1.1" }
 csv = "1.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml2 = "0.1.3"

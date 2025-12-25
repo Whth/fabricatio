@@ -1,0 +1,14 @@
+[package]
+name = "fabricatio-constants"
+version = "0.2.4"
+readme = "README.md"
+description = "Constants for the fabricatio."
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+[dependencies]
+
+once_cell = "1.21.3"
+directories-next = "2.0.0"
+

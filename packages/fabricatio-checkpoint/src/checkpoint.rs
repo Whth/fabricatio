@@ -6,7 +6,7 @@
 
 use blake3::hash;
 use error_mapping::*;
-use fabricatio_core::logger::*;
+use fabricatio_logger::*;
 use git2::{Config, DiffOptions, IndexAddOption, Oid, Repository};
 use moka::sync::Cache;
 use pyo3::exceptions::PyOSError;
@@ -337,7 +337,7 @@ impl ShadowRepoManager {
     /// # Errors
     ///
     /// Returns a `PyErr` if filesystem operations fail during scanning
-    #[pyo3(signature=(cached_only=true))]
+    #[pyo3(signature=(cached_only=false))]
     pub fn workspaces(&self, cached_only: bool) -> PyResult<Vec<PathBuf>> {
         if cached_only {
             debug!("Returning cached workspaces...");

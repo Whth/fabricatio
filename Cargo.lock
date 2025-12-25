@@ -122,9 +122,12 @@ dependencies = [
 
 [[package]]
 name = "arc-swap"
-version = "1.7.1"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+checksum = "51d03449bb8ca2cc2ef70869af31463d1ae5ccc8fa3e334b307203fbf815207e"
+dependencies = [
+ "rustversion",
+]
 
 [[package]]
 name = "arraydeque"
@@ -619,9 +622,9 @@ dependencies = [
 
 [[package]]
 name = "crc"
-version = "3.4.0"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5eb8a2a1cd12ab0d987a5d5e825195d372001a4094a0376319d5a0ad71c1ba0d"
+checksum = "9710d3b3739c2e349eb44fe848ad0b7c8cb1e42bd87ee49371df2f7acaf3e675"
 dependencies = [
  "crc-catalog",
 ]
@@ -863,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "deck_loader"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "csv",
  "genanki-rs-rev",
@@ -1136,7 +1139,7 @@ dependencies = [
  "thiserror 2.0.17",
  "upon",
  "uuid",
- "zip",
+ "zip 6.0.0",
 ]
 
 [[package]]
@@ -1157,14 +1160,20 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
+ "biblatex",
+ "cfg-if",
  "epub-builder",
  "git2",
  "handlebars",
+ "http",
  "pyo3",
  "pythonize",
  "serde_json",
+ "tantivy",
+ "tonic",
+ "validator",
 ]
 
 [[package]]
@@ -1174,7 +1183,7 @@ dependencies = [
  "chrono",
  "clap",
  "colored",
- "fabricatio-core",
+ "fabricatio-constants",
  "flate2",
  "glob",
  "human-units",
@@ -1182,6 +1191,7 @@ dependencies = [
  "octocrab",
  "once_cell",
  "pyo3",
+ "pyo3-build-config",
  "reqwest",
  "tar",
  "thiserror 2.0.17",
@@ -1202,7 +1212,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "deck_loader",
- "fabricatio-core",
+ "fabricatio-logger",
  "pyo3",
  "pythonize",
  "regex",
@@ -1216,12 +1226,36 @@ version = "0.0.0"
 dependencies = [
  "blake3",
  "error-mapping",
- "fabricatio-core",
+ "fabricatio-logger",
  "git2",
  "moka",
  "pyo3",
  "rayon",
  "utils",
+]
+
+[[package]]
+name = "fabricatio-config"
+version = "0.2.1"
+dependencies = [
+ "dotenvy",
+ "fabricatio-constants",
+ "figment",
+ "macro-utils",
+ "pyo3",
+ "pyo3-stub-gen",
+ "pythonize",
+ "serde",
+ "serde_json",
+ "validator",
+]
+
+[[package]]
+name = "fabricatio-constants"
+version = "0.2.4"
+dependencies = [
+ "directories-next",
+ "once_cell",
 ]
 
 [[package]]
@@ -1231,12 +1265,11 @@ dependencies = [
  "blake3",
  "cfg-if",
  "chrono",
- "directories-next",
- "dotenvy",
  "error-mapping",
- "figment",
+ "fabricatio-config",
+ "fabricatio-constants",
+ "fabricatio-logger",
  "handlebars",
- "macro-utils",
  "once_cell",
  "path-clean",
  "postcard",
@@ -1249,11 +1282,7 @@ dependencies = [
  "serde_json",
  "strum",
  "tempfile",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "unicode-segmentation",
- "validator",
  "walkdir",
  "whichlang",
 ]
@@ -1279,10 +1308,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-logger"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "fabricatio-constants",
+ "pyo3",
+ "pyo3-stub-gen",
+ "strum",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "fabricatio-memory"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "error-mapping",
  "once_cell",
  "pyo3",
  "pyo3-stub-gen",
@@ -1308,11 +1352,13 @@ dependencies = [
 name = "fabricatio-rag"
 version = "0.0.0"
 dependencies = [
- "fabricatio-core",
+ "error-mapping",
+ "fabricatio-logger",
  "prost",
  "pyo3",
  "pyo3-async-runtimes",
  "serde",
+ "tokio",
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
@@ -1321,11 +1367,12 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-stubgen"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "fabricatio-core",
  "fabricatio-diff",
  "fabricatio-memory",
+ "pyo3-build-config",
  "pyo3-stub-gen",
 ]
 
@@ -1333,7 +1380,7 @@ dependencies = [
 name = "fabricatio-thinking"
 version = "0.0.0"
 dependencies = [
- "fabricatio-core",
+ "fabricatio-logger",
  "pyo3",
 ]
 
@@ -1342,7 +1389,7 @@ name = "fabricatio-tool"
 version = "0.0.0"
 dependencies = [
  "error-mapping",
- "fabricatio-core",
+ "fabricatio-logger",
  "ignore",
  "mcp-manager",
  "pyo3",
@@ -1362,13 +1409,16 @@ version = "0.0.0"
 dependencies = [
  "biblatex",
  "clap",
- "fabricatio-core",
+ "error-mapping",
+ "fabricatio-logger",
  "nucleo-matcher",
  "pyo3",
+ "pyo3-build-config",
  "pythonize",
  "rayon",
  "regex",
  "serde_yaml2",
+ "tex-convertor",
  "tex2typst-rs",
 ]
 
@@ -1399,9 +1449,9 @@ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "fancy-regex"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "998b056554fbe42e03ae0e152895cd1a7e1002aec800fdc6635d20270260c46f"
+checksum = "72cf461f865c862bb7dc573f643dd6a2b6842f7c30b07882b56bd148cc2761b8"
 dependencies = [
  "bit-set",
  "regex-automata",
@@ -1496,6 +1546,12 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "foreign-types"
@@ -1622,8 +1678,9 @@ dependencies = [
 
 [[package]]
 name = "genanki-rs-rev"
-version = "0.1.0"
-source = "git+https://github.com/Whth/genanki-rs-rev#98b13ae80e66367311d7f8113518f14d91226230"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f1831d1d45c60b01e27f7a382c4f3546c568d8c85aef48d492d94a3f68c298a"
 dependencies = [
  "fancy-regex",
  "ramhorns",
@@ -1632,7 +1689,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.17",
- "zip",
+ "zip 7.0.0",
 ]
 
 [[package]]
@@ -1787,7 +1844,7 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
 ]
 
 [[package]]
@@ -1795,6 +1852,9 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "hashlink"
@@ -1807,11 +1867,11 @@ dependencies = [
 
 [[package]]
 name = "hashlink"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
+checksum = "ea0b22561a9c04a7cb1a302c013e0259cd3b4bb619f145b32f72b8b4bcbed230"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -2056,7 +2116,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -2422,9 +2482,9 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.35.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "133c182a6a2c87864fe97778797e46c7e999672690dc9fa3ee8e241aa4a9c13f"
+checksum = "95b4103cffefa72eb8428cb6b47d6627161e51c2739fc5e3b734584157bc642a"
 dependencies = [
  "cc",
  "pkg-config",
@@ -2433,9 +2493,9 @@ dependencies = [
 
 [[package]]
 name = "libz-rs-sys"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15413ef615ad868d4d65dce091cb233b229419c7c0c4bcaa746c0901c49ff39c"
+checksum = "c10501e7805cee23da17c7790e59df2870c0d4043ec6d03f67d31e2b53e77415"
 dependencies = [
  "zlib-rs",
 ]
@@ -2544,9 +2604,9 @@ checksum = "08ab2867e3eeeca90e844d1940eab391c9dc5228783db2ed999acbc0a9ed375a"
 
 [[package]]
 name = "lzma-rust2"
-version = "0.13.0"
+version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c60a23ffb90d527e23192f1246b14746e2f7f071cb84476dd879071696c18a4a"
+checksum = "48172246aa7c3ea28e423295dd1ca2589a24617cc4e588bb8cfe177cb2c54d95"
 dependencies = [
  "crc",
  "sha2",
@@ -2554,7 +2614,7 @@ dependencies = [
 
 [[package]]
 name = "macro-utils"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
@@ -4145,16 +4205,17 @@ dependencies = [
 
 [[package]]
 name = "rusqlite"
-version = "0.37.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165ca6e57b20e1351573e3729b958bc62f0e48025386970b6e4d29e7a7e71f3f"
+checksum = "f1c93dd1c9683b438c392c492109cb702b8090b2bfc8fed6f6e4eb4523f17af3"
 dependencies = [
  "bitflags",
  "fallible-iterator",
  "fallible-streaming-iterator",
- "hashlink 0.10.0",
+ "hashlink 0.11.0",
  "libsqlite3-sys",
  "smallvec",
+ "sqlite-wasm-rs",
 ]
 
 [[package]]
@@ -4734,6 +4795,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sqlite-wasm-rs"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05e98301bf8b0540c7de45ecd760539b9c62f5772aed172f08efba597c11cd5d"
+dependencies = [
+ "cc",
+ "hashbrown 0.16.1",
+ "js-sys",
+ "thiserror 2.0.17",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "sse-stream"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5023,6 +5097,15 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "tex-convertor"
+version = "0.1.1"
+dependencies = [
+ "fabricatio-logger",
+ "regex",
+ "tex2typst-rs",
 ]
 
 [[package]]
@@ -5961,7 +6044,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9babd3a767a4c1aef6900409f85f5d53ce2544ccdfaa86dad48c91782c6d6893"
 dependencies = [
  "windows-collections",
- "windows-core",
+ "windows-core 0.61.2",
  "windows-future",
  "windows-link 0.1.3",
  "windows-numerics",
@@ -5973,7 +6056,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3beeceb5e5cfd9eb1d76b381630e82c4241ccd0d27f1a39ed41b2760b255c5e8"
 dependencies = [
- "windows-core",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -5990,12 +6073,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows-core"
+version = "0.62.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
+dependencies = [
+ "windows-implement",
+ "windows-interface",
+ "windows-link 0.2.1",
+ "windows-result 0.4.1",
+ "windows-strings 0.5.1",
+]
+
+[[package]]
 name = "windows-future"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
 dependencies = [
- "windows-core",
+ "windows-core 0.61.2",
  "windows-link 0.1.3",
  "windows-threading",
 ]
@@ -6040,7 +6136,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9150af68066c4c5c07ddc0ce30421554771e528bde427614c61038bc2c92c2b1"
 dependencies = [
- "windows-core",
+ "windows-core 0.61.2",
  "windows-link 0.1.3",
 ]
 
@@ -6442,6 +6538,21 @@ version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb2a05c7c36fde6c09b08576c9f7fb4cda705990f73b58fe011abf7dfb24168b"
 dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "flate2",
+ "indexmap",
+ "memchr",
+ "time",
+ "zopfli",
+]
+
+[[package]]
+name = "zip"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdd8a47718a4ee5fe78e07667cd36f3de80e7c2bfe727c7074245ffc7303c037"
+dependencies = [
  "aes",
  "arbitrary",
  "bzip2",
@@ -6449,6 +6560,7 @@ dependencies = [
  "crc32fast",
  "deflate64",
  "flate2",
+ "generic-array",
  "getrandom 0.3.4",
  "hmac",
  "indexmap",
@@ -6465,15 +6577,15 @@ dependencies = [
 
 [[package]]
 name = "zlib-rs"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51f936044d677be1a1168fae1d03b583a285a5dd9d8cbf7b24c23aa1fc775235"
+checksum = "40990edd51aae2c2b6907af74ffb635029d5788228222c4bb811e9351c0caad3"
 
 [[package]]
 name = "zmij"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e404bcd8afdaf006e529269d3e85a743f9480c3cef60034d77860d02964f3ba"
+checksum = "f1dccf46b25b205e4bebe1d5258a991df1cc17801017a845cb5b3fe0269781aa"
 
 [[package]]
 name = "zopfli"

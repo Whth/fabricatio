@@ -1,7 +1,7 @@
 use biblatex::{Bibliography, ChunksExt, PermissiveType};
+use error_mapping::AsPyErr;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
@@ -15,11 +15,9 @@ impl BibManager {
     /// Create a new BibManager instance.
     #[new]
     fn new(path: String) -> PyResult<Self> {
-        let bib = std::fs::read_to_string(path)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+        let bib = std::fs::read_to_string(path).into_pyresult()?;
 
-        let source = Bibliography::parse(&bib)
-            .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+        let source = Bibliography::parse(&bib).into_pyresult()?;
 
         Ok(BibManager { source })
     }
@@ -31,10 +29,9 @@ impl BibManager {
         self.source.iter().par_bridge().find_map_any(|entry| {
             let entry_title = entry
                 .title()
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
                 .ok()?
                 .to_biblatex_string(false)
-                .fix()
+                .remove_brackets()
                 .to_lowercase();
 
             (entry_title == title_lower).then(|| entry.key.clone())
@@ -51,17 +48,17 @@ impl BibManager {
         );
         self.source
             .iter()
-            .map(|entry| {
+            .filter_map(|entry| {
                 let mut buf = vec![];
                 let text = entry
                     .title()
-                    .expect("Failed to get title")
+                    .ok()?
                     .to_biblatex_string(false)
-                    .fix();
-                (
+                    .remove_brackets();
+                Some((
                     pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
                     entry,
-                )
+                ))
             })
             .par_bridge()
             // Use filter_map's more concise form with pattern matching
@@ -84,7 +81,7 @@ impl BibManager {
             .iter()
             .map(|entry| {
                 let mut buf = vec![];
-                let text = entry.to_biblatex_string().fix();
+                let text = entry.to_biblatex_string().remove_brackets();
                 (
                     pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
                     entry,
@@ -100,14 +97,14 @@ impl BibManager {
     fn list_titles(&self, is_verbatim: bool) -> Vec<String> {
         self.source
             .iter()
-            .map(|entry| {
-                entry
-                    .title()
-                    .map_err(|e| PyErr::new::<PyRuntimeError, _>(format!("{}", e)))
-                    .ok()
-                    .unwrap()
-                    .to_biblatex_string(is_verbatim)
-                    .fix()
+            .filter_map(|entry| {
+                Some(
+                    entry
+                        .title()
+                        .ok()?
+                        .to_biblatex_string(is_verbatim)
+                        .remove_brackets(),
+                )
             })
             .collect::<Vec<_>>()
     }
@@ -123,11 +120,9 @@ impl BibManager {
     }
 
     fn get_year_by_key(&self, key: String) -> Option<i32> {
-        if let Some(en) = self.source.get(key.as_str()) {
-            match en
-                .date()
-                .expect(format!("Failed to get date for key {key}").as_str())
-            {
+        self.source
+            .get(key.as_str())
+            .map(|en| match en.date().ok()? {
                 PermissiveType::Typed(t) => match t.value {
                     biblatex::DateValue::At(da) => Some(da.year),
                     biblatex::DateValue::Before(da) => Some(da.year),
@@ -135,10 +130,7 @@ impl BibManager {
                     biblatex::DateValue::Between(da, _) => Some(da.year),
                 },
                 _ => None,
-            }
-        } else {
-            None
-        }
+            })?
     }
 
     fn get_abstract_by_key(&self, key: String) -> Option<String> {
@@ -150,25 +142,23 @@ impl BibManager {
     }
 
     fn get_field_by_key(&self, key: String, field: String) -> Option<String> {
-        if let Some(en) = self.source.get(key.as_str()) {
+        self.source.get(key.as_str()).map(|en| {
             Some(
-                en.get(field.as_str())
-                    .expect(format!("Failed to get field `{field}` for key {key}").as_str())
+                en.get(field.as_str())?
                     .to_biblatex_string(false)
-                    .fix(),
+                    .remove_brackets(),
             )
-        } else {
-            None
-        }
+        })?
     }
 }
 
-trait Fix {
-    fn fix(&self) -> String;
+/// Remove brackets
+trait RemoveBrackets {
+    fn remove_brackets(&self) -> String;
 }
 
-impl Fix for String {
-    fn fix(&self) -> String {
+impl RemoveBrackets for String {
+    fn remove_brackets(&self) -> String {
         self.replace("{", "").replace("}", "")
     }
 }

@@ -1,3 +1,4 @@
+use fabricatio_logger::init_logger_auto;
 use pyo3::prelude::*;
 
 mod inspect;
@@ -9,9 +10,9 @@ mod tool;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-#[pyo3(name = "rust")]
+
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    fabricatio_core::logger::init_logger_auto()?;
+    init_logger_auto()?;
     tool::register(python, m)?;
     mcp::register(python, m)?;
     inspect::register(python, m)?;

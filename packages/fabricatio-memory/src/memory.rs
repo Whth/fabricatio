@@ -1,5 +1,4 @@
 use chrono::Utc;
-use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_stub_gen::derive::*;
@@ -14,6 +13,7 @@ use tantivy::schema::*;
 use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
 
 pub(crate) use crate::constants::{FIELDS, SCHEMA};
+use error_mapping::AsPyErr;
 use tantivy::directory::MmapDirectory;
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -105,9 +105,7 @@ impl MemorySystem {
     ) -> PyResult<Vec<Memory>> {
         let mut memories: Vec<Memory> = Vec::new();
         for (_, doc_address) in top_docs {
-            let memory = searcher.doc(doc_address).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e))
-            })?;
+            let memory = searcher.doc(doc_address).into_pyresult()?;
             memories.push(memory);
         }
         Ok(memories)
@@ -141,9 +139,7 @@ impl MemorySystem {
                 access_count_field => memory.access_count,
                 last_accessed_field => memory.last_accessed
             ))
-            .map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to add/update document: {}", e))
-            })?;
+            .into_pyresult()?;
         Ok(())
     }
 }
@@ -160,23 +156,13 @@ impl MemorySystem {
 
         let index = if let Some(index_directory) = index_path {
             if !index_directory.exists() {
-                fs::create_dir_all(&index_directory).map_err(|e| {
-                    PyRuntimeError::new_err(format!(
-                        "Failed to create index directory '{}': {}",
-                        index_directory.display(),
-                        e
-                    ))
-                })?;
+                fs::create_dir_all(&index_directory).into_pyresult()?;
             }
             Index::open_or_create(
-                MmapDirectory::open(index_directory).map_err(|e| {
-                    PyRuntimeError::new_err(format!("Failed to open index directory: {}", e))
-                })?,
+                MmapDirectory::open(index_directory).into_pyresult()?,
                 schema,
             )
-            .map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to open or create index: {}", e))
-            })?
+            .into_pyresult()?
         } else {
             Index::create_in_ram(schema)
         };
@@ -199,16 +185,12 @@ impl MemorySystem {
 
         let memory = Memory::new(id, content.to_string(), importance, tags.clone());
 
-        let mut index_writer: IndexWriter = self
-            .index
-            .writer(self.writer_buffer_size)
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
+        let mut index_writer: IndexWriter =
+            self.index.writer(self.writer_buffer_size).into_pyresult()?;
 
         self.add_or_update_document_in_index(&mut index_writer, &memory)?;
 
-        index_writer
-            .commit()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to commit document: {}", e)))?;
+        index_writer.commit().into_pyresult()?;
 
         Ok(id)
     }
@@ -222,7 +204,7 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
 
         let searcher = reader.searcher();
         let term = Term::from_field_u64(id_field, id);
@@ -230,26 +212,20 @@ impl MemorySystem {
 
         let top_docs = searcher
             .search(&term_query, &TopDocs::with_limit(1))
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
+            .into_pyresult()?;
 
         if let Some((_, doc_address)) = top_docs.first() {
-            let mut memory: Memory = searcher.doc(*doc_address).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e))
-            })?;
+            let mut memory: Memory = searcher.doc(*doc_address).into_pyresult()?;
 
             memory.update_access();
 
-            let mut index_writer = self.index.writer(self.writer_buffer_size).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to get index writer: {}", e))
-            })?;
+            let mut index_writer = self.index.writer(self.writer_buffer_size).into_pyresult()?;
 
             index_writer.delete_term(term); // Delete the old document
 
             self.add_or_update_document_in_index(&mut index_writer, &memory)?; // Add the updated document
 
-            index_writer.commit().map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to commit document update: {}", e))
-            })?;
+            index_writer.commit().into_pyresult()?;
 
             Ok(Some(memory))
         } else {
@@ -273,7 +249,7 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
 
         let searcher = reader.searcher();
         let term = Term::from_field_u64(id_field, id);
@@ -281,12 +257,10 @@ impl MemorySystem {
 
         let top_docs = searcher
             .search(&term_query, &TopDocs::with_limit(1))
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
+            .into_pyresult()?;
 
         if let Some((_, doc_address)) = top_docs.first() {
-            let mut memory: Memory = searcher.doc(*doc_address).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to retrieve document: {}", e))
-            })?;
+            let mut memory: Memory = searcher.doc(*doc_address).into_pyresult()?;
 
             let mut updated = false;
 
@@ -306,17 +280,14 @@ impl MemorySystem {
             }
 
             if updated {
-                let mut index_writer = self.index.writer(self.writer_buffer_size).map_err(|e| {
-                    PyRuntimeError::new_err(format!("Failed to get index writer: {}", e))
-                })?;
+                let mut index_writer =
+                    self.index.writer(self.writer_buffer_size).into_pyresult()?;
 
                 index_writer.delete_term(term.clone()); // term for ID
 
                 self.add_or_update_document_in_index(&mut index_writer, &memory)?;
 
-                index_writer.commit().map_err(|e| {
-                    PyRuntimeError::new_err(format!("Failed to commit update: {}", e))
-                })?;
+                index_writer.commit().into_pyresult()?;
             }
 
             Ok(updated)
@@ -329,15 +300,11 @@ impl MemorySystem {
     pub fn delete_memory_by_id(&self, id: u64) -> PyResult<bool> {
         let (id_field, _, _, _, _, _, _) = *FIELDS;
 
-        let mut index_writer: IndexWriter = self
-            .index
-            .writer(self.writer_buffer_size)
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index writer: {}", e)))?;
+        let mut index_writer: IndexWriter =
+            self.index.writer(self.writer_buffer_size).into_pyresult()?;
         let term = Term::from_field_u64(id_field, id);
         index_writer.delete_term(term);
-        index_writer
-            .commit()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to commit deletion: {}", e)))?;
+        index_writer.commit().into_pyresult()?;
 
         Ok(true)
     }
@@ -358,7 +325,7 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
 
         // Get searcher following basic example
         let searcher = reader.searcher();
@@ -367,22 +334,18 @@ impl MemorySystem {
         let query_parser = QueryParser::for_index(&self.index, vec![content_field, tags_field]);
 
         // Parse query following basic example
-        let query = query_parser
-            .parse_query(query_str)
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to parse query: {}", e)))?;
+        let query = query_parser.parse_query(query_str).into_pyresult()?;
 
         // Search with TopDocs collector following basic example
         let top_docs = searcher
             .search(&query, &TopDocs::with_limit(top_k * 2)) // Use a larger limit for relevance scoring
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
+            .into_pyresult()?;
 
         let mut results = Vec::new();
 
         // Retrieve documents following basic example pattern
         for (score, doc_address) in top_docs {
-            let memory = searcher
-                .doc::<Memory>(doc_address)
-                .map_err(|e| PyRuntimeError::new_err(format!("Failed to get document: {}", e)))?;
+            let memory = searcher.doc::<Memory>(doc_address).into_pyresult()?;
 
             let combined_score: f64 = if boost_recent {
                 Into::<f64>::into(score) + memory.calculate_relevance_score(0.01) // decay_factor could be configurable
@@ -425,17 +388,16 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
         let searcher = reader.searcher();
 
         // A common strategy is to fetch all (or a large number of) documents first if no better query exists.
         // For very large indexes, this might be inefficient.
         // Tantivy does not directly support filtering and sorting by arbitrary stored fields without specific queries.
         // One might use a NumericRangeQuery if importance was indexed as such, or rely on fetching and filtering.
-        let all_query = tantivy::query::AllQuery;
         let top_docs = searcher
-            .search(&all_query, &TopDocs::with_limit(10000)) // Fetch up to 10,000 documents to avoid overflow
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search all: {}", e)))?;
+            .search(&tantivy::query::AllQuery, &TopDocs::with_limit(10000)) // Fetch up to 10,000 documents to avoid overflow
+            .into_pyresult()?;
 
         let mut important_memories = self.docs_to_memories(top_docs, &searcher)?;
         important_memories.retain(|memory| memory.importance >= min_importance);
@@ -460,12 +422,12 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
 
         let searcher = reader.searcher();
         let top_docs = searcher
             .search(&all_query, &TopDocs::with_limit(10000)) // Consider if a more targeted query is possible
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
+            .into_pyresult()?;
 
         let mut recent = self.docs_to_memories(top_docs, &searcher)?;
         recent.retain(|memory| memory.timestamp >= cutoff);
@@ -486,12 +448,12 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
 
         let searcher = reader.searcher();
         let top_docs = searcher
             .search(&all_query, &TopDocs::with_limit(top_k)) // Consider if a more targeted query is possible
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search: {}", e)))?;
+            .into_pyresult()?;
 
         let mut frequent = self.docs_to_memories(top_docs, &searcher)?;
 
@@ -533,12 +495,12 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
         let searcher = reader.searcher();
         let all_query = tantivy::query::AllQuery;
         let top_docs = searcher
             .search(&all_query, &TopDocs::with_limit(10000)) // Fetch up to 10,000 documents to avoid overflow
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to search all: {}", e)))?;
+            .into_pyresult()?;
         self.docs_to_memories(top_docs, &searcher)
     }
 
@@ -549,12 +511,10 @@ impl MemorySystem {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommitWithDelay)
             .try_into()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to get index reader: {}", e)))?;
+            .into_pyresult()?;
         let searcher = reader.searcher();
         let all_query = tantivy::query::AllQuery;
-        let count = searcher
-            .search(&all_query, &Count)
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to count: {}", e)))?;
+        let count = searcher.search(&all_query, &Count).into_pyresult()?;
         Ok(count)
     }
 

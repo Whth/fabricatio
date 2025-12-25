@@ -36,10 +36,9 @@ def reset(ctx: Context, commit_id: str = Argument("HEAD")) -> None:
 @app.command()
 def ls(ctx: Context) -> None:
     """List all commits."""
-    workspace: Path = ctx.obj["workspace"]
-    SHADOW_REPO_MANAGER.commits(workspace)
+    ctx.obj["workspace"]
 
 
 @app.command()
-def workspaces() -> None:
+def workspaces(cached_only: bool = Option(False, "-co", "--cached-only", help="Only list cached workspaces")) -> None:
     """List all workspaces."""

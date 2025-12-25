@@ -7,11 +7,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 
-pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
+pyo3 = { version = "0.27.2" }
 rayon = "1.11.0"
 similar = "2.7.0"
 strsim = "0.11.1"
 pyo3-stub-gen = "0.17.2"
 
 [features]
+default = ["pyo3/extension-module"]
 stubgen = []
