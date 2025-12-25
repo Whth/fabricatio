@@ -1,6 +1,7 @@
 use crate::tei::rerank_client::RerankClient;
 use crate::tei::{RerankRequest, TruncationDirection};
-use pyo3::exceptions::PyRuntimeError;
+use error_mapping::AsPyErr;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use validator::Validate;
@@ -15,12 +16,14 @@ struct TEIClient {
 #[pymethods]
 impl TEIClient {
     #[new]
-    fn new(base_url: String) -> Self {
-        TEIClient { base_url }
+    fn new(base_url: String) -> PyResult<Self> {
+        let client = TEIClient { base_url };
+        client.validate().into_pyresult()?;
+        Ok(client)
     }
     #[pyo3(text_signature = "(self, query, texts, truncate=false, truncation_direction='Left')")]
     fn arerank<'py>(
-        &mut self,
+        &self,
         python: Python<'py>,
         query: String,
         texts: Vec<String>,
@@ -33,12 +36,11 @@ impl TEIClient {
             truncate,
             truncation_direction: {
                 match truncation_direction.unwrap_or("Left".to_string()).as_str() {
-                    "Left" => i32::from(TruncationDirection::Left),
-                    "Right" => i32::from(TruncationDirection::Right),
+                    "Left" => TruncationDirection::Left.into(),
+                    "Right" => TruncationDirection::Right.into(),
                     _ => {
-                        return Err(PyErr::new::<PyRuntimeError, _>(
-                            "Invalid truncation_direction value. Must be 'Left' or 'Right'."
-                                .to_string(),
+                        return Err(PyValueError::new_err(
+                            "Invalid truncation_direction value. Must be 'Left' or 'Right'.",
                         ));
                     }
                 }

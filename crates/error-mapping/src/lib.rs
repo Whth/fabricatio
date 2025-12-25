@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-pub use pyo3::PyResult;
 use pyo3::exceptions::*;
+pub use pyo3::PyResult;
 
 /// Trait for converting various error types to PyO3 results.
 ///
@@ -86,3 +86,10 @@ impl <T> AsPyErr<T> for Result<T, biblatex::TypeError> {
 }
 
 });
+
+#[cfg(feature = "validator")]
+impl<T> AsPyErr<T> for Result<T, validator::ValidationErrors> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+}

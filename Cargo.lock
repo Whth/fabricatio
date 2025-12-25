@@ -1148,7 +1148,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.2-dev2"
+version = "0.2.2-dev3"
 dependencies = [
  "biblatex",
  "cfg-if",
@@ -1158,6 +1158,7 @@ dependencies = [
  "pyo3",
  "pythonize",
  "serde_json",
+ "validator",
 ]
 
 [[package]]
@@ -1335,6 +1336,7 @@ dependencies = [
 name = "fabricatio-rag"
 version = "0.0.0"
 dependencies = [
+ "error-mapping",
  "fabricatio-logger",
  "prost",
  "pyo3",
