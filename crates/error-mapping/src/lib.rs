@@ -93,3 +93,30 @@ impl<T> AsPyErr<T> for Result<T, validator::ValidationErrors> {
         self.map_err(|e| PyValueError::new_err(e.to_string()))
     }
 }
+
+cfg_if!(if #[cfg(feature = "tonic")] {
+impl<T> AsPyErr<T> for Result<T, tonic::ConnectError> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyConnectionError::new_err(e.to_string()))
+    }
+}
+
+impl<T> AsPyErr<T> for Result<T, tonic::transport::Error> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyConnectionError::new_err(e.to_string()))
+    }
+}
+
+impl<T> AsPyErr<T> for Result<T, tonic::Status> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyConnectionError::new_err(e.to_string()))
+    }
+}
+});
+
+#[cfg(feature = "http")]
+impl<T> AsPyErr<T> for Result<T, http::uri::InvalidUri> {
+    fn into_pyresult(self) -> PyResult<T> {
+        self.map_err(|e| PyConnectionError::new_err(e.to_string()))
+    }
+}

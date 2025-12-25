@@ -1,6 +1,6 @@
 [package]
 name = "error-mapping"
-version = "0.2.2-dev3"
+version = "0.2.2-dev4"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -14,6 +14,8 @@ serde_json = { version = "1.0.147", default-features = false, optional = true }
 handlebars = { version = "6.3.2", default-features = false, optional = true }
 biblatex = { version = "0.11.0", default-features = false, optional = true }
 validator = { version = "0.20.0", default-features = false, optional = true }
+tonic = { version = "0.14.2", default-features = false, optional = true, features = ["server"] }
+http = { version = "1.4.0", default-features = false, optional = true }
 cfg-if = "1.0.4"
 
 
@@ -28,6 +30,8 @@ serde_json = ["dep:serde_json"]
 handlebars = ["dep:handlebars"]
 biblatex = ["dep:biblatex"]
 validator = ["dep:validator"]
+tonic = ["dep:tonic"]
+http = ["dep:http"]
 pyo3_extract = []
 std = []
 

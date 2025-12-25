@@ -1,9 +1,11 @@
 use crate::tei::rerank_client::RerankClient;
 use crate::tei::{RerankRequest, TruncationDirection};
 use error_mapping::AsPyErr;
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
+use tokio::sync::OnceCell;
+use tonic::transport::Channel;
 use validator::Validate;
 
 #[pyclass]
@@ -11,13 +13,18 @@ use validator::Validate;
 struct TEIClient {
     #[validate(url)]
     base_url: String,
+
+    channel: OnceCell<Channel>,
 }
 
 #[pymethods]
 impl TEIClient {
     #[new]
     fn new(base_url: String) -> PyResult<Self> {
-        let client = TEIClient { base_url };
+        let client = TEIClient {
+            base_url,
+            channel: OnceCell::new(),
+        };
         client.validate().into_pyresult()?;
         Ok(client)
     }
@@ -48,19 +55,26 @@ impl TEIClient {
             raw_scores: false,
             return_text: false,
         };
-
         let base_url = self.base_url.clone();
-
+        let channel_ref = self.channel.clone();
         // Send only non-Python data into the async block
         future_into_py(python, async move {
-            let mut rerank_client = RerankClient::connect(base_url)
-                .await
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?;
+            let channel = channel_ref
+                .get_or_try_init(|| async {
+                    let channel = Channel::from_shared(base_url)
+                        .into_pyresult()?
+                        .connect()
+                        .await
+                        .into_pyresult()?;
+                    Ok::<Channel, PyErr>(channel)
+                })
+                .await?;
+            let mut rerank_client = RerankClient::new(channel.clone());
 
             let response = rerank_client
                 .rerank(request)
                 .await
-                .map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))?
+                .into_pyresult()?
                 .into_inner();
             let res = response
                 .ranks
