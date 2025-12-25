@@ -1396,6 +1396,7 @@ dependencies = [
  "rayon",
  "regex",
  "serde_yaml2",
+ "tex-convertor",
  "tex2typst-rs",
 ]
 
@@ -5031,6 +5032,15 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "tex-convertor"
+version = "0.1.0"
+dependencies = [
+ "fabricatio-logger",
+ "regex",
+ "tex2typst-rs",
 ]
 
 [[package]]

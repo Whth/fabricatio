@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
-use fabricatio_typst::convert_all_tex_math;
 use std::fs;
 use std::path::PathBuf;
+use tex_convertor::convert_all_tex_math;
 use tex2typst_rs::tex2typst;
 // WrapperType enum removed as per instructions
 

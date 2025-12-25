@@ -337,7 +337,7 @@ impl ShadowRepoManager {
     /// # Errors
     ///
     /// Returns a `PyErr` if filesystem operations fail during scanning
-    #[pyo3(signature=(cached_only=true))]
+    #[pyo3(signature=(cached_only=false))]
     pub fn workspaces(&self, cached_only: bool) -> PyResult<Vec<PathBuf>> {
         if cached_only {
             debug!("Returning cached workspaces...");

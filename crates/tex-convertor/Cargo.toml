@@ -1,0 +1,13 @@
+[package]
+name = "tex-convertor"
+version = "0.1.1-dev0"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+
+[dependencies]
+regex = "1.12.2"
+tex2typst-rs = "0.4.1"
+
+
+fabricatio-logger = { path = "../../crates/fabricatio-logger" }
