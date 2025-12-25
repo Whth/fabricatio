@@ -1,17 +1,15 @@
-use fabricatio_constants::{ROAMING, TEMPLATES, TEMPLATES_DIRNAME};
+use fabricatio_constants::{TEMPLATES, TEMPLATES_DIRNAME};
 use macro_utils::TemplateDefault;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 
 use crate::secstr::SecretStr;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
-use serde::de::Visitor;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::Debug;
 use std::path::PathBuf;
 use validator::Validate;
 

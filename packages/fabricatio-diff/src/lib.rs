@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
 

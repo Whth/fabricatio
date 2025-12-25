@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-config"
-version = "0.2.1-dev0"
+version = "0.2.1-dev1"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true

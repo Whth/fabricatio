@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+
 mod constants;
 mod memory;
 mod traits;
