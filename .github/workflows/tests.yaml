@@ -56,9 +56,12 @@ jobs:
           standalone: true
       - uses: actions/setup-node@v6
         name: Setup Node.js
+        continue-on-error: true
         with:
           node-version: 22
           cache: 'pnpm'
+          cache-dependency-path: 'packages/fabricatio-webui/frontend/pnpm-lock.yaml'
+
       - name: Cache cargo registry
         id: cache-registry
         uses: actions/cache@v5

@@ -130,10 +130,12 @@ jobs:
           cache: true
           standalone: true
       - uses: actions/setup-node@v6
+        continue-on-error: true
         name: Setup Node.js
         with:
           node-version: 22
           cache: 'pnpm'
+          cache-dependency-path: 'packages/fabricatio-webui/frontend/pnpm-lock.yaml'
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
