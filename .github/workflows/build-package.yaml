@@ -127,7 +127,6 @@ jobs:
         name: Install pnpm
         with:
           version: "latest"
-          cache: true
           standalone: true
       - uses: actions/setup-node@v6
         continue-on-error: true
