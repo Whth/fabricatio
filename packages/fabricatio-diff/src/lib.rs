@@ -9,7 +9,6 @@ mod diff;
 /// import the module.
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
-
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     diff::register(python, m)?;
     Ok(())

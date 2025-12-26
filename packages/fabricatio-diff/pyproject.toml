@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-diff"
-version = "0.2.4"
+version = "0.2.5-dev0"
 description = "An extension of fabricatio, which brings up the diff edit capabilities"
 readme = "README.md"
 license = "MIT"
