@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
@@ -123,18 +123,17 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.PAT }}
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: "latest"
-          standalone: true
       - uses: actions/setup-node@v6
-        continue-on-error: true
         name: Setup Node.js
+        continue-on-error: true
         with:
           node-version: 22
           cache: 'pnpm'
           cache-dependency-path: 'packages/fabricatio-webui/frontend/pnpm-lock.yaml'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+        
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
