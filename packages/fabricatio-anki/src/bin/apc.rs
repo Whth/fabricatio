@@ -278,8 +278,7 @@ fn handle_build(
         println!("Compression: {}", compression);
     }
 
-    let loader = CoreAnkiDeckLoader::new(project_path.clone())
-        .map_err(|e| format!("Failed to create loader: {}", e))?;
+    let loader = CoreAnkiDeckLoader::new(project_path.clone());
 
     let output_path = output.unwrap_or_else(|| {
         let mut path = project_path.clone();
@@ -387,8 +386,7 @@ fn handle_validate(
         println!("Strict mode: {}", strict);
     }
 
-    let loader = CoreAnkiDeckLoader::new(project_path.clone())
-        .map_err(|e| format!("Failed to create loader: {}", e))?;
+    let loader = CoreAnkiDeckLoader::new(project_path.clone());
 
     loader
         .build_deck()

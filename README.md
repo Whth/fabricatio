@@ -82,6 +82,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - **LLM Integration & Templating**: Seamlessly interact with large language models and dynamic content generation.
 - **Async & Extensible**: Fully asynchronous execution with easy extension via custom actions and workflows.
 
+## TODO
+- [ ] Add api support.
+- [ ] Run as mcp server.
+
 ## Installation
 
 ```bash

@@ -1,6 +1,6 @@
 version = 1
 revision = 3
-requires-python = ">=3.12, <=3.14"
+requires-python = ">=3.12, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14'",
     "python_full_version < '3.14'",
@@ -508,7 +508,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.22.3.dev5"
+version = "0.23.1.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -711,7 +711,7 @@ docs = [
 
 [[package]]
 name = "fabricatio-actions"
-version = "0.1.12.dev0"
+version = "0.1.12"
 source = { editable = "packages/fabricatio-actions" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -736,7 +736,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.2.3.dev0"
+version = "0.2.3"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -806,7 +806,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.2.11.dev2"
+version = "0.2.11"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -900,7 +900,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-checkpoint"
-version = "0.2.2.dev5"
+version = "0.2.2"
 source = { editable = "packages/fabricatio-checkpoint" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -928,7 +928,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.4.5.dev7"
+version = "0.4.5"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -963,7 +963,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.2.4.dev2"
+version = "0.2.5.dev0"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1049,7 +1049,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-locale"
-version = "0.1.6.dev0"
+version = "0.1.6"
 source = { editable = "packages/fabricatio-locale" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1072,7 +1072,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.2.9.dev3"
+version = "0.2.9"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1117,7 +1117,7 @@ requires-dist = [
 
 [[package]]
 name = "fabricatio-novel"
-version = "0.1.8.dev0"
+version = "0.1.8"
 source = { editable = "packages/fabricatio-novel" }
 dependencies = [
     { name = "fabricatio-character" },
@@ -1226,7 +1226,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.13.dev4"
+version = "0.1.13"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1317,7 +1317,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-thinking"
-version = "0.2.1.dev2"
+version = "0.2.1"
 source = { editable = "packages/fabricatio-thinking" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1336,7 +1336,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-tool"
-version = "0.8.3.dev4"
+version = "0.8.3"
 source = { editable = "packages/fabricatio-tool" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1380,7 +1380,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-typst"
-version = "0.1.23.dev6"
+version = "0.1.23"
 source = { editable = "packages/fabricatio-typst" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -1418,7 +1418,7 @@ provides-extras = ["full", "workflows", "actions"]
 
 [[package]]
 name = "fabricatio-webui"
-version = "0.1.1.dev2"
+version = "0.1.1.dev9"
 source = { editable = "packages/fabricatio-webui" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -2026,7 +2026,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.80.10"
+version = "1.80.11"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "aiohttp" },
@@ -2043,9 +2043,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/dd/44/0aaa7449e7c4aa05668ec03f1f68a01b1e476591071d9659a68db19371a2/litellm-1.80.10.tar.gz", hash = "sha256:4a4aff7558945c2f7e5c6523e67c1b5525a46b10b0e1ad6b8f847cb13b16779e" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/55/47/be6cd7b356418ca8bef3b843507940ce77b76ef2dfe515f2b4ba9b461ff0/litellm-1.80.11.tar.gz", hash = "sha256:c9fc63e7acb6360363238fe291bcff1488c59ff66020416d8376c0ee56414a19" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/8c/a9/4814b6aa58f6705df2831eaadeb5bc8240684c8c9d5964245212f85049d1/litellm-1.80.10-py3-none-any.whl", hash = "sha256:9b3e561efaba0eb1291cb1555d3dcb7283cf7f3cb65aadbcdb42e2a8765898c8" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/97/0b/9e637344f24f3fe0e8039cd2337389fe05e0d31f518bc3e0a5cdbe45784a/litellm-1.80.11-py3-none-any.whl", hash = "sha256:406283d66ead77dc7ff0e0b2559c80e9e497d8e7c2257efb1cb9210a20d09d54" },
 ]
 
 [[package]]
@@ -2918,11 +2918,11 @@ wheels = [
 
 [[package]]
 name = "pyparsing"
-version = "3.2.5"
+version = "3.3.1"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/f2/a5/181488fc2b9d093e3972d2a472855aae8a03f000592dbfce716a512b3359/pyparsing-3.2.5.tar.gz", hash = "sha256:2df8d5b7b2802ef88e8d016a2eb9c7aeaa923529cd251ed0fe4608275d4105b6" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/33/c1/1d9de9aeaa1b89b0186e5fe23294ff6517fce1bc69149185577cd31016b2/pyparsing-3.3.1.tar.gz", hash = "sha256:47fad0f17ac1e2cad3de3b458570fbc9b03560aa029ed5e16ee5554da9a2251c" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/10/5e/1aa9a93198c6b64513c9d7752de7422c06402de6600a8767da1524f9570b/pyparsing-3.2.5-py3-none-any.whl", hash = "sha256:e38a4f02064cf41fe6593d328d0512495ad1f3d8a91c4f73fc401b3079a59a5e" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/8b/40/2614036cdd416452f5bf98ec037f38a1afb17f327cb8e6b652d4729e0af8/pyparsing-3.3.1-py3-none-any.whl", hash = "sha256:023b5e7e5520ad96642e2c6db4cb683d3970bd640cdf7115049a6e9c3682df82" },
 ]
 
 [[package]]
@@ -3648,15 +3648,15 @@ wheels = [
 
 [[package]]
 name = "typer-slim"
-version = "0.20.1"
+version = "0.21.0"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "click" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/3f/3d/6a4ec47010e8de34dade20c8e7bce90502b173f62a6b41619523a3fcf562/typer_slim-0.20.1.tar.gz", hash = "sha256:bb9e4f7e6dc31551c8a201383df322b81b0ce37239a5ead302598a2ebb6f7c9c" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/f9/3b/2f60ce16f578b1db5b8816d37d6a4d9786b33b76407fc8c13b0b86312c31/typer_slim-0.21.0.tar.gz", hash = "sha256:f2dbd150cfa0fead2242e21fa9f654dfc64773763ddf07c6be9a49ad34f79557" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/d8/f9/a273c8b57c69ac1b90509ebda204972265fdc978fbbecc25980786f8c038/typer_slim-0.20.1-py3-none-any.whl", hash = "sha256:8e89c5dbaffe87a4f86f4c7a9e2f7059b5b68c66f558f298969d42ce34f10122" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/b4/84/e97abf10e4a699194ff07fd586ec7f4cf867d9d04bead559a65f9e7aff84/typer_slim-0.21.0-py3-none-any.whl", hash = "sha256:92aee2188ac6fc2b2924bd75bb61a340b78bd8cd51fd9735533ce5a856812c8e" },
 ]
 
 [package.optional-dependencies]

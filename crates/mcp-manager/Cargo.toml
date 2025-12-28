@@ -7,7 +7,7 @@ edition = "2024"
 futures = "0.3.31"
 rmcp = { version = "0.12.0", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.147"
+serde_json = "1.0.148"
 tokio = { version = "1.48.0", features = ["process", "rt-multi-thread", "sync"] }
 which = "8.0.0"
 pyo3 = { version = "0.27.2", optional = true, default-features = false }

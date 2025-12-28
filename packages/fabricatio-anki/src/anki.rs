@@ -10,7 +10,6 @@ use std::path::PathBuf;
 #[pyfunction]
 fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(path)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(format!("{}", e)))?
         .export_deck(output)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyException, _>(format!("{}", e)))?;
     Ok(())
@@ -55,7 +54,6 @@ fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyR
 #[pyfunction]
 fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(project_path)
-        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
         .add_csv_data(model_name, &data)
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }

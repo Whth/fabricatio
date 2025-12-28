@@ -1,11 +1,15 @@
 [package]
 name = "deck_loader"
-version = "0.1.1"
+version = "0.1.2-dev1"
 edition = "2024"
 
 [dependencies]
-genanki-rs-rev = { version = "0.1.1" }
+genanki-rs-rev = { version = "0.2.2", features = ["export", "zip"] }
 csv = "1.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml2 = "0.1.3"
 walkdir = "2.5.0"
+
+thiserror = "2.0.17"
+
+
