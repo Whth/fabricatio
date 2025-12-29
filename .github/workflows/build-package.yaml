@@ -123,6 +123,7 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.PAT }}
+          
       - uses: actions/setup-node@v6
         name: Setup Node.js
         continue-on-error: true
@@ -131,9 +132,8 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'packages/fabricatio-webui/frontend/pnpm-lock.yaml'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-        
+
+
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -159,6 +159,7 @@ jobs:
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
+          npm install -g pnpm
           make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.python-version }}"
         env:
           MATURIN_USERNAME: __token__

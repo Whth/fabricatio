@@ -37,7 +37,7 @@ bdist: dirs clean_dist
 test_raw:
 	uv run --only-dev pytest python/tests packages/*/python/tests --cov
 
-test: dev
+test:
 	uv sync --extra full
 	make test_raw
 

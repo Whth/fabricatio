@@ -83,8 +83,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - **Async & Extensible**: Fully asynchronous execution with easy extension via custom actions and workflows.
 
 ## TODO
+
 - [ ] Add api support.
 - [ ] Run as mcp server.
+- [ ] Finalize the webui.
 
 ## Installation
 
