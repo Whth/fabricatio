@@ -87,6 +87,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Add api support.
 - [ ] Run as mcp server.
 - [ ] Finalize the webui.
+- [ ] Add Plugin system.
 
 ## Installation
 
