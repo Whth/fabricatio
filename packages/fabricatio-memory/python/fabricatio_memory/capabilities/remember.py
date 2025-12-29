@@ -1,7 +1,7 @@
 """Provide a memory system to remember things."""
 
 from abc import ABC
-from typing import Unpack
+from typing import Optional, Self, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
@@ -22,12 +22,28 @@ class RememberScopedConfig(ScopedConfig):
 
     memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
     """Configuration for LLM generation parameters used in memory operations."""
-    memory_system: MemorySystem = Field(default_factory=MemorySystem)
+    memory_system: Optional[MemorySystem] = Field(default=None)
     """The memory system instance used for storing and retrieving memories."""
 
 
 class Remember(Propose, RememberScopedConfig, ABC):
     """Provide a memory system to remember things."""
+
+    def mount_memory_system(self, memory_system: Optional[MemorySystem] = None) -> Self:
+        """Mount a memory system to the capability."""
+        self.memory_system = memory_system or MemorySystem()
+        return self
+
+    def unmount_memory_system(self) -> Self:
+        """Unmount the memory system from the capability."""
+        self.memory_system = None
+        return self
+
+    def access_memory_system(self, fallback_default: Optional[MemorySystem] = None) -> MemorySystem:
+        """Access the memory system."""
+        if self.memory_system is None:
+            self.mount_memory_system(fallback_default)
+        return ok(self.memory_system)
 
     async def record(self, raw: str, **kwargs: Unpack[ValidateKwargs[Note]]) -> Note:
         """Record a piece of information into the memory system.
@@ -48,7 +64,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
             "Fatal error: Note not found.",
         )
 
-        mem_id = self.memory_system.add_memory(
+        mem_id = self.access_memory_system().add_memory(
             note.content,
             note.importance,
             note.tags,
@@ -68,7 +84,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
         Returns:
             A string containing the recalled information.
         """
-        mem_seq = self.memory_system.search_memories(query, top_k, boost_recent)
+        mem_seq = self.access_memory_system().search_memories(query, top_k, boost_recent)
         logger.debug(f"{len(mem_seq)} memories recalled, ids: {[mem.id for mem in mem_seq]}")
         return await self.aask(
             TEMPLATE_MANAGER.render_template(

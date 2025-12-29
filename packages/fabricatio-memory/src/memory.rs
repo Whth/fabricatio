@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
-use tantivy::{doc, Index, IndexWriter, ReloadPolicy};
+use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
 
 pub(crate) use crate::constants::{FIELDS, SCHEMA};
 use error_mapping::AsPyErr;
@@ -162,7 +162,7 @@ impl MemorySystem {
                 MmapDirectory::open(index_directory).into_pyresult()?,
                 schema,
             )
-                .into_pyresult()?
+            .into_pyresult()?
         } else {
             Index::create_in_ram(schema)
         };
@@ -348,9 +348,9 @@ impl MemorySystem {
             let memory = searcher.doc::<Memory>(doc_address).into_pyresult()?;
 
             let combined_score: f64 = if boost_recent {
-                score.into() + memory.calculate_relevance_score(0.01) // decay_factor could be configurable
+                score as f64 + memory.calculate_relevance_score(0.01) // decay_factor could be configurable
             } else {
-                score.into()
+                score as f64
             };
             results.push((combined_score, memory));
         }

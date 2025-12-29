@@ -42,9 +42,9 @@ dev_reg = {
 }
 
 if is_installed("fabricatio_plot"):
+    from fabricatio_plot.actions.fs import SaveDataCSV
     from fabricatio_plot.actions.plot import MakeCharts
     from fabricatio_plot.actions.synthesize import MakeSynthesizedData
-    from fabricatio_plot.actions.fs import SaveDataCSV
 
     dev_reg.update(
         {
@@ -60,7 +60,7 @@ if is_installed("fabricatio_plot"):
                     MakeSynthesizedData(output_key="data_to_save"),
                     SaveDataCSV().to_task_output(),
                 ),
-            )
+            ),
         }
     )
 
@@ -103,10 +103,10 @@ class ProjectLeader(Role, Cooperate):
 
 @app.command(no_args_is_help=True)
 def code(
-        prompt: str = Argument(..., help="The prompt to generate code from."),
-        sequential_thinking: bool = Option(
-            False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking."
-        ),
+    prompt: str = Argument(..., help="The prompt to generate code from."),
+    sequential_thinking: bool = Option(
+        False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking."
+    ),
 ) -> None:
     """Generate code based on the provided prompt.
 

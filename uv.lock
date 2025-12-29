@@ -508,7 +508,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.23.1.dev1"
+version = "0.23.1"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -736,7 +736,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-agent"
-version = "0.2.3"
+version = "0.2.4.dev1"
 source = { editable = "packages/fabricatio-agent" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -806,7 +806,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-anki"
-version = "0.2.11"
+version = "0.2.12"
 source = { editable = "packages/fabricatio-anki" }
 dependencies = [
     { name = "fabricatio-capabilities" },
@@ -963,7 +963,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.2.5.dev0"
+version = "0.2.6.dev0"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1072,7 +1072,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.2.9"
+version = "0.2.10.dev1"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1163,7 +1163,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-plot"
-version = "0.1.10"
+version = "0.1.11.dev1"
 source = { editable = "packages/fabricatio-plot" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1418,7 +1418,7 @@ provides-extras = ["full", "workflows", "actions"]
 
 [[package]]
 name = "fabricatio-webui"
-version = "0.1.1.dev9"
+version = "0.1.2"
 source = { editable = "packages/fabricatio-webui" }
 dependencies = [
     { name = "fabricatio-core" },

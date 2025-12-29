@@ -154,7 +154,7 @@ async def test_recall_different_parameters(role: RememberRole) -> None:
     expected_response = "Your work tasks include reviewing code and attending meetings."
 
     router = return_string(expected_response)
-    role.memory_system.add_memory("You have a meeting at 3 PM today.", 0.8, ["work"])
+    role.access_memory_system().add_memory("You have a meeting at 3 PM today.", 0.8, ["work"])
     with install_router(router):
         # Test with custom top_k and boost_recent=False
         recalled_info = await role.recall(query, top_k=10, boost_recent=False)
