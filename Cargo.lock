@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "deck_loader"
-version = "0.1.2-dev1"
+version = "0.1.2-dev2"
 dependencies = [
  "csv",
  "genanki-rs-rev",
@@ -1237,7 +1237,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.2.1"
+version = "0.2.2-dev0"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -1434,6 +1434,7 @@ dependencies = [
  "pyo3-async-runtimes",
  "tokio",
  "tower-http",
+ "which",
 ]
 
 [[package]]

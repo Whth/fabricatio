@@ -15,3 +15,8 @@ pyo3-async-runtimes = { version = "0.27.0", features = ["tokio-runtime"] }
 
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping" }
+
+
+
+[build-dependencies]
+which = "8.0.0"
