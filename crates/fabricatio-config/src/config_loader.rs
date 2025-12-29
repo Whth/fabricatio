@@ -20,14 +20,10 @@ impl Config {
                 Env::prefixed(format!("{}_", NAME.to_uppercase()).as_str()).split("__")
             })
             .join(Toml::file(CONFIG_FILE))
-            .join(PyprojectToml::new(
-                "./pyproject.toml",
-                vec!["tool", NAME],
-            ))
+            .join(PyprojectToml::new("./pyproject.toml", vec!["tool", NAME]))
             .join(Toml::file(GLOBAL_CONFIG_FILE.deref()))
             .join(Config::default())
     }
-
 
     // Allow the configuration to be extracted from any `Provider`.
     fn from<T: Provider>(provider: T) -> Result<Config, String> {

@@ -126,7 +126,7 @@ impl AnkiDeckLoader {
     ///
     /// # Returns
     /// * Iterator over directory entries (directories only, depth 1)
-    fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item=walkdir::DirEntry> {
+    fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item = walkdir::DirEntry> {
         WalkDir::new(dir_path)
             .min_depth(1)
             .max_depth(1)
@@ -332,7 +332,6 @@ impl AnkiDeckLoader {
 
         Ok(())
     }
-
 
     /// Creates directory structure with error handling.
     ///

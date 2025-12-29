@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-webui"
-version = "0.1.1-dev10"
+version = "0.1.2-dev0"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
