@@ -1679,9 +1679,9 @@ dependencies = [
 
 [[package]]
 name = "genanki-rs-rev"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2338719867d7093e743ec68668fd7977151220a5dcba2d5e1683782171ae510"
+checksum = "d9885cc6e3c02c41c7b4cdaa46523bb01878114eec6c5f6faaf089451fe314cb"
 dependencies = [
  "anyhow",
  "blake3",

@@ -126,7 +126,7 @@ impl AnkiDeckLoader {
     ///
     /// # Returns
     /// * Iterator over directory entries (directories only, depth 1)
-    fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item = walkdir::DirEntry> {
+    fn get_directory_entries(&self, dir_path: &Path) -> impl Iterator<Item=walkdir::DirEntry> {
         WalkDir::new(dir_path)
             .min_depth(1)
             .max_depth(1)
@@ -319,19 +319,20 @@ impl AnkiDeckLoader {
 
         media_files.into_iter().try_for_each(|media_file| {
             w.add_media(
-                &media_file
+                media_file
                     .as_ref()
                     .strip_prefix(self.project_path.join(MEDIA_DIR))
                     .unwrap()
                     .to_str()
                     .unwrap(),
-                media_file.as_ref().clone(),
+                media_file.as_ref(),
             )
         })?;
         w.build(vec![deck])?.write_to_file(output_path)?;
 
         Ok(())
     }
+
 
     /// Creates directory structure with error handling.
     ///
@@ -411,7 +412,7 @@ impl AnkiDeckLoader {
         let templates = self.load_templates(&templates_path);
 
         // Load media files
-        let media_files = self.collect_files_from_dir(&model_path.join(MEDIA_DIR));
+        let media_files = self.collect_files_from_dir(model_path.join(MEDIA_DIR));
 
         Ok(ModelData {
             config,

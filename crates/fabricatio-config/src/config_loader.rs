@@ -21,12 +21,13 @@ impl Config {
             })
             .join(Toml::file(CONFIG_FILE))
             .join(PyprojectToml::new(
-                "../../../pyproject.toml",
+                "./pyproject.toml",
                 vec!["tool", NAME],
             ))
             .join(Toml::file(GLOBAL_CONFIG_FILE.deref()))
             .join(Config::default())
     }
+
 
     // Allow the configuration to be extracted from any `Provider`.
     fn from<T: Provider>(provider: T) -> Result<Config, String> {

@@ -11,9 +11,6 @@ pub enum Error {
     #[error("Anki error: {0}")]
     Anki(#[from] genanki_rs_rev::Error),
 
-    #[error("Anki export error: {0}")]
-    AnkiExport(#[from] genanki_rs_rev::PackageError),
-
     #[error("Path error: {0}")]
     Path(#[from] std::path::StripPrefixError),
 }
