@@ -123,7 +123,7 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.PAT }}
-          
+
       - uses: actions/setup-node@v6
         name: Setup Node.js
         continue-on-error: true
@@ -161,6 +161,7 @@ jobs:
         run: |
           npm install -g pnpm
           make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.python-version }}"
+        shell: bash
         env:
           MATURIN_USERNAME: __token__
           MATURIN_PASSWORD: ${{ secrets.PYPI_TOKEN }}
