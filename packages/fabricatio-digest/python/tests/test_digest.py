@@ -3,14 +3,16 @@
 from typing import List, Set
 
 import pytest
+from litellm import Router
+
 from fabricatio_core import Role, Task
 from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.models.role import RoleName
 from fabricatio_digest.capabilities.digest import Digest
 from fabricatio_digest.models.tasklist import TaskList
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string, return_string
-from fabricatio_mock.utils import install_router
-from litellm import Router
+from fabricatio_mock.utils import install_router, make_n_roles
 
 
 class MockRole(Role):
@@ -34,17 +36,15 @@ def digest_role() -> DigestRole:
 
 
 @pytest.fixture
-def mock_receptions() -> Set[MockRole]:
+def mock_receptions() -> Set[RoleName]:
     """Create mock receptions for testing.
 
     Returns:
         Set[MockRole]: List of mock roles
     """
-    return {
-        MockRole(name="Reception 1", description="Reception 1 briefing"),
-        MockRole(name="Reception 2", description="Reception 2 briefing"),
-        MockRole(name="Reception 3", description="Reception 3 briefing"),
-    }
+    role_seq = make_n_roles(3, MockRole)
+    
+    return set(r.name for r in role_seq)
 
 
 def create_test_tasklist(target: str, task_descriptions: List[str]) -> TaskList:
@@ -78,29 +78,29 @@ def router(ret_value: SketchedAble) -> Router:
     ("requirement", "expected_target", "expected_task_count"),
     [
         (
-            "Build a user management system",
-            "Build a user management system",
-            3,
+                "Build a user management system",
+                "Build a user management system",
+                3,
         ),
         (
-            "Create a data processing pipeline",
-            "Create a data processing pipeline",
-            4,
+                "Create a data processing pipeline",
+                "Create a data processing pipeline",
+                4,
         ),
         (
-            "Implement authentication flow",
-            "Implement authentication flow",
-            2,
+                "Implement authentication flow",
+                "Implement authentication flow",
+                2,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_digest_success(
-    digest_role: DigestRole,
-    mock_receptions: Set[MockRole],
-    requirement: str,
-    expected_target: str,
-    expected_task_count: int,
+        digest_role: DigestRole,
+        mock_receptions: Set[RoleName],
+        requirement: str,
+        expected_target: str,
+        expected_task_count: int,
 ) -> None:
     """Test successful digest generation with various requirements.
 
@@ -147,7 +147,7 @@ async def test_digest_with_empty_receptions(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
+async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
     """Test digest when it returns None.
 
     Args:
@@ -170,7 +170,7 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
         digest_role (DigestRole): DigestRole fixture
     """
     requirement = "Single reception task"
-    single_reception = [MockRole(briefing="Single reception briefing")]
+    single_reception = {MockRole(name="Single reception", description="Single reception role").name}
     test_tasklist = create_test_tasklist(requirement, ["Task 1", "Task 2"])
 
     router = return_model_json_string(test_tasklist)
@@ -184,7 +184,7 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
+async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
     """Test digest with additional kwargs.
 
     Args:
@@ -204,7 +204,7 @@ async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[
 
 
 @pytest.mark.asyncio
-async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: Set[MockRole]) -> None:
+async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
     """Test digest with a complex, multi-part requirement.
 
     Args:

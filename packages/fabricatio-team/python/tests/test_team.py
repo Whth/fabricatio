@@ -3,21 +3,14 @@
 from typing import List
 
 import pytest
+
 from fabricatio_core import Role
 from fabricatio_mock.models.mock_role import LLMTestRole
+from fabricatio_mock.utils import make_roles
 from fabricatio_team.capabilities.team import Cooperate
 
 
-def make_roles(names: List[str]) -> List[Role]:
-    """Create a list of Role objects from a list of names.
 
-    Args:
-        names (list[str]): A list of names for the roles.
-
-    Returns:
-        list[Role]: A list of Role objects with the given names.
-    """
-    return [Role(name=name, description="test") for name in names]
 
 
 class TeamRole(LLMTestRole, Cooperate):
@@ -42,7 +35,7 @@ def test_update_and_members(team_role: TeamRole) -> None:
     """
     roles = make_roles(["alice", "bob", "carol"])
     team_role.update_team_roster_with_roles(roles)
-    assert team_role.team_roster == set(roles)
+    assert team_role.team_roster == set(r.name for r in roles)
 
     # team_members must be a set
     assert isinstance(team_role.team_roster, set)
@@ -96,4 +89,3 @@ def test_update_with_empty(team_role: TeamRole) -> None:
     """
     team_role.update_team_roster([])
     assert team_role.team_roster == set()
-    assert team_role.team_roster() == []
