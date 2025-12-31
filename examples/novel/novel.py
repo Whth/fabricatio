@@ -11,7 +11,7 @@ from fabricatio_core.utils import ok
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 
 # Initialize the role
-(Role(name="writer").register_workflow(Event.quick_instantiate(ns := "write"), DebugNovelWorkflow).dispatch())
+(Role(name="writer").add_skill(Event.quick_instantiate(ns := "write"), DebugNovelWorkflow).dispatch())
 
 
 async def main() -> None:

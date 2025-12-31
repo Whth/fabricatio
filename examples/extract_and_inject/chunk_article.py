@@ -14,7 +14,7 @@ async def main() -> None:
     Role(
         name="Researcher",
         description="chunk the article",
-        registry={
+        skills={
             Event.quick_instantiate(e := "Chunk"): WorkFlow(
                 name="Chunk",
                 steps=(

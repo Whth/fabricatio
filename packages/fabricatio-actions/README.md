@@ -52,14 +52,16 @@ from fabricatio import Role, Event, Task, WorkFlow
 import asyncio
 
 (Role(name="file_reader", description="file reader role")
- .register_workflow(Event.quick_instantiate("read_text"), WorkFlow(steps=(ReadText().to_task_output(),))
-                    ))
+ .add_skill(Event.quick_instantiate("read_text"), WorkFlow(steps=(ReadText().to_task_output(),))
+            ))
+
 
 async def main():
     ret: str = await Task(name="read_file", goals=["read file"], description="read file").update_init_context(
         read_path="path/to/file"
     ).delegate("read_text")
     print(ret)
+
 
 asyncio.run(main())
 ```

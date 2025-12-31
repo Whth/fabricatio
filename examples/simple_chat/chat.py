@@ -32,7 +32,7 @@ async def main() -> None:
     role = Role(
         name="talker",
         description="talker role",
-        registry={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
+        skills={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
     )
 
     task = await role.propose_task(

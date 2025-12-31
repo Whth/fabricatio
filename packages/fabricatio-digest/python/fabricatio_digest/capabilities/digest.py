@@ -3,9 +3,10 @@
 from abc import ABC
 from typing import Optional, Set, Unpack
 
-from fabricatio_core import TEMPLATE_MANAGER, Role
+from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.role import RoleName, get_registered_role
 
 from fabricatio_digest.config import digest_config
 from fabricatio_digest.models.tasklist import TaskList
@@ -14,10 +15,10 @@ from fabricatio_digest.models.tasklist import TaskList
 class Digest(Propose, ABC):
     """A class that generates a task list based on a requirement."""
 
-    async def digest[T: Role](
+    async def digest(
         self,
         requirement: str,
-        receptions: Set[T],
+        receptions: Set[RoleName],
         **kwargs: Unpack[ValidateKwargs[Optional[TaskList]]],
     ) -> Optional[TaskList]:
         """Generate a task list based on the given requirement and receptions.
@@ -28,8 +29,7 @@ class Digest(Propose, ABC):
 
         Args:
             requirement (str): A string describing the requirement to be fulfilled.
-            receptions (List[T]): A list of Role objects representing the receptions
-                                  to be considered in generating the task list.
+            receptions (Set[RoleName]): A set of role names indicating the roles
             **kwargs (Unpack[ValidateKwargs[Optional[TaskList]]]): Additional keyword
                                   arguments for validation and configuration.
 
@@ -42,7 +42,7 @@ class Digest(Propose, ABC):
             digest_config.digest_template,
             {
                 "requirement": requirement,
-                "receptions": [r.briefing for r in receptions],
+                "receptions": [r.briefing for r in get_registered_role(receptions)],
             },
         )
         return await self.propose(TaskList, instruct, **kwargs)

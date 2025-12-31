@@ -24,6 +24,6 @@ class CooperativeDigest(Cooperate, Digest):
         """Generate a task list based on the given requirement, considering the team members."""
         return await self.digest(
             TEMPLATE_MANAGER.render_template("cooperative_digest_template", {"requirement": requirement}),
-            ok(self.team_members, "Team member not specified!"),
+            ok(self.team_roster, "Team member not specified!"),
             **kwargs,
         )

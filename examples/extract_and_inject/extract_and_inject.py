@@ -36,7 +36,7 @@ async def main() -> None:
         name="Researcher",
         description="Extract article essence",
         llm_model="openai/deepseek-v3-250324",
-        registry={
+        skills={
             Event.quick_instantiate("article"): WorkFlow(
                 name="extract",
                 steps=(

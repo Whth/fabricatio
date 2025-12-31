@@ -15,7 +15,7 @@ async def main() -> None:
     role = Role(
         name="Researcher",
         description="Extract article essence",
-        registry={
+        skills={
             Event.quick_instantiate("article"): WorkFlow(
                 name="extract",
                 steps=(ExtractArticleEssence(output_key="task_output"),),

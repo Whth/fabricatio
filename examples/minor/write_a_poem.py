@@ -22,7 +22,7 @@ class WritePoem(Action, UseLLM):
 Role(
     name="poet",
     description="A role that creates poetic content",
-    registry={Event.quick_instantiate(ns := "poem"): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
+    skills={Event.quick_instantiate(ns := "poem"): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
 )
 
 if __name__ == "__main__":

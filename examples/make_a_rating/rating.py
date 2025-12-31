@@ -92,7 +92,7 @@ async def main() -> None:
     role = Role(
         name="TaskRater",
         description="A role that can rate tasks.",
-        registry={
+        skills={
             Event.quick_instantiate("rate_food"): WorkFlow(
                 name="Rate food",
                 steps=(WhatToRate, Rate),

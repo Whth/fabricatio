@@ -77,7 +77,7 @@ class Planning(Action, Agent):
             planning = await self.thinking(req)
             req += f"\n\n{planning.export_branch_string()}"
 
-        tk = ok(await self.digest(req, ok(self.team_members, "Team member not specified!")))
+        tk = ok(await self.digest(req, ok(self.team_roster, "Team member not specified!")))
 
         await (
             tk.inject_context(sequential_thinking=self.sequential_thinking)

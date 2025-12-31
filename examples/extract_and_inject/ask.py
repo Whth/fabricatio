@@ -44,7 +44,7 @@ async def main() -> None:
     Role(
         name="talker",
         description="talker role but with rag",
-        registry={
+        skills={
             Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Talk(target_collection="article_chunks"),))
         },
     )

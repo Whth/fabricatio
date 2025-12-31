@@ -20,7 +20,7 @@ class Hello(Action):
 
 (
     Role(name="talker", description="talker role")
-    .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
+    .add_skill(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
     .dispatch()
 )
 

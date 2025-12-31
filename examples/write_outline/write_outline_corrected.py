@@ -13,7 +13,7 @@ async def main() -> None:
         description="Write an outline for an article in typst format.",
         llm_top_p=0.8,
         llm_temperature=1.15,
-        registry={
+        skills={
             Event.quick_instantiate(ns := "article"): WorkFlow(
                 name="Generate Article Outline",
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",

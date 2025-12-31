@@ -93,7 +93,7 @@ class Agent(
                 TEMPLATE_MANAGER.render_template(
                     agent_config.fulfill_prompt_template, {"request": request, "mem": mem, "thoughts": thought}
                 ),
-                ok(self.team_members),
+                ok(self.team_roster),
                 **kwargs,
             )
         )

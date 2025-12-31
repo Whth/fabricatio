@@ -30,7 +30,7 @@ class ProposeObj(Action, Propose):
 
 Role(
     name="talker",
-    registry={
+    skills={
         Event.quick_instantiate("talk"): WorkFlow(
             name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
         ).update_init_context(briefing=Path("briefing.txt").read_text(encoding="utf-8"))

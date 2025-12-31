@@ -21,7 +21,7 @@ async def main() -> None:
         llm_model="openai/deepseek-r1-distill-llama-70b",
         llm_rpm=50,
         llm_tpm=100000,
-        registry={
+        skills={
             Event.quick_instantiate(e := "answer"): WorkFlow(
                 name="answer",
                 steps=(RAGTalk,),

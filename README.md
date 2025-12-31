@@ -152,7 +152,7 @@ class Hello(Action):
 
 # Create the role and register the workflow.
 (Role()
- .register_workflow(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
+ .add_skill(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
  .dispatch())
 
 # Make a task and delegate it to the workflow registered above.

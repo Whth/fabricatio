@@ -79,7 +79,7 @@ async def main() -> None:
     role = Role(
         name="Coder",
         description="A python coder who can ",
-        registry={
+        skills={
             Event.quick_instantiate("coding"): WorkFlow(name="write code", steps=(WriteCode, DumpText)),
             Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDocumentation, DumpText)),
             Event.quick_instantiate("cancel_test"): WorkFlow(

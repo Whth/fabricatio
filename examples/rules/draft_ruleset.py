@@ -21,7 +21,7 @@ async def main() -> None:
         llm_rpm=1000,
         llm_tpm=3000000,
         llm_max_tokens=8190,
-        registry={
+        skills={
             Event.quick_instantiate(ns := "article"): WorkFlow(
                 name="write ruleset",
                 description="Generate a draft ruleset for article.",

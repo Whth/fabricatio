@@ -75,7 +75,7 @@ class Developer(Role, Cooperate):
     WriteCodeWorkFlow which generates and writes code to specified files.
     """
 
-    registry: Dict[Event, WorkFlow] = Field(
+    skills: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: dev_reg,
         frozen=True,
     )
@@ -85,7 +85,7 @@ class Developer(Role, Cooperate):
 class TestEngineer(Role, Cooperate):
     """A test engineer role for generating test cases."""
 
-    registry: Dict[Event, WorkFlow] = Field(
+    skills: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Test): WorkFlow(
                 name="GenerateTestcasesWorkFlow",
@@ -99,7 +99,7 @@ class TestEngineer(Role, Cooperate):
 class DocumentationWriter(Role, Cooperate):
     """A documentation writer role for writing documentation."""
 
-    registry: Dict[Event, WorkFlow] = Field(
+    skills: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Test): WorkFlow(
                 name="GenerateDocumentationWorkFlow",
@@ -118,7 +118,7 @@ class ProjectLeader(Role, Cooperate):
     PlanningWorkFlow which breaks down complex tasks into smaller subtasks.
     """
 
-    registry: Dict[Event, WorkFlow] = Field(
+    skills: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Orchestrate): WorkFlow(
                 name="OrchestrateWorkFlow",

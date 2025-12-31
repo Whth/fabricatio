@@ -41,7 +41,7 @@ Role(
     llm_rpm=600,
     llm_tpm=900000,
     llm_timeout=10,
-    registry={
+    skills={
         Event.quick_instantiate(ns := "article"): WorkFlow(
             name="Generate Article",
             description="Generate an article. dump the outline to the given path. in typst format.",

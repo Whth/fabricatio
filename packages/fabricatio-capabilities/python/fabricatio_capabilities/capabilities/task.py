@@ -71,7 +71,7 @@ class DispatchTask(UseLLM, ABC):
             {
                 "task": task.briefing,
                 "candidates": [c.briefing for c in candidates],
-                "possible_values": list(flatten((e.collapse() for e in r.registry) for r in candidates)),
+                "possible_values": list(flatten((e.collapse() for e in r.skills) for r in candidates)),
             },
         )
         task_event = await self.ageneric_string(inst, **kwargs)

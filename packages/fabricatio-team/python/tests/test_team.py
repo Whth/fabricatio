@@ -41,11 +41,11 @@ def test_update_and_members(team_role: TeamRole) -> None:
         team_role (TeamRole): The team role fixture.
     """
     roles = make_roles(["alice", "bob", "carol"])
-    team_role.update_team_members(roles)
-    assert team_role.team_members == set(roles)
+    team_role.update_team_roster_with_roles(roles)
+    assert team_role.team_roster == set(roles)
 
     # team_members must be a set
-    assert isinstance(team_role.team_members, set)
+    assert isinstance(team_role.team_roster, set)
 
 
 def test_roster_returns_names(team_role: TeamRole) -> None:
@@ -56,8 +56,9 @@ def test_roster_returns_names(team_role: TeamRole) -> None:
     """
     names = ["alice", "bob", "carol"]
     roles = make_roles(names)
-    team_role.update_team_members(roles)
-    roster = team_role.team_roster()
+    team_role.update_team_roster_with_roles(roles)
+    roster = team_role.team_roster
+    assert roster is not None
     assert sorted(roster) == sorted(names)
 
 
@@ -68,7 +69,7 @@ def test_consult_team_member(team_role: TeamRole) -> None:
         team_role (TeamRole): The team role fixture.
     """
     roles = make_roles(["alice", "bob"])
-    team_role.update_team_members(roles)
+    team_role.update_team_roster_with_roles(roles)
     found = team_role.consult_team_member("alice")
     assert found is not None
     assert found.name == "alice"
@@ -82,9 +83,9 @@ def test_update_with_duplicates(team_role: TeamRole) -> None:
         team_role (TeamRole): The team role fixture.
     """
     roles = make_roles(["bob", "bob", "alice"])
-    team_role.update_team_members(roles)
+    team_role.update_team_roster(roles)
     # Only unique objects will be kept in the set (by object id, not name)
-    assert len(team_role.team_members) == 2 or len({r.name for r in team_role.team_members}) == 2
+    assert len(team_role.team_roster) == 2 or len({r.name for r in team_role.team_roster}) == 2
 
 
 def test_update_with_empty(team_role: TeamRole) -> None:
@@ -93,6 +94,6 @@ def test_update_with_empty(team_role: TeamRole) -> None:
     Args:
         team_role (TeamRole): The team role fixture.
     """
-    team_role.update_team_members([])
-    assert team_role.team_members == set()
+    team_role.update_team_roster([])
+    assert team_role.team_roster == set()
     assert team_role.team_roster() == []

@@ -47,7 +47,7 @@ class TweakEssay(Action, DiffEdit):
 
 
 # Configure role workflow for essay tweaking
-Role(name="writer").register_workflow(
+Role(name="writer").add_skill(
     Event.quick_instantiate("tweak"), WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),))
 ).dispatch()
 

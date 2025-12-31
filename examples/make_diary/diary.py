@@ -75,7 +75,7 @@ class DumpText(Action, Handle):
 class Coder(RoleBase, ProposeTask):
     """A role that can write a diary according to the given commit messages in json format."""
 
-    registry: Dict[Event, WorkFlow] = Field(
+    skills: Dict[Event, WorkFlow] = Field(
         default={
             Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDiary, DumpText)),
         }
