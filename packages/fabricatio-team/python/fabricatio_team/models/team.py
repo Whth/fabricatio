@@ -28,7 +28,7 @@ class Team:
                 ...
 
             # Create a team
-            team = Team(members={role1, role2}).join(MyRole(name="MyRole"))
+            team = Team(members={"Role1", "Role2"}).join(MyRole(name="MyRole"))
 
             # Inform the team members about each other accordingly
             team.inform()
@@ -86,7 +86,7 @@ class Team:
             return self
 
         for m in member_to_inform:
-            m.update_team_roster(self.members)
+            m.update_team_roster(self.members, m.name)
             logger.debug(f"{m.name} is now informed with members: {m.team_roster}")
         return self
 

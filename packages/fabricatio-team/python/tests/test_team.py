@@ -1,16 +1,10 @@
 """Tests for the team."""
 
-from typing import List
 
 import pytest
-
-from fabricatio_core import Role
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import make_roles
 from fabricatio_team.capabilities.team import Cooperate
-
-
-
 
 
 class TeamRole(LLMTestRole, Cooperate):
@@ -35,7 +29,7 @@ def test_update_and_members(team_role: TeamRole) -> None:
     """
     roles = make_roles(["alice", "bob", "carol"])
     team_role.update_team_roster_with_roles(roles)
-    assert team_role.team_roster == set(r.name for r in roles)
+    assert team_role.team_roster == {r.name for r in roles}
 
     # team_members must be a set
     assert isinstance(team_role.team_roster, set)

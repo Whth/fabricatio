@@ -4,7 +4,7 @@ Provides functions to generate fenced code blocks and generic content blocks.
 """
 
 from contextlib import contextmanager
-from typing import Generator, Type, List
+from typing import Generator, List, Type
 from unittest.mock import patch
 
 from fabricatio_core import Role
@@ -29,7 +29,7 @@ def install_router(router: Router) -> Generator[None, None, None]:
         yield
 
 
-def make_roles( names: List[str],role_cls:Type[Role]=Role) -> List[Role]:
+def make_roles(names: List[str], role_cls: Type[Role] = Role) -> List[Role]:
     """Create a list of Role objects from a list of names.
 
     Args:

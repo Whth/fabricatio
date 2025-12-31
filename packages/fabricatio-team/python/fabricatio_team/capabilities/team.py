@@ -16,21 +16,25 @@ class Cooperate(ScopedConfig, ABC):
 
     team_roster: Optional[Set[RoleName]] = Field(default=None)
     """A set of Role instances representing the team_member."""
+    other_member_roster: Optional[Set[RoleName]] = Field(default=None)
+    """A set of Role names representing other team members."""
 
-    def update_team_roster(self, team_member: Iterable[RoleName]) -> Self:
+    def update_team_roster(self, team_member: Iterable[RoleName], myself: Optional[RoleName] = None) -> Self:
         """Updates the team_member set with the given iterable of roles.
 
         Args:
             team_member: An iterable of Role instances to set as the new team_member.
+            myself: The role name of the current role.
 
         Returns:
             Self: The updated instance with refreshed team_member.
         """
-        if self.team_roster is None:
-            self.team_roster = set(team_member)
-            return self
-        self.team_roster.clear()
-        self.team_roster.update(team_member)
+        new_team = set(team_member)
+        self.team_roster = new_team
+
+        if myself is not None:
+            self.other_member_roster = new_team - {myself}
+
         return self
 
     def update_team_roster_with_roles(self, team_member: Iterable[Role]) -> Self:
