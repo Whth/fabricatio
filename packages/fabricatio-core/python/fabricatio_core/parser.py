@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Callable, Optional, Self, Type
+from typing import Any, Callable, List, Optional, Self, Tuple, Type
 
 import orjson
 from json_repair import repair_json
@@ -79,6 +79,19 @@ class Capture:
         logger.debug(f"Captured text: \n{cap}")
         return cap
 
+    def capture_all(self, text: str) -> List[Tuple[str]]:
+        """Capture all matches of the pattern in the text.
+
+        Args:
+            text (str): The input text to search within.
+
+        Returns:
+            List[Tuple[str]]: A list of tuples containing captured groups for each match.
+        """
+        compiled = re.compile(self.pattern, self.flags)
+
+        return compiled.findall(text)
+
     def convert_with(
         self,
         text: str,
@@ -139,6 +152,23 @@ class Capture:
         if (out := self.convert_with(text, deserializer)) and all(j(out) for j in judges):
             return out  # type: ignore
         return None
+
+    @classmethod
+    @lru_cache(32)
+    def capture_snippet(cls, l_sep: str = ">>>>>", r_sep: str = "<<<<<") -> Self:
+        """Capture a snippet of text between two separators.
+
+        Args:
+            l_sep (str, optional): The left separator. Defaults to ">>>>>".
+            r_sep (str, optional): The right separator. Defaults to "<<<<<".
+
+        Returns:
+            Self: An instance of Capture configured to capture snippets.
+
+        Note:
+            - This method creates a Capture instance with a pattern specific to snippets.
+        """
+        return cls(pattern=rf"^(.+?)\s*$\n^{l_sep}(?:\w+)\s*$\n^(.*?)$\n^{r_sep}\s*$")
 
     @classmethod
     @lru_cache(32)

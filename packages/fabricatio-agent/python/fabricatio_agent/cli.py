@@ -24,6 +24,8 @@ class TaskType(StrEnum):
     CleanUp = "cleanup"
     Plot = "plot"
     Synthesize = "synthesize"
+    Test = "test"
+    Documentation = "documentation"
 
 
 app = Typer()
@@ -80,6 +82,34 @@ class Developer(Role, Cooperate):
     """The registry of events and workflows."""
 
 
+class TestEngineer(Role, Cooperate):
+    """A test engineer role for generating test cases."""
+
+    registry: Dict[Event, WorkFlow] = Field(
+        default_factory=lambda: {
+            Event.quick_instantiate(TaskType.Test): WorkFlow(
+                name="GenerateTestcasesWorkFlow",
+                description="Generate test cases for the given task.",
+                steps=(WriteCode().to_task_output(),),
+            )
+        }
+    )
+
+
+class DocumentationWriter(Role, Cooperate):
+    """A documentation writer role for writing documentation."""
+
+    registry: Dict[Event, WorkFlow] = Field(
+        default_factory=lambda: {
+            Event.quick_instantiate(TaskType.Test): WorkFlow(
+                name="GenerateDocumentationWorkFlow",
+                description="Generate documentation for the given task.",
+                steps=(WriteCode().to_task_output(),),
+            )
+        }
+    )
+
+
 class ProjectLeader(Role, Cooperate):
     """A project leader role capable of handling planning tasks.
 
@@ -114,7 +144,7 @@ def code(
     a coding task. If the task is complex, it will be broken down into smaller
     subtasks through the architect workflow.
     """
-    Team().join(Developer()).join(ProjectLeader()).inform().dispatch()
+    Team().join(Developer()).join(ProjectLeader()).join(TestEngineer()).join(DocumentationWriter()).inform().dispatch()
     task = Task(name="Write code", description=prompt).update_init_context(sequential_thinking=sequential_thinking)
     task.delegate_blocking(TaskType.Orchestrate)
 

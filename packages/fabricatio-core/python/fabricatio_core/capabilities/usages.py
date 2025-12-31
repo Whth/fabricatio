@@ -519,49 +519,48 @@ class UseLLM(LLMScopedConfig, ABC):
         )
 
     @overload
-    async def acode_snippet(
+    async def acode_snippets(
         self,
         requirement: str,
         code_language: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
-    ) -> Optional[CodeSnippet]: ...
+        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
+    ) -> Optional[List[CodeSnippet]]: ...
 
     @overload
-    async def acode_snippet(
+    async def acode_snippets(
         self,
         requirement: List[str],
         code_language: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
-    ) -> List[Optional[CodeSnippet]]: ...
+        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
+    ) -> List[List[CodeSnippet] | None] | None: ...
 
-    async def acode_snippet(
+    async def acode_snippets(
         self,
         requirement: str | List[str],
         code_language: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[CodeSnippet]],
-    ) -> None | CodeSnippet | List[CodeSnippet | None]:
+        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
+    ) -> None | List[CodeSnippet] | List[List[CodeSnippet] | None]:
         """Asynchronously generates code snippets based on given requirements and code language.
 
         Args:
             requirement (str | List[str]): The requirement(s) for generating code snippets.
-            code_language (str): The programming language for the generated code.
-            **kwargs (Unpack[ValidateKwargs[CodeSnippet]]): Additional keyword arguments for the LLM usage.
+            code_language (Optional[str]): The programming language for the generated code. Defaults to None.
+            **kwargs (Unpack[ValidateKwargs[List[CodeSnippet]]]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            None | CodeSnippet | List[CodeSnippet | None]: The generated code snippet(s). Returns a single CodeSnippet if requirement
-            is a string, or a list of CodeSnippet/None values if requirement is a list.
+            None | List[CodeSnippet] | List[List[CodeSnippet] | None]: The generated code snippet(s).
+            Returns a list of CodeSnippet objects if requirement is a string, or a list of lists of
+            CodeSnippet objects or None if requirement is a list.
         """
         from fabricatio_core.parser import Capture
 
-        cap = Capture.capture_code_block(code_language)
+        cap = Capture.capture_snippet()
 
-        def _validator(resp: str) -> Optional[CodeSnippet]:
-            seq = resp.split("\n", 1)
-            if len(seq) != 2:
+        def _validator(resp: str) -> Optional[List[CodeSnippet]]:
+            matches = cap.capture_all(resp)
+            if not matches:
                 return None
-            path, codeblock = seq
-            code = cap.capture(codeblock)
-            return CodeSnippet(write_to=path, source=code) if code else None
+            return [CodeSnippet(source=src, write_to=pth) for pth, src in matches]
 
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(

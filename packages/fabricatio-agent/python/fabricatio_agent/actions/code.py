@@ -1,8 +1,9 @@
 """Built-in actions."""
 
-from typing import ClassVar, Optional, Set
+from typing import ClassVar, List, Optional, Set
 
-from fabricatio_core import Action, Task, logger
+from fabricatio_core import Action, Task
+from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.utils import ok
 from fabricatio_tool.capabilities.handle_task import HandleTask
 from fabricatio_tool.models.tool import ToolBox
@@ -25,16 +26,18 @@ class WriteCode(Action, Agent):
     coding_language: Optional[str] = None
     """The coding language to use, will automatically be inferred from the prompt if not specified."""
 
-    async def _execute(self, task_input: Task, **cxt) -> Optional[str]:
-        c = ok(
-            await self.acode_snippet(
-                f"current directory tree:\n{treeview()}\n\n{task_input.dependencies_prompt}\n\n{task_input.briefing}",
+    async def _execute(self, task_input: Task, **cxt) -> Optional[List[CodeSnippet]]:
+        c_seq = ok(
+            await self.acode_snippets(
+                f"current directory tree:\n{treeview()}\n\n{task_input.assembled_prompt}",
                 code_language=self.coding_language,
             )
         )
-        logger.info(f"Writing code to {c.write_to}")
-        c.write()
-        return c.source
+
+        for c in c_seq:
+            c.write()
+
+        return c_seq
 
 
 class CleanUp(Action, Agent, HandleTask):
@@ -75,6 +78,7 @@ class Planning(Action, Agent):
             req += f"\n\n{planning.export_branch_string()}"
 
         tk = ok(await self.digest(req, ok(self.team_members, "Team member not specified!")))
+
         await (
             tk.inject_context(sequential_thinking=self.sequential_thinking)
             .inject_description(f"This task is a sub task of {task_input.name}.\n{br}")

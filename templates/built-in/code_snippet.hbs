@@ -1,11 +1,12 @@
 {{block requirement "Requirement"}}
-You need to generate code that satisfy `Requirement` and the path where it should be wrritten.
+You need to generate code that satisfy `Requirement` and the path where it should be written.
 {{#if code_language}}You MUST use {{code_language}}.{{/if}}
-Output format: code should be wrapped with ```, the path should be placed just above the codeblock. MUST NOT include any other texts.
+Output format: code should be wrapped with ```, the file path should be placed just above the codeblock. MUST NOT include any other texts.
+You SHALL NOT try to write to a path that should be a directory. I will create the parent directories of the file path you provided for you.
 
 e.g.
 
-<path placeholder>
-```{{#if code_language}}{{code_language}}{{else}}<language placeholder>{{/if}}
+<file path placeholder>
+>>>>>{{#if code_language}}{{code_language}}{{else}}<language placeholder>{{/if}}
 <code placeholder>
-```
+<<<<<
