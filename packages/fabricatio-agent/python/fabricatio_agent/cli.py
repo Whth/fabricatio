@@ -68,12 +68,7 @@ if is_installed("fabricatio_plot"):
 
 
 class Developer(Role, Cooperate):
-    """A developer role capable of handling coding tasks.
-
-    This role implements the Cooperate capability and maintains a registry of workflows
-    for different task types. The developer can execute coding tasks through the
-    WriteCodeWorkFlow which generates and writes code to specified files.
-    """
+    """A developer role capable of handling coding tasks."""
 
     skills: Dict[Event, WorkFlow] = Field(
         default_factory=lambda: dev_reg,

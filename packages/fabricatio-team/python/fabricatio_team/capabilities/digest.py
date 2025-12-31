@@ -19,11 +19,15 @@ class CooperativeDigest(Cooperate, Digest):
     async def cooperative_digest(
         self,
         requirement: str,
+        with_self: bool = True,
         **kwargs: Unpack[ValidateKwargs[Optional[TaskList]]],
     ) -> Optional[TaskList]:
         """Generate a task list based on the given requirement, considering the team members."""
         return await self.digest(
-            TEMPLATE_MANAGER.render_template("cooperative_digest_template", {"requirement": requirement}),
-            ok(self.team_roster, "Team member not specified!"),
+            requirement,
+            ok(self.team_roster if with_self else self.other_member_roster, "Team member not specified!"),
             **kwargs,
         )
+
+
+    
