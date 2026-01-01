@@ -77,3 +77,6 @@ impl_as_pyerr!(tantivy::query::QueryParserError, PyOSError);
 impl_as_pyerr!(tantivy::directory::error::OpenDirectoryError, PyOSError);
 }
 );
+
+#[cfg(feature = "mcp-manager")]
+impl_as_pyerr!(mcp_manager::McpError, PyRuntimeError);

@@ -1,6 +1,6 @@
 [package]
 name = "mcp-manager"
-version = "0.1.0"
+version = "0.1.1-dev0"
 edition = "2024"
 
 [dependencies]
@@ -17,5 +17,4 @@ thiserror = "2.0.17"
 [dev-dependencies]
 tokio = { version = "1.48.0", features = ["test-util"] }
 
-[features]
-into_pyerr = ["dep:pyo3"]
+

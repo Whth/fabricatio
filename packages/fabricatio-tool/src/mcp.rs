@@ -1,5 +1,5 @@
 use error_mapping::AsPyErr;
-use mcp_manager::{MCPConfig, MCPManager as MCPManagerInner, McpError, ServiceConfig};
+use mcp_manager::{MCPConfig, MCPManager as MCPManagerInner, ServiceConfig};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -132,10 +132,7 @@ impl MCPManager {
         let inner = self.inner.clone();
 
         future_into_py(python, async move {
-            let tools = inner
-                .list_tools(client_id.as_str())
-                .await
-                .map_err(McpError::into_pyerr)?;
+            let tools = inner.list_tools(client_id.as_str()).await.into_pyresult()?;
 
             Ok(tools
                 .into_iter()
@@ -184,7 +181,7 @@ impl MCPManager {
                         .map(|tool| tool.name.to_string())
                         .collect::<Vec<_>>()
                 })
-                .map_err(McpError::into_pyerr)
+                .into_pyresult()
         })
     }
 
@@ -216,7 +213,7 @@ impl MCPManager {
                         })
                         .collect::<HashMap<String, String>>()
                 })
-                .map_err(McpError::into_pyerr)
+                .into_pyresult()
         })
     }
 
@@ -240,7 +237,7 @@ impl MCPManager {
     fn ping<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         future_into_py(python, async move {
-            inner.ping(&client_id).await.map_err(McpError::into_pyerr)
+            inner.ping(&client_id).await.into_pyresult()
         })
     }
     /// Executes a tool on a client and returns the result
@@ -264,7 +261,7 @@ impl MCPManager {
             let result: CallToolResult = inner
                 .call_tool(client_id.as_str(), tool_name.as_str(), arguments)
                 .await
-                .map_err(McpError::into_pyerr)?;
+                .into_pyresult()?;
             Ok(result
                 .content
                 .into_iter()
@@ -304,7 +301,7 @@ impl MCPManager {
             inner
                 .has_tool(client_id.as_str(), tool_name.as_str())
                 .await
-                .map_err(McpError::into_pyerr)
+                .into_pyresult()
         })
     }
 }

@@ -32,10 +32,3 @@ pub enum McpError {
 }
 /// Result type alias for MCP operations
 pub type Result<T> = std::result::Result<T, McpError>;
-
-#[cfg(feature = "into_pyerr")]
-impl McpError {
-    pub fn into_pyerr(self) -> pyo3::PyErr {
-        pyo3::exceptions::PyRuntimeError::new_err(self.to_string())
-    }
-}
