@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-memory"
-version = "0.2.10-dev2"
+version = "0.2.10"
 description = "An Extension of fabricatio aiming to extend the context llm could handle."
 readme = "README.md"
 authors = [
