@@ -6,7 +6,7 @@ from fabricatio_tool.rust import treeview
 from pydantic import Field
 
 from fabricatio_agent.capabilities.agent import Agent
-from fabricatio_core import Action, Task
+from fabricatio_core import Action, Task, logger
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.utils import ok
 from fabricatio_tool.capabilities.handle_task import HandleTask
@@ -71,14 +71,13 @@ class Planning(Action, Agent):
 
     async def _execute(self, task_input: Task, **cxt) -> bool:
         """Execute the action."""
-        br = task_input.briefing
-        req = f"Current directory tree:\n{treeview()}\n\n{task_input.dependencies_prompt}\n{br}"
+        req = f"Current directory tree:\n{treeview()}\n\n{task_input.assembled_prompt}"
         if self.sequential_thinking:
             planning = await self.thinking(req)
             req += f"\n\n{planning.export_branch_string()}"
 
         tk = ok(await self.cooperative_digest(req, False))
-
+        logger.debug(f'Execute tasklist:\n{tk.explain()}')
         await (
             tk.inject_context(sequential_thinking=self.sequential_thinking)
             .inject_description(f"This task is a sub task of {task_input.name}.")

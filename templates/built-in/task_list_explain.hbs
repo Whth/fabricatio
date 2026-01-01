@@ -11,16 +11,11 @@
 
 **Ultimate Target:**
 {{ultimate_target}}
-
 ### Task Sequence:
 
 {{#each tasks}}
 {{#if name}}**{{name}}**{{/if}}
-
 {{#if description}}{{description}}{{/if}}
-
-Will be sent to namespace `{{namespace}}`.
-
+Will be sent to namespace `{{send_to}}`.
 {{/each}}
-
 *Completing these tasks {{#if parallel}}in parallel{{else}}in sequence{{/if}} will achieve the ultimate target stated above.*

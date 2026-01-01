@@ -7,12 +7,12 @@ from asyncio import Queue, run
 from functools import cached_property
 from typing import Dict, List, Optional, Self, Union
 
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 from pydantic import Field, PrivateAttr
 
 from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 
 type NameSpace = Union[str, List[str]]
 
@@ -32,8 +32,17 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     name: str = Field(...)
     """Concise and descriptive name of the task."""
 
-    namespace: List[str] = Field(default_factory=list)
-    """Segments indicating where the task will be sent. For example, ['work'] => `work::*::Pending`, ['write', 'book'] => `write::book::*::Pending`. Should always not send to a namespace that is not exist."""
+    send_to: List[str] = Field(default_factory=list)
+    """List of namespace path components used to construct the target task queue.
+    
+    The full queue path is formed as: `<component1>::<component2>::...::*::Pending`.
+    For example:
+      - with ['work'] will be received by 'work::*::Pending'
+      - with ['write', 'book'] will be received by 'write::book::*::Pending'
+    
+    ⚠️ The caller must ensure that the resulting namespace (e.g., 'write::book') exists.
+    Sending to a non-existent namespace may result in task loss or an error.
+    """
 
     _output: Queue[T | None] = PrivateAttr(default_factory=Queue)
     """The output queue of the task."""
@@ -75,7 +84,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
                 assert task.namespace == ["work"]
         """
         logger.debug(f"Moving task `{self.name}` to `{new_namespace}`")
-        self.namespace = new_namespace if isinstance(new_namespace, list) else [new_namespace]
+        self.send_to = new_namespace if isinstance(new_namespace, list) else [new_namespace]
         return self
 
     def append_extra_description(self, description: str) -> Self:
@@ -178,7 +187,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The formatted status label.
         """
-        return Event.instantiate_from(self.namespace).push(self.name).push(status).collapse()
+        return Event.instantiate_from(self.send_to).push(self.name).push(status).collapse()
 
     @cached_property
     def pending_label(self) -> str:
@@ -300,7 +309,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         return self
 
     async def delegate(
-        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+            self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
     ) -> T | None:
         """Delegate the task to the event.
 
@@ -323,7 +332,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         return await self.get_output()
 
     def delegate_blocking(
-        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+            self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
     ) -> T | None:
         """Delegate the task to the event in a blocking manner.
 

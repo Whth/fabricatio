@@ -6,7 +6,6 @@ cfg(feats=["digest"])
 from typing import Optional, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_digest.capabilities.digest import Digest
 from fabricatio_digest.models.tasklist import TaskList
 
@@ -28,6 +27,3 @@ class CooperativeDigest(Cooperate, Digest):
             ok(self.team_roster if with_self else self.other_member_roster, "Team member not specified!"),
             **kwargs,
         )
-
-
-    

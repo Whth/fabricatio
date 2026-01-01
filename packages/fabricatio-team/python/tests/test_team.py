@@ -1,6 +1,5 @@
 """Tests for the team."""
 
-
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import make_roles

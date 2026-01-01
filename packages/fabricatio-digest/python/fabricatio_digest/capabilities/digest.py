@@ -3,6 +3,8 @@
 from abc import ABC
 from typing import Optional, Set, Unpack
 
+from more_itertools.recipes import flatten
+
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -37,13 +39,17 @@ class Digest(Propose, ABC):
             Optional[TaskList]: A TaskList object containing the generated tasks if
                                 successful, or None if task generation fails.
         """
-        logger.debug(f'digesting requirement with: {receptions}')
+        logger.debug(f"digesting requirement with: {receptions}")
         # get the instruction to build the raw_task sequence
+        
+        roles=get_registered_role(receptions)
+        
         instruct: str = TEMPLATE_MANAGER.render_template(
             digest_config.digest_template,
             {
                 "requirement": requirement,
-                "receptions": [r.briefing for r in get_registered_role(receptions)],
+                "receptions": [r.briefing for r in roles],
+                "accepted_events":list(flatten(r.accept_events for r in roles)),
             },
         )
         return await self.propose(TaskList, instruct, **kwargs)
