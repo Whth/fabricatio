@@ -2,16 +2,16 @@
 
 from typing import ClassVar, List, Optional, Set
 
-from fabricatio_tool.rust import treeview
-from pydantic import Field
-
-from fabricatio_agent.capabilities.agent import Agent
 from fabricatio_core import Action, Task, logger
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.utils import ok
 from fabricatio_tool.capabilities.handle_task import HandleTask
 from fabricatio_tool.models.tool import ToolBox
+from fabricatio_tool.rust import treeview
 from fabricatio_tool.toolboxes import fs_toolbox
+from pydantic import Field
+
+from fabricatio_agent.capabilities.agent import Agent
 
 
 class WriteCode(Action, Agent):
@@ -77,7 +77,7 @@ class Planning(Action, Agent):
             req += f"\n\n{planning.export_branch_string()}"
 
         tk = ok(await self.cooperative_digest(req, False))
-        logger.debug(f'Execute tasklist:\n{tk.explain()}')
+        logger.debug(f"Execute tasklist:\n{tk.explain()}")
         await (
             tk.inject_context(sequential_thinking=self.sequential_thinking)
             .inject_description(f"This task is a sub task of {task_input.name}.")

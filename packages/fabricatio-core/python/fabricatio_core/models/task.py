@@ -7,12 +7,12 @@ from asyncio import Queue, run
 from functools import cached_property
 from typing import Dict, List, Optional, Self, Union
 
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 from pydantic import Field, PrivateAttr
 
 from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 
 type NameSpace = Union[str, List[str]]
 
@@ -34,12 +34,12 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     send_to: List[str] = Field(default_factory=list)
     """List of namespace path components used to construct the target task queue.
-    
+
     The full queue path is formed as: `<component1>::<component2>::...::*::Pending`.
     For example:
       - with ['work'] will be received by 'work::*::Pending'
       - with ['write', 'book'] will be received by 'write::book::*::Pending'
-    
+
     ⚠️ The caller must ensure that the resulting namespace (e.g., 'write::book') exists.
     Sending to a non-existent namespace may result in task loss or an error.
     """
@@ -309,7 +309,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         return self
 
     async def delegate(
-            self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
     ) -> T | None:
         """Delegate the task to the event.
 
@@ -332,7 +332,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         return await self.get_output()
 
     def delegate_blocking(
-            self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
+        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
     ) -> T | None:
         """Delegate the task to the event in a blocking manner.
 
