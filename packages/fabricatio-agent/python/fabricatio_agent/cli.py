@@ -1,5 +1,6 @@
 """CLI entry point."""
 
+from fabricatio_core.models.role import EventPattern
 from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
@@ -31,12 +32,12 @@ class TaskType(StrEnum):
 app = Typer()
 
 dev_reg = {
-    Event.quick_instantiate(TaskType.Coding): WorkFlow(
+    Event.quick_instantiate(TaskType.Coding).collapse(): WorkFlow(
         name="WriteCodeWorkFlow",
         description="Generate desired code and then write that code to a file",
         steps=(WriteCode().to_task_output(),),
     ),
-    Event.quick_instantiate(TaskType.CleanUp): WorkFlow(
+    Event.quick_instantiate(TaskType.CleanUp).collapse(): WorkFlow(
         name="CleanWorkFlow",
         description="Clean unwanted files or directories.",
         steps=(CleanUp().to_task_output(),),
@@ -50,12 +51,12 @@ if is_installed("fabricatio_plot"):
 
     dev_reg.update(
         {
-            Event.quick_instantiate(TaskType.Plot): WorkFlow(
+            Event.quick_instantiate(TaskType.Plot).collapse(): WorkFlow(
                 name="PlotWorkFlow",
                 description="Generate plots and charts using matplotlib and save to fs.",
                 steps=(MakeCharts().to_task_output(),),
             ),
-            Event.quick_instantiate(TaskType.Synthesize): WorkFlow(
+            Event.quick_instantiate(TaskType.Synthesize).collapse(): WorkFlow(
                 name="SynthesizeWorkFlow",
                 description="Synthesize data using synthesize data capabilities.",
                 steps=(
@@ -70,7 +71,7 @@ if is_installed("fabricatio_plot"):
 class Developer(Role, Cooperate):
     """A developer role capable of handling coding tasks."""
 
-    skills: Dict[Event, WorkFlow] = Field(
+    skills: Dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: dev_reg,
         frozen=True,
     )
@@ -80,9 +81,9 @@ class Developer(Role, Cooperate):
 class TestEngineer(Role, Cooperate):
     """A test engineer role for generating test cases."""
 
-    skills: Dict[Event, WorkFlow] = Field(
+    skills: Dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
-            Event.quick_instantiate(TaskType.Test): WorkFlow(
+            Event.quick_instantiate(TaskType.Test).collapse(): WorkFlow(
                 name="GenerateTestcasesWorkFlow",
                 description="Generate test cases for the given task.",
                 steps=(WriteCode().to_task_output(),),
@@ -94,9 +95,9 @@ class TestEngineer(Role, Cooperate):
 class DocumentationWriter(Role, Cooperate):
     """A documentation writer role for writing documentation."""
 
-    skills: Dict[Event, WorkFlow] = Field(
+    skills: Dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
-            Event.quick_instantiate(TaskType.Test): WorkFlow(
+            Event.quick_instantiate(TaskType.Test).collapse(): WorkFlow(
                 name="GenerateDocumentationWorkFlow",
                 description="Generate documentation for the given task.",
                 steps=(WriteCode().to_task_output(),),
@@ -113,9 +114,9 @@ class ProjectLeader(Role, Cooperate):
     PlanningWorkFlow which breaks down complex tasks into smaller subtasks.
     """
 
-    skills: Dict[Event, WorkFlow] = Field(
+    skills: Dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
-            Event.quick_instantiate(TaskType.Orchestrate): WorkFlow(
+            Event.quick_instantiate(TaskType.Orchestrate).collapse(): WorkFlow(
                 name="OrchestrateWorkFlow",
                 description="This workflow is extremely expensive, so YOU SHALL use this as less as possible, you can use this only when necessary. Capable to finish task that is completely beyond your reach, but do add enough detailed context into task metadata. ",
                 steps=(Planning().to_task_output(),),

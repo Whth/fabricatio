@@ -80,9 +80,11 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can ",
         skills={
-            Event.quick_instantiate("coding"): WorkFlow(name="write code", steps=(WriteCode, DumpText)),
-            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDocumentation, DumpText)),
-            Event.quick_instantiate("cancel_test"): WorkFlow(
+            Event.quick_instantiate("coding").collapse(): WorkFlow(name="write code", steps=(WriteCode, DumpText)),
+            Event.quick_instantiate("doc").collapse(): WorkFlow(
+                name="write documentation", steps=(WriteDocumentation, DumpText)
+            ),
+            Event.quick_instantiate("cancel_test").collapse(): WorkFlow(
                 name="cancel_test",
                 steps=(TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, WriteToOutput),
                 extra_init_context={"counter": 0},

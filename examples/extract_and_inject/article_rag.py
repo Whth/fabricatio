@@ -22,7 +22,7 @@ async def main() -> None:
         llm_rpm=50,
         llm_tpm=100000,
         skills={
-            Event.quick_instantiate(e := "answer"): WorkFlow(
+            Event.quick_instantiate(e := "answer").collapse(): WorkFlow(
                 name="answer",
                 steps=(RAGTalk,),
             ).update_init_context(collection_name="article_essence"),

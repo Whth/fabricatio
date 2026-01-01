@@ -16,7 +16,7 @@ async def main() -> None:
         name="Researcher",
         description="Extract article essence",
         skills={
-            Event.quick_instantiate("article"): WorkFlow(
+            Event.quick_instantiate("article").collapse(): WorkFlow(
                 name="extract",
                 steps=(ExtractArticleEssence(output_key="task_output"),),
             )

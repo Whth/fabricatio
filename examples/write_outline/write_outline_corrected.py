@@ -14,7 +14,7 @@ async def main() -> None:
         llm_top_p=0.8,
         llm_temperature=1.15,
         skills={
-            Event.quick_instantiate(ns := "article"): WorkFlow(
+            Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
                 name="Generate Article Outline",
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(

@@ -37,7 +37,7 @@ async def main() -> None:
         description="Extract article essence",
         llm_model="openai/deepseek-v3-250324",
         skills={
-            Event.quick_instantiate("article"): WorkFlow(
+            Event.quick_instantiate("article").collapse(): WorkFlow(
                 name="extract",
                 steps=(
                     ExtractArticleEssence(output_key="article_essence"),

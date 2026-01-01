@@ -15,7 +15,7 @@ async def main() -> None:
         name="Researcher",
         description="chunk the article",
         skills={
-            Event.quick_instantiate(e := "Chunk"): WorkFlow(
+            Event.quick_instantiate(e := "Chunk").collapse(): WorkFlow(
                 name="Chunk",
                 steps=(
                     ChunkArticle(output_key="to_inject"),

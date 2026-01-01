@@ -12,7 +12,7 @@ async def main() -> None:
     role = Role(
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",
-        skills={Event.quick_instantiate(ns := "article"): WriteOutlineCorrectedWorkFlow},
+        skills={Event.quick_instantiate(ns := "article").collapse(): WriteOutlineCorrectedWorkFlow},
     )
 
     proposed_task = await role.propose(

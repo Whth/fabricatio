@@ -42,7 +42,7 @@ Role(
     llm_tpm=900000,
     llm_timeout=10,
     skills={
-        Event.quick_instantiate(ns := "article"): WorkFlow(
+        Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
             name="Generate Article",
             description="Generate an article. dump the outline to the given path. in typst format.",
             steps=(
@@ -64,7 +64,7 @@ Role(
                 RenderedDump(template_name="article").to_task_output(),
             ),
         ),
-        Event.quick_instantiate(ns2 := "complete"): WorkFlow(
+        Event.quick_instantiate(ns2 := "complete").collapse(): WorkFlow(
             name="Generate Article",
             description="Generate an article with given raw article outline. dump the outline to the given path. in typst format.",
             steps=(
@@ -76,7 +76,7 @@ Role(
                 RenderedDump(template_name="article").to_task_output(),
             ),
         ),
-        Event.quick_instantiate(ns3 := "finish"): WorkFlow(
+        Event.quick_instantiate(ns3 := "finish").collapse(): WorkFlow(
             name="Finish Article",
             description="Finish an article with given article outline. dump the outline to the given path. in typst format.",
             steps=(
@@ -86,17 +86,17 @@ Role(
                 RenderedDump(template_name="article").to_task_output(),
             ),
         ),
-        Event.quick_instantiate(ns4 := "consult"): WorkFlow(
+        Event.quick_instantiate(ns4 := "consult").collapse(): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
             steps=(ArticleConsultRAG(ref_q_model={"model": "openai/qwen-turbo"}).to_task_output(),),
         ),
-        Event.quick_instantiate(ns5 := "chap-suma"): WorkFlow(
+        Event.quick_instantiate(ns5 := "chap-suma").collapse(): WorkFlow(
             name="Chapter Summary",
             description="Generate chapter summary based on given article outline. dump the outline to the given path. in typst format.",
             steps=(WriteChapterSummary().to_task_output(),),
         ),
-        Event.quick_instantiate(ns6 := "resc-suma"): WorkFlow(
+        Event.quick_instantiate(ns6 := "resc-suma").collapse(): WorkFlow(
             name="Research Content Summary",
             description="Generate research content summary based on given article outline. dump the outline to the given path. in typst format.",
             steps=(WriteResearchContentSummary().to_task_output(),),

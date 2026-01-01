@@ -32,7 +32,7 @@ async def main() -> None:
     role = Role(
         name="talker",
         description="talker role",
-        skills={Event.instantiate_from("talk").push_wildcard().push("pending"): WorkFlow(name="talk", steps=(Talk,))},
+        skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Talk,))},
     )
 
     task = await role.propose_task(

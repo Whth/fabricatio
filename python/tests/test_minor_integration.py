@@ -33,9 +33,10 @@ async def test_hello_fabricatio_workflow(caplog):
     # For this example, we assume a fresh environment or that Role re-registration is idempotent/handled.
 
     Role(name="talker", description="talker role",
-         skills={Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Hello,))}, dispatch_on_init=True)
+         skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Hello,))},
+         dispatch_on_init=True)
     # Delegate the task and get the result
-    result =await task_fixture.delegate("talk")
+    result = await task_fixture.delegate("talk")
 
     # Assert the expected outcome
     assert result == "Hello fabricatio!"
@@ -51,5 +52,3 @@ async def test_hello_fabricatio_workflow(caplog):
     # but here we are asserting the result directly.
     # The original logger.success call is removed from the test logic itself
     # and replaced by an assertion.
-
-

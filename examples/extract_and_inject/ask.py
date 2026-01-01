@@ -45,7 +45,9 @@ async def main() -> None:
         name="talker",
         description="talker role but with rag",
         skills={
-            Event.quick_instantiate("talk"): WorkFlow(name="talk", steps=(Talk(target_collection="article_chunks"),))
+            Event.quick_instantiate("talk").collapse(): WorkFlow(
+                name="talk", steps=(Talk(target_collection="article_chunks"),)
+            )
         },
     )
 

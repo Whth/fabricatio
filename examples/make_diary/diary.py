@@ -10,6 +10,7 @@ from fabricatio.capabilities import Handle
 from fabricatio.models import ToolBox
 from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.models.role import EventPattern
 from fabricatio_core.utils import ok
 from fabricatio_tool import toolboxes
 from fabricatio_tool.fs import safe_json_read
@@ -75,9 +76,11 @@ class DumpText(Action, Handle):
 class Coder(RoleBase, ProposeTask):
     """A role that can write a diary according to the given commit messages in json format."""
 
-    skills: Dict[Event, WorkFlow] = Field(
+    skills: Dict[EventPattern, WorkFlow] = Field(
         default={
-            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDiary, DumpText)),
+            Event.quick_instantiate("doc").collapse(): WorkFlow(
+                name="write documentation", steps=(WriteDiary, DumpText)
+            ),
         }
     )
 

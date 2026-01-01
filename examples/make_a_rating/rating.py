@@ -93,7 +93,7 @@ async def main() -> None:
         name="TaskRater",
         description="A role that can rate tasks.",
         skills={
-            Event.quick_instantiate("rate_food"): WorkFlow(
+            Event.quick_instantiate("rate_food").collapse(): WorkFlow(
                 name="Rate food",
                 steps=(WhatToRate, Rate),
                 extra_init_context={
@@ -101,21 +101,21 @@ async def main() -> None:
                     "criteria": {"taste", "price", "quality", "safety", "healthiness"},
                 },
             ),
-            Event.quick_instantiate("make_criteria_for_food"): WorkFlow(
+            Event.quick_instantiate("make_criteria_for_food").collapse(): WorkFlow(
                 name="Make criteria for food",
                 steps=(WhatToRate, MakeCriteria, Rate),
                 extra_init_context={
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.quick_instantiate("make_composite_score"): WorkFlow(
+            Event.quick_instantiate("make_composite_score").collapse(): WorkFlow(
                 name="Make composite score",
                 steps=(WhatToRate, MakeCompositeScore),
                 extra_init_context={
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.quick_instantiate("best"): WorkFlow(
+            Event.quick_instantiate("best").collapse(): WorkFlow(
                 name="choose the best",
                 steps=(WhatToRate, Best),
                 extra_init_context={"rate_topic": "if the food is 'good'"},

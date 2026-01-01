@@ -11,6 +11,7 @@ from fabricatio_core.models.generic import ScopedConfig, WithBriefing
 from fabricatio_core.rust import Event
 
 type RoleName = str
+type EventPattern = str
 
 ROLE_REGISTRY: Dict[RoleName, "Role"] = {}
 
@@ -22,13 +23,13 @@ class Role(WithBriefing):
     and providing them with shared configuration like tools and personality.
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True, arbitrary_types_allowed=True)
-    name: str = Field(default="")
+    model_config = ConfigDict(use_attribute_docstrings=True,frozen=True)
+    name: RoleName = Field(default="")
     """The name of the role."""
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
-    skills: Dict[Event, WorkFlow] = Field(default_factory=dict, frozen=True)
+    skills: Dict[EventPattern, WorkFlow] = Field(default_factory=dict, frozen=True)
     """A dictionary of event-workflow pairs."""
 
     dispatch_on_init: bool = Field(default=False, frozen=True)
@@ -43,7 +44,7 @@ class Role(WithBriefing):
         """
         base = super().briefing
 
-        abilities = "\n".join(f"  - `{k.collapse()}` ==> {w.briefing}" for (k, w) in self.skills.items())
+        abilities = "\n".join(f"  - `{k}` ==> {w.briefing}" for (k, w) in self.skills.items())
 
         return f"{base}\nEvent Mapping:\n{abilities}"
 
@@ -54,7 +55,7 @@ class Role(WithBriefing):
         Returns:
             Set[Event]: The set of events that the role accepts.
         """
-        return [k.collapse() for k in self.skills]
+        return list(self.skills.keys())
 
     def model_post_init(self, __context: Any) -> None:
         """Initialize the role by resolving configurations and registering workflows.
@@ -69,24 +70,28 @@ class Role(WithBriefing):
 
         register_role(self)
 
-    def add_skill(self, event: Event, workflow: WorkFlow) -> Self:
+    def add_skill(self, event: Event | EventPattern, workflow: WorkFlow) -> Self:
         """Register a workflow to the role's registry."""
+        event = event.collapse() if isinstance(event, Event) else event
+
         if event in self.skills:
             logger.warn(
-                f"Event `{event.collapse()}` is already registered with workflow "
+                f"Event `{event}` is already registered with workflow "
                 f"`{self.skills[event].name}`. It will be overwritten by `{workflow.name}`."
             )
         self.skills[event] = workflow
         return self
 
-    def remove_skill(self, event: Event) -> Self:
+    def remove_skill(self, event: Event | EventPattern) -> Self:
         """Unregister a workflow from the role's registry for the given event."""
+        event = event.collapse() if isinstance(event, Event) else event
+
         if event in self.skills:
-            logger.debug(f"Unregistering workflow `{self.skills[event].name}` for event `{event.collapse()}`")
+            logger.debug(f"Unregistering workflow `{self.skills[event].name}` for event `{event}`")
             del self.skills[event]
 
         else:
-            logger.warn(f"No workflow registered for event `{event.collapse()}` to unregister.")
+            logger.warn(f"No workflow registered for event `{event}` to unregister.")
         return self
 
     def dispatch(self) -> Self:
@@ -96,8 +101,8 @@ class Role(WithBriefing):
             Self: The role instance for method chaining
         """
         for event, workflow in self.skills.items():
-            logger.debug(f"Registering workflow: `{workflow.name}` for event: `{event.collapse()}`")
-            EMITTER.on(event.collapse(), workflow.serve)
+            logger.debug(f"Registering workflow: `{workflow.name}` for event: `{event}`")
+            EMITTER.on(event, workflow.serve)
         return self
 
     def undo_dispatch(self) -> Self:
@@ -107,8 +112,8 @@ class Role(WithBriefing):
             Self: The role instance for method chaining
         """
         for event, workflow in self.skills.items():
-            logger.debug(f"Unregistering workflow: `{workflow.name}` for event: `{event.collapse()}`")
-            EMITTER.off(event.collapse())
+            logger.debug(f"Unregistering workflow: `{workflow.name}` for event: `{event}`")
+            EMITTER.off(event)
         return self
 
     def resolve_configuration(self) -> Self:

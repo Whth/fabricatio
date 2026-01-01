@@ -33,8 +33,10 @@ async def main() -> None:
         name="Coder",
         description="A python coder who can write code and documentation",
         skills={
-            Event.quick_instantiate("coding"): WorkFlow(name="write code", steps=(WriteCode,)),
-            Event.quick_instantiate("doc"): WorkFlow(name="write documentation", steps=(WriteDocumentation,)),
+            Event.quick_instantiate("coding").collapse(): WorkFlow(name="write code", steps=(WriteCode,)),
+            Event.quick_instantiate("doc").collapse(): WorkFlow(
+                name="write documentation", steps=(WriteDocumentation,)
+            ),
         },
     )
 

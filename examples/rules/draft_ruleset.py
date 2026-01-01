@@ -22,7 +22,7 @@ async def main() -> None:
         llm_tpm=3000000,
         llm_max_tokens=8190,
         skills={
-            Event.quick_instantiate(ns := "article"): WorkFlow(
+            Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
                 name="write ruleset",
                 description="Generate a draft ruleset for article.",
                 steps=(
