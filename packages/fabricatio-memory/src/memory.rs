@@ -37,7 +37,10 @@ impl Memory {
         let now = Utc::now().timestamp();
 
         if importance > MAX_IMPORTANCE_SCORE {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!("Importance score cannot be greater than {}", MAX_IMPORTANCE_SCORE)));
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Importance score cannot be greater than {}",
+                MAX_IMPORTANCE_SCORE
+            )));
         }
 
         Ok(Memory {
@@ -48,8 +51,7 @@ impl Memory {
             tags,
             access_count: 0,
             last_accessed: now,
-        }
-        )
+        })
     }
 
     /// Update the access count and last accessed timestamp
