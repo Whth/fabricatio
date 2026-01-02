@@ -13,12 +13,12 @@ from fabricatio_mock.utils import install_router
 from litellm import Router
 
 
-def note(content: str = "test content", importance: float = 0.5, tags: List[str] | None = None) -> Note:
+def note(content: str = "test content", importance: int = 5, tags: List[str] | None = None) -> Note:
     """Create Note with test data.
 
     Args:
         content (str): Note content
-        importance (float): Importance value between 0 and 1
+        importance (float): Importance value
         tags (List[str]): List of tags
 
     Returns:
@@ -60,11 +60,11 @@ def role() -> RememberRole:
     ("ret_value", "raw_input"),
     [
         (
-            note("Important meeting notes", 0.8, ["meeting", "work"]),
+            note("Important meeting notes", 80, ["meeting", "work"]),
             "Had a meeting about project deadlines",
         ),
         (
-            note("Shopping list", 0.3, ["personal", "shopping"]),
+            note("Shopping list", 30, ["personal", "shopping"]),
             "Need to buy milk and bread",
         ),
     ],
@@ -130,9 +130,9 @@ async def test_record_multiple_notes(role: RememberRole) -> None:
         role (RememberRole): RememberRole fixture
     """
     notes = [
-        note("First note", 0.7, ["tag1"]),
-        note("Second note", 0.4, ["tag2"]),
-        note("Third note", 0.9, ["tag3"]),
+        note("First note", 70, ["tag1"]),
+        note("Second note", 40, ["tag2"]),
+        note("Third note", 90, ["tag3"]),
     ]
 
     router = return_model_json_string(*notes)
@@ -154,7 +154,7 @@ async def test_recall_different_parameters(role: RememberRole) -> None:
     expected_response = "Your work tasks include reviewing code and attending meetings."
 
     router = return_string(expected_response)
-    role.access_memory_system().add_memory("You have a meeting at 3 PM today.", 0.8, ["work"])
+    role.access_memory_system().add_memory("You have a meeting at 3 PM today.", 80, ["work"])
     with install_router(router):
         # Test with custom top_k and boost_recent=False
         recalled_info = await role.recall(query, top_k=10, boost_recent=False)

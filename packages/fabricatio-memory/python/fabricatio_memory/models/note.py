@@ -10,6 +10,8 @@ from typing import List
 from fabricatio_core.models.generic import SketchedAble
 from pydantic import Field
 
+from fabricatio_memory.rust import MIN_IMPORTANCE_SCORE, MAX_IMPORTANCE_SCORE
+
 
 class Note(SketchedAble):
     """A memory note."""
@@ -17,8 +19,8 @@ class Note(SketchedAble):
     content: str
     """Textual content of the memory."""
 
-    importance: float = Field(ge=0, le=1)
-    """Numerical value representing the importance of the memory (0.0 to 1.0)."""
+    importance: int = Field(ge=MIN_IMPORTANCE_SCORE, le=MAX_IMPORTANCE_SCORE)
+    """Numerical value representing the importance of the memory. The higher, the more important."""
 
     tags: List[str]
     """List of string tags associated with the memory for categorization and searching."""

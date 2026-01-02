@@ -5,8 +5,8 @@ import os
 import pathlib
 import typing
 
-MAX_IMPORTANCE_SCORE: builtins.float
-MIN_IMPORTANCE_SCORE: builtins.float
+MAX_IMPORTANCE_SCORE: builtins.int
+MIN_IMPORTANCE_SCORE: builtins.int
 
 @typing.final
 class Memory:

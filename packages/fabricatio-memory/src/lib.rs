@@ -19,8 +19,18 @@ use crate::store::MemoryStore;
 use pyo3::prelude::*;
 use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
 
-module_variable!(MODULE_NAME, MIN_IMPORTANCE_SCORE_VARNAME, f64);
-module_variable!(MODULE_NAME, MAX_IMPORTANCE_SCORE_VARNAME, f64);
+module_variable!(
+    MODULE_NAME,
+    MIN_IMPORTANCE_SCORE_VARNAME,
+    u64,
+    MIN_IMPORTANCE_SCORE
+);
+module_variable!(
+    MODULE_NAME,
+    MAX_IMPORTANCE_SCORE_VARNAME,
+    u64,
+    MAX_IMPORTANCE_SCORE
+);
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to

@@ -8,11 +8,12 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import GenerateKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.utils import fallback_kwargs, ok
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from fabricatio_memory.config import memory_config
+from fabricatio_memory.inited_memory_service import MEMORY_SERVICE
 from fabricatio_memory.models.note import Note
-from fabricatio_memory.rust import MemorySystem
+from fabricatio_memory.rust import MemoryStore
 
 
 class RememberScopedConfig(ScopedConfig):
@@ -20,28 +21,29 @@ class RememberScopedConfig(ScopedConfig):
 
     memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
     """Configuration for LLM generation parameters used in memory operations."""
-    memory_system: Optional[MemorySystem] = Field(default=None)
+    memory_store_name: Optional[str] = Field(default=None)
     """The memory system instance used for storing and retrieving memories."""
 
+    _memory_store: Optional[MemoryStore] = PrivateAttr(default=None)
 
 class Remember(Propose, RememberScopedConfig, ABC):
     """Provide a memory system to remember things."""
 
-    def mount_memory_system(self, memory_system: Optional[MemorySystem] = None) -> Self:
+    def mount_memory_store(self, memory_store: Optional[MemoryStore] = None) -> Self:
         """Mount a memory system to the capability."""
-        self.memory_system = memory_system or MemorySystem()
+        self._memory_store = memory_store or MEMORY_SERVICE.get_store(ok(self.memory_store_name))
         return self
 
     def unmount_memory_system(self) -> Self:
         """Unmount the memory system from the capability."""
-        self.memory_system = None
+        self._memory_store = None
         return self
 
-    def access_memory_system(self, fallback_default: Optional[MemorySystem] = None) -> MemorySystem:
+    def access_memory_system(self, fallback_default: Optional[MemoryStore] = None) -> MemoryStore:
         """Access the memory system."""
-        if self.memory_system is None:
-            self.mount_memory_system(fallback_default)
-        return ok(self.memory_system)
+        if self._memory_store is None:
+            self.mount_memory_store(fallback_default)
+        return ok(self._memory_store)
 
     async def record(self, raw: str, **kwargs: Unpack[ValidateKwargs[Note]]) -> Note:
         """Record a piece of information into the memory system.
@@ -83,7 +85,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
             A string containing the recalled information.
         """
         mem_seq = self.access_memory_system().search_memories(query, top_k, boost_recent)
-        logger.debug(f"{len(mem_seq)} memories recalled, ids: {[mem.id for mem in mem_seq]}")
+        logger.debug(f"{len(mem_seq)} memories recalled, ids: {[mem.uuid for mem in mem_seq]}")
         return await self.aask(
             TEMPLATE_MANAGER.render_template(
                 memory_config.memory_recall_template, {"query": query, "mem_seq": [mem.to_dict() for mem in mem_seq]}
