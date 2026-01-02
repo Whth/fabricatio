@@ -1,9 +1,9 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 use cfg_if::cfg_if;
 use fabricatio_config::Config;
 use fabricatio_constants::*;
-use fabricatio_logger::{Logger, init_logger};
+use fabricatio_logger::{init_logger, Logger};
 
 mod event;
 mod hash;
@@ -28,7 +28,7 @@ cfg_if!(
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-// #[cfg(not(feature = "stubgen"))]
+#[cfg(not(feature = "stubgen"))]
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;

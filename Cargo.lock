@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.3-dev0"
+version = "0.2.3-dev1"
 dependencies = [
  "biblatex",
  "cfg-if",
@@ -1382,13 +1382,17 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "error-mapping",
+ "fabricatio-logger",
+ "moka",
  "once_cell",
  "pyo3",
  "pyo3-stub-gen",
  "pythonize",
+ "rayon",
+ "sanitize-filename",
  "serde",
- "serde_json",
  "tantivy",
+ "uuid",
 ]
 
 [[package]]
