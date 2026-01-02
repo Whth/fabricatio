@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use tantivy::doc;
 
+use crate::constants::MAX_IMPORTANCE_SCORE;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,9 +33,14 @@ impl Memory {
 
 impl Memory {
     /// Create a new memory with the given parameters
-    pub fn new(content: String, importance: u64, tags: Vec<String>) -> Self {
+    pub fn new(content: String, importance: u64, tags: Vec<String>) -> PyResult<Self> {
         let now = Utc::now().timestamp();
-        Memory {
+
+        if importance > MAX_IMPORTANCE_SCORE {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!("Importance score cannot be greater than {}", MAX_IMPORTANCE_SCORE)));
+        }
+
+        Ok(Memory {
             uuid: Uuid::now_v7().to_string(),
             content,
             timestamp: now,
@@ -43,6 +49,7 @@ impl Memory {
             access_count: 0,
             last_accessed: now,
         }
+        )
     }
 
     /// Update the access count and last accessed timestamp
