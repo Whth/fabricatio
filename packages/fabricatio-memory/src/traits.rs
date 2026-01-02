@@ -19,8 +19,9 @@ impl DocumentDeserialize for Memory {
                 .unwrap()
                 .first()
                 .unwrap()
-                .as_u64()
-                .expect("Field 'id' is not a u64"),
+                .as_str()
+                .expect("Field 'id' is not a u64")
+                .to_string(),
             content: v
                 .get("content")
                 .expect("Field 'content' missing")

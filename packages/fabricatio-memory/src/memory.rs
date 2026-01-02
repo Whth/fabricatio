@@ -10,7 +10,9 @@ use std::sync::{Arc, Mutex};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
-use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
+use tantivy::{doc, Index, IndexWriter, ReloadPolicy};
+
+use uuid::{Timestamp, Uuid};
 
 pub(crate) use crate::constants::{FIELDS, SCHEMA};
 use error_mapping::AsPyErr;
@@ -42,7 +44,7 @@ impl MemoryStats {
 #[gen_stub_pyclass]
 #[pyclass(get_all)]
 pub struct Memory {
-    pub id: u64,
+    pub id: String,
     pub content: String,
     pub timestamp: i64,
     pub importance: f64,
@@ -61,7 +63,7 @@ impl Memory {
 
 impl Memory {
     /// Create a new memory with the given parameters
-    pub fn new(id: u64, content: String, importance: f64, tags: Vec<String>) -> Self {
+    pub fn new(id: String, content: String, importance: f64, tags: Vec<String>) -> Self {
         let now = Utc::now().timestamp();
         Memory {
             id,
@@ -90,13 +92,13 @@ impl Memory {
 
 #[gen_stub_pyclass]
 #[pyclass]
-pub struct MemorySystem {
+pub struct MemoryService {
     index: Index,
     next_id: Arc<Mutex<u64>>,
     writer_buffer_size: usize,
 }
 
-impl MemorySystem {
+impl MemoryService {
     /// Helper method to convert search results to Memory vector
     fn docs_to_memories(
         &self,
@@ -146,7 +148,7 @@ impl MemorySystem {
 
 #[gen_stub_pymethods]
 #[pymethods]
-impl MemorySystem {
+impl MemoryService {
     /// Create a new MemorySystem with optional index path and writer buffer size
     #[new]
     #[pyo3(signature = (index_path = None, writer_buffer_size = None))]
@@ -162,12 +164,12 @@ impl MemorySystem {
                 MmapDirectory::open(index_directory).into_pyresult()?,
                 schema,
             )
-            .into_pyresult()?
+                .into_pyresult()?
         } else {
             Index::create_in_ram(schema)
         };
 
-        Ok(MemorySystem {
+        Ok(MemoryService {
             index,
             next_id: Arc::new(Mutex::new(1)),
             writer_buffer_size: buffer_size,
@@ -183,7 +185,7 @@ impl MemorySystem {
             current_id
         };
 
-        let memory = Memory::new(id, content.to_string(), importance, tags.clone());
+        let memory = Memory::new(Uuid::now_v7().to_string(), content.to_string(), importance, tags.clone());
 
         let mut index_writer: IndexWriter =
             self.index.writer(self.writer_buffer_size).into_pyresult()?;
@@ -297,12 +299,12 @@ impl MemorySystem {
     }
 
     /// Delete a memory by its ID
-    pub fn delete_memory_by_id(&self, id: u64) -> PyResult<bool> {
+    pub fn delete_memory_by_id(&self, id: &str) -> PyResult<bool> {
         let (id_field, _, _, _, _, _, _) = *FIELDS;
 
         let mut index_writer: IndexWriter =
             self.index.writer(self.writer_buffer_size).into_pyresult()?;
-        let term = Term::from_field_u64(id_field, id);
+        let term = Term::from_field_text(id_field, id);
         index_writer.delete_term(term);
         index_writer.commit().into_pyresult()?;
 
@@ -468,7 +470,7 @@ impl MemorySystem {
         days_threshold: i64,
         min_importance: f64,
         max_access_count: u64,
-    ) -> PyResult<Vec<u64>> {
+    ) -> PyResult<Vec<String>> {
         let cutoff_timestamp = Utc::now().timestamp() - (days_threshold * 86400);
         let all_memories = self.get_all_memories()?; // Consider more targeted query if performance is an issue
 
@@ -480,7 +482,7 @@ impl MemorySystem {
                     && memory.access_count < max_access_count
             })
             .filter_map(|memory| {
-                self.delete_memory_by_id(memory.id)
+                self.delete_memory_by_id(memory.id.as_str())
                     .ok()
                     .and_then(|success| if success { Some(memory.id) } else { None })
             })
@@ -558,7 +560,7 @@ impl MemorySystem {
 /// Register Python classes with the module
 pub(crate) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Memory>()?;
-    m.add_class::<MemorySystem>()?;
+    m.add_class::<MemoryService>()?;
     m.add_class::<MemoryStats>()?;
     Ok(())
 }
