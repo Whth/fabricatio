@@ -26,6 +26,7 @@ class RememberScopedConfig(ScopedConfig):
 
     _memory_store: Optional[MemoryStore] = PrivateAttr(default=None)
 
+
 class Remember(Propose, RememberScopedConfig, ABC):
     """Provide a memory system to remember things."""
 

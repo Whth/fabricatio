@@ -10,7 +10,7 @@ from typing import List
 from fabricatio_core.models.generic import SketchedAble
 from pydantic import Field
 
-from fabricatio_memory.rust import MIN_IMPORTANCE_SCORE, MAX_IMPORTANCE_SCORE
+from fabricatio_memory.rust import MAX_IMPORTANCE_SCORE, MIN_IMPORTANCE_SCORE
 
 
 class Note(SketchedAble):
