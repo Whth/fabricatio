@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 mod constants;
 mod memory;
@@ -16,7 +16,6 @@ use crate::memory::Memory;
 use crate::service::MemoryService;
 use crate::stat::MemoryStats;
 use crate::store::MemoryStore;
-use fabricatio_logger::init_logger_auto;
 use pyo3::prelude::*;
 use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
 
@@ -31,7 +30,7 @@ module_variable!(MODULE_NAME, MAX_IMPORTANCE_SCORE_VARNAME, f64);
 #[pymodule]
 
 fn rust(_python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    init_logger_auto()?;
+    fabricatio_logger::init_logger_auto()?;
     m.add_class::<Memory>()?;
     m.add_class::<MemoryService>()?;
     m.add_class::<MemoryStore>()?;
