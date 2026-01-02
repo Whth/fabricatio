@@ -2,8 +2,14 @@
 
 mod constants;
 mod memory;
+mod service;
+mod store;
 mod traits;
+mod utils;
 
+use crate::memory::Memory;
+use crate::service::MemoryService;
+use crate::store::MemoryStore;
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
 
@@ -11,11 +17,13 @@ use pyo3_stub_gen::define_stub_info_gatherer;
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 
-#[cfg(not(feature = "stubgen"))]
 #[pymodule]
 
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    memory::register(python, m)?;
+    m.add_class::<Memory>()?;
+    m.add_class::<MemoryService>()?;
+    m.add_class::<MemoryStore>()?;
+
     Ok(())
 }
 

@@ -73,6 +73,7 @@ cfg_if!(
 if #[cfg(feature = "tantivy")]
 {
 impl_as_pyerr!(tantivy::TantivyError, PyOSError);
+impl_as_pyerr!(std::sync::Arc<tantivy::TantivyError>, PyOSError);
 impl_as_pyerr!(tantivy::query::QueryParserError, PyOSError);
 impl_as_pyerr!(tantivy::directory::error::OpenDirectoryError, PyOSError);
 }
