@@ -55,11 +55,7 @@ impl DocumentDeserialize for Memory {
                 .expect("Field 'tags' missing")
                 .as_array()
                 .unwrap()
-                .first()
-                .unwrap()
-                .as_str()
-                .expect("Field 'tags' is not a string") // Changed from to_string() to as_str() then split
-                .split_whitespace()
+                .iter()
                 .map(|s| s.to_string())
                 .collect(),
             access_count: v

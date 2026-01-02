@@ -10,7 +10,8 @@ use std::sync::{Arc, Mutex};
 use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
-use tantivy::{doc, Index, IndexWriter, ReloadPolicy};
+
+use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
 
 use uuid::{Timestamp, Uuid};
 
@@ -94,7 +95,6 @@ impl Memory {
 #[pyclass]
 pub struct MemoryService {
     index: Index,
-    next_id: Arc<Mutex<u64>>,
     writer_buffer_size: usize,
 }
 
@@ -129,19 +129,20 @@ impl MemoryService {
             last_accessed_field,
         ) = *FIELDS;
 
-        let tags_text = memory.tags.join(" ");
+        let mut doc = doc!(
+            id_field => memory.id,
+            content_field => memory.content.as_str(),
+            timestamp_field => memory.timestamp,
+            importance_field => memory.importance,
+            access_count_field => memory.access_count,
+            last_accessed_field => memory.last_accessed
+        );
 
-        index_writer
-            .add_document(doc!(
-                id_field => memory.id,
-                content_field => memory.content.as_str(),
-                timestamp_field => memory.timestamp,
-                importance_field => memory.importance,
-                tags_field => tags_text,
-                access_count_field => memory.access_count,
-                last_accessed_field => memory.last_accessed
-            ))
-            .into_pyresult()?;
+        memory.tags.iter().for_each(|tag| {
+            doc.add_text(tags_field, tag);
+        });
+
+        index_writer.add_document(doc).into_pyresult()?;
         Ok(())
     }
 }
@@ -164,28 +165,26 @@ impl MemoryService {
                 MmapDirectory::open(index_directory).into_pyresult()?,
                 schema,
             )
-                .into_pyresult()?
+            .into_pyresult()?
         } else {
             Index::create_in_ram(schema)
         };
 
         Ok(MemoryService {
             index,
-            next_id: Arc::new(Mutex::new(1)),
             writer_buffer_size: buffer_size,
         })
     }
 
     /// Add a new memory to the system and return its ID
-    pub fn add_memory(&self, content: &str, importance: f64, tags: Vec<String>) -> PyResult<u64> {
-        let id = {
-            let mut next_id = self.next_id.lock().unwrap();
-            let current_id = *next_id;
-            *next_id += 1;
-            current_id
-        };
-
-        let memory = Memory::new(Uuid::now_v7().to_string(), content.to_string(), importance, tags.clone());
+    pub fn add_memory(
+        &self,
+        content: String,
+        importance: f64,
+        tags: Vec<String>,
+    ) -> PyResult<String> {
+        let id = Uuid::now_v7().to_string();
+        let memory = Memory::new(id.clone(), content, importance, tags);
 
         let mut index_writer: IndexWriter =
             self.index.writer(self.writer_buffer_size).into_pyresult()?;
@@ -198,7 +197,7 @@ impl MemoryService {
     }
 
     /// Retrieve a memory by its ID and update its access count
-    pub fn get_memory(&self, id: u64) -> PyResult<Option<Memory>> {
+    pub fn get_memory(&self, id: &str) -> PyResult<Option<Memory>> {
         let (id_field, ..) = *FIELDS; // Only id_field is needed here for the term query
 
         let reader = self
@@ -209,7 +208,7 @@ impl MemoryService {
             .into_pyresult()?;
 
         let searcher = reader.searcher();
-        let term = Term::from_field_u64(id_field, id);
+        let term = Term::from_field_text(id_field, id);
         let term_query = tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
 
         let top_docs = searcher
@@ -239,7 +238,7 @@ impl MemoryService {
     #[pyo3(signature = (id, content=None, importance=None, tags=None))]
     pub fn update_memory(
         &self,
-        id: u64,
+        id: &str,
         content: Option<&str>,
         importance: Option<f64>,
         tags: Option<Vec<String>>,
@@ -254,7 +253,7 @@ impl MemoryService {
             .into_pyresult()?;
 
         let searcher = reader.searcher();
-        let term = Term::from_field_u64(id_field, id);
+        let term = Term::from_field_text(id_field, id);
         let term_query = tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
 
         let top_docs = searcher
