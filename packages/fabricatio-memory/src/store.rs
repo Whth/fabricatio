@@ -1,6 +1,5 @@
-use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE, MIN_IMPORTANCE_SCORE};
+use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
 use crate::memory::Memory;
-use crate::service::MemoryService;
 use crate::stat::MemoryStats;
 use crate::utils::{
     add_memory_inner, cast_into_items, delete_memory_inner, extract_memory, importance_term_of,
@@ -8,18 +7,12 @@ use crate::utils::{
 };
 use chrono::Utc;
 use error_mapping::AsPyErr;
-use fabricatio_logger::*;
-use pyo3::prelude::{PyModule, PyModuleMethods};
-use pyo3::{pyclass, pymethods, Bound, PyResult, Python};
+use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
-use serde::Deserialize;
 use std::sync::Arc;
-use tantivy::collector::{Count, TopDocs};
+use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::schema::IndexRecordOption;
-use tantivy::{
-    doc, DocAddress, Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, Term,
-};
+use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
 
 #[gen_stub_pyclass]
 #[pyclass]
@@ -50,12 +43,7 @@ impl MemoryStore {
 
     #[inline]
     fn searcher(&self) -> PyResult<Searcher> {
-        self.index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()
-            .map(|reader| reader.searcher())
+        self.reader().map(|reader| reader.searcher())
     }
 
     fn top_k<Q: Query>(&self, term_query: Q, k: usize) -> PyResult<Vec<(Score, Memory)>> {
@@ -170,10 +158,10 @@ impl MemoryStore {
                 (
                     score as f64
                         + if boost_recent {
-                        memory.calculate_relevance_score(0.01)
-                    } else {
-                        0.0
-                    },
+                            memory.calculate_relevance_score(0.01)
+                        } else {
+                            0.0
+                        },
                     memory,
                 )
             })
@@ -214,7 +202,7 @@ impl MemoryStore {
             ),
             top_k,
         )
-            .map(extract_memory)
+        .map(extract_memory)
     }
 
     /// Get memories from the last N days
@@ -227,7 +215,7 @@ impl MemoryStore {
             FastFieldRangeQuery::new(Bound::Included(timestamp_term_of(cutoff)), Bound::Unbounded),
             top_k,
         )
-            .map(extract_memory)
+        .map(extract_memory)
     }
 
     /// Get memories sorted by access frequency
@@ -244,7 +232,6 @@ impl MemoryStore {
             .map(|seq| cast_into_items(searcher, seq))
             .map(extract_memory)
     }
-
 
     /// Count the total number of memories in the system
     pub fn count_memories(&self) -> PyResult<u64> {

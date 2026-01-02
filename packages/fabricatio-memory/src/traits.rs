@@ -1,7 +1,7 @@
 use crate::memory::Memory;
-use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
-use tantivy::schema::Value;
 use tantivy::TantivyDocument;
+use tantivy::schema::Value;
+use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 
 use crate::constants::FIELDS;
 

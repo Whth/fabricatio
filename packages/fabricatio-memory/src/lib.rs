@@ -27,10 +27,10 @@ module_variable!(MODULE_NAME, MAX_IMPORTANCE_SCORE_VARNAME, f64);
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 
-// #[cfg(not(feature = "stubgen"))]
+#[cfg(not(feature = "stubgen"))]
 #[pymodule]
 
-fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn rust(_python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     init_logger_auto()?;
     m.add_class::<Memory>()?;
     m.add_class::<MemoryService>()?;

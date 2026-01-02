@@ -1,27 +1,13 @@
 use chrono::Utc;
-use moka::sync::Cache;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use tantivy::collector::{Count, TopDocs};
-use tantivy::query::QueryParser;
-use tantivy::schema::*;
 
-use tantivy::{doc, Index, IndexWriter, ReloadPolicy};
+use tantivy::doc;
 
-use uuid::{uuid, Timestamp, Uuid};
-
-use crate::constants::field_names::UUID;
-pub(crate) use crate::constants::{FIELDS, SCHEMA};
-use crate::utils::sanitize_index_name;
-use error_mapping::AsPyErr;
-use tantivy::directory::MmapDirectory;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[gen_stub_pyclass]

@@ -1,14 +1,14 @@
 use crate::constants::{FIELDS, METADATA_FILE_NAME};
 use crate::memory::Memory;
 use error_mapping::AsPyErr;
-use pyo3::exceptions::PyValueError;
 use pyo3::PyResult;
+use pyo3::exceptions::PyValueError;
 use rayon::iter::IntoParallelIterator;
 use rayon::prelude::*;
 use std::path::Path;
 use tantivy::query::TermQuery;
 use tantivy::schema::IndexRecordOption;
-use tantivy::{doc, DocAddress, IndexWriter, Searcher, Term};
+use tantivy::{DocAddress, IndexWriter, Searcher, Term, doc};
 
 pub(crate) fn sanitize_index_name<S: AsRef<str>>(index_name: S) -> PyResult<()> {
     if !sanitize_filename::is_sanitized(index_name.as_ref()) {
