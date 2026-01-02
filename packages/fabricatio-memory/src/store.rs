@@ -1,42 +1,25 @@
-use crate::constants::FIELDS;
+use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE, MIN_IMPORTANCE_SCORE};
 use crate::memory::Memory;
 use crate::service::MemoryService;
-use crate::utils::{add_memory_inner, update_memory_inner, uuid_query_of};
+use crate::stat::MemoryStats;
+use crate::utils::{
+    add_memory_inner, cast_into_items, delete_memory_inner, extract_memory, importance_term_of,
+    timestamp_term_of, update_memory_inner, uuid_query_of,
+};
 use chrono::Utc;
 use error_mapping::AsPyErr;
+use fabricatio_logger::*;
 use pyo3::prelude::{PyModule, PyModuleMethods};
-use pyo3::{Bound, PyResult, Python, pyclass, pymethods};
+use pyo3::{pyclass, pymethods, Bound, PyResult, Python};
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use serde::Deserialize;
 use std::sync::Arc;
 use tantivy::collector::{Count, TopDocs};
-use tantivy::query::{QueryParser, TermQuery};
+use tantivy::query::*;
 use tantivy::schema::IndexRecordOption;
-use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, Searcher, Term, doc};
-
-use rayon::prelude::*;
-
-#[derive(Debug, Clone, Default, Deserialize)]
-#[gen_stub_pyclass]
-#[pyclass(get_all)]
-pub struct MemoryStats {
-    pub total_memories: u64,
-    pub avg_importance: f64,
-    pub avg_access_count: f64,
-    pub avg_age_days: f64,
-}
-
-#[gen_stub_pymethods]
-#[pymethods]
-impl MemoryStats {
-    /// Display memory statistics in a formatted string
-    fn display(&self) -> String {
-        format!(
-            "Total Memories: {}\nAverage Importance: {}\nAverage Access Count: {}\nAverage Age (Days): {}",
-            self.total_memories, self.avg_importance, self.avg_access_count, self.avg_age_days
-        )
-    }
-}
+use tantivy::{
+    doc, DocAddress, Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, Term,
+};
 
 #[gen_stub_pyclass]
 #[pyclass]
@@ -75,21 +58,16 @@ impl MemoryStore {
             .map(|reader| reader.searcher())
     }
 
-    fn top_k(&self, term_query: TermQuery, k: usize) -> PyResult<Vec<Memory>> {
+    fn top_k<Q: Query>(&self, term_query: Q, k: usize) -> PyResult<Vec<(Score, Memory)>> {
         let searcher = self.searcher()?;
 
         searcher
             .search(&term_query, &TopDocs::with_limit(k))
             .into_pyresult()
-            .map(|seq| {
-                seq.into_par_iter()
-                    .map(|(_, doc_address)| searcher.doc::<Memory>(doc_address))
-                    .map(|doc| doc.expect("Failed to convert doc to Memory"))
-                    .collect()
-            })
+            .map(|seq| cast_into_items(searcher, seq))
     }
 
-    fn top(&self, term_query: TermQuery) -> PyResult<Option<Memory>> {
+    fn top<Q: Query>(&self, term_query: Q) -> PyResult<Option<(Score, Memory)>> {
         self.top_k(term_query, 1).map(|mut vec| vec.pop())
     }
 }
@@ -101,7 +79,7 @@ impl MemoryStore {
     pub fn add_memory(
         &self,
         content: String,
-        importance: f64,
+        importance: u64,
         tags: Vec<String>,
     ) -> PyResult<String> {
         let memory = Memory::new(content, importance, tags);
@@ -113,44 +91,27 @@ impl MemoryStore {
 
     /// Retrieve a memory by its ID and update its access count
     pub fn get_memory(&self, uuid: &str) -> PyResult<Option<Memory>> {
-        if let Some(mut mem) = self.top(uuid_query_of(uuid))? {
-            mem.update_access();
+        if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
+            memory.update_access();
             let mut w = self.writer()?;
-            update_memory_inner(&mut w, &mem)?;
+            update_memory_inner(&mut w, &memory)?;
             w.commit().into_pyresult()?;
-            Ok(Some(mem))
+            Ok(Some(memory))
         } else {
             Ok(None)
         }
     }
 
     /// Update an existing memory's content, importance, or tags
-    #[pyo3(signature = (id, content=None, importance=None, tags=None))]
+    #[pyo3(signature = (uuid, content=None, importance=None, tags=None))]
     pub fn update_memory(
         &self,
-        id: &str,
+        uuid: &str,
         content: Option<&str>,
-        importance: Option<f64>,
+        importance: Option<u64>,
         tags: Option<Vec<String>>,
     ) -> PyResult<bool> {
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-
-        let searcher = reader.searcher();
-        let term = Term::from_field_text(id_field, id);
-        let term_query = tantivy::query::TermQuery::new(term.clone(), IndexRecordOption::Basic);
-
-        let top_docs = searcher
-            .search(&term_query, &TopDocs::with_limit(1))
-            .into_pyresult()?;
-
-        if let Some((_, doc_address)) = top_docs.first() {
-            let mut memory: Memory = searcher.doc(*doc_address).into_pyresult()?;
-
+        if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
             let mut updated = false;
 
             if let Some(new_content) = content {
@@ -169,14 +130,10 @@ impl MemoryStore {
             }
 
             if updated {
-                let mut index_writer =
-                    self.index.writer(self.writer_buffer_size).into_pyresult()?;
+                let mut w = self.writer()?;
 
-                index_writer.delete_term(term.clone()); // term for ID
-
-                self.add_or_update_document_in_index(&mut index_writer, &memory)?;
-
-                index_writer.commit().into_pyresult()?;
+                update_memory_inner(&mut w, &memory)?;
+                w.commit().into_pyresult()?;
             }
 
             Ok(updated)
@@ -186,68 +143,45 @@ impl MemoryStore {
     }
 
     /// Delete a memory by its ID
-    pub fn delete_memory_by_id(&self, id: &str) -> PyResult<bool> {
-        let (id_field, _, _, _, _, _, _) = *FIELDS;
-
-        let mut index_writer: IndexWriter =
-            self.index.writer(self.writer_buffer_size).into_pyresult()?;
-        let term = Term::from_field_text(id_field, id);
-        index_writer.delete_term(term);
-        index_writer.commit().into_pyresult()?;
-
+    pub fn delete_memory(&self, uuid: &str) -> PyResult<bool> {
+        let mut w = self.writer()?;
+        delete_memory_inner(&mut w, uuid);
+        w.commit().into_pyresult()?;
         Ok(true)
     }
 
     /// Search memories by query string with optional recency boosting
-    #[pyo3(signature = (query_str, top_k = 100, boost_recent=false))]
+    #[pyo3(signature = (query_str, top_k = 20, boost_recent=false))]
     pub fn search_memories(
         &self,
         query_str: &str,
         top_k: usize,
         boost_recent: bool,
     ) -> PyResult<Vec<Memory>> {
-        let (_, content_field, tags_field, _, _, _, _) = *FIELDS;
-
-        // Create reader following basic example pattern
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-
-        // Get searcher following basic example
-        let searcher = reader.searcher();
-
         // Create query parser for content and tags fields following basic example
-        let query_parser = QueryParser::for_index(&self.index, vec![content_field, tags_field]);
-
+        let query_parser = QueryParser::for_index(&self.index, vec![FIELDS.content, FIELDS.tags]);
         // Parse query following basic example
         let query = query_parser.parse_query(query_str).into_pyresult()?;
-
         // Search with TopDocs collector following basic example
-        let top_docs = searcher
-            .search(&query, &TopDocs::with_limit(top_k * 2)) // Use a larger limit for relevance scoring
-            .into_pyresult()?;
-
-        let mut results = Vec::new();
-
-        // Retrieve documents following basic example pattern
-        for (score, doc_address) in top_docs {
-            let memory = searcher.doc::<Memory>(doc_address).into_pyresult()?;
-
-            let combined_score: f64 = if boost_recent {
-                score as f64 + memory.calculate_relevance_score(0.01) // decay_factor could be configurable
-            } else {
-                score as f64
-            };
-            results.push((combined_score, memory));
+        let mut top_docs = self
+            .top_k(query, top_k * 2)?
+            .into_iter()
+            .map(|(score, memory)| {
+                (
+                    score as f64
+                        + if boost_recent {
+                        memory.calculate_relevance_score(0.01)
+                    } else {
+                        0.0
+                    },
+                    memory,
+                )
+            })
+            .collect::<Vec<(f64, Memory)>>();
+        if boost_recent {
+            top_docs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
         }
-
-        // Sort results by combined score in descending order
-        results.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-
-        Ok(results
+        Ok(top_docs
             .into_iter()
             .take(top_k)
             .map(|(_, memory)| memory)
@@ -255,7 +189,7 @@ impl MemoryStore {
     }
 
     /// Search memories by tags
-    #[pyo3(signature = (tags, top_k = 100))]
+    #[pyo3(signature = (tags, top_k = 20))]
     pub fn search_by_tags(&self, tags: Vec<String>, top_k: usize) -> PyResult<Vec<Memory>> {
         let query_str = tags
             .iter()
@@ -266,187 +200,59 @@ impl MemoryStore {
     }
 
     /// Get memories filtered by minimum importance level
-    #[pyo3(signature = (min_importance, top_k = 100))]
+    #[pyo3(signature = (min_importance, top_k = 20))]
     pub fn get_memories_by_importance(
         &self,
-        min_importance: f64,
+        min_importance: u64,
         top_k: usize,
     ) -> PyResult<Vec<Memory>> {
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-        let searcher = reader.searcher();
-
-        // A common strategy is to fetch all (or a large number of) documents first if no better query exists.
-        // For very large indexes, this might be inefficient.
-        // Tantivy does not directly support filtering and sorting by arbitrary stored fields without specific queries.
-        // One might use a NumericRangeQuery if importance was indexed as such, or rely on fetching and filtering.
-        let top_docs = searcher
-            .search(&tantivy::query::AllQuery, &TopDocs::with_limit(10000)) // Fetch up to 10,000 documents to avoid overflow
-            .into_pyresult()?;
-
-        let mut important_memories = self.docs_to_memories(top_docs, &searcher)?;
-        important_memories.retain(|memory| memory.importance >= min_importance);
-        important_memories.sort_by(|a, b| {
-            b.importance
-                .partial_cmp(&a.importance)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        Ok(important_memories.into_iter().take(top_k).collect())
+        use std::ops::Bound;
+        self.top_k(
+            FastFieldRangeQuery::new(
+                Bound::Included(importance_term_of(min_importance)),
+                Bound::Included(importance_term_of(MAX_IMPORTANCE_SCORE)),
+            ),
+            top_k,
+        )
+            .map(extract_memory)
     }
 
     /// Get memories from the last N days
-    #[pyo3(signature = (days, top_k = 100))]
+    #[pyo3(signature = (days, top_k = 20))]
     pub fn get_recent_memories(&self, days: i64, top_k: usize) -> PyResult<Vec<Memory>> {
         let cutoff = Utc::now().timestamp() - (days * 86400);
 
-        // Get all documents and filter by timestamp
-        let all_query = tantivy::query::AllQuery;
-
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-
-        let searcher = reader.searcher();
-        let top_docs = searcher
-            .search(&all_query, &TopDocs::with_limit(10000)) // Consider if a more targeted query is possible
-            .into_pyresult()?;
-
-        let mut recent = self.docs_to_memories(top_docs, &searcher)?;
-        recent.retain(|memory| memory.timestamp >= cutoff);
-
-        // Sort by timestamp in descending order (most recent first)
-        recent.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        Ok(recent.into_iter().take(top_k).collect())
+        use std::ops::Bound;
+        self.top_k(
+            FastFieldRangeQuery::new(Bound::Included(timestamp_term_of(cutoff)), Bound::Unbounded),
+            top_k,
+        )
+            .map(extract_memory)
     }
 
     /// Get memories sorted by access frequency
-    #[pyo3(signature = (top_k = 100))]
+    #[pyo3(signature = (top_k = 20))]
     pub fn get_frequently_accessed(&self, top_k: usize) -> PyResult<Vec<Memory>> {
-        // Get all documents (no filter) and sort by access count
-        let all_query = tantivy::query::AllQuery;
-
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-
-        let searcher = reader.searcher();
-        let top_docs = searcher
-            .search(&all_query, &TopDocs::with_limit(top_k)) // Consider if a more targeted query is possible
-            .into_pyresult()?;
-
-        let mut frequent = self.docs_to_memories(top_docs, &searcher)?;
-
-        frequent.sort_by(|a, b| b.access_count.cmp(&a.access_count));
-        Ok(frequent.into_iter().take(top_k).collect())
+        let searcher = self.searcher()?;
+        searcher
+            .search(
+                &AllQuery,
+                &TopDocs::with_limit(top_k)
+                    .order_by_u64_field(field_names::ACCESS_COUNT, Order::Asc),
+            )
+            .into_pyresult()
+            .map(|seq| cast_into_items(searcher, seq))
+            .map(extract_memory)
     }
 
-    /// Clean up old memories based on age, importance, and access frequency
-    #[pyo3(signature = (days_threshold, min_importance=0.5, max_access_count=5))]
-    pub fn cleanup_old_memories(
-        &self,
-        days_threshold: i64,
-        min_importance: f64,
-        max_access_count: u64,
-    ) -> PyResult<Vec<String>> {
-        let cutoff_timestamp = Utc::now().timestamp() - (days_threshold * 86400);
-        let all_memories = self.get_all_memories()?; // Consider more targeted query if performance is an issue
-
-        let removed_ids = all_memories
-            .into_iter()
-            .filter(|memory| {
-                memory.timestamp < cutoff_timestamp
-                    && memory.importance < min_importance
-                    && memory.access_count < max_access_count
-            })
-            .filter_map(|memory| {
-                self.delete_memory_by_id(memory.uuid.as_str())
-                    .ok()
-                    .and_then(|success| if success { Some(memory.uuid) } else { None })
-            })
-            .collect();
-        Ok(removed_ids)
-    }
-
-    /// Retrieve all memories from the system
-    pub fn get_all_memories(&self) -> PyResult<Vec<Memory>> {
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-        let searcher = reader.searcher();
-        let all_query = tantivy::query::AllQuery;
-        let top_docs = searcher
-            .search(&all_query, &TopDocs::with_limit(10000)) // Fetch up to 10,000 documents to avoid overflow
-            .into_pyresult()?;
-        self.docs_to_memories(top_docs, &searcher)
-    }
 
     /// Count the total number of memories in the system
-    pub fn count_memories(&self) -> PyResult<usize> {
-        let reader = self
-            .index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()?;
-        let searcher = reader.searcher();
-        let all_query = tantivy::query::AllQuery;
-        let count = searcher.search(&all_query, &Count).into_pyresult()?;
-        Ok(count)
+    pub fn count_memories(&self) -> PyResult<u64> {
+        self.searcher().map(|s| s.num_docs())
     }
 
     /// Get aggregated statistics about all memories
-    pub fn get_memory_stats(&self) -> PyResult<MemoryStats> {
-        let all_memories = self.get_all_memories()?;
-
-        if all_memories.is_empty() {
-            return Ok(MemoryStats::default());
-        }
-
-        let total_len = all_memories.len();
-        let total_count_f64 = total_len as f64;
-
-        let total_importance: f64 = all_memories.iter().map(|m| m.importance).sum();
-        let total_access_count: u64 = all_memories.iter().map(|m| m.access_count).sum();
-        let now = Utc::now().timestamp();
-        let total_age_seconds: i64 = all_memories.iter().map(|m| now - m.timestamp).sum();
-
-        Ok(MemoryStats {
-            total_memories: total_len as u64,
-            avg_importance: if total_count_f64 > 0.0 {
-                total_importance / total_count_f64
-            } else {
-                0.0
-            },
-            avg_access_count: if total_count_f64 > 0.0 {
-                total_access_count as f64 / total_count_f64
-            } else {
-                0.0
-            },
-            avg_age_days: if total_count_f64 > 0.0 {
-                (total_age_seconds as f64) / 86400.0 / total_count_f64
-            } else {
-                0.0
-            },
-        })
+    pub fn stats(&self) -> PyResult<MemoryStats> {
+        todo!()
     }
-}
-
-pub(crate) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<Memory>()?;
-    m.add_class::<MemoryService>()?;
-    m.add_class::<MemoryStats>()?;
-    Ok(())
 }

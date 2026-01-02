@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use tantivy::schema::{FAST, Field, INDEXED, STORED, STRING, Schema, TEXT};
+use tantivy::schema::{Field, Schema, FAST, INDEXED, STORED, STRING, TEXT};
 
 pub mod field_names {
     pub const UUID: &str = "uuid";
@@ -11,6 +11,12 @@ pub mod field_names {
     pub const LAST_ACCESSED: &str = "last_accessed";
 }
 
+pub static MAX_IMPORTANCE_SCORE: u64 = 100;
+pub static MAX_IMPORTANCE_SCORE_VARNAME: &str = "MAX_IMPORTANCE_SCORE";
+pub static MIN_IMPORTANCE_SCORE: u64 = 0;
+pub static MIN_IMPORTANCE_SCORE_VARNAME: &str = "MIN_IMPORTANCE_SCORE";
+pub(crate) static MODULE_NAME: &str = concat!(env!("CARGO_CRATE_NAME"), ".rust");
+
 pub static METADATA_FILE_NAME: &str = "meta.json";
 
 pub static SCHEMA: Lazy<Schema> = Lazy::new(|| {
@@ -19,10 +25,10 @@ pub static SCHEMA: Lazy<Schema> = Lazy::new(|| {
     schema_builder.add_text_field(field_names::UUID, STRING | STORED);
     schema_builder.add_text_field(field_names::CONTENT, TEXT | STORED);
     schema_builder.add_text_field(field_names::TAGS, STRING | STORED);
-    schema_builder.add_i64_field(field_names::TIMESTAMP, STORED | INDEXED);
-    schema_builder.add_f64_field(field_names::IMPORTANCE, STORED | INDEXED);
-    schema_builder.add_u64_field(field_names::ACCESS_COUNT, STORED | INDEXED | FAST);
-    schema_builder.add_i64_field(field_names::LAST_ACCESSED, STORED | INDEXED | FAST);
+    schema_builder.add_i64_field(field_names::TIMESTAMP, INDEXED | FAST);
+    schema_builder.add_u64_field(field_names::IMPORTANCE, INDEXED | FAST);
+    schema_builder.add_u64_field(field_names::ACCESS_COUNT, INDEXED | FAST);
+    schema_builder.add_i64_field(field_names::LAST_ACCESSED, INDEXED | FAST);
 
     schema_builder.build()
 });

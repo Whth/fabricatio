@@ -13,9 +13,9 @@ use tantivy::collector::{Count, TopDocs};
 use tantivy::query::QueryParser;
 use tantivy::schema::*;
 
-use tantivy::{Index, IndexWriter, ReloadPolicy, doc};
+use tantivy::{doc, Index, IndexWriter, ReloadPolicy};
 
-use uuid::{Timestamp, Uuid, uuid};
+use uuid::{uuid, Timestamp, Uuid};
 
 use crate::constants::field_names::UUID;
 pub(crate) use crate::constants::{FIELDS, SCHEMA};
@@ -30,7 +30,7 @@ pub struct Memory {
     pub uuid: String,
     pub content: String,
     pub timestamp: i64,
-    pub importance: f64,
+    pub importance: u64,
     pub tags: Vec<String>,
     pub access_count: u64,
     pub last_accessed: i64,
@@ -46,7 +46,7 @@ impl Memory {
 
 impl Memory {
     /// Create a new memory with the given parameters
-    pub fn new(content: String, importance: f64, tags: Vec<String>) -> Self {
+    pub fn new(content: String, importance: u64, tags: Vec<String>) -> Self {
         let now = Utc::now().timestamp();
         Memory {
             uuid: Uuid::now_v7().to_string(),
@@ -70,6 +70,6 @@ impl Memory {
         let time_factor = (Utc::now().timestamp() - self.timestamp) as f64 / 86400.0; // days
         let recency_score = (-time_factor * decay_factor).exp();
         let frequency_score = (self.access_count as f64 + 1.0).ln(); // Add 1 to avoid ln(0) or ln(1)
-        self.importance * recency_score * frequency_score
+        self.importance as f64 * recency_score * frequency_score
     }
 }

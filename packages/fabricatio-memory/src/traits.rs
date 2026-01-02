@@ -1,7 +1,7 @@
 use crate::memory::Memory;
-use tantivy::TantivyDocument;
-use tantivy::schema::Value;
 use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
+use tantivy::schema::Value;
+use tantivy::TantivyDocument;
 
 use crate::constants::FIELDS;
 
@@ -33,8 +33,8 @@ impl DocumentDeserialize for Memory {
             importance: doc
                 .get_first(FIELDS.importance)
                 .expect("Field 'importance' missing")
-                .as_f64()
-                .expect("Field 'importance' is not an f64"),
+                .as_u64()
+                .expect("Field 'importance' is not an u64"),
             tags: doc
                 .get_first(FIELDS.tags)
                 .expect("Field 'tags' missing")
