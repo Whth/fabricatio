@@ -2,14 +2,17 @@ use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
 use crate::memory::Memory;
 use crate::stat::MemoryStats;
 use crate::utils::{
-    add_memory_inner, cast_into_items, delete_memory_inner, extract_memory, importance_term_of,
-    timestamp_term_of, update_memory_inner, uuid_query_of,
+    add_memory_inner, cast_into_items, delete_memory_inner, extract_avg, extract_memory,
+    importance_term_of, timestamp_term_of, update_memory_inner, uuid_query_of,
 };
 use chrono::Utc;
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::sync::Arc;
+use tantivy::aggregation::AggregationCollector;
+use tantivy::aggregation::agg_req::{Aggregation, Aggregations};
+use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
 use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
@@ -240,6 +243,74 @@ impl MemoryStore {
 
     /// Get aggregated statistics about all memories
     pub fn stats(&self) -> PyResult<MemoryStats> {
-        todo!()
+        let searcher = self.searcher()?;
+
+        let agg_req_json = format!(
+            r#"
+        {{
+            "total_memories": {{ "value_count": {{ "field": "{}" }} }},
+            "avg_importance": {{ "avg": {{ "field": "{}" }} }},
+            "avg_access_count": {{ "avg": {{ "field": "{}" }} }},
+            "avg_timestamp": {{ "avg": {{ "field": "{}" }} }}
+        }}
+        "#,
+            field_names::UUID,
+            field_names::IMPORTANCE,
+            field_names::ACCESS_COUNT,
+            field_names::TIMESTAMP
+        );
+
+        let aggs: Aggregations = serde_json::from_str(&agg_req_json).into_pyresult()?;
+
+        let collector = AggregationCollector::from_aggs(aggs, Default::default());
+        let result = searcher.search(&AllQuery, &collector).into_pyresult()?.0;
+
+        let total_memories = if let AggregationResult::MetricResult(res) = result
+            .get("total_memories")
+            .expect("total_memories aggregation must exist")
+            && let MetricResult::Count(res) = res
+            && let Some(count) = res.value
+        {
+            count as u64
+        } else {
+            0
+        };
+
+        let avg_importance = extract_avg(
+            result
+                .get("avg_importance")
+                .expect("avg_importance aggregation must exist"),
+        );
+
+        let avg_access_count = extract_avg(
+            result
+                .get("avg_access_count")
+                .expect("avg_access_count aggregation must exist"),
+        );
+
+        let avg_timestamp = extract_avg(
+            result
+                .get("avg_timestamp")
+                .expect("avg_timestamp aggregation must exist"),
+        );
+
+        // Get the current time
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as f64)
+            .unwrap_or(0.0);
+
+        let avg_age_days = if avg_timestamp > 0.0 {
+            (now - avg_timestamp) / (24.0 * 3600.0)
+        } else {
+            0.0
+        };
+
+        Ok(MemoryStats {
+            total_memories,
+            avg_importance,
+            avg_access_count,
+            avg_age_days,
+        })
     }
 }

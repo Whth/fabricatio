@@ -13,13 +13,14 @@ serde = { version = "1.0.228", features = ["derive"] }
 once_cell = "1.21.3"
 pythonize = "0.27.0"
 pyo3-stub-gen = "0.17.2"
-error-mapping = { path = "../../crates/error-mapping", features = ["tantivy"] }
+error-mapping = { path = "../../crates/error-mapping", features = ["tantivy", "serde_json"] }
 uuid = { version = "1.19.0", features = ["v7"] }
 moka = { version = "0.12.12", features = ["sync"] }
 sanitize-filename = "0.6.0"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
 rayon = "1.11.0"
+serde_json = "1.0.148"
 
 
 [features]

@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
 mod constants;
 mod memory;

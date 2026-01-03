@@ -1,8 +1,8 @@
 use crate::constants::{FIELDS, SCHEMA};
 use crate::memory::Memory;
 use fabricatio_logger::trace;
-use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 use tantivy::schema::Value;
+use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
 use tantivy::{Document, TantivyDocument};
 
 impl DocumentDeserialize for Memory {

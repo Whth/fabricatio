@@ -6,6 +6,7 @@ use pyo3::exceptions::PyValueError;
 use rayon::iter::IntoParallelIterator;
 use rayon::prelude::*;
 use std::path::Path;
+use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
 use tantivy::query::TermQuery;
 use tantivy::schema::IndexRecordOption;
 use tantivy::{DocAddress, IndexWriter, Searcher, Term, doc};
@@ -44,6 +45,17 @@ pub(crate) fn timestamp_term_of(timestamp: i64) -> Term {
 #[inline]
 pub(crate) fn extract_memory<N: Sized>(items: Vec<(N, Memory)>) -> Vec<Memory> {
     items.into_iter().map(|(_, memory)| memory).collect()
+}
+#[inline]
+pub(crate) fn extract_avg(result: &AggregationResult) -> f64 {
+    if let AggregationResult::MetricResult(res) = result
+        && let MetricResult::Average(res) = res
+        && let Some(avg) = res.value
+    {
+        avg
+    } else {
+        0.0
+    }
 }
 #[inline]
 pub(crate) fn cast_into_items<N: Sized + Send>(
