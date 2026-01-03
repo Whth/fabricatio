@@ -1,4 +1,4 @@
-use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE};
+use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
 use crate::memory::Memory;
 use crate::stat::MemoryStats;
 use crate::utils::{
@@ -9,15 +9,15 @@ use chrono::Utc;
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
+use rayon::prelude::*;
 use std::sync::{Arc, Mutex, MutexGuard};
+use tantivy::aggregation::AggregationCollector;
 use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
-use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::{doc, Index, IndexReader, IndexWriter, Order, Score, Searcher};
+use tantivy::{Index, IndexReader, IndexWriter, Order, Score, Searcher, doc};
 use utils::mwrap;
-
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct MemoryStore {
@@ -65,13 +65,45 @@ impl MemoryStore {
             Ok(())
         }
     }
-}
 
+    // --- Helper function for batch access updates ---
+    /// Updates the access count and last_accessed timestamp for a batch of memories
+    /// in the writer, and optionally writes changes to disk.
+    ///
+    /// This function does NOT take ownership of the input memories for the update,
+    /// but returns the original input.
+    fn update_access_and_write_batch(
+        &self,
+        memories: Vec<Memory>,
+        write: bool,
+    ) -> PyResult<Vec<Memory>> {
+        if memories.is_empty() {
+            return Ok(memories);
+        }
+
+        let mut w = self.access_writer()?;
+        // Update each memory's access info and stage the update in the writer
+        memories
+            .par_iter()
+            .cloned()
+            .map(|mut mem| {
+                mem.update_access();
+                mem
+            })
+            .collect::<Vec<Memory>>()
+            .iter()
+            .try_for_each(|mem| update_memory_inner(&w, mem))?;
+
+        // Only flush to disk if `write` is true
+        self.write_inner(w, write)?;
+        Ok(memories)
+    }
+}
 #[gen_stub_pymethods]
 #[pymethods]
 impl MemoryStore {
     /// Add a new memory to the system and return its ID
-    #[pyo3(signature = (content, importance ,tags, write = false))]
+    #[pyo3(signature = (content, importance, tags, write = false))]
     pub fn add_memory(
         &mut self,
         content: String,
@@ -91,8 +123,9 @@ impl MemoryStore {
     pub fn write(&self) -> PyResult<()> {
         self.write_inner(self.writer.lock().into_pyresult()?, true)
     }
+
     /// Retrieve a memory by its ID and update its access count
-    #[pyo3(signature = (uuid, write=false))]
+    #[pyo3(signature = (uuid, write = false))]
     pub fn get_memory(&self, uuid: &str, write: bool) -> PyResult<Option<Memory>> {
         if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
             memory.update_access();
@@ -106,7 +139,7 @@ impl MemoryStore {
     }
 
     /// Update an existing memory's content, importance, or tags
-    #[pyo3(signature = (uuid, content=None, importance=None, tags=None, write=false))]
+    #[pyo3(signature = (uuid, content = None, importance = None, tags = None, write = false))]
     pub fn update_memory(
         &self,
         uuid: &str,
@@ -135,7 +168,6 @@ impl MemoryStore {
 
             if updated {
                 let mut w = self.access_writer()?;
-
                 update_memory_inner(&w, &memory)?;
                 self.write_inner(w, write)?;
             }
@@ -156,18 +188,17 @@ impl MemoryStore {
     }
 
     /// Search memories by query string with optional recency boosting
-    #[pyo3(signature = (query_str, top_k = 20, boost_recent=false))]
+    #[pyo3(signature = (query_str, top_k = 20, boost_recent = false, write = false))]
     pub fn search_memories(
         &self,
         query_str: &str,
         top_k: usize,
         boost_recent: bool,
+        write: bool,
     ) -> PyResult<Vec<Memory>> {
-        // Create query parser for content and tags fields following basic example
         let query_parser = QueryParser::for_index(&self.index, vec![FIELDS.content, FIELDS.tags]);
-        // Parse query following basic example
         let query = query_parser.parse_query(query_str).into_pyresult()?;
-        // Search with TopDocs collector following basic example
+
         let mut top_docs = self
             .top_k(query, top_k * 2)?
             .into_iter()
@@ -175,79 +206,105 @@ impl MemoryStore {
                 (
                     score as f64
                         + if boost_recent {
-                        memory.calculate_relevance_score(0.01)
-                    } else {
-                        0.0
-                    },
+                            memory.calculate_relevance_score(0.01)
+                        } else {
+                            0.0
+                        },
                     memory,
                 )
             })
             .collect::<Vec<(f64, Memory)>>();
+
         if boost_recent {
             top_docs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
         }
-        Ok(top_docs
+
+        let retrieved_memories: Vec<Memory> = top_docs
             .into_iter()
             .take(top_k)
             .map(|(_, memory)| memory)
-            .collect())
+            .collect();
+
+        self.update_access_and_write_batch(retrieved_memories, write)
     }
 
     /// Search memories by tags
-    #[pyo3(signature = (tags, top_k = 20))]
-    pub fn search_by_tags(&self, tags: Vec<String>, top_k: usize) -> PyResult<Vec<Memory>> {
+    #[pyo3(signature = (tags, top_k = 20, write = false))]
+    pub fn search_by_tags(
+        &self,
+        tags: Vec<String>,
+        top_k: usize,
+        write: bool,
+    ) -> PyResult<Vec<Memory>> {
         let query_str = tags
             .iter()
-            .map(|tag| format!("\"{}\"", tag)) // Ensure tags are treated as phrases
+            .map(|tag| format!("\"{}\"", tag))
             .collect::<Vec<String>>()
             .join(" OR ");
-        self.search_memories(&query_str, top_k, false)
+        self.search_memories(&query_str, top_k, false, write)
     }
 
     /// Get memories filtered by minimum importance level
-    #[pyo3(signature = (min_importance, top_k = 20))]
+    #[pyo3(signature = (min_importance, top_k = 20, write = false))]
     pub fn get_memories_by_importance(
         &self,
         min_importance: u64,
         top_k: usize,
+        write: bool,
     ) -> PyResult<Vec<Memory>> {
         use std::ops::Bound;
-        self.top_k(
-            FastFieldRangeQuery::new(
-                Bound::Included(importance_term_of(min_importance)),
-                Bound::Included(importance_term_of(MAX_IMPORTANCE_SCORE)),
-            ),
-            top_k,
-        )
-            .map(extract_memory)
+        let memories = self
+            .top_k(
+                FastFieldRangeQuery::new(
+                    Bound::Included(importance_term_of(min_importance)),
+                    Bound::Included(importance_term_of(MAX_IMPORTANCE_SCORE)),
+                ),
+                top_k,
+            )
+            .map(extract_memory)?;
+
+        self.update_access_and_write_batch(memories, write)
     }
 
     /// Get memories from the last N days
-    #[pyo3(signature = (days, top_k = 20))]
-    pub fn get_recent_memories(&self, days: i64, top_k: usize) -> PyResult<Vec<Memory>> {
+    #[pyo3(signature = (days, top_k = 20, write = false))]
+    pub fn get_recent_memories(
+        &self,
+        days: i64,
+        top_k: usize,
+        write: bool,
+    ) -> PyResult<Vec<Memory>> {
         let cutoff = Utc::now().timestamp() - (days * 86400);
 
         use std::ops::Bound;
-        self.top_k(
-            FastFieldRangeQuery::new(Bound::Included(timestamp_term_of(cutoff)), Bound::Unbounded),
-            top_k,
-        )
-            .map(extract_memory)
+        let memories = self
+            .top_k(
+                FastFieldRangeQuery::new(
+                    Bound::Included(timestamp_term_of(cutoff)),
+                    Bound::Unbounded,
+                ),
+                top_k,
+            )
+            .map(extract_memory)?;
+
+        self.update_access_and_write_batch(memories, write)
     }
 
     /// Get memories sorted by access frequency
-    #[pyo3(signature = (top_k = 20))]
-    pub fn get_frequently_accessed(&self, top_k: usize) -> PyResult<Vec<Memory>> {
+    #[pyo3(signature = (top_k = 20, write = false))]
+    pub fn get_frequently_accessed(&self, top_k: usize, write: bool) -> PyResult<Vec<Memory>> {
         let searcher = self.searcher();
-        searcher
+        let memories = searcher
             .search(
                 &AllQuery,
                 &TopDocs::with_limit(top_k)
-                    .order_by_u64_field(field_names::ACCESS_COUNT, Order::Asc),
+                    .order_by_u64_field(field_names::ACCESS_COUNT, Order::Desc), // Fixed: Desc for most frequent
             )
             .into_pyresult()
             .map(|seq| cast_into_items(searcher, seq))
-            .map(extract_memory)
+            .map(extract_memory)?;
+
+        self.update_access_and_write_batch(memories, write)
     }
 
     /// Count the total number of memories in the system
@@ -308,7 +365,6 @@ impl MemoryStore {
                 .expect("avg_timestamp aggregation must exist"),
         );
 
-        // Get the current time
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs() as f64)

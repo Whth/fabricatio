@@ -5,8 +5,8 @@ import os
 import pathlib
 import typing
 
-MAX_IMPORTANCE_SCORE: builtins.int
-MIN_IMPORTANCE_SCORE: builtins.int
+MAX_IMPORTANCE_SCORE: builtins.int = 100
+MIN_IMPORTANCE_SCORE: builtins.int = 0
 
 @typing.final
 class Memory:
@@ -54,10 +54,16 @@ class MemoryStats:
 @typing.final
 class MemoryStore:
     def add_memory(
-        self, content: builtins.str, importance: builtins.int, tags: typing.Sequence[builtins.str]
+        self,
+        content: builtins.str,
+        importance: builtins.int,
+        tags: typing.Sequence[builtins.str],
+        write: builtins.bool = False,
     ) -> builtins.str:
         r"""Add a new memory to the system and return its ID."""
-    def get_memory(self, uuid: builtins.str) -> typing.Optional[Memory]:
+    def write(self) -> None:
+        r"""Write all changes to disk."""
+    def get_memory(self, uuid: builtins.str, write: builtins.bool = False) -> typing.Optional[Memory]:
         r"""Retrieve a memory by its ID and update its access count."""
     def update_memory(
         self,
@@ -65,9 +71,10 @@ class MemoryStore:
         content: typing.Optional[builtins.str] = None,
         importance: typing.Optional[builtins.int] = None,
         tags: typing.Optional[typing.Sequence[builtins.str]] = None,
+        write: builtins.bool = False,
     ) -> builtins.bool:
         r"""Update an existing memory's content, importance, or tags."""
-    def delete_memory(self, uuid: builtins.str) -> builtins.bool:
+    def delete_memory(self, uuid: builtins.str, write: builtins.bool = False) -> builtins.bool:
         r"""Delete a memory by its ID."""
     def search_memories(
         self, query_str: builtins.str, top_k: builtins.int = 20, boost_recent: builtins.bool = False

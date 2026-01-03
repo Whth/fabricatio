@@ -8,8 +8,8 @@ use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tantivy::directory::*;
 use tantivy::Index;
+use tantivy::directory::*;
 
 type IndexName = String;
 
