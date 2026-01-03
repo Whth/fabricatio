@@ -928,7 +928,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.5.1.dev1"
+version = "0.5.1.dev3"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1072,7 +1072,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.2.11.dev1"
+version = "0.3.0.dev1"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },

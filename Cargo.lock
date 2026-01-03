@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "error-mapping"
-version = "0.2.3-dev1"
+version = "0.2.3"
 dependencies = [
  "biblatex",
  "cfg-if",
@@ -1391,7 +1391,9 @@ dependencies = [
  "rayon",
  "sanitize-filename",
  "serde",
+ "serde_json",
  "tantivy",
+ "utils",
  "uuid",
 ]
 
@@ -2777,7 +2779,7 @@ dependencies = [
 
 [[package]]
 name = "mcp-manager"
-version = "0.1.1-dev0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "pyo3",
