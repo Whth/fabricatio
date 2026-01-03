@@ -23,7 +23,7 @@ class Role(WithBriefing):
     and providing them with shared configuration like tools and personality.
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True, frozen=True)
+    model_config = ConfigDict(use_attribute_docstrings=True)
     name: RoleName = Field(default="")
     """The name of the role."""
     description: str = ""
