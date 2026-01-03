@@ -1,4 +1,4 @@
-use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
+use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE};
 use crate::memory::Memory;
 use crate::stat::MemoryStats;
 use crate::utils::{
@@ -9,48 +9,43 @@ use chrono::Utc;
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
-use std::sync::Arc;
-use tantivy::aggregation::AggregationCollector;
-use tantivy::aggregation::agg_req::{Aggregation, Aggregations};
+use std::sync::{Arc, Mutex, MutexGuard};
+use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
+use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
+use tantivy::{doc, Index, IndexReader, IndexWriter, Order, Score, Searcher};
+use utils::mwrap;
 
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct MemoryStore {
     index: Arc<Index>,
-    writer_buffer_size: usize,
+    writer: Arc<Mutex<IndexWriter>>,
+    reader: Arc<IndexReader>,
 }
 
 impl MemoryStore {
-    pub fn new(index: Arc<Index>, writer_buffer_size: usize) -> Self {
-        Self {
-            index,
-            writer_buffer_size,
-        }
+    pub fn new(index: Arc<Index>, writer_buffer_size: usize) -> PyResult<Self> {
+        Ok(Self {
+            index: index.clone(),
+            writer: mwrap(index.writer(writer_buffer_size).into_pyresult()?),
+            reader: Arc::new(index.reader().into_pyresult()?),
+        })
     }
     #[inline]
-    fn writer(&self) -> PyResult<IndexWriter> {
-        self.index.writer(self.writer_buffer_size).into_pyresult()
-    }
-    #[inline]
-    fn reader(&self) -> PyResult<IndexReader> {
-        self.index
-            .reader_builder()
-            .reload_policy(ReloadPolicy::OnCommitWithDelay)
-            .try_into()
-            .into_pyresult()
+    fn searcher(&self) -> Searcher {
+        self.reader.searcher()
     }
 
-    #[inline]
-    fn searcher(&self) -> PyResult<Searcher> {
-        self.reader().map(|reader| reader.searcher())
+    #[inline(always)]
+    fn access_writer(&'_ self) -> PyResult<MutexGuard<'_, IndexWriter>> {
+        self.writer.lock().into_pyresult()
     }
 
     fn top_k<Q: Query>(&self, term_query: Q, k: usize) -> PyResult<Vec<(Score, Memory)>> {
-        let searcher = self.searcher()?;
+        let searcher = self.searcher();
 
         searcher
             .search(&term_query, &TopDocs::with_limit(k))
@@ -61,32 +56,49 @@ impl MemoryStore {
     fn top<Q: Query>(&self, term_query: Q) -> PyResult<Option<(Score, Memory)>> {
         self.top_k(term_query, 1).map(|mut vec| vec.pop())
     }
+
+    #[inline]
+    fn write_inner(&self, mut w: MutexGuard<IndexWriter>, write_now: bool) -> PyResult<()> {
+        if write_now {
+            w.commit().into_pyresult().map(|_| ())
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[gen_stub_pymethods]
 #[pymethods]
 impl MemoryStore {
     /// Add a new memory to the system and return its ID
+    #[pyo3(signature = (content, importance ,tags, write = false))]
     pub fn add_memory(
-        &self,
+        &mut self,
         content: String,
         importance: u64,
         tags: Vec<String>,
+        write: bool,
     ) -> PyResult<String> {
         let memory = Memory::new(content, importance, tags)?;
-        let mut w = self.writer()?;
-        add_memory_inner(&mut w, &memory)?;
-        w.commit().into_pyresult()?;
+        let w = self.access_writer()?;
+
+        add_memory_inner(&w, &memory)?;
+        self.write_inner(w, write)?;
         Ok(memory.uuid)
     }
 
+    /// Write all changes to disk
+    pub fn write(&self) -> PyResult<()> {
+        self.write_inner(self.writer.lock().into_pyresult()?, true)
+    }
     /// Retrieve a memory by its ID and update its access count
-    pub fn get_memory(&self, uuid: &str) -> PyResult<Option<Memory>> {
+    #[pyo3(signature = (uuid, write=false))]
+    pub fn get_memory(&self, uuid: &str, write: bool) -> PyResult<Option<Memory>> {
         if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
             memory.update_access();
-            let mut w = self.writer()?;
-            update_memory_inner(&mut w, &memory)?;
-            w.commit().into_pyresult()?;
+            let mut w = self.access_writer()?;
+            update_memory_inner(&w, &memory)?;
+            self.write_inner(w, write)?;
             Ok(Some(memory))
         } else {
             Ok(None)
@@ -94,13 +106,14 @@ impl MemoryStore {
     }
 
     /// Update an existing memory's content, importance, or tags
-    #[pyo3(signature = (uuid, content=None, importance=None, tags=None))]
+    #[pyo3(signature = (uuid, content=None, importance=None, tags=None, write=false))]
     pub fn update_memory(
         &self,
         uuid: &str,
         content: Option<&str>,
         importance: Option<u64>,
         tags: Option<Vec<String>>,
+        write: bool,
     ) -> PyResult<bool> {
         if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
             let mut updated = false;
@@ -121,10 +134,10 @@ impl MemoryStore {
             }
 
             if updated {
-                let mut w = self.writer()?;
+                let mut w = self.access_writer()?;
 
-                update_memory_inner(&mut w, &memory)?;
-                w.commit().into_pyresult()?;
+                update_memory_inner(&w, &memory)?;
+                self.write_inner(w, write)?;
             }
 
             Ok(updated)
@@ -134,10 +147,11 @@ impl MemoryStore {
     }
 
     /// Delete a memory by its ID
-    pub fn delete_memory(&self, uuid: &str) -> PyResult<bool> {
-        let mut w = self.writer()?;
-        delete_memory_inner(&mut w, uuid);
-        w.commit().into_pyresult()?;
+    #[pyo3(signature = (uuid, write = false))]
+    pub fn delete_memory(&self, uuid: &str, write: bool) -> PyResult<bool> {
+        let mut w = self.access_writer()?;
+        delete_memory_inner(&w, uuid);
+        self.write_inner(w, write)?;
         Ok(true)
     }
 
@@ -161,10 +175,10 @@ impl MemoryStore {
                 (
                     score as f64
                         + if boost_recent {
-                            memory.calculate_relevance_score(0.01)
-                        } else {
-                            0.0
-                        },
+                        memory.calculate_relevance_score(0.01)
+                    } else {
+                        0.0
+                    },
                     memory,
                 )
             })
@@ -205,7 +219,7 @@ impl MemoryStore {
             ),
             top_k,
         )
-        .map(extract_memory)
+            .map(extract_memory)
     }
 
     /// Get memories from the last N days
@@ -218,13 +232,13 @@ impl MemoryStore {
             FastFieldRangeQuery::new(Bound::Included(timestamp_term_of(cutoff)), Bound::Unbounded),
             top_k,
         )
-        .map(extract_memory)
+            .map(extract_memory)
     }
 
     /// Get memories sorted by access frequency
     #[pyo3(signature = (top_k = 20))]
     pub fn get_frequently_accessed(&self, top_k: usize) -> PyResult<Vec<Memory>> {
-        let searcher = self.searcher()?;
+        let searcher = self.searcher();
         searcher
             .search(
                 &AllQuery,
@@ -237,13 +251,13 @@ impl MemoryStore {
     }
 
     /// Count the total number of memories in the system
-    pub fn count_memories(&self) -> PyResult<u64> {
-        self.searcher().map(|s| s.num_docs())
+    pub fn count_memories(&self) -> u64 {
+        self.searcher().num_docs()
     }
 
     /// Get aggregated statistics about all memories
     pub fn stats(&self) -> PyResult<MemoryStats> {
-        let searcher = self.searcher()?;
+        let searcher = self.searcher();
 
         let agg_req_json = format!(
             r#"

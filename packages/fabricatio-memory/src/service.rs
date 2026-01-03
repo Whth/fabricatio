@@ -8,8 +8,8 @@ use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tantivy::Index;
 use tantivy::directory::*;
+use tantivy::Index;
 
 type IndexName = String;
 
@@ -59,7 +59,7 @@ impl MemoryService {
 
     pub fn get_store(&self, store_name: IndexName) -> PyResult<MemoryStore> {
         let index = self.get_index(store_name)?;
-        Ok(MemoryStore::new(index, self.writer_buffer_size))
+        MemoryStore::new(index, self.writer_buffer_size)
     }
 
     #[pyo3(signature = (cached_only = false))]

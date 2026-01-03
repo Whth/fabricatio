@@ -74,17 +74,17 @@ pub(crate) fn cast_into_items<N: Sized + Send>(
         .collect()
 }
 
-pub(crate) fn delete_memory_inner(index_writer: &mut IndexWriter, uuid: &str) {
+pub(crate) fn delete_memory_inner(index_writer: &IndexWriter, uuid: &str) {
     let item_uuid = Term::from_field_text(FIELDS.uuid, uuid);
     index_writer.delete_term(item_uuid);
 }
-pub(crate) fn update_memory_inner(index_writer: &mut IndexWriter, memory: &Memory) -> PyResult<()> {
+pub(crate) fn update_memory_inner(index_writer: &IndexWriter, memory: &Memory) -> PyResult<()> {
     delete_memory_inner(index_writer, memory.uuid.as_str());
     add_memory_inner(index_writer, memory)
 }
 
 /// Helper method to add or update a document in the index
-pub(crate) fn add_memory_inner(index_writer: &mut IndexWriter, memory: &Memory) -> PyResult<()> {
+pub(crate) fn add_memory_inner(index_writer: &IndexWriter, memory: &Memory) -> PyResult<()> {
     let mut doc = doc!(
         FIELDS.uuid => memory.uuid,
         FIELDS.content => memory.content.as_str(),

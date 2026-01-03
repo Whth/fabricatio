@@ -22,7 +22,7 @@ pub static METADATA_FILE_NAME: &str = "meta.json";
 pub static SCHEMA: Lazy<Schema> = Lazy::new(|| {
     let mut schema_builder = Schema::builder();
 
-    schema_builder.add_text_field(field_names::UUID, STRING | STORED);
+    schema_builder.add_text_field(field_names::UUID, STRING | STORED | FAST);
     schema_builder.add_text_field(field_names::CONTENT, TEXT | STORED);
     schema_builder.add_text_field(field_names::TAGS, STRING | STORED);
     schema_builder.add_i64_field(field_names::TIMESTAMP, STORED | INDEXED | FAST);
