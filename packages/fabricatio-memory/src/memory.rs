@@ -10,22 +10,31 @@ use tantivy::doc;
 use crate::constants::MAX_IMPORTANCE_SCORE;
 use uuid::Uuid;
 
+/// Represents a memory object with content, importance, tags, and access statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[gen_stub_pyclass]
 #[pyclass(get_all)]
 pub struct Memory {
+    /// Unique identifier for the memory
     pub uuid: String,
+    /// Content of the memory
     pub content: String,
+    /// Unix timestamp when the memory was created
     pub timestamp: i64,
+    /// Importance score of the memory (0 to MAX_IMPORTANCE_SCORE)
     pub importance: u64,
+    /// List of tags associated with the memory
     pub tags: Vec<String>,
+    /// Number of times the memory has been accessed
     pub access_count: u64,
+    /// Unix timestamp when the memory was last accessed
     pub last_accessed: i64,
 }
 
 #[gen_stub_pymethods]
 #[pymethods]
 impl Memory {
+    /// Convert the memory to a Python dictionary
     pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         Ok(pythonize(python, self)?.cast_into::<PyDict>()?)
     }

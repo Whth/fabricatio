@@ -16,8 +16,19 @@ use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::{Index, IndexReader, IndexWriter, Order, Score, Searcher, doc};
+use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
 use utils::mwrap;
+
+/// MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories
+/// in a Tantivy search index. It supports operations such as adding, updating, deleting, and searching
+/// memories based on various criteria like content, tags, importance, recency, and access frequency.
+///
+/// The store handles memory access tracking by updating access counts and timestamps automatically
+/// during retrieval and search operations. It also supports batch updates and optional immediate
+/// disk writes for consistency.
+///
+/// The implementation uses a Tantivy index with fields for content, tags, importance, timestamps,
+/// and access counts. It includes PyO3 bindings to allow Python usage.
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct MemoryStore {
@@ -31,7 +42,13 @@ impl MemoryStore {
         Ok(Self {
             index: index.clone(),
             writer: mwrap(index.writer(writer_buffer_size).into_pyresult()?),
-            reader: Arc::new(index.reader().into_pyresult()?),
+            reader: Arc::new(
+                index
+                    .reader_builder()
+                    .reload_policy(ReloadPolicy::Manual)
+                    .try_into()
+                    .into_pyresult()?,
+            ),
         })
     }
     #[inline]
@@ -60,7 +77,8 @@ impl MemoryStore {
     #[inline]
     fn write_inner(&self, mut w: MutexGuard<IndexWriter>, write_now: bool) -> PyResult<()> {
         if write_now {
-            w.commit().into_pyresult().map(|_| ())
+            w.commit().into_pyresult()?;
+            self.reader.reload().into_pyresult()
         } else {
             Ok(())
         }
@@ -81,7 +99,7 @@ impl MemoryStore {
             return Ok(memories);
         }
 
-        let mut w = self.access_writer()?;
+        let w = self.access_writer()?;
         // Update each memory's access info and stage the update in the writer
         memories
             .par_iter()
@@ -129,7 +147,7 @@ impl MemoryStore {
     pub fn get_memory(&self, uuid: &str, write: bool) -> PyResult<Option<Memory>> {
         if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
             memory.update_access();
-            let mut w = self.access_writer()?;
+            let w = self.access_writer()?;
             update_memory_inner(&w, &memory)?;
             self.write_inner(w, write)?;
             Ok(Some(memory))
@@ -167,7 +185,7 @@ impl MemoryStore {
             }
 
             if updated {
-                let mut w = self.access_writer()?;
+                let w = self.access_writer()?;
                 update_memory_inner(&w, &memory)?;
                 self.write_inner(w, write)?;
             }
@@ -181,7 +199,7 @@ impl MemoryStore {
     /// Delete a memory by its ID
     #[pyo3(signature = (uuid, write = false))]
     pub fn delete_memory(&self, uuid: &str, write: bool) -> PyResult<bool> {
-        let mut w = self.access_writer()?;
+        let w = self.access_writer()?;
         delete_memory_inner(&w, uuid);
         self.write_inner(w, write)?;
         Ok(true)

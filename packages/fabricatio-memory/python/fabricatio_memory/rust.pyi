@@ -10,49 +10,129 @@ MIN_IMPORTANCE_SCORE: builtins.int = 0
 
 @typing.final
 class Memory:
+    r"""Represents a memory object with content, importance, tags, and access statistics."""
+
     @property
-    def uuid(self) -> builtins.str: ...
+    def uuid(self) -> builtins.str:
+        r"""Unique identifier for the memory."""
+
     @property
-    def content(self) -> builtins.str: ...
+    def content(self) -> builtins.str:
+        r"""Content of the memory."""
+
     @property
-    def timestamp(self) -> builtins.int: ...
+    def timestamp(self) -> builtins.int:
+        r"""Unix timestamp when the memory was created."""
+
     @property
-    def importance(self) -> builtins.int: ...
+    def importance(self) -> builtins.int:
+        r"""Importance score of the memory (0 to MAX_IMPORTANCE_SCORE)."""
+
     @property
-    def tags(self) -> builtins.list[builtins.str]: ...
+    def tags(self) -> builtins.list[builtins.str]:
+        r"""List of tags associated with the memory."""
+
     @property
-    def access_count(self) -> builtins.int: ...
+    def access_count(self) -> builtins.int:
+        r"""Number of times the memory has been accessed."""
+
     @property
-    def last_accessed(self) -> builtins.int: ...
-    def to_dict(self) -> dict: ...
+    def last_accessed(self) -> builtins.int:
+        r"""Unix timestamp when the memory was last accessed."""
+
+    def to_dict(self) -> dict:
+        r"""Convert the memory to a Python dictionary."""
 
 @typing.final
 class MemoryService:
     def __new__(
         cls,
         store_root_directory: builtins.str | os.PathLike | pathlib.Path,
-        writer_buffer_size: builtins.int = 50000000,
+        writer_buffer_size: builtins.int = 10000000,
         cache_size: builtins.int = 10,
     ) -> MemoryService:
-        r"""Create a new MemorySystem with optional index path and writer buffer size."""
-    def get_store(self, store_name: builtins.str) -> MemoryStore: ...
-    def list_stores(self, cached_only: builtins.bool = False) -> builtins.list[builtins.str]: ...
+        r"""Creates a new MemoryService instance.
+
+        # Arguments
+        * `store_root_directory` - The root directory where indexes will be stored
+        * `writer_buffer_size` - The buffer size for index writers (default: 10MB)
+        * `cache_size` - The maximum number of indexes to keep in cache (default: 10)
+        """
+
+    def get_store(self, store_name: builtins.str) -> MemoryStore:
+        r"""Get a MemoryStore instance for the given store name.
+
+        This method retrieves or creates an index for the given store name,
+        then returns a MemoryStore instance that can be used to perform
+        operations on that index.
+
+        # Arguments
+        * `store_name` - The name of the store to get
+
+        # Returns
+        * `PyResult<MemoryStore>` - A MemoryStore instance for the given store name
+
+        # Errors
+        * If the store name is invalid
+        * If there's an error creating or opening the index
+        * If there's an error creating the MemoryStore instance
+        """
+
+    def list_stores(self, cached_only: builtins.bool = False) -> builtins.list[builtins.str]:
+        r"""List all stores in the system.
+
+        This method returns a list of all store names. It can optionally return
+        only the stores that are currently cached in memory.
+
+        # Arguments
+        * `cached_only` - If true, only return stores that are currently cached in memory.
+                          If false (default), return all stores in the store directory.
+
+        # Returns
+        * `PyResult<Vec<String>>` - A vector of store names
+
+        # Errors
+        * If there's an error reading the store directory
+        """
 
 @typing.final
 class MemoryStats:
+    r"""Memory statistics structure containing aggregated metrics about stored memories."""
+
     @property
-    def total_memories(self) -> builtins.int: ...
+    def total_memories(self) -> builtins.int:
+        r"""Total number of memories stored."""
+
     @property
-    def avg_importance(self) -> builtins.float: ...
+    def avg_importance(self) -> builtins.float:
+        r"""Average importance score across all memories."""
+
     @property
-    def avg_access_count(self) -> builtins.float: ...
+    def avg_access_count(self) -> builtins.float:
+        r"""Average number of times memories have been accessed."""
+
     @property
-    def avg_age_days(self) -> builtins.float: ...
+    def avg_age_days(self) -> builtins.float:
+        r"""Average age of memories in days."""
+
     def display(self) -> builtins.str:
         r"""Display memory statistics in a formatted string."""
 
 @typing.final
 class MemoryStore:
+    r"""MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories in a Tantivy search index.
+
+    It supports operations such as adding, updating, deleting, and searching
+    memories based on various criteria like content, tags, importance, recency, and access frequency.
+
+    The store handles memory access tracking by updating access counts and timestamps automatically
+    during retrieval and search operations. It also supports batch updates and optional immediate
+    disk writes for consistency.
+
+    The implementation uses a Tantivy index with fields for content, tags, importance, timestamps,
+    and access counts. It includes PyO3 bindings to allow Python usage.
+    """
+
     def add_memory(
         self,
         content: builtins.str,
@@ -61,10 +141,13 @@ class MemoryStore:
         write: builtins.bool = False,
     ) -> builtins.str:
         r"""Add a new memory to the system and return its ID."""
+
     def write(self) -> None:
         r"""Write all changes to disk."""
+
     def get_memory(self, uuid: builtins.str, write: builtins.bool = False) -> typing.Optional[Memory]:
         r"""Retrieve a memory by its ID and update its access count."""
+
     def update_memory(
         self,
         uuid: builtins.str,
@@ -74,23 +157,39 @@ class MemoryStore:
         write: builtins.bool = False,
     ) -> builtins.bool:
         r"""Update an existing memory's content, importance, or tags."""
+
     def delete_memory(self, uuid: builtins.str, write: builtins.bool = False) -> builtins.bool:
         r"""Delete a memory by its ID."""
+
     def search_memories(
-        self, query_str: builtins.str, top_k: builtins.int = 20, boost_recent: builtins.bool = False
+        self,
+        query_str: builtins.str,
+        top_k: builtins.int = 20,
+        boost_recent: builtins.bool = False,
+        write: builtins.bool = False,
     ) -> builtins.list[Memory]:
         r"""Search memories by query string with optional recency boosting."""
-    def search_by_tags(self, tags: typing.Sequence[builtins.str], top_k: builtins.int = 20) -> builtins.list[Memory]:
+
+    def search_by_tags(
+        self, tags: typing.Sequence[builtins.str], top_k: builtins.int = 20, write: builtins.bool = False
+    ) -> builtins.list[Memory]:
         r"""Search memories by tags."""
+
     def get_memories_by_importance(
-        self, min_importance: builtins.int, top_k: builtins.int = 20
+        self, min_importance: builtins.int, top_k: builtins.int = 20, write: builtins.bool = False
     ) -> builtins.list[Memory]:
         r"""Get memories filtered by minimum importance level."""
-    def get_recent_memories(self, days: builtins.int, top_k: builtins.int = 20) -> builtins.list[Memory]:
+
+    def get_recent_memories(
+        self, days: builtins.int, top_k: builtins.int = 20, write: builtins.bool = False
+    ) -> builtins.list[Memory]:
         r"""Get memories from the last N days."""
-    def get_frequently_accessed(self, top_k: builtins.int = 20) -> builtins.list[Memory]:
+
+    def get_frequently_accessed(self, top_k: builtins.int = 20, write: builtins.bool = False) -> builtins.list[Memory]:
         r"""Get memories sorted by access frequency."""
+
     def count_memories(self) -> builtins.int:
         r"""Count the total number of memories in the system."""
+
     def stats(self) -> MemoryStats:
         r"""Get aggregated statistics about all memories."""
