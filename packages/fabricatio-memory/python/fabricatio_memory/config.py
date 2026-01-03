@@ -8,7 +8,7 @@ from fabricatio_core import CONFIG
 store_root = Path.home().joinpath(".fabricatio-memory")
 
 
-@dataclass(frozen=True)
+@dataclass
 class MemoryConfig:
     """Configuration for fabricatio-memory."""
 

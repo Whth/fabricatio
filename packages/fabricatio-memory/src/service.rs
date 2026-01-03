@@ -50,10 +50,10 @@ impl MemoryService {
     ///
     /// # Arguments
     /// * `store_root_directory` - The root directory where indexes will be stored
-    /// * `writer_buffer_size` - The buffer size for index writers (default: 10MB)
+    /// * `writer_buffer_size` - The buffer size for index writers (default: 15MB)
     /// * `cache_size` - The maximum number of indexes to keep in cache (default: 10)
     #[new]
-    #[pyo3(signature = (store_root_directory , writer_buffer_size = 10_000_000,cache_size = 10))]
+    #[pyo3(signature = (store_root_directory , writer_buffer_size = 15_000_000,cache_size = 10))]
     pub fn new(store_root_directory: PathBuf, writer_buffer_size: usize, cache_size: u64) -> Self {
         MemoryService {
             store_root_directory,

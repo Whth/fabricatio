@@ -48,14 +48,14 @@ class MemoryService:
     def __new__(
         cls,
         store_root_directory: builtins.str | os.PathLike | pathlib.Path,
-        writer_buffer_size: builtins.int = 10000000,
+        writer_buffer_size: builtins.int = 15000000,
         cache_size: builtins.int = 10,
     ) -> MemoryService:
         r"""Creates a new MemoryService instance.
 
         # Arguments
         * `store_root_directory` - The root directory where indexes will be stored
-        * `writer_buffer_size` - The buffer size for index writers (default: 10MB)
+        * `writer_buffer_size` - The buffer size for index writers (default: 15MB)
         * `cache_size` - The maximum number of indexes to keep in cache (default: 10)
         """
 

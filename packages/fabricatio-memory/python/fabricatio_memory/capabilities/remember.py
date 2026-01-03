@@ -11,7 +11,7 @@ from fabricatio_core.utils import fallback_kwargs, ok
 from pydantic import Field, PrivateAttr
 
 from fabricatio_memory.config import memory_config
-from fabricatio_memory.inited_memory_service import MEMORY_SERVICE
+from fabricatio_memory.inited_memory_service import get_memory_service
 from fabricatio_memory.models.note import Note
 from fabricatio_memory.rust import MemoryStore
 
@@ -32,7 +32,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
 
     def mount_memory_store(self, memory_store: Optional[MemoryStore] = None) -> Self:
         """Mount a memory system to the capability."""
-        self._memory_store = memory_store or MEMORY_SERVICE.get_store(ok(self.memory_store_name))
+        self._memory_store = memory_store or get_memory_service().get_store(ok(self.memory_store_name))
         return self
 
     def unmount_memory_system(self) -> Self:
@@ -40,7 +40,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
         self._memory_store = None
         return self
 
-    def access_memory_system(self, fallback_default: Optional[MemoryStore] = None) -> MemoryStore:
+    def access_memory_store(self, fallback_default: Optional[MemoryStore] = None) -> MemoryStore:
         """Access the memory system."""
         if self._memory_store is None:
             self.mount_memory_store(fallback_default)
@@ -65,7 +65,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
             "Fatal error: Note not found.",
         )
 
-        mem_id = self.access_memory_system().add_memory(
+        mem_id = self.access_memory_store().add_memory(
             note.content,
             note.importance,
             note.tags,
@@ -85,7 +85,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
         Returns:
             A string containing the recalled information.
         """
-        mem_seq = self.access_memory_system().search_memories(query, top_k, boost_recent)
+        mem_seq = self.access_memory_store().search_memories(query, top_k, boost_recent)
         logger.debug(f"{len(mem_seq)} memories recalled, ids: {[mem.uuid for mem in mem_seq]}")
         return await self.aask(
             TEMPLATE_MANAGER.render_template(

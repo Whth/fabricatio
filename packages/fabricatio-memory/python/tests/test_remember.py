@@ -1,11 +1,14 @@
 """Test the Remember capability."""
 
+import uuid
+from pathlib import Path
 from typing import List
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
 from fabricatio_memory.capabilities.remember import Remember
+from fabricatio_memory.config import memory_config
 from fabricatio_memory.models.note import Note
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string, return_string
@@ -46,14 +49,23 @@ def router(ret_value: SketchedAble) -> Router:
     return return_model_json_string(ret_value)
 
 
+@pytest.fixture(scope="session")
+def shared_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Create a shared temporary directory for testing."""
+    p = tmp_path_factory.mktemp("store_root")
+
+    memory_config.memory_store_root = p
+    return p
+
+
 @pytest.fixture
-def role() -> RememberRole:
+def role(shared_temp_dir: Path) -> RememberRole:
     """Create a RememberRole instance for testing.
 
     Returns:
         RememberRole: RememberRole instance
     """
-    return RememberRole()
+    return RememberRole(memory_store_name=uuid.uuid7().hex).mount_memory_store()
 
 
 @pytest.mark.parametrize(
@@ -83,7 +95,8 @@ async def test_record(router: Router, role: RememberRole, ret_value: SketchedAbl
         recorded_note = ok(await role.record(raw_input))
         assert recorded_note.model_dump_json() == ret_value.model_dump_json()
 
-        assert role.memory_system.search_memories(recorded_note.content)[0].content == recorded_note.content, (
+        role.access_memory_store().write()
+        assert role.access_memory_store().search_memories(recorded_note.content)[0].content == recorded_note.content, (
             "Memory system search failed"
         )
 
@@ -154,7 +167,7 @@ async def test_recall_different_parameters(role: RememberRole) -> None:
     expected_response = "Your work tasks include reviewing code and attending meetings."
 
     router = return_string(expected_response)
-    role.access_memory_system().add_memory("You have a meeting at 3 PM today.", 80, ["work"])
+    role.access_memory_store().add_memory("You have a meeting at 3 PM today.", 80, ["work"])
     with install_router(router):
         # Test with custom top_k and boost_recent=False
         recalled_info = await role.recall(query, top_k=10, boost_recent=False)
