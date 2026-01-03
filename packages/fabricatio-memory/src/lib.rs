@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 mod constants;
 mod memory;
@@ -38,7 +38,6 @@ module_variable!(
 
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
-
 fn rust(_python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     fabricatio_logger::init_logger_auto()?;
     m.add_class::<Memory>()?;

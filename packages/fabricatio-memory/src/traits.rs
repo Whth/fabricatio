@@ -1,9 +1,9 @@
+use crate::constants::{FIELDS, SCHEMA};
 use crate::memory::Memory;
-use tantivy::TantivyDocument;
-use tantivy::schema::Value;
+use fabricatio_logger::trace;
 use tantivy::schema::document::{DeserializeError, DocumentDeserialize, DocumentDeserializer};
-
-use crate::constants::FIELDS;
+use tantivy::schema::Value;
+use tantivy::{Document, TantivyDocument};
 
 impl DocumentDeserialize for Memory {
     fn deserialize<'de, D>(deserializer: D) -> Result<Self, DeserializeError>
@@ -11,6 +11,8 @@ impl DocumentDeserialize for Memory {
         D: DocumentDeserializer<'de>,
     {
         let doc = TantivyDocument::deserialize(deserializer)?;
+
+        trace!("Retrieved memory: {}", doc.to_json(&SCHEMA));
 
         Ok(Memory {
             uuid: doc
@@ -36,11 +38,12 @@ impl DocumentDeserialize for Memory {
                 .as_u64()
                 .expect("Field 'importance' is not an u64"),
             tags: doc
-                .get_first(FIELDS.tags)
-                .expect("Field 'tags' missing")
-                .as_array()
-                .expect("Field 'tags' is not an array")
-                .map(|s| s.as_str().unwrap().to_string())
+                .get_all(FIELDS.tags)
+                .map(|seq| {
+                    seq.as_str()
+                        .expect("Field 'tags' is not a string")
+                        .to_string()
+                })
                 .collect(),
             access_count: doc
                 .get_first(FIELDS.access_count)

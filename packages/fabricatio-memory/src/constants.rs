@@ -25,10 +25,10 @@ pub static SCHEMA: Lazy<Schema> = Lazy::new(|| {
     schema_builder.add_text_field(field_names::UUID, STRING | STORED);
     schema_builder.add_text_field(field_names::CONTENT, TEXT | STORED);
     schema_builder.add_text_field(field_names::TAGS, STRING | STORED);
-    schema_builder.add_i64_field(field_names::TIMESTAMP, INDEXED | FAST);
-    schema_builder.add_u64_field(field_names::IMPORTANCE, INDEXED | FAST);
-    schema_builder.add_u64_field(field_names::ACCESS_COUNT, INDEXED | FAST);
-    schema_builder.add_i64_field(field_names::LAST_ACCESSED, INDEXED | FAST);
+    schema_builder.add_i64_field(field_names::TIMESTAMP, STORED | INDEXED | FAST);
+    schema_builder.add_u64_field(field_names::IMPORTANCE, STORED | INDEXED | FAST);
+    schema_builder.add_u64_field(field_names::ACCESS_COUNT, STORED | INDEXED | FAST);
+    schema_builder.add_i64_field(field_names::LAST_ACCESSED, STORED | INDEXED | FAST);
 
     schema_builder.build()
 });
