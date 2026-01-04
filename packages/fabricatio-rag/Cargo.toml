@@ -16,7 +16,7 @@ tonic = "0.14.2"
 prost = "0.14.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping", features = ["validator", "tonic", "http"] }
-tokio = "1.48.0"
+tokio = "1.49.0"
 
 
 

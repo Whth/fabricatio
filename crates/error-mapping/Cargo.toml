@@ -11,7 +11,7 @@ git2 = { version = "0.20.3", default-features = false, optional = true }
 pythonize = { version = "0.27.0", default-features = false, optional = true }
 pyo3 = { version = "0.27.2", default-features = false }
 serde_json = { version = "1.0.148", default-features = false, optional = true }
-handlebars = { version = "6.3.2", default-features = false, optional = true }
+handlebars = { version = "6.4.0", default-features = false, optional = true }
 biblatex = { version = "0.11.0", default-features = false, optional = true }
 validator = { version = "0.20.0", default-features = false, optional = true }
 tonic = { version = "0.14.2", default-features = false, optional = true, features = ["server"] }
