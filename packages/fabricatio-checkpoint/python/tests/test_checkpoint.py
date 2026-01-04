@@ -5,7 +5,7 @@ from typing import Generator
 
 import pytest
 from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
-from fabricatio_checkpoint.inited_manager import SHADOW_REPO_MANAGER
+from fabricatio_checkpoint.inited_manager import get_shadow_repo_manager
 from fabricatio_mock.models.mock_role import LLMTestRole
 
 
@@ -19,7 +19,7 @@ def tmp_worktree_dir(tmp_path: Path) -> Generator[Path, None, None]:
     p = tmp_path / "worktree"
     p.mkdir(parents=True, exist_ok=True)
     yield p
-    SHADOW_REPO_MANAGER.drop(p)
+    get_shadow_repo_manager().drop(p)
 
 
 @pytest.fixture

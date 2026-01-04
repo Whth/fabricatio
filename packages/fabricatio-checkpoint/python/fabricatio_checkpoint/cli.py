@@ -8,7 +8,7 @@ from typing import Annotated
 
 from typer import Argument, Context, Option, Typer
 
-from fabricatio_checkpoint.inited_manager import SHADOW_REPO_MANAGER
+from fabricatio_checkpoint.inited_manager import get_shadow_repo_manager
 
 app = Typer()
 
@@ -30,7 +30,7 @@ def main(
 def reset(ctx: Context, commit_id: str = Argument("HEAD")) -> None:
     """Reset the workspace to a specific commit."""
     workspace: Path = ctx.obj["workspace"]
-    SHADOW_REPO_MANAGER.reset(workspace, commit_id)
+    get_shadow_repo_manager().reset(workspace, commit_id)
 
 
 @app.command()
