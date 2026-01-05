@@ -85,14 +85,14 @@ impl TemplateManager {
                 .enumerate()
                 .par_bridge()
                 .map(|(idx, item)| {
-                    (
+                    Ok::<(usize, String), PyErr>((
                         idx,
-                        self.handlebars.render(&name, item).unwrap_or_else(|_| {
-                            panic!("Rendering error for '{name}' when rendering \n{item}")
-                        }),
-                    )
+                        self.handlebars.render(&name, item).into_pyresult()?,
+                    ))
                 })
-                .collect();
+                .collect::<Vec<_>>()
+                .into_iter()
+                .try_collect()?;
             rendered_raw.sort_by_key(|x| x.0);
             let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
             let py_list = PyList::new(py, rendered)?;
@@ -122,16 +122,16 @@ impl TemplateManager {
                 .enumerate()
                 .par_bridge()
                 .map(|(idx, item)| {
-                    (
+                    Ok::<(usize, String), PyErr>((
                         idx,
                         self.handlebars
                             .render_template(template, item)
-                            .unwrap_or_else(|_| {
-                                panic!("Rendering error for '{template}' when rendering \n{item}")
-                            }),
-                    )
+                            .into_pyresult()?,
+                    ))
                 })
-                .collect();
+                .collect::<Vec<_>>()
+                .into_iter()
+                .try_collect()?;
             rendered_raw.sort_by_key(|x| x.0);
             let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
             let py_list = PyList::new(py, &rendered)?;
