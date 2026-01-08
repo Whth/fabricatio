@@ -4,12 +4,12 @@ use fabricatio_logger::trace;
 use git2::{Commit, Repository};
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, Python};
+use pyo3_stub_gen::derive::gen_stub_pyfunction;
+use rayon::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{Path, PathBuf, absolute};
+use std::path::{absolute, Path, PathBuf};
 use std::sync::MutexGuard;
-
-use rayon::prelude::*;
 
 #[inline]
 pub(crate) fn head_commit_of<'a>(repo: &'a MutexGuard<'a, Repository>) -> PyResult<Commit<'a>> {
@@ -107,6 +107,7 @@ pub(crate) fn managed_workspaces(stores_root: &PathBuf) -> PyResult<Vec<PathBuf>
 /// 4. If the working directory doesn't exist, removes the entire repository directory
 ///
 /// This is used to clean up shadow repositories whose original workspaces have been deleted.
+#[gen_stub_pyfunction]
 #[pyfunction]
 pub(crate) fn prune_stores(stores_root: PathBuf) -> PyResult<()> {
     dir_entries!(stores_root)
