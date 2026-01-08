@@ -1,12 +1,12 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
 use pyo3::prelude::*;
 
 mod checkpoint;
-mod utils;
+mod constants;
 mod service;
 mod store;
-mod constants;
+mod utils;
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to

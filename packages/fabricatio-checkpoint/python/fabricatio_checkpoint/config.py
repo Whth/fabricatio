@@ -6,7 +6,7 @@ from pathlib import Path
 from fabricatio_core import CONFIG
 
 
-@dataclass(frozen=True)
+@dataclass
 class CheckpointConfig:
     """Configuration for fabricatio-checkpoint."""
 

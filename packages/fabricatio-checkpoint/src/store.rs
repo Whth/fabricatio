@@ -1,33 +1,36 @@
-use crate::constants::HEAD_REF_NAME;
-use crate::utils::normalized_rel_path;
+use crate::constants::{HEAD_NAME, HEAD_REF_NAME};
+use crate::utils::{head_commit_of, normalized_rel_path};
 use error_mapping::AsPyErr;
 use fabricatio_logger::*;
 use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 pub type RepoEntry = Arc<Mutex<Repository>>;
 
-
+/// Stores checkpoint information for a specific worktree directory.
+///
+/// This class manages the shadow repository and provides methods for
+/// saving checkpoints, rolling back files, and retrieving commit history.
+///
+/// # Fields
+///
+/// * `workspace` - The worktree directory being tracked
+/// * `repo` - The shared repository instance
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct CheckPointStore {
-    /// The workspace directory where the checkpoints are stored for
     #[pyo3(get)]
     workspace: PathBuf,
     repo: RepoEntry,
 }
 
-
 impl CheckPointStore {
     pub(crate) fn new(workspace: PathBuf, repo: RepoEntry) -> Self {
-        Self {
-            workspace,
-            repo,
-        }
+        Self { workspace, repo }
     }
 
     #[inline]
@@ -39,55 +42,20 @@ impl CheckPointStore {
             .into_pyresult()?
             .write()
             .into_pyresult()?;
-        {
-            let tree = repo.find_tree(tree_id).into_pyresult()?;
+        let tree = repo.find_tree(tree_id).into_pyresult()?;
 
-            let sig = repo.signature().into_pyresult()?;
-            repo.commit(
-                Some(HEAD_REF_NAME),
-                &sig,
-                &sig,
-                "Initial commit",
-                &tree,
-                &[],
-            )
-                .into_pyresult()?;
-        };
+        let sig = repo.signature().into_pyresult()?;
+        repo.commit(
+            Some(HEAD_REF_NAME),
+            &sig,
+            &sig,
+            "Initial commit",
+            &tree,
+            &[],
+        )
+        .into_pyresult()?;
         Ok(self)
     }
-
-    #[inline]
-    /// Configure the repository manually, since the git2-rs always try to put a `.git`
-    /// file in the source, which pollutes the source directory.
-    ///
-    /// Sets up the repository configuration to work properly as a shadow repository,
-    /// including disabling bare mode, enabling ref logging, setting the worktree path,
-    /// and configuring default user identity.
-    ///
-    /// # Arguments
-    ///
-    /// * `worktree_dir` - The worktree directory that this repository will track
-    /// * `config` - Mutable reference to the repository's configuration object
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if any configuration operation fails
-    pub(crate) fn configure(&self) -> Result<&Self, PyErr> {
-        let mut config = self.access_repo()?.config().into_pyresult()?;
-        config.set_bool("core.bare", false).into_pyresult()?;
-        config
-            .set_bool("core.logallrefupdates", true)
-            .into_pyresult()?;
-        config
-            .set_str("core.worktree", &self.workspace.to_string_lossy())
-            .into_pyresult()?;
-        config.set_str("user.name", "Agent").into_pyresult()?;
-        config
-            .set_str("user.email", "placeholder@example.com")
-            .into_pyresult()?;
-        Ok(self)
-    }
-
 
     #[inline]
     fn access_repo(&self) -> PyResult<MutexGuard<'_, Repository>> {
@@ -100,7 +68,6 @@ impl CheckPointStore {
     }
 }
 
-
 #[gen_stub_pymethods]
 #[pymethods]
 impl CheckPointStore {
@@ -111,7 +78,6 @@ impl CheckPointStore {
     ///
     /// # Arguments
     ///
-    /// * `worktree_dir` - The worktree directory to checkpoint
     /// * `commit_msg` - Optional commit message; defaults to empty string if not provided
     ///
     /// # Returns
@@ -137,11 +103,7 @@ impl CheckPointStore {
             .add_all(["*"].iter(), IndexAddOption::default(), None)
             .into_pyresult()?;
 
-        let head_commit = repo
-            .head()
-            .into_pyresult()?
-            .peel_to_commit()
-            .into_pyresult()?;
+        let head_commit = head_commit_of(&repo)?;
         let tree = {
             let tree_id = index.write_tree().into_pyresult()?;
             repo.find_tree(tree_id).into_pyresult()?
@@ -151,29 +113,43 @@ impl CheckPointStore {
             debug!("No changes to commit, returning head commit...");
             Ok(head_commit.id().to_string())
         } else {
+            debug!("Committing changes to {}...", self.workspace.display());
             repo.commit(
-                Some("HEAD"),
+                Some(HEAD_NAME),
                 &sig,
                 &sig,
                 commit_msg.unwrap_or_default().as_str(),
                 &tree,
                 &[&head_commit],
             )
-                .into_pyresult()
-                .map(|oid| oid.to_string())
+            .into_pyresult()
+            .map(|oid| oid.to_string())
         }
     }
 
+    /// Retrieves the ID of the current HEAD commit.
+    ///
+    /// This method retrieves the ID of the current HEAD commit in the shadow repository.
+    ///
+    /// # Returns
+    ///
+    /// The commit ID (OID) as a string
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if:
+    /// - The shadow repository is not found
+    /// - Git operations fail while retrieving the HEAD commit
+    fn head(&self) -> PyResult<String> {
+        let repo = self.access_repo()?;
+        head_commit_of(&repo).map(|commit| commit.id().to_string())
+    }
 
     /// Lists all commit IDs in the shadow repository's history.
     ///
     /// This method retrieves the complete commit history from the current HEAD
     /// backwards through the parent commits. The commits are returned in reverse
     /// chronological order (newest first).
-    ///
-    /// # Arguments
-    ///
-    /// * `worktree_dir` - The worktree directory whose commit history to retrieve
     ///
     /// # Returns
     ///
@@ -195,7 +171,6 @@ impl CheckPointStore {
             .collect())
     }
 
-
     /// Resets the worktree to a specific commit.
     ///
     /// Performs a hard reset of the worktree directory to match the state at the specified commit.
@@ -203,7 +178,6 @@ impl CheckPointStore {
     ///
     /// # Arguments
     ///
-    /// * `worktree_dir` - The worktree directory to reset
     /// * `commit_id` - The commit ID (OID as string) to reset to
     ///
     /// # Errors
@@ -213,6 +187,11 @@ impl CheckPointStore {
     /// - The commit ID is invalid
     /// - The reset operation fails
     pub fn reset(&self, commit_id: String) -> PyResult<()> {
+        debug!(
+            "Resetting workspace {} to commit {}...",
+            self.workspace.display(),
+            commit_id
+        );
         let repo = self.access_repo()?;
         let commit = repo
             .find_commit(Oid::from_str(&commit_id).into_pyresult()?)
@@ -228,7 +207,6 @@ impl CheckPointStore {
     ///
     /// # Arguments
     ///
-    /// * `worktree_dir` - The worktree directory containing the file
     /// * `commit_id` - The commit ID (OID as string) to restore from
     /// * `file_path` - The relative path to the file within the worktree
     ///
@@ -239,11 +217,8 @@ impl CheckPointStore {
     /// - The commit ID is invalid
     /// - The file is not found in the commit
     /// - The checkout operation fails
-    pub fn rollback(
-        &self,
-        commit_id: String,
-        file_path: PathBuf,
-    ) -> PyResult<()> {
+    pub fn rollback(&self, commit_id: String, file_path: PathBuf) -> PyResult<()> {
+        let file_path = absolute(&file_path).into_pyresult()?;
         let norm_file_path = self.norm_repo_rel_path(&file_path)?;
         let repo = self.access_repo()?;
         let commit = repo
@@ -273,7 +248,6 @@ impl CheckPointStore {
     ///
     /// # Arguments
     ///
-    /// * `worktree_dir` - The worktree directory containing the file
     /// * `commit_id` - The commit ID (OID as string) to get the diff from
     /// * `file_path` - The relative path to the file within the worktree
     ///
@@ -287,11 +261,8 @@ impl CheckPointStore {
     /// - The shadow repository is not found
     /// - The commit ID is invalid
     /// - Git diff operations fail
-    pub fn get_file_diff(
-        &self,
-        commit_id: String,
-        file_path: PathBuf,
-    ) -> PyResult<String> {
+    pub fn get_file_diff(&self, commit_id: String, file_path: PathBuf) -> PyResult<String> {
+        let file_path = absolute(&file_path).into_pyresult()?;
         let file_path = self.norm_repo_rel_path(file_path)?;
         let repo = self.access_repo()?;
         let commit = repo
@@ -323,16 +294,78 @@ impl CheckPointStore {
             ret.push_str(std::str::from_utf8(line.content()).unwrap_or("<invalid utf8>"));
             true
         })
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         Ok(ret)
     }
 
+    /// Retrieves a list of changed files in the repository.
+    ///
+    /// Returns a list of file paths that have been modified or added since the specified commit.
+    /// If no commit ID is provided, it uses the current HEAD commit.
+    ///
+    /// # Arguments
+    ///
+    /// * `commit_id` - The commit ID (OID as string) to compare against (default: current HEAD)
+    ///
+    /// # Returns
+    ///
+    /// A vector of file paths (strings) that have changed
+    ///
+    /// # Errors
+    ///
+    /// Returns a `PyErr` if:
+    /// - The shadow repository is not found
+    /// - Git operations fail
+    ///
+    #[pyo3(signature = (commit_id=None))]
+    pub fn get_changed_files(&self, commit_id: Option<String>) -> PyResult<Vec<String>> {
+        let repo = self.access_repo()?;
+        let oid = if let Some(commit_id) = commit_id {
+            Oid::from_str(&commit_id).into_pyresult()?
+        } else {
+            head_commit_of(&repo)?.id()
+        };
+        let commit = repo.find_commit(oid).into_pyresult()?;
 
-    pub fn get_changed_files(
-        &self,
-        _commit_id: String,
-    ) -> PyResult<Vec<String>> {
-        todo!()
+        // Handle initial commit (no parent)
+        let parent_tree = if let Ok(parent_commit) = commit.parent(0) {
+            Some(parent_commit.tree().into_pyresult()?)
+        } else {
+            None // initial commit: diff against empty tree
+        };
+
+        let current_tree = commit.tree().into_pyresult()?;
+
+        // Compute diff between parent and current
+        let mut diff_options = DiffOptions::new();
+        diff_options
+            .include_unmodified(false)
+            .recurse_untracked_dirs(false)
+            .disable_pathspec_match(true);
+
+        let diff = repo
+            .diff_tree_to_tree(
+                parent_tree.as_ref(),
+                Some(&current_tree),
+                Some(&mut diff_options),
+            )
+            .into_pyresult()?;
+
+        let mut changed_files = Vec::new();
+        diff.foreach(
+            &mut |delta, _progress| {
+                if let Some(path) = delta.new_file().path().or(delta.old_file().path()) {
+                    changed_files.push(path.to_string_lossy().to_string());
+                }
+                true // continue
+            },
+            None,
+            None,
+            None,
+        )
+        .into_pyresult()?;
+
+        Ok(changed_files)
     }
 }

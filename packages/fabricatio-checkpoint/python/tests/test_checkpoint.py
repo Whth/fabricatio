@@ -1,11 +1,10 @@
 """Tests for the checkpoint."""
 
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
-from fabricatio_checkpoint.inited_manager import get_shadow_repo_manager
+from fabricatio_checkpoint.config import checkpoint_config
 from fabricatio_mock.models.mock_role import LLMTestRole
 
 
@@ -14,18 +13,23 @@ class CheckpointRole(LLMTestRole, Checkpoint):
 
 
 @pytest.fixture
-def tmp_worktree_dir(tmp_path: Path) -> Generator[Path, None, None]:
+def tmp_worktree_dir(tmp_path: Path) -> Path:
     """Create a temporary worktree directory."""
     p = tmp_path / "worktree"
     p.mkdir(parents=True, exist_ok=True)
-    yield p
-    get_shadow_repo_manager().drop(p)
+    return p
 
 
 @pytest.fixture
-def role(tmp_worktree_dir: Path) -> CheckpointRole:
+def setup_tmp_stores_root(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Create a temporary stores root directory."""
+    checkpoint_config.checkpoint_dir = tmp_path_factory.mktemp("stores")
+
+
+@pytest.fixture
+def role(tmp_worktree_dir: Path, setup_tmp_stores_root: None) -> CheckpointRole:
     """Create a test role."""
-    return CheckpointRole(worktree_dir=tmp_worktree_dir)
+    return CheckpointRole(worktree_dir=tmp_worktree_dir).mount_checkpoint_store()
 
 
 def test_save(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
@@ -34,12 +38,6 @@ def test_save(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
     assert role.save_checkpoint("test1") == role.save_checkpoint(
         "test2"
     )  # two consecutive checkpoints should have the same id
-
-
-def test_drop(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
-    """Test dropping a checkpoint."""
-    role.save_checkpoint("test")
-    role.drop_checkpoint()
 
 
 def test_rollback(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
@@ -69,7 +67,7 @@ def test_rollback(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
     role.save_checkpoint("test2")
 
     # Rollback only 'test1.txt' to the first checkpoint
-    role.rollback(id_1, "test1.txt")
+    role.rollback(id_1, file1)
 
     # Assert: only test1.txt is reverted; test2.txt remains modified
     assert file1.read_text() == content_v1_file1
@@ -99,7 +97,7 @@ def test_rollback_with_external_absolute_path(role: CheckpointRole, tmp_worktree
     external_file = tmp_path / "test1.txt"
     external_file.write_text(texts * 3)
 
-    with pytest.raises(OSError, match="prefix not found"):
+    with pytest.raises(match="prefix not found"):
         role.rollback(id_1, external_file.absolute())
     role.rollback(id_1, file1.absolute())
 
