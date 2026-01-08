@@ -8,7 +8,7 @@ use pyo3_stub_gen::derive::gen_stub_pyfunction;
 use rayon::prelude::*;
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::MutexGuard;
 
 #[inline]
