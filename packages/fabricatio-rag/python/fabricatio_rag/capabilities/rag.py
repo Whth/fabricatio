@@ -41,9 +41,7 @@ class RAG(UseEmbedding, MilvusScopedConfig, ABC):
     @property
     def client(self) -> MilvusClient:
         """Return the Milvus client."""
-        if self._client is None:
-            raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
-        return self._client
+        return ok(self._client, "Client is not initialized. Have you called `self.init_client()`?")
 
     def init_client(
         self,
