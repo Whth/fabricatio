@@ -6,7 +6,7 @@ use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
-use std::path::{absolute, Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 pub type RepoEntry = Arc<Mutex<Repository>>;
@@ -53,7 +53,7 @@ impl CheckPointStore {
             &tree,
             &[],
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
         Ok(self)
     }
 
@@ -122,8 +122,8 @@ impl CheckPointStore {
                 &tree,
                 &[&head_commit],
             )
-                .into_pyresult()
-                .map(|oid| oid.to_string())
+            .into_pyresult()
+            .map(|oid| oid.to_string())
         }
     }
 
@@ -294,7 +294,7 @@ impl CheckPointStore {
             ret.push_str(std::str::from_utf8(line.content()).unwrap_or("<invalid utf8>"));
             true
         })
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         Ok(ret)
     }
