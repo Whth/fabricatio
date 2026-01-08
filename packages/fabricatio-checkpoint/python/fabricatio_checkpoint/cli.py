@@ -1,6 +1,5 @@
 """Fabricatio Checkpoint CLI tool for managing code checkpoints and workspaces."""
 
-
 from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])

@@ -42,7 +42,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
 
     def access_memory_store(self, fallback_default: Optional[MemoryStore] = None) -> MemoryStore:
         """Access the memory system."""
-        if self._memory_store is None:
+        if self._memory_store is None and fallback_default is not None:
             self.mount_memory_store(fallback_default)
         return ok(self._memory_store)
 

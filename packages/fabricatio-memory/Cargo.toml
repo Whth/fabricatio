@@ -21,7 +21,7 @@ fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 utils = { path = "../../crates/utils" }
 
 rayon = "1.11.0"
-serde_json = "1.0.148"
+serde_json = "1.0.149"
 
 
 [features]
