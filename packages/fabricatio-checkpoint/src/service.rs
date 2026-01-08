@@ -1,12 +1,12 @@
 use crate::store::{CheckPointStore, RepoEntry};
 use crate::utils::{
-    AsKey, create_shadow_repo, managed_workspaces, normalized_path_of, prune_stores,
+    create_shadow_repo, managed_workspaces, normalized_path_of, prune_stores, AsKey,
 };
 use error_mapping::AsPyErr;
 use fabricatio_logger::debug;
 use git2::Repository;
 use moka::sync::Cache;
-use pyo3::{PyResult, pyclass, pymethods};
+use pyo3::{pyclass, pymethods, PyResult};
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
 use std::fs;
@@ -40,7 +40,7 @@ impl CheckpointService {
         let repo = self
             .repo_cache
             .try_get_with(repo_root.clone(), || {
-                Ok(mwrap(create_shadow_repo(&workspace, &repo_root)?))
+                Ok::<RepoEntry, git2::Error>(mwrap(create_shadow_repo(&workspace, &repo_root)?))
             })
             .into_pyresult()?;
 
@@ -58,7 +58,7 @@ impl CheckpointService {
         let repo = self
             .repo_cache
             .try_get_with(repo_root.clone(), || {
-                Ok(mwrap(Repository::open(repo_root)?))
+                Ok::<RepoEntry, git2::Error>(mwrap(Repository::open(repo_root)?))
             })
             .into_pyresult()?;
         let store = CheckPointStore::new(workspace, repo);
