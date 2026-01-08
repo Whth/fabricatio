@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-pub use pyo3::PyResult;
 use pyo3::exceptions::*;
+pub use pyo3::PyResult;
 
 /// A trait for converting Rust results to Python results
 pub trait AsPyErr<T> {
@@ -22,13 +22,30 @@ macro_rules! impl_as_pyerr {
 }
 
 // Implementation of AsPyErr for various error types
-#[cfg(feature = "std")]
-impl_as_pyerr!(std::io::Error, PyOSError);
-#[cfg(feature = "std")]
-impl_as_pyerr!(std::sync::PoisonError<T>, PyRuntimeError);
 
-#[cfg(feature = "git2")]
-impl_as_pyerr!(git2::Error, PyRuntimeError);
+cfg_if!(
+    if #[cfg(feature = "std")]
+    {
+        impl_as_pyerr!(std::io::Error, PyOSError);
+        impl_as_pyerr!(std::path::StripPrefixError, PyRuntimeError);
+        impl_as_pyerr!(std::sync::PoisonError<T>, PyRuntimeError);
+    }
+);
+
+
+
+
+
+
+
+cfg_if!(
+    if #[cfg(feature = "git2")]{
+
+        impl_as_pyerr!(git2::Error, PyRuntimeError);
+        impl_as_pyerr!(std::sync::Arc<git2::Error>, PyRuntimeError);
+    }
+);
+
 
 #[cfg(feature = "epub-builder")]
 impl_as_pyerr!(epub_builder::Error, PyRuntimeError);
