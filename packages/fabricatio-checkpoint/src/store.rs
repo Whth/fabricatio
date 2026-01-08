@@ -298,72 +298,29 @@ impl CheckPointStore {
         Ok(ret)
     }
 
-    /// Retrieves a list of changed files in the repository.
+    /// Retrieves the status of the worktree.
     ///
-    /// Returns a list of file paths that have been modified or added since the specified commit.
-    /// If no commit ID is provided, it uses the current HEAD commit.
-    ///
-    /// # Arguments
-    ///
-    /// * `commit_id` - The commit ID (OID as string) to compare against (default: current HEAD)
+    /// Returns a list of file paths that have changed since the last commit.
     ///
     /// # Returns
     ///
-    /// A vector of file paths (strings) that have changed
+    /// A vector of file paths that have changed since the last commit
     ///
     /// # Errors
     ///
     /// Returns a `PyErr` if:
     /// - The shadow repository is not found
-    /// - Git operations fail
-    ///
-    #[pyo3(signature = (commit_id=None))]
-    pub fn get_changed_files(&self, commit_id: Option<String>) -> PyResult<Vec<String>> {
+    /// - Git status operations fail
+    pub fn get_status(&self) -> PyResult<Vec<String>> {
         let repo = self.access_repo()?;
-        let oid = if let Some(commit_id) = commit_id {
-            Oid::from_str(&commit_id).into_pyresult()?
-        } else {
-            head_commit_of(&repo)?.id()
-        };
-        let commit = repo.find_commit(oid).into_pyresult()?;
-
-        // Handle initial commit (no parent)
-        let parent_tree = if let Ok(parent_commit) = commit.parent(0) {
-            Some(parent_commit.tree().into_pyresult()?)
-        } else {
-            None // initial commit: diff against empty tree
-        };
-
-        let current_tree = commit.tree().into_pyresult()?;
-
-        // Compute diff between parent and current
-        let mut diff_options = DiffOptions::new();
-        diff_options
-            .include_unmodified(false)
-            .recurse_untracked_dirs(false)
-            .disable_pathspec_match(true);
-
-        let diff = repo
-            .diff_tree_to_tree(
-                parent_tree.as_ref(),
-                Some(&current_tree),
-                Some(&mut diff_options),
-            )
-            .into_pyresult()?;
+        let statuses = repo.statuses(None).into_pyresult()?;
 
         let mut changed_files = Vec::new();
-        diff.foreach(
-            &mut |delta, _progress| {
-                if let Some(path) = delta.new_file().path().or(delta.old_file().path()) {
-                    changed_files.push(path.to_string_lossy().to_string());
-                }
-                true // continue
-            },
-            None,
-            None,
-            None,
-        )
-        .into_pyresult()?;
+        for entry in statuses.iter() {
+            if let Some(path) = entry.path() {
+                changed_files.push(path.to_string());
+            }
+        }
 
         Ok(changed_files)
     }

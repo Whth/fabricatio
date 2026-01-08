@@ -6,7 +6,7 @@ use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, Python};
 use std::fs;
 use std::fs::read_dir;
-use std::path::{absolute, Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::MutexGuard;
 
 use rayon::prelude::*;

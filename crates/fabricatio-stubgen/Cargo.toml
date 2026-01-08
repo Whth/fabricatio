@@ -10,6 +10,7 @@ pyo3-stub-gen = "0.17.2"
 fabricatio-core = { path = "../../packages/fabricatio-core", features = ["stubgen"], default-features = false }
 fabricatio-memory = { path = "../../packages/fabricatio-memory", features = ["stubgen"], default-features = false }
 fabricatio-diff = { path = "../../packages/fabricatio-diff", features = ["stubgen"], default-features = false }
+fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", features = ["stubgen"], default-features = false }
 
 
 
