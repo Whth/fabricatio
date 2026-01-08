@@ -59,7 +59,9 @@ jobs:
           node-version: 22
           cache: 'pnpm'
           cache-dependency-path: 'packages/fabricatio-webui/frontend/pnpm-lock.yaml'
-
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Cache cargo registry
         id: cache-registry
@@ -86,7 +88,6 @@ jobs:
 
       - name: Test
         run: |
-          npm install -g pnpm
           make test
         shell: bash
 
