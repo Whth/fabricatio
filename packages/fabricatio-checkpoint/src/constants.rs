@@ -1,0 +1,1 @@
+pub const HEAD_REF_NAME: &str = "refs/heads/master";
