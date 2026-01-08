@@ -33,7 +33,6 @@ impl CheckPointStore {
         Self { workspace, repo }
     }
 
-    #[inline]
     pub(crate) fn add_init_commit(&self) -> Result<&Self, PyErr> {
         let repo = self.access_repo()?;
 

@@ -1,15 +1,15 @@
 use crate::store::{CheckPointStore, RepoEntry};
-use crate::utils::{AsKey, create_shadow_repo, normalized_path_of};
+use crate::utils::{
+    create_shadow_repo, managed_workspaces, normalized_path_of, prune_stores, AsKey,
+};
 use error_mapping::AsPyErr;
 use fabricatio_logger::debug;
 use git2::Repository;
 use moka::sync::Cache;
-use pyo3::{PyResult, pyclass, pymethods};
+use pyo3::{pyclass, pymethods, PyResult};
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
-use rayon::prelude::*;
 use std::fs;
-use std::fs::read_dir;
 use std::path::PathBuf;
 use utils::mwrap;
 
@@ -79,8 +79,8 @@ impl CheckpointService {
     }
 }
 
-#[pymethods]
 #[gen_stub_pymethods]
+#[pymethods]
 impl CheckpointService {
     /// Gets or creates a shadow repository for the given worktree directory.
     ///
@@ -120,8 +120,8 @@ impl CheckpointService {
     /// # Errors
     ///
     /// Returns a `PyErr` if the stores root directory cannot be created
-    #[new]
     #[pyo3(signature = (stores_root, cache_size=10))]
+    #[new]
     fn new(stores_root: PathBuf, cache_size: u64) -> PyResult<Self> {
         fs::create_dir_all(&stores_root).into_pyresult()?;
         Ok(Self {
@@ -129,15 +129,14 @@ impl CheckpointService {
             repo_cache: Cache::new(cache_size),
         })
     }
+
+    /// Returns a list of all managed workspaces.
     fn workspaces(&self) -> PyResult<Vec<PathBuf>> {
-        Ok(read_dir(&self.stores_root)
-            .into_pyresult()?
-            .par_bridge()
-            .filter_map(Result::ok)
-            .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_dir()))
-            .map(|entry| entry.path())
-            .filter_map(|entry| Repository::open(entry).ok())
-            .filter_map(|repo| repo.workdir().map(|p| p.to_path_buf()))
-            .collect::<Vec<_>>())
+        managed_workspaces(&self.stores_root)
+    }
+
+    /// Prunes stores which manage an invalid workspace.
+    fn prune_invalid(&self) -> PyResult<()> {
+        prune_stores(self.stores_root.clone())
     }
 }

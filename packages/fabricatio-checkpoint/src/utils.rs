@@ -2,9 +2,14 @@ use blake3::hash;
 use error_mapping::AsPyErr;
 use fabricatio_logger::trace;
 use git2::{Commit, Repository};
-use pyo3::PyResult;
-use std::path::{Path, PathBuf, absolute};
+use pyo3::prelude::*;
+use pyo3::{Bound, PyResult, Python};
+use std::fs;
+use std::fs::read_dir;
+use std::path::{absolute, Path, PathBuf};
 use std::sync::MutexGuard;
+
+use rayon::prelude::*;
 
 #[inline]
 pub(crate) fn head_commit_of<'a>(repo: &'a MutexGuard<'a, Repository>) -> PyResult<Commit<'a>> {
@@ -38,7 +43,6 @@ pub(crate) fn normalized_rel_path(root: &PathBuf, path: PathBuf) -> PyResult<Pat
 /// 4. Sets the working directory to the provided workspace (`core.worktree`)
 /// 5. Sets dummy user information for commits
 /// 6. Re-opens the repository to apply the configuration changes
-#[inline]
 pub(crate) fn create_shadow_repo(
     workspace: &Path,
     repo_root: &PathBuf,
@@ -74,4 +78,49 @@ impl AsKey for PathBuf {
             self.file_name().unwrap_or_default().to_string_lossy()
         )
     }
+}
+
+macro_rules! dir_entries {
+    ($path:expr) => {
+        read_dir($path)
+            .into_pyresult()?
+            .par_bridge()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_ok_and(|ft| ft.is_dir()))
+            .map(|entry| entry.path())
+    };
+}
+
+pub(crate) fn managed_workspaces(stores_root: &PathBuf) -> PyResult<Vec<PathBuf>> {
+    Ok(dir_entries!(stores_root)
+        .filter_map(|entry| Repository::open(entry).ok())
+        .filter_map(|repo| repo.workdir().map(|p| p.to_path_buf()))
+        .collect::<Vec<_>>())
+}
+
+/// Removes all store repositories under the given root path whose working directories no longer exist.
+///
+/// This function:
+/// 1. Iterates through all directories under the stores_root
+/// 2. Attempts to open each as a git repository
+/// 3. Checks if the repository's working directory still exists
+/// 4. If the working directory doesn't exist, removes the entire repository directory
+///
+/// This is used to clean up shadow repositories whose original workspaces have been deleted.
+#[pyfunction]
+pub(crate) fn prune_stores(stores_root: PathBuf) -> PyResult<()> {
+    dir_entries!(stores_root)
+        .filter_map(|entry| Repository::open(&entry).ok().map(|repo| (entry, repo)))
+        .filter_map(|(entry, repo)| {
+            repo.workdir()
+                .map(|p| p.to_path_buf().exists().then_some(entry))?
+        })
+        .try_for_each(fs::remove_dir_all)?;
+
+    Ok(())
+}
+
+pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(prune_stores, m)?)?;
+    Ok(())
 }

@@ -16,5 +16,6 @@ mod utils;
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     fabricatio_logger::init_logger_auto()?;
     checkpoint::register(python, m)?;
+    utils::register(python, m)?;
     Ok(())
 }
