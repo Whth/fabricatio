@@ -91,3 +91,11 @@ impl_as_pyerr!(tantivy::directory::error::OpenDirectoryError, PyOSError);
 
 #[cfg(feature = "mcp-manager")]
 impl_as_pyerr!(mcp_manager::McpError, PyRuntimeError);
+
+cfg_if!(
+
+if #[cfg(feature = "lancedb")]
+{
+impl_as_pyerr!(lancedb::Error, PyOSError);
+}
+);
