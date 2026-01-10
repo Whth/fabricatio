@@ -63,32 +63,32 @@ Built on top of Fabricatio's agent framework with support for asynchronous execu
 ## 🧩 Usage Example
 
 ```python
-from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.capabilities.rag import MilvusRAG
 # The `RAG` class is the core component of the library. It provides methods for performing retrieval - augmented generation tasks. It interacts with the Milvus database for document retrieval and uses the generated embeddings to augment the generation process.
-from fabricatio_rag.models.rag import MilvusDataBase
+from fabricatio_rag.models.milvus import MilvusDataBase
 
 
 # The `MilvusDataBase` class represents the connection to the Milvus vector database. It provides methods for creating collections, inserting documents, and performing searches. It abstracts the low - level details of working with Milvus, making it easier to use in the application.
 
 
 async def search_knowledge():
-  # Initialize database connection
-  db = MilvusDataBase(collection_name="science_papers")
-  # This line initializes a connection to the Milvus database with a specific collection named "science_papers". The collection is where the document embeddings will be stored and retrieved from.
+    # Initialize database connection
+    db = MilvusDataBase(collection_name="science_papers")
+    # This line initializes a connection to the Milvus database with a specific collection named "science_papers". The collection is where the document embeddings will be stored and retrieved from.
 
-  # Initialize RAG capability
-  rag = RAG(db)
-  # This line creates an instance of the `RAG` class, passing in the `MilvusDataBase` object. This allows the `RAG` class to interact with the Milvus database for document retrieval.
+    # Initialize RAG capability
+    rag = MilvusRAG(db)
+    # This line creates an instance of the `RAG` class, passing in the `MilvusDataBase` object. This allows the `RAG` class to interact with the Milvus database for document retrieval.
 
-  # Search for relevant information
-  results = await rag.retrieve("climate change impact on coral reefs", limit=3)
-  # The `retrieve` method of the `RAG` class is used to perform a semantic search in the Milvus database. It takes a query string and a limit as parameters. In this example, it searches for documents related to "climate change impact on coral reefs" and returns the top 3 relevant documents.
+    # Search for relevant information
+    results = await rag.retrieve("climate change impact on coral reefs", limit=3)
+    # The `retrieve` method of the `RAG` class is used to perform a semantic search in the Milvus database. It takes a query string and a limit as parameters. In this example, it searches for documents related to "climate change impact on coral reefs" and returns the top 3 relevant documents.
 
-  print("Top 3 relevant documents:")
-  for result in results:
-    print(f"- {result['title']}")
-    print(f"  Relevance: {result['score']:.2f}")
-    print(f"  Snippet: {result['text'][:150]}...")
+    print("Top 3 relevant documents:")
+    for result in results:
+        print(f"- {result['title']}")
+        print(f"  Relevance: {result['score']:.2f}")
+        print(f"  Snippet: {result['text'][:150]}...")
 ```
 
 ## 📁 Structure

@@ -3,10 +3,10 @@ name = "fabricatio-rag"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-pyo3 = { version = "0.27.2", features = ["extension-module"] }
+pyo3 = { version = "0.27.2" }
 serde = { version = "1.0.228", features = ["derive"] }
 validator = { version = "0.20.0", features = ["derive"] }
 
@@ -15,8 +15,13 @@ tonic-prost = "0.14.2"
 tonic = "0.14.2"
 prost = "0.14.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
-error-mapping = { path = "../../crates/error-mapping", features = ["validator", "tonic", "http"] }
+error-mapping = { path = "../../crates/error-mapping", features = ["validator", "tonic", "http", "lancedb"] }
 tokio = "1.49.0"
+lancedb = "0.23.1"
+lzma-sys = { version = "0.1.20", features = ["static"] }
+pyo3-stub-gen = "0.17.2"
+moka = "0.12.12"
+arrow = "57.1.0"
 
 
 
@@ -25,5 +30,6 @@ tonic-prost-build = "0.14.2"
 
 
 
-
-
+[features]
+default = ["pyo3/extension-module"]
+stubgen = []

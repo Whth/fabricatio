@@ -6,13 +6,13 @@ from typing import Optional, Unpack
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ListStringKwargs
 from fabricatio_core.utils import fallback_kwargs
-from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.capabilities.rag import MilvusRAG
 from fabricatio_rag.models.kwargs_types import FetchKwargs
 
 from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 
 
-class CitationRAG(RAG, ABC):
+class CitationMilvusRAG(MilvusRAG, ABC):
     """A class representing the Advanced RAG (Retrieval Augmented Generation) model."""
 
     async def clued_search(
