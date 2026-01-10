@@ -1,5 +1,4 @@
-from typing import List, Literal, Tuple, Self
-
+from typing import List, Literal, Self, Tuple
 
 class TEIClient:
     """Client for TEI reranking service.
