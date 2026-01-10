@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_client(true)
         .build_server(false)
         .type_attribute(".", "#[derive(serde::Serialize,serde::Deserialize)]")
+        .type_attribute("TruncationDirection", "#[derive(strum::EnumString)]")
         .compile_protos(&["proto/tei.proto"], &["proto"])
         .map(|_| {
             if Path::new("src/tei.v1.rs").exists() {

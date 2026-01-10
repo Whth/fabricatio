@@ -1,4 +1,5 @@
-from typing import List, Literal, Tuple
+from typing import List, Literal, Tuple, Self
+
 
 class TEIClient:
     """Client for TEI reranking service.
@@ -7,12 +8,8 @@ class TEIClient:
     based on their relevance to a query.
     """
 
-    def __init__(self, base_url: str) -> None:
-        """Initialize the TEI client.
-
-        Args:
-            base_url: URL to the TEI reranking service
-        """
+    async def connect(self, base_url: str) -> Self:
+        """Connect to TEI reranking service."""
 
     async def arerank(
         self,

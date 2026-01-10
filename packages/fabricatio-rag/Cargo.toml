@@ -15,13 +15,12 @@ tonic-prost = "0.14.2"
 tonic = "0.14.2"
 prost = "0.14.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
-error-mapping = { path = "../../crates/error-mapping", features = ["validator", "tonic", "http", "lancedb"] }
+error-mapping = { path = "../../crates/error-mapping", features = ["tonic", "http", "strum"] }
 tokio = "1.49.0"
-lancedb = "0.23.1"
-lzma-sys = { version = "0.1.20", features = ["static"] }
 pyo3-stub-gen = "0.17.2"
-moka = "0.12.12"
-arrow = "57.1.0"
+strenum = "0.0.6"
+strum = { version = "0.27.2", features = ["derive"] }
+
 
 
 

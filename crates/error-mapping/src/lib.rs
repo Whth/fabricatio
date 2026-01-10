@@ -99,3 +99,6 @@ if #[cfg(feature = "lancedb")]
 impl_as_pyerr!(lancedb::Error, PyOSError);
 }
 );
+
+#[cfg(feature = "strum")]
+impl_as_pyerr!(strum::ParseError, PyValueError);

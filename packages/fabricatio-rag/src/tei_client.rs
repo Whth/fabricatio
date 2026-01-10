@@ -4,29 +4,31 @@ use error_mapping::AsPyErr;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
-use tokio::sync::OnceCell;
+use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use tonic::transport::Channel;
-use validator::Validate;
 
+#[gen_stub_pyclass]
 #[pyclass]
-#[derive(Validate)]
 struct TEIClient {
-    #[validate(url)]
-    base_url: String,
-
-    channel: OnceCell<Channel>,
+    channel: Channel,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl TEIClient {
-    #[new]
-    fn new(base_url: String) -> PyResult<Self> {
-        let client = TEIClient {
-            base_url,
-            channel: OnceCell::new(),
-        };
-        client.validate().into_pyresult()?;
-        Ok(client)
+    #[staticmethod]
+    #[gen_stub(override_return_type(type_repr = "typing.Self",imports=("typing",)))]
+    fn connect<'a>(python: Python<'a>, base_url: String) -> PyResult<Bound<'a, PyAny>> {
+        future_into_py(python, async move {
+            let client = TEIClient {
+                channel: Channel::from_shared(base_url)
+                    .into_pyresult()?
+                    .connect()
+                    .await
+                    .into_pyresult()?,
+            };
+            Ok(client)
+        })
     }
     #[pyo3(text_signature = "(self, query, texts, truncate=false, truncation_direction='Left')")]
     fn arerank<'py>(
@@ -35,53 +37,31 @@ impl TEIClient {
         query: String,
         texts: Vec<String>,
         truncate: bool,
-        truncation_direction: Option<String>,
+        truncation_direction: String,
     ) -> PyResult<Bound<'py, PyAny>> {
         let request = RerankRequest {
             query,
             texts,
             truncate,
-            truncation_direction: {
-                match truncation_direction.unwrap_or("Left".to_string()).as_str() {
-                    "Left" => TruncationDirection::Left.into(),
-                    "Right" => TruncationDirection::Right.into(),
-                    _ => {
-                        return Err(PyValueError::new_err(
-                            "Invalid truncation_direction value. Must be 'Left' or 'Right'.",
-                        ));
-                    }
-                }
-            },
+            truncation_direction: truncation_direction
+                .parse::<TruncationDirection>()
+                .into_pyresult()?
+                .into(),
             raw_scores: false,
             return_text: false,
         };
-        let base_url = self.base_url.clone();
-        let channel_ref = self.channel.clone();
+        let channel = self.channel.clone();
         // Send only non-Python data into the async block
         future_into_py(python, async move {
-            let channel = channel_ref
-                .get_or_try_init(|| async {
-                    let channel = Channel::from_shared(base_url)
-                        .into_pyresult()?
-                        .connect()
-                        .await
-                        .into_pyresult()?;
-                    Ok::<Channel, PyErr>(channel)
-                })
-                .await?;
-            let mut rerank_client = RerankClient::new(channel.clone());
-
-            let response = rerank_client
+            Ok(RerankClient::new(channel)
                 .rerank(request)
                 .await
                 .into_pyresult()?
-                .into_inner();
-            let res = response
+                .into_inner()
                 .ranks
                 .iter()
                 .map(|rank| (rank.index, rank.score))
-                .collect::<Vec<(u32, f32)>>();
-            Ok(res)
+                .collect::<Vec<(u32, f32)>>())
         })
     }
 }

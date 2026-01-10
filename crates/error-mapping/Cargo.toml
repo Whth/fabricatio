@@ -20,10 +20,12 @@ cfg-if = "1.0.4"
 tantivy = { version = "0.25.0", default-features = false, optional = true }
 mcp-manager = { path = "../mcp-manager", default-features = false, optional = true }
 lancedb = { version = "0.23.1", default-features = false, optional = true }
+strum = { version = "0.27.2", default-features = false, optional = true }
 
 
 [features]
 default = ["std"]
+strum = ["dep:strum"]
 lancedb = ["dep:lancedb"]
 git2 = ["dep:git2"]
 epub-builder = ["dep:epub-builder"]
