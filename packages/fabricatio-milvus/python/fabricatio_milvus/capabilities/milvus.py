@@ -12,7 +12,7 @@ from pydantic import Field, PrivateAttr
 from pymilvus import MilvusClient
 
 from fabricatio_milvus.config import milvus_config
-from fabricatio_milvus.models.kwargs_types import CollectionConfigKwargs, FetchKwargs
+from fabricatio_milvus.models.kwargs_types import CollectionConfigKwargs
 from fabricatio_milvus.models.milvus import MilvusDataBase, MilvusScopedConfig
 
 
@@ -204,32 +204,3 @@ class MilvusRAG(MilvusScopedConfig, RAG):
         resp = [result["entity"] for result in sorted_results]
 
         return document_model.from_sequence(resp)
-
-    async def aretrieve[D: MilvusDataBase](
-        self,
-        query: List[str] | str,
-        document_model: Type[D],
-        max_accepted: int = 20,
-        **kwargs: Unpack[FetchKwargs],
-    ) -> List[D]:
-        """Retrieve data from the collection.
-
-        Args:
-            query (List[str] | str): The query to be used for retrieval.
-            document_model (Type[D]): The model class used to convert retrieved data into document objects.
-            max_accepted (int): The final limit on the number of results to return.
-            **kwargs (Unpack[FetchKwargs]): Additional keyword arguments for retrieval.
-
-        Returns:
-            List[D]: A list of document objects created from the retrieved data.
-        """
-        if isinstance(query, str):
-            query = [query]
-
-        return (
-            await self.afetch_document(
-                query=query,
-                document_model=document_model,
-                **kwargs,
-            )
-        )[:max_accepted]

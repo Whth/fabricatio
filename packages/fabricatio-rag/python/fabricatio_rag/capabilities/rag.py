@@ -18,7 +18,6 @@ class RAG[D: DocumentModel](UseEmbedding, ABC):
     async def add_document(
         self,
         data: Any,
-        collection_name: Optional[str] = None,
         **kwargs: Any,
     ) -> Self:
         """Add documents to a collection."""
@@ -29,21 +28,9 @@ class RAG[D: DocumentModel](UseEmbedding, ABC):
         self,
         query: Union[str, List[str]],
         document_model: Type[D],
-        collection_name: Optional[str] = None,
         **kwargs: Any,
     ) -> List[D]:
         """Fetch documents based on query."""
-        pass
-
-    @abstractmethod
-    async def aretrieve(
-        self,
-        query: Union[str, List[str]],
-        document_model: Type[D],
-        max_accepted: int = 20,
-        **kwargs: Any,
-    ) -> List[D]:
-        """High-level retrieval with result limiting."""
         pass
 
     async def arefined_query(
