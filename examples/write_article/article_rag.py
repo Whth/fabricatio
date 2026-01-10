@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleRAG
+from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleMilvusRAG
 from fabricatio.models import Article, ArticleOutline, ArticleProposal
 
 
@@ -55,7 +55,7 @@ async def main() -> None:
                         output_key="article",
                     ),
                     Connect,
-                    TweakArticleRAG(output_key="to_dump", llm_temperature=1.12, llm_top_p=0.36),
+                    TweakArticleMilvusRAG(output_key="to_dump", llm_temperature=1.12, llm_top_p=0.36),
                     PersistentAll,
                     DumpFinalizedOutput(output_key="task_output"),
                 ),
