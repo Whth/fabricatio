@@ -2,7 +2,6 @@ use crate::tei::embed_client::EmbedClient;
 use crate::tei::rerank_client::RerankClient;
 use crate::tei::{EmbedAllRequest, EmbedRequest, RerankRequest, TruncationDirection};
 use error_mapping::AsPyErr;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
