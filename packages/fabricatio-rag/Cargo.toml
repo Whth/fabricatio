@@ -8,7 +8,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 pyo3 = { version = "0.27.2" }
 serde = { version = "1.0.228", features = ["derive"] }
-validator = { version = "0.20.0", features = ["derive"] }
 
 pyo3-async-runtimes = { version = "0.27.0", features = ["tokio-runtime"] }
 tonic-prost = "0.14.2"
@@ -16,9 +15,7 @@ tonic = "0.14.2"
 prost = "0.14.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping", features = ["tonic", "http", "strum"] }
-tokio = "1.49.0"
 pyo3-stub-gen = "0.17.2"
-strenum = "0.0.6"
 strum = { version = "0.27.2", features = ["derive"] }
 
 
