@@ -134,7 +134,7 @@ class MilvusRAG(MilvusScopedConfig, RAG):
 
     async def afetch_document[D: MilvusDataBase](
         self,
-        query: List[str],
+        query: str | List[str],
         document_model: Type[D],
         collection_name: Optional[str] = None,
         similarity_threshold: float = 0.37,
