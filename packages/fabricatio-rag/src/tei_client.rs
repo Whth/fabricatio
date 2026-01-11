@@ -2,11 +2,21 @@ use crate::tei::embed_client::EmbedClient;
 use crate::tei::rerank_client::RerankClient;
 use crate::tei::{EmbedAllRequest, EmbedRequest, RerankRequest, TruncationDirection};
 use error_mapping::AsPyErr;
+use fabricatio_logger::debug;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use tonic::transport::Channel;
 
+/// TEI (Text Embedding Inference) client for interacting with embedding and reranking services.
+///
+/// This client provides methods to:
+/// - Connect to a TEI service
+/// - Generate embeddings for text
+/// - Generate token-level embeddings
+/// - Rerank texts based on relevance to a query
+///
+/// All operations are asynchronous and return Python awaitables.
 #[gen_stub_pyclass]
 #[pyclass]
 struct TEIClient {
@@ -29,6 +39,7 @@ impl TEIClient {
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
     )]
     fn connect<'a>(python: Python<'a>, base_url: String) -> PyResult<Bound<'a, PyAny>> {
+        debug!("Connecting to {}",base_url);
         future_into_py(python, async move {
             let client = TEIClient {
                 channel: Channel::from_shared(base_url)
@@ -47,7 +58,7 @@ impl TEIClient {
     /// * `query` - The query string to compare against
     /// * `texts` - A vector of text strings to rerank
     /// * `truncate` - Whether to truncate the input texts if they exceed the maximum length
-    /// * `truncation_direction` - Direction of truncation, either "Left", "Right", or "None"
+    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
     ///
     /// # Returns
     /// An awaitable that resolves to a list of tuples containing the index and score of each text,
@@ -135,7 +146,7 @@ impl TEIClient {
     /// * `text` - The input text to generate embeddings for
     /// * `dimensions` - Optional parameter to specify the number of dimensions in the output embeddings
     /// * `truncate` - Whether to truncate the input text if it exceeds the maximum length
-    /// * `truncation_direction` - Direction of truncation, either "Left", "Right", or "None"
+    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
     ///
     /// # Returns
     /// An awaitable that resolves to a list of floats representing the embeddings
