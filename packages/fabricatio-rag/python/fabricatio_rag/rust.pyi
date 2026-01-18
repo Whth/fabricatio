@@ -73,3 +73,9 @@ class TEIClient:
         Raises:
             RuntimeError: If embedding generation fails or truncation_direction is invalid
         """
+
+class VectorStoreService:
+    """Service for managing vector stores."""
+
+    async def connect(self, uri: str) -> Self:
+        """Connect to a vector store."""
