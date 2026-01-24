@@ -15,13 +15,14 @@ tonic = "0.14.2"
 prost = "0.14.3"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping", features = ["tonic", "http", "strum", "lancedb"] }
-pyo3-stub-gen = "0.17.2"
+pyo3-stub-gen = "0.18.0"
 strum = { version = "0.27.2", features = ["derive"] }
 lancedb = { version = "0.23.1", default-features = false }
 arrow-array = "57.2.0"
 arrow = { version = "57.2.0" }
 pythonize = "0.27.0"
 arrow-schema = "57.2.0"
+uuid = { version = "1.19.0", features = ["v7"] }
 
 
 
