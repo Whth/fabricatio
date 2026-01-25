@@ -1,18 +1,19 @@
 use crate::constants::{CONTENT_FIELD_NAME, ID_FIELD_NAME, METADATA_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME};
 use crate::utils::wraped;
-use arrow::buffer::{Buffer, ScalarBuffer};
 use arrow_array::array::*;
 use arrow_array::cast::AsArray;
 use arrow_array::types::*;
+
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
 use lancedb::Table;
-use pyo3::exceptions::{PyRuntimeError, PySystemError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
