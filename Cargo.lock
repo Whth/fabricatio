@@ -2728,7 +2728,6 @@ dependencies = [
 name = "fabricatio-rag"
 version = "0.0.0"
 dependencies = [
- "arrow",
  "arrow-array",
  "cached",
  "criterion",
