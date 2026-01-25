@@ -74,7 +74,7 @@ impl SearchedDocument {
         let id_array = batch
             .column_by_name(ID_FIELD_NAME).map(|col| col.as_string::<i32>())
             .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                PyValueError::new_err(
                     format!("Missing or invalid {} column", ID_FIELD_NAME),
                 )
             })?;
@@ -84,15 +84,15 @@ impl SearchedDocument {
             .column_by_name(VECTOR_FIELD_NAME)
             .and_then(|col| col.as_fixed_size_list_opt())
             .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                PyValueError::new_err(
                     format!("Missing or invalid {} column", VECTOR_FIELD_NAME),
                 )
             })?;
         let vector_values = vector_array.value(row_idx);
         let float_array = vector_values
-            .as_primitive_opt::<arrow::datatypes::Float32Type>()
+            .as_primitive_opt::<Float32Type>()
             .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                PyValueError::new_err(
                     "Vector column is not Float32 type",
                 )
             })?;
@@ -101,7 +101,7 @@ impl SearchedDocument {
         let content_array = batch
             .column_by_name(CONTENT_FIELD_NAME).map(|col| col.as_string::<i32>())
             .ok_or_else(|| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                PyValueError::new_err(
                     format!("Missing or invalid {} column", CONTENT_FIELD_NAME),
                 )
             })?;
