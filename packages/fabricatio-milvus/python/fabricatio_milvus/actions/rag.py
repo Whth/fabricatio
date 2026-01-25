@@ -8,12 +8,12 @@ from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
 
-from fabricatio_rag.capabilities.rag import RAG
-from fabricatio_rag.config import rag_config
-from fabricatio_rag.models.rag import MilvusClassicModel, MilvusDataBase
+from fabricatio_milvus.capabilities.milvus import MilvusRAG
+from fabricatio_milvus.config import milvus_config
+from fabricatio_milvus.models.milvus import MilvusClassicModel, MilvusDataBase
 
 
-class InjectToDB(Action, RAG):
+class InjectToDB(Action, MilvusRAG):
     """Inject data into the database."""
 
     output_key: str = "collection_name"
@@ -41,7 +41,7 @@ class InjectToDB(Action, RAG):
             schema=seq[0].as_milvus_schema(
                 ok(
                     self.milvus_dimensions
-                    or rag_config.milvus_dimensions
+                    or milvus_config.milvus_dimensions
                     or self.embedding_dimensions
                     or CONFIG.embedding.dimensions
                 ),
@@ -57,7 +57,7 @@ class InjectToDB(Action, RAG):
         return self.collection_name
 
 
-class RAGTalk(Action, RAG):
+class MilvusRAGTalk(Action, MilvusRAG):
     """RAG-enabled conversational action that processes user questions based on a given task.
 
     This action establishes an interactive conversation loop where it retrieves context-relevant

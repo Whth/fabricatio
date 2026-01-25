@@ -10,12 +10,12 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
 from fabricatio_core.utils import ok
-from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.capabilities.rag import MilvusRAG
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from pydantic import Field, PositiveInt
 
-from fabricatio_typst.capabilities.citation_rag import CitationRAG
+from fabricatio_typst.capabilities.citation_rag import CitationMilvusRAG
 from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
@@ -49,7 +49,7 @@ TYPST_MATH_USAGE = (
 )
 
 
-class WriteArticleContentRAG(Action, Extract, CitationRAG):
+class WriteArticleContentRAG(Action, Extract, CitationMilvusRAG):
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -228,7 +228,7 @@ class WriteArticleContentRAG(Action, Extract, CitationRAG):
         )
 
 
-class ArticleConsultRAG(Action, CitationRAG):
+class ArticleConsultRAG(Action, CitationMilvusRAG):
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -286,7 +286,7 @@ class ArticleConsultRAG(Action, CitationRAG):
         return counter
 
 
-class TweakArticleRAG(Action, RAG, Censor):
+class TweakArticleMilvusRAG(Action, MilvusRAG, Censor):
     """Write an article based on the provided outline.
 
     This class inherits from `Action`, `RAG`, and `Censor` to provide capabilities for writing and refining articles

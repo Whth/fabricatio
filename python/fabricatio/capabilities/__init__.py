@@ -14,7 +14,6 @@ if is_installed("fabricatio_tool"):
 
     __all__ += ["Handle", "HandleTask", "UseTool"]
 
-
 if is_installed("fabricatio_capabilities"):
     from fabricatio_capabilities.capabilities.extract import Extract
     from fabricatio_capabilities.capabilities.rating import Rating
@@ -23,11 +22,9 @@ if is_installed("fabricatio_capabilities"):
     __all__ += ["DispatchTask", "Extract", "HandleTask", "ProposeTask", "Rating"]
 
 if is_installed("fabricatio_rag"):
-    from fabricatio_rag.capabilities.rag import RAG
-
     __all__ += ["RAG"]
     if is_installed("fabricatio_write"):
-        from fabricatio_typst.capabilities.citation_rag import CitationRAG
+        pass
 
     __all__ += ["CitationRAG"]
 

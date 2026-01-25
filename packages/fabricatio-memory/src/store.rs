@@ -17,7 +17,6 @@ use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
 use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
-use utils::mwrap;
 
 /// MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories
 /// in a Tantivy search index. It supports operations such as adding, updating, deleting, and searching
@@ -33,22 +32,21 @@ use utils::mwrap;
 #[pyclass]
 pub struct MemoryStore {
     index: Arc<Index>,
+    /// tantivy allows only one writer at a time
     writer: Arc<Mutex<IndexWriter>>,
-    reader: Arc<IndexReader>,
+    reader: IndexReader,
 }
 
 impl MemoryStore {
-    pub fn new(index: Arc<Index>, writer_buffer_size: usize) -> PyResult<Self> {
+    pub fn new(index: Arc<Index>, index_writer: Arc<Mutex<IndexWriter>>) -> PyResult<Self> {
         Ok(Self {
-            index: index.clone(),
-            writer: mwrap(index.writer(writer_buffer_size).into_pyresult()?),
-            reader: Arc::new(
-                index
-                    .reader_builder()
-                    .reload_policy(ReloadPolicy::Manual)
-                    .try_into()
-                    .into_pyresult()?,
-            ),
+            reader: index
+                .reader_builder()
+                .reload_policy(ReloadPolicy::Manual)
+                .try_into()
+                .into_pyresult()?,
+            writer: index_writer,
+            index,
         })
     }
     #[inline]
@@ -123,7 +121,7 @@ impl MemoryStore {
     /// Add a new memory to the system and return its ID
     #[pyo3(signature = (content, importance, tags, write = false))]
     pub fn add_memory(
-        &mut self,
+        &self,
         content: String,
         importance: u64,
         tags: Vec<String>,

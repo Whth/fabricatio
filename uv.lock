@@ -23,6 +23,7 @@ members = [
     "fabricatio-judge",
     "fabricatio-locale",
     "fabricatio-memory",
+    "fabricatio-milvus",
     "fabricatio-mock",
     "fabricatio-novel",
     "fabricatio-plot",
@@ -508,7 +509,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.24.1"
+version = "0.24.2"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -556,6 +557,7 @@ full = [
     { name = "fabricatio-judge" },
     { name = "fabricatio-locale" },
     { name = "fabricatio-memory" },
+    { name = "fabricatio-milvus" },
     { name = "fabricatio-novel" },
     { name = "fabricatio-plot" },
     { name = "fabricatio-question" },
@@ -581,6 +583,9 @@ locale = [
 ]
 memory = [
     { name = "fabricatio-memory" },
+]
+milvus = [
+    { name = "fabricatio-milvus" },
 ]
 novel = [
     { name = "fabricatio-novel" },
@@ -651,7 +656,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fabricatio", extras = ["rag", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui"], marker = "extra == 'full'", editable = "." },
+    { name = "fabricatio", extras = ["rag", "typst", "rule", "judge", "capabilities", "actions", "improve", "digest", "memory", "anki", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui", "milvus"], marker = "extra == 'full'", editable = "." },
     { name = "fabricatio-actions", marker = "extra == 'actions'", editable = "packages/fabricatio-actions" },
     { name = "fabricatio-agent", marker = "extra == 'agent'", editable = "packages/fabricatio-agent" },
     { name = "fabricatio-anki", marker = "extra == 'anki'", editable = "packages/fabricatio-anki" },
@@ -666,6 +671,7 @@ requires-dist = [
     { name = "fabricatio-judge", marker = "extra == 'judge'", editable = "packages/fabricatio-judge" },
     { name = "fabricatio-locale", marker = "extra == 'locale'", editable = "packages/fabricatio-locale" },
     { name = "fabricatio-memory", marker = "extra == 'memory'", editable = "packages/fabricatio-memory" },
+    { name = "fabricatio-milvus", marker = "extra == 'milvus'", editable = "packages/fabricatio-milvus" },
     { name = "fabricatio-novel", marker = "extra == 'novel'", editable = "packages/fabricatio-novel" },
     { name = "fabricatio-plot", marker = "extra == 'plot'", editable = "packages/fabricatio-plot" },
     { name = "fabricatio-question", marker = "extra == 'question'", editable = "packages/fabricatio-question" },
@@ -680,7 +686,7 @@ requires-dist = [
     { name = "fabricatio-webui", marker = "extra == 'webui'", editable = "packages/fabricatio-webui" },
     { name = "fabricatio-yue", marker = "extra == 'yue'", editable = "packages/fabricatio-yue" },
 ]
-provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui"]
+provides-extras = ["full", "anki", "memory", "digest", "rag", "judge", "rule", "typst", "improve", "capabilities", "actions", "question", "tagging", "yue", "tool", "plot", "translate", "locale", "diff", "thinking", "agent", "team", "capable", "novel", "character", "checkpoint", "webui", "milvus"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -900,7 +906,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-checkpoint"
-version = "0.3.0.dev0"
+version = "0.3.0"
 source = { editable = "packages/fabricatio-checkpoint" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -928,7 +934,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-core"
-version = "0.5.3.dev0"
+version = "0.5.3"
 source = { editable = "packages/fabricatio-core" }
 dependencies = [
     { name = "asyncio" },
@@ -1072,7 +1078,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-memory"
-version = "0.3.1"
+version = "0.3.2.dev0"
 source = { editable = "packages/fabricatio-memory" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1094,6 +1100,35 @@ requires-dist = [
     { name = "fabricatio-judge", marker = "extra == 'selective'", editable = "packages/fabricatio-judge" },
 ]
 provides-extras = ["selective"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "fabricatio-milvus"
+version = "0.1.0"
+source = { editable = "packages/fabricatio-milvus" }
+dependencies = [
+    { name = "fabricatio-core" },
+    { name = "fabricatio-rag" },
+    { name = "more-itertools" },
+    { name = "pydantic" },
+    { name = "pymilvus" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
+    { name = "fabricatio-rag", editable = "packages/fabricatio-rag" },
+    { name = "more-itertools", specifier = ">=10.8.0" },
+    { name = "pydantic", specifier = ">=2.7.1" },
+    { name = "pymilvus", specifier = ">=2.5.4" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -1230,8 +1265,6 @@ version = "0.1.13"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
-    { name = "pydantic" },
-    { name = "pymilvus" },
 ]
 
 [package.dev-dependencies]
@@ -1240,11 +1273,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "fabricatio-core", editable = "packages/fabricatio-core" },
-    { name = "pydantic", specifier = ">=2.7.4" },
-    { name = "pymilvus", specifier = ">=2.5.4" },
-]
+requires-dist = [{ name = "fabricatio-core", editable = "packages/fabricatio-core" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]

@@ -4,7 +4,7 @@ import asyncio
 
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as BaseRole
-from fabricatio.actions import RAGTalk
+from fabricatio.actions import MilvusRAGTalk
 from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_core.utils import ok
 
@@ -24,7 +24,7 @@ async def main() -> None:
         skills={
             Event.quick_instantiate(e := "answer").collapse(): WorkFlow(
                 name="answer",
-                steps=(RAGTalk,),
+                steps=(MilvusRAGTalk,),
             ).update_init_context(collection_name="article_essence"),
         },
     )

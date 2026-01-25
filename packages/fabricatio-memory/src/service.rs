@@ -7,9 +7,9 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use tantivy::Index;
+use std::sync::{Arc, Mutex};
 use tantivy::directory::*;
+use tantivy::{Index, IndexWriter};
 
 type IndexName = String;
 
@@ -17,7 +17,8 @@ type IndexName = String;
 #[pyclass]
 pub struct MemoryService {
     store_root_directory: PathBuf,
-    cache: Cache<IndexName, Arc<Index>>,
+    index_cache: Cache<IndexName, Arc<Index>>,
+    index_writer_cache: Cache<IndexName, Arc<Mutex<IndexWriter>>>,
     writer_buffer_size: usize,
 }
 
@@ -34,12 +35,22 @@ impl MemoryService {
         let index_path = self.index_path_of(&index_name)?;
         fs::create_dir_all(&index_path).into_pyresult()?;
 
-        self.cache
-            .try_get_with(index_name.clone(), || {
+        self.index_cache
+            .try_get_with(index_name, || {
                 Index::open_or_create(MmapDirectory::open(index_path)?, SCHEMA.clone())
                     .map(Arc::new)
             })
             .into_pyresult()
+    }
+
+    fn get_index_writer(&self, index_name: IndexName) -> PyResult<Arc<Mutex<IndexWriter>>> {
+        self.index_writer_cache
+            .try_get_with(index_name.clone(), || {
+                let index = self.get_index(index_name)?;
+                let index_writer = index.writer(self.writer_buffer_size).into_pyresult()?;
+                Ok(Arc::new(Mutex::new(index_writer)))
+            })
+            .map_err(|e: Arc<PyErr>| Arc::try_unwrap(e).expect("Unable to unwrap Arc"))
     }
 }
 
@@ -57,7 +68,8 @@ impl MemoryService {
     pub fn new(store_root_directory: PathBuf, writer_buffer_size: usize, cache_size: u64) -> Self {
         MemoryService {
             store_root_directory,
-            cache: Cache::new(cache_size),
+            index_cache: Cache::new(cache_size),
+            index_writer_cache: Cache::new(cache_size),
             writer_buffer_size,
         }
     }
@@ -79,8 +91,9 @@ impl MemoryService {
     /// * If there's an error creating or opening the index
     /// * If there's an error creating the MemoryStore instance
     pub fn get_store(&self, store_name: IndexName) -> PyResult<MemoryStore> {
-        let index = self.get_index(store_name)?;
-        MemoryStore::new(index, self.writer_buffer_size)
+        let index = self.get_index(store_name.clone())?;
+
+        MemoryStore::new(index, self.get_index_writer(store_name)?)
     }
 
     /// List all stores in the system
@@ -104,7 +117,11 @@ impl MemoryService {
         }
 
         if cached_only {
-            return Ok(self.cache.iter().map(|(k, _)| k.to_string()).collect());
+            return Ok(self
+                .index_cache
+                .iter()
+                .map(|(k, _)| k.to_string())
+                .collect());
         }
 
         Ok(fs::read_dir(&self.store_root_directory)
