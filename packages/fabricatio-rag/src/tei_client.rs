@@ -39,7 +39,7 @@ impl TEIClient {
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
     )]
     fn connect<'a>(python: Python<'a>, base_url: String) -> PyResult<Bound<'a, PyAny>> {
-        debug!("Connecting to {}",base_url);
+        debug!("Connecting to {}", base_url);
         future_into_py(python, async move {
             let client = TEIClient {
                 channel: Channel::from_shared(base_url)

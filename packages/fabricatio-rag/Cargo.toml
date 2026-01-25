@@ -13,16 +13,20 @@ pyo3-async-runtimes = { version = "0.27.0", features = ["tokio-runtime"] }
 tonic-prost = "0.14.2"
 tonic = "0.14.2"
 prost = "0.14.3"
-fabricatio-logger = { path = "../../crates/fabricatio-logger" }
-error-mapping = { path = "../../crates/error-mapping", features = ["tonic", "http", "strum", "lancedb"] }
+fabricatio-logger = { workspace = true }
+error-mapping = { workspace = true, features = ["tonic", "http", "strum", "lancedb", "serde_json", "pythonize"] }
 pyo3-stub-gen = "0.18.0"
 strum = { version = "0.27.2", features = ["derive"] }
 lancedb = { version = "0.23.1", default-features = false }
-arrow-array = "57.2.0"
-arrow = { version = "57.2.0" }
 pythonize = "0.27.0"
-arrow-schema = "57.2.0"
 uuid = { version = "1.19.0", features = ["v7"] }
+cached = "0.56.0"
+serde_json = "1.0.149"
+arrow-array = "56.2.0"
+arrow = "56.2.0"
+tokio = "1.49.0"
+rayon = "1.11.0"
+futures-util = "0.3.31"
 
 
 
@@ -36,3 +40,12 @@ tonic-prost-build = "0.14.2"
 [features]
 default = ["pyo3/extension-module"]
 stubgen = []
+
+[dev-dependencies]
+criterion = "0.8.1"
+
+
+
+[[bench]]
+name = "schema_bench"
+harness = false

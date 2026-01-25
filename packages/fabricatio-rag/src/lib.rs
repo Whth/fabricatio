@@ -1,12 +1,13 @@
 #![feature(iterator_try_collect)]
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
-mod schema;
+pub mod constants;
+pub mod schema;
 mod service;
 mod store;
 mod tei;
 mod tei_client;
-mod constants;
+mod utils;
 
 use fabricatio_logger::init_logger_auto;
 use pyo3::prelude::*;
