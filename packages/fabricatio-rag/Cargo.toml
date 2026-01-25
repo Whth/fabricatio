@@ -14,7 +14,10 @@ tonic-prost = "0.14.2"
 tonic = "0.14.2"
 prost = "0.14.3"
 fabricatio-logger = { workspace = true }
-error-mapping = { workspace = true, features = ["tonic", "http", "strum", "lancedb", "serde_json", "pythonize"] }
+error-mapping = { workspace = true, features = [
+    "tonic", "http", "strum", "lancedb", "serde_json", "pythonize",
+    "pyo3_cast"
+] }
 pyo3-stub-gen = "0.18.0"
 strum = { version = "0.27.2", features = ["derive"] }
 lancedb = { version = "0.23.1", default-features = false }

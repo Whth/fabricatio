@@ -29,6 +29,8 @@ cfg_if!(
         impl_as_pyerr!(std::io::Error, PyOSError);
         impl_as_pyerr!(std::path::StripPrefixError, PyRuntimeError);
         impl_as_pyerr!(std::sync::PoisonError<T>, PyRuntimeError);
+        impl_as_pyerr!(std::time::SystemTimeError, PySystemError);
+
     }
 );
 
@@ -104,4 +106,13 @@ impl_as_pyerr!(lancedb::Error, PyOSError);
 impl_as_pyerr!(strum::ParseError, PyValueError);
 
 
+
+
+cfg_if!(
+if #[cfg(feature = "pyo3_cast")]
+{
+impl_as_pyerr!(pyo3::CastIntoError<'_>, PyValueError);
+impl_as_pyerr!(pyo3::CastError<'_,'_>, PyValueError);
+}
+);
 

@@ -38,7 +38,7 @@ tonic = ["dep:tonic"]
 http = ["dep:http"]
 tantivy = ["dep:tantivy"]
 mcp-manager = ["dep:mcp-manager"]
-pyo3_castinto = []
+pyo3_cast = []
 
 std = []
 

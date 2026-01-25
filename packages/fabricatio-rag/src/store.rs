@@ -131,15 +131,13 @@ impl Document {
         match self.metadata.clone() {
             None => Ok(PyDict::new(python)),
             Some(v) => {
-                let a = pythonize(
+                pythonize(
                     python,
                     &serde_json::from_str::<Value>(v.as_str()).into_pyresult()?,
                 )
                     .into_pyresult()?
                     .cast_into_exact::<PyDict>()
-                    .map_err(|e| PyTypeError::new_err(e.to_string()));
-
-                a
+                    .into_pyresult()
             }
         }
     }
@@ -173,7 +171,7 @@ impl VectorStoreTable {
             .clone();
 
         let ndim = match vector_field_ref.data_type() {
-            DataType::FixedSizeList(_, size) => size.clone(),
+            DataType::FixedSizeList(_, size) => *size,
             _ => {
                 return Err(PyRuntimeError::new_err(
                     "Vector field is not a `FixedSizeList`".to_string(),
@@ -254,7 +252,7 @@ impl VectorStoreTable {
     fn make_container(length: usize) -> PyResult<DataContainers> {
         let stamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|e| PySystemError::new_err(e.to_string()))?
+            .into_pyresult()?
             .as_micros() as i64;
 
         let id_seq: Vec<String> = vec![];
@@ -278,8 +276,7 @@ impl VectorStoreTable {
             .iter()
             .map(|document| {
                 let doc = document
-                    .extract::<Document>()
-                    .map_err(|e| PyTypeError::new_err(e.to_string()))?;
+                    .extract::<Document>()?;
                 Ok(doc)
             })
             .collect::<PyResult<Vec<Document>>>()?;
@@ -324,8 +321,7 @@ impl VectorStoreTable {
                 for batch in a {
                     for i in 0..batch.num_rows() {
                         results.push(
-                            SearchedDocument::from_record_batch_row(&batch, i)
-                                .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                            SearchedDocument::from_record_batch_row(&batch, i)?
                         );
                     }
                 }
