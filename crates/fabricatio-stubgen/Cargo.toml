@@ -6,13 +6,24 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = "0.17.2"
-fabricatio-core = { path = "../../packages/fabricatio-core", features = ["stubgen"], default-features = false }
-fabricatio-memory = { path = "../../packages/fabricatio-memory", features = ["stubgen"], default-features = false }
-fabricatio-diff = { path = "../../packages/fabricatio-diff", features = ["stubgen"], default-features = false }
-fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", features = ["stubgen"], default-features = false }
+pyo3-stub-gen = "0.18.0"
+fabricatio-core = { path = "../../packages/fabricatio-core", default-features = false, optional = true }
+fabricatio-memory = { path = "../../packages/fabricatio-memory", default-features = false, optional = true }
+fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = false, optional = true }
+fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", default-features = false, optional = true }
+fabricatio-rag = { path = "../../packages/fabricatio-rag", default-features = false, optional = true }
 
 
 
 [build-dependencies]
 pyo3-build-config = "0.27.2"
+
+
+
+[features]
+stubgen = ["fabricatio-core/stubgen",
+    "fabricatio-memory/stubgen",
+    "fabricatio-diff/stubgen",
+    "fabricatio-checkpoint/stubgen",
+    "fabricatio-rag/stubgen"
+]

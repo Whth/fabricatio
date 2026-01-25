@@ -8,7 +8,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = "0.17.2"
+pyo3-stub-gen = "0.18.0"
 pyo3 = "0.27.2"
 fabricatio-constants = { path = "../fabricatio-constants" }
 

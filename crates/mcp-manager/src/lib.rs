@@ -4,7 +4,7 @@ pub use error::McpError;
 use error::McpError::RmcpError;
 use futures::future::BoxFuture;
 use futures::{FutureExt, StreamExt, TryFutureExt, stream};
-use rmcp::model::{CallToolRequestParam, Tool};
+use rmcp::model::{CallToolRequestParams, Tool};
 use rmcp::service::{DynService, RunningService};
 use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
@@ -14,7 +14,6 @@ use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use std::collections::HashMap;
-use std::default::Default;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use tokio::process::Command;
@@ -207,9 +206,11 @@ impl MCPManager {
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
             .map(|client| {
-                client.call_tool(CallToolRequestParam {
+                client.call_tool(CallToolRequestParams {
+                    meta: None,
                     name: tool_name.to_owned().into(),
                     arguments,
+                    task: None,
                 })
             })?
             .await

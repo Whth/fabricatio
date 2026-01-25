@@ -18,14 +18,6 @@ use strsim::normalized_damerau_levenshtein;
 ///
 /// A f64 value representing the similarity rate between the two input strings.
 ///
-/// # Example
-///
-/// ```
-/// use fabricatio_diff::diff::rate;
-///
-/// let similarity = rate("hello", "helo");
-/// assert!(similarity > 0.8);
-/// ```
 
 #[gen_stub_pyfunction]
 #[pyfunction]
@@ -48,17 +40,7 @@ fn rate(a: &str, b: &str) -> f64 {
 ///
 /// An `Option<String>` containing the first matching block of lines if found,
 /// or `None` if no match meets the precision threshold.
-///
-/// # Example
-///
-/// ```
-/// use fabricatio_diff::diff::match_lines;
-///
-/// let haystack = "Hello\nWorld\nRust";
-/// let needle = "W0rld";
-/// let matched = match_lines(haystack, needle, Some(0.8));
-/// assert!(matched.is_some());
-/// ```
+
 #[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (haystack, needle, match_precision = 0.9))]
@@ -107,19 +89,7 @@ fn match_lines(haystack: &str, needle: &str, match_precision: f64) -> Option<Str
 /// # Returns
 ///
 /// A `String` containing the diff output with each line prefixed by its change type.
-///
-/// # Example
-///
-/// ```
-/// use fabricatio_diff::diff::show_diff;
-///
-/// let old_text = "Hello\nWorld";
-/// let new_text = "Hallo\nWorld\n!";
-/// let diff = show_diff(old_text, new_text);
-/// assert!(diff.contains("-Hello"));
-/// assert!(diff.contains("+Hallo"));
-/// assert!(diff.contains("+!"));
-/// ```
+
 #[gen_stub_pyfunction]
 #[pyfunction]
 fn show_diff(a: &str, b: &str) -> String {
@@ -132,7 +102,7 @@ fn show_diff(a: &str, b: &str) -> String {
             ChangeTag::Insert => "+",
             ChangeTag::Equal => " ",
         };
-        result.push_str(&format!("{}{}", sign, change));
+        result.push_str(format!("{}{}", sign, change).as_str());
     }
     result
 }

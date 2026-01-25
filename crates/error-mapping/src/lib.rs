@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-pub use pyo3::PyResult;
 use pyo3::exceptions::*;
+pub use pyo3::PyResult;
 
 /// A trait for converting Rust results to Python results
 pub trait AsPyErr<T> {
@@ -91,3 +91,17 @@ impl_as_pyerr!(tantivy::directory::error::OpenDirectoryError, PyOSError);
 
 #[cfg(feature = "mcp-manager")]
 impl_as_pyerr!(mcp_manager::McpError, PyRuntimeError);
+
+cfg_if!(
+
+if #[cfg(feature = "lancedb")]
+{
+impl_as_pyerr!(lancedb::Error, PyOSError);
+}
+);
+
+#[cfg(feature = "strum")]
+impl_as_pyerr!(strum::ParseError, PyValueError);
+
+
+
