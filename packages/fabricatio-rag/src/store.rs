@@ -65,56 +65,14 @@ pub struct SearchedDocument {
     metadata: Option<JsonString>,
 }
 
+
 impl SearchedDocument {
-    /// 从 RecordBatch 行创建 SearchedDocument
-    fn from_record_batch_row(
-        batch: &RecordBatch,
-        row_idx: usize,
-    ) -> PyResult<Self> {
-        let id_array = batch
-            .column_by_name(ID_FIELD_NAME).map(|col| col.as_string::<i32>())
-            .ok_or_else(|| {
-                PyValueError::new_err(
-                    format!("Missing or invalid {} column", ID_FIELD_NAME),
-                )
-            })?;
-        let id = id_array.value(row_idx).to_string();
-
-        let vector_array = batch
-            .column_by_name(VECTOR_FIELD_NAME)
-            .and_then(|col| col.as_fixed_size_list_opt())
-            .ok_or_else(|| {
-                PyValueError::new_err(
-                    format!("Missing or invalid {} column", VECTOR_FIELD_NAME),
-                )
-            })?;
-        let vector_values = vector_array.value(row_idx);
-        let float_array = vector_values
-            .as_primitive_opt::<Float32Type>()
-            .ok_or_else(|| {
-                PyValueError::new_err(
-                    "Vector column is not Float32 type",
-                )
-            })?;
-        let vector: Vec<f32> = float_array.values().iter().copied().collect();
-
-        let content_array = batch
-            .column_by_name(CONTENT_FIELD_NAME).map(|col| col.as_string::<i32>())
-            .ok_or_else(|| {
-                PyValueError::new_err(
-                    format!("Missing or invalid {} column", CONTENT_FIELD_NAME),
-                )
-            })?;
-        let content = content_array.value(row_idx).to_string();
-
-
-        let metadata = if let Some(col) = batch.column_by_name(METADATA_FIELD_NAME) {
-            if col.is_null(row_idx) {
-                None
-            } else { col.as_string_opt::<i32>().map(|str_arr| str_arr.value(row_idx).to_string()) }
-        } else {
-            None
-        };
+    /// Build a SearchedDocument from a single row in a RecordBatch.
+    fn from_record_batch_row(batch: &RecordBatch, row_idx: usize) -> PyResult<Self> {
+        let id = Self::extract_string_column(batch, ID_FIELD_NAME, row_idx)?;
+        let vector = Self::extract_f32_vector_column(batch, VECTOR_FIELD_NAME, row_idx)?;
+        let content = Self::extract_string_column(batch, CONTENT_FIELD_NAME, row_idx)?;
+        let metadata = Self::extract_optional_string_column(batch, METADATA_FIELD_NAME, row_idx)?;
 
         Ok(Self {
             id,
@@ -123,8 +81,92 @@ impl SearchedDocument {
             metadata,
         })
     }
-}
 
+    // --- Helper methods ---
+
+    #[inline]
+    fn extract_string_column(
+        batch: &RecordBatch,
+        col_name: &str,
+        row_idx: usize,
+    ) -> PyResult<String> {
+        let array = batch
+            .column_by_name(col_name)
+            .ok_or_else(|| Self::missing_column_error(col_name))?
+            .as_string_opt::<i32>()
+            .ok_or_else(|| Self::invalid_type_error(col_name, "string"))?;
+
+        if array.is_null(row_idx) {
+            return Err(Self::null_value_error(col_name, row_idx));
+        }
+
+        Ok(array.value(row_idx).to_string())
+    }
+
+    #[inline]
+    fn extract_optional_string_column(
+        batch: &RecordBatch,
+        col_name: &str,
+        row_idx: usize,
+    ) -> PyResult<Option<String>> {
+        if let Some(col) = batch.column_by_name(col_name)
+            && let Some(str_arr) = col.as_string_opt::<i32>() {
+            if str_arr.is_null(row_idx) {
+                return Ok(None);
+            }
+            return Ok(Some(str_arr.value(row_idx).to_string()));
+        }
+        Ok(None)
+    }
+
+    #[inline]
+    fn extract_f32_vector_column(
+        batch: &RecordBatch,
+        col_name: &str,
+        row_idx: usize,
+    ) -> PyResult<Vec<f32>> {
+        let list_array = batch
+            .column_by_name(col_name)
+            .ok_or_else(|| Self::missing_column_error(col_name))?
+            .as_fixed_size_list_opt()
+            .ok_or_else(|| Self::invalid_type_error(col_name, "fixed-size list"))?;
+
+        let values = list_array.value(row_idx);
+        let float_array = values
+            .as_primitive_opt::<Float32Type>()
+            .ok_or_else(|| Self::invalid_vector_type_error(col_name))?;
+
+        Ok(float_array.values().iter().copied().collect())
+    }
+
+    // --- Error utilities (private, inline, zero-cost) ---
+
+    #[inline]
+    fn missing_column_error(col_name: &str) -> PyErr {
+        PyValueError::new_err(format!("Column '{}' not found in table schema", col_name))
+    }
+
+    #[inline]
+    fn invalid_type_error(col_name: &str, expected: &str) -> PyErr {
+        PyValueError::new_err(format!("Column '{}' is not of expected type: {}", col_name, expected))
+    }
+
+    #[inline]
+    fn invalid_vector_type_error(col_name: &str) -> PyErr {
+        PyValueError::new_err(format!(
+            "Vector column '{}' does not contain f32 values (required for embeddings)",
+            col_name
+        ))
+    }
+
+    #[inline]
+    fn null_value_error(col_name: &str, row_idx: usize) -> PyErr {
+        PyValueError::new_err(format!(
+            "Non-nullable column '{}' is null at row {}",
+            col_name, row_idx
+        ))
+    }
+}
 #[gen_stub_pymethods]
 #[pymethods]
 impl Document {
