@@ -65,7 +65,7 @@ impl TEIClient {
     /// sorted by relevance score in descending order
     #[pyo3(signature = (query, texts, truncate=false, truncation_direction="Left"))]
     #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[typing.List[typing.Tuple[int, float]]",imports=("typing",)
+        override_return_type(type_repr = "typing.Awaitable[typing.List[typing.Tuple[int, float]]]",imports=("typing",)
         )
     )]
     fn arerank<'py>(
@@ -101,6 +101,17 @@ impl TEIClient {
                 .collect::<Vec<(u32, f32)>>())
         })
     }
+
+
+    /// Generates token-level embeddings for the given text.
+    ///
+    /// # Arguments
+    /// * `text` - The input text to generate token embeddings for
+    /// * `truncate` - Whether to truncate the input text if it exceeds the maximum length
+    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
+    ///
+    /// # Returns
+    /// An awaitable that resolves to a list of lists of floats representing the token embeddings
     #[pyo3(signature = ( text, truncate=false, truncation_direction="Left"))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]",imports=("typing",)

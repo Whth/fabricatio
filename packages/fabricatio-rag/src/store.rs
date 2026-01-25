@@ -9,9 +9,9 @@ use arrow_array::types::*;
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
-use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -56,13 +56,24 @@ pub struct Document {
     metadata: Option<JsonString>,
 }
 
+
+/// Represents a document that has been searched and retrieved from the vector store.
+///
+/// This structure contains the core information of a searched document including
+/// its unique identifier, content, timestamp of creation/modification, and any
+/// associated metadata stored as JSON string.
 #[gen_stub_pyclass]
 #[pyclass(get_all)]
 #[derive(Clone, Debug)]
 pub struct SearchedDocument {
+    /// Unique identifier for the document, typically generated as a UUID string.
     id: UuidString,
+    /// The textual content of the document that was searched and matched.
     content: String,
-    vector: Vector,
+    /// Timestamp indicating when the document was created or last updated.
+    timestamp: TimeStamp,
+    /// Optional metadata associated with the document, stored as a JSON string.
+    /// This can include additional contextual information about the document.
     metadata: Option<JsonString>,
 }
 
@@ -70,14 +81,14 @@ impl SearchedDocument {
     /// Build a SearchedDocument from a single row in a RecordBatch.
     fn from_record_batch_row(batch: &RecordBatch, row_idx: usize) -> PyResult<Self> {
         let id = Self::extract_string_column(batch, ID_FIELD_NAME, row_idx)?;
-        let vector = Self::extract_f32_vector_column(batch, VECTOR_FIELD_NAME, row_idx)?;
+        let timestamp = Self::extract_i64_column(batch, TIMESTAMP_FIELD_NAME, row_idx)?;
         let content = Self::extract_string_column(batch, CONTENT_FIELD_NAME, row_idx)?;
         let metadata = Self::extract_optional_string_column(batch, METADATA_FIELD_NAME, row_idx)?;
 
         Ok(Self {
             id,
             content,
-            vector,
+            timestamp,
             metadata,
         })
     }
@@ -121,24 +132,24 @@ impl SearchedDocument {
     }
 
     #[inline]
-    fn extract_f32_vector_column(
+    fn extract_i64_column(
         batch: &RecordBatch,
         col_name: &str,
         row_idx: usize,
-    ) -> PyResult<Vec<f32>> {
-        let list_array = batch
+    ) -> PyResult<i64> {
+        let array = batch
             .column_by_name(col_name)
             .ok_or_else(|| Self::missing_column_error(col_name))?
-            .as_fixed_size_list_opt()
-            .ok_or_else(|| Self::invalid_type_error(col_name, "fixed-size list"))?;
+            .as_primitive_opt::<Int64Type>()
+            .ok_or_else(|| Self::invalid_type_error(col_name, "i64"))?;
 
-        let values = list_array.value(row_idx);
-        let float_array = values
-            .as_primitive_opt::<Float32Type>()
-            .ok_or_else(|| Self::invalid_vector_type_error(col_name))?;
+        if array.is_null(row_idx) {
+            return Err(Self::null_value_error(col_name, row_idx));
+        }
 
-        Ok(float_array.values().iter().copied().collect())
+        Ok(array.value(row_idx))
     }
+
 
     // --- Error utilities (private, inline, zero-cost) ---
 
@@ -155,13 +166,6 @@ impl SearchedDocument {
         ))
     }
 
-    #[inline]
-    fn invalid_vector_type_error(col_name: &str) -> PyErr {
-        PyValueError::new_err(format!(
-            "Vector column '{}' does not contain f32 values (required for embeddings)",
-            col_name
-        ))
-    }
 
     #[inline]
     fn null_value_error(col_name: &str, row_idx: usize) -> PyErr {
@@ -174,6 +178,16 @@ impl SearchedDocument {
 #[gen_stub_pymethods]
 #[pymethods]
 impl Document {
+    /// Create a new Document instance.
+    #[new]
+    fn new(content: String, vector: Vector, metadata: Option<JsonString>) -> Self {
+        Self { content, vector, metadata }
+    }
+
+    /// Access the metadata of the document.
+    ///
+    /// Returns a Python dictionary representation of the document's metadata.
+    /// If no metadata exists, returns an empty dictionary.
     fn access_metadata<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
         match self.metadata.clone() {
             None => Ok(PyDict::new(python)),
@@ -181,9 +195,9 @@ impl Document {
                 python,
                 &serde_json::from_str::<Value>(v.as_str()).into_pyresult()?,
             )
-            .into_pyresult()?
-            .cast_into_exact::<PyDict>()
-            .into_pyresult(),
+                .into_pyresult()?
+                .cast_into_exact::<PyDict>()
+                .into_pyresult(),
         }
     }
 }
@@ -312,6 +326,17 @@ impl VectorStoreTable {
 #[gen_stub_pymethods]
 #[pymethods]
 impl VectorStoreTable {
+    /// Add multiple documents to the vector store.
+    ///
+    /// This method takes a list of documents and asynchronously adds them to the table.
+    /// Each document will be assigned a unique ID and timestamp upon insertion.
+    ///
+    /// # Arguments
+    /// * `documents` - A list of `Document` objects to be added to the store
+    ///
+    /// # Returns
+    /// A Python Future that resolves to a list of strings representing the IDs
+    /// of the documents that were successfully added to the store.
     fn add_documents<'a>(
         &self,
         python: Python<'a>,
@@ -331,6 +356,18 @@ impl VectorStoreTable {
         )
     }
 
+    /// Search for documents similar to the given embedding vector.
+    ///
+    /// This method performs a nearest neighbor search in the vector store to find
+    /// documents whose embeddings are closest to the provided query embedding.
+    ///
+    /// # Arguments
+    /// * `embedding` - A vector representing the query embedding for similarity search
+    /// * `limit` - The maximum number of similar documents to return
+    ///
+    /// # Returns
+    /// A Python Future that resolves to a list of `SearchedDocument` objects
+    /// representing the most similar documents found in the store.
     fn search_document<'a>(
         &self,
         python: Python<'a>,
@@ -374,5 +411,6 @@ impl VectorStoreTable {
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<VectorStoreTable>()?;
     m.add_class::<Document>()?;
+    m.add_class::<SearchedDocument>()?;
     Ok(())
 }
