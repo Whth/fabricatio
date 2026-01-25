@@ -1,4 +1,6 @@
-use crate::constants::{CONTENT_FIELD_NAME, ID_FIELD_NAME, METADATA_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME};
+use crate::constants::{
+    CONTENT_FIELD_NAME, ID_FIELD_NAME, METADATA_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME,
+};
 use crate::utils::wraped;
 use arrow_array::array::*;
 use arrow_array::cast::AsArray;
@@ -7,9 +9,9 @@ use arrow_array::types::*;
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
+use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
-use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -54,7 +56,6 @@ pub struct Document {
     metadata: Option<JsonString>,
 }
 
-
 #[gen_stub_pyclass]
 #[pyclass(get_all)]
 #[derive(Clone, Debug)]
@@ -64,7 +65,6 @@ pub struct SearchedDocument {
     vector: Vector,
     metadata: Option<JsonString>,
 }
-
 
 impl SearchedDocument {
     /// Build a SearchedDocument from a single row in a RecordBatch.
@@ -110,7 +110,8 @@ impl SearchedDocument {
         row_idx: usize,
     ) -> PyResult<Option<String>> {
         if let Some(col) = batch.column_by_name(col_name)
-            && let Some(str_arr) = col.as_string_opt::<i32>() {
+            && let Some(str_arr) = col.as_string_opt::<i32>()
+        {
             if str_arr.is_null(row_idx) {
                 return Ok(None);
             }
@@ -148,7 +149,10 @@ impl SearchedDocument {
 
     #[inline]
     fn invalid_type_error(col_name: &str, expected: &str) -> PyErr {
-        PyValueError::new_err(format!("Column '{}' is not of expected type: {}", col_name, expected))
+        PyValueError::new_err(format!(
+            "Column '{}' is not of expected type: {}",
+            col_name, expected
+        ))
     }
 
     #[inline]
@@ -173,15 +177,13 @@ impl Document {
     fn access_metadata<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
         match self.metadata.clone() {
             None => Ok(PyDict::new(python)),
-            Some(v) => {
-                pythonize(
-                    python,
-                    &serde_json::from_str::<Value>(v.as_str()).into_pyresult()?,
-                )
-                    .into_pyresult()?
-                    .cast_into_exact::<PyDict>()
-                    .into_pyresult()
-            }
+            Some(v) => pythonize(
+                python,
+                &serde_json::from_str::<Value>(v.as_str()).into_pyresult()?,
+            )
+            .into_pyresult()?
+            .cast_into_exact::<PyDict>()
+            .into_pyresult(),
         }
     }
 }
@@ -318,8 +320,7 @@ impl VectorStoreTable {
         let docs = documents
             .iter()
             .map(|document| {
-                let doc = document
-                    .extract::<Document>()?;
+                let doc = document.extract::<Document>()?;
                 Ok(doc)
             })
             .collect::<PyResult<Vec<Document>>>()?;
@@ -338,40 +339,34 @@ impl VectorStoreTable {
     ) -> PyResult<Bound<'a, PyAny>> {
         let table = self.table.clone();
 
+        future_into_py(python, async move {
+            let a = table
+                .query()
+                .nearest_to(embedding)
+                .into_pyresult()?
+                .limit(limit)
+                .select(Select::Columns(vec![
+                    ID_FIELD_NAME.to_string(),
+                    TIMESTAMP_FIELD_NAME.to_string(),
+                    CONTENT_FIELD_NAME.to_string(),
+                    METADATA_FIELD_NAME.to_string(),
+                ]))
+                .execute()
+                .await
+                .into_pyresult()?
+                .try_collect::<Vec<RecordBatch>>()
+                .await
+                .into_pyresult()?;
 
-        future_into_py(
-            python,
-            async move {
-                let a = table.query()
-                    .nearest_to(embedding)
-                    .into_pyresult()?
-                    .limit(limit)
-                    .select(Select::Columns(
-                        vec![ID_FIELD_NAME.to_string(),
-                             TIMESTAMP_FIELD_NAME.to_string(),
-                             CONTENT_FIELD_NAME.to_string(),
-                             METADATA_FIELD_NAME.to_string()
-                        ]
-                    ))
-                    .execute().await
-                    .into_pyresult()?
-                    .try_collect::<Vec<RecordBatch>>()
-                    .await
-                    .into_pyresult()?;
-
-
-                let mut results = Vec::new();
-                for batch in a {
-                    for i in 0..batch.num_rows() {
-                        results.push(
-                            SearchedDocument::from_record_batch_row(&batch, i)?
-                        );
-                    }
+            let mut results = Vec::new();
+            for batch in a {
+                for i in 0..batch.num_rows() {
+                    results.push(SearchedDocument::from_record_batch_row(&batch, i)?);
                 }
+            }
 
-                Ok(results)
-            },
-        )
+            Ok(results)
+        })
     }
 }
 

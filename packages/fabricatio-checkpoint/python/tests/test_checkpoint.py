@@ -97,7 +97,7 @@ def test_rollback_with_external_absolute_path(role: CheckpointRole, tmp_worktree
     external_file = tmp_path / "test1.txt"
     external_file.write_text(texts * 3)
 
-    with pytest.raises(match="prefix not found"):
+    with pytest.raises(RuntimeError, match="prefix not found"):
         role.rollback(id_1, external_file.absolute())
     role.rollback(id_1, file1.absolute())
 

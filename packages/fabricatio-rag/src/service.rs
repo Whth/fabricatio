@@ -1,6 +1,4 @@
-use crate::constants::{
-    ID_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME,
-};
+use crate::constants::{ID_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME};
 use crate::schema::schema_of;
 use crate::store::VectorStoreTable;
 use error_mapping::AsPyErr;

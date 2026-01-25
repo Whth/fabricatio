@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-use pyo3::exceptions::*;
 pub use pyo3::PyResult;
+use pyo3::exceptions::*;
 
 /// A trait for converting Rust results to Python results
 pub trait AsPyErr<T> {
@@ -105,9 +105,6 @@ impl_as_pyerr!(lancedb::Error, PyOSError);
 #[cfg(feature = "strum")]
 impl_as_pyerr!(strum::ParseError, PyValueError);
 
-
-
-
 cfg_if!(
 if #[cfg(feature = "pyo3_cast")]
 {
@@ -115,4 +112,3 @@ impl_as_pyerr!(pyo3::CastIntoError<'_>, PyValueError);
 impl_as_pyerr!(pyo3::CastError<'_,'_>, PyValueError);
 }
 );
-
