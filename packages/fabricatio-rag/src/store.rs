@@ -9,16 +9,17 @@ use arrow_array::types::*;
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
+use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
-use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
+use crate::utils;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
-use pythonize::pythonize;
+use pythonize::{depythonize, pythonize};
 use rayon::prelude::*;
 use serde_json::Value;
 use std::iter::repeat_n;
@@ -48,14 +49,13 @@ type DataContainers = (
 );
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(set_all, get_all)]
 #[derive(Clone, Debug)]
-pub struct Document {
+pub struct StoreDocument {
     content: String,
     vector: Vector,
     metadata: Option<JsonString>,
 }
-
 
 /// Represents a document that has been searched and retrieved from the vector store.
 ///
@@ -75,6 +75,56 @@ pub struct SearchedDocument {
     /// Optional metadata associated with the document, stored as a JSON string.
     /// This can include additional contextual information about the document.
     metadata: Option<JsonString>,
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl SearchedDocument {
+    /// Access the metadata of the document.
+    ///
+    /// Returns a Python dictionary representation of the document's metadata.
+    /// If no metadata exists, returns an empty dictionary.
+    fn access_metadata<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
+        self.metadata
+            .as_ref()
+            .map_or(Ok(PyDict::new(python)), |v| utils::to_dict(python, v))
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl StoreDocument {
+    /// Create a new Document instance.
+    #[new]
+    fn new(content: String, vector: Vector, metadata: Option<JsonString>) -> Self {
+        Self {
+            content,
+            vector,
+            metadata,
+        }
+    }
+
+    /// Create a new Document instance with metadata dict.
+    #[staticmethod]
+    fn with_metadata(
+        content: String,
+        vector: Vector,
+        metadata: Option<Bound<PyDict>>,
+    ) -> PyResult<Self> {
+        let metadata = metadata
+            .map(|obj| {
+                depythonize::<Value>(&obj)
+                    .into_pyresult()
+                    .and_then(|v| serde_json::to_string(&v).into_pyresult())
+            })
+            .transpose()?;
+
+        Ok(Self {
+            content,
+            vector,
+            metadata,
+        })
+    }
 }
 
 impl SearchedDocument {
@@ -132,11 +182,7 @@ impl SearchedDocument {
     }
 
     #[inline]
-    fn extract_i64_column(
-        batch: &RecordBatch,
-        col_name: &str,
-        row_idx: usize,
-    ) -> PyResult<i64> {
+    fn extract_i64_column(batch: &RecordBatch, col_name: &str, row_idx: usize) -> PyResult<i64> {
         let array = batch
             .column_by_name(col_name)
             .ok_or_else(|| Self::missing_column_error(col_name))?
@@ -149,7 +195,6 @@ impl SearchedDocument {
 
         Ok(array.value(row_idx))
     }
-
 
     // --- Error utilities (private, inline, zero-cost) ---
 
@@ -166,39 +211,12 @@ impl SearchedDocument {
         ))
     }
 
-
     #[inline]
     fn null_value_error(col_name: &str, row_idx: usize) -> PyErr {
         PyValueError::new_err(format!(
             "Non-nullable column '{}' is null at row {}",
             col_name, row_idx
         ))
-    }
-}
-#[gen_stub_pymethods]
-#[pymethods]
-impl Document {
-    /// Create a new Document instance.
-    #[new]
-    fn new(content: String, vector: Vector, metadata: Option<JsonString>) -> Self {
-        Self { content, vector, metadata }
-    }
-
-    /// Access the metadata of the document.
-    ///
-    /// Returns a Python dictionary representation of the document's metadata.
-    /// If no metadata exists, returns an empty dictionary.
-    fn access_metadata<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
-        match self.metadata.clone() {
-            None => Ok(PyDict::new(python)),
-            Some(v) => pythonize(
-                python,
-                &serde_json::from_str::<Value>(v.as_str()).into_pyresult()?,
-            )
-                .into_pyresult()?
-                .cast_into_exact::<PyDict>()
-                .into_pyresult(),
-        }
     }
 }
 
@@ -248,7 +266,7 @@ impl VectorStoreTable {
         ndim: i32,
         table: Table,
         schema_ref: SchemaRef,
-        documents: Vec<Document>,
+        documents: Vec<StoreDocument>,
     ) -> PyResult<Vec<String>> {
         let (mut id_seq, timestamp_seq, mut vector_seq, mut content_seq, mut metadata_seq) =
             Self::make_container(documents.len())?;
@@ -281,7 +299,7 @@ impl VectorStoreTable {
 
     #[inline]
     fn inject_data(
-        documents: Vec<Document>,
+        documents: Vec<StoreDocument>,
         id_seq: &mut Vec<String>,
         vector_seq: &mut Vec<Option<WrappedVector>>,
         content_seq: &mut Vec<String>,
@@ -345,10 +363,10 @@ impl VectorStoreTable {
         let docs = documents
             .iter()
             .map(|document| {
-                let doc = document.extract::<Document>()?;
+                let doc = document.extract::<StoreDocument>()?;
                 Ok(doc)
             })
-            .collect::<PyResult<Vec<Document>>>()?;
+            .collect::<PyResult<Vec<StoreDocument>>>()?;
 
         future_into_py(
             python,
@@ -410,7 +428,7 @@ impl VectorStoreTable {
 /// register the module
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<VectorStoreTable>()?;
-    m.add_class::<Document>()?;
+    m.add_class::<StoreDocument>()?;
     m.add_class::<SearchedDocument>()?;
     Ok(())
 }
