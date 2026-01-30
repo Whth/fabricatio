@@ -1,0 +1,17 @@
+[package]
+name = "thryd"
+version = "0.1.0"
+edition = "2024"
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0.100"
+openai = "1.1.1"
+reqwest = "0.13.1"
+serde = "1.0.228"
+serde_json = "1.0.149"
+thiserror = "2.0.18"
+tiktoken-rs = "0.9.1"
+tokio = "1.49.0"
