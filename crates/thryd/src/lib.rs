@@ -15,7 +15,7 @@ pub mod route;
 pub mod tracker;
 
 // Re-export commonly used types
-pub use cache::{CacheConfig, PersistentCache, CacheStats};
+pub use cache::{CacheConfig, CacheStats, PersistentCache};
 pub use connections::{ClientConfig, ClientEntry, ConnectionStats};
 pub use constants::*;
 pub use error::{Result, ThrydError};
@@ -72,10 +72,10 @@ pub async fn init(config: ThrydConfig) -> Result<Router> {
     // Add cache if configured
     if let Some(cache_config) = config.cache
         && let Some(path) = cache_config.persist_path {
-            let cache = PersistentCache::open(path)
-                .map_err(ThrydError::CacheIoError)?;
-            router = router.with_cache(cache);
-        }
+        let cache = PersistentCache::open(path)
+            .map_err(ThrydError::CacheIoError)?;
+        router = router.with_cache(cache);
+    }
 
     // Add providers
     for provider_config in config.providers {
@@ -87,7 +87,7 @@ pub async fn init(config: ThrydConfig) -> Result<Router> {
             provider_config.name.clone(),
             provider_config.provider_type,
             provider_config.model,
-        );
+        )?;
 
         if let Some(base) = provider_config.api_base {
             deployment = deployment.with_api_base(base);
@@ -122,7 +122,7 @@ mod tests {
             api_key: Some("test-key".into()),
             priority: 100,
         };
-        
+
         assert_eq!(config.name, "test");
         assert_eq!(config.provider_type, "openai");
         assert_eq!(config.model, "gpt-4");

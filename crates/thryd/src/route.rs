@@ -333,7 +333,7 @@ mod tests {
         let ctx = RouteContext::new()
             .with_tokens(100)
             .with_model("gpt-4");
-        
+
         assert_eq!(ctx.estimated_input_tokens, 100);
         assert_eq!(ctx.model, Some("gpt-4".to_string()));
     }
