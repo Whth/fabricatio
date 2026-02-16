@@ -10,7 +10,7 @@ fn count_token(string: String) -> u32 {
         .len() as u32
 }
 
-
+/// Records token usage and timestamp for a single API request
 #[derive(Debug, Clone)]
 pub struct RequestInfo {
     input_token: u32,
@@ -19,11 +19,16 @@ pub struct RequestInfo {
 }
 
 impl RequestInfo {
+    /// Returns total tokens used in this request
     fn total_token(&self) -> u32 {
         self.input_token + self.output_token
     }
 }
 
+/// Tracks API usage within a sliding time window for quota management
+///
+/// Maintains a queue of past requests and provides methods to check
+/// current usage against RPM (requests per minute) and TPM (tokens per minute) quotas.
 #[derive(Debug)]
 pub struct UsageTracker {
     request_infos: VecDeque<RequestInfo>,
@@ -33,6 +38,9 @@ pub struct UsageTracker {
 }
 
 impl UsageTracker {
+    /// Creates a new tracker with both RPM and TPM quotas
+    ///
+    /// Window size defaults to 60 seconds (60000ms)
     pub fn new(tpm: u32, rpm: u32) -> Self {
         Self {
             tpm_quota: Some(tpm),
@@ -41,6 +49,7 @@ impl UsageTracker {
         }
     }
 
+    /// Creates a tracker with custom window size (in milliseconds)
     pub fn with_window_size(window_size_ms: u64) -> Self {
         Self {
             window_size_ms,
@@ -48,6 +57,7 @@ impl UsageTracker {
         }
     }
 
+    /// Creates a tracker with only TPM quota
     pub fn with_tpm(tpm_quota: u32) -> Self {
         Self {
             tpm_quota: Some(tpm_quota),
@@ -55,6 +65,7 @@ impl UsageTracker {
         }
     }
 
+    /// Creates a tracker with only RPM quota
     pub fn with_rpm(rpm_quota: u32) -> Self {
         Self {
             rpm_quota: Some(rpm_quota),
@@ -62,7 +73,9 @@ impl UsageTracker {
         }
     }
 
-    /// 添加新的请求信息
+    /// Records a new request with given token counts
+    ///
+    /// Adds request with current timestamp and maintains queue size limit
     fn add_request(&mut self, input_token: u32, output_token: u32) -> &mut Self {
         let timestamp = self.current_timestamp();
         self.request_infos.push_back(RequestInfo {
@@ -71,7 +84,7 @@ impl UsageTracker {
             timestamp,
         });
 
-        // 限制队列大小，防止内存无限增长
+        // Prevent unbounded memory growth
         if self.request_infos.len() > MAX_BUFFER_SIZE {
             self.request_infos.pop_front();
         }
@@ -79,11 +92,12 @@ impl UsageTracker {
         self
     }
 
+    /// Records a request by counting tokens from input/output strings
     fn add_raw_request(&mut self, input_str: String, output_string: String) -> &mut Self {
         self.add_request(count_token(input_str), count_token(output_string))
     }
 
-    /// 获取当前时间戳（毫秒）
+    /// Returns current system time in milliseconds since UNIX epoch
     fn current_timestamp(&self) -> u64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -91,22 +105,29 @@ impl UsageTracker {
             .as_millis() as u64
     }
 
+    /// Returns timestamp marking the start of current window
     fn window_start(&self) -> u64 {
         self.current_timestamp().saturating_sub(self.window_size_ms)
     }
 
-    /// 清理过期的请求信息（从头部移除）
+    /// Removes all requests older than current window
+    ///
+    /// Uses partition_point for efficient binary search on sorted timestamps
     fn populate_expired(&mut self) -> &Self {
         self.request_infos.drain(..self.windows_start_index()).count();
         self
     }
 
-    /// 获取窗口内的请求（已按时间排序）
+    /// Returns references to all requests within current window
+    ///
+    /// Maintains chronological order of requests
     fn window_requests(&self) -> Vec<&RequestInfo> {
         self.request_infos.iter().skip(self.windows_start_index()).collect()
     }
 
-
+    /// Returns index of first request within current window
+    ///
+    /// Uses binary search (partition_point) since requests are time-ordered
     fn windows_start_index(&self) -> usize {
         let window_start = self.window_start();
 
@@ -114,13 +135,14 @@ impl UsageTracker {
             .partition_point(|req| req.timestamp < window_start)
     }
 
-
-    /// 计算RPM（每分钟请求数）
+    /// Calculates current RPM (requests per minute) within window
     fn rpm(&self) -> u32 {
         self.window_requests().len() as u32
     }
 
-    /// 计算TPM（每分钟总token数）- 使用 u64 防止溢出
+    /// Calculates current TPM (tokens per minute) within window
+    ///
+    /// Returns u64 to prevent overflow when summing many requests
     fn tpm(&self) -> u64 {
         self.window_requests()
             .iter()
@@ -128,61 +150,78 @@ impl UsageTracker {
             .sum()
     }
 
-    /// 获取窗口大小（毫秒）
+    /// Returns current window size in milliseconds
     fn window_size_ms(&self) -> u64 {
         self.window_size_ms
     }
 
-    /// 设置窗口大小（毫秒）
+    /// Sets new window size in milliseconds
     fn set_window_size(&mut self, window_size_ms: u64) {
         self.window_size_ms = window_size_ms;
     }
 
-    // ====== 配额相关方法 ======
+    // ====== Quota Management ======
 
+    /// Sets or removes RPM quota
     fn set_rpm_quota(&mut self, quota: Option<u32>) {
         self.rpm_quota = quota;
     }
 
+    /// Sets or removes TPM quota
     fn set_tpm_quota(&mut self, quota: Option<u32>) {
         self.tpm_quota = quota;
     }
 
+    /// Returns current RPM quota if set
     fn rpm_quota(&self) -> Option<u32> {
         self.rpm_quota
     }
 
+    /// Returns current TPM quota if set
     fn tpm_quota(&self) -> Option<u32> {
         self.tpm_quota
     }
 
+    /// Returns remaining requests allowed in current window, if quota exists
     fn remaining_rpm(&self) -> Option<u32> {
         self.rpm_quota.map(|quota| quota.saturating_sub(self.rpm()))
     }
 
+    /// Returns remaining tokens allowed in current window, if quota exists
     fn remaining_tpm(&self) -> Option<u64> {
         self.tpm_quota.map(|quota| (quota as u64).saturating_sub(self.tpm()))
     }
 
+    /// Checks if a request with given input tokens can be made now
+    ///
+    /// Verifies both RPM and TPM quotas would not be exceeded
     fn can_make_request(&self, input_tokens: u32) -> bool {
         self.can_make_rpm_request() && self.can_make_tpm_request(input_tokens)
     }
 
+    /// Checks if RPM quota allows another request now
     fn can_make_rpm_request(&self) -> bool {
         self.rpm_quota.is_none_or(|quota| self.rpm() < quota)
     }
 
+    /// Checks if TPM quota allows another request with given tokens
+    ///
+    /// Assumes output tokens are unknown, only checks input tokens
     fn can_make_tpm_request(&self, input_tokens: u32) -> bool {
         self.tpm_quota
             .is_none_or(|quota| (self.tpm() as u32).saturating_add(input_tokens) <= quota)
     }
 
+    /// Checks if request with given input text can be made now
     fn can_make_raw_request(&self, input_string: String) -> bool {
         self.can_make_request(count_token(input_string))
     }
 
-    // ====== 冷却时间计算方法 ======
+    // ====== Waiting Time Calculation ======
 
+    /// Estimates time until all current window requests expire
+    ///
+    /// Returns time until the earliest request in window expires
     fn estimated_full_cool_down_time(&self) -> u64 {
         let window_reqs = self.window_requests();
         if window_reqs.is_empty() {
@@ -192,20 +231,28 @@ impl UsageTracker {
         earliest_exit_time.saturating_sub(self.current_timestamp())
     }
 
+    /// Estimates wait time based on token quota for given input tokens
     fn estimated_waiting_time_for_tokens(&self, input_tokens: u32) -> u64 {
         self.estimated_waiting_time_for_request(input_tokens, 0)
     }
 
+    /// Estimates wait time based on token quota for given input text
     fn estimated_waiting_time_for_text(&self, input_text: String) -> u64 {
         self.estimated_waiting_time_for_tokens(count_token(input_text))
     }
 
+    /// Estimates total wait time considering both RPM and TPM quotas
+    ///
+    /// Returns maximum of RPM and TPM wait times
     fn estimated_waiting_time_for_request(&self, input_tokens: u32, output_tokens: u32) -> u64 {
         let rpm_wait = self.calculate_rpm_wait();
         let tpm_wait = self.calculate_tpm_wait_for_tokens(input_tokens + output_tokens);
         rpm_wait.max(tpm_wait)
     }
 
+    /// Calculates time until RPM quota allows another request
+    ///
+    /// Finds the request that must expire to free up a slot
     fn calculate_rpm_wait(&self) -> u64 {
         self.rpm_quota.map_or(0, |quota| {
             let window_reqs = self.window_requests();
@@ -225,6 +272,9 @@ impl UsageTracker {
         })
     }
 
+    /// Calculates time until TPM quota allows given number of new tokens
+    ///
+    /// Finds which request must expire to free up enough tokens
     fn calculate_tpm_wait_for_tokens(&self, new_tokens: u32) -> u64 {
         self.tpm_quota.map_or(0, |quota| {
             let window_reqs = self.window_requests();
@@ -242,6 +292,9 @@ impl UsageTracker {
         })
     }
 
+    /// Finds the earliest time when enough tokens expire to satisfy quota
+    ///
+    /// Accumulates tokens from oldest to newest until reaching excess_tokens
     fn find_exit_time_for_excess_tokens(&self, requests: &[&RequestInfo], excess_tokens: u64) -> u64 {
         let mut accumulated: u64 = 0;
         for req in requests {
@@ -254,14 +307,19 @@ impl UsageTracker {
         0
     }
 
+    /// Checks if request can be sent immediately (zero wait time)
     fn can_send_now(&self, input_tokens: u32, output_tokens: u32) -> bool {
         self.estimated_waiting_time_for_request(input_tokens, output_tokens) == 0
     }
 
+    /// Checks if request with given text can be sent immediately
     fn can_send_text_now(&self, input_text: String) -> bool {
         self.estimated_waiting_time_for_text(input_text) == 0
     }
 
+    /// Builds cumulative token usage over time for debugging
+    ///
+    /// Returns vector of (timestamp, cumulative_tokens)
     fn build_cumulative_tokens(&self, requests: &[&RequestInfo]) -> Vec<(u64, u64)> {
         let mut result = Vec::with_capacity(requests.len());
         let mut total: u64 = 0;
@@ -272,12 +330,17 @@ impl UsageTracker {
         result
     }
 
+    /// Alias for estimated_full_cool_down_time
     fn estimated_waiting_time(&self) -> u64 {
         self.estimated_full_cool_down_time()
     }
 }
 
 impl Default for UsageTracker {
+    /// Creates tracker with default settings:
+    /// - 60 second window
+    /// - No quotas
+    /// - Pre-allocated queue with MIN_BUFFER_SIZE capacity
     fn default() -> Self {
         Self {
             request_infos: VecDeque::with_capacity(MIN_BUFFER_SIZE),
