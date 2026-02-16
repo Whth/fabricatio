@@ -2,16 +2,22 @@
 name = "thryd"
 version = "0.1.0"
 edition = "2024"
+description = "A light weight, embeded llm request router, with cache."
 authors.workspace = true
 license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
-anyhow = "1.0.100"
-openai = "1.1.1"
-reqwest = "0.13.1"
-serde = "1.0.228"
+async-openai = { version = "0.32.4", features = ["completions"] }
+async-trait = "0.1.89"
+cached = "0.56.0"
+moka = { version = "0.12.13", features = ["sync"] }
+once_cell = "1.21.3"
+reqwest = { version = "0.13.1", features = ["json"] }
+secrecy = "0.10.3"
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+sled = "0.34.7"
 thiserror = "2.0.18"
 tiktoken-rs = "0.9.1"
 tokio = "1.49.0"
