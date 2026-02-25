@@ -45,11 +45,12 @@ impl UsageTracker {
         }
     }
 
+
     /// Create tracker with quotas (default 60s window)
-    pub fn with_quota(token_quota: u32, request_quota: u32) -> Self {
+    pub fn with_quota(tpm_quota: u32, rpm_quota: u32) -> Self {
         Self {
-            token_quota: Some(token_quota),
-            request_quota: Some(request_quota),
+            token_quota: Some(tpm_quota),
+            request_quota: Some(rpm_quota),
             ..Self::default()
         }
     }
@@ -62,21 +63,6 @@ impl UsageTracker {
         }
     }
 
-    /// Create tracker with token quota only
-    pub fn with_token_quota(token_quota: u32) -> Self {
-        Self {
-            token_quota: Some(token_quota),
-            ..Self::default()
-        }
-    }
-
-    /// Create tracker with request quota only
-    pub fn with_request_quota(request_quota: u32) -> Self {
-        Self {
-            request_quota: Some(request_quota),
-            ..Self::default()
-        }
-    }
 
     /// Record a request with token counts
     pub fn add_request(&mut self, input_token: u32, output_token: u32) -> &mut Self {
@@ -141,6 +127,7 @@ impl UsageTracker {
     pub fn remaining_tpm(&self) -> Option<u64> {
         self.remaining_tokens()
     }
+
 
     /// Check if request can be made with given input tokens
     pub fn can_make_request(&self, input_tokens: u32) -> bool {
