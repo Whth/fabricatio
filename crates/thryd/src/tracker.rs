@@ -47,10 +47,10 @@ impl UsageTracker {
 
 
     /// Create tracker with quotas (default 60s window)
-    pub fn with_quota(tpm_quota: u32, rpm_quota: u32) -> Self {
+    pub fn with_quota(tpm_quota: Option<u32>, rpm_quota: Option<u32>) -> Self {
         Self {
-            token_quota: Some(tpm_quota),
-            request_quota: Some(rpm_quota),
+            token_quota: tpm_quota,
+            request_quota: rpm_quota,
             ..Self::default()
         }
     }
@@ -78,6 +78,11 @@ impl UsageTracker {
         }
 
         self
+    }
+
+
+    pub fn add_request_raw(&mut self, input_text: String, output_text: String) -> &mut Self {
+        self.add_request(count_token(input_text), count_token(output_text))
     }
 
     /// Get total requests in current window
@@ -265,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_can_make_request() {
-        let mut t = UsageTracker::with_quota(100, 5);
+        let mut t = UsageTracker::with_quota(Some(100), Some(5));
         assert!(t.can_make_request(50)); // 50 tokens, 1 request
 
         // Exhaust quota
@@ -278,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_remaining() {
-        let mut t = UsageTracker::with_quota(100, 3);
+        let mut t = UsageTracker::with_quota(Some(100), Some(3));
         assert_eq!(t.remaining_requests(), Some(3));
         assert_eq!(t.remaining_tokens(), Some(100));
 

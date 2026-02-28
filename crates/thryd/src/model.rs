@@ -9,7 +9,7 @@ pub struct CompletionRequest {
 }
 
 
-pub trait Model {
+pub trait Model: Send + Sync {
     fn model_name(&self) -> &str;
 }
 
