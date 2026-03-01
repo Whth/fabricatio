@@ -1,9 +1,12 @@
 use async_trait::async_trait;
 
+#[derive(Debug, Clone)]
 pub struct EmbeddingRequest {
     pub input: Vec<String>,
 }
 
+
+#[derive(Debug, Clone)]
 pub struct CompletionRequest {
     pub input: String,
 }

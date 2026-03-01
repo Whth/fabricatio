@@ -23,6 +23,14 @@ impl<M: ?Sized + Model> Deployment<M> {
         self
     }
 
+    pub async fn is_ready_for(&self) -> bool {
+        if let Some(tracker) = &self.usage_tracker {
+            tracker.lock().await.has_capacity()
+        } else {
+            true
+        }
+    }
+
 
     pub async fn completion(&self, request: CompletionRequest) -> Result<String>
     where
@@ -41,7 +49,7 @@ impl<M: ?Sized + Model> Deployment<M> {
     }
 
 
-    pub async fn embeding(&self, request: EmbeddingRequest) -> Result<Vec<f32>>
+    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Vec<f32>>
     where
         M: EmbeddingModel,
     {

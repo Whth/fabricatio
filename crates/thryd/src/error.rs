@@ -96,6 +96,9 @@ pub enum ThrydError {
     /// Wraps Server-Sent Events (SSE) stream errors.
     #[error("SSE stream error: {0}")]
     SSE(#[from] EventStreamError<ReqwestError>),
+
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 

@@ -135,7 +135,7 @@ impl UsageTracker {
 
 
     /// Check if request can be made with given input tokens
-    pub fn can_make_request(&self, input_tokens: u32) -> bool {
+    pub fn can_make_request_with_token(&self, input_tokens: u32) -> bool {
         let req_ok = self.request_quota
             .is_none_or(|q| self.request_usage() < q);
 
@@ -144,6 +144,16 @@ impl UsageTracker {
 
         req_ok && token_ok
     }
+
+    pub fn can_make_request_with_raw(&self, input_text: String) -> bool {
+        self.can_make_request_with_token(count_token(input_text))
+    }
+
+
+    pub fn has_capacity(&self) -> bool {
+        self.can_make_request_with_token(1)
+    }
+
 
     /// Estimate wait time for given input tokens
     pub fn estimated_waiting_time_for_tokens(&self, input_tokens: u32) -> u64 {
@@ -271,14 +281,14 @@ mod tests {
     #[test]
     fn test_can_make_request() {
         let mut t = UsageTracker::with_quota(Some(100), Some(5));
-        assert!(t.can_make_request(50)); // 50 tokens, 1 request
+        assert!(t.can_make_request_with_token(50)); // 50 tokens, 1 request
 
         // Exhaust quota
         for _ in 0..5 {
             t.add_request(10, 0);
         }
 
-        assert!(!t.can_make_request(50)); // Would exceed request quota
+        assert!(!t.can_make_request_with_token(50)); // Would exceed request quota
     }
 
     #[test]
