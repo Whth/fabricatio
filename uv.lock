@@ -509,7 +509,7 @@ wheels = [
 
 [[package]]
 name = "fabricatio"
-version = "0.24.2"
+version = "0.25.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "fabricatio-core" },
@@ -969,7 +969,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-diff"
-version = "0.2.6"
+version = "0.2.7.dev0"
 source = { editable = "packages/fabricatio-diff" }
 dependencies = [
     { name = "fabricatio-core" },
@@ -1261,7 +1261,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "fabricatio-rag"
-version = "0.1.13"
+version = "0.2.0.dev0"
 source = { editable = "packages/fabricatio-rag" }
 dependencies = [
     { name = "fabricatio-core" },
