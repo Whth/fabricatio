@@ -1,3 +1,4 @@
+use async_openai::error::OpenAIError;
 use eventsource_stream::EventStreamError;
 use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeJsonError;
@@ -13,11 +14,6 @@ use url::ParseError;
 /// provider unavailability, configuration faults, and data validation errors.
 #[derive(Error, Debug)]
 pub enum ThrydError {
-    /// Indicates a generic error with a descriptive message.
-    /// Consolidates: InvalidRequest, ApiError, AuthenticationError, ConfigurationError, etc.
-    #[error("Operation failed: {0}")]
-    Generic(String),
-
     /// Indicates that a specific provider is unavailable.
     #[error("Provider '{provider}' is not available: {reason}")]
     ProviderUnavailable {
@@ -43,14 +39,6 @@ pub enum ThrydError {
         name: String,
         msg: String,
     },
-
-    /// Indicates that a required field is missing in the request or configuration.
-    #[error("Missing required field: {0}")]
-    MissingField(String),
-
-    /// Indicates that a provided parameter is invalid.
-    #[error("Invalid parameter: {0}")]
-    InvalidParameter(String),
 
     /// Indicates that a provided header value is invalid.
     #[error("Invalid header: {0}")]
@@ -96,6 +84,9 @@ pub enum ThrydError {
     /// Wraps Server-Sent Events (SSE) stream errors.
     #[error("SSE stream error: {0}")]
     SSE(#[from] EventStreamError<ReqwestError>),
+
+    #[error("Openai error: {0}")]
+    Openai(#[from] OpenAIError),
 
     #[error("Internal error: {0}")]
     Internal(String),

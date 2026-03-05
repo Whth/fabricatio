@@ -36,7 +36,7 @@ impl<M: ?Sized + Model> Deployment<M> {
     where
         M: CompletionModel,
     {
-        let input = request.input.to_string();
+        let input = request.message.to_string();
         let res = self.model.completion(request).await;
         if let Some(tracker) = &self.usage_tracker && let Ok(r) = &res {
             tracker
@@ -53,7 +53,7 @@ impl<M: ?Sized + Model> Deployment<M> {
     where
         M: EmbeddingModel,
     {
-        let input = request.input.iter().cloned().collect();
+        let input = request.texts.iter().cloned().collect();
         let res = self.model.embedding(request).await;
         if let Some(tracker) = &self.usage_tracker && res.is_ok() {
             tracker

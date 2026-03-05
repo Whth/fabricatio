@@ -1,14 +1,18 @@
 use async_trait::async_trait;
+use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EmbeddingRequest {
-    pub input: Vec<String>,
+    pub texts: Vec<String>,
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CompletionRequest {
-    pub input: String,
+    pub message: String,
+    pub model: String,
+    pub top_p: f32,
+    pub temperature: f32,
 }
 
 

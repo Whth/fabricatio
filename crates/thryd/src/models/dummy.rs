@@ -81,7 +81,10 @@ mod tests {
         let model = DummyModel::default().with_completion_responses(responses);
 
         let request = CompletionRequest {
-            input: "test prompt".to_string(),
+            message: "test prompt".to_string(),
+            model: "".to_string(),
+            top_p: 0.0,
+            temperature: 0.0,
         };
 
         let result1 = model.completion(request.clone()).await;
@@ -98,7 +101,10 @@ mod tests {
         let model = DummyModel::default();
 
         let request = CompletionRequest {
-            input: "test prompt".to_string(),
+            message: "test prompt".to_string(),
+            model: "".to_string(),
+            top_p: 0.0,
+            temperature: 0.0,
         };
 
         let result = model.completion(request).await;
@@ -115,7 +121,7 @@ mod tests {
         let model = DummyModel::default().with_embedding_responses(responses);
 
         let request = EmbeddingRequest {
-            input: vec!["test text".to_string()],
+            texts: vec!["test text".to_string()],
         };
 
         let result1 = model.embedding(request.clone()).await;
@@ -132,7 +138,7 @@ mod tests {
         let model = DummyModel::default();
 
         let request = EmbeddingRequest {
-            input: vec!["test text".to_string()],
+            texts: vec!["test text".to_string()],
 
         };
 
@@ -152,7 +158,10 @@ mod tests {
 
         // Test completion
         let completion_request = CompletionRequest {
-            input: "test".to_string(),
+            message: "test".to_string(),
+            model: "".to_string(),
+            top_p: 0.0,
+            temperature: 0.0,
         };
         let completion_result = model.completion(completion_request).await;
         assert!(completion_result.is_ok());
@@ -160,7 +169,7 @@ mod tests {
 
         // Test embedding
         let embedding_request = EmbeddingRequest {
-            input: vec!["test".to_string()],
+            texts: vec!["test".to_string()],
         };
         let embedding_result = model.embedding(embedding_request).await;
         assert!(embedding_result.is_ok());
@@ -168,13 +177,16 @@ mod tests {
 
         // Verify both queues are now empty
         let completion_request2 = CompletionRequest {
-            input: "test2".to_string(),
+            message: "test2".to_string(),
+            model: "".to_string(),
+            top_p: 0.0,
+            temperature: 0.0,
         };
         let completion_result2 = model.completion(completion_request2).await;
         assert!(completion_result2.is_err());
 
         let embedding_request2 = EmbeddingRequest {
-            input: vec!["test2".to_string()],
+            texts: vec!["test2".to_string()],
         };
         let embedding_result2 = model.embedding(embedding_request2).await;
         assert!(embedding_result2.is_err());
