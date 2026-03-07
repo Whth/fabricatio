@@ -49,6 +49,10 @@ impl Model for OpenaiModel {
     fn model_name(&self) -> &str {
         self.name.as_str()
     }
+
+    fn provider(&self) -> Arc<dyn Provider> {
+        self.provider.clone()
+    }
 }
 
 #[async_trait]
@@ -84,7 +88,7 @@ impl CompletionModel for OpenaiModel {
 
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
-    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
         todo!()
     }
 }

@@ -1,5 +1,8 @@
+use crate::provider::Provider;
+use crate::SEPARATE;
 use async_trait::async_trait;
 use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EmbeddingRequest {
@@ -18,6 +21,14 @@ pub struct CompletionRequest {
 
 pub trait Model: Send + Sync {
     fn model_name(&self) -> &str;
+
+
+    fn provider(&self) -> Arc<dyn Provider>;
+
+
+    fn identifier(&self) -> String {
+        format!("{}{SEPARATE}{}", self.provider().provider_name(), self.model_name())
+    }
 }
 
 #[async_trait]

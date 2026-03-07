@@ -1,4 +1,5 @@
 pub mod openai;
+pub mod dummy;
 
 use crate::connections::{ClientEntry, CONNECTIONS_POOL};
 use crate::{Result, ThrydError};
@@ -12,7 +13,7 @@ use url::Url;
 
 #[async_trait]
 pub trait Provider: Send + Sync {
-    fn name(&self) -> &'static str;
+    fn provider_name(&self) -> &'static str;
 
     /// Returns a type-erased reference to the underlying client.
     fn endpoint(&self) -> Url;
@@ -25,7 +26,7 @@ pub trait Provider: Send + Sync {
         )
             .map_err(
                 |e: Arc<ThrydError>| {
-                    ThrydError::ClientError { name: self.name().to_string(), msg: e.to_string() }
+                    ThrydError::ClientError { name: self.provider_name().to_string(), msg: e.to_string() }
                 }
             )
     }

@@ -1,4 +1,5 @@
 #![feature(associated_type_defaults)]
+#![feature(map_try_insert)]
 //! Thryd - A lightweight, embedded LLM request router with caching.
 //!
 //! This library provides:
@@ -18,6 +19,7 @@ mod deployment;
 mod message;
 mod model;
 pub mod models;
+pub(crate) mod utils;
 
 // Re-export commonly used types
 pub use cache::{CacheConfig, CacheStats, PersistentCache};

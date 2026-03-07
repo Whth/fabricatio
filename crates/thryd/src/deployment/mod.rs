@@ -18,6 +18,11 @@ impl<M: ?Sized + Model> Deployment<M> {
         }
     }
 
+    pub fn identifier(&self) -> String {
+        self.model.identifier()
+    }
+
+
     pub fn with_usage_constrain(mut self, rpm: Option<u32>, tpm: Option<u32>) -> Self {
         self.usage_tracker = Some(Mutex::new(UsageTracker::with_quota(tpm, rpm)));
         self

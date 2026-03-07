@@ -1,19 +1,23 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+use crate::provider::dummy::DummyProvider;
+use crate::provider::Provider;
 use async_trait::async_trait;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 pub struct DummyModel {
     name: String,
     response_q_string: Mutex<Vec<String>>,
     response_q_vec: Mutex<Vec<Vec<f32>>>,
+    provider: Arc<dyn Provider>,
 }
 
 impl DummyModel {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, provider: Arc<dyn Provider>) -> Self {
         Self {
             name,
             response_q_string: Mutex::new(vec![]),
             response_q_vec: Mutex::new(vec![]),
+            provider,
         }
     }
 
@@ -30,13 +34,17 @@ impl DummyModel {
 
 impl Default for DummyModel {
     fn default() -> Self {
-        Self::new("dummy".to_string())
+        Self::new("dummy".to_string(), Arc::new(DummyProvider::default()))
     }
 }
 
 impl Model for DummyModel {
     fn model_name(&self) -> &str {
         &self.name
+    }
+
+    fn provider(&self) -> Arc<dyn Provider> {
+        todo!()
     }
 }
 
@@ -71,7 +79,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dummy_model_with_name() {
-        let model = DummyModel::new("custom_model".to_string());
+        let model = DummyModel::new("custom_model".to_string(), Arc::new(DummyProvider::default()));
         assert_eq!(model.model_name(), "custom_model");
     }
 
@@ -152,7 +160,7 @@ mod tests {
         let completion_responses = vec!["completion_response".to_string()];
         let embedding_responses = vec![vec![1.0, 2.0, 3.0]];
 
-        let model = DummyModel::new("mixed_model".to_string())
+        let model = DummyModel::default()
             .with_completion_responses(completion_responses)
             .with_embedding_responses(embedding_responses);
 

@@ -88,6 +88,9 @@ pub enum ThrydError {
     #[error("Openai error: {0}")]
     Openai(#[from] OpenAIError),
 
+    #[error("Router error: {0}")]
+    Router(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

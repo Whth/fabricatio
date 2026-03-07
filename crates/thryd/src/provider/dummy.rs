@@ -4,13 +4,13 @@ use http::HeaderMap;
 use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
 
-pub struct OpenaiCompatible {
+pub struct DummyProvider {
     endpoint: Url,
     api_key: SecretString,
 }
 
 
-impl Default for OpenaiCompatible {
+impl Default for DummyProvider {
     fn default() -> Self {
         Self {
             endpoint: Url::parse("https://api.openai.com/v1").unwrap(),
@@ -20,9 +20,9 @@ impl Default for OpenaiCompatible {
 }
 
 
-impl Provider for OpenaiCompatible {
+impl Provider for DummyProvider {
     fn provider_name(&self) -> &'static str {
-        "openai"
+        "dummy"
     }
 
     fn endpoint(&self) -> Url {
