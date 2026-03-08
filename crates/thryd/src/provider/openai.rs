@@ -1,6 +1,6 @@
 use crate::provider::Provider;
 use http::header::AUTHORIZATION;
-use http::HeaderMap;
+use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
 
@@ -38,8 +38,13 @@ impl Provider for OpenaiCompatible {
 pub(crate) fn build_headers(key: &SecretString) -> Result<HeaderMap> {
     let mut h = HeaderMap::new();
 
+
+    let mut auth_header = HeaderValue::from_str(format!("Bearer {}", key.expose_secret()).as_str())?;
+
+    auth_header.set_sensitive(true);
+
     h.insert(AUTHORIZATION,
-             format!("Bearer {}", key.expose_secret()).parse()?);
+             auth_header);
     Ok(h)
 }
 
