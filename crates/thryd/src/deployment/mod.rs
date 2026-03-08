@@ -1,7 +1,11 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+use crate::tracker::count_token;
 use crate::Result;
 use crate::UsageTracker;
 use tokio::sync::Mutex;
+use tokio::time::{sleep, Duration};
+
+
 pub struct Deployment<M: ?Sized + Model> {
     model: Box<M>,
     usage_tracker: Option<Mutex<UsageTracker>>,
@@ -26,11 +30,23 @@ impl<M: ?Sized + Model> Deployment<M> {
         self
     }
 
-    pub async fn is_ready_for(&self) -> bool {
+    pub async fn is_ready(&self) -> bool {
         if let Some(tracker) = &self.usage_tracker {
             tracker.lock().await.has_capacity()
         } else {
             true
+        }
+    }
+
+    pub async fn wait_capacity_for(&self, input_text: String) -> Result<&Self> {
+        if let Some(tracker) = &self.usage_tracker {
+            let need = count_token(input_text);
+            while let time = tracker.lock().await.estimated_waiting_time_for_tokens(need) && time > 0 {
+                sleep(Duration::from_millis(time)).await;
+            }
+            Ok(self)
+        } else {
+            Ok(self)
         }
     }
 

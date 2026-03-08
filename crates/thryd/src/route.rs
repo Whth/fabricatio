@@ -110,7 +110,9 @@ impl<Tag: ModelTypeTag> Router<Tag> {
 
 impl Router<CompletionTag> {
     pub async fn completion(&self, send_to: DeploymentIdentifier, request: CompletionRequest) -> Result<String> {
-        self.get_deployment(send_to)?.completion(request).await
+        self.get_deployment(send_to)?.wait_capacity_for(request.message.to_string())
+            .await?
+            .completion(request).await
     }
 
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideCompletionModel>> {
@@ -141,7 +143,9 @@ impl Router<CompletionTag> {
 
 impl Router<EmbeddingTag> {
     pub async fn embedding(&self, send_to: DeploymentIdentifier, request: EmbeddingRequest) -> Result<Vec<f32>> {
-        self.get_deployment(send_to)?.embedding(request).await
+        self.get_deployment(send_to)?.wait_capacity_for(request.texts.join(""))
+            .await?
+            .embedding(request).await
     }
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideEmbeddingModel>> {
         self.providers.get(provider_name.as_str()).ok_or_else(
