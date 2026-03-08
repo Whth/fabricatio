@@ -2,11 +2,11 @@ pub mod openai;
 pub mod dummy;
 
 use crate::connections::{ClientEntry, CONNECTIONS_POOL};
+use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 use url::Url;
@@ -50,4 +50,11 @@ pub trait Provider: Send + Sync {
 }
 
 
+pub trait ProvideCompletionModel: Provider {
+    fn create_completion_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn CompletionModel>>;
+}
+
+pub trait ProvideEmbeddingModel: Provider {
+    fn create_embedding_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn EmbeddingModel>>;
+}
 

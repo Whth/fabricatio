@@ -1,10 +1,12 @@
-use crate::provider::Provider;
+use crate::model::{CompletionModel, EmbeddingModel};
+use crate::models::openai::OpenaiModel;
+use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
+use crate::Result;
 use http::header::AUTHORIZATION;
 use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
-
-use crate::Result;
+use std::sync::Arc;
 
 pub struct OpenaiCompatible {
     endpoint: Url,
@@ -35,6 +37,21 @@ impl Provider for OpenaiCompatible {
         build_headers(&self.api_key)
     }
 }
+
+impl ProvideCompletionModel for OpenaiCompatible {
+    fn create_completion_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn CompletionModel>> {
+        Ok(Box::new(OpenaiModel::new(model_name, self)))
+    }
+}
+
+
+impl ProvideEmbeddingModel for OpenaiCompatible {
+    fn create_embedding_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn EmbeddingModel>> {
+        Ok(Box::new(OpenaiModel::new(model_name, self)))
+    }
+}
+
+
 pub(crate) fn build_headers(key: &SecretString) -> Result<HeaderMap> {
     let mut h = HeaderMap::new();
 

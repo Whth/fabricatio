@@ -8,12 +8,10 @@ pub struct Deployment<M: ?Sized + Model> {
 }
 
 impl<M: ?Sized + Model> Deployment<M> {
-    pub fn new(model: M) -> Deployment<M>
-    where
-        M: Sized,
+    pub fn new(model: Box<M>) -> Deployment<M>
     {
         Self {
-            model: Box::new(model),
+            model,
             usage_tracker: None,
         }
     }

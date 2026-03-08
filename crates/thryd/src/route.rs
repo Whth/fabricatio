@@ -1,11 +1,10 @@
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::provider::Provider;
+use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
 use once_cell::sync::Lazy;
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::marker::PhantomData;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 
@@ -15,17 +14,17 @@ type ModelName = String;
 
 struct Router<Tag: ModelTypeTag> {
     cache: Option<PersistentCache>,
-    providers: HashMap<ProviderName, Arc<dyn Provider>>,
+    providers: HashMap<ProviderName, Arc<Tag::Provider>>,
     deployments: BTreeMap<DeploymentIdentifier, Deployment<Tag::Model>>,
-    _marker: PhantomData<Tag>,
 }
 
 
 impl<Tag: ModelTypeTag> Router<Tag> {
-    pub fn add_provider<P: Provider + 'static>(&mut self, provider: P) -> Result<&mut Self> {
+    pub fn add_provider(&mut self, provider: Arc<Tag::Provider>) -> Result<&mut Self>
+    {
         self.providers.try_insert(
             provider.provider_name().to_string(),
-            Arc::new(provider),
+            provider,
         ).map_err(
             |e|
                 ThrydError::Router(format!("Provider with `{}` is already added.", e.entry.key()))
@@ -34,9 +33,9 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
 
-    pub fn add_or_update_provider<P: Provider + 'static>(&mut self, provider: P) -> Result<&mut Self> {
+    pub fn add_or_update_provider(&mut self, provider: Arc<Tag::Provider>) -> Result<&mut Self> {
         if self.providers.contains_key(provider.provider_name()) {
-            self.remove_provider(&provider.provider_name())?;
+            self.remove_provider(provider.provider_name())?;
         }
         self.add_provider(provider)
     }
@@ -49,8 +48,8 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         Ok(self)
     }
 
-    pub fn add_or_ok_provider<P: Provider + 'static>(
-        &mut self, provider: P,
+    pub fn add_or_ok_provider(
+        &mut self, provider: Arc<Tag::Provider>,
     ) -> Result<&mut Self> {
         if self.providers.contains_key(provider.provider_name()) {
             Ok(self)
@@ -110,15 +109,62 @@ impl<Tag: ModelTypeTag> Router<Tag> {
 
 
 impl Router<CompletionTag> {
-    pub fn completion(&self, send_to: DeploymentIdentifier, request: CompletionRequest) -> Result<String> {
-        todo!()
+    pub async fn completion(&self, send_to: DeploymentIdentifier, request: CompletionRequest) -> Result<String> {
+        self.get_deployment(send_to)?.completion(request).await
+    }
+
+    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideCompletionModel>> {
+        self.providers.get(provider_name.as_str()).ok_or_else(
+            || ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
+        ).cloned()
+    }
+
+
+    fn get_deployment(&self, identifier: DeploymentIdentifier) -> Result<&Deployment<dyn CompletionModel>> {
+        self.deployments.get(identifier.as_str()).ok_or_else(
+            || ThrydError::Router(format!("Deployment with `{}` is not added.", identifier))
+        )
+    }
+
+    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<u32>, tpm: Option<u32>) -> Result<Deployment<dyn CompletionModel>>
+
+    {
+        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
+        Ok(
+            Deployment::new(
+                self.get_provider(provider_name)?.create_completion_model(model_name)?
+            ).with_usage_constrain(rpm, tpm)
+        )
     }
 }
 
 
 impl Router<EmbeddingTag> {
-    pub fn embedding(&self, send_to: DeploymentIdentifier, request: EmbeddingRequest) -> Result<Vec<f32>> {
-        todo!()
+    pub async fn embedding(&self, send_to: DeploymentIdentifier, request: EmbeddingRequest) -> Result<Vec<f32>> {
+        self.get_deployment(send_to)?.embedding(request).await
+    }
+    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideEmbeddingModel>> {
+        self.providers.get(provider_name.as_str()).ok_or_else(
+            || ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
+        ).cloned()
+    }
+
+
+    fn get_deployment(&self, identifier: DeploymentIdentifier) -> Result<&Deployment<dyn EmbeddingModel>> {
+        self.deployments.get(identifier.as_str()).ok_or_else(
+            || ThrydError::Router(format!("Deployment with `{}` is not added.", identifier))
+        )
+    }
+
+    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<u32>, tpm: Option<u32>) -> Result<Deployment<dyn EmbeddingModel>>
+
+    {
+        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
+        Ok(
+            Deployment::new(
+                self.get_provider(provider_name)?.create_embedding_model(model_name)?
+            ).with_usage_constrain(rpm, tpm)
+        )
     }
 }
 
@@ -127,9 +173,8 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
     fn default() -> Self {
         Self {
             cache: None,
-            providers: HashSet::default(),
+            providers: HashMap::default(),
             deployments: BTreeMap::default(),
-            _marker: PhantomData,
         }
     }
 }
@@ -137,6 +182,8 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
 
 trait ModelTypeTag {
     type Model: ?Sized + Model;
+
+    type Provider: ?Sized + Provider;
 }
 
 
@@ -146,10 +193,12 @@ struct CompletionTag;
 struct EmbeddingTag;
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
+    type Provider = dyn ProvideCompletionModel;
 }
 
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
+    type Provider = dyn ProvideEmbeddingModel;
 }
 
 

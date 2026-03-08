@@ -40,9 +40,16 @@ pub enum OpenAiRoute {
     Embeddings,
 
 }
-struct OpenaiModel {
+pub struct OpenaiModel {
     name: String,
     provider: Arc<dyn Provider>,
+}
+
+
+impl OpenaiModel {
+    pub fn new(name: String, provider: Arc<dyn Provider>) -> Self {
+        Self { name, provider }
+    }
 }
 
 impl Model for OpenaiModel {
@@ -88,7 +95,7 @@ impl CompletionModel for OpenaiModel {
 
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
+    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
         todo!()
     }
 }
