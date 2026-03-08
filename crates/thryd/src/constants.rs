@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-pub const MINITE_MS: u64 = 60_000;
+pub const MINUTE_MS: u64 = 60_000;
 
 
 pub const MAX_BUFFER_SIZE: usize = 100_000;

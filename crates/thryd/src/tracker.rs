@@ -1,4 +1,4 @@
-use crate::constants::{MAX_BUFFER_SIZE, MINITE_MS, MIN_BUFFER_SIZE};
+use crate::constants::{MAX_BUFFER_SIZE, MINUTE_MS, MIN_BUFFER_SIZE};
 use cached::proc_macro::cached;
 use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -233,7 +233,7 @@ impl Default for UsageTracker {
     fn default() -> Self {
         Self {
             request_infos: VecDeque::with_capacity(MIN_BUFFER_SIZE),
-            window_size_ms: MINITE_MS,
+            window_size_ms: MINUTE_MS,
             request_quota: None,
             token_quota: None,
         }

@@ -13,7 +13,7 @@ use url::Url;
 
 #[async_trait]
 pub trait Provider: Send + Sync {
-    fn provider_name(&self) -> &'static str;
+    fn provider_name(&self) -> &str;
 
     /// Returns a type-erased reference to the underlying client.
     fn endpoint(&self) -> Url;

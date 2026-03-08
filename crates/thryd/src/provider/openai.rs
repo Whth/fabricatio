@@ -4,6 +4,8 @@ use http::HeaderMap;
 use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
 
+use crate::Result;
+
 pub struct OpenaiCompatible {
     endpoint: Url,
     api_key: SecretString,
@@ -29,11 +31,15 @@ impl Provider for OpenaiCompatible {
         self.endpoint.clone()
     }
 
-    fn headers(&self) -> crate::Result<HeaderMap> {
-        let mut h = HeaderMap::new();
-
-        h.insert(AUTHORIZATION,
-                 format!("Bearer {}", self.api_key.expose_secret()).parse()?);
-        Ok(h)
+    fn headers(&self) -> Result<HeaderMap> {
+        build_headers(&self.api_key)
     }
 }
+pub(crate) fn build_headers(key: &SecretString) -> Result<HeaderMap> {
+    let mut h = HeaderMap::new();
+
+    h.insert(AUTHORIZATION,
+             format!("Bearer {}", key.expose_secret()).parse()?);
+    Ok(h)
+}
+
