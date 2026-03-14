@@ -61,7 +61,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
 
-    pub fn add_deployment(&mut self, group: RouteGroupName, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
+    fn add_deployment(&mut self, group: RouteGroupName, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
         self.groups
             .entry(group)
             .or_default()
@@ -69,7 +69,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         Ok(self)
     }
 
-    pub fn remove_deployment(&mut self, group: &str, deployment_identifier: DeploymentIdentifier) -> Result<&mut Self> {
+    fn remove_deployment(&mut self, group: &str, deployment_identifier: DeploymentIdentifier) -> Result<&mut Self> {
         self.groups.get_mut(group).ok_or_else(
             || ThrydError::Router(format!("Group with name `{}` is not added.", group))
         )?
@@ -78,6 +78,18 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             );
         Ok(self)
     }
+
+    pub fn deploy(&mut self, group: RouteGroupName, deployment_identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<&mut Self> {
+        let d = self.create_deployment(deployment_identifier, rpm, tpm)?;
+
+
+        self.add_deployment(group, d)
+    }
+
+    pub fn undeploy(&mut self, group: RouteGroupName, deployment_identifier: DeploymentIdentifier) -> Result<&mut Self> {
+        self.remove_deployment(group.as_str(), deployment_identifier)
+    }
+
 
     pub fn remove_group(&mut self, group: &str) -> Result<&mut Self> {
         self.groups.remove(group).ok_or_else(
