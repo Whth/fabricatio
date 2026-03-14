@@ -167,11 +167,11 @@ impl UsageTracker {
         let timestamp = self.current_timestamp();
 
         if let Some(rpm_b) = self.rpm_buckets.as_mut() {
-            rpm_b.get_bucket_mut(&timestamp).add_one(timestamp.clone());
+            rpm_b.get_bucket_mut(&timestamp).add_one(timestamp);
         }
 
         if let Some(tpm_b) = self.tpm_buckets.as_mut() {
-            tpm_b.get_bucket_mut(&timestamp).add(used_token, timestamp.clone());
+            tpm_b.get_bucket_mut(&timestamp).add(used_token, timestamp);
         }
 
         self
@@ -212,7 +212,7 @@ impl UsageTracker {
 
     pub fn need_wait_for(&self, input_token: Quota) -> u64 {
         let cur = self.current_timestamp();
-        0.max(self.rpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(input_token, cur)).unwrap_or_default())
+        self.rpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(input_token, cur)).unwrap_or_default()
             .max(self.tpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(1, cur)).unwrap_or_default())
     }
 
