@@ -21,10 +21,9 @@ mod model;
 pub mod models;
 pub(crate) mod utils;
 
-// Re-export commonly used types
 pub use cache::{CacheConfig, CacheStats, PersistentCache};
 pub use constants::*;
 pub use error::{Result, ThrydError};
 
+pub use route::*;
 pub use tracker::UsageTracker;
-

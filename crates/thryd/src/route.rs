@@ -4,16 +4,17 @@ use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
 use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
-use once_cell::sync::Lazy;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-type DeploymentIdentifier = String;
-type RouteGroupName = String;
-type ProviderName = String;
-type ModelName = String;
+pub type DeploymentIdentifier = String;
+pub type RouteGroupName = String;
+pub type ProviderName = String;
+pub type ModelName = String;
 
-struct Router<Tag: ModelTypeTag> {
+pub struct Router<Tag: ModelTypeTag> {
     cache: Option<PersistentCache>,
     providers: HashMap<ProviderName, Arc<Tag::Provider>>,
     groups: BTreeMap<RouteGroupName, Vec<Deployment<Tag::Model>>>,
@@ -113,10 +114,6 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             )
         )
     }
-}
-
-
-impl<Tag: ModelTypeTag> Router<Tag> {
     fn analyze_identifier(identifier: String) -> Result<(ProviderName, ModelName)> {
         identifier.split_once(SEPARATE)
             .ok_or_else(||
@@ -126,54 +123,38 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             |(provider_name, model_name)| (provider_name.to_string(), model_name.to_string())
         )
     }
-}
 
+    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<Deployment<Tag::Model>>
 
-impl Router<CompletionTag> {
-    pub async fn completion(&self, send_to: RouteGroupName, request: CompletionRequest) -> Result<String> {
-        self.wait_for_any(send_to, request.message.clone()).await?.completion(request).await
+    {
+        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
+        Ok(
+            Deployment::new(
+                Tag::create_model(self.get_provider(provider_name)?, model_name)?
+            ).with_usage_constrain(rpm, tpm)
+        )
     }
 
-    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideCompletionModel>> {
+    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<Tag::Provider>> {
         self.providers.get(provider_name.as_str()).ok_or_else(
             || ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
         ).cloned()
     }
 
 
-    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<Deployment<dyn CompletionModel>>
-
-    {
-        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
-        Ok(
-            Deployment::new(
-                self.get_provider(provider_name)?.create_completion_model(model_name)?
-            ).with_usage_constrain(rpm, tpm)
-        )
-    }
-}
+    pub async fn invoke(&self, send_to: RouteGroupName, request: Tag::Request) -> Result<Tag::Response> {
+        let d = self.wait_for_any(send_to, Tag::prepare_input_text(
+            &request
+        )).await?;
 
 
-impl Router<EmbeddingTag> {
-    pub async fn embedding(&self, send_to: DeploymentIdentifier, request: EmbeddingRequest) -> Result<Vec<f32>> {
-        self.wait_for_any(send_to, request.texts.concat()).await?
-            .embedding(request).await
-    }
-    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideEmbeddingModel>> {
-        self.providers.get(provider_name.as_str()).ok_or_else(
-            || ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
-        ).cloned()
-    }
-
-    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<Deployment<dyn EmbeddingModel>>
-
-    {
-        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
-        Ok(
-            Deployment::new(
-                self.get_provider(provider_name)?.create_embedding_model(model_name)?
-            ).with_usage_constrain(rpm, tpm)
-        )
+        if let Some(cache) = &self.cache
+            && let Some(val)
+            = cache.get_de::<Tag::Response>(Tag::prepare_cache_key(&request).as_str()) {
+            Ok(val)
+        } else {
+            Tag::execute_request(d, request).await
+        }
     }
 }
 
@@ -189,10 +170,23 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
 }
 
 
-trait ModelTypeTag {
+pub trait ModelTypeTag {
     type Model: ?Sized + Model;
 
     type Provider: ?Sized + Provider;
+
+    type Request;
+    type Response: DeserializeOwned + Serialize + Clone;
+    fn create_model(provider: Arc<Self::Provider>, model_name: ModelName) -> Result<Box<Self::Model>>;
+
+    fn prepare_input_text(request: &Self::Request) -> String;
+
+    fn prepare_cache_key(request: &Self::Request) -> String {
+        Self::prepare_input_text(request)
+    }
+
+
+    async fn execute_request(deployment: &Deployment<Self::Model>, request: Self::Request) -> Result<Self::Response>;
 }
 
 
@@ -203,22 +197,38 @@ struct EmbeddingTag;
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
     type Provider = dyn ProvideCompletionModel;
+    type Request = CompletionRequest;
+    type Response = String;
+
+    fn create_model(provider: Arc<Self::Provider>, model_name: ModelName) -> Result<Box<Self::Model>> {
+        provider.create_completion_model(model_name)
+    }
+
+    fn prepare_input_text(request: &Self::Request) -> String {
+        request.message.to_string()
+    }
+
+    async fn execute_request(deployment: &Deployment<Self::Model>, request: Self::Request) -> Result<Self::Response> {
+        deployment.completion(request).await
+    }
 }
 
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
     type Provider = dyn ProvideEmbeddingModel;
+    type Request = EmbeddingRequest;
+    type Response = Vec<f32>;
+
+    fn create_model(provider: Arc<Self::Provider>, model_name: ModelName) -> Result<Box<Self::Model>> {
+        provider.create_embedding_model(model_name)
+    }
+
+    fn prepare_input_text(request: &Self::Request) -> String {
+        request.texts.concat()
+    }
+
+    async fn execute_request(deployment: &Deployment<Self::Model>, request: Self::Request) -> Result<Self::Response> {
+        deployment.embedding(request).await
+    }
 }
 
-
-pub static COMPLETION_MODEL_ROUTER: Lazy<Router<CompletionTag>> = Lazy::new(
-    || {
-        Router::default()
-    }
-);
-
-pub static EMBEDDING_MODEL_ROUTER: Lazy<Router<EmbeddingTag>> = Lazy::new(
-    || {
-        Router::default()
-    }
-);
