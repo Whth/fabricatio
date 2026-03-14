@@ -14,6 +14,12 @@ pub const DEFAULT_MAX_CAPACITY: u64 = 100;
 pub const DEFAULT_TTL_SECS: u64 = 3600;
 
 
+pub const BUCKET_SIZE_S: usize = 1;
+pub const BUCKET_COUNT: usize = 60;
+
+
+pub const BUCKETS_WINDOW_S: usize = BUCKET_SIZE_S * BUCKET_COUNT;
+
 #[derive(Debug, Clone)]
 pub enum OpenAiPath {
     /// Path for creating chat completions: `/chat/completions`

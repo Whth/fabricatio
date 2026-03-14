@@ -1,21 +1,22 @@
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
+use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
 use once_cell::sync::Lazy;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-
 type DeploymentIdentifier = String;
+type RouteGroupName = String;
 type ProviderName = String;
 type ModelName = String;
 
 struct Router<Tag: ModelTypeTag> {
     cache: Option<PersistentCache>,
     providers: HashMap<ProviderName, Arc<Tag::Provider>>,
-    deployments: BTreeMap<DeploymentIdentifier, Deployment<Tag::Model>>,
+    groups: BTreeMap<RouteGroupName, Vec<Deployment<Tag::Model>>>,
 }
 
 
@@ -59,38 +60,58 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
 
-    pub fn add_deployment(&mut self, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
-        self.deployments.try_insert(
-            deployment.identifier(),
-            deployment,
-        ).map_err(
-            |e|
-                ThrydError::Router(format!("Deployment with `{}` is already added.", e.entry.key()))
-        )?;
+    pub fn add_deployment(&mut self, group: RouteGroupName, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
+        self.groups
+            .entry(group)
+            .or_default()
+            .push(deployment);
         Ok(self)
     }
 
-
-    pub fn add_or_update_deployment(&mut self, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
-        if self.deployments.contains_key(&deployment.identifier()) {
-            self.remove_deployment(&deployment.identifier())?;
-        }
-        self.add_deployment(deployment)
-    }
-
-    pub fn add_or_ok_deployment(&mut self, deployment: Deployment<Tag::Model>) -> Result<&mut Self> {
-        if self.deployments.contains_key(&deployment.identifier()) {
-            Ok(self)
-        } else {
-            self.add_deployment(deployment)
-        }
-    }
-
-    pub fn remove_deployment(&mut self, identifier: &str) -> Result<&mut Self> {
-        self.deployments.remove(identifier).ok_or_else(
-            || ThrydError::Router(format!("Deployment with `{}` is not added.", identifier))
-        )?;
+    pub fn remove_deployment(&mut self, group: &str, deployment_identifier: DeploymentIdentifier) -> Result<&mut Self> {
+        self.groups.get_mut(group).ok_or_else(
+            || ThrydError::Router(format!("Group with name `{}` is not added.", group))
+        )?
+            .retain(
+                |deployment| deployment.identifier() != deployment_identifier
+            );
         Ok(self)
+    }
+
+    pub fn remove_group(&mut self, group: &str) -> Result<&mut Self> {
+        self.groups.remove(group).ok_or_else(
+            || ThrydError::Router(format!("Group with name `{}` is not added.", group))
+        )?;
+
+        Ok(self)
+    }
+    fn get_group(&self, group: RouteGroupName) -> Result<&Vec<Deployment<Tag::Model>>> {
+        self.groups.get(group.as_str()).ok_or_else(
+            || ThrydError::Router(format!("Group with name `{}` is not added.", group))
+        )
+    }
+    async fn wait_for_any(&self, group: RouteGroupName, input_text: String) -> Result<&Deployment<Tag::Model>> {
+        let mut min_wait_time = u64::MAX;
+        let mut d_ref: Option<&Deployment<Tag::Model>> = None;
+
+        for d in self.get_group(group.clone())? {
+            let wait_time = d.min_cooldown_time(input_text.clone()).await;
+            if wait_time == 0 {
+                d_ref = Some(d);
+                break;
+            } else if wait_time < min_wait_time {}
+            {
+                min_wait_time = wait_time;
+                d_ref = Some(d);
+            }
+        };
+
+
+        d_ref.ok_or_else(
+            || ThrydError::Router(
+                format!("No deployment available for group `{}`", group)
+            )
+        )
     }
 }
 
@@ -109,10 +130,8 @@ impl<Tag: ModelTypeTag> Router<Tag> {
 
 
 impl Router<CompletionTag> {
-    pub async fn completion(&self, send_to: DeploymentIdentifier, request: CompletionRequest) -> Result<String> {
-        self.get_deployment(send_to)?.wait_capacity_for(request.message.to_string())
-            .await?
-            .completion(request).await
+    pub async fn completion(&self, send_to: RouteGroupName, request: CompletionRequest) -> Result<String> {
+        self.wait_for_any(send_to, request.message.clone()).await?.completion(request).await
     }
 
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideCompletionModel>> {
@@ -122,13 +141,7 @@ impl Router<CompletionTag> {
     }
 
 
-    fn get_deployment(&self, identifier: DeploymentIdentifier) -> Result<&Deployment<dyn CompletionModel>> {
-        self.deployments.get(identifier.as_str()).ok_or_else(
-            || ThrydError::Router(format!("Deployment with `{}` is not added.", identifier))
-        )
-    }
-
-    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<u32>, tpm: Option<u32>) -> Result<Deployment<dyn CompletionModel>>
+    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<Deployment<dyn CompletionModel>>
 
     {
         let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
@@ -143,8 +156,7 @@ impl Router<CompletionTag> {
 
 impl Router<EmbeddingTag> {
     pub async fn embedding(&self, send_to: DeploymentIdentifier, request: EmbeddingRequest) -> Result<Vec<f32>> {
-        self.get_deployment(send_to)?.wait_capacity_for(request.texts.join(""))
-            .await?
+        self.wait_for_any(send_to, request.texts.concat()).await?
             .embedding(request).await
     }
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn ProvideEmbeddingModel>> {
@@ -153,14 +165,7 @@ impl Router<EmbeddingTag> {
         ).cloned()
     }
 
-
-    fn get_deployment(&self, identifier: DeploymentIdentifier) -> Result<&Deployment<dyn EmbeddingModel>> {
-        self.deployments.get(identifier.as_str()).ok_or_else(
-            || ThrydError::Router(format!("Deployment with `{}` is not added.", identifier))
-        )
-    }
-
-    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<u32>, tpm: Option<u32>) -> Result<Deployment<dyn EmbeddingModel>>
+    fn create_deployment(&self, identifier: DeploymentIdentifier, rpm: Option<Quota>, tpm: Option<Quota>) -> Result<Deployment<dyn EmbeddingModel>>
 
     {
         let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
@@ -178,7 +183,7 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
         Self {
             cache: None,
             providers: HashMap::default(),
-            deployments: BTreeMap::default(),
+            groups: BTreeMap::default(),
         }
     }
 }

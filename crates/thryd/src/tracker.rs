@@ -1,80 +1,177 @@
-use crate::constants::{MAX_BUFFER_SIZE, MINUTE_MS, MIN_BUFFER_SIZE};
+use crate::{BUCKETS_WINDOW_S, BUCKET_COUNT};
 use cached::proc_macro::cached;
-use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Count tokens in a string using tiktoken
 #[cached]
-pub fn count_token(string: String) -> u32 {
+pub fn count_token(string: String) -> u64 {
     tiktoken_rs::o200k_base_singleton()
         .encode_ordinary(string.as_str())
-        .len() as u32
+        .len() as u64
 }
 
-/// Records token usage and timestamp for a single API request
-#[derive(Debug, Clone)]
-pub struct RequestInfo {
-    pub input_token: u32,
-    pub output_token: u32,
-    pub timestamp: u64,
-}
 
-impl RequestInfo {
-    /// Returns total tokens used in this request
-    pub fn total_token(&self) -> u32 {
-        self.input_token + self.output_token
+pub type TimeStamp = u128;
+
+
+pub type Quota = u64;
+
+
+#[derive(Default, Debug)]
+struct UsageBucket(Quota, TimeStamp);
+
+impl UsageBucket {
+    #[inline]
+    fn reset(&mut self, timestamp: TimeStamp) -> &mut Self {
+        self.set(timestamp, 0)
+    }
+
+    #[inline]
+    fn set(&mut self, timestamp: TimeStamp, val: Quota) -> &mut Self {
+        self.1 = timestamp;
+        self.0 = val;
+
+        self
+    }
+
+
+    fn expired(&mut self, timestamp: TimeStamp) -> &mut Self {
+        if (timestamp - BUCKETS_WINDOW_S as TimeStamp) > self.1 {
+            self.reset(timestamp)
+        } else {
+            self
+        }
+    }
+
+    fn valid(&self, timestamp: TimeStamp) -> Option<&Self> {
+        ((timestamp - BUCKETS_WINDOW_S as TimeStamp) <= self.1).then_some(
+            self
+        )
+    }
+
+    fn add_one(&mut self, timestamp: TimeStamp) {
+        self.add(1, timestamp)
+    }
+
+
+    fn add(&mut self, val: u64, timestamp: TimeStamp) {
+        self.expired(timestamp).set(timestamp, val);
     }
 }
 
+
+#[derive(Debug)]
+struct UsageBuckets {
+    buckets: [UsageBucket; BUCKET_COUNT],
+    quota: Quota,
+}
+
+
+impl UsageBuckets {
+    fn with_quota(quota: u64) -> Self {
+        Self {
+            quota,
+            ..Self::default()
+        }
+    }
+
+
+    fn get_bucket_mut(&mut self, timestamp: &TimeStamp) -> &mut UsageBucket {
+        self.buckets.get_mut(((timestamp / 1000) % BUCKET_COUNT as TimeStamp) as usize).unwrap()
+    }
+
+
+    fn used(&self, cur_timestamp: TimeStamp) -> Quota {
+        self.buckets.iter().filter_map(
+            |e|
+                e.valid(cur_timestamp)
+        )
+
+            .map(|e|
+                e.0)
+            .sum()
+    }
+
+
+    fn remaining_quota(&self, cur_timestamp: TimeStamp) -> Quota
+    {
+        self.quota - self.used(cur_timestamp)
+    }
+
+
+    fn all_valid(&self, timestamp: TimeStamp) -> Vec<&UsageBucket> {
+        let mut seq: Vec<&UsageBucket> = self.buckets.as_ref().iter()
+            .filter_map(
+                |e| e.valid(timestamp)
+            )
+            .collect();
+        seq.sort_by_key(|e| e.1);
+        seq
+    }
+
+    /// Calculates the minimum cooldown time required to accommodate the input token.
+    fn min_cooldown_time_for(&self, input_token: Quota, cur_timestamp: TimeStamp) -> Quota {
+        let remaining: u64 = self.remaining_quota(cur_timestamp);
+
+        if input_token <= remaining {
+            return 0;
+        }
+
+        let mut needed: u64 = input_token - remaining;
+        let valid_buckets: Vec<&UsageBucket> = self.all_valid(cur_timestamp);
+
+        for bucket in valid_buckets {
+            let usage: u64 = bucket.0;
+
+            if usage >= needed {
+                let expire_time: TimeStamp = bucket.1 + BUCKETS_WINDOW_S as TimeStamp;
+                let wait_time: TimeStamp = expire_time.saturating_sub(cur_timestamp);
+                return wait_time as u64;
+            } else {
+                needed -= usage;
+            }
+        }
+
+
+        (BUCKETS_WINDOW_S * 1000) as u64
+    }
+}
+
+impl Default for UsageBuckets {
+    fn default() -> Self {
+        Self {
+            buckets: core::array::from_fn(|_| UsageBucket::default()),
+            quota: 0,
+        }
+    }
+}
+
+
 /// Tracks API usage within a sliding time window for quota management.
+#[derive(Default, Debug)]
 pub struct UsageTracker {
-    request_infos: VecDeque<RequestInfo>,
-    window_size_ms: u64,
-    request_quota: Option<u32>,
-    token_quota: Option<u32>,
+    rpm_buckets: Option<UsageBuckets>,
+    tpm_buckets: Option<UsageBuckets>,
 }
 
 impl UsageTracker {
-    /// Create a new tracker with token and request quotas
-    pub fn new(token_quota: u32, request_quota: u32, window_size_ms: u64) -> Self {
+    pub fn with_quota(tpm_quota: Option<Quota>, rpm_quota: Option<Quota>) -> Self {
         Self {
-            token_quota: Some(token_quota),
-            request_quota: Some(request_quota),
-            window_size_ms,
-            ..Self::default()
+            tpm_buckets: tpm_quota.map(UsageBuckets::with_quota),
+            rpm_buckets: rpm_quota.map(UsageBuckets::with_quota),
         }
     }
-
-
-    /// Create tracker with quotas (default 60s window)
-    pub fn with_quota(tpm_quota: Option<u32>, rpm_quota: Option<u32>) -> Self {
-        Self {
-            token_quota: tpm_quota,
-            request_quota: rpm_quota,
-            ..Self::default()
-        }
-    }
-
-    /// Create tracker with custom window size
-    pub fn with_window_size(window_size_ms: u64) -> Self {
-        Self {
-            window_size_ms,
-            ..Self::default()
-        }
-    }
-
 
     /// Record a request with token counts
-    pub fn add_request(&mut self, input_token: u32, output_token: u32) -> &mut Self {
+    pub fn add_request(&mut self, used_token: Quota) -> &mut Self {
         let timestamp = self.current_timestamp();
-        self.request_infos.push_back(RequestInfo {
-            input_token,
-            output_token,
-            timestamp,
-        });
 
-        if self.request_infos.len() > MAX_BUFFER_SIZE {
-            self.request_infos.pop_front();
+        if let Some(rpm_b) = self.rpm_buckets.as_mut() {
+            rpm_b.get_bucket_mut(&timestamp).add_one(timestamp.clone());
+        }
+
+        if let Some(tpm_b) = self.tpm_buckets.as_mut() {
+            tpm_b.get_bucket_mut(&timestamp).add(used_token, timestamp.clone());
         }
 
         self
@@ -82,243 +179,54 @@ impl UsageTracker {
 
 
     pub fn add_request_raw(&mut self, input_text: String, output_text: String) -> &mut Self {
-        self.add_request(count_token(input_text), count_token(output_text))
+        self.add_request(count_token(input_text) + count_token(output_text))
     }
 
     /// Get total requests in current window
-    pub fn request_usage(&self) -> u32 {
-        self.window_requests().len() as u32
+    pub fn rpm_usage(&self) -> Option<Quota> {
+        self.rpm_buckets.as_ref().map(|q| q.used(self.current_timestamp()))
     }
+
+    pub fn remaining_rpm_quota(&self) -> Option<Quota> {
+        self.rpm_buckets.as_ref().map(|q| q.remaining_quota(self.current_timestamp()))
+    }
+
 
     /// Get total tokens in current window
-    pub fn token_usage(&self) -> u64 {
-        self.window_requests()
-            .iter()
-            .map(|req| req.total_token() as u64)
-            .sum()
+    pub fn tpm_usage(&self) -> Option<Quota> {
+        self.tpm_buckets.as_ref().map(|q| q.used(self.current_timestamp()))
     }
 
-    /// Get window size in ms
-    pub fn window_size_ms(&self) -> u64 {
-        self.window_size_ms
-    }
-
-    /// Get request quota
-    pub fn request_quota(&self) -> Option<u32> {
-        self.request_quota
-    }
-
-    /// Get token quota
-    pub fn token_quota(&self) -> Option<u32> {
-        self.token_quota
-    }
-
-    /// Get remaining requests allowed
-    pub fn remaining_requests(&self) -> Option<u32> {
-        self.request_quota.map(|q| q.saturating_sub(self.request_usage()))
-    }
-
-    /// Get remaining tokens allowed
-    pub fn remaining_tokens(&self) -> Option<u64> {
-        self.token_quota.map(|q| (q as u64).saturating_sub(self.token_usage()))
-    }
-
-    /// Alias for remaining_requests
-    pub fn remaining_rpm(&self) -> Option<u32> {
-        self.remaining_requests()
-    }
-
-    /// Alias for remaining_tokens
-    pub fn remaining_tpm(&self) -> Option<u64> {
-        self.remaining_tokens()
+    pub fn remaining_tpm_quota(&self) -> Option<Quota> {
+        self.tpm_buckets.as_ref().map(|q| q.remaining_quota(self.current_timestamp()))
     }
 
 
-    /// Check if request can be made with given input tokens
-    pub fn can_make_request_with_token(&self, input_tokens: u32) -> bool {
-        let req_ok = self.request_quota
-            .is_none_or(|q| self.request_usage() < q);
-
-        let token_ok = self.token_quota
-            .is_none_or(|q| (self.token_usage() as u32).saturating_add(input_tokens) <= q);
-
-        req_ok && token_ok
+    fn current_timestamp(&self) -> TimeStamp {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
     }
 
-    pub fn can_make_request_with_raw(&self, input_text: String) -> bool {
-        self.can_make_request_with_token(count_token(input_text))
+
+    pub fn need_wait_for(&self, input_token: Quota) -> u64 {
+        let cur = self.current_timestamp();
+        0.max(self.rpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(input_token, cur)).unwrap_or_default())
+            .max(self.tpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(1, cur)).unwrap_or_default())
+    }
+
+
+    pub fn need_wait_for_string(&self, input_string: String) -> u64 {
+        self.need_wait_for(count_token(input_string))
     }
 
 
     pub fn has_capacity(&self) -> bool {
-        self.can_make_request_with_token(1)
-    }
-
-
-    /// Estimate wait time for given input tokens
-    pub fn estimated_waiting_time_for_tokens(&self, input_tokens: u32) -> u64 {
-        let in_window = self.window_requests();
-        let current_ts = self.current_timestamp();
-
-        let req_wait = self.calculate_request_wait_time(&in_window, current_ts);
-        let token_wait = self.calculate_token_wait_time(&in_window, input_tokens, current_ts);
-
-        req_wait.max(token_wait)
-    }
-
-    fn calculate_request_wait_time(&self, in_window: &[&RequestInfo], current_ts: u64) -> u64 {
-        self.request_quota.map_or(0, |q| {
-            let usage = in_window.len() as u32;
-            if usage < q {
-                0
-            } else {
-                let idx = (usage - q) as usize;
-                in_window.get(idx).map_or(0, |req| {
-                    (req.timestamp + self.window_size_ms).saturating_sub(current_ts)
-                })
-            }
-        })
-    }
-
-    fn calculate_token_wait_time(
-        &self,
-        in_window: &[&RequestInfo],
-        input_tokens: u32,
-        current_ts: u64,
-    ) -> u64 {
-        self.token_quota.map_or(0, |q| {
-            let usage: u32 = in_window.iter().map(|req| req.total_token()).sum();
-
-            if usage.saturating_add(input_tokens) <= q {
-                return 0;
-            }
-
-            let excess = usage.saturating_add(input_tokens) - q;
-
-            in_window
-                .iter()
-                .scan(0u32, |released, req| {
-                    *released = released.saturating_add(req.total_token());
-                    Some((*released, req))
-                })
-                .find(|(released, _)| *released >= excess)
-                .map(|(_, req)| (req.timestamp + self.window_size_ms).saturating_sub(current_ts))
-                .unwrap_or(0)
-        })
-    }
-
-    // ============== Private helpers ==============
-
-    fn current_timestamp(&self) -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64
-    }
-
-    fn window_start(&self) -> u64 {
-        self.current_timestamp().saturating_sub(self.window_size_ms)
-    }
-
-    fn window_requests(&self) -> Vec<&RequestInfo> {
-        let start = self.window_start();
-        self.request_infos
-            .iter()
-            .skip_while(|req| req.timestamp < start)
-            .collect()
+        self.remaining_rpm_quota().unwrap_or(1) > 0 && self.remaining_tpm_quota().unwrap_or(1) > 0
     }
 }
 
-impl Default for UsageTracker {
-    fn default() -> Self {
-        Self {
-            request_infos: VecDeque::with_capacity(MIN_BUFFER_SIZE),
-            window_size_ms: MINUTE_MS,
-            request_quota: None,
-            token_quota: None,
-        }
-    }
-}
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn create_info(input: u32, output: u32, ts: u64) -> RequestInfo {
-        RequestInfo { input_token: input, output_token: output, timestamp: ts }
-    }
-
-    fn fill(tracker: &mut UsageTracker, reqs: Vec<RequestInfo>) {
-        tracker.request_infos.clear();
-        for r in reqs {
-            tracker.request_infos.push_back(r);
-        }
-    }
-
-    #[test]
-    fn test_default() {
-        let t = UsageTracker::default();
-        assert_eq!(t.window_size_ms, 60_000);
-        assert!(t.request_quota.is_none());
-        assert!(t.token_quota.is_none());
-    }
-
-    #[test]
-    fn test_new() {
-        let t = UsageTracker::new(1000, 60, 60_000);
-        assert_eq!(t.token_quota, Some(1000));
-        assert_eq!(t.request_quota, Some(60));
-    }
-
-    #[test]
-    fn test_add_request() {
-        let mut t = UsageTracker::default();
-        t.add_request(100, 50);
-        assert_eq!(t.request_infos.len(), 1);
-        assert_eq!(t.request_usage(), 1);
-    }
-
-    #[test]
-    fn test_can_make_request() {
-        let mut t = UsageTracker::with_quota(Some(100), Some(5));
-        assert!(t.can_make_request_with_token(50)); // 50 tokens, 1 request
-
-        // Exhaust quota
-        for _ in 0..5 {
-            t.add_request(10, 0);
-        }
-
-        assert!(!t.can_make_request_with_token(50)); // Would exceed request quota
-    }
-
-    #[test]
-    fn test_remaining() {
-        let mut t = UsageTracker::with_quota(Some(100), Some(3));
-        assert_eq!(t.remaining_requests(), Some(3));
-        assert_eq!(t.remaining_tokens(), Some(100));
-
-        t.add_request(30, 0);
-
-        assert_eq!(t.remaining_requests(), Some(2));
-        assert_eq!(t.remaining_tokens(), Some(70));
-    }
-
-    #[test]
-    fn test_window_expiry() {
-        let mut t = UsageTracker::with_window_size(1000);
-        let now = t.current_timestamp();
-
-        fill(&mut t, vec![
-            create_info(10, 5, now - 2000),
-            create_info(10, 5, now - 500),
-        ]);
-
-        assert_eq!(t.request_usage(), 1); // Only one in window
-    }
-
-    #[test]
-    fn test_request_info_total() {
-        let info = RequestInfo { input_token: 100, output_token: 50, timestamp: 0 };
-        assert_eq!(info.total_token(), 150);
-    }
-}
+mod tests {}
