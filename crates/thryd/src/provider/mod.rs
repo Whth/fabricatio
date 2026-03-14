@@ -1,6 +1,9 @@
 pub mod openai;
 pub mod dummy;
 
+pub use dummy::*;
+pub use openai::*;
+
 use crate::connections::{ClientEntry, CONNECTIONS_POOL};
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{Result, ThrydError};

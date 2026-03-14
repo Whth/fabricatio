@@ -25,5 +25,7 @@ pub use cache::{CacheConfig, CacheStats, PersistentCache};
 pub use constants::*;
 pub use error::{Result, ThrydError};
 
+pub use models::*;
+pub use provider::*;
 pub use route::*;
 pub use tracker::UsageTracker;
