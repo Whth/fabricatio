@@ -1,9 +1,8 @@
-use crate::provider::openai::build_headers;
 use crate::provider::Provider;
+use crate::utils::build_headers;
 use http::HeaderMap;
 use reqwest::Url;
 use secrecy::SecretString;
-
 pub struct DummyProvider {
     endpoint: Url,
     api_key: SecretString,
