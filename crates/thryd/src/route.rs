@@ -4,6 +4,7 @@ use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
 use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
+use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
@@ -182,6 +183,7 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
 }
 
 
+#[async_trait]
 pub trait ModelTypeTag {
     type Model: ?Sized + Model;
 
@@ -206,6 +208,7 @@ pub trait ModelTypeTag {
 struct CompletionTag;
 #[derive(Default)]
 struct EmbeddingTag;
+#[async_trait]
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
     type Provider = dyn ProvideCompletionModel;
@@ -225,6 +228,7 @@ impl ModelTypeTag for CompletionTag {
     }
 }
 
+#[async_trait]
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
     type Provider = dyn ProvideEmbeddingModel;

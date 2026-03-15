@@ -66,6 +66,8 @@ pub enum ThrydError {
     #[error("Cache I/O error: {0}")]
     CacheIo(#[from] IoError),
 
+    #[error("Sled error: {0}")]
+    Sled(#[from] sled::Error),
     /// Wraps environment variable retrieval errors.
     #[error("Environment variable error: {0}")]
     EnvVar(#[from] VarError),

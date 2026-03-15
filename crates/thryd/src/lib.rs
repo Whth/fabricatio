@@ -21,11 +21,15 @@ mod model;
 pub mod models;
 pub(crate) mod utils;
 
-pub use cache::{CacheConfig, CacheStats, PersistentCache};
+pub use cache::*;
 pub use constants::*;
 pub use error::{Result, ThrydError};
 
-pub use models::*;
-pub use provider::*;
+pub use models::{
+    dummy::*, openai::*,
+};
+pub use provider::{
+    dummy::*, openai::*,
+};
 pub use route::*;
 pub use tracker::UsageTracker;
