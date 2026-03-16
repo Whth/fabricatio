@@ -21,7 +21,7 @@ tantivy = { version = "0.25.0", default-features = false, optional = true }
 mcp-manager = { path = "../mcp-manager", default-features = false, optional = true }
 lancedb = { version = "0.23.1", default-features = false, optional = true }
 strum = { version = "0.27.2", default-features = false, optional = true }
-
+thryd = { path = "../thryd", default-features = false, optional = true }
 
 [features]
 default = ["std"]
@@ -38,6 +38,7 @@ tonic = ["dep:tonic"]
 http = ["dep:http"]
 tantivy = ["dep:tantivy"]
 mcp-manager = ["dep:mcp-manager"]
+thryd = ["dep:thryd"]
 pyo3_cast = []
 
 std = []

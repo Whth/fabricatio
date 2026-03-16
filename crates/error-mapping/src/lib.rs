@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-pub use pyo3::PyResult;
 use pyo3::exceptions::*;
+pub use pyo3::PyResult;
 
 /// A trait for converting Rust results to Python results
 pub trait AsPyErr<T> {
@@ -41,6 +41,10 @@ cfg_if!(
         impl_as_pyerr!(std::sync::Arc<git2::Error>, PyRuntimeError);
     }
 );
+
+#[cfg(feature = "thryd")]
+impl_as_pyerr!(thryd::ThrydError, PyRuntimeError);
+
 
 #[cfg(feature = "epub-builder")]
 impl_as_pyerr!(epub_builder::Error, PyRuntimeError);
