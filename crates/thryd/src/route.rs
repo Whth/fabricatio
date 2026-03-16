@@ -205,9 +205,9 @@ pub trait ModelTypeTag {
 
 
 #[derive(Default)]
-struct CompletionTag;
+pub struct CompletionTag;
 #[derive(Default)]
-struct EmbeddingTag;
+pub struct EmbeddingTag;
 #[async_trait]
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;

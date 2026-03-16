@@ -21,9 +21,11 @@ mod model;
 pub mod models;
 pub(crate) mod utils;
 
+
 pub use cache::*;
 pub use constants::*;
 pub use error::{Result, ThrydError};
+pub use model::*;
 
 pub use models::{
     dummy::*, openai::*,

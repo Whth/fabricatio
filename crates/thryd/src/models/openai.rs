@@ -66,13 +66,16 @@ impl Model for OpenaiModel {
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
         let request = CreateChatCompletionRequestArgs::default()
-            .model(request.model) // Or "gpt-3.5-turbo", "gpt-4", etc.
+            .model(self.model_name()) // Or "gpt-3.5-turbo", "gpt-4", etc.
             .messages([
                 ChatCompletionRequestUserMessageArgs::default()
                     .content(request.message)
+
                     .build()?
                     .into(),
             ])
+            .top_p(request.top_p)
+            .temperature(request.temperature)
             .build()?;
 
 

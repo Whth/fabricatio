@@ -13,7 +13,6 @@ pub struct EmbeddingRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct CompletionRequest {
     pub message: String,
-    pub model: String,
     pub top_p: f32,
     pub temperature: f32,
 }
