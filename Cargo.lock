@@ -2590,6 +2590,7 @@ dependencies = [
  "serde_json",
  "strum 0.27.2",
  "tantivy 0.25.0",
+ "thryd",
  "tonic",
  "validator",
 ]
@@ -2731,6 +2732,7 @@ dependencies = [
  "path-clean",
  "postcard",
  "pyo3",
+ "pyo3-async-runtimes",
  "pyo3-stub-gen",
  "pythonize",
  "rayon",
@@ -2739,6 +2741,7 @@ dependencies = [
  "serde_json",
  "strum 0.27.2",
  "tempfile",
+ "thryd",
  "unicode-segmentation",
  "walkdir",
  "whichlang",

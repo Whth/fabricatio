@@ -1,10 +1,10 @@
 #![feature(iterator_try_collect)]
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 use cfg_if::cfg_if;
 use fabricatio_config::Config;
 use fabricatio_constants::*;
-use fabricatio_logger::{Logger, init_logger};
+use fabricatio_logger::{init_logger, Logger};
 
 mod event;
 mod hash;
@@ -14,6 +14,8 @@ mod scan;
 mod templates;
 mod text_file;
 mod word_split;
+mod router;
+
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;
 cfg_if!(
@@ -50,6 +52,6 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     event::register(python, m)?;
     scan::register(python, m)?;
     text_file::register(python, m)?;
-
+    router::register(python, m)?;
     Ok(())
 }
