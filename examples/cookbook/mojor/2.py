@@ -5,8 +5,11 @@ from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio_core.capabilities.usages import UseLLM
 
 
-# 可能会遇到LLM访问GitHub价格表连接失败的警告，可以无视。通常能访问本地价格表
-# 在项目文件下，可以创建.env或fabricatio.toml等readme上的配置文件。
+# You may encounter warnings that the LLM failed to access the GitHub price list link,
+# which can be ignored. Usually, it is possible to access the local price list.
+# In the project files, you can create configuration files mentioned in the readme,
+# such as .env or fabricatio.toml, to connect to the AI.
+# Warning: Do not write the key in the script, otherwise it is easy to accidentally leak it.
 class WritePoem(Action, UseLLM):
     """Action that generates a poem."""
 
@@ -18,11 +21,12 @@ class WritePoem(Action, UseLLM):
         return await self.ageneric_string(
             f"{task_input.briefing}\nWrite a poetic",
         )
-    #task_input.briefing提炼Task的任务简述即喂给ai的提示词
+    # Extract the task summary of task_input.briefing,
+    # that is, the prompt given to the AI
 
 
-# logger.info(f"{WritePoem.__mro__}") 查看继承
-# print((dir(WritePoem)) ) 查看用法函数名
+# If you're curious, you can use logger.info(f"{WritePoem.__mro__}") to see inheritance
+# print((dir(WritePoem))) to check function names and usage
 
 class WritePoem2(Action, UseLLM):
     """Action that generates a poem."""
@@ -33,28 +37,31 @@ class WritePoem2(Action, UseLLM):
     async def _execute(self, task_input: Task[str], **_) -> Any:
         logger.info(f"Generating poem about \n{task_input.briefing}")
         return await self.ageneric_string(
-            f"说句包含晚安句子",
+            f"Say a sentence that includes 'good night'",
         )
-    # 函数self.ageneric_string与ai交互，参数为提示词
+    # The function self.ageneric_string interacts with AI,
+    # with the parameter being a prompt
 
 
 role = Role(
         name="poet",
         description="A role that creates poetic content",
         skills={Event.quick_instantiate(ns := "poem").collapse(): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
-        # 通过参数skills直接初始的技能和其对应的工作流，后续可以通过add._skillt添加
+        # Skills and their corresponding workflows initialized directly
+        # through the parameter skills can be added later via add._skillt
 ).dispatch()
-# add_skill 是类实例的方法
+# add_skill is a method of the class instance
 role.add_skill(event=Event.quick_instantiate("unlike"),
                workflow=WorkFlow(name="poetry_creation", steps=(WritePoem2,))
-               ).dispatch()  # 需要再次激活
+               ).dispatch()  # Needs to be reactivated
 
 if __name__ == "__main__":
     task = Task(
         name="write poem",
         description="Write a poem about the given topic, in this case, write a poem about the fire",
-        goals=["请用中文，7言2句，即可"],
+        goals=["Keep it brief"],
     )
 
-    poem = task.delegate_blocking("unlike")  # 寻找技能为ns的执行
+    poem = task.delegate_blocking("unlike")
+    # Actions to Find Characters with the 'unlike' Skill
     logger.info(f"Poem:\n\n{poem}")
