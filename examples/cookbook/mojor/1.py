@@ -6,12 +6,6 @@ from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import UseLLM
 
 
-class say(Action):
-    async def _execute(self, *_: Any, **cxt) -> Any:
-        ret_1 = "你好 or hello"
-        return ret_1
-
-
 class Hello(Action):  # The class name is the name of the action
     """Action that says hello."""
 
@@ -26,6 +20,11 @@ class Hello(Action):  # The class name is the name of the action
         # Print log
         return ret_2
 
+
+class say(Action):
+    async def _execute(self, *_: Any, **cxt) -> Any:
+        ret_1 = "hello or hello"
+        return ret_1
 
 # When creating a workflow, explicitly specify the
 # name, steps, and task_output_key parameters
