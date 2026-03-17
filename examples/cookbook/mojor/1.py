@@ -30,7 +30,7 @@ class Hello(Action):  # The class name is the name of the action
 # When creating a workflow, explicitly specify the
 # name, steps, and task_output_key parameters
 work = WorkFlow(
-    name="事情1",  # name
+    name="Thing 1",  # name
     steps=(Hello, say,),  # Actions to be performed, multiple actions possible
     task_output_key="take1"
     # Customization is not currently supported.
