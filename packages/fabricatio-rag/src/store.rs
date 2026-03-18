@@ -6,12 +6,13 @@ use arrow_array::array::*;
 use arrow_array::cast::AsArray;
 use arrow_array::types::*;
 
+
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
-use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -19,7 +20,7 @@ use pyo3::types::{PyDict, PyList};
 use crate::utils;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
-use pythonize::{depythonize, pythonize};
+use pythonize::depythonize;
 use rayon::prelude::*;
 use serde_json::Value;
 use std::iter::repeat_n;
@@ -49,7 +50,7 @@ type DataContainers = (
 );
 
 #[gen_stub_pyclass]
-#[pyclass(set_all, get_all)]
+#[pyclass(set_all, get_all, from_py_object)]
 #[derive(Clone, Debug)]
 pub struct StoreDocument {
     content: String,
@@ -63,7 +64,7 @@ pub struct StoreDocument {
 /// its unique identifier, content, timestamp of creation/modification, and any
 /// associated metadata stored as JSON string.
 #[gen_stub_pyclass]
-#[pyclass(get_all)]
+#[pyclass(get_all, skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct SearchedDocument {
     /// Unique identifier for the document, typically generated as a UUID string.
