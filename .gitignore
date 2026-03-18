@@ -174,3 +174,5 @@ tei.rs
 result.json
 logs
 www
+
+*.pdb
