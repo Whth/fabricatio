@@ -9,6 +9,6 @@ license-file.workspace = true
 repository.workspace = true
 [dependencies]
 
-once_cell = "1.21.3"
+once_cell = "1.21.4"
 directories-next = "2.0.0"
 
