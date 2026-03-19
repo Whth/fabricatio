@@ -97,10 +97,10 @@ def test_correlated_column_invalid_value() -> None:
     """Test error handling for invalid correlation values."""
     base = pd.Series([1, 2, 3, 4, 5])
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=r"between 0.0 and 1.0"):
         dt.correlated_column(base_series=base, correlation=1.5)
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=r"between 0.0 and 1.0"):
         dt.correlated_column(base_series=base, correlation=-0.1)
 
 
@@ -122,7 +122,7 @@ def test_inject_missing_invalid_rate() -> None:
     """Test error handling for invalid missing rate."""
     series = pd.Series([1, 2, 3])
 
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+    with pytest.raises(ValueError, match=r"between 0.0 and 1.0"):
         dt.inject_missing(series=series, rate=1.5)
 
 

@@ -270,9 +270,7 @@ class MemoryStore:
             list[Memory]: A list of Memory objects created within the specified timeframe.
         """
 
-    def get_frequently_accessed(
-        self, top_k: builtins.int = 20, write: builtins.bool = False
-    ) -> builtins.list[Memory]:
+    def get_frequently_accessed(self, top_k: builtins.int = 20, write: builtins.bool = False) -> builtins.list[Memory]:
         """Get memories sorted by access frequency.
 
         Args:
