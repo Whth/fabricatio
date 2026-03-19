@@ -16,29 +16,18 @@ use url::ParseError;
 pub enum ThrydError {
     /// Indicates that a specific provider is unavailable.
     #[error("Provider '{provider}' is not available: {reason}")]
-    ProviderUnavailable {
-        provider: String,
-        reason: String,
-    },
+    ProviderUnavailable { provider: String, reason: String },
 
     /// Indicates that no suitable provider could be found for the requested model.
     #[error("No suitable provider found for model '{model}'")]
-    NoProviderFound {
-        model: String
-    },
+    NoProviderFound { model: String },
 
     /// Indicates that a specific model is not supported by the chosen provider.
     #[error("Model '{model}' is not supported by provider '{provider}'")]
-    ModelNotSupported {
-        model: String,
-        provider: String,
-    },
+    ModelNotSupported { model: String, provider: String },
 
     #[error("Model {name} is not supported by provider: {msg}")]
-    ClientError {
-        name: String,
-        msg: String,
-    },
+    ClientError { name: String, msg: String },
 
     /// Indicates that a provided header value is invalid.
     #[error("Invalid header: {0}")]
@@ -50,9 +39,7 @@ pub enum ThrydError {
 
     /// Indicates that the rate limit has been exceeded.
     #[error("Rate limit exceeded. Try again in {wait_time_ms}ms")]
-    RateLimitExceeded {
-        wait_time_ms: u64
-    },
+    RateLimitExceeded { wait_time_ms: u64 },
 
     /// Wraps external HTTP request errors.
     #[error("HTTP request failed: {0}")]
@@ -96,6 +83,5 @@ pub enum ThrydError {
     #[error("Internal error: {0}")]
     Internal(String),
 }
-
 
 pub type Result<T> = std::result::Result<T, ThrydError>;

@@ -2,10 +2,8 @@ use std::fmt::{Display, Formatter};
 
 pub const MINUTE_MS: u64 = 60_000;
 
-
 pub const MAX_BUFFER_SIZE: usize = 100_000;
 pub const MIN_BUFFER_SIZE: usize = 50;
-
 
 pub const SEPARATE: char = '/';
 
@@ -13,10 +11,8 @@ pub const SEPARATE: char = '/';
 pub const DEFAULT_MAX_CAPACITY: u64 = 100;
 pub const DEFAULT_TTL_SECS: u64 = 3600;
 
-
 pub const BUCKET_SIZE_S: usize = 1;
 pub const BUCKET_COUNT: usize = 60;
-
 
 pub const BUCKETS_WINDOW_S: usize = BUCKET_SIZE_S * BUCKET_COUNT;
 

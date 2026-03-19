@@ -1,8 +1,8 @@
+use crate::Result;
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::models::openai::OpenaiModel;
 use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
 use crate::utils::build_headers;
-use crate::Result;
 use http::HeaderMap;
 use reqwest::Url;
 use secrecy::SecretString;
@@ -14,7 +14,6 @@ pub struct OpenaiCompatible {
     name: String,
 }
 
-
 impl Default for OpenaiCompatible {
     fn default() -> Self {
         Self {
@@ -24,7 +23,6 @@ impl Default for OpenaiCompatible {
         }
     }
 }
-
 
 impl Provider for OpenaiCompatible {
     fn provider_name(&self) -> &str {
@@ -41,18 +39,19 @@ impl Provider for OpenaiCompatible {
 }
 
 impl ProvideCompletionModel for OpenaiCompatible {
-    fn create_completion_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn CompletionModel>> {
+    fn create_completion_model(
+        self: Arc<Self>,
+        model_name: String,
+    ) -> Result<Box<dyn CompletionModel>> {
         Ok(Box::new(OpenaiModel::new(model_name, self)))
     }
 }
-
 
 impl ProvideEmbeddingModel for OpenaiCompatible {
-    fn create_embedding_model(self: Arc<Self>, model_name: String) -> Result<Box<dyn EmbeddingModel>> {
+    fn create_embedding_model(
+        self: Arc<Self>,
+        model_name: String,
+    ) -> Result<Box<dyn EmbeddingModel>> {
         Ok(Box::new(OpenaiModel::new(model_name, self)))
     }
 }
-
-
-
-

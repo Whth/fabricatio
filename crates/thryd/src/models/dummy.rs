@@ -1,6 +1,6 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::provider::dummy::DummyProvider;
 use crate::provider::Provider;
+use crate::provider::dummy::DummyProvider;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
@@ -51,20 +51,31 @@ impl Model for DummyModel {
 #[async_trait]
 impl CompletionModel for DummyModel {
     async fn completion(&self, _request: CompletionRequest) -> crate::Result<String> {
-        let mut queue = self.response_q_string.lock().map_err(|e| crate::ThrydError::Internal(e.to_string()))?;
+        let mut queue = self
+            .response_q_string
+            .lock()
+            .map_err(|e| crate::ThrydError::Internal(e.to_string()))?;
 
-        queue.pop()
-            .ok_or_else(|| crate::ThrydError::Internal("DummyModel exhausted: no more completion responses configured.".to_string()))
+        queue.pop().ok_or_else(|| {
+            crate::ThrydError::Internal(
+                "DummyModel exhausted: no more completion responses configured.".to_string(),
+            )
+        })
     }
 }
 
 #[async_trait]
 impl EmbeddingModel for DummyModel {
     async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
-        let mut queue = self.response_q_vec.lock().map_err(|e| crate::ThrydError::Internal(e.to_string()))?;
+        let mut queue = self
+            .response_q_vec
+            .lock()
+            .map_err(|e| crate::ThrydError::Internal(e.to_string()))?;
 
-        queue.pop()
-            .ok_or_else(|| crate::ThrydError::Internal("DummyModel exhausted: no more embedding responses configured.".to_string()))
+        queue.pop().ok_or_else(|| {
+            crate::ThrydError::Internal(
+                "DummyModel exhausted: no more embedding responses configured.".to_string(),
+            )
+        })
     }
 }
-

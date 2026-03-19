@@ -16,12 +16,13 @@ impl PersistentCache {
         Ok(Self { db })
     }
 
-
     /// Get a value from cache
     pub fn get(&self, key: &str) -> Option<String> {
-        self.db.get(key).ok().flatten().and_then(|v| {
-            String::from_utf8(v.to_vec()).ok()
-        })
+        self.db
+            .get(key)
+            .ok()
+            .flatten()
+            .and_then(|v| String::from_utf8(v.to_vec()).ok())
     }
 
     /// Get a deserialized value
@@ -63,8 +64,6 @@ impl PersistentCache {
 
     /// Flush pending writes to disk
     pub async fn flush(&self) -> Result<usize> {
-        self.db.flush_async().await.map_err(
-            ThrydError::Sled
-        )
+        self.db.flush_async().await.map_err(ThrydError::Sled)
     }
 }

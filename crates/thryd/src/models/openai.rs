@@ -1,6 +1,9 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
-use async_openai::types::chat::{ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateChatCompletionResponse};
+use async_openai::types::chat::{
+    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    CreateChatCompletionResponse,
+};
 use async_trait::async_trait;
 use serde_json::to_value;
 use std::sync::Arc;
@@ -38,13 +41,11 @@ pub enum OpenAiRoute {
     /// Generates embeddings for text inputs.
     #[strum(serialize = "/v1/embeddings")]
     Embeddings,
-
 }
 pub struct OpenaiModel {
     name: String,
     provider: Arc<dyn Provider>,
 }
-
 
 impl OpenaiModel {
     pub fn new(name: String, provider: Arc<dyn Provider>) -> Self {
@@ -67,34 +68,32 @@ impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
         let request = CreateChatCompletionRequestArgs::default()
             .model(self.model_name()) // Or "gpt-3.5-turbo", "gpt-4", etc.
-            .messages([
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(request.message)
-
-                    .build()?
-                    .into(),
-            ])
+            .messages([ChatCompletionRequestUserMessageArgs::default()
+                .content(request.message)
+                .build()?
+                .into()])
             .top_p(request.top_p)
             .temperature(request.temperature)
             .build()?;
 
-
-        let content = if let Some(choice) = self.provider.post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
+        let content = if let Some(choice) = self
+            .provider
+            .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
             .await?
             .json::<CreateChatCompletionResponse>()
             .await?
             .choices
-            .first() && let Some(content) = choice.message.content.clone() {
+            .first()
+            && let Some(content) = choice.message.content.clone()
+        {
             content
         } else {
             String::new()
         };
 
-
         Ok(content)
     }
 }
-
 
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
@@ -102,8 +101,3 @@ impl EmbeddingModel for OpenaiModel {
         todo!()
     }
 }
-
-
-
-
-

@@ -1,5 +1,5 @@
-use crate::provider::Provider;
 use crate::SEPARATE;
+use crate::provider::Provider;
 use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
@@ -9,7 +9,6 @@ pub struct EmbeddingRequest {
     pub texts: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct CompletionRequest {
     pub message: String,
@@ -17,16 +16,17 @@ pub struct CompletionRequest {
     pub temperature: f32,
 }
 
-
 pub trait Model: Send + Sync {
     fn model_name(&self) -> &str;
 
-
     fn provider(&self) -> Arc<dyn Provider>;
 
-
     fn identifier(&self) -> String {
-        format!("{}{SEPARATE}{}", self.provider().provider_name(), self.model_name())
+        format!(
+            "{}{SEPARATE}{}",
+            self.provider().provider_name(),
+            self.model_name()
+        )
     }
 }
 
@@ -34,7 +34,6 @@ pub trait Model: Send + Sync {
 pub trait CompletionModel: Model {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String>;
 }
-
 
 #[async_trait]
 pub trait EmbeddingModel: Model {

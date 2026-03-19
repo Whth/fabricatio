@@ -9,14 +9,9 @@ use url::Url;
 pub type ClientEntry = Arc<Client>;
 
 /// Global connection pool
-pub(crate) static CONNECTIONS_POOL: Lazy<Cache<Url, ClientEntry>> = Lazy::new(
-    || Cache::builder().time_to_idle(Duration::from_secs(DEFAULT_TTL_SECS))
-        .max_capacity(DEFAULT_MAX_CAPACITY).build()
-);
-
-
-
-
-
-
-
+pub(crate) static CONNECTIONS_POOL: Lazy<Cache<Url, ClientEntry>> = Lazy::new(|| {
+    Cache::builder()
+        .time_to_idle(Duration::from_secs(DEFAULT_TTL_SECS))
+        .max_capacity(DEFAULT_MAX_CAPACITY)
+        .build()
+});

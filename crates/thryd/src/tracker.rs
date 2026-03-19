@@ -1,4 +1,4 @@
-use crate::{BUCKETS_WINDOW_S, BUCKET_COUNT};
+use crate::{BUCKET_COUNT, BUCKETS_WINDOW_S};
 use cached::proc_macro::cached;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -10,12 +10,9 @@ pub fn count_token(string: String) -> u64 {
         .len() as u64
 }
 
-
 pub type TimeStamp = u128;
 
-
 pub type Quota = u64;
-
 
 #[derive(Default, Debug)]
 struct UsageBucket(Quota, TimeStamp);
@@ -34,7 +31,6 @@ impl UsageBucket {
         self
     }
 
-
     fn expired(&mut self, timestamp: TimeStamp) -> &mut Self {
         if (timestamp - BUCKETS_WINDOW_S as TimeStamp) > self.1 {
             self.reset(timestamp)
@@ -44,28 +40,23 @@ impl UsageBucket {
     }
 
     fn valid(&self, timestamp: TimeStamp) -> Option<&Self> {
-        ((timestamp - BUCKETS_WINDOW_S as TimeStamp) <= self.1).then_some(
-            self
-        )
+        ((timestamp - BUCKETS_WINDOW_S as TimeStamp) <= self.1).then_some(self)
     }
 
     fn add_one(&mut self, timestamp: TimeStamp) {
         self.add(1, timestamp)
     }
 
-
     fn add(&mut self, val: u64, timestamp: TimeStamp) {
         self.expired(timestamp).set(timestamp, val);
     }
 }
-
 
 #[derive(Debug)]
 struct UsageBuckets {
     buckets: [UsageBucket; BUCKET_COUNT],
     quota: Quota,
 }
-
 
 impl UsageBuckets {
     fn with_quota(quota: u64) -> Self {
@@ -75,35 +66,30 @@ impl UsageBuckets {
         }
     }
 
-
     fn get_bucket_mut(&mut self, timestamp: &TimeStamp) -> &mut UsageBucket {
-        self.buckets.get_mut(((timestamp / 1000) % BUCKET_COUNT as TimeStamp) as usize).unwrap()
+        self.buckets
+            .get_mut(((timestamp / 1000) % BUCKET_COUNT as TimeStamp) as usize)
+            .unwrap()
     }
 
-
     fn used(&self, cur_timestamp: TimeStamp) -> Quota {
-        self.buckets.iter().filter_map(
-            |e|
-                e.valid(cur_timestamp)
-        )
-
-            .map(|e|
-                e.0)
+        self.buckets
+            .iter()
+            .filter_map(|e| e.valid(cur_timestamp))
+            .map(|e| e.0)
             .sum()
     }
 
-
-    fn remaining_quota(&self, cur_timestamp: TimeStamp) -> Quota
-    {
+    fn remaining_quota(&self, cur_timestamp: TimeStamp) -> Quota {
         self.quota - self.used(cur_timestamp)
     }
 
-
     fn all_valid(&self, timestamp: TimeStamp) -> Vec<&UsageBucket> {
-        let mut seq: Vec<&UsageBucket> = self.buckets.as_ref().iter()
-            .filter_map(
-                |e| e.valid(timestamp)
-            )
+        let mut seq: Vec<&UsageBucket> = self
+            .buckets
+            .as_ref()
+            .iter()
+            .filter_map(|e| e.valid(timestamp))
             .collect();
         seq.sort_by_key(|e| e.1);
         seq
@@ -132,7 +118,6 @@ impl UsageBuckets {
             }
         }
 
-
         (BUCKETS_WINDOW_S * 1000) as u64
     }
 }
@@ -145,7 +130,6 @@ impl Default for UsageBuckets {
         }
     }
 }
-
 
 /// Tracks API usage within a sliding time window for quota management.
 #[derive(Default, Debug)]
@@ -177,30 +161,35 @@ impl UsageTracker {
         self
     }
 
-
     pub fn add_request_raw(&mut self, input_text: String, output_text: String) -> &mut Self {
         self.add_request(count_token(input_text) + count_token(output_text))
     }
 
     /// Get total requests in current window
     pub fn rpm_usage(&self) -> Option<Quota> {
-        self.rpm_buckets.as_ref().map(|q| q.used(self.current_timestamp()))
+        self.rpm_buckets
+            .as_ref()
+            .map(|q| q.used(self.current_timestamp()))
     }
 
     pub fn remaining_rpm_quota(&self) -> Option<Quota> {
-        self.rpm_buckets.as_ref().map(|q| q.remaining_quota(self.current_timestamp()))
+        self.rpm_buckets
+            .as_ref()
+            .map(|q| q.remaining_quota(self.current_timestamp()))
     }
-
 
     /// Get total tokens in current window
     pub fn tpm_usage(&self) -> Option<Quota> {
-        self.tpm_buckets.as_ref().map(|q| q.used(self.current_timestamp()))
+        self.tpm_buckets
+            .as_ref()
+            .map(|q| q.used(self.current_timestamp()))
     }
 
     pub fn remaining_tpm_quota(&self) -> Option<Quota> {
-        self.tpm_buckets.as_ref().map(|q| q.remaining_quota(self.current_timestamp()))
+        self.tpm_buckets
+            .as_ref()
+            .map(|q| q.remaining_quota(self.current_timestamp()))
     }
-
 
     fn current_timestamp(&self) -> TimeStamp {
         SystemTime::now()
@@ -209,24 +198,28 @@ impl UsageTracker {
             .as_millis()
     }
 
-
     pub fn need_wait_for(&self, input_token: Quota) -> u64 {
         let cur = self.current_timestamp();
-        self.rpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(input_token, cur)).unwrap_or_default()
-            .max(self.tpm_buckets.as_ref().map(|e| e.min_cooldown_time_for(1, cur)).unwrap_or_default())
+        self.rpm_buckets
+            .as_ref()
+            .map(|e| e.min_cooldown_time_for(input_token, cur))
+            .unwrap_or_default()
+            .max(
+                self.tpm_buckets
+                    .as_ref()
+                    .map(|e| e.min_cooldown_time_for(1, cur))
+                    .unwrap_or_default(),
+            )
     }
-
 
     pub fn need_wait_for_string(&self, input_string: String) -> u64 {
         self.need_wait_for(count_token(input_string))
     }
 
-
     pub fn has_capacity(&self) -> bool {
         self.remaining_rpm_quota().unwrap_or(1) > 0 && self.remaining_tpm_quota().unwrap_or(1) > 0
     }
 }
-
 
 #[cfg(test)]
 mod tests {}

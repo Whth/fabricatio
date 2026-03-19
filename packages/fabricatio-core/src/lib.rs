@@ -1,20 +1,20 @@
 #![feature(iterator_try_collect)]
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
 use cfg_if::cfg_if;
 use fabricatio_config::Config;
 use fabricatio_constants::*;
-use fabricatio_logger::{init_logger, Logger};
+use fabricatio_logger::{Logger, init_logger};
 
 mod event;
 mod hash;
 mod hbs_helpers;
 mod language;
+mod router;
 mod scan;
 mod templates;
 mod text_file;
 mod word_split;
-mod router;
 
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;

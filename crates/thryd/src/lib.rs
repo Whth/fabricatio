@@ -11,27 +11,22 @@
 pub mod cache;
 pub mod connections;
 pub mod constants;
-pub mod error;
-pub mod provider;
-pub mod route;
-pub mod tracker;
 mod deployment;
+pub mod error;
 mod message;
 mod model;
 pub mod models;
+pub mod provider;
+pub mod route;
+pub mod tracker;
 pub(crate) mod utils;
-
 
 pub use cache::*;
 pub use constants::*;
 pub use error::{Result, ThrydError};
 pub use model::*;
 
-pub use models::{
-    dummy::*, openai::*,
-};
-pub use provider::{
-    dummy::*, openai::*,
-};
+pub use models::{dummy::*, openai::*};
+pub use provider::{dummy::*, openai::*};
 pub use route::*;
 pub use tracker::UsageTracker;

@@ -1,10 +1,9 @@
-use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::tracker::count_token;
 use crate::Result;
 use crate::UsageTracker;
+use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+use crate::tracker::count_token;
 use tokio::sync::Mutex;
-use tokio::time::{sleep, Duration};
-
+use tokio::time::{Duration, sleep};
 
 pub struct Deployment<M: ?Sized + Model> {
     model: Box<M>,
@@ -12,8 +11,7 @@ pub struct Deployment<M: ?Sized + Model> {
 }
 
 impl<M: ?Sized + Model> Deployment<M> {
-    pub fn new(model: Box<M>) -> Deployment<M>
-    {
+    pub fn new(model: Box<M>) -> Deployment<M> {
         Self {
             model,
             usage_tracker: None,
@@ -23,7 +21,6 @@ impl<M: ?Sized + Model> Deployment<M> {
     pub fn identifier(&self) -> String {
         self.model.identifier()
     }
-
 
     pub fn with_usage_constrain(mut self, rpm: Option<u64>, tpm: Option<u64>) -> Self {
         self.usage_tracker = Some(Mutex::new(UsageTracker::with_quota(tpm, rpm)));
@@ -41,7 +38,9 @@ impl<M: ?Sized + Model> Deployment<M> {
     pub async fn wait_capacity_for(&self, input_text: String) -> Result<&Self> {
         if let Some(tracker) = &self.usage_tracker {
             let need = count_token(input_text);
-            while let time = tracker.lock().await.need_wait_for(need) && time > 0 {
+            while let time = tracker.lock().await.need_wait_for(need)
+                && time > 0
+            {
                 sleep(Duration::from_millis(time)).await;
             }
             Ok(self)
@@ -49,7 +48,6 @@ impl<M: ?Sized + Model> Deployment<M> {
             Ok(self)
         }
     }
-
 
     pub async fn min_cooldown_time(&self, input_text: String) -> u64 {
         if let Some(tracker) = &self.usage_tracker {
@@ -65,14 +63,14 @@ impl<M: ?Sized + Model> Deployment<M> {
     {
         let input = request.message.to_string();
         let res = self.model.completion(request).await;
-        if let Some(tracker) = self.usage_tracker.as_ref() && let Ok(r) = &res {
-            tracker
-                .lock().await.add_request_raw(input, r.to_string());
+        if let Some(tracker) = self.usage_tracker.as_ref()
+            && let Ok(r) = &res
+        {
+            tracker.lock().await.add_request_raw(input, r.to_string());
         }
 
         res
     }
-
 
     pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Vec<f32>>
     where
@@ -80,23 +78,12 @@ impl<M: ?Sized + Model> Deployment<M> {
     {
         let input = request.texts.iter().cloned().collect();
         let res = self.model.embedding(request).await;
-        if let Some(tracker) = self.usage_tracker.as_ref() && res.is_ok() {
-            tracker.lock().await
-                .add_request_raw(input, "".to_string());
+        if let Some(tracker) = self.usage_tracker.as_ref()
+            && res.is_ok()
+        {
+            tracker.lock().await.add_request_raw(input, "".to_string());
         }
 
         res
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

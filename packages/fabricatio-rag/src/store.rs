@@ -6,13 +6,12 @@ use arrow_array::array::*;
 use arrow_array::cast::AsArray;
 use arrow_array::types::*;
 
-
 use arrow_array::{RecordBatch, RecordBatchIterator};
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
+use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
-use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};

@@ -9,7 +9,6 @@ pub struct DummyProvider {
     name: String,
 }
 
-
 impl Default for DummyProvider {
     fn default() -> Self {
         Self {
@@ -19,7 +18,6 @@ impl Default for DummyProvider {
         }
     }
 }
-
 
 impl Provider for DummyProvider {
     fn provider_name(&self) -> &str {
