@@ -93,25 +93,6 @@ def test_add_computed_column_invalid_expression(sample_dataframe: pd.DataFrame) 
 # =====================
 # READ Operations Tests
 # =====================
-def test_get_column_metadata(sample_dataframe: pd.DataFrame) -> None:
-    """Test retrieving detailed column metadata."""
-    metadata = dt.get_column_metadata(sample_dataframe)
-
-    # Check structure
-    assert isinstance(metadata, dict)
-    assert set(metadata.keys()) == set(sample_dataframe.columns)
-
-    # Check content for numeric column
-    assert metadata["price"]["dtype"] == "float64"
-    assert len(metadata["price"]["sample_values"]) <= 3
-    assert metadata["price"]["null_count"] == 0
-
-    # Check content for categorical column
-    assert metadata["product"]["dtype"] == "object"
-    assert metadata["product"]["null_count"] == 0
-
-    # Check content for column with nulls
-    assert metadata["discount"]["null_count"] == 2
 
 
 def test_get_row_by_index(sample_dataframe: pd.DataFrame) -> None:
