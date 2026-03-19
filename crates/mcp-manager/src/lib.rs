@@ -3,13 +3,13 @@ mod error;
 pub use error::McpError;
 use error::McpError::RmcpError;
 use futures::future::BoxFuture;
-use futures::{FutureExt, StreamExt, TryFutureExt, stream};
+use futures::{stream, FutureExt, StreamExt, TryFutureExt};
 use rmcp::model::{CallToolRequestParams, Tool};
 use rmcp::service::{DynService, RunningService};
-use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::{RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
@@ -206,12 +206,11 @@ impl MCPManager {
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
             .map(|client| {
-                client.call_tool(CallToolRequestParams {
-                    meta: None,
-                    name: tool_name.to_owned().into(),
-                    arguments,
-                    task: None,
-                })
+                client.call_tool(
+                    CallToolRequestParams::new(tool_name.to_string()).with_arguments(
+                        arguments.unwrap_or_default()
+                    )
+                )
             })?
             .await
             .map_err(RmcpError)
