@@ -278,7 +278,7 @@ class UseLLM(LLMScopedConfig, ABC):
         default: Optional[T] = None,
         max_validations: PositiveInt = 3,
         **kwargs: Unpack[GenerateKwargs],
-    ) -> Optional[T] | List[Optional[T]] | List[T] | T:
+    ) -> None | T | List[Optional[T]] | List[T]:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
@@ -465,7 +465,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     CONFIG.templates.generic_string_template,
                     {"requirement": requirement, "language": GenericCapture.capture_type},
                 ),
-                validator=lambda resp: GenericCapture.capture(resp),
+                validator=GenericCapture.capture,
                 **kwargs,
             )
         if isinstance(requirement, list):
@@ -474,7 +474,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     CONFIG.templates.generic_string_template,
                     [{"requirement": r, "language": GenericCapture.capture_type} for r in requirement],
                 ),
-                validator=lambda resp: GenericCapture.capture(resp),
+                validator=GenericCapture.capture,
                 **kwargs,
             )
         return None
@@ -514,7 +514,7 @@ class UseLLM(LLMScopedConfig, ABC):
                 if isinstance(requirement, str)
                 else [{"requirement": r, "code_language": code_language} for r in requirement],
             ),
-            validator=lambda resp: cap.capture(resp),
+            validator=cap.capture,
             **kwargs,
         )
 

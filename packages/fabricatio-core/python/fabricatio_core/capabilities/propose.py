@@ -48,7 +48,7 @@ class Propose(UseLLM, ABC):
         cls: Type[M],
         prompt: List[str] | str,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> Optional[M] | List[Optional[M]] | M | List[M]:
+    ) -> None | M | List[Optional[M]] | List[M]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:

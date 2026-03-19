@@ -37,8 +37,8 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
 
     The full queue path is formed as: `<component1>::<component2>::...::*::Pending`.
     For example:
-      - with ['work'] will be received by 'work::*::Pending'
-      - with ['write', 'book'] will be received by 'write::book::*::Pending'
+    - with ['work'] will be received by 'work::*::Pending'
+    - with ['write', 'book'] will be received by 'write::book::*::Pending'
 
     ⚠️ The caller must ensure that the resulting namespace (e.g., 'write::book') exists.
     Sending to a non-existent namespace may result in task loss or an error.
