@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 pub struct DummyModel {
     name: String,
     response_q_string: Mutex<Vec<String>>,
-    response_q_vec: Mutex<Vec<Vec<f32>>>,
+    response_q_vec: Mutex<Vec<Vec<Vec<f32>>>>,
     provider: Arc<dyn Provider>,
 }
 
@@ -26,7 +26,7 @@ impl DummyModel {
         self
     }
 
-    pub fn with_embedding_responses(self, responses: Vec<Vec<f32>>) -> Self {
+    pub fn with_embedding_responses(self, responses: Vec<Vec<Vec<f32>>>) -> Self {
         *self.response_q_vec.lock().unwrap() = responses;
         self
     }
@@ -66,7 +66,7 @@ impl CompletionModel for DummyModel {
 
 #[async_trait]
 impl EmbeddingModel for DummyModel {
-    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
+    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<Vec<f32>>> {
         let mut queue = self
             .response_q_vec
             .lock()

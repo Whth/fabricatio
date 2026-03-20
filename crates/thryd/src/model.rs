@@ -37,5 +37,5 @@ pub trait CompletionModel: Model {
 
 #[async_trait]
 pub trait EmbeddingModel: Model {
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<f32>>;
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<Vec<f32>>>;
 }

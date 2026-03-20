@@ -8,7 +8,7 @@ license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
-async-openai = { version = "0.33.1", features = ["completions"] }
+async-openai = { version = "0.33.1", features = ["completions", "embedding-types"] }
 async-trait = "0.1.89"
 cached = "0.58.0"
 eventsource-stream = "0.2.3"

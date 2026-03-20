@@ -3,20 +3,19 @@ use once_cell::sync::Lazy;
 use pyo3::prelude::PyModule;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
+use pyo3_stub_gen::derive::gen_stub_pyfunction;
 use thryd::{CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Router};
 
 pub static COMPLETION_MODEL_ROUTER: Lazy<Router<CompletionTag>> = Lazy::new(Router::default);
 
 pub static EMBEDDING_MODEL_ROUTER: Lazy<Router<EmbeddingTag>> = Lazy::new(Router::default);
-
+#[gen_stub_pyfunction]
 #[pyfunction]
+/// Sends a completion request to the specified group.
 pub fn completion(
     python: Python,
-
     send_to: String,
-
     message: String,
-
     top_p: f32,
     temperature: f32,
 ) -> PyResult<Bound<PyAny>> {
@@ -34,7 +33,9 @@ pub fn completion(
     })
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
+/// Sends an embedding request to the specified group.
 pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResult<Bound<PyAny>> {
     let req = EmbeddingRequest { texts };
 

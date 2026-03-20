@@ -14,7 +14,7 @@ use strum::{Display, EnumString, IntoStaticStr};
 use pyo3_stub_gen::derive::*;
 
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 struct Event {
     #[pyo3(get)]
@@ -208,7 +208,7 @@ impl Event {
     Deserialize,
 )]
 #[gen_stub_pyclass_enum]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub enum TaskStatus {
     Pending,
     Running,

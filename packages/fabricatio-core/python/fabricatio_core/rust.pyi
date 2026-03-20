@@ -656,4 +656,10 @@ def extras_satisfied(pkg_name: str, extras: Sequence[str]) -> bool:
 def is_likely_text(path: str | Path) -> bool:
     """Judge if a file is likely text, dir or path not exist are considered false."""
 
+async def completion(send_to: str, message: str, top_p: float, temperature: float) -> str:
+    """Sends a completion request to the specified group."""
+
+async def embedding(send_to: str, texts: List[str]) -> List[List[float]]:
+    """Sends an embedding request to the specified group."""
+
 logger: Logger

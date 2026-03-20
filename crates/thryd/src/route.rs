@@ -256,7 +256,7 @@ impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
     type Provider = dyn ProvideEmbeddingModel;
     type Request = EmbeddingRequest;
-    type Response = Vec<f32>;
+    type Response = Vec<Vec<f32>>;
 
     fn create_model(
         provider: Arc<Self::Provider>,

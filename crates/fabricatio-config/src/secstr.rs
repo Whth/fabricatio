@@ -7,7 +7,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Clone)]
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct SecretStr {
     source: String,
 }

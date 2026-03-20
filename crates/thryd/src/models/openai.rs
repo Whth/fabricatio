@@ -4,6 +4,8 @@ use async_openai::types::chat::{
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
     CreateChatCompletionResponse,
 };
+
+use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use serde_json::to_value;
 use std::sync::Arc;
@@ -97,7 +99,21 @@ impl CompletionModel for OpenaiModel {
 
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
-    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Vec<f32>> {
-        todo!()
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<Vec<f32>>> {
+        let request = CreateEmbeddingRequestArgs::default()
+            .model(self.model_name())
+            .input(request.texts)
+            .build()?;
+
+        Ok(self
+            .provider
+            .post(OpenAiRoute::Embeddings.as_ref(), &to_value(request)?)
+            .await?
+            .json::<CreateEmbeddingResponse>()
+            .await?
+            .data
+            .into_iter()
+            .map(|e| e.embedding)
+            .collect::<Vec<Vec<f32>>>())
     }
 }

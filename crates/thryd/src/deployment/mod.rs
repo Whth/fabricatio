@@ -72,7 +72,7 @@ impl<M: ?Sized + Model> Deployment<M> {
         res
     }
 
-    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Vec<f32>>
+    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Vec<Vec<f32>>>
     where
         M: EmbeddingModel,
     {

@@ -62,7 +62,7 @@ use validator::Validate;
 ///   Range from -2.0 to 2.0. Positive values discourage repetition.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct LLMConfig {
     #[validate(url)]
     pub api_endpoint: Option<String>,
@@ -115,7 +115,7 @@ pub struct LLMConfig {
 /// Embedding configuration structure
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct EmbeddingConfig {
     pub model: Option<String>,
 
@@ -135,7 +135,7 @@ pub struct EmbeddingConfig {
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct DebugConfig {
     pub log_level: String,
 
@@ -154,7 +154,7 @@ impl Default for DebugConfig {
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct TemplateManagerConfig {
     /// The directory containing the templates.
     pub template_stores: Vec<PathBuf>,
@@ -179,7 +179,7 @@ impl Default for TemplateManagerConfig {
 /// Template configuration structure
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct TemplateConfig {
     pub mapping_template: String,
 
@@ -223,7 +223,7 @@ pub struct TemplateConfig {
 /// Routing configuration structure for controlling request dispatching behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct RoutingConfig {
     /// The maximum number of parallel requests. None means not checked.
     pub max_parallel_requests: Option<u32>,
@@ -251,7 +251,7 @@ impl Default for RoutingConfig {
 /// General configuration structure for application-wide settings
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct GeneralConfig {
     /// Whether to automatically repair malformed JSON
     pub use_json_repair: bool,
@@ -270,7 +270,7 @@ impl Default for GeneralConfig {
 /// Contains settings for controlling event emission and listener behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(get_all, set_all)]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct EmitterConfig {
     /// The delimiter used to separate the event name into segments
     pub delimiter: String,
@@ -287,7 +287,7 @@ impl Default for EmitterConfig {
 /// Configuration structure containing all system components
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct Config {
     /// Embedding configuration
     ///
