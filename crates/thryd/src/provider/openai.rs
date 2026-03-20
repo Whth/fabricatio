@@ -1,11 +1,12 @@
-use crate::Result;
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::models::openai::OpenaiModel;
 use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
 use crate::utils::build_headers;
+use crate::Result;
 use http::HeaderMap;
 use reqwest::Url;
 use secrecy::SecretString;
+use std::env::var;
 use std::sync::Arc;
 
 pub struct OpenaiCompatible {
@@ -13,6 +14,34 @@ pub struct OpenaiCompatible {
     api_key: SecretString,
     name: String,
 }
+
+
+impl OpenaiCompatible {
+    pub fn new(name: String, api_key: SecretString, endpoint: Url) -> Self {
+        Self {
+            endpoint,
+            api_key,
+            name,
+        }
+    }
+
+
+    pub fn openai(api_key: SecretString) -> Self {
+        Self {
+            api_key,
+            ..Self::default()
+        }
+    }
+
+    pub fn openai_from_env() -> Option<Self> {
+        var("OPENAI_API_KEY").ok()
+            .map(
+                |k|
+                    Self::openai(SecretString::from(k))
+            )
+    }
+}
+
 
 impl Default for OpenaiCompatible {
     fn default() -> Self {

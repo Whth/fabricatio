@@ -18,6 +18,8 @@ pub enum ThrydError {
     #[error("Provider '{provider}' is not available: {reason}")]
     ProviderUnavailable { provider: String, reason: String },
 
+    #[error("Provider create error: {0}")]
+    ProviderCreate(String),
     /// Indicates that no suitable provider could be found for the requested model.
     #[error("No suitable provider found for model '{model}'")]
     NoProviderFound { model: String },

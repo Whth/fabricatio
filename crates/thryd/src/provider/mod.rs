@@ -4,12 +4,13 @@ pub mod openai;
 pub use dummy::*;
 pub use openai::*;
 
-use crate::connections::{CONNECTIONS_POOL, ClientEntry};
+use crate::connections::{ClientEntry, CONNECTIONS_POOL};
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
+use secrecy::SecretString;
 use serde_json::Value;
 use std::sync::Arc;
 use url::Url;
@@ -67,4 +68,55 @@ pub trait ProvideEmbeddingModel: Provider {
         self: Arc<Self>,
         model_name: String,
     ) -> Result<Box<dyn EmbeddingModel>>;
+}
+
+
+pub enum ProviderType {
+    OpenAI,
+    OpenAICompatible,
+    Dummy,
+}
+
+
+fn need_all(name: Option<String>,
+            api_key: Option<SecretString>,
+            endpoint: Option<Url>, ) -> Result<(String, SecretString, Url)> {
+    Ok((
+        name.ok_or_else(|| ThrydError::ProviderCreate(
+            "Name not provided!".to_string()
+        ))?,
+        api_key.ok_or_else(|| ThrydError::ProviderCreate(
+            "API key not provided!".to_string()
+        ))?,
+        endpoint.ok_or_else(||
+            ThrydError::ProviderCreate(
+                "Endpoint not provided!".to_string()
+            )
+        )?
+    )
+    )
+}
+
+
+pub fn create_provider(
+    provider_type: ProviderType,
+    name: Option<String>,
+    api_key: Option<SecretString>,
+    endpoint: Option<Url>,
+) -> Result<Arc<dyn Provider>> {
+    match provider_type {
+        ProviderType::OpenAI => {
+            Ok(Arc::new(OpenaiCompatible::openai(api_key.ok_or_else(|| ThrydError::ProviderCreate(
+                "OpenAI API key not provided!".to_string()
+            ))?)))
+        }
+        ProviderType::OpenAICompatible => {
+            let (name, api_key, endpoint) = need_all(name, api_key, endpoint)?;
+
+            Ok(Arc::new(OpenaiCompatible::new(name, api_key, endpoint)))
+        }
+        ProviderType::Dummy => {
+            Ok(Arc::new(DummyProvider::default()))
+        }
+    }
 }
