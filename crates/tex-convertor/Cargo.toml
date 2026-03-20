@@ -6,7 +6,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-regex = "1.12.2"
+regex = "1.12.3"
 tex2typst-rs = "0.4.1"
 
 

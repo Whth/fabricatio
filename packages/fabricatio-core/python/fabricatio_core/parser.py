@@ -126,7 +126,7 @@ class Capture:
         target_type: Type[T],
         elements_type: Optional[Type[E]] = None,
         length: Optional[int] = None,
-        deserializer: Callable[[str], K] = lambda x: orjson.loads(x),
+        deserializer: Callable[[str], K] = orjson.loads,
     ) -> Optional[T]:
         """Deserialize and validate the captured text against expected types.
 

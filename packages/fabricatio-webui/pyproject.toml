@@ -32,7 +32,7 @@ fc-webui = "fabricatio_webui.cli:app"
 
 [project.optional-dependencies]
 cli = [
-    "typer-slim[standard]>=0.15.2",
+    "typer>=0.15.2",
 ]
 
 

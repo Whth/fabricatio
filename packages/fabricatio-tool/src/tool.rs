@@ -7,7 +7,7 @@ const WHITELIST: &str = "whitelist";
 const BLACKLIST: &str = "blacklist";
 
 /// Configuration for checks, specifying the mode and target items.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 struct CheckConfig {
     mode: String,

@@ -168,7 +168,8 @@ ignore = [
     "S101",
     "PLR2004",
     "PLC0415",
-    "ASYNC230"
+    "ASYNC230",
+    "ASYNC240"
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -213,8 +214,8 @@ fabricatio-capable = { workspace = true }
 fabricatio-novel = { workspace = true }
 fabricatio-character = { workspace = true }
 fabricatio-checkpoint = { workspace = true }
-fabricatio-webui = {workspace = true}
-fabricatio-milvus = {workspace = true}
+fabricatio-webui = { workspace = true }
+fabricatio-milvus = { workspace = true }
 
 
 

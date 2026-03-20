@@ -37,7 +37,7 @@ workflows = ["fabricatio-actions"]
 cli = [
     "fabricatio-novel[workflows]",
     "questionary>=2.1.0",
-    "typer-slim[standard]>=0.15.2",
+    "typer>=0.15.2",
 ]
 
 
