@@ -13,7 +13,6 @@ use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
 use strum_macros::EnumIter;
-use tracing::trace;
 
 /// Represents all standard OpenAI API v1 endpoints.
 ///
@@ -92,8 +91,6 @@ impl CompletionModel for OpenaiModel {
                 .eventsource()
                 .filter_map(|e| async move { e.ok() })
                 .filter_map(|e| async move {
-                    trace!("Stream chunk: {}", e.data);
-
                     serde_json::from_str::<CreateChatCompletionStreamResponse>(e.data.as_str()).ok()
                 })
                 .filter_map(|resp| async move { resp.choices.first().cloned() })
