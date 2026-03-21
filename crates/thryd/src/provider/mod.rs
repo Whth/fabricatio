@@ -4,9 +4,9 @@ pub mod openai;
 pub use dummy::*;
 pub use openai::*;
 
-use crate::ThrydError::ModelNotSupported;
-use crate::connections::{CONNECTIONS_POOL, ClientEntry};
+use crate::connections::{ClientEntry, CONNECTIONS_POOL};
 use crate::model::{CompletionModel, EmbeddingModel};
+use crate::ThrydError::ModelNotSupported;
 use crate::{Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
@@ -109,11 +109,15 @@ pub fn create_provider(
     endpoint: Option<String>,
 ) -> Result<Arc<dyn Provider>> {
     match provider_type {
-        ProviderType::OpenAI => Ok(Arc::new(OpenaiCompatible::openai(SecretString::from(
+        ProviderType::OpenAI => Ok(Arc::new(
             api_key.ok_or_else(|| {
                 ThrydError::ProviderCreate("OpenAI API key not provided!".to_string())
-            })?,
-        )))),
+            }).map(
+                SecretString::from
+            ).map(
+                OpenaiCompatible::openai
+            ).or_else(|e| OpenaiCompatible::openai_from_env().ok_or(e))?
+        )),
         ProviderType::OpenAICompatible => {
             let (name, api_key, endpoint) = need_all(name, api_key, endpoint)?;
 

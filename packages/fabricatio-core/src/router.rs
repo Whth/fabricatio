@@ -1,14 +1,14 @@
 use error_mapping::AsPyErr;
-use futures_util::FutureExt;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::gen_stub_pyfunction;
 use std::str::FromStr;
 use std::sync::Arc;
+use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType, Router,
-    create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType,
+    Router,
 };
 use tokio::sync::RwLock;
 
@@ -60,7 +60,11 @@ pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResul
     })
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
+#[pyo3(signature=(provider_type,name=None,api_key=None,endpoint=None))]
+
+/// Adds a provider to the router.
 pub fn add_provider<'a>(
     python: Python<'a>,
     provider_type: &str,
@@ -74,7 +78,7 @@ pub fn add_provider<'a>(
         api_key,
         endpoint,
     )
-    .into_pyresult()?;
+        .into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
@@ -90,10 +94,42 @@ pub fn add_provider<'a>(
         Ok(())
     })
 }
+#[gen_stub_pyfunction]
+#[pyfunction]
+#[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
+/// Adds a completion model to the specified group.
+pub fn add_completion_model(python: Python, group: String, model_identifier: String, rpm: Option<Quota>, tpm: Option<Quota>) -> PyResult<Bound<PyAny>> {
+    future_into_py(python, async move {
+        COMPLETION_MODEL_ROUTER
+            .write()
+            .await
+            .deploy(group, model_identifier, rpm, tpm)
+            .into_pyresult()?;
+        Ok(())
+    })
+}
+
+#[gen_stub_pyfunction]
+#[pyfunction]
+#[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
+/// Adds an embedding model to the specified group.
+pub fn add_embedding_model(python: Python, group: String, model_identifier: String, rpm: Option<Quota>, tpm: Option<Quota>) -> PyResult<Bound<PyAny>> {
+    future_into_py(python, async move {
+        EMBEDDING_MODEL_ROUTER
+            .write()
+            .await
+            .deploy(group, model_identifier, rpm, tpm)
+            .into_pyresult()?;
+        Ok(())
+    })
+}
+
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(completion, m)?)?;
     m.add_function(wrap_pyfunction!(embedding, m)?)?;
     m.add_function(wrap_pyfunction!(add_provider, m)?)?;
+    m.add_function(wrap_pyfunction!(add_completion_model, m)?)?;
+    m.add_function(wrap_pyfunction!(add_embedding_model, m)?)?;
     Ok(())
 }
