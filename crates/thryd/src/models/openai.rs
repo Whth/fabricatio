@@ -2,11 +2,12 @@ use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, Embedding
 use crate::provider::Provider;
 use async_openai::types::chat::{
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
-    CreateChatCompletionResponse,
+    CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
 };
 
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
+use futures::StreamExt;
 use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
@@ -68,8 +69,9 @@ impl Model for OpenaiModel {
 #[async_trait]
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
+        let stream = request.stream;
         let request = CreateChatCompletionRequestArgs::default()
-            .model(self.model_name()) // Or "gpt-3.5-turbo", "gpt-4", etc.
+            .model(self.model_name())
             .messages([ChatCompletionRequestUserMessageArgs::default()
                 .content(request.message)
                 .build()?
@@ -79,22 +81,50 @@ impl CompletionModel for OpenaiModel {
             .stream(request.stream)
             .build()?;
 
-        let content = if let Some(choice) = self
-            .provider
-            .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
-            .await?
-            .json::<CreateChatCompletionResponse>()
-            .await?
-            .choices
-            .first()
-            && let Some(content) = choice.message.content.clone()
-        {
-            content
-        } else {
-            String::new()
-        };
+        if stream {
+            let res = self
+                .provider
+                .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
+                .await?
+                .bytes_stream()
+                .filter_map(|e| async move { e.ok() })
+                .filter_map(|line| async move {
+                    if line.starts_with("data: ".as_bytes()) {
+                        let json_str = &line[6..];
+                        if json_str == "[DONE]".as_bytes() {
+                            return None;
+                        }
 
-        Ok(content)
+                        serde_json::from_str::<CreateChatCompletionStreamResponse>(
+                            &*String::from_utf8_lossy(&json_str),
+                        )
+                        .ok()
+                    } else {
+                        None
+                    }
+                })
+                .filter_map(|resp| async move { resp.choices.first().cloned() })
+                .filter_map(|c| async move { c.delta.content })
+                .collect::<String>()
+                .await;
+            Ok(res)
+        } else {
+            let content = if let Some(choice) = self
+                .provider
+                .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
+                .await?
+                .json::<CreateChatCompletionResponse>()
+                .await?
+                .choices
+                .first()
+                && let Some(content) = choice.message.content.clone()
+            {
+                content
+            } else {
+                String::new()
+            };
+            Ok(content)
+        }
     }
 }
 
