@@ -24,6 +24,9 @@ on:
       - "**/pyproject.toml"
       - "**/cargo.toml"
 
+permissions:
+  contents: write
+  packages: write
 
 
 jobs:
