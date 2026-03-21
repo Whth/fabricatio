@@ -1,8 +1,8 @@
+use crate::Result;
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::models::openai::OpenaiModel;
-use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
+use crate::provider::Provider;
 use crate::utils::build_headers;
-use crate::Result;
 use http::HeaderMap;
 use reqwest::Url;
 use secrecy::SecretString;
@@ -15,7 +15,6 @@ pub struct OpenaiCompatible {
     name: String,
 }
 
-
 impl OpenaiCompatible {
     pub fn new(name: String, api_key: SecretString, endpoint: Url) -> Self {
         Self {
@@ -25,7 +24,6 @@ impl OpenaiCompatible {
         }
     }
 
-
     pub fn openai(api_key: SecretString) -> Self {
         Self {
             api_key,
@@ -34,14 +32,11 @@ impl OpenaiCompatible {
     }
 
     pub fn openai_from_env() -> Option<Self> {
-        var("OPENAI_API_KEY").ok()
-            .map(
-                |k|
-                    Self::openai(SecretString::from(k))
-            )
+        var("OPENAI_API_KEY")
+            .ok()
+            .map(|k| Self::openai(SecretString::from(k)))
     }
 }
-
 
 impl Default for OpenaiCompatible {
     fn default() -> Self {
@@ -65,18 +60,12 @@ impl Provider for OpenaiCompatible {
     fn headers(&self) -> Result<HeaderMap> {
         build_headers(&self.api_key)
     }
-}
-
-impl ProvideCompletionModel for OpenaiCompatible {
     fn create_completion_model(
         self: Arc<Self>,
         model_name: String,
     ) -> Result<Box<dyn CompletionModel>> {
         Ok(Box::new(OpenaiModel::new(model_name, self)))
     }
-}
-
-impl ProvideEmbeddingModel for OpenaiCompatible {
     fn create_embedding_model(
         self: Arc<Self>,
         model_name: String,

@@ -2,7 +2,6 @@ use http::header::AUTHORIZATION;
 use http::{HeaderMap, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
 
-
 pub(crate) fn build_headers(key: &SecretString) -> crate::Result<HeaderMap> {
     let mut h = HeaderMap::new();
 

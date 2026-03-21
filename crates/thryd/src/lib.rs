@@ -27,6 +27,6 @@ pub use error::{Result, ThrydError};
 pub use model::*;
 
 pub use models::{dummy::*, openai::*};
-pub use provider::{create_provider, dummy::*, openai::*, ProviderType};
+pub use provider::{ProviderType, create_provider, dummy::*, openai::*};
 pub use route::*;
 pub use tracker::UsageTracker;

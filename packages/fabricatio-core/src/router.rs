@@ -1,14 +1,23 @@
 use error_mapping::AsPyErr;
+use futures_util::FutureExt;
 use once_cell::sync::Lazy;
-use pyo3::prelude::PyModule;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::gen_stub_pyfunction;
-use thryd::{CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Router};
+use std::str::FromStr;
+use std::sync::Arc;
+use thryd::{
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType, Router,
+    create_provider,
+};
+use tokio::sync::RwLock;
 
-pub static COMPLETION_MODEL_ROUTER: Lazy<Router<CompletionTag>> = Lazy::new(Router::default);
+pub static COMPLETION_MODEL_ROUTER: Lazy<Arc<RwLock<Router<CompletionTag>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(Router::default())));
 
-pub static EMBEDDING_MODEL_ROUTER: Lazy<Router<EmbeddingTag>> = Lazy::new(Router::default);
+pub static EMBEDDING_MODEL_ROUTER: Lazy<Arc<RwLock<Router<EmbeddingTag>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(Router::default())));
+
 #[gen_stub_pyfunction]
 #[pyfunction]
 /// Sends a completion request to the specified group.
@@ -27,6 +36,8 @@ pub fn completion(
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
+            .read()
+            .await
             .invoke(send_to, req)
             .await
             .into_pyresult()
@@ -41,15 +52,48 @@ pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResul
 
     future_into_py(python, async move {
         EMBEDDING_MODEL_ROUTER
+            .read()
+            .await
             .invoke(send_to, req)
             .await
             .into_pyresult()
     })
 }
 
+#[pyfunction]
+pub fn add_provider<'a>(
+    python: Python<'a>,
+    provider_type: &str,
+    name: Option<String>,
+    api_key: Option<String>,
+    endpoint: Option<String>,
+) -> PyResult<Bound<'a, PyAny>> {
+    let p = create_provider(
+        ProviderType::from_str(provider_type).into_pyresult()?,
+        name,
+        api_key,
+        endpoint,
+    )
+    .into_pyresult()?;
+
+    future_into_py(python, async move {
+        COMPLETION_MODEL_ROUTER
+            .write()
+            .await
+            .add_provider(p.clone())
+            .into_pyresult()?;
+        EMBEDDING_MODEL_ROUTER
+            .write()
+            .await
+            .add_provider(p)
+            .into_pyresult()?;
+        Ok(())
+    })
+}
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(completion, m)?)?;
     m.add_function(wrap_pyfunction!(embedding, m)?)?;
-
+    m.add_function(wrap_pyfunction!(add_provider, m)?)?;
     Ok(())
 }

@@ -1,8 +1,11 @@
 use crate::provider::Provider;
 use crate::utils::build_headers;
+use crate::{CompletionModel, DummyModel, EmbeddingModel};
 use http::HeaderMap;
 use reqwest::Url;
 use secrecy::SecretString;
+use std::sync::Arc;
+
 pub struct DummyProvider {
     endpoint: Url,
     api_key: SecretString,
@@ -30,5 +33,17 @@ impl Provider for DummyProvider {
 
     fn headers(&self) -> crate::Result<HeaderMap> {
         build_headers(&self.api_key)
+    }
+    fn create_completion_model(
+        self: Arc<Self>,
+        model_name: String,
+    ) -> crate::Result<Box<dyn CompletionModel>> {
+        Ok(Box::new(DummyModel::new(model_name, self)))
+    }
+    fn create_embedding_model(
+        self: Arc<Self>,
+        model_name: String,
+    ) -> crate::Result<Box<dyn EmbeddingModel>> {
+        Ok(Box::new(DummyModel::new(model_name, self)))
     }
 }

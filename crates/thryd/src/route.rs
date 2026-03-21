@@ -1,6 +1,6 @@
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::provider::{ProvideCompletionModel, ProvideEmbeddingModel, Provider};
+use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
@@ -17,12 +17,12 @@ pub type ModelName = String;
 
 pub struct Router<Tag: ModelTypeTag> {
     cache: Option<PersistentCache>,
-    providers: HashMap<ProviderName, Arc<Tag::Provider>>,
+    providers: HashMap<ProviderName, Arc<dyn Provider>>,
     groups: BTreeMap<RouteGroupName, Vec<Deployment<Tag::Model>>>,
 }
 
 impl<Tag: ModelTypeTag> Router<Tag> {
-    pub fn add_provider(&mut self, provider: Arc<Tag::Provider>) -> Result<&mut Self> {
+    pub fn add_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
         self.providers
             .try_insert(provider.provider_name().to_string(), provider)
             .map_err(|e| {
@@ -34,7 +34,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         Ok(self)
     }
 
-    pub fn add_or_update_provider(&mut self, provider: Arc<Tag::Provider>) -> Result<&mut Self> {
+    pub fn add_or_update_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
         if self.providers.contains_key(provider.provider_name()) {
             self.remove_provider(provider.provider_name())?;
         }
@@ -48,7 +48,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         Ok(self)
     }
 
-    pub fn add_or_ok_provider(&mut self, provider: Arc<Tag::Provider>) -> Result<&mut Self> {
+    pub fn add_or_ok_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
         if self.providers.contains_key(provider.provider_name()) {
             Ok(self)
         } else {
@@ -157,7 +157,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         .with_usage_constrain(rpm, tpm))
     }
 
-    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<Tag::Provider>> {
+    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
         self.providers
             .get(provider_name.as_str())
             .ok_or_else(|| {
@@ -200,14 +200,10 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
 pub trait ModelTypeTag {
     type Model: ?Sized + Model;
 
-    type Provider: ?Sized + Provider;
-
     type Request;
     type Response: DeserializeOwned + Serialize + Clone;
-    fn create_model(
-        provider: Arc<Self::Provider>,
-        model_name: ModelName,
-    ) -> Result<Box<Self::Model>>;
+    fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
+    -> Result<Box<Self::Model>>;
 
     fn prepare_input_text(request: &Self::Request) -> String;
 
@@ -228,12 +224,11 @@ pub struct EmbeddingTag;
 #[async_trait]
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
-    type Provider = dyn ProvideCompletionModel;
     type Request = CompletionRequest;
     type Response = String;
 
     fn create_model(
-        provider: Arc<Self::Provider>,
+        provider: Arc<dyn Provider>,
         model_name: ModelName,
     ) -> Result<Box<Self::Model>> {
         provider.create_completion_model(model_name)
@@ -254,12 +249,11 @@ impl ModelTypeTag for CompletionTag {
 #[async_trait]
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
-    type Provider = dyn ProvideEmbeddingModel;
     type Request = EmbeddingRequest;
     type Response = Vec<Vec<f32>>;
 
     fn create_model(
-        provider: Arc<Self::Provider>,
+        provider: Arc<dyn Provider>,
         model_name: ModelName,
     ) -> Result<Box<Self::Model>> {
         provider.create_embedding_model(model_name)
