@@ -7,8 +7,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType, Router,
-    create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType,
+    Router,
 };
 use tokio::sync::RwLock;
 
@@ -18,9 +18,11 @@ pub static COMPLETION_MODEL_ROUTER: Lazy<Arc<RwLock<Router<CompletionTag>>>> =
 pub static EMBEDDING_MODEL_ROUTER: Lazy<Arc<RwLock<Router<EmbeddingTag>>>> =
     Lazy::new(|| Arc::new(RwLock::new(Router::default())));
 
+#[allow(clippy::too_many_arguments)]
 #[gen_stub_pyfunction]
 #[pyfunction]
-#[pyo3(signature=(send_to, message, top_p,temperature,stream=false  ))]
+#[pyo3(signature=(send_to, message, top_p,temperature,stream=false,max_completion_tokens=32_000,presence_penalty=0.,frequency_penalty=0.)
+)]
 /// Sends a completion request to the specified group.
 pub fn completion(
     python: Python,
@@ -29,12 +31,18 @@ pub fn completion(
     top_p: f32,
     temperature: f32,
     stream: bool,
+    max_completion_tokens: u32,
+    presence_penalty: f32,
+    frequency_penalty: f32,
 ) -> PyResult<Bound<PyAny>> {
     let req = CompletionRequest {
         message,
         top_p,
         temperature,
         stream,
+        max_completion_tokens,
+        presence_penalty,
+        frequency_penalty,
     };
 
     future_into_py(python, async move {
@@ -81,7 +89,7 @@ pub fn add_provider<'a>(
         api_key,
         endpoint,
     )
-    .into_pyresult()?;
+        .into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
@@ -139,11 +147,19 @@ pub fn add_embedding_model(
     })
 }
 
+#[gen_stub_pyfunction]
+#[pyfunction]
+/// Count tokens of a text
+pub fn tokens_of(text: String) -> u64 {
+    thryd::count_token(text)
+}
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(completion, m)?)?;
     m.add_function(wrap_pyfunction!(embedding, m)?)?;
     m.add_function(wrap_pyfunction!(add_provider, m)?)?;
     m.add_function(wrap_pyfunction!(add_completion_model, m)?)?;
     m.add_function(wrap_pyfunction!(add_embedding_model, m)?)?;
+    m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
     Ok(())
 }

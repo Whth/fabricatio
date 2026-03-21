@@ -15,6 +15,9 @@ pub struct CompletionRequest {
     pub top_p: f32,
     pub temperature: f32,
     pub stream: bool,
+    pub max_completion_tokens: u32,
+    pub presence_penalty: f32,
+    pub frequency_penalty: f32,
 }
 
 pub trait Model: Send + Sync {

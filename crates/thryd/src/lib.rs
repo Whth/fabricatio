@@ -29,4 +29,4 @@ pub use model::*;
 pub use models::{dummy::*, openai::*};
 pub use provider::{ProviderType, create_provider, dummy::*, openai::*};
 pub use route::*;
-pub use tracker::UsageTracker;
+pub use tracker::{UsageTracker, count_token, count_token_no_cache, count_token_prime_cache};

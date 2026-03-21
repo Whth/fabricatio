@@ -80,6 +80,9 @@ impl CompletionModel for OpenaiModel {
             .top_p(request.top_p)
             .temperature(request.temperature)
             .stream(request.stream)
+            .max_completion_tokens(request.max_completion_tokens)
+            .presence_penalty(request.presence_penalty)
+            .frequency_penalty(request.frequency_penalty)
             .build()?;
 
         if stream {

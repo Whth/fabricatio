@@ -17,15 +17,6 @@ from asyncio import gather
 from typing import Callable, Dict, List, Optional, Sequence, Set, Unpack, overload
 
 import asyncstdlib
-from litellm import (
-    RateLimitError,  # pyright: ignore [reportPrivateImportUsage]
-    Router,  # pyright: ignore [reportPrivateImportUsage]
-    stream_chunk_builder,
-    token_counter,  # pyright: ignore [reportPrivateImportUsage]
-)
-from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
-from litellm.types.router import Deployment, LiteLLM_Params, ModelInfo
-from litellm.types.utils import Choices, EmbeddingResponse, ModelResponse, StreamingChoices, TextChoices
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
@@ -34,7 +25,6 @@ from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.models.llm import Messages, get_router
 from fabricatio_core.utils import first_available, ok
 
 
@@ -45,26 +35,13 @@ class UseLLM(LLMScopedConfig, ABC):
     related to LLM usage such as API keys, endpoints, and rate limits.
     """
 
-    def _deploy(self, deployment: Deployment) -> Router:
-        """Add a deployment to the router.
-
-        Args:
-            deployment (Deployment): The deployment to be added to the router.
-
-        Returns:
-            Router: The updated router with the added deployment.
-        """
-        router = get_router()
-        self._added_deployment = router.upsert_deployment(deployment)
-        return router
-
     # noinspection PyTypeChecker,PydanticTypeChecker,t
     async def aquery(
         self,
         messages: List[Dict[str, str]],
         n: PositiveInt | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ModelResponse | CustomStreamWrapper:
+    ) -> str:
         """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
 
         Args:
