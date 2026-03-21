@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use fabricatio_constants::PY_SOURCE_KEY;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, format};
+use tracing_subscriber::fmt::{format::Writer, FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::registry::LookupSpan;
 
 struct PySourceVisitor {
@@ -36,7 +36,7 @@ where
     fn format_event(
         &self,
         _ctx: &FmtContext<'_, S, N>,
-        mut writer: format::Writer<'_>,
+        mut writer: Writer<'_>,
         event: &Event<'_>,
     ) -> std::fmt::Result {
         let mut visitor = PySourceVisitor {
@@ -66,10 +66,7 @@ where
         let formatted_target = if let Some(py_source) = visitor.py_source_value {
             py_source
         } else {
-            meta.target()
-                .split_once("::")
-                .map(|(before, after)| format!("{}::<rust>::{}", before, after))
-                .unwrap_or_else(|| meta.target().to_string())
+            format!("<rust>::{}", meta.target())
         };
         let formatted_target = format!("{}{}{}", "\x1b[36m", formatted_target, "\x1b[0m");
         // 4. Write formatted parts
