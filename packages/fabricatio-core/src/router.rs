@@ -7,8 +7,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType,
-    Router,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType, Router,
+    create_provider,
 };
 use tokio::sync::RwLock;
 
@@ -81,7 +81,7 @@ pub fn add_provider<'a>(
         api_key,
         endpoint,
     )
-        .into_pyresult()?;
+    .into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
@@ -101,7 +101,13 @@ pub fn add_provider<'a>(
 #[pyfunction]
 #[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
 /// Adds a completion model to the specified group.
-pub fn add_completion_model(python: Python, group: String, model_identifier: String, rpm: Option<Quota>, tpm: Option<Quota>) -> PyResult<Bound<PyAny>> {
+pub fn add_completion_model(
+    python: Python,
+    group: String,
+    model_identifier: String,
+    rpm: Option<Quota>,
+    tpm: Option<Quota>,
+) -> PyResult<Bound<PyAny>> {
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
             .write()
@@ -116,7 +122,13 @@ pub fn add_completion_model(python: Python, group: String, model_identifier: Str
 #[pyfunction]
 #[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
 /// Adds an embedding model to the specified group.
-pub fn add_embedding_model(python: Python, group: String, model_identifier: String, rpm: Option<Quota>, tpm: Option<Quota>) -> PyResult<Bound<PyAny>> {
+pub fn add_embedding_model(
+    python: Python,
+    group: String,
+    model_identifier: String,
+    rpm: Option<Quota>,
+    tpm: Option<Quota>,
+) -> PyResult<Bound<PyAny>> {
     future_into_py(python, async move {
         EMBEDDING_MODEL_ROUTER
             .write()
@@ -126,7 +138,6 @@ pub fn add_embedding_model(python: Python, group: String, model_identifier: Stri
         Ok(())
     })
 }
-
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(completion, m)?)?;
