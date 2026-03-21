@@ -24,24 +24,24 @@ use strum_macros::EnumIter;
 /// - `IntoEnumIterator`: Iterate over all available endpoints.
 #[derive(Debug, Clone, Copy, Display, AsRefStr, EnumString, EnumIter)]
 pub enum OpenAiRoute {
-    /// Chat Completions API: `/v1/chat/completions`
+    /// Chat Completions API: `chat/completions`
     /// Used for GPT-3.5, GPT-4, and other chat models.
-    #[strum(serialize = "/v1/chat/completions")]
+    #[strum(serialize = "chat/completions")]
     ChatCompletions,
 
-    /// Legacy Completions API: `/v1/completions`
+    /// Legacy Completions API: `completions`
     /// Used for older base models (e.g., davinci, curie). Note: Deprecated for newer models.
-    #[strum(serialize = "/v1/completions")]
+    #[strum(serialize = "completions")]
     Completions,
 
-    /// Models List: `/v1/models`
+    /// Models List: `models`
     /// Lists the currently available models.
-    #[strum(serialize = "/v1/models")]
+    #[strum(serialize = "models")]
     ListModels,
 
-    /// Embeddings API: `/v1/embeddings`
+    /// Embeddings API: `embeddings`
     /// Generates embeddings for text inputs.
-    #[strum(serialize = "/v1/embeddings")]
+    #[strum(serialize = "embeddings")]
     Embeddings,
 }
 pub struct OpenaiModel {
