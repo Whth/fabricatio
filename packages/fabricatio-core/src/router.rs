@@ -20,6 +20,7 @@ pub static EMBEDDING_MODEL_ROUTER: Lazy<Arc<RwLock<Router<EmbeddingTag>>>> =
 
 #[gen_stub_pyfunction]
 #[pyfunction]
+#[pyo3(signature=(send_to, message, top_p,temperature,stream=false  ))]
 /// Sends a completion request to the specified group.
 pub fn completion(
     python: Python,
@@ -27,11 +28,13 @@ pub fn completion(
     message: String,
     top_p: f32,
     temperature: f32,
+    stream: bool,
 ) -> PyResult<Bound<PyAny>> {
     let req = CompletionRequest {
         message,
         top_p,
         temperature,
+        stream,
     };
 
     future_into_py(python, async move {

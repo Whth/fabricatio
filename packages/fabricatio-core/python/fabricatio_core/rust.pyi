@@ -706,7 +706,7 @@ def is_likely_text(path: str | Path) -> bool:
     """Judge if a file is likely text, dir or path not exist are considered false."""
 
 
-async def completion(send_to: str, message: str, top_p: float, temperature: float) -> str:
+async def completion(send_to: str, message: str, top_p: float, temperature: float, stream: bool = False) -> str:
     """Sends a completion request to the specified group."""
 
 

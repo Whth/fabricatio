@@ -76,6 +76,7 @@ impl CompletionModel for OpenaiModel {
                 .into()])
             .top_p(request.top_p)
             .temperature(request.temperature)
+            .stream(request.stream)
             .build()?;
 
         let content = if let Some(choice) = self

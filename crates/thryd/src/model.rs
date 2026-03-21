@@ -1,5 +1,5 @@
-use crate::SEPARATE;
 use crate::provider::Provider;
+use crate::SEPARATE;
 use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
@@ -14,6 +14,7 @@ pub struct CompletionRequest {
     pub message: String,
     pub top_p: f32,
     pub temperature: f32,
+    pub stream: bool,
 }
 
 pub trait Model: Send + Sync {
