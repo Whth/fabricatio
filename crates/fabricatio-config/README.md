@@ -113,7 +113,7 @@ from fabricatio_config import Config
 config = Config()
 
 # Access configuration from Python
-print(f"LLM Model: {config.llm.model}")
+print(f"LLM Model: {config.llm.send_to}")
 print(f"Log Level: {config.debug.log_level}")
 
 # Use the load method for dynamic configuration

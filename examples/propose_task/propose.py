@@ -13,8 +13,8 @@ from fabricatio_core.utils import ok
 class ProposeObj(Action, Propose):
     """Action that says hello to the world."""
 
-    llm_model: str | None = "openai/qwq-plus"
-    llm_max_tokens: int | None = 8190
+    llm_send_to: str | None = "openai/qwq-plus"
+    llm_max_completion_tokens: int | None = 8190
     llm_stream: bool | None = True
     llm_temperature: float | None = 0.6
     output_key: str = "task_output"

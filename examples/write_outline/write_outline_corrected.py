@@ -18,8 +18,8 @@ async def main() -> None:
                 name="Generate Article Outline",
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
-                    GenerateArticleProposal(llm_model="deepseek/deepseek-reasoner", llm_temperature=1.3),
-                    GenerateInitialOutline(llm_model="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
+                    GenerateArticleProposal(llm_send_to="deepseek/deepseek-reasoner", llm_temperature=1.3),
+                    GenerateInitialOutline(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
                     DumpFinalizedOutput(output_key="task_output"),
                 ),
             )

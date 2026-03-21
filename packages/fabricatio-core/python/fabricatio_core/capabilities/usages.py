@@ -11,12 +11,12 @@ It provides structured functionality for managing language model operations,
 embedding generation, and tool selection workflows.
 """
 
+import asyncio
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Sequence, Set, Unpack, overload
+from typing import Callable, Dict, List, Optional, Set, Unpack, overload
 
-import asyncstdlib
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
@@ -24,7 +24,8 @@ from fabricatio_core import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, GenerateKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.rust import completion, embedding
 from fabricatio_core.utils import first_available, ok
 
 
@@ -35,108 +36,10 @@ class UseLLM(LLMScopedConfig, ABC):
     related to LLM usage such as API keys, endpoints, and rate limits.
     """
 
-    # noinspection PyTypeChecker,PydanticTypeChecker,t
-    async def aquery(
-        self,
-        messages: List[Dict[str, str]],
-        n: PositiveInt | None = None,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> str:
-        """Asynchronously queries the language model to generate a response based on the provided messages and parameters.
-
-        Args:
-            messages (List[Dict[str, str]]): A list of messages, where each message is a dictionary containing the role and content of the message.
-            n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
-
-        Returns:
-            ModelResponse | CustomStreamWrapper: An object containing the generated response and other metadata from the model.
-        """
-        # Call the underlying asynchronous completion function with the provided and default parameters
-        # noinspection PyTypeChecker,PydanticTypeChecker
-        return await self._deploy(
-            Deployment(
-                model_name=(
-                    m_name := ok(
-                        kwargs.get("model") or self.llm_model or CONFIG.llm.model, "model name is not set at any place"
-                    )
-                ),  # pyright: ignore [reportCallIssue]
-                litellm_params=(
-                    p := LiteLLM_Params(
-                        api_key=ok(
-                            self.llm_api_key or CONFIG.llm.api_key, "llm api key is not set at any place"
-                        ).get_secret_value(),
-                        api_base=ok(
-                            self.llm_api_endpoint or CONFIG.llm.api_endpoint,
-                            "llm api endpoint is not set at any place",
-                        ),
-                        model=m_name,
-                        tpm=self.llm_tpm or CONFIG.llm.tpm,
-                        rpm=self.llm_rpm or CONFIG.llm.rpm,
-                        max_retries=kwargs.get("max_retries") or self.llm_max_retries or CONFIG.llm.max_retries,
-                        timeout=kwargs.get("timeout") or self.llm_timeout or CONFIG.llm.timeout,
-                    )
-                ),
-                model_info=ModelInfo(id=hash(m_name + p.model_dump_json(exclude_none=True))),
-            )
-        ).acompletion(
-            messages=messages,  # pyright: ignore [reportArgumentType]
-            n=n or self.llm_generation_count or CONFIG.llm.generation_count,
-            model=m_name,
-            temperature=kwargs.get("temperature") or self.llm_temperature or CONFIG.llm.temperature,
-            stop=kwargs.get("stop") or self.llm_stop_sign or CONFIG.llm.stop_sign,
-            top_p=kwargs.get("top_p") or self.llm_top_p or CONFIG.llm.top_p,
-            max_tokens=kwargs.get("max_tokens") or self.llm_max_tokens or CONFIG.llm.max_tokens,
-            stream=first_available(
-                (kwargs.get("stream"), self.llm_stream, CONFIG.llm.stream), "stream is not set at any place"
-            ),
-            cache={
-                "no-cache": kwargs.get("no_cache"),
-                "no-store": kwargs.get("no_store"),
-                "cache-ttl": kwargs.get("cache_ttl"),
-                "s-maxage": kwargs.get("s_maxage"),
-            },
-            presence_penalty=kwargs.get("presence_penalty") or self.llm_presence_penalty or CONFIG.llm.presence_penalty,
-            frequency_penalty=kwargs.get("frequency_penalty")
-            or self.llm_frequency_penalty
-            or CONFIG.llm.frequency_penalty,
-        )
-
-    async def ainvoke(
-        self,
-        question: str,
-        system_message: str = "",
-        n: PositiveInt | None = None,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> Sequence[TextChoices | Choices | StreamingChoices]:
-        """Asynchronously invokes the language model with a question and optional system message.
-
-        Args:
-            question (str): The question to ask the model.
-            system_message (str): The system message to provide context to the model. Defaults to an empty string.
-            n (PositiveInt | None): The number of responses to generate. Defaults to the instance's `llm_generation_count` or the global configuration.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
-
-        Returns:
-            Sequence[TextChoices | Choices | StreamingChoices]: A sequence of choices or streaming choices from the model response.
-        """
-        resp = await self.aquery(
-            messages=Messages().add_system_message(system_message).add_user_message(question).as_list(),
-            n=n,
-            **kwargs,
-        )
-        if isinstance(resp, ModelResponse):
-            return resp.choices
-        if isinstance(resp, CustomStreamWrapper) and (pack := stream_chunk_builder(await asyncstdlib.list(resp))):
-            return pack.choices
-        logger.error(err := f"Unexpected response type: {type(resp)}")
-        raise ValueError(err)
-
     @overload
     async def aask(
         self,
         question: List[str],
-        system_message: List[str],
         **kwargs: Unpack[LLMKwargs],
     ) -> List[str]: ...
 
@@ -144,23 +47,6 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str,
-        system_message: List[str],
-        **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]: ...
-
-    @overload
-    async def aask(
-        self,
-        question: List[str],
-        system_message: Optional[str] = None,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]: ...
-
-    @overload
-    async def aask(
-        self,
-        question: str,
-        system_message: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> str: ...
 
@@ -168,45 +54,59 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str | List[str],
-        system_message: Optional[str | List[str]] = None,
-        **kwargs: Unpack[LLMKwargs],
+        send_to: Optional[str],
+        temperature: Optional[float],
+        top_p: Optional[float],
+        max_completion_tokens: Optional[int],
+        stream: Optional[bool],
+        presence_penalty: Optional[float],
+        frequency_penalty: Optional[float],
     ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
         Args:
-            question (str | List[str]): The question to ask the model.
-            system_message (str | List[str] | None): The system message to provide context to the model. Defaults to an empty string.
-            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
+            question (str | List[str]): The question or list of questions to ask the model.
+            send_to (Optional[str]): The target namespace for the request. If None, uses the default `llm_send_to`.
+            temperature (Optional[float]): Sampling temperature for response generation. If None, uses `llm_temperature`.
+            top_p (Optional[float]): Nucleus sampling parameter. If None, uses `llm_top_p`.
+            max_completion_tokens (Optional[int]): Maximum number of tokens to generate. If None, uses `llm_max_completion_tokens`.
+            stream (Optional[bool]): Whether to stream the response. If None, uses `llm_stream`.
+            presence_penalty (Optional[float]): Presence penalty for response generation. If None, uses `llm_presence_penalty`.
+            frequency_penalty (Optional[float]): Frequency penalty for response generation. If None, uses `llm_frequency_penalty`.
 
         Returns:
-            str | List[str]: The content of the model's response message.
+            str | List[str]: The content of the model's response message. Returns a single string if input is a string,
+                or a list of strings if input is a list of strings.
         """
-        match (question, system_message or ""):
-            case (list(q_seq), list(sm_seq)):
-                res = await gather(
-                    *[
-                        self.ainvoke(n=1, question=q, system_message=sm, **kwargs)
-                        for q, sm in zip(q_seq, sm_seq, strict=True)
-                    ]
-                )
-                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
-            case (list(q_seq), str(sm)):
-                res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for q in q_seq])
-                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
-            case (str(q), list(sm_seq)):
-                res = await gather(*[self.ainvoke(n=1, question=q, system_message=sm, **kwargs) for sm in sm_seq])
-                out = [r[0].message.content for r in res]  # pyright: ignore [reportAttributeAccessIssue]
-            case (str(q), str(sm)):
-                out = ((await self.ainvoke(n=1, question=q, system_message=sm, **kwargs))[0]).message.content  # pyright: ignore [reportAttributeAccessIssue]
-
-            case _:
-                raise RuntimeError("Should not reach here.")
-        if out is not None:
-            logger.debug(
-                f"Response Token Count: {token_counter(text=out) if isinstance(out, str) else sum(token_counter(text=o) for o in out)}"
-                # pyright: ignore [reportOptionalIterable]
+        if isinstance(question, str):
+            return await completion(
+                message=question,
+                send_to=ok(send_to or self.llm_send_to, "send_to is not specified at any where"),
+                temperature=first_available((temperature, self.llm_temperature)),
+                top_p=first_available((top_p, self.llm_top_p)),
+                max_completion_tokens=ok(max_completion_tokens or self.llm_max_completion_tokens),
+                stream=first_available((stream, self.llm_stream)),
+                presence_penalty=first_available((presence_penalty, self.llm_presence_penalty)),
+                frequency_penalty=first_available((frequency_penalty, self.llm_frequency_penalty)),
             )
-        return out  # pyright: ignore [reportReturnType]
+
+        if isinstance(question, list):
+            return await asyncio.gather(
+                *[
+                    completion(
+                        message=q,
+                        send_to=ok(send_to or self.llm_send_to, "send_to is not specified at any where"),
+                        temperature=first_available((temperature, self.llm_temperature)),
+                        top_p=first_available((top_p, self.llm_top_p)),
+                        max_completion_tokens=ok(max_completion_tokens or self.llm_max_completion_tokens),
+                        stream=first_available((stream, self.llm_stream)),
+                        presence_penalty=first_available((presence_penalty, self.llm_presence_penalty)),
+                        frequency_penalty=first_available((frequency_penalty, self.llm_frequency_penalty)),
+                    )
+                    for q in question
+                ]
+            )
+        raise NotImplementedError("Question must be either a string or a list of strings.")
 
     @overload
     async def aask_validate[T](
@@ -215,7 +115,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 2,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> T: ...
 
     @overload
@@ -225,7 +125,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 2,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[T]: ...
 
     @overload
@@ -235,7 +135,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> Optional[T]: ...
 
     @overload
@@ -245,7 +145,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 2,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[Optional[T]]: ...
 
     async def aask_validate[T](
@@ -254,7 +154,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 3,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> None | T | List[Optional[T]] | List[T]:
         """Asynchronously asks a question and validates the response using a given validator.
 
@@ -263,7 +163,7 @@ class UseLLM(LLMScopedConfig, ABC):
             validator (Callable[[str], T | None]): A function to validate the response.
             default (T | None): Default value to return if validation fails. Defaults to None.
             max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 3.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Optional[T] | List[T | None] | List[T] | T: The validated response.
@@ -275,18 +175,12 @@ class UseLLM(LLMScopedConfig, ABC):
                     if (validated := validator(response := await self.aask(question=q, **kwargs))) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
-
-                except RateLimitError as e:
-                    logger.warn(f"Rate limit error:\n{e}")
-                    continue
                 except Exception as e:  # noqa: BLE001
                     logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
                     break
                 logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
-                if not kwargs.get("no_cache"):
-                    kwargs["no_cache"] = True
-                    logger.debug("Closed the cache for the next attempt")
+
             if default is None:
                 logger.error(f"Failed to validate the response after {max_validations} attempts.")
             return default
@@ -429,7 +323,7 @@ class UseLLM(LLMScopedConfig, ABC):
 
         Args:
             requirement (str): The requirement for the string.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Optional[str]: The generated string.
@@ -675,54 +569,6 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
     This class extends LLMUsage and provides methods to generate embeddings for input text using various models.
     """
 
-    async def aembedding(
-        self,
-        input_text: List[str],
-        model: Optional[str] = None,
-        dimensions: Optional[int] = None,
-        timeout: Optional[PositiveInt] = None,
-        caching: Optional[bool] = False,
-    ) -> EmbeddingResponse:
-        """Asynchronously generates embeddings for the given input text.
-
-        Args:
-            input_text (List[str]): A list of strings to generate embeddings for.
-            model (Optional[str]): The model to use for embedding. Defaults to the instance's `llm_model` or the global configuration.
-            dimensions (Optional[int]): The dimensions of the embedding output should have, which is used to validate the result. Defaults to None.
-            timeout (Optional[PositiveInt]): The timeout for the embedding request. Defaults to the instance's `llm_timeout` or the global configuration.
-            caching (Optional[bool]): Whether to cache the embedding result. Defaults to False.
-
-        Returns:
-            EmbeddingResponse: The response containing the embeddings.
-        """
-        # check seq length
-        max_len = self.embedding_max_sequence_length or CONFIG.embedding.max_sequence_length
-        if max_len and any(length := (token_counter(text=t)) > max_len for t in input_text):
-            logger.error(err := f"Input text exceeds maximum sequence length {max_len}, got {length}.")
-            raise ValueError(err)
-
-        return await get_router().aembedding(
-            input=input_text,
-            caching=caching or self.embedding_caching or CONFIG.embedding.caching,
-            dimensions=dimensions or self.embedding_dimensions or CONFIG.embedding.dimensions,
-            model=ok(model or self.embedding_model or CONFIG.embedding.model, "Embedding model not set at any level!"),
-            timeout=timeout
-            or self.embedding_timeout
-            or CONFIG.embedding.timeout
-            or self.llm_timeout
-            or CONFIG.llm.timeout,
-            api_key=ok(
-                self.embedding_api_key or CONFIG.embedding.api_key or self.llm_api_key or CONFIG.llm.api_key
-            ).get_secret_value(),
-            api_base=ok(
-                self.embedding_api_endpoint
-                or CONFIG.embedding.api_endpoint
-                or self.llm_api_endpoint
-                or CONFIG.llm.api_endpoint
-            ).rstrip("/"),
-            # seems embedding function takes no base_url end with a slash
-        )
-
     @overload
     async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
 
@@ -730,18 +576,28 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
     async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
 
     async def vectorize(
-        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+        self, input_text: List[str] | str, send_to: str | None = None
     ) -> List[List[float]] | List[float]:
         """Asynchronously generates vector embeddings for the given input text.
 
         Args:
             input_text (List[str] | str): A string or list of strings to generate embeddings for.
-            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for embedding.
+            send_to (str | None): The namespace to send the request to. Defaults to None.
 
         Returns:
             List[List[float]] | List[float]: The generated embeddings.
         """
         if isinstance(input_text, str):
-            return (await self.aembedding([input_text], **kwargs)).data[0].get("embedding")
+            return (
+                await embedding(
+                    texts=[input_text],
+                    send_to=ok(send_to or self.embedding_send_to, "send_to is not specified at any where"),
+                )
+            )[0]
 
-        return [o.get("embedding") for o in (await self.aembedding(input_text, **kwargs)).data]
+        if isinstance(input_text, list):
+            return await embedding(
+                texts=input_text,
+                send_to=ok(send_to or self.embedding_send_to, "send_to is not specified at any where"),
+            )
+        raise NotImplementedError("Question must be either a string or a list of strings.")

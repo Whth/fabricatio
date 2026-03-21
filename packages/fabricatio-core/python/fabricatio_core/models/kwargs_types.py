@@ -10,10 +10,7 @@ class EmbeddingKwargs(TypedDict, total=False):
     to vector representations.
     """
 
-    model: str
-    dimensions: int
-    timeout: int
-    caching: bool
+    send_to: str
 
 
 class LLMKwargs(TypedDict, total=False):
@@ -23,33 +20,16 @@ class LLMKwargs(TypedDict, total=False):
     including generation parameters and caching options.
     """
 
-    model: Optional[str]
+    send_to: str
     temperature: float
-    stop: str | list[str]
     top_p: float
-    max_tokens: int
+    max_completion_tokens: int
     stream: bool
-    timeout: int
-    max_retries: int
-    no_cache: bool  # if the req uses cache in this call
-    no_store: bool  # If store the response of this call to cache
-    cache_ttl: int  # how long the stored cache is alive, in seconds
-    s_maxage: int  # max accepted age of cached response, in seconds
     presence_penalty: float
     frequency_penalty: float
 
 
-class GenerateKwargs(LLMKwargs, total=False):
-    """Arguments for content generation operations.
-
-    Extends LLMKwargs with additional parameters specific to generation tasks,
-    such as the number of generated items and the system message.
-    """
-
-    system_message: str
-
-
-class ValidateKwargs[T](GenerateKwargs, total=False):
+class ValidateKwargs[T](LLMKwargs, total=False):
     """Arguments for content validation operations.
 
     Extends LLMKwargs with additional parameters specific to validation tasks,

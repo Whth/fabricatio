@@ -332,20 +332,8 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_api_key: Optional[SecretStr] = None
     """The OpenAI API key."""
 
-    embedding_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    embedding_model: Optional[str] = None
+    embedding_send_to: Optional[str] = None
     """The LLM model name."""
-
-    embedding_max_sequence_length: Optional[PositiveInt] = None
-    """The maximum sequence length."""
-
-    embedding_dimensions: Optional[PositiveInt] = None
-    """The dimensions of the embedding."""
-
-    embedding_caching: Optional[bool] = False
-    """Whether to cache the embedding result."""
 
 
 class LLMScopedConfig(ScopedConfig):
@@ -357,38 +345,20 @@ class LLMScopedConfig(ScopedConfig):
     llm_api_key: Optional[SecretStr] = None
     """The OpenAI API key."""
 
-    llm_timeout: Optional[PositiveInt] = None
-    """The timeout of the LLM model."""
-
-    llm_max_retries: Optional[PositiveInt] = None
-    """The maximum number of retries."""
-
-    llm_model: Optional[str] = None
-    """The LLM model name."""
-
-    llm_temperature: Optional[NonNegativeFloat] = None
-    """The temperature of the LLM model."""
-
-    llm_stop_sign: Optional[str | List[str]] = None
-    """The stop sign of the LLM model."""
+    llm_send_to: Optional[str] = None
+    """The group name of which the requests will be sent."""
 
     llm_top_p: Optional[NonNegativeFloat] = None
     """The top p of the LLM model."""
 
-    llm_generation_count: Optional[PositiveInt] = None
-    """The number of generations to generate."""
+    llm_temperature: Optional[NonNegativeFloat] = None
+    """The temperature of the LLM model."""
 
     llm_stream: Optional[bool] = None
     """Whether to stream the LLM model's response."""
 
-    llm_max_tokens: Optional[PositiveInt] = None
+    llm_max_completion_tokens: Optional[PositiveInt] = None
     """The maximum number of tokens to generate."""
-
-    llm_tpm: Optional[PositiveInt] = None
-    """The tokens per minute of the LLM model."""
-
-    llm_rpm: Optional[PositiveInt] = None
-    """The requests per minute of the LLM model."""
 
     llm_presence_penalty: Optional[PositiveFloat] = None
     """The presence penalty of the LLM model."""

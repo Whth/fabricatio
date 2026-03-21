@@ -18,7 +18,7 @@ async def main() -> None:
     role = Role(
         name="Researcher",
         description="Extract article essence",
-        llm_model="openai/deepseek-r1-distill-llama-70b",
+        llm_send_to="openai/deepseek-r1-distill-llama-70b",
         llm_rpm=50,
         llm_tpm=100000,
         skills={

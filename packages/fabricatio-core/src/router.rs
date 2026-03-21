@@ -7,8 +7,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType,
-    Router,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType, Router,
+    create_provider,
 };
 use tokio::sync::RwLock;
 
@@ -89,7 +89,7 @@ pub fn add_provider<'a>(
         api_key,
         endpoint,
     )
-        .into_pyresult()?;
+    .into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER

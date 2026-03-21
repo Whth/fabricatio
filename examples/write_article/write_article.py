@@ -34,10 +34,10 @@ class Role(RoleBase, UseLLM):
 Role(
     name="Undergraduate Researcher",
     description="Write an outline for an article in typst format.",
-    llm_model="openai/qwen-plus",
+    llm_send_to="openai/qwen-plus",
     llm_api_endpoint="https://dashscope.aliyuncs.com/compatible-mode/v1",
     llm_stream=True,
-    llm_max_tokens=8191,
+    llm_max_completion_tokens=8191,
     llm_rpm=600,
     llm_tpm=900000,
     llm_timeout=10,

@@ -35,7 +35,7 @@ async def main() -> None:
     Role(
         name="Researcher",
         description="Extract article essence",
-        llm_model="openai/deepseek-v3-250324",
+        llm_send_to="openai/deepseek-v3-250324",
         skills={
             Event.quick_instantiate("article").collapse(): WorkFlow(
                 name="extract",
