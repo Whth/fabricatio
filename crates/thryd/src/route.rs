@@ -5,8 +5,8 @@ use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use tracing::*;
@@ -99,8 +99,10 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         group: RouteGroupName,
         deployment_identifier: DeploymentIdentifier,
     ) -> Result<&mut Self> {
-        debug!("Undeploying `{}` to group `{}`", deployment_identifier, group);
-
+        debug!(
+            "Undeploying `{}` to group `{}`",
+            deployment_identifier, group
+        );
 
         self.remove_deployment(group.as_str(), deployment_identifier)
     }
@@ -130,7 +132,8 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             if wait_time == 0 {
                 d_ref = Some(d);
                 break;
-            } else if wait_time < min_wait_time {}
+            } else if wait_time < min_wait_time {
+            }
             {
                 min_wait_time = wait_time;
                 d_ref = Some(d);
@@ -159,7 +162,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             self.get_provider(provider_name)?,
             model_name,
         )?)
-            .with_usage_constrain(rpm, tpm))
+        .with_usage_constrain(rpm, tpm))
     }
 
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
@@ -177,14 +180,14 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         request: Tag::Request,
     ) -> Result<Tag::Response> {
         debug!("Invoking route: {}", send_to);
-        
+
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
 
         if let Some(cache) = &self.cache
             && let Some(val) =
-            cache.get_de::<Tag::Response>(Tag::prepare_cache_key(&request).as_str())
+                cache.get_de::<Tag::Response>(Tag::prepare_cache_key(&request).as_str())
         {
             Ok(val)
         } else {
@@ -210,7 +213,7 @@ pub trait ModelTypeTag {
     type Request;
     type Response: DeserializeOwned + Serialize + Clone;
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-                    -> Result<Box<Self::Model>>;
+    -> Result<Box<Self::Model>>;
 
     fn prepare_input_text(request: &Self::Request) -> String;
 

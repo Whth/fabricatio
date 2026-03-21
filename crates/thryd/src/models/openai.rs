@@ -7,11 +7,13 @@ use async_openai::types::chat::{
 
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
+use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
 use strum_macros::EnumIter;
+use tracing::trace;
 
 /// Represents all standard OpenAI API v1 endpoints.
 ///
@@ -87,21 +89,12 @@ impl CompletionModel for OpenaiModel {
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
                 .await?
                 .bytes_stream()
+                .eventsource()
                 .filter_map(|e| async move { e.ok() })
-                .filter_map(|line| async move {
-                    if line.starts_with("data: ".as_bytes()) {
-                        let json_str = &line[6..];
-                        if json_str == "[DONE]".as_bytes() {
-                            return None;
-                        }
+                .filter_map(|e| async move {
+                    trace!("Stream chunk: {}", e.data);
 
-                        serde_json::from_str::<CreateChatCompletionStreamResponse>(
-                            &*String::from_utf8_lossy(&json_str),
-                        )
-                        .ok()
-                    } else {
-                        None
-                    }
+                    serde_json::from_str::<CreateChatCompletionStreamResponse>(e.data.as_str()).ok()
                 })
                 .filter_map(|resp| async move { resp.choices.first().cloned() })
                 .filter_map(|c| async move { c.delta.content })

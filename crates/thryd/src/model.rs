@@ -1,5 +1,5 @@
-use crate::provider::Provider;
 use crate::SEPARATE;
+use crate::provider::Provider;
 use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
