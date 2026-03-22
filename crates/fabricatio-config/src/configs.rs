@@ -196,8 +196,11 @@ pub struct RoutingConfig {
     /// List of configured providers available for routing.
     pub providers: Vec<ProviderConfig>,
 
-    /// List of configured deployments associated with the providers.
-    pub deployments: Vec<DeploymentConfig>,
+    /// List of configured embedding model deployments associated with the providers.
+    pub embedding_model_deployments: Vec<DeploymentConfig>,
+
+    /// List of configured completion model deployments associated with the providers.
+    pub completion_model_deployments: Vec<DeploymentConfig>,
 }
 
 /// General configuration structure for application-wide settings
