@@ -3,7 +3,6 @@ use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::gen_stub_pyfunction;
-use std::str::FromStr;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
@@ -98,6 +97,10 @@ pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResul
 
 #[gen_stub_pyfunction()]
 #[pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[None]",imports=("typing",)
+    )
+)]
 #[pyo3(signature=(provider_type,name=None,api_key=None,endpoint=None))]
 /// Adds a provider to the router.
 pub fn add_provider<'a>(
@@ -125,6 +128,10 @@ pub fn add_provider<'a>(
 }
 #[gen_stub_pyfunction]
 #[pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[None]",imports=("typing",)
+    )
+)]
 #[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
 /// Adds a completion model to the specified group.
 pub fn add_completion_model(
@@ -146,6 +153,10 @@ pub fn add_completion_model(
 
 #[gen_stub_pyfunction]
 #[pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[None]",imports=("typing",)
+    )
+)]
 #[pyo3(signature=(group,model_identifier,rpm=None,tpm=None))]
 /// Adds an embedding model to the specified group.
 pub fn add_embedding_model(

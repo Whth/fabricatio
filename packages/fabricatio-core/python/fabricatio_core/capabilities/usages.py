@@ -15,18 +15,108 @@ import asyncio
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Set, Unpack, overload
+from typing import Callable, Dict, List, Optional, Self, Set, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
-from fabricatio_core import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.rust import completion, embedding
+from fabricatio_core.rust import (
+    CONFIG,
+    TEMPLATE_MANAGER,
+    ProviderType,
+    add_completion_model,
+    add_embedding_model,
+    add_provider,
+    completion,
+    embedding,
+    logger,
+)
 from fabricatio_core.utils import first_available, ok
+
+
+class UseRouter:
+    """A router class for managing LLM provider configurations and model deployments.
+
+    This class provides methods to register AI providers and deploy completion or embedding models
+    with optional rate limiting configurations. It follows a fluent interface pattern, returning
+    itself to allow method chaining.
+    """
+
+    def add_provider(
+        self,
+        provider_type: ProviderType,
+        name: str | None = None,
+        api_key: str | None = None,
+        endpoint: str | None = None,
+    ) -> Self:
+        """Registers a new AI provider with the system.
+
+        Args:
+            provider_type (ProviderType): The type of the provider to add.
+            name (str | None): Optional custom name for the provider. If None, a default name is used.
+            api_key (str | None): Optional API key for authentication.
+            endpoint (str | None): Optional custom endpoint URL for the provider.
+
+        Returns:
+            Self: The current instance to allow method chaining.
+        """
+        add_provider(provider_type, name, api_key, endpoint)
+
+        return self
+
+    async def deploy_completion_model(
+        self,
+        group: str,
+        model_identifier: str,
+        rpm: int | None = None,
+        tpm: int | None = None,
+    ) -> Self:
+        """Asynchronously deploys a completion model to a specified group.
+
+        Args:
+            group (str): The group identifier to deploy the model to.
+            model_identifier (str): The unique identifier of the model to deploy.
+            rpm (int | None): Optional requests per minute rate limit.
+            tpm (int | None): Optional tokens per minute rate limit.
+
+        Returns:
+            Self: The current instance to allow method chaining.
+        """
+        await add_completion_model(
+            group,
+            model_identifier,
+            rpm,
+            tpm,
+        )
+
+        return self
+
+    async def deploy_embedding_model(
+        self, group: str, model_identifier: str, rpm: int | None = None, tpm: int | None = None
+    ) -> Self:
+        """Asynchronously deploys an embedding model to a specified group.
+
+        Args:
+            group (str): The group identifier to deploy the model to.
+            model_identifier (str): The unique identifier of the model to deploy.
+            rpm (int | None): Optional requests per minute rate limit.
+            tpm (int | None): Optional tokens per minute rate limit.
+
+        Returns:
+            Self: The current instance to allow method chaining.
+        """
+        await add_embedding_model(
+            group,
+            model_identifier,
+            rpm,
+            tpm,
+        )
+
+        return self
 
 
 class UseLLM(LLMScopedConfig, ABC):
