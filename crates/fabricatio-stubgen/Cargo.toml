@@ -21,9 +21,18 @@ pyo3-build-config = "0.28.2"
 
 
 [features]
-stubgen = ["fabricatio-core/stubgen",
+all = ["fabricatio-core/stubgen",
     "fabricatio-memory/stubgen",
     "fabricatio-diff/stubgen",
     "fabricatio-checkpoint/stubgen",
     "fabricatio-rag/stubgen"
 ]
+
+
+core = ["fabricatio-core/stubgen"]
+memory = ["fabricatio-memory/stubgen"]
+diff = ["fabricatio-diff/stubgen"]
+checkpoint = ["fabricatio-checkpoint/stubgen"]
+rag = ["fabricatio-rag/stubgen"]
+
+default = []

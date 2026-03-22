@@ -29,11 +29,26 @@
 //! - `fabricatio-diff`: Diff operations and comparison utilities
 //!
 //! For more information, see the [README](https://github.com/Whth/fabricatio/blob/main/crates/fabricatio-stubgen/README.md).
-
 use pyo3_stub_gen::Result;
 
 fn main() -> Result<()> {
-    #[cfg(feature = "stubgen")]
+    #[cfg(feature = "core")]
+    fabricatio_core::stub_info()?.generate()?;
+
+    #[cfg(feature = "memory")]
+    fabricatio_memory::stub_info()?.generate()?;
+
+    #[cfg(feature = "diff")]
+    fabricatio_diff::stub_info()?.generate()?;
+
+    #[cfg(feature = "checkpoint")]
+    fabricatio_checkpoint::stub_info()?.generate()?;
+
+    #[cfg(feature = "rag")]
+    fabricatio_rag::stub_info()?.generate()?;
+
+
+    #[cfg(feature = "all")]
     {
         fabricatio_core::stub_info()?.generate()?;
         fabricatio_memory::stub_info()?.generate()?;
@@ -41,6 +56,7 @@ fn main() -> Result<()> {
         fabricatio_checkpoint::stub_info()?.generate()?;
         fabricatio_rag::stub_info()?.generate()?;
     }
+
 
     Ok(())
 }
