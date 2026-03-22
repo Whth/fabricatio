@@ -20,7 +20,7 @@
 //!     let config = Config::new()?;
 //!
 //!     // Access configuration sections
-//!     println!("LLM Model: {:?}", config.llm.model);
+//!     println!("LLM Model: {:?}", config.llm.send_to);
 //!     println!("Log Level: {:?}", config.debug.log_level);
 //!
 //!     Ok(())

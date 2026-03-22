@@ -11,6 +11,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
+use thryd::tracker::Quota;
+use thryd::{DeploymentIdentifier, ProviderName, ProviderType, RouteGroupName};
 use validator::Validate;
 
 /// Configuration for Language Learning Models (LLMs) like OpenAI's GPT.
@@ -64,18 +66,7 @@ use validator::Validate;
 #[gen_stub_pyclass]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct LLMConfig {
-    #[validate(url)]
-    pub api_endpoint: Option<String>,
-
-    pub api_key: Option<SecretStr>,
-
-    #[validate(range(min = 1, message = "timeout must be at least 1 second"))]
-    pub timeout: Option<u64>,
-
-    #[validate(range(min = 1, message = "max_retries must be at least 1"))]
-    pub max_retries: Option<u32>,
-
-    pub model: Option<String>,
+    pub send_to: Option<String>,
 
     #[validate(range(
         min = 0.0,
@@ -84,24 +75,13 @@ pub struct LLMConfig {
     ))]
     pub temperature: Option<f32>,
 
-    pub stop_sign: Option<Vec<String>>,
-
     #[validate(range(min = 0.0, max = 1.0, message = "top_p must be between 0.0 and 1.0"))]
     pub top_p: Option<f32>,
-
-    #[validate(range(min = 1, message = "generation_count must be at least 1"))]
-    pub generation_count: Option<u32>,
 
     pub stream: bool,
 
     #[validate(range(min = 1, message = "max_tokens must be at least 1 if set"))]
-    pub max_tokens: Option<u32>,
-
-    #[validate(range(min = 1, message = "rpm must be at least 1 if set"))]
-    pub rpm: Option<u32>,
-
-    #[validate(range(min = 1, message = "tpm must be at least 1 if set"))]
-    pub tpm: Option<u32>,
+    pub max_completion_tokens: Option<u32>,
 
     #[validate(range(min = -2.0, max = 2.0, message = "presence_penalty must be between -2.0 and 2.0"
     ))]
@@ -117,21 +97,8 @@ pub struct LLMConfig {
 #[gen_stub_pyclass]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct EmbeddingConfig {
-    pub model: Option<String>,
+    pub send_to: Option<String>,
 
-    pub dimensions: Option<u32>,
-
-    #[validate(range(min = 1, message = "timeout must be at least 1 second"))]
-    pub timeout: Option<u32>,
-
-    pub max_sequence_length: Option<u32>,
-
-    pub caching: Option<bool>,
-
-    #[validate(url)]
-    pub api_endpoint: Option<String>,
-
-    pub api_key: Option<SecretStr>,
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
@@ -221,33 +188,64 @@ pub struct TemplateConfig {
     pub create_json_obj_template: String,
 }
 /// Routing configuration structure for controlling request dispatching behavior
+
+/// Configuration for a specific provider.
+///
+/// Contains the necessary details to connect to and authenticate with a service provider.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
 #[pyclass(from_py_object, get_all, set_all)]
+pub struct ProviderConfig {
+    /// The type of the provider (e.g., OpenAI, Anthropic).
+    pub provider_type: ProviderType,
+
+    /// Optional name identifier for the provider instance.
+    pub name: Option<ProviderName>,
+
+    /// Optional authentication key for the provider API.
+    pub api_key: Option<SecretStr>,
+
+    /// Optional URL endpoint for the provider's API. Must be a valid URL if provided.
+    #[validate(url)]
+    pub api_endpoint: Option<String>,
+}
+
+/// Configuration for a specific deployment.
+///
+/// Defines the identity, grouping, and rate limits for a deployed service instance.
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[gen_stub_pyclass]
+#[pyclass(from_py_object, get_all, set_all)]
+pub struct DeploymentConfig {
+    /// Unique identifier for the deployment.
+    pub identifier: DeploymentIdentifier,
+
+    /// Name of the route group this deployment belongs to.
+    pub group: RouteGroupName,
+
+    /// Optional quota limit for tokens per minute (TPM).
+    pub tpm: Option<Quota>,
+
+    /// Optional quota limit for requests per minute (RPM).
+    pub rpm: Option<Quota>,
+}
+
+/// Routing configuration structure for controlling request dispatching behavior.
+///
+/// Manages the list of available providers and their corresponding deployments
+/// to handle load balancing and request routing.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, Validate)]
+#[gen_stub_pyclass]
+#[pyclass(from_py_object, get_all, set_all)]
 pub struct RoutingConfig {
-    /// The maximum number of parallel requests. None means not checked.
-    pub max_parallel_requests: Option<u32>,
+    /// List of configured providers available for routing.
+    pub providers: Vec<ProviderConfig>,
 
-    /// The number of allowed fails before the routing is considered failed.
-    pub allowed_fails: Option<u32>,
-
-    /// Minimum time to wait before retrying a failed request.
-    pub retry_after: u32,
-
-    /// Time to cooldown a deployment after failure in seconds.
-    pub cooldown_time: Option<u32>,
+    /// List of configured deployments associated with the providers.
+    pub deployments: Vec<DeploymentConfig>,
 }
 
-impl Default for RoutingConfig {
-    fn default() -> Self {
-        RoutingConfig {
-            max_parallel_requests: Some(60),
-            allowed_fails: Some(3),
-            retry_after: 15,
-            cooldown_time: Some(60),
-        }
-    }
-}
+
 /// General configuration structure for application-wide settings
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
