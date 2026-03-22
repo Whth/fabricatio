@@ -55,8 +55,19 @@ pub enum ThrydError {
     #[error("Cache I/O error: {0}")]
     CacheIo(#[from] IoError),
 
-    #[error("Sled error: {0}")]
-    Sled(#[from] sled::Error),
+    #[error("Redb error: {0}")]
+    Redb(#[from] redb::Error),
+
+    #[error("Redb table error: {0}")]
+    RedbTable(#[from] redb::TableError),
+
+    #[error("Redb transaction error: {0}")]
+    RedbTransaction(#[from] redb::TransactionError),
+
+    #[error("Redb storage error: {0}")]
+    RedbStorage(#[from] redb::StorageError),
+    #[error("Redb commit error: {0}")]
+    RedbCommit(#[from] redb::CommitError),
     /// Wraps environment variable retrieval errors.
     #[error("Environment variable error: {0}")]
     EnvVar(#[from] VarError),
