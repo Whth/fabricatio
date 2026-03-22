@@ -5,10 +5,11 @@ use async_openai::types::chat::{
     CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
 };
 
+use crate::ThrydError;
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
@@ -92,14 +93,17 @@ impl CompletionModel for OpenaiModel {
                 .await?
                 .bytes_stream()
                 .eventsource()
-                .filter_map(|e| async move { e.ok() })
-                .filter_map(|e| async move {
-                    serde_json::from_str::<CreateChatCompletionStreamResponse>(e.data.as_str()).ok()
+                .map(|event| {
+                    serde_json::from_str::<CreateChatCompletionStreamResponse>(event?.data.as_str()).map_err(
+                        ThrydError::from
+                    )
                 })
-                .filter_map(|resp| async move { resp.choices.first().cloned() })
-                .filter_map(|c| async move { c.delta.content })
-                .collect::<String>()
-                .await;
+                .try_collect::<Vec<CreateChatCompletionStreamResponse>>().await?
+                .into_iter()
+                .map(|resp|
+                    resp.choices.first().cloned().unwrap().delta.content.unwrap().clone()
+                )
+                .collect();
             Ok(res)
         } else {
             let content = if let Some(choice) = self
