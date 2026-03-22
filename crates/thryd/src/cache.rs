@@ -1,82 +1,126 @@
-use redb::{Database, TableDefinition, ReadableTable, ReadableDatabase, Value, TypeName};
+use std::fmt::Debug;
+use redb::{Database, TableDefinition, ReadableTable, ReadableDatabase, Value, TypeName, ReadableTableMetadata};
 use serde::{Serialize, de::DeserializeOwned, Deserialize};
 use std::path::Path;
-use std::sync::Arc;
-
 use crate::Result;
+use crate::utils::{current_timestamp, TimeStamp};
 
-/// Define the schema for the cache table.
-/// Key: &str, Value: &[u8]
-/// This must be a static constant in redb.
-const CACHE_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("cache");
+const CACHE_TABLE: TableDefinition<&str, CacheValue> = TableDefinition::new("cache");
+
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct CacheValue {
+    timestamp: TimeStamp,
+    access_count: u64,
+    data: Vec<u8>,
+
+}
+
+
+impl CacheValue {
+    fn access_data<T: DeserializeOwned>(&self) -> Result<T> {
+        let v = postcard::from_bytes(&self.data)?;
+        Ok(v)
+    }
+
+    fn from_data<T: Serialize>(data: T) -> Result<Self> {
+        postcard::to_stdvec(&data)
+            .map(
+                |e|
+                    Self {
+                        timestamp: current_timestamp(),
+                        data: e,
+                        ..CacheValue::default()
+                    }
+            )
+            .map_err(
+                |e| e.into()
+            )
+    }
+}
+
+
+impl Value for CacheValue {
+    type SelfType<'a>
+    = CacheValue;
+    type AsBytes<'a>
+
+    = Vec<u8>;
+
+    fn fixed_width() -> Option<usize> {
+        None
+    }
+
+    fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
+    where
+        Self: 'a,
+    {
+        postcard::from_bytes::<CacheValue>(
+            data
+        ).expect("Failed to deserialize cache value")
+    }
+
+    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
+    where
+        Self: 'b,
+    {
+        postcard::to_stdvec(value).expect("Fail to serialize cache value")
+    }
+
+    fn type_name() -> TypeName {
+        TypeName::new("CacheValue")
+    }
+}
+
 
 /// Persistent cache using redb
 pub struct PersistentCache {
     db: Database,
+
 }
 
 
 impl PersistentCache {
     /// Open or create a persistent cache at the given path
-    pub fn open(path: impl AsRef<Path>) -> std::io::Result<Self> {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         // Create or open the database file
-        let db = Database::create(path.as_ref())
-            .map_err(std::io::Error::other)?;
-
-        // Ensure the table exists (redb requires tables to be defined before use)
-        let write_txn = db.begin_write()
-            .map_err(std::io::Error::other)?;
-        {
-            let _ = write_txn.open_table(CACHE_TABLE)
-                .map_err(std::io::Error::other)?;
-        }
-        write_txn.commit()
-            .map_err(std::io::Error::other)?;
-
-        Ok(Self { db })
+        Database::create(path.as_ref()).map(
+            |db| Self {
+                db
+            }
+        )
+            .map_err(|e| e.into())
     }
 
     /// Get a value from cache
-    pub fn get(&self, key: &str) -> Option<String> {
-        let read_txn = self.db.begin_read().ok()?;
-        let table = read_txn.open_table(CACHE_TABLE).ok()?;
-
-        let value = table.get(key).ok()??;
-        let bytes = value.value();
-
-        String::from_utf8(bytes.to_vec()).ok()
+    fn get(&self, key: &str) -> Option<CacheValue> {
+        self.db.begin_read().ok()?.open_table(CACHE_TABLE).ok()?.get(key).ok()?
+            .map(
+                |e| e.value()
+            )
     }
 
     /// Get a deserialized value
     pub fn get_de<T: DeserializeOwned + Clone>(&self, key: &str) -> Option<T> {
-        self.get(key).and_then(|v| serde_json::from_str(&v).ok())
+        self.get(key)?.access_data::<T>().ok()
     }
 
     /// Store a value in cache
-    pub fn set(&self, key: impl AsRef<str>, value: impl AsRef<str>) -> Result<()> {
-        let key_str = key.as_ref();
-        let value_bytes = value.as_ref().as_bytes();
+    fn set(&self, key: impl AsRef<str>, value: CacheValue) -> Result<()> {
+        let trx = self.db.begin_write()?;
 
-        let write_txn = self.db.begin_write()
-            ?;
+        trx.open_table(CACHE_TABLE)?.insert(
+            key.as_ref(),
+            value,
+        )?;
 
-        {
-            let mut table = write_txn.open_table(CACHE_TABLE)
-                ?;
-            table.insert(key_str, value_bytes)
-                ?;
-        }
-
-        write_txn.commit()
-            ?;
-
+        trx.commit()?;
         Ok(())
     }
 
     /// Store a serialized value
-    pub fn set_ser<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
-        let json = serde_json::to_string(value)?;
-        self.set(key, json)
+    pub fn set_ser<T: Serialize>(&self, key: impl AsRef<str>, value: &T) -> Result<()> {
+        self.set(key, CacheValue::from_data(value)?)
     }
 
     /// Check if key exists
@@ -96,14 +140,14 @@ impl PersistentCache {
 
 
     /// Remove a key
-    pub fn remove(&self, key: &str) -> Result<()> {
+    pub fn remove(&self, key: impl AsRef<str>) -> Result<()> {
         let write_txn = self.db.begin_write()
             ?;
 
         {
             let mut table = write_txn.open_table(CACHE_TABLE)
                 ?;
-            table.remove(key)
+            table.remove(key.as_ref())
                 ?;
         }
 
@@ -114,9 +158,22 @@ impl PersistentCache {
         Ok(())
     }
 
+    pub fn len(&self) -> Result<u64> {
+        let read_txn = self.db.begin_read()
+            ?;
+        let table = read_txn.open_table(CACHE_TABLE)
+            ?;
+        let leng = table.len()?;
+        Ok(leng)
+    }
 
-    pub fn flush(&self) -> Result<usize> {
-        unimplemented!()
+    pub fn is_empty(&self) -> Result<bool> {
+        let read_txn = self.db.begin_read()
+            ?;
+        let table = read_txn.open_table(CACHE_TABLE)
+            ?;
+        let empty = table.is_empty()?;
+        Ok(empty)
     }
 }
 

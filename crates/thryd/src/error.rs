@@ -3,7 +3,6 @@ use eventsource_stream::EventStreamError;
 use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeJsonError;
 use std::env::VarError;
-use std::io::Error as IoError;
 use strum::ParseError as StrumParseError;
 use thiserror::Error;
 use url::ParseError;
@@ -52,8 +51,8 @@ pub enum ThrydError {
     Json(#[from] SerdeJsonError),
 
     /// Wraps file or cache I/O errors.
-    #[error("Cache I/O error: {0}")]
-    CacheIo(#[from] IoError),
+    #[error("Postcard error: {0}")]
+    PostCard(#[from] postcard::Error),
 
     #[error("Redb error: {0}")]
     Redb(#[from] redb::Error),
@@ -68,6 +67,9 @@ pub enum ThrydError {
     RedbStorage(#[from] redb::StorageError),
     #[error("Redb commit error: {0}")]
     RedbCommit(#[from] redb::CommitError),
+    #[error("Redb database error: {0}")]
+    RedbDataBase(#[from] redb::DatabaseError),
+
     /// Wraps environment variable retrieval errors.
     #[error("Environment variable error: {0}")]
     EnvVar(#[from] VarError),

@@ -1,6 +1,6 @@
 use crate::{BUCKET_COUNT, BUCKETS_WINDOW_S};
 use cached::proc_macro::cached;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::utils::{current_timestamp, TimeStamp};
 
 /// Count tokens in a string using tiktoken
 #[cached]
@@ -10,7 +10,6 @@ pub fn count_token(string: String) -> u64 {
         .len() as u64
 }
 
-pub type TimeStamp = u128;
 
 pub type Quota = u64;
 
@@ -148,7 +147,7 @@ impl UsageTracker {
 
     /// Record a request with token counts
     pub fn add_request(&mut self, used_token: Quota) -> &mut Self {
-        let timestamp = self.current_timestamp();
+        let timestamp = current_timestamp();
 
         if let Some(rpm_b) = self.rpm_buckets.as_mut() {
             rpm_b.get_bucket_mut(&timestamp).add_one(timestamp);
@@ -169,37 +168,31 @@ impl UsageTracker {
     pub fn rpm_usage(&self) -> Option<Quota> {
         self.rpm_buckets
             .as_ref()
-            .map(|q| q.used(self.current_timestamp()))
+            .map(|q| q.used(current_timestamp()))
     }
 
     pub fn remaining_rpm_quota(&self) -> Option<Quota> {
         self.rpm_buckets
             .as_ref()
-            .map(|q| q.remaining_quota(self.current_timestamp()))
+            .map(|q| q.remaining_quota(current_timestamp()))
     }
 
     /// Get total tokens in current window
     pub fn tpm_usage(&self) -> Option<Quota> {
         self.tpm_buckets
             .as_ref()
-            .map(|q| q.used(self.current_timestamp()))
+            .map(|q| q.used(current_timestamp()))
     }
 
     pub fn remaining_tpm_quota(&self) -> Option<Quota> {
         self.tpm_buckets
             .as_ref()
-            .map(|q| q.remaining_quota(self.current_timestamp()))
+            .map(|q| q.remaining_quota(current_timestamp()))
     }
 
-    fn current_timestamp(&self) -> TimeStamp {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis()
-    }
 
     pub fn need_wait_for(&self, input_token: Quota) -> u64 {
-        let cur = self.current_timestamp();
+        let cur = current_timestamp();
         self.rpm_buckets
             .as_ref()
             .map(|e| e.min_cooldown_time_for(input_token, cur))

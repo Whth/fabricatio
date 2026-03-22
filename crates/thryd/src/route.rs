@@ -223,7 +223,7 @@ pub trait ModelTypeTag {
     fn prepare_input_text(request: &Self::Request) -> String;
 
     fn prepare_cache_key(request: &Self::Request) -> String {
-        Self::prepare_input_text(request)
+        blake3::hash(Self::prepare_input_text(request).as_bytes()).to_string()
     }
 
     async fn execute_request(
