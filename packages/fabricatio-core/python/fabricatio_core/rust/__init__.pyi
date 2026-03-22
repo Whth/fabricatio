@@ -54,6 +54,7 @@ __all__ = [
     "is_vietnamese",
     "list_installed",
     "logger",
+    "mount_cache",
     "split_into_chunks",
     "split_sentence_bounds",
     "split_word_bounds",
@@ -624,6 +625,8 @@ def list_installed() -> builtins.list[builtins.str]:
     * `Vec<String>` - A vector containing the names of all installed packages.
     """
 
+def mount_cache(file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]: 
+    r"""mount cache database to all routers, create if not exists"""
 def split_into_chunks(
     string: builtins.str, max_chunk_size: builtins.int, max_overlapping_rate: builtins.float = 0.3
 ) -> builtins.list[builtins.str]:

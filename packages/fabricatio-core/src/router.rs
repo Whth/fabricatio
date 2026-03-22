@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::gen_stub_pyfunction;
+use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
@@ -178,6 +179,29 @@ pub fn add_embedding_model(
 
 #[gen_stub_pyfunction]
 #[pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[None]",imports=("typing",)
+    )
+)]
+/// mount cache database to all routers, create if not exists
+pub fn mount_cache(python: Python, file_path: PathBuf) -> PyResult<Bound<PyAny>> {
+    future_into_py(python, async move {
+        EMBEDDING_MODEL_ROUTER
+            .write()
+            .await
+            .mount_cache(file_path.clone())
+            .into_pyresult()?;
+        COMPLETION_MODEL_ROUTER
+            .write()
+            .await
+            .mount_cache(file_path.clone())
+            .into_pyresult()?;
+        Ok(())
+    })
+}
+
+#[gen_stub_pyfunction]
+#[pyfunction]
 /// Count tokens of a text
 pub fn tokens_of(text: String) -> u64 {
     thryd::count_token(text)
@@ -190,6 +214,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(add_completion_model, m)?)?;
     m.add_function(wrap_pyfunction!(add_embedding_model, m)?)?;
     m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
+    m.add_function(wrap_pyfunction!(mount_cache, m)?)?;
     m.add_class::<ProviderType>()?;
     Ok(())
 }
