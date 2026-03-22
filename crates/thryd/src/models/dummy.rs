@@ -1,6 +1,6 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::provider::Provider;
 use crate::provider::dummy::DummyProvider;
+use crate::provider::Provider;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
@@ -8,7 +8,7 @@ pub struct DummyModel {
     name: String,
     response_q_string: Mutex<Vec<String>>,
     response_q_vec: Mutex<Vec<Vec<Vec<f32>>>>,
-    provider: Arc<dyn Provider>,
+    _provider: Arc<dyn Provider>, // dummy model will not try to use provider to send req.
 }
 
 impl DummyModel {
@@ -17,7 +17,7 @@ impl DummyModel {
             name,
             response_q_string: Mutex::new(vec![]),
             response_q_vec: Mutex::new(vec![]),
-            provider,
+            _provider: provider,
         }
     }
 

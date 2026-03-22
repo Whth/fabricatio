@@ -13,7 +13,6 @@ pub mod connections;
 pub mod constants;
 mod deployment;
 pub mod error;
-mod message;
 mod model;
 pub mod models;
 pub mod provider;

@@ -1,11 +1,13 @@
+use crate::utils::{current_timestamp, TimeStamp};
 use crate::Result;
-use crate::utils::{TimeStamp, current_timestamp};
 use redb::{
-    Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition, TypeName,
+    Database, ReadableDatabase, ReadableTableMetadata, TableDefinition, TypeName,
     Value,
 };
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::Debug;
+
+
 use std::path::Path;
 
 const CACHE_TABLE: TableDefinition<&str, CacheValue> = TableDefinition::new("cache");
