@@ -524,7 +524,7 @@ def add_completion_model(
     model_identifier: builtins.str,
     rpm: typing.Optional[builtins.int] = None,
     tpm: typing.Optional[builtins.int] = None,
-) -> typing.Any:
+) -> typing.Awaitable[None]:
     r"""Adds a completion model to the specified group."""
 
 def add_embedding_model(
@@ -532,7 +532,7 @@ def add_embedding_model(
     model_identifier: builtins.str,
     rpm: typing.Optional[builtins.int] = None,
     tpm: typing.Optional[builtins.int] = None,
-) -> typing.Any:
+) -> typing.Awaitable[None]:
     r"""Adds an embedding model to the specified group."""
 
 def add_provider(
@@ -540,7 +540,7 @@ def add_provider(
     name: typing.Optional[builtins.str] = None,
     api_key: typing.Optional[builtins.str] = None,
     endpoint: typing.Optional[builtins.str] = None,
-) -> typing.Any:
+) -> typing.Awaitable[None]:
     r"""Adds a provider to the router."""
 
 def blake3_hash(content: bytes) -> builtins.str:
