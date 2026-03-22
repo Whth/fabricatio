@@ -4,14 +4,15 @@ pub mod openai;
 pub use dummy::*;
 pub use openai::*;
 
-use crate::ThrydError::ModelNotSupported;
-use crate::connections::{CONNECTIONS_POOL, ClientEntry};
+use crate::connections::{ClientEntry, CONNECTIONS_POOL};
 use crate::model::{CompletionModel, EmbeddingModel};
+use crate::ThrydError::ModelNotSupported;
 use crate::{Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
 use secrecy::SecretString;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 use strum_macros::EnumString;
@@ -78,7 +79,9 @@ pub trait Provider: Send + Sync {
     }
 }
 
-#[derive(EnumString)]
+#[derive(EnumString, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "pyo3", pyo3::pyclass(from_py_object), derive(Clone))]
+#[cfg_attr(feature = "pystub", pyo3_stub_gen::derive::gen_stub_pyclass_enum)]
 pub enum ProviderType {
     OpenAI,
     OpenAICompatible,
