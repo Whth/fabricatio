@@ -1,7 +1,7 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 use http::header::AUTHORIZATION;
 use http::{HeaderMap, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
+use std::time::{SystemTime, UNIX_EPOCH};
 pub type TimeStamp = u128;
 pub(crate) fn current_timestamp() -> TimeStamp {
     SystemTime::now()

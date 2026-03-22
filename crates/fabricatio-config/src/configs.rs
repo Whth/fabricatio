@@ -149,7 +149,7 @@ pub struct TemplateConfig {
 /// Contains the necessary details to connect to and authenticate with a service provider.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(from_py_object, get_all, set_all)]
+#[pyclass(from_py_object, get_all)]
 pub struct ProviderConfig {
     /// The type of the provider (e.g., OpenAI, Anthropic).
     pub provider_type: ProviderType,
@@ -170,7 +170,7 @@ pub struct ProviderConfig {
 /// Defines the identity, grouping, and rate limits for a deployed service instance.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(from_py_object, get_all, set_all)]
+#[pyclass(from_py_object, get_all)]
 pub struct DeploymentConfig {
     /// Unique identifier for the deployment.
     pub identifier: DeploymentIdentifier,
@@ -191,7 +191,7 @@ pub struct DeploymentConfig {
 /// to handle load balancing and request routing.
 #[derive(Debug, Clone, Default, Deserialize, Serialize, Validate)]
 #[gen_stub_pyclass]
-#[pyclass(from_py_object, get_all, set_all)]
+#[pyclass(from_py_object, get_all)]
 pub struct RoutingConfig {
     /// List of configured providers available for routing.
     pub providers: Vec<ProviderConfig>,
@@ -201,6 +201,9 @@ pub struct RoutingConfig {
 
     /// List of configured completion model deployments associated with the providers.
     pub completion_model_deployments: Vec<DeploymentConfig>,
+
+    /// Path to the cache database file.
+    pub cache_database_path: Option<PathBuf>,
 }
 
 /// General configuration structure for application-wide settings

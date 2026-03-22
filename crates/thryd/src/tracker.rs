@@ -1,6 +1,6 @@
+use crate::utils::{TimeStamp, current_timestamp};
 use crate::{BUCKET_COUNT, BUCKETS_WINDOW_S};
 use cached::proc_macro::cached;
-use crate::utils::{current_timestamp, TimeStamp};
 
 /// Count tokens in a string using tiktoken
 #[cached]
@@ -9,7 +9,6 @@ pub fn count_token(string: String) -> u64 {
         .encode_ordinary(string.as_str())
         .len() as u64
 }
-
 
 pub type Quota = u64;
 
@@ -189,7 +188,6 @@ impl UsageTracker {
             .as_ref()
             .map(|q| q.remaining_quota(current_timestamp()))
     }
-
 
     pub fn need_wait_for(&self, input_token: Quota) -> u64 {
         let cur = current_timestamp();

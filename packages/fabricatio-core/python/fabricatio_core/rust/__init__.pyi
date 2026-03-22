@@ -206,26 +206,14 @@ class DeploymentConfig:
     @property
     def identifier(self) -> builtins.str:
         r"""Unique identifier for the deployment."""
-    @identifier.setter
-    def identifier(self, value: builtins.str) -> None:
-        r"""Unique identifier for the deployment."""
     @property
     def group(self) -> builtins.str:
-        r"""Name of the route group this deployment belongs to."""
-    @group.setter
-    def group(self, value: builtins.str) -> None:
         r"""Name of the route group this deployment belongs to."""
     @property
     def tpm(self) -> typing.Optional[builtins.int]:
         r"""Optional quota limit for tokens per minute (TPM)."""
-    @tpm.setter
-    def tpm(self, value: typing.Optional[builtins.int]) -> None:
-        r"""Optional quota limit for tokens per minute (TPM)."""
     @property
     def rpm(self) -> typing.Optional[builtins.int]:
-        r"""Optional quota limit for requests per minute (RPM)."""
-    @rpm.setter
-    def rpm(self, value: typing.Optional[builtins.int]) -> None:
         r"""Optional quota limit for requests per minute (RPM)."""
 
 @typing.final
@@ -337,26 +325,14 @@ class ProviderConfig:
     @property
     def provider_type(self) -> ProviderType:
         r"""The type of the provider (e.g., OpenAI, Anthropic)."""
-    @provider_type.setter
-    def provider_type(self, value: ProviderType) -> None:
-        r"""The type of the provider (e.g., OpenAI, Anthropic)."""
     @property
     def name(self) -> typing.Optional[builtins.str]:
-        r"""Optional name identifier for the provider instance."""
-    @name.setter
-    def name(self, value: typing.Optional[builtins.str]) -> None:
         r"""Optional name identifier for the provider instance."""
     @property
     def api_key(self) -> typing.Optional[SecretStr]:
         r"""Optional authentication key for the provider API."""
-    @api_key.setter
-    def api_key(self, value: typing.Optional[SecretStr]) -> None:
-        r"""Optional authentication key for the provider API."""
     @property
     def api_endpoint(self) -> typing.Optional[builtins.str]:
-        r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
-    @api_endpoint.setter
-    def api_endpoint(self, value: typing.Optional[builtins.str]) -> None:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
 
 @typing.final
@@ -369,15 +345,15 @@ class RoutingConfig:
     @property
     def providers(self) -> builtins.list[ProviderConfig]:
         r"""List of configured providers available for routing."""
-    @providers.setter
-    def providers(self, value: builtins.list[ProviderConfig]) -> None:
-        r"""List of configured providers available for routing."""
     @property
-    def deployments(self) -> builtins.list[DeploymentConfig]:
-        r"""List of configured deployments associated with the providers."""
-    @deployments.setter
-    def deployments(self, value: builtins.list[DeploymentConfig]) -> None:
-        r"""List of configured deployments associated with the providers."""
+    def embedding_model_deployments(self) -> builtins.list[DeploymentConfig]:
+        r"""List of configured embedding model deployments associated with the providers."""
+    @property
+    def completion_model_deployments(self) -> builtins.list[DeploymentConfig]:
+        r"""List of configured completion model deployments associated with the providers."""
+    @property
+    def cache_database_path(self) -> typing.Optional[pathlib.Path]:
+        r"""Path to the cache database file."""
 
 @typing.final
 class SecretStr:

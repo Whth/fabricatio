@@ -1,21 +1,21 @@
-use std::fmt::Debug;
-use redb::{Database, TableDefinition, ReadableTable, ReadableDatabase, Value, TypeName, ReadableTableMetadata};
-use serde::{Serialize, de::DeserializeOwned, Deserialize};
-use std::path::Path;
 use crate::Result;
-use crate::utils::{current_timestamp, TimeStamp};
+use crate::utils::{TimeStamp, current_timestamp};
+use redb::{
+    Database, ReadableDatabase, ReadableTable, ReadableTableMetadata, TableDefinition, TypeName,
+    Value,
+};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::fmt::Debug;
+use std::path::Path;
 
 const CACHE_TABLE: TableDefinition<&str, CacheValue> = TableDefinition::new("cache");
-
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct CacheValue {
     timestamp: TimeStamp,
     access_count: u64,
     data: Vec<u8>,
-
 }
-
 
 impl CacheValue {
     fn access_data<T: DeserializeOwned>(&self) -> Result<T> {
@@ -25,27 +25,18 @@ impl CacheValue {
 
     fn from_data<T: Serialize>(data: T) -> Result<Self> {
         postcard::to_stdvec(&data)
-            .map(
-                |e|
-                    Self {
-                        timestamp: current_timestamp(),
-                        data: e,
-                        ..CacheValue::default()
-                    }
-            )
-            .map_err(
-                |e| e.into()
-            )
+            .map(|e| Self {
+                timestamp: current_timestamp(),
+                data: e,
+                ..CacheValue::default()
+            })
+            .map_err(|e| e.into())
     }
 }
 
-
 impl Value for CacheValue {
-    type SelfType<'a>
-    = CacheValue;
-    type AsBytes<'a>
-
-    = Vec<u8>;
+    type SelfType<'a> = CacheValue;
+    type AsBytes<'a> = Vec<u8>;
 
     fn fixed_width() -> Option<usize> {
         None
@@ -55,9 +46,7 @@ impl Value for CacheValue {
     where
         Self: 'a,
     {
-        postcard::from_bytes::<CacheValue>(
-            data
-        ).expect("Failed to deserialize cache value")
+        postcard::from_bytes::<CacheValue>(data).expect("Failed to deserialize cache value")
     }
 
     fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
@@ -72,32 +61,35 @@ impl Value for CacheValue {
     }
 }
 
-
 /// Persistent cache using redb
 pub struct PersistentCache {
     db: Database,
-
 }
-
 
 impl PersistentCache {
     /// Open or create a persistent cache at the given path
-    pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-        // Create or open the database file
-        Database::create(path.as_ref()).map(
-            |db| Self {
-                db
-            }
-        )
-            .map_err(|e| e.into())
+    pub fn create_or_open(path: impl AsRef<Path>) -> Result<Self> {
+        if path.as_ref().exists() {
+            Database::open(path.as_ref())
+                .map(|db| Self { db })
+                .map_err(|e| e.into())
+        } else {
+            Database::create(path.as_ref())
+                .map(|db| Self { db })
+                .map_err(|e| e.into())
+        }
     }
 
     /// Get a value from cache
     fn get(&self, key: &str) -> Option<CacheValue> {
-        self.db.begin_read().ok()?.open_table(CACHE_TABLE).ok()?.get(key).ok()?
-            .map(
-                |e| e.value()
-            )
+        self.db
+            .begin_read()
+            .ok()?
+            .open_table(CACHE_TABLE)
+            .ok()?
+            .get(key)
+            .ok()?
+            .map(|e| e.value())
     }
 
     /// Get a deserialized value
@@ -109,10 +101,7 @@ impl PersistentCache {
     fn set(&self, key: impl AsRef<str>, value: CacheValue) -> Result<()> {
         let trx = self.db.begin_write()?;
 
-        trx.open_table(CACHE_TABLE)?.insert(
-            key.as_ref(),
-            value,
-        )?;
+        trx.open_table(CACHE_TABLE)?.insert(key.as_ref(), value)?;
 
         trx.commit()?;
         Ok(())
@@ -138,42 +127,31 @@ impl PersistentCache {
         matches!(table.get(key), Ok(Some(_)))
     }
 
-
     /// Remove a key
     pub fn remove(&self, key: impl AsRef<str>) -> Result<()> {
-        let write_txn = self.db.begin_write()
-            ?;
+        let write_txn = self.db.begin_write()?;
 
         {
-            let mut table = write_txn.open_table(CACHE_TABLE)
-                ?;
-            table.remove(key.as_ref())
-                ?;
+            let mut table = write_txn.open_table(CACHE_TABLE)?;
+            table.remove(key.as_ref())?;
         }
 
-        write_txn.commit()
-            ?;
-
+        write_txn.commit()?;
 
         Ok(())
     }
 
     pub fn len(&self) -> Result<u64> {
-        let read_txn = self.db.begin_read()
-            ?;
-        let table = read_txn.open_table(CACHE_TABLE)
-            ?;
+        let read_txn = self.db.begin_read()?;
+        let table = read_txn.open_table(CACHE_TABLE)?;
         let leng = table.len()?;
         Ok(leng)
     }
 
     pub fn is_empty(&self) -> Result<bool> {
-        let read_txn = self.db.begin_read()
-            ?;
-        let table = read_txn.open_table(CACHE_TABLE)
-            ?;
+        let read_txn = self.db.begin_read()?;
+        let table = read_txn.open_table(CACHE_TABLE)?;
         let empty = table.is_empty()?;
         Ok(empty)
     }
 }
-
