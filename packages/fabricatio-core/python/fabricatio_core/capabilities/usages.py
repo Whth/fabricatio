@@ -54,13 +54,13 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str | List[str],
-        send_to: Optional[str],
-        temperature: Optional[float],
-        top_p: Optional[float],
-        max_completion_tokens: Optional[int],
-        stream: Optional[bool],
-        presence_penalty: Optional[float],
-        frequency_penalty: Optional[float],
+        send_to: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_completion_tokens: Optional[int] = None,
+        stream: Optional[bool] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
     ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
@@ -78,34 +78,31 @@ class UseLLM(LLMScopedConfig, ABC):
             str | List[str]: The content of the model's response message. Returns a single string if input is a string,
                 or a list of strings if input is a list of strings.
         """
-        if isinstance(question, str):
-            return await completion(
-                message=question,
-                send_to=ok(send_to or self.llm_send_to, "send_to is not specified at any where"),
-                temperature=first_available((temperature, self.llm_temperature)),
-                top_p=first_available((top_p, self.llm_top_p)),
-                max_completion_tokens=ok(max_completion_tokens or self.llm_max_completion_tokens),
-                stream=first_available((stream, self.llm_stream)),
-                presence_penalty=first_available((presence_penalty, self.llm_presence_penalty)),
-                frequency_penalty=first_available((frequency_penalty, self.llm_frequency_penalty)),
+
+        def _resolve_config() -> LLMKwargs:
+            return LLMKwargs(
+                send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "send_to is not specified at any where"),
+                temperature=first_available((temperature, self.llm_temperature, CONFIG.llm.temperature)),
+                top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p)),
+                max_completion_tokens=ok(
+                    max_completion_tokens or self.llm_max_completion_tokens or CONFIG.llm.max_completion_tokens
+                ),
+                stream=first_available((stream, self.llm_stream, CONFIG.llm.stream)),
+                presence_penalty=first_available(
+                    (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty)
+                ),
+                frequency_penalty=first_available(
+                    (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty)
+                ),
             )
 
+        kw = _resolve_config()
+
+        if isinstance(question, str):
+            return await completion(message=question, **kw)
+
         if isinstance(question, list):
-            return await asyncio.gather(
-                *[
-                    completion(
-                        message=q,
-                        send_to=ok(send_to or self.llm_send_to, "send_to is not specified at any where"),
-                        temperature=first_available((temperature, self.llm_temperature)),
-                        top_p=first_available((top_p, self.llm_top_p)),
-                        max_completion_tokens=ok(max_completion_tokens or self.llm_max_completion_tokens),
-                        stream=first_available((stream, self.llm_stream)),
-                        presence_penalty=first_available((presence_penalty, self.llm_presence_penalty)),
-                        frequency_penalty=first_available((frequency_penalty, self.llm_frequency_penalty)),
-                    )
-                    for q in question
-                ]
-            )
+            return await asyncio.gather(*[completion(message=q, **kw) for q in question])
         raise NotImplementedError("Question must be either a string or a list of strings.")
 
     @overload
@@ -587,17 +584,19 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
         Returns:
             List[List[float]] | List[float]: The generated embeddings.
         """
+
+        def _resolve_config() -> EmbeddingKwargs:
+            return EmbeddingKwargs(
+                send_to=ok(
+                    send_to or self.embedding_send_to or CONFIG.embedding.send_to,
+                    "send_to is not specified at any where",
+                ),
+            )
+
+        kw = _resolve_config()
         if isinstance(input_text, str):
-            return (
-                await embedding(
-                    texts=[input_text],
-                    send_to=ok(send_to or self.embedding_send_to, "send_to is not specified at any where"),
-                )
-            )[0]
+            return (await embedding(texts=[input_text], **kw))[0]
 
         if isinstance(input_text, list):
-            return await embedding(
-                texts=input_text,
-                send_to=ok(send_to or self.embedding_send_to, "send_to is not specified at any where"),
-            )
+            return await embedding(texts=input_text, **kw)
         raise NotImplementedError("Question must be either a string or a list of strings.")

@@ -154,19 +154,7 @@ class LLMConfig:
     Contains parameters for configuring Language Learning Models.
     """
 
-    api_endpoint: Optional[str]
-    """API endpoint URL for the LLM service."""
-
-    api_key: Optional[SecretStr]
-    """Authentication key for the LLM service."""
-
-    timeout: Optional[int]
-    """Maximum time in seconds to wait for a response."""
-
-    max_retries: Optional[int]
-    """Number of retry attempts for failed requests."""
-
-    model: Optional[str]
+    send_to: Optional[str]
     """Name of the LLM model to use."""
 
     temperature: Optional[float]
@@ -178,20 +166,11 @@ class LLMConfig:
     top_p: Optional[float]
     """Controls diversity via nucleus sampling (0.0-1.0)."""
 
-    generation_count: Optional[int]
-    """Number of completions to generate for each prompt."""
-
     stream: Optional[bool]
     """When true, responses are streamed as they're generated."""
 
-    max_tokens: Optional[int]
+    max_completion_tokens: Optional[int]
     """Maximum number of tokens to generate in the response."""
-
-    rpm: Optional[int]
-    """Rate limit in requests per minute."""
-
-    tpm: Optional[int]
-    """Rate limit in tokens per minute."""
 
     presence_penalty: Optional[float]
     """Penalizes new tokens based on their presence in text so far (-2.0-2.0)."""
@@ -202,26 +181,8 @@ class LLMConfig:
 class EmbeddingConfig:
     """Embedding configuration structure."""
 
-    model: Optional[str]
+    send_to: Optional[str]
     """The embedding model name."""
-
-    dimensions: Optional[int]
-    """The dimensions of the embedding."""
-
-    timeout: Optional[int]
-    """The timeout of the embedding model in seconds."""
-
-    max_sequence_length: Optional[int]
-    """The maximum sequence length of the embedding model."""
-
-    caching: Optional[bool]
-    """Whether to cache the embedding."""
-
-    api_endpoint: Optional[str]
-    """The API endpoint URL."""
-
-    api_key: Optional[SecretStr]
-    """The API key."""
 
 class DebugConfig:
     """Debug configuration structure."""
