@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
-use pyo3::exceptions::*;
 pub use pyo3::PyResult;
+use pyo3::exceptions::*;
 
 /// A trait for converting Rust results to Python results
 pub trait AsPyErr<T> {

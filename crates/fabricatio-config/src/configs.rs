@@ -19,49 +19,6 @@ use validator::Validate;
 ///
 /// This structure contains all parameters needed to configure and interact with LLM services.
 /// All fields are optional to allow partial configuration from different sources.
-///
-/// # Fields
-///
-/// * `api_endpoint` - The URL endpoint for the LLM API service (e.g., "https://api.openai.com").
-///   Must be a valid URL if provided.
-///
-/// * `api_key` - Authentication key for the LLM service. Should be kept secure and not exposed.
-///
-/// * `timeout` - Maximum time in seconds to wait for a response from the LLM.
-///   Must be at least 1 second if specified.
-///
-/// * `max_retries` - Number of retry attempts for failed requests.
-///   Must be at least 1 if specified.
-///
-/// * `model` - Name of the LLM model to use (e.g., "gpt-3.5-turbo", "gpt-4").
-///
-/// * `temperature` - Controls randomness in response generation. Higher values (up to 2.0) make output
-///   more random, while lower values make it more deterministic. Must be between 0.0 and 2.0.
-///
-/// * `stop_sign` - Sequence(s) that signal the LLM to stop generating further tokens.
-///
-/// * `top_p` - Controls diversity via nucleus sampling. Lower values consider only tokens with
-///   higher probability. Must be between 0.0 and 1.0.
-///
-/// * `generation_count` - Number of completions to generate for each prompt.
-///   Must be at least 1 if specified.
-///
-/// * `stream` - When true, responses are streamed as they're generated rather than returned complete.
-///
-/// * `max_tokens` - Maximum number of tokens to generate in the response.
-///   Must be at least 1 if specified.
-///
-/// * `rpm` - Rate limit in requests per minute. Used for client-side rate limiting.
-///   Must be at least 1 if specified.
-///
-/// * `tpm` - Rate limit in tokens per minute. Used for client-side rate limiting.
-///   Must be at least 1 if specified.
-///
-/// * `presence_penalty` - Penalizes new tokens based on their presence in the text so far.
-///   Range from -2.0 to 2.0. Positive values discourage repetition.
-///
-/// * `frequency_penalty` - Penalizes new tokens based on their frequency in the text so far.
-///   Range from -2.0 to 2.0. Positive values discourage repetition.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
 #[gen_stub_pyclass]
 #[pyclass(from_py_object, get_all, set_all)]
@@ -98,7 +55,6 @@ pub struct LLMConfig {
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct EmbeddingConfig {
     pub send_to: Option<String>,
-
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[gen_stub_pyclass]
@@ -187,7 +143,6 @@ pub struct TemplateConfig {
     /// The name of the create json object template which will be used to create a json object.
     pub create_json_obj_template: String,
 }
-/// Routing configuration structure for controlling request dispatching behavior
 
 /// Configuration for a specific provider.
 ///
@@ -244,7 +199,6 @@ pub struct RoutingConfig {
     /// List of configured deployments associated with the providers.
     pub deployments: Vec<DeploymentConfig>,
 }
-
 
 /// General configuration structure for application-wide settings
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
