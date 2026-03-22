@@ -515,7 +515,7 @@ def add_embedding_model(
 def add_provider(
     provider_type: ProviderType,
     name: typing.Optional[builtins.str] = None,
-    api_key: typing.Optional[builtins.str] = None,
+    api_key: typing.Optional[SecretStr] = None,
     endpoint: typing.Optional[builtins.str] = None,
 ) -> typing.Awaitable[None]:
     r"""Adds a provider to the router."""
@@ -625,8 +625,9 @@ def list_installed() -> builtins.list[builtins.str]:
     * `Vec<String>` - A vector containing the names of all installed packages.
     """
 
-def mount_cache(file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]: 
-    r"""mount cache database to all routers, create if not exists"""
+def mount_cache(file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]:
+    r"""Mount cache database to all routers, create if not exists."""
+
 def split_into_chunks(
     string: builtins.str, max_chunk_size: builtins.int, max_overlapping_rate: builtins.float = 0.3
 ) -> builtins.list[builtins.str]:

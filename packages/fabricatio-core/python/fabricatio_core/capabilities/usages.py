@@ -15,12 +15,14 @@ import asyncio
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Self, Set, Unpack, overload
+from os import PathLike
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Self, Set, Type, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
-from fabricatio_core.decorators import logging_exec_time
+from fabricatio_core.decorators import logging_exec_time, once
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
@@ -28,12 +30,14 @@ from fabricatio_core.rust import (
     CONFIG,
     TEMPLATE_MANAGER,
     ProviderType,
+    SecretStr,
     add_completion_model,
     add_embedding_model,
     add_provider,
     completion,
     embedding,
     logger,
+    mount_cache,
 )
 from fabricatio_core.utils import first_available, ok
 
@@ -46,13 +50,14 @@ class UseRouter:
     itself to allow method chaining.
     """
 
-    def add_provider(
-        self,
+    @classmethod
+    async def add_provider(
+        cls,
         provider_type: ProviderType,
         name: str | None = None,
-        api_key: str | None = None,
+        api_key: SecretStr | None = None,
         endpoint: str | None = None,
-    ) -> Self:
+    ) -> Type[Self]:
         """Registers a new AI provider with the system.
 
         Args:
@@ -62,19 +67,19 @@ class UseRouter:
             endpoint (str | None): Optional custom endpoint URL for the provider.
 
         Returns:
-            Self: The current instance to allow method chaining.
+            None
         """
-        add_provider(provider_type, name, api_key, endpoint)
+        await add_provider(provider_type, name, api_key, endpoint)
+        return cls
 
-        return self
-
+    @classmethod
     async def deploy_completion_model(
-        self,
+        cls,
         group: str,
         model_identifier: str,
         rpm: int | None = None,
         tpm: int | None = None,
-    ) -> Self:
+    ) -> Type[Self]:
         """Asynchronously deploys a completion model to a specified group.
 
         Args:
@@ -84,7 +89,7 @@ class UseRouter:
             tpm (int | None): Optional tokens per minute rate limit.
 
         Returns:
-            Self: The current instance to allow method chaining.
+            None
         """
         await add_completion_model(
             group,
@@ -92,12 +97,12 @@ class UseRouter:
             rpm,
             tpm,
         )
+        return cls
 
-        return self
-
+    @classmethod
     async def deploy_embedding_model(
-        self, group: str, model_identifier: str, rpm: int | None = None, tpm: int | None = None
-    ) -> Self:
+        cls, group: str, model_identifier: str, rpm: int | None = None, tpm: int | None = None
+    ) -> Type[Self]:
         """Asynchronously deploys an embedding model to a specified group.
 
         Args:
@@ -107,7 +112,7 @@ class UseRouter:
             tpm (int | None): Optional tokens per minute rate limit.
 
         Returns:
-            Self: The current instance to allow method chaining.
+            None
         """
         await add_embedding_model(
             group,
@@ -116,7 +121,39 @@ class UseRouter:
             tpm,
         )
 
-        return self
+        return cls
+
+    @classmethod
+    async def mount_cache(cls, file_path: str | Path | PathLike | None = None) -> Type[Self]:
+        """Mount the cache database to the Routers."""
+        await mount_cache(
+            ok(
+                file_path or CONFIG.routing.cache_database_path,
+                "Cache database file path is not specified at any where!",
+            )
+        )
+        return cls
+
+    @classmethod
+    @once
+    async def establish_from_config(cls) -> Type[Self]:
+        """Add providers, models from the configurations."""
+        logger.debug("Deploying providers and models from the configurations.")
+        await asyncio.gather(
+            *[add_provider(p.provider_type, p.name, p.api_key, p.api_endpoint) for p in CONFIG.routing.providers]
+        )
+
+        await asyncio.gather(
+            *[
+                add_completion_model(d.group, d.identifier, d.rpm, d.tpm)
+                for d in CONFIG.routing.completion_model_deployments
+            ],
+            *[
+                add_embedding_model(d.group, d.identifier, d.rpm, d.tpm)
+                for d in CONFIG.routing.embedding_model_deployments
+            ],
+        )
+        return cls
 
 
 class UseLLM(LLMScopedConfig, ABC):
@@ -130,14 +167,26 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: List[str],
-        **kwargs: Unpack[LLMKwargs],
+        send_to: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_completion_tokens: Optional[int] = None,
+        stream: Optional[bool] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
     ) -> List[str]: ...
 
     @overload
     async def aask(
         self,
         question: str,
-        **kwargs: Unpack[LLMKwargs],
+        send_to: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_completion_tokens: Optional[int] = None,
+        stream: Optional[bool] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
     ) -> str: ...
 
     @logging_exec_time
@@ -657,10 +706,10 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
     """
 
     @overload
-    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
+    async def vectorize(self, input_text: List[str], send_to: str | None = None) -> List[List[float]]: ...
 
     @overload
-    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
+    async def vectorize(self, input_text: str, send_to: str | None = None) -> List[float]: ...
 
     async def vectorize(
         self, input_text: List[str] | str, send_to: str | None = None

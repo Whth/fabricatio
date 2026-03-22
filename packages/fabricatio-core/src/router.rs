@@ -1,4 +1,5 @@
 use error_mapping::AsPyErr;
+use fabricatio_config::SecretStr;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -108,10 +109,16 @@ pub fn add_provider<'a>(
     python: Python<'a>,
     provider_type: ProviderType,
     name: Option<String>,
-    api_key: Option<String>,
+    api_key: Option<SecretStr>,
     endpoint: Option<String>,
 ) -> PyResult<Bound<'a, PyAny>> {
-    let p = create_provider(provider_type, name, api_key, endpoint).into_pyresult()?;
+    let p = create_provider(
+        provider_type,
+        name,
+        api_key.map(|k| k.get_secret_value().to_string()),
+        endpoint,
+    )
+    .into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
@@ -183,7 +190,7 @@ pub fn add_embedding_model(
     override_return_type(type_repr = "typing.Awaitable[None]",imports=("typing",)
     )
 )]
-/// mount cache database to all routers, create if not exists
+/// Mount cache database to all routers, create if not exists
 pub fn mount_cache(python: Python, file_path: PathBuf) -> PyResult<Bound<PyAny>> {
     future_into_py(python, async move {
         EMBEDDING_MODEL_ROUTER
@@ -194,7 +201,7 @@ pub fn mount_cache(python: Python, file_path: PathBuf) -> PyResult<Bound<PyAny>>
         COMPLETION_MODEL_ROUTER
             .write()
             .await
-            .mount_cache(file_path.clone())
+            .mount_cache(file_path)
             .into_pyresult()?;
         Ok(())
     })
