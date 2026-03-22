@@ -18,12 +18,12 @@ serde = { version = "1.0.228", features = ["derive"] }
 strum = { version = "0.28.0", features = ["derive"] }
 whichlang = "0.1.1"
 scanner = { path = "../../crates/scanner" }
-error-mapping = { path = "../../crates/error-mapping", features = ["handlebars", "pythonize", "thryd", "strum", "std"] }
+error-mapping = { path = "../../crates/error-mapping", features = ["handlebars", "pythonize", "thryd", "strum", "std", "postcard"] }
 fabricatio-constants = { path = "../../crates/fabricatio-constants" }
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 fabricatio-config = { path = "../../crates/fabricatio-config" }
 
-thryd = { path = "../../crates/thryd" }
+thryd = { path = "../../crates/thryd", features = ["pyo3", "pystub"] }
 
 once_cell = "1.21.4"
 path-clean = "1.0.1"
@@ -33,7 +33,6 @@ chrono = "0.4.44"
 cfg-if = "1.0.4"
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 tokio = { version = "1.50.0", features = ["rt-multi-thread"] }
-futures-util = "0.3.32"
 
 
 [dev-dependencies]

@@ -11,6 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 use strum::{Display, EnumString, IntoStaticStr};
 
+use error_mapping::AsPyErr;
 use pyo3_stub_gen::derive::*;
 
 #[gen_stub_pyclass]
@@ -171,9 +172,8 @@ impl Event {
         other: &Bound<'_, PyAny>,
         op: pyo3::class::basic::CompareOp,
     ) -> PyResult<bool> {
-        if let Ok(_other_str) = other.extract::<String>() {
-            let other_event = Self::instantiate_from(other)?;
-            let result = self.collapse() == other_event.collapse();
+        if let Ok(other_str) = other.extract::<String>() {
+            let result = self.collapse() == other_str;
             Ok(match op {
                 pyo3::class::basic::CompareOp::Eq => result,
                 pyo3::class::basic::CompareOp::Ne => !result,
@@ -229,7 +229,7 @@ impl TaskStatus {
             2_u8 => Ok(TaskStatus::Finished),
             3_u8 => Ok(TaskStatus::Failed),
             4_u8 => Ok(TaskStatus::Cancelled),
-            _ => Err(pyo3::exceptions::PyValueError::new_err(
+            _ => Err(PyValueError::new_err(
                 "Invalid variant for TaskStatus pickle",
             )),
         }
@@ -239,17 +239,15 @@ impl TaskStatus {
     }
 
     fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
-        *self = from_bytes(state.as_bytes()).map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("Failed to deserialize TaskStatus")
-        })?;
+        *self = from_bytes(state.as_bytes()).into_pyresult()?;
+
         Ok(())
     }
 
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        let bytes = to_stdvec(self).map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("Failed to serialize TaskStatus")
-        })?;
-        Ok(PyBytes::new(py, &bytes))
+        to_stdvec(self)
+            .into_pyresult()
+            .map(|b| PyBytes::new(py, &b))
     }
 
     fn __getnewargs__(&self) -> PyResult<(u8,)> {

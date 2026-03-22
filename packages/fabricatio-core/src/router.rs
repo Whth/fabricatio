@@ -20,10 +20,31 @@ pub static EMBEDDING_MODEL_ROUTER: Lazy<Arc<RwLock<Router<EmbeddingTag>>>> =
 
 #[allow(clippy::too_many_arguments)]
 #[gen_stub_pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[str]",imports=("typing",))
+)]
 #[pyfunction]
 #[pyo3(signature=(send_to, message, top_p,temperature,stream=false,max_completion_tokens=32_000,presence_penalty=0.,frequency_penalty=0.)
 )]
-/// Sends a completion request to the specified group.
+
+/// Sends a completion request to the specified group and returns the full response.
+///
+/// Note: Although a 'stream' argument exists for protocol compatibility, this
+/// implementation always aggregates the full response before returning.
+/// It does not yield chunks asynchronously.
+///
+/// Args:
+///     send_to (str): The router group name.
+///     message (str): The user prompt content.
+///     top_p (float): Nucleus sampling parameter. Defaults to 1.0.
+///     temperature (float): Controls randomness. Defaults to 0.7.
+///     stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
+///     max_completion_tokens (int): Maximum tokens to generate. Defaults to 2048.
+///     presence_penalty (float): Penalizes new tokens based on presence. Defaults to 0.0.
+///     frequency_penalty (float): Penalizes new tokens based on frequency. Defaults to 0.0.
+///
+/// Returns:
+///     str: The complete aggregated response content.
 pub fn completion(
     python: Python,
     send_to: String,
@@ -56,6 +77,10 @@ pub fn completion(
 }
 
 #[gen_stub_pyfunction]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]",imports=("typing",)
+    )
+)]
 #[pyfunction]
 /// Sends an embedding request to the specified group.
 pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResult<Bound<PyAny>> {
@@ -71,25 +96,18 @@ pub fn embedding(python: Python, send_to: String, texts: Vec<String>) -> PyResul
     })
 }
 
-#[gen_stub_pyfunction]
+#[gen_stub_pyfunction()]
 #[pyfunction]
 #[pyo3(signature=(provider_type,name=None,api_key=None,endpoint=None))]
-
 /// Adds a provider to the router.
 pub fn add_provider<'a>(
     python: Python<'a>,
-    provider_type: &str,
+    provider_type: ProviderType,
     name: Option<String>,
     api_key: Option<String>,
     endpoint: Option<String>,
 ) -> PyResult<Bound<'a, PyAny>> {
-    let p = create_provider(
-        ProviderType::from_str(provider_type).into_pyresult()?,
-        name,
-        api_key,
-        endpoint,
-    )
-    .into_pyresult()?;
+    let p = create_provider(provider_type, name, api_key, endpoint).into_pyresult()?;
 
     future_into_py(python, async move {
         COMPLETION_MODEL_ROUTER
@@ -161,5 +179,6 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(add_completion_model, m)?)?;
     m.add_function(wrap_pyfunction!(add_embedding_model, m)?)?;
     m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
+    m.add_class::<ProviderType>()?;
     Ok(())
 }
