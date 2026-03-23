@@ -94,15 +94,22 @@ impl CompletionModel for OpenaiModel {
                 .bytes_stream()
                 .eventsource()
                 .map(|event| {
-                    serde_json::from_str::<CreateChatCompletionStreamResponse>(event?.data.as_str()).map_err(
-                        ThrydError::from
-                    )
+                    serde_json::from_str::<CreateChatCompletionStreamResponse>(event?.data.as_str())
+                        .map_err(ThrydError::from)
                 })
-                .try_collect::<Vec<CreateChatCompletionStreamResponse>>().await?
+                .try_collect::<Vec<CreateChatCompletionStreamResponse>>()
+                .await?
                 .into_iter()
-                .map(|resp|
-                    resp.choices.first().cloned().unwrap().delta.content.unwrap().clone()
-                )
+                .map(|resp| {
+                    resp.choices
+                        .first()
+                        .cloned()
+                        .unwrap()
+                        .delta
+                        .content
+                        .unwrap()
+                        .clone()
+                })
                 .collect();
             Ok(res)
         } else {

@@ -1,12 +1,8 @@
-use crate::utils::{current_timestamp, TimeStamp};
 use crate::Result;
-use redb::{
-    Database, ReadableDatabase, ReadableTableMetadata, TableDefinition, TypeName,
-    Value,
-};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use crate::utils::{TimeStamp, current_timestamp};
+use redb::{Database, ReadableDatabase, ReadableTableMetadata, TableDefinition, TypeName, Value};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
-
 
 use std::path::Path;
 
