@@ -15,139 +15,17 @@ import asyncio
 import traceback
 from abc import ABC
 from asyncio import gather
-from os import PathLike
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Self, Set, Type, Unpack, overload
+from typing import Callable, Dict, List, Optional, Set, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
-from fabricatio_core.decorators import logging_exec_time, once
+from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.rust import (
-    CONFIG,
-    TEMPLATE_MANAGER,
-    ProviderType,
-    SecretStr,
-    logger,
-)
+from fabricatio_core.rust import CONFIG, ROUTER, TEMPLATE_MANAGER, logger
 from fabricatio_core.utils import first_available, ok
-
-
-class UseRouter:
-    """A router class for managing LLM provider configurations and model deployments.
-
-    This class provides methods to register AI providers and deploy completion or embedding models
-    with optional rate limiting configurations. It follows a fluent interface pattern, returning
-    itself to allow method chaining.
-    """
-
-    @classmethod
-    async def add_provider(
-        cls,
-        provider_type: ProviderType,
-        name: str | None = None,
-        api_key: SecretStr | None = None,
-        endpoint: str | None = None,
-    ) -> Type[Self]:
-        """Registers a new AI provider with the system.
-
-        Args:
-            provider_type (ProviderType): The type of the provider to add.
-            name (str | None): Optional custom name for the provider. If None, a default name is used.
-            api_key (str | None): Optional API key for authentication.
-            endpoint (str | None): Optional custom endpoint URL for the provider.
-
-        Returns:
-            None
-        """
-        await add_provider(provider_type, name, api_key, endpoint)
-        return cls
-
-    @classmethod
-    async def deploy_completion_model(
-        cls,
-        group: str,
-        model_identifier: str,
-        rpm: int | None = None,
-        tpm: int | None = None,
-    ) -> Type[Self]:
-        """Asynchronously deploys a completion model to a specified group.
-
-        Args:
-            group (str): The group identifier to deploy the model to.
-            model_identifier (str): The unique identifier of the model to deploy.
-            rpm (int | None): Optional requests per minute rate limit.
-            tpm (int | None): Optional tokens per minute rate limit.
-
-        Returns:
-            None
-        """
-        await add_completion_model(
-            group,
-            model_identifier,
-            rpm,
-            tpm,
-        )
-        return cls
-
-    @classmethod
-    async def deploy_embedding_model(
-        cls, group: str, model_identifier: str, rpm: int | None = None, tpm: int | None = None
-    ) -> Type[Self]:
-        """Asynchronously deploys an embedding model to a specified group.
-
-        Args:
-            group (str): The group identifier to deploy the model to.
-            model_identifier (str): The unique identifier of the model to deploy.
-            rpm (int | None): Optional requests per minute rate limit.
-            tpm (int | None): Optional tokens per minute rate limit.
-
-        Returns:
-            None
-        """
-        await add_embedding_model(
-            group,
-            model_identifier,
-            rpm,
-            tpm,
-        )
-
-        return cls
-
-    @classmethod
-    async def mount_cache(cls, file_path: str | Path | PathLike | None = None) -> Type[Self]:
-        """Mount the cache database to the Routers."""
-        await mount_cache(
-            ok(
-                file_path or CONFIG.routing.cache_database_path,
-                "Cache database file path is not specified at any where!",
-            )
-        )
-        return cls
-
-    @classmethod
-    @once
-    async def establish_from_config(cls) -> Type[Self]:
-        """Add providers, models from the configurations."""
-        logger.debug("Deploying providers and models from the configurations.")
-        await asyncio.gather(
-            *[add_provider(p.provider_type, p.name, p.api_key, p.api_endpoint) for p in CONFIG.routing.providers]
-        )
-
-        await asyncio.gather(
-            *[
-                add_completion_model(d.group, d.identifier, d.rpm, d.tpm)
-                for d in CONFIG.routing.completion_model_deployments
-            ],
-            *[
-                add_embedding_model(d.group, d.identifier, d.rpm, d.tpm)
-                for d in CONFIG.routing.embedding_model_deployments
-            ],
-        )
-        return cls
 
 
 class UseLLM(LLMScopedConfig, ABC):
@@ -232,10 +110,10 @@ class UseLLM(LLMScopedConfig, ABC):
         kw = _resolve_config()
 
         if isinstance(question, str):
-            return await completion(message=question, **kw)
+            return await ROUTER.completion(message=question, **kw)
 
         if isinstance(question, list):
-            return await asyncio.gather(*[completion(message=q, **kw) for q in question])
+            return await asyncio.gather(*[ROUTER.completion(message=q, **kw) for q in question])
         raise NotImplementedError("Question must be either a string or a list of strings.")
 
     @overload
@@ -728,8 +606,8 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
 
         kw = _resolve_config()
         if isinstance(input_text, str):
-            return (await embedding(texts=[input_text], **kw))[0]
+            return (await ROUTER.embedding(texts=[input_text], **kw))[0]
 
         if isinstance(input_text, list):
-            return await embedding(texts=input_text, **kw)
+            return await ROUTER.embedding(texts=input_text, **kw)
         raise NotImplementedError("Question must be either a string or a list of strings.")
