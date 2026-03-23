@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ProviderType,
-    Router as ThrydRouter, create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag,
+    ProviderType, Router as ThrydRouter,
 };
 use tokio::sync::RwLock;
 
@@ -83,6 +83,13 @@ impl Router {
         )
     )]
     /// Sends an embedding request to the specified group.
+    ///
+    /// Args:
+    ///     send_to (str): The router group name to route the embedding request.
+    ///     texts (List[str]): A list of text strings to generate embeddings for.
+    ///
+    /// Returns:
+    ///     List[List[float]]: A list of embedding vectors corresponding to the input texts.
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
@@ -103,6 +110,17 @@ impl Router {
     )]
     #[pyo3(signature = (provider_type, name = None, api_key = None, endpoint = None))]
     /// Adds a provider to the router.
+    ///
+    /// This method registers a new provider with both the completion and embedding routers.
+    ///
+    /// Args:
+    ///     provider_type (ProviderType): The type of the provider (e.g., OpenAI, Anthropic).
+    ///     name (Optional[str]): Optional custom name for the provider.
+    ///     api_key (Optional[SecretStr]): Optional API key for authentication.
+    ///     endpoint (Optional[str]): Optional custom API endpoint URL.
+    ///
+    /// Returns:
+    ///     None: This is an asynchronous operation that modifies the router state.
     pub fn add_provider<'a>(
         &self,
         python: Python<'a>,
@@ -117,7 +135,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().to_string()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -134,9 +152,19 @@ impl Router {
     )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds a completion model to the specified group.
+    ///
+    /// Registers a new model identifier within a specific routing group for completion tasks.
+    ///
+    /// Args:
+    ///     group (str): The target router group name.
+    ///     model_identifier (str): The unique identifier of the model to be added.
+    ///     rpm (Optional[Quota]): Optional requests per minute limit.
+    ///     tpm (Optional[Quota]): Optional tokens per minute limit.
+    ///
+    /// Returns:
+    ///     None: This is an asynchronous operation that modifies the router state.
     pub fn add_completion_model<'a>(
         &self,
-
         python: Python<'a>,
         group: String,
         model_identifier: String,
@@ -158,6 +186,17 @@ impl Router {
     )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds an embedding model to the specified group.
+    ///
+    /// Registers a new model identifier within a specific routing group for embedding tasks.
+    ///
+    /// Args:
+    ///     group (str): The target router group name.
+    ///     model_identifier (str): The unique identifier of the model to be added.
+    ///     rpm (Optional[Quota]): Optional requests per minute limit.
+    ///     tpm (Optional[Quota]): Optional tokens per minute limit.
+    ///
+    /// Returns:
+    ///     None: This is an asynchronous operation that modifies the router state.
     pub fn add_embedding_model<'a>(
         &self,
         python: Python<'a>,
@@ -180,7 +219,16 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
     )]
-    /// Mount cache database to all routers, create if not exists
+    /// Mount cache database to all routers, create if not exists.
+    ///
+    /// Initializes and mounts a shared cache database file for both completion and embedding routers.
+    /// If the database does not exist, it will be created automatically.
+    ///
+    /// Args:
+    ///     file_path (PathBuf): The absolute or relative path to the cache database file.
+    ///
+    /// Returns:
+    ///     None: This is an asynchronous operation that modifies the router state.
     pub fn mount_cache<'a>(
         &self,
         python: Python<'a>,
@@ -199,7 +247,6 @@ impl Router {
         })
     }
 }
-
 #[gen_stub_pyfunction]
 #[pyfunction]
 /// Count tokens of a text
