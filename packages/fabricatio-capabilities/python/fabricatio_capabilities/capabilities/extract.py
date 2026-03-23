@@ -61,7 +61,7 @@ class Extract(Propose, ABC):
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
         **kwargs: Unpack[ValidateKwargs[Optional[M]]],
-    ) -> M | List[M] | Optional[M] | List[Optional[M]]:
+    ) -> M | List[M] | None | List[Optional[M]]:
         """Extract information from a given source to a model."""
         return await self.propose(
             cls,

@@ -382,7 +382,7 @@ class PersistentAble(Base, ABC):
             parts = stem.split("_")
             return datetime.strptime(f"{parts[1]}_{parts[2]}", "%Y%m%d_%H%M%S")
 
-        files.sort(key=lambda f: _get_timestamp(f), reverse=True)
+        files.sort(key=_get_timestamp, reverse=True)
 
         return cls.from_persistent(files.pop(0))
 

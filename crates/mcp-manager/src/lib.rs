@@ -206,12 +206,10 @@ impl MCPManager {
             .get(client_id)
             .ok_or(McpError::ClientNotFound(client_id.to_owned()))
             .map(|client| {
-                client.call_tool(CallToolRequestParams {
-                    meta: None,
-                    name: tool_name.to_owned().into(),
-                    arguments,
-                    task: None,
-                })
+                client.call_tool(
+                    CallToolRequestParams::new(tool_name.to_string())
+                        .with_arguments(arguments.unwrap_or_default()),
+                )
             })?
             .await
             .map_err(RmcpError)

@@ -10,10 +10,12 @@ mod event;
 mod hash;
 mod hbs_helpers;
 mod language;
+mod router;
 mod scan;
 mod templates;
 mod text_file;
 mod word_split;
+
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;
 cfg_if!(
@@ -50,6 +52,6 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     event::register(python, m)?;
     scan::register(python, m)?;
     text_file::register(python, m)?;
-
+    router::register(python, m)?;
     Ok(())
 }

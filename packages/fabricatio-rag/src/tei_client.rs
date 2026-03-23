@@ -102,7 +102,6 @@ impl TEIClient {
         })
     }
 
-
     /// Generates token-level embeddings for the given text.
     ///
     /// # Arguments

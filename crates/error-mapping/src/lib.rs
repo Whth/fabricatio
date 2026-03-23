@@ -42,6 +42,9 @@ cfg_if!(
     }
 );
 
+#[cfg(feature = "thryd")]
+impl_as_pyerr!(thryd::ThrydError, PyRuntimeError);
+
 #[cfg(feature = "epub-builder")]
 impl_as_pyerr!(epub_builder::Error, PyRuntimeError);
 

@@ -9,7 +9,7 @@ This module provides focused tools for core data operations following CRUD princ
 Designed for clear separation of concerns with minimal dependencies.
 """
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -73,32 +73,6 @@ def add_computed_column(
 # =====================
 # READ Operations
 # =====================
-@data_crud_toolbox.collect_tool
-def get_column_metadata(df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
-    """Get detailed metadata for all columns including type and sample values.
-
-    Args:
-        df: Input DataFrame
-
-    Returns:
-        Dictionary mapping column names to metadata:
-        {
-            "column_name": {
-                "dtype": "data type",
-                "sample_values": [list of 3 sample values],
-                "null_count": number of nulls
-            },
-            ...
-        }
-    """
-    metadata = {}
-    for col in df.columns:
-        metadata[col] = {
-            "dtype": str(df[col].dtype),
-            "sample_values": df[col].dropna().head(3).tolist(),
-            "null_count": df[col].isnull().sum(),
-        }
-    return metadata
 
 
 @data_crud_toolbox.collect_tool

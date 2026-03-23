@@ -6,15 +6,15 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.27.2", features = ["extension-module"] }
-pyo3-async-runtimes = { version = "0.27.0", features = ["tokio-runtime"] }
-pythonize = "0.27.0"
-rustpython-ast = { version = "0.4.0", features = ["visitor"] }
-rustpython-parser = { version = "0.4.0" }
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
+pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
+pythonize = "0.28.0"
+rustpython-ast = { version = "0.4.0", features = ["visitor", "num-bigint", "fold", "location"], default-features = false }
+rustpython-parser = { version = "0.4.0", features = ["num-bigint", "location"], default-features = false }
 serde_json = "1.0.149"
 mcp-manager = { workspace = true }
 signify = { workspace = true }
-rmcp = { version = "0.14.0", features = ["transport-streamable-http-client-reqwest", "client"] }
+rmcp = { version = "1.2.0", features = ["transport-streamable-http-client-reqwest", "client"] }
 fabricatio-logger = { workspace = true }
 
 ignore = { version = "0.4.25" }

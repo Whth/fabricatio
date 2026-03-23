@@ -210,9 +210,9 @@ class Rating(Propose, ABC):
                     },
                 )
             ),
-            validator=lambda resp: set(out)
-            if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None
-            else out,
+            validator=lambda resp: (
+                set(out) if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None else out
+            ),
             **kwargs,
         )
 
@@ -281,9 +281,11 @@ class Rating(Propose, ABC):
                     },
                 )
             ),
-            validator=lambda resp: set(out)
-            if (out := JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=criteria_count))
-            else None,
+            validator=lambda resp: (
+                set(out)
+                if (out := JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=criteria_count))
+                else None
+            ),
             **kwargs,
         )
 
