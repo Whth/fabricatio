@@ -16,13 +16,16 @@ mod templates;
 mod text_file;
 mod word_split;
 
+use crate::router::init_router_from_config;
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;
+
 cfg_if!(
     if #[cfg(feature = "stubgen")]    {
         use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
         module_variable!("fabricatio_core.rust", LOGGER_VARNAME, Logger);
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
+        module_variable!("fabricatio_core.rust", ROUTER_VARNAME, Router);
         define_stub_info_gatherer!(stub_info);
 
     }
@@ -45,7 +48,9 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
             .as_ref()
             .map(|r| r.parse().unwrap_or_default()),
     );
+    m.add(ROUTER_VARNAME, init_router_from_config(&conf)?)?;
     m.add(CONFIG_VARNAME, conf)?;
+
     m.add(LOGGER_VARNAME, Logger)?;
 
     language::register(python, m)?;

@@ -1,5 +1,5 @@
 use error_mapping::AsPyErr;
-use fabricatio_config::SecretStr;
+use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_constants::ROUTER_VARNAME;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
@@ -9,17 +9,29 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag,
-    ProviderType, Router as ThrydRouter,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
+    Router as ThrydRouter, create_provider,
 };
 use tokio::sync::RwLock;
 
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Default)]
-struct Router {
+pub struct Router {
     embedding_router: Arc<RwLock<ThrydRouter<EmbeddingTag>>>,
     completion_router: Arc<RwLock<ThrydRouter<CompletionTag>>>,
+}
+
+impl Router {
+    pub fn new(
+        embedding_router: ThrydRouter<EmbeddingTag>,
+        completion_router: ThrydRouter<CompletionTag>,
+    ) -> Self {
+        Self {
+            embedding_router: Arc::new(RwLock::new(embedding_router)),
+            completion_router: Arc::new(RwLock::new(completion_router)),
+        }
+    }
 }
 
 #[gen_stub_pymethods]
@@ -135,7 +147,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().to_string()),
             endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -247,6 +259,50 @@ impl Router {
         })
     }
 }
+
+pub fn add_providers_from_configs<T: ModelTypeTag>(
+    mut router: ThrydRouter<T>,
+    configs: Vec<ProviderConfig>,
+) -> PyResult<ThrydRouter<T>> {
+    for config in configs {
+        let p = create_provider(
+            config.provider_type,
+            config.name,
+            config.api_key.map(|k| k.get_secret_value().to_string()),
+            config.api_endpoint,
+        )
+        .into_pyresult()?;
+
+        router.add_provider(p).into_pyresult()?;
+    }
+
+    Ok(router)
+}
+
+pub fn add_models_from_configs<T: ModelTypeTag>(
+    mut router: ThrydRouter<T>,
+    configs: Vec<DeploymentConfig>,
+) -> PyResult<ThrydRouter<T>> {
+    for config in configs {
+        router
+            .deploy(config.group, config.identifier, config.rpm, config.tpm)
+            .into_pyresult()?;
+    }
+    Ok(router)
+}
+
+pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
+    let cr = ThrydRouter::default();
+    let cr = add_providers_from_configs(cr, config.routing.providers.clone())?;
+    let cr = add_models_from_configs(cr, config.routing.completion_model_deployments.clone())?;
+
+    let er = ThrydRouter::default();
+    let er = add_providers_from_configs(er, config.routing.providers.clone())?;
+    let er = add_models_from_configs(er, config.routing.embedding_model_deployments.clone())?;
+
+    Ok(Router::new(er, cr))
+}
+
 #[gen_stub_pyfunction]
 #[pyfunction]
 /// Count tokens of a text
@@ -258,6 +314,5 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
     m.add_class::<ProviderType>()?;
     m.add_class::<Router>()?;
-    m.add(ROUTER_VARNAME, Router::default())?;
     Ok(())
 }

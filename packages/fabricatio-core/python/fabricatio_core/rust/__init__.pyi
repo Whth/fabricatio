@@ -8,6 +8,7 @@ import typing
 
 __all__ = [
     "CONFIG",
+    "ROUTER",
     "TEMPLATE_MANAGER",
     "Config",
     "DebugConfig",
@@ -20,19 +21,15 @@ __all__ = [
     "Logger",
     "ProviderConfig",
     "ProviderType",
+    "Router",
     "RoutingConfig",
     "SecretStr",
     "TaskStatus",
     "TemplateConfig",
     "TemplateManager",
     "TemplateManagerConfig",
-    "add_completion_model",
-    "add_embedding_model",
-    "add_provider",
     "blake3_hash",
-    "completion",
     "detect_language",
-    "embedding",
     "extra_satisfied",
     "extras_satisfied",
     "is_arabic",
@@ -54,7 +51,6 @@ __all__ = [
     "is_vietnamese",
     "list_installed",
     "logger",
-    "mount_cache",
     "split_into_chunks",
     "split_sentence_bounds",
     "split_word_bounds",
@@ -63,6 +59,7 @@ __all__ = [
 ]
 
 CONFIG: Config
+ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
 logger: Logger
 
@@ -337,6 +334,123 @@ class ProviderConfig:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
 
 @typing.final
+class Router:
+    def completion(
+        self,
+        send_to: builtins.str,
+        message: builtins.str,
+        top_p: builtins.float,
+        temperature: builtins.float,
+        stream: builtins.bool = False,
+        max_completion_tokens: builtins.int = 32000,
+        presence_penalty: builtins.float = 0.0,
+        frequency_penalty: builtins.float = 0.0,
+    ) -> typing.Awaitable[str]:
+        r"""Sends a completion request to the specified group and returns the full response.
+
+        Note: Although a 'stream' argument exists for protocol compatibility, this
+        implementation always aggregates the full response before returning.
+        It does not yield chunks asynchronously.
+
+        Args:
+            send_to (str): The router group name.
+            message (str): The user prompt content.
+            top_p (float): Nucleus sampling parameter. Defaults to 1.0.
+            temperature (float): Controls randomness. Defaults to 0.7.
+            stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
+            max_completion_tokens (int): Maximum tokens to generate. Defaults to 2048.
+            presence_penalty (float): Penalizes new tokens based on presence. Defaults to 0.0.
+            frequency_penalty (float): Penalizes new tokens based on frequency. Defaults to 0.0.
+
+        Returns:
+            str: The complete aggregated response content.
+        """
+    def embedding(
+        self, send_to: builtins.str, texts: typing.Sequence[builtins.str]
+    ) -> typing.Awaitable[typing.List[typing.List[float]]]:
+        r"""Sends an embedding request to the specified group.
+
+        Args:
+            send_to (str): The router group name to route the embedding request.
+            texts (List[str]): A list of text strings to generate embeddings for.
+
+        Returns:
+            List[List[float]]: A list of embedding vectors corresponding to the input texts.
+        """
+    def add_provider(
+        self,
+        provider_type: ProviderType,
+        name: typing.Optional[builtins.str] = None,
+        api_key: typing.Optional[SecretStr] = None,
+        endpoint: typing.Optional[builtins.str] = None,
+    ) -> typing.Awaitable[None]:
+        r"""Adds a provider to the router.
+
+        This method registers a new provider with both the completion and embedding routers.
+
+        Args:
+            provider_type (ProviderType): The type of the provider (e.g., OpenAI, Anthropic).
+            name (Optional[str]): Optional custom name for the provider.
+            api_key (Optional[SecretStr]): Optional API key for authentication.
+            endpoint (Optional[str]): Optional custom API endpoint URL.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
+    def add_completion_model(
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        rpm: typing.Optional[builtins.int] = None,
+        tpm: typing.Optional[builtins.int] = None,
+    ) -> typing.Awaitable[None]:
+        r"""Adds a completion model to the specified group.
+
+        Registers a new model identifier within a specific routing group for completion tasks.
+
+        Args:
+            group (str): The target router group name.
+            model_identifier (str): The unique identifier of the model to be added.
+            rpm (Optional[int]): Optional requests per minute limit.
+            tpm (Optional[int]): Optional tokens per minute limit.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
+    def add_embedding_model(
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        rpm: typing.Optional[builtins.int] = None,
+        tpm: typing.Optional[builtins.int] = None,
+    ) -> typing.Awaitable[None]:
+        r"""Adds an embedding model to the specified group.
+
+        Registers a new model identifier within a specific routing group for embedding tasks.
+
+        Args:
+            group (str): The target router group name.
+            model_identifier (str): The unique identifier of the model to be added.
+            rpm (Optional[Quota]): Optional requests per minute limit.
+            tpm (Optional[Quota]): Optional tokens per minute limit.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
+    def mount_cache(self, file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]:
+        r"""Mount cache database to all routers, create if not exists.
+
+        Initializes and mounts a shared cache database file for both completion and embedding routers.
+        If the database does not exist, it will be created automatically.
+
+        Args:
+            file_path (PathBuf): The absolute or relative path to the cache database file.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
+
+@typing.final
 class RoutingConfig:
     r"""Routing configuration structure for controlling request dispatching behavior.
 
@@ -496,70 +610,11 @@ class TaskStatus(enum.Enum):
     def __getstate__(self) -> bytes: ...
     def __getnewargs__(self) -> tuple[builtins.int]: ...
 
-def add_completion_model(
-    group: builtins.str,
-    model_identifier: builtins.str,
-    rpm: typing.Optional[builtins.int] = None,
-    tpm: typing.Optional[builtins.int] = None,
-) -> typing.Awaitable[None]:
-    r"""Adds a completion model to the specified group."""
-
-def add_embedding_model(
-    group: builtins.str,
-    model_identifier: builtins.str,
-    rpm: typing.Optional[builtins.int] = None,
-    tpm: typing.Optional[builtins.int] = None,
-) -> typing.Awaitable[None]:
-    r"""Adds an embedding model to the specified group."""
-
-def add_provider(
-    provider_type: ProviderType,
-    name: typing.Optional[builtins.str] = None,
-    api_key: typing.Optional[SecretStr] = None,
-    endpoint: typing.Optional[builtins.str] = None,
-) -> typing.Awaitable[None]:
-    r"""Adds a provider to the router."""
-
 def blake3_hash(content: bytes) -> builtins.str:
     r"""Calculate hash with blake3 as backbone."""
 
-def completion(
-    send_to: builtins.str,
-    message: builtins.str,
-    top_p: builtins.float,
-    temperature: builtins.float,
-    stream: builtins.bool = False,
-    max_completion_tokens: builtins.int = 32000,
-    presence_penalty: builtins.float = 0.0,
-    frequency_penalty: builtins.float = 0.0,
-) -> typing.Awaitable[str]:
-    r"""Sends a completion request to the specified group and returns the full response.
-
-    Note: Although a 'stream' argument exists for protocol compatibility, this
-    implementation always aggregates the full response before returning.
-    It does not yield chunks asynchronously.
-
-    Args:
-        send_to (str): The router group name.
-        message (str): The user prompt content.
-        top_p (float): Nucleus sampling parameter. Defaults to 1.0.
-        temperature (float): Controls randomness. Defaults to 0.7.
-        stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
-        max_completion_tokens (int): Maximum tokens to generate. Defaults to 2048.
-        presence_penalty (float): Penalizes new tokens based on presence. Defaults to 0.0.
-        frequency_penalty (float): Penalizes new tokens based on frequency. Defaults to 0.0.
-
-    Returns:
-        str: The complete aggregated response content.
-    """
-
 def detect_language(string: builtins.str) -> builtins.str:
     r"""Detect the language of a string."""
-
-def embedding(
-    send_to: builtins.str, texts: typing.Sequence[builtins.str]
-) -> typing.Awaitable[typing.List[typing.List[float]]]:
-    r"""Sends an embedding request to the specified group."""
 
 def extra_satisfied(pkg_name: builtins.str, extra_name: builtins.str) -> builtins.bool:
     r"""Checks if a specific extra (optional dependency) of a Python package is satisfied.
@@ -624,9 +679,6 @@ def list_installed() -> builtins.list[builtins.str]:
 
     * `Vec<String>` - A vector containing the names of all installed packages.
     """
-
-def mount_cache(file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]:
-    r"""Mount cache database to all routers, create if not exists."""
 
 def split_into_chunks(
     string: builtins.str, max_chunk_size: builtins.int, max_overlapping_rate: builtins.float = 0.3

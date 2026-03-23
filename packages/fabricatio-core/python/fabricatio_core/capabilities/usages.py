@@ -31,13 +31,7 @@ from fabricatio_core.rust import (
     TEMPLATE_MANAGER,
     ProviderType,
     SecretStr,
-    add_completion_model,
-    add_embedding_model,
-    add_provider,
-    completion,
-    embedding,
     logger,
-    mount_cache,
 )
 from fabricatio_core.utils import first_available, ok
 
