@@ -1,15 +1,15 @@
 """Example of a simple hello world program using fabricatio."""
+
 from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-
-from fabricatio.capabilities import UseLLM
 
 
 class Hello(Action):  # The class name is the name of the action
     """Action that says hello."""
 
     output_key: str = "task_output"
+
     # Key name, but currently it does not support being custom captured by
     # the workflow, so it is recommended to use: "task_output"
 
@@ -21,20 +21,27 @@ class Hello(Action):  # The class name is the name of the action
         return ret_2
 
 
-class say(Action):
+class Say(Action):
+    """an Action"""
+    output_key: str = "task1"
+
     async def _execute(self, *_: Any, **cxt) -> Any:
-        ret_1 = "hello or hello"
-        return ret_1
+        return "hello or hello"
+
 
 # When creating a workflow, explicitly specify the
 # name, steps, and task_output_key parameters
 work = WorkFlow(
     name="Thing 1",  # name
-    steps=(Hello, say,),  # Actions to be performed, multiple actions possible
-    task_output_key="take1"
-    # Customization is not currently supported.
+    steps=(
+        Hello,
+        Say,
+    ),  # Actions to be performed, multiple actions possible
+    task_output_key="take1",
+    # Customization is currently not supported.
     # Even if set to "take1", it will only query "task_output",
-    # and by default, it takes the result of the last action.
+    # and if there are multiple "task_output" entries,
+    # it will take the result of the last operation.
 )
 
 (

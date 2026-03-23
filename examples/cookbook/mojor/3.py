@@ -1,11 +1,14 @@
 """Example of review usage."""
 
 from typing import Any
-from fabricatio import logger, Action, WorkFlow, Task, Event, Role
+
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import Correct, Review
 from fabricatio_core.utils import ok
 
+
 class WritePoem(Action, Review, Correct):
+    """an Action about Review and Correct"""
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> Any:
@@ -28,9 +31,9 @@ class WritePoem(Action, Review, Correct):
 
 
 role = Role(
-        name="poet",
-        description="A role that creates poetic content",
-        skills={Event.quick_instantiate(ns := "poem").collapse(): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
+    name="poet",
+    description="A role that creates poetic content",
+    skills={Event.quick_instantiate(ns := "poem").collapse(): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
 ).dispatch()
 
 if __name__ == "__main__":
@@ -42,7 +45,3 @@ if __name__ == "__main__":
 
     poem = task.delegate_blocking(ns)
     logger.info(f"Poem:\n\n{poem}")
-
-
-
-
