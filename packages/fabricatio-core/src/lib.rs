@@ -36,13 +36,16 @@ cfg_if!(
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
     m.add_class::<Config>()?;
-    m.add(CONFIG_VARNAME, Config::new()?)?;
-    let conf: Config = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
+    let conf: Config = Config::new()?;
     init_logger(
         conf.debug.log_level.as_str(),
-        conf.debug.log_dir,
-        conf.debug.rotation.map(|r| r.parse().unwrap_or_default()),
+        conf.debug.log_dir.clone(),
+        conf.debug
+            .rotation
+            .as_ref()
+            .map(|r| r.parse().unwrap_or_default()),
     );
+    m.add(CONFIG_VARNAME, conf)?;
     m.add(LOGGER_VARNAME, Logger)?;
 
     language::register(python, m)?;

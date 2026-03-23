@@ -86,3 +86,5 @@ pub const LOGGER_VARNAME: &str = "logger";
 pub const CONFIG_VARNAME: &str = "CONFIG";
 /// The key used to store the Python source code path.
 pub const PY_SOURCE_KEY: &str = "py_source";
+
+pub const ROUTER_VARNAME: &str = "ROUTER";

@@ -2591,7 +2591,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-constants"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "directories-next",
  "once_cell",

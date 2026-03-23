@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-constants"
-version = "0.2.4"
+version = "0.2.5"
 readme = "README.md"
 description = "Constants for the fabricatio."
 edition = "2024"
