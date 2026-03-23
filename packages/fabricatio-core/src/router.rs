@@ -158,8 +158,8 @@ impl Router {
     /// Args:
     ///     group (str): The target router group name.
     ///     model_identifier (str): The unique identifier of the model to be added.
-    ///     rpm (Optional[Quota]): Optional requests per minute limit.
-    ///     tpm (Optional[Quota]): Optional tokens per minute limit.
+    ///     rpm (Optional[int]): Optional requests per minute limit.
+    ///     tpm (Optional[int]): Optional tokens per minute limit.
     ///
     /// Returns:
     ///     None: This is an asynchronous operation that modifies the router state.
