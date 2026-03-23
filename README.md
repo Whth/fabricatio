@@ -88,7 +88,8 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Run as mcp server.
 - [ ] Finalize the webui.
 - [ ] Add Plugin system.
-- [ ] Replace litellm with native rust impl
+- [x] Replace litellm with native rust impl
+- [ ] Port deprecated mock utils to thryd impl
 - [ ] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
 - [ ] TreeSetter-based ACE
