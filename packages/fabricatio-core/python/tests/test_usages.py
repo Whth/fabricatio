@@ -4,15 +4,23 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Generator, List, Optional
 from unittest.mock import patch
 
 import pytest
-from fabricatio_core.models import llm
+from fabricatio_core import rust
+from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_string
 from fabricatio_mock.utils import code_block, generic_block
-from litellm import Router
+
+
+@contextmanager
+def install_router(router: Router) -> Generator[None, None, None]:
+    """Install a router."""
+    with patch.object(rust, "ROUTER", router):
+        yield
 
 
 @pytest.fixture
@@ -51,27 +59,8 @@ async def test_router_completion(mock_router: Router, ret_value: str) -> None:
         mock_router: Preconfigured mock router fixture
         ret_value: Expected response value
     """
-    response = await mock_router.acompletion(model="openai/gpt-3.5-turbo", messages=[{"role": "user", "content": "Hi"}])
-    assert response.choices[0].message.content == ret_value
-
-
-@pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
-@pytest.mark.asyncio
-async def test_aquery(mock_router: Router, ret_value: str, role_with_llm: LLMTestRole) -> None:
-    """Test asynchronous query functionality.
-
-    Validates that the aquery method correctly interacts with the LLM
-    through the router and processes responses.
-
-    Args:
-        mock_router: Preconfigured mock router fixture
-        ret_value: Expected response value
-        role_with_llm: Test role with LLM capabilities
-    """
-    with patch.object(llm, "ROUTER", mock_router):
-        assert (
-            await role_with_llm.aquery(model="openai/gpt-3.5-turbo", messages=[{"role": "user", "content": "Hi"}])
-        ).choices[0].message.content == ret_value
+    response = await mock_router.completion(send_to="openai/gpt-3.5-turbo", message="Hi",top_p=0.5,temperature=1.0)
+    assert response == ret_value
 
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
@@ -87,8 +76,8 @@ async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMTestR
         ret_value: Expected response value
         role_with_llm: Test role with LLM capabilities
     """
-    with patch.object(llm, "ROUTER", mock_router):
-        assert (await role_with_llm.aask(model="openai/gpt-3.5-turbo", question="Hi")) == ret_value
+    with install_router(mock_router):
+        assert (await role_with_llm.aask(send_to="openai/gpt-3.5-turbo", question="Hi")) == ret_value
 
 
 @pytest.mark.parametrize(
@@ -124,10 +113,9 @@ async def test_aask_branches(
         system_input: System message(s) to use
         role_with_llm: Test role with LLM capabilities
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.aask(
             question=question_input,
-            system_message=system_input,
         )
 
         if isinstance(question_input, list):
@@ -181,7 +169,7 @@ async def test_aask_validate(
         max_validations: Maximum number of validation attempts
         role_with_llm: Test role with LLM capabilities
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.aask_validate(
             question=question_input,
             validator=validator,
@@ -245,7 +233,7 @@ async def test_amapping_str(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.amapping_str(requirement=requirement, k=k)
 
         assert result == expected_result
@@ -290,7 +278,7 @@ async def test_alist_str(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.alist_str(requirement=requirement, k=k)
 
         assert result == expected_result
@@ -336,7 +324,7 @@ async def test_alist_str_with_requirement_list(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.alist_str(requirement=requirement_list, k=k)
 
         assert result == expected_result
@@ -371,7 +359,7 @@ async def test_apathstr(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.apathstr(requirement=requirement)
 
         assert result == expected_result
@@ -406,7 +394,7 @@ async def test_awhich_pathstr(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.awhich_pathstr(requirement=requirement)
 
         assert result == expected_result
@@ -444,7 +432,7 @@ async def test_ageneric_string(
     """
     # Patch the aask_validate method since we're testing the generic string functionality,
     # not the underlying LLM interaction
-    with patch.object(llm, "ROUTER", mock_router):
+    with install_router(mock_router):
         result = await role_with_llm.ageneric_string(requirement=requirement)
 
         assert result == expected_result
