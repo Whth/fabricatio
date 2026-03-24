@@ -28,9 +28,7 @@
   <a href="https://github.com/PyO3/pyo3">
     <img src="https://img.shields.io/badge/bindings-pyo3-green" alt="Bindings: PyO3">
   </a>
-  <a href="https://github.com/BerriAI/litellm">
-    <img src="https://img.shields.io/badge/Powered%20by-LiteLLM-blue" alt="Powered by LiteLLM">
-  </a>
+
   <a href="https://github.com/astral-sh/uv">
     <img src="https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange" alt="Build Tool: uv + maturin">
   </a>
@@ -89,10 +87,14 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Finalize the webui.
 - [ ] Add Plugin system.
 - [x] Replace litellm with native rust impl
-- [ ] Port deprecated mock utils to thryd impl
+    - [x] Port deprecated mock utils to thryd impl
+    - [ ] Port tests to new mock utils
+    - [ ] Sync documentations
 - [ ] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
 - [ ] TreeSetter-based ACE
+- [ ] Self-Extensible Agent
+- [ ] Add more examples
 
 ## Installation
 
