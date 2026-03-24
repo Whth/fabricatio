@@ -91,6 +91,7 @@ impl CompletionModel for OpenaiModel {
                 .provider
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
                 .await?
+                .error_for_status()?
                 .bytes_stream()
                 .eventsource()
                 .map(|event| {
@@ -117,6 +118,7 @@ impl CompletionModel for OpenaiModel {
                 .provider
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
                 .await?
+                .error_for_status()?
                 .json::<CreateChatCompletionResponse>()
                 .await?
                 .choices
