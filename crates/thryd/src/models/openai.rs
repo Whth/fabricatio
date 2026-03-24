@@ -1,8 +1,9 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use async_openai::types::chat::{
-    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
-    CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
+    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequest,
+    CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
+    CreateChatCompletionStreamResponse,
 };
 
 use crate::ThrydError;
@@ -72,19 +73,22 @@ impl Model for OpenaiModel {
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
         let stream = request.stream;
-        let request = CreateChatCompletionRequestArgs::default()
-            .model(self.model_name())
-            .messages([ChatCompletionRequestUserMessageArgs::default()
-                .content(request.message)
+        let request = CreateChatCompletionRequest {
+            messages: vec![
+                ChatCompletionRequestUserMessageArgs::default()
+                    .content(request.message)
+                    .build()?
+                    .into(),
+            ],
+            top_p: request.top_p,
+            temperature: request.temperature,
+            max_completion_tokens: request.max_completion_tokens,
+            presence_penalty: request.presence_penalty,
+            frequency_penalty: request.frequency_penalty,
+            ..CreateChatCompletionRequestArgs::default()
+                .stream(request.stream)
                 .build()?
-                .into()])
-            .top_p(request.top_p)
-            .temperature(request.temperature)
-            .stream(request.stream)
-            .max_completion_tokens(request.max_completion_tokens)
-            .presence_penalty(request.presence_penalty)
-            .frequency_penalty(request.frequency_penalty)
-            .build()?;
+        };
 
         if stream {
             let res = self

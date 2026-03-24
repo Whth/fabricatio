@@ -9,15 +9,15 @@ pub struct EmbeddingRequest {
     pub texts: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct CompletionRequest {
     pub message: String,
-    pub top_p: f32,
-    pub temperature: f32,
     pub stream: bool,
-    pub max_completion_tokens: u32,
-    pub presence_penalty: f32,
-    pub frequency_penalty: f32,
+    pub top_p: Option<f32>,
+    pub temperature: Option<f32>,
+    pub max_completion_tokens: Option<u32>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
 }
 
 pub trait Model: Send + Sync {
