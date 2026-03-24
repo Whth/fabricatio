@@ -41,7 +41,7 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message, top_p, temperature, stream = false, max_completion_tokens = 32_000, presence_penalty = 0., frequency_penalty = 0.)
+    #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
@@ -52,12 +52,12 @@ impl Router {
     /// Args:
     ///     send_to (str): The router group name.
     ///     message (str): The user prompt content.
-    ///     top_p (float): Nucleus sampling parameter. Defaults to 1.0.
-    ///     temperature (float): Controls randomness. Defaults to 0.7.
     ///     stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
-    ///     max_completion_tokens (int): Maximum tokens to generate. Defaults to 2048.
-    ///     presence_penalty (float): Penalizes new tokens based on presence. Defaults to 0.0.
-    ///     frequency_penalty (float): Penalizes new tokens based on frequency. Defaults to 0.0.
+    ///     top_p (Optional[float]): Nucleus sampling parameter. Defaults to 1.0 if None.
+    ///     temperature (Optional[float]): Controls randomness. Defaults to 0.7 if None.
+    ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
+    ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
+    ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
     ///
     /// Returns:
     ///     str: The complete aggregated response content.
@@ -66,12 +66,12 @@ impl Router {
         python: Python<'a>,
         send_to: String,
         message: String,
-        top_p: f32,
-        temperature: f32,
         stream: bool,
-        max_completion_tokens: u32,
-        presence_penalty: f32,
-        frequency_penalty: f32,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
             message,

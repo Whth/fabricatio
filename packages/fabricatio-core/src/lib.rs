@@ -25,7 +25,7 @@ cfg_if!(
         use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
         module_variable!("fabricatio_core.rust", LOGGER_VARNAME, Logger);
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
-        module_variable!("fabricatio_core.rust", ROUTER_VARNAME, Router);
+        module_variable!("fabricatio_core.rust", ROUTER_VARNAME, crate::router::Router);
         define_stub_info_gatherer!(stub_info);
 
     }
