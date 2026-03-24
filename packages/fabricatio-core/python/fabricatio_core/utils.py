@@ -1,6 +1,6 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
+from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Sequence, overload
 
 from fabricatio_core.rust import extras_satisfied
 
@@ -127,9 +127,33 @@ def get_source_pkgname(depth: int = 2) -> str:
         pkg = "unknown"
 
     return pkg
+@overload
+def first_available[T](iterable: Iterable[Optional[T]]) -> T: ...
 
 
-def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available item found in the iterable.") -> T:
+@overload
+def first_available[T](
+    iterable: Iterable[Optional[T]], *, raise_exception: Literal[True, False] = False
+) -> T | None: ...
+
+
+@overload
+def first_available[T](
+    iterable: Iterable[Optional[T]],
+    msg: str = "No available item found in the iterable.",
+    *,
+    raise_exception: Literal[True, False] = True,
+) -> T: ...
+
+
+
+
+def first_available[T](
+    iterable: Iterable[Optional[T]],
+    msg: str = "No available item found in the iterable.",
+    *,
+    raise_exception: Literal[True, False] = True,
+) -> T | None:
     """Return the first available item in the iterable that's not None.
 
     This function searches through the provided iterable and returns the first
@@ -139,6 +163,7 @@ def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available
     Args:
         iterable: The iterable collection to search through.
         msg: The message to include in the ValueError if no non-None item is found.
+        raise_exception: If True, raises a ValueError if no non-None item is found.
 
     Returns:
         T: The first non-None item found in the iterable.
@@ -157,7 +182,10 @@ def first_available[T](iterable: Iterable[Optional[T]], msg: str = "No available
     """
     if (first := next((item for item in iterable if item is not None), None)) is not None:
         return first
-    raise ValueError(msg)
+
+    if raise_exception:
+        raise ValueError(msg)
+    return None
 
 
 def wrap_in_block(string: str, title: str, style: str = "-") -> str:

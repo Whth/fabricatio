@@ -21,12 +21,12 @@ class LLMKwargs(TypedDict, total=False):
     """
 
     send_to: str
-    temperature: float
-    top_p: float
-    max_completion_tokens: int
     stream: bool
-    presence_penalty: float
-    frequency_penalty: float
+    temperature: Optional[float]
+    top_p: Optional[float]
+    max_completion_tokens: Optional[int]
+    presence_penalty: Optional[float]
+    frequency_penalty: Optional[float]
 
 
 class ValidateKwargs[T](LLMKwargs, total=False):

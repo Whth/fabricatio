@@ -339,12 +339,12 @@ class Router:
         self,
         send_to: builtins.str,
         message: builtins.str,
-        top_p: builtins.float,
-        temperature: builtins.float,
         stream: builtins.bool = False,
-        max_completion_tokens: builtins.int = 32000,
-        presence_penalty: builtins.float = 0.0,
-        frequency_penalty: builtins.float = 0.0,
+        top_p: typing.Optional[builtins.float] = None,
+        temperature: typing.Optional[builtins.float] = None,
+        max_completion_tokens: typing.Optional[builtins.int] = None,
+        presence_penalty: typing.Optional[builtins.float] = None,
+        frequency_penalty: typing.Optional[builtins.float] = None,
     ) -> typing.Awaitable[str]:
         r"""Sends a completion request to the specified group and returns the full response.
 
@@ -355,12 +355,12 @@ class Router:
         Args:
             send_to (str): The router group name.
             message (str): The user prompt content.
-            top_p (float): Nucleus sampling parameter. Defaults to 1.0.
-            temperature (float): Controls randomness. Defaults to 0.7.
             stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
-            max_completion_tokens (int): Maximum tokens to generate. Defaults to 2048.
-            presence_penalty (float): Penalizes new tokens based on presence. Defaults to 0.0.
-            frequency_penalty (float): Penalizes new tokens based on frequency. Defaults to 0.0.
+            top_p (Optional[float]): Nucleus sampling parameter. Defaults to 1.0 if None.
+            temperature (Optional[float]): Controls randomness. Defaults to 0.7 if None.
+            max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
+            presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
+            frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
 
         Returns:
             str: The complete aggregated response content.

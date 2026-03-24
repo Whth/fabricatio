@@ -65,11 +65,11 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str | List[str],
+        stream: Optional[bool] = None,
         send_to: Optional[str] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         max_completion_tokens: Optional[int] = None,
-        stream: Optional[bool] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
     ) -> str | List[str]:
@@ -92,18 +92,25 @@ class UseLLM(LLMScopedConfig, ABC):
 
         def _resolve_config() -> LLMKwargs:
             return LLMKwargs(
-                send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "send_to is not specified at any where"),
-                temperature=first_available((temperature, self.llm_temperature, CONFIG.llm.temperature)),
-                top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p)),
-                max_completion_tokens=ok(
-                    max_completion_tokens or self.llm_max_completion_tokens or CONFIG.llm.max_completion_tokens
+                send_to=ok(
+                    send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"
                 ),
-                stream=first_available((stream, self.llm_stream, CONFIG.llm.stream)),
+                stream=first_available(
+                    (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
+                ),
+                top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
+                temperature=first_available(
+                    (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
+                ),
+                max_completion_tokens=first_available(
+                    (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
+                    raise_exception=False,
+                ),
                 presence_penalty=first_available(
-                    (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty)
+                    (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False
                 ),
                 frequency_penalty=first_available(
-                    (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty)
+                    (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
                 ),
             )
 
