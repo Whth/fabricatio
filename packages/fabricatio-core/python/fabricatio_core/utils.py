@@ -127,6 +127,8 @@ def get_source_pkgname(depth: int = 2) -> str:
         pkg = "unknown"
 
     return pkg
+
+
 @overload
 def first_available[T](iterable: Iterable[Optional[T]]) -> T: ...
 
@@ -144,8 +146,6 @@ def first_available[T](
     *,
     raise_exception: Literal[True, False] = True,
 ) -> T: ...
-
-
 
 
 def first_available[T](

@@ -20,11 +20,12 @@ from typing import Callable, Dict, List, Optional, Set, Unpack, overload
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
 
+from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.rust import CONFIG, ROUTER, TEMPLATE_MANAGER, logger
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, logger
 from fabricatio_core.utils import first_available, ok
 
 
@@ -117,10 +118,12 @@ class UseLLM(LLMScopedConfig, ABC):
         kw = _resolve_config()
 
         if isinstance(question, str):
-            return await ROUTER.completion(message=question, **kw)
+            # the reason why use rust.ROUTER is to make sure the mock utils can patch the rust module,
+            # since ROUTER itself is readonly and can't be mocked.
+            return await rust.ROUTER.completion(message=question, **kw)
 
         if isinstance(question, list):
-            return await asyncio.gather(*[ROUTER.completion(message=q, **kw) for q in question])
+            return await asyncio.gather(*[rust.ROUTER.completion(message=q, **kw) for q in question])
         raise NotImplementedError("Question must be either a string or a list of strings.")
 
     @overload
@@ -613,8 +616,8 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
 
         kw = _resolve_config()
         if isinstance(input_text, str):
-            return (await ROUTER.embedding(texts=[input_text], **kw))[0]
+            return (await rust.ROUTER.embedding(texts=[input_text], **kw))[0]
 
         if isinstance(input_text, list):
-            return await ROUTER.embedding(texts=input_text, **kw)
+            return await rust.ROUTER.embedding(texts=input_text, **kw)
         raise NotImplementedError("Question must be either a string or a list of strings.")

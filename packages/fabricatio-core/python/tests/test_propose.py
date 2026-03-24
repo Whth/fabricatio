@@ -5,11 +5,11 @@ from typing import List
 import pytest
 from fabricatio_core import Task
 from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_mock.models.mock_role import ProposeTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 class MockModel(SketchedAble):

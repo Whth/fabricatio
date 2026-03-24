@@ -4,23 +4,13 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional
-from unittest.mock import patch
+from typing import Any, Callable, Dict, List, Optional
 
 import pytest
-from fabricatio_core import rust
 from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_string
-from fabricatio_mock.utils import code_block, generic_block
-
-
-@contextmanager
-def install_router(router: Router) -> Generator[None, None, None]:
-    """Install a router."""
-    with patch.object(rust, "ROUTER", router):
-        yield
+from fabricatio_mock.utils import code_block, generic_block, install_router
 
 
 @pytest.fixture
@@ -59,7 +49,7 @@ async def test_router_completion(mock_router: Router, ret_value: str) -> None:
         mock_router: Preconfigured mock router fixture
         ret_value: Expected response value
     """
-    response = await mock_router.completion(send_to="openai/gpt-3.5-turbo", message="Hi",top_p=0.5,temperature=1.0)
+    response = await mock_router.completion(send_to="openai/gpt-3.5-turbo", message="Hi", top_p=0.5, temperature=1.0)
     assert response == ret_value
 
 
@@ -81,14 +71,13 @@ async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMTestR
 
 
 @pytest.mark.parametrize(
-    ("ret_value", "question_input", "system_input"),
+    ("ret_value", "question_input"),
     [
-        ("Hi", "Hello?", None),
-        ("Hello", ["Hi", "Hey"], None),
-        ("Response1", "Question", "System Message"),
-        ("Response2", ["Q1", "Q2"], ["Sys1", "Sys2"]),
-        ("Response3", ["Q1", "Q2"], "Shared System Message"),
-        ("Response4", "Single Question", ["Sys1", "Sys2"]),
+        ("Hi", "Hello?"),
+        ("Hello", ["Hi", "Hey"]),
+        ("Response2", ["Q1", "Q2"]),
+        ("Response3", ["Q1", "Q2"]),
+        ("Response4", "Single Question"),
     ],
 )
 @pytest.mark.asyncio
@@ -96,39 +85,30 @@ async def test_aask_branches(
     mock_router: Router,
     ret_value: str,
     question_input: str | list[str],
-    system_input: Optional[str | list[str]],
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test different input branches of aask functionality.
 
-    Validates correct handling of various input combinations including:
-    - Single vs multiple questions
-    - Single vs multiple system messages
-    - Mixed input types
+    Validates correct handling of single vs multiple questions.
+    System messages are deprecated and no longer tested here.
 
     Args:
         mock_router: Preconfigured mock router fixture
         ret_value: Expected response value
         question_input: Input question(s) to test
-        system_input: System message(s) to use
         role_with_llm: Test role with LLM capabilities
     """
     with install_router(mock_router):
-        result = await role_with_llm.aask(
-            question=question_input,
-        )
+        result = await role_with_llm.aask(question=question_input)
 
         if isinstance(question_input, list):
+            # Multiple questions should return a list of responses
             assert isinstance(result, list)
             assert all(isinstance(item, str) for item in result)
             assert len(result) == len(question_input)
             assert all(ret_value == r for r in result)
-        elif isinstance(system_input, list):
-            assert isinstance(result, list)
-            assert all(isinstance(item, str) for item in result)
-            assert len(result) == len(system_input)
-            assert all(ret_value == r for r in result)
         else:
+            # Single question should return a single string response
             assert isinstance(result, str)
             assert result == ret_value
 
