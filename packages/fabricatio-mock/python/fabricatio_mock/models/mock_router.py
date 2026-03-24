@@ -10,12 +10,9 @@ from functools import wraps
 from typing import Any, Callable, Literal, Optional
 from unittest.mock import AsyncMock
 
-import litellm
 import orjson
+from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
-from litellm import Router
-from litellm.caching.caching_handler import CustomStreamWrapper
-from litellm.types.utils import ModelResponse
 from pydantic import BaseModel, JsonValue
 
 from fabricatio_mock.utils import code_block, generic_block
@@ -39,12 +36,11 @@ def return_string(*value: str, default: Optional[str] = None) -> Router:
     gen = iter(value)
     default = ok(default or value[-1])
 
-    @wraps(Router.acompletion)
-    async def _acomp_wrapper(*args: Any, **kwargs: Any) -> ModelResponse | CustomStreamWrapper:
-        cur_value = next(gen, default)
-        return litellm.mock_completion(*args, mock_response=cur_value, **kwargs)
+    @wraps(Router.completion)
+    async def _acomp_wrapper(*_: Any, **__: Any) -> str:
+        return next(gen, default)
 
-    mock.acompletion = _acomp_wrapper
+    mock.completion = _acomp_wrapper
     return mock
 
 
@@ -172,13 +168,13 @@ class Value[M: BaseModel | str]:
         Raises:
             ValueError: If the type is invalid or unsupported.
         """
-        if self.type == "model":
+        if self.type == "model" and isinstance(self.source, BaseModel):
             return orjson.dumps(self.source.model_dump(by_alias=True), option=orjson.OPT_INDENT_2).decode()
         if self.type == "json":
             return orjson.dumps(self.source, option=orjson.OPT_INDENT_2).decode()
-        if self.type == "python":
+        if self.type == "python" and isinstance(self.source, str):
             return code_block(self.source, "python")
-        if self.type == "generic":
+        if self.type == "generic" and isinstance(self.source, str):
             return generic_block(self.source, "string")
         if self.convertor:
             return self.convertor(self.source)

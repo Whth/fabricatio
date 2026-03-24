@@ -7,9 +7,8 @@ from contextlib import contextmanager
 from typing import Generator, List, Type
 from unittest.mock import patch
 
-from fabricatio_core import Role
-from fabricatio_core.models import llm
-from litellm import Router
+from fabricatio_core import Role, rust
+from fabricatio_core.rust import Router
 
 
 def code_block(content: str, lang: str = "json") -> str:
@@ -25,7 +24,7 @@ def generic_block(content: str, lang: str = "String") -> str:
 @contextmanager
 def install_router(router: Router) -> Generator[None, None, None]:
     """Install a router."""
-    with patch.object(llm, "ROUTER", router):
+    with patch.object(rust, "ROUTER", router):
         yield
 
 
