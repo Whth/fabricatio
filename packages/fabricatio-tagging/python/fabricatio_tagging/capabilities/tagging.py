@@ -9,7 +9,7 @@ from typing import List, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
-from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs
 from typing_extensions import Unpack
 
 from fabricatio_tagging.config import tagging_config
@@ -24,7 +24,7 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: str, requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+        self, text: str, requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
     ) -> List[str] | None:
         """Generate tags for a single text string.
 
@@ -41,7 +41,7 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+        self, text: List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
     ) -> List[List[str]]:
         """Generate tags for multiple text strings.
 
@@ -57,7 +57,7 @@ class Tagging(Propose):
         ...
 
     async def tagging(
-        self, text: str | List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[GenerateKwargs]
+        self, text: str | List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
     ) -> List[List[str]] | List[str] | None:
         """Generate tags for text content.
 

@@ -1,13 +1,13 @@
 """Test module for the review_string method in the Review class."""
 
 import pytest
+from fabricatio_core.rust import Router
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_improve.models.problem import Problem, ProblemSolutions, Solution
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_generic_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 class CorrectRole(LLMTestRole, Correct):

@@ -6,6 +6,7 @@ from typing import List
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_memory.config import memory_config
@@ -13,7 +14,6 @@ from fabricatio_memory.models.note import Note
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string, return_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 def note(content: str = "test content", importance: int = 5, tags: List[str] | None = None) -> Note:

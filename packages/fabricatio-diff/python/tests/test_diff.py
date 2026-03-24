@@ -1,12 +1,12 @@
 """Tests for the diff."""
 
 import pytest
+from fabricatio_core.rust import Router
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_diff.models.diff import Diff
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 def diff_factory(search: str, replace: str) -> Diff:

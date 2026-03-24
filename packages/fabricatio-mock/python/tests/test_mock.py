@@ -19,7 +19,6 @@ from fabricatio_mock.models.mock_router import (
     return_python_string,
     return_string,
 )
-from litellm.types.utils import ModelResponse
 from pydantic import BaseModel
 
 
@@ -41,38 +40,38 @@ class TestReturnString:
     async def test_single_value(self) -> None:
         """Test return_string with a single value."""
         mock_router = return_string("test response")
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
-        assert isinstance(response, ModelResponse)
-        assert response.choices[0].message.content == "test response"
+        assert isinstance(response, str)
+        assert response == "test response"
 
     @pytest.mark.asyncio
     async def test_multiple_values_sequential(self) -> None:
         """Test return_string with multiple values returned sequentially."""
         mock_router = return_string("first", "second", "third")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
-        response3 = await mock_router.acompletion(**kw)
-        response4 = await mock_router.acompletion(**kw)  # Should use last value
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
+        response3 = await mock_router.completion(**kw)
+        response4 = await mock_router.completion(**kw)  # Should use last value
 
-        assert response1.choices[0].message.content == "first"
-        assert response2.choices[0].message.content == "second"
-        assert response3.choices[0].message.content == "third"
-        assert response4.choices[0].message.content == "third"  # Default to last
+        assert response1 == "first"
+        assert response2 == "second"
+        assert response3 == "third"
+        assert response4 == "third"  # Default to last
 
     @pytest.mark.asyncio
     async def test_with_default(self) -> None:
         """Test return_string with custom default value."""
         mock_router = return_string("first", "second", default="default_value")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
-        response3 = await mock_router.acompletion(**kw)  # Should use default
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
+        response3 = await mock_router.completion(**kw)  # Should use default
 
-        assert response1.choices[0].message.content == "first"
-        assert response2.choices[0].message.content == "second"
-        assert response3.choices[0].message.content == "default_value"
+        assert response1 == "first"
+        assert response2 == "second"
+        assert response3 == "default_value"
 
     def test_empty_values_raises_error(self) -> None:
         """Test that return_string raises ValueError with no values."""
@@ -83,7 +82,7 @@ class TestReturnString:
         """Test that return_string returns an AsyncMock instance."""
         mock_router = return_string("test")
         assert isinstance(mock_router, AsyncMock)
-        assert hasattr(mock_router, "acompletion")
+        assert hasattr(mock_router, "completion")
 
 
 class TestReturnGenericString:
@@ -93,33 +92,33 @@ class TestReturnGenericString:
     async def test_default_language(self) -> None:
         """Test return_generic_string with default language."""
         mock_router = return_generic_string("test content")
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         expected = "--- Start of string ---\ntest content\n--- End of string ---"
-        assert response.choices[0].message.content == expected
+        assert response == expected
 
     @pytest.mark.asyncio
     async def test_custom_language(self) -> None:
         """Test return_generic_string with custom language."""
         mock_router = return_generic_string("test content", lang="python")
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         expected = "--- Start of python ---\ntest content\n--- End of python ---"
-        assert response.choices[0].message.content == expected
+        assert response == expected
 
     @pytest.mark.asyncio
     async def test_multiple_strings(self) -> None:
         """Test return_generic_string with multiple strings."""
         mock_router = return_generic_string("first", "second", lang="test")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
         expected1 = "--- Start of test ---\nfirst\n--- End of test ---"
         expected2 = "--- Start of test ---\nsecond\n--- End of test ---"
 
-        assert response1.choices[0].message.content == expected1
-        assert response2.choices[0].message.content == expected2
+        assert response1 == expected1
+        assert response2 == expected2
 
     def test_empty_strings_raises_error(self) -> None:
         """Test that return_generic_string raises ValueError with no strings."""
@@ -134,24 +133,24 @@ class TestReturnCodeString:
     async def test_basic_code_block(self) -> None:
         """Test return_code_string with basic code."""
         mock_router = return_code_string("print('hello')", lang="python")
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         expected = "```python\nprint('hello')\n```"
-        assert response.choices[0].message.content == expected
+        assert response == expected
 
     @pytest.mark.asyncio
     async def test_multiple_code_blocks(self) -> None:
         """Test return_code_string with multiple code blocks."""
         mock_router = return_code_string("code1", "code2", lang="javascript")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
         expected1 = "```javascript\ncode1\n```"
         expected2 = "```javascript\ncode2\n```"
 
-        assert response1.choices[0].message.content == expected1
-        assert response2.choices[0].message.content == expected2
+        assert response1 == expected1
+        assert response2 == expected2
 
     def test_empty_codes_raises_error(self) -> None:
         """Test that return_code_string raises ValueError with no codes."""
@@ -166,21 +165,21 @@ class TestReturnPythonString:
     async def test_python_code_block(self) -> None:
         """Test return_python_string generates correct Python code blocks."""
         mock_router = return_python_string("def hello(): pass")
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         expected = "```python\ndef hello(): pass\n```"
-        assert response.choices[0].message.content == expected
+        assert response == expected
 
     @pytest.mark.asyncio
     async def test_multiple_python_blocks(self) -> None:
         """Test return_python_string with multiple Python code blocks."""
         mock_router = return_python_string("x = 1", "y = 2")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
-        assert response1.choices[0].message.content == "```python\nx = 1\n```"
-        assert response2.choices[0].message.content == "```python\ny = 2\n```"
+        assert response1 == "```python\nx = 1\n```"
+        assert response2 == "```python\ny = 2\n```"
 
 
 class TestReturnJsonString:
@@ -191,21 +190,21 @@ class TestReturnJsonString:
         """Test return_json_string generates correct JSON code blocks."""
         json_content = '{"key": "value"}'
         mock_router = return_json_string(json_content)
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         expected = f"```json\n{json_content}\n```"
-        assert response.choices[0].message.content == expected
+        assert response == expected
 
     @pytest.mark.asyncio
     async def test_multiple_json_blocks(self) -> None:
         """Test return_json_string with multiple JSON blocks."""
         mock_router = return_json_string('{"a": 1}', '{"b": 2}')
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
-        assert response1.choices[0].message.content == '```json\n{"a": 1}\n```'
-        assert response2.choices[0].message.content == '```json\n{"b": 2}\n```'
+        assert response1 == '```json\n{"a": 1}\n```'
+        assert response2 == '```json\n{"b": 2}\n```'
 
 
 class TestReturnJsonObjString:
@@ -216,10 +215,10 @@ class TestReturnJsonObjString:
         """Test return_json_obj_string properly serializes objects."""
         test_obj = {"name": "John", "age": 30, "active": True}
         mock_router = return_json_obj_string(test_obj)
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
         # Check that the response contains properly formatted JSON
-        content = response.choices[0].message.content
+        content = response
         assert content.startswith("```json\n")
         assert content.endswith("\n```")
 
@@ -235,12 +234,12 @@ class TestReturnJsonObjString:
         obj2 = {"id": 2}
         mock_router = return_json_obj_string(obj1, obj2)
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
         # Verify both responses contain valid JSON
         for response, expected_obj in [(response1, obj1), (response2, obj2)]:
-            content = response.choices[0].message.content
+            content = response
             json_part = content[8:-4]  # Remove ```json\n and \n```
             parsed = orjson.loads(json_part)
             assert parsed == expected_obj
@@ -259,9 +258,9 @@ class TestReturnModelJsonString:
         """Test return_model_json_string properly serializes Pydantic models."""
         model = FakeModel(name="Alice", age=25)
         mock_router = return_model_json_string(model)
-        response = await mock_router.acompletion(**kw)
+        response = await mock_router.completion(**kw)
 
-        content = response.choices[0].message.content
+        content = response
         assert content.startswith("```json\n")
         assert content.endswith("\n```")
 
@@ -278,17 +277,17 @@ class TestReturnModelJsonString:
         model2 = FakeModel(name="Bob", age=30, active=False)
         mock_router = return_model_json_string(model1, model2)
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)
 
         # Verify first model
-        content1 = response1.choices[0].message.content
+        content1 = response1
         json_part1 = content1[8:-4]
         parsed1 = orjson.loads(json_part1)
         assert parsed1 == {"name": "Alice", "age": 25, "active": True}
 
         # Verify second model
-        content2 = response2.choices[0].message.content
+        content2 = response2
         json_part2 = content2[8:-4]
         parsed2 = orjson.loads(json_part2)
         assert parsed2 == {"name": "Bob", "age": 30, "active": False}
@@ -377,20 +376,20 @@ class TestReturnMixedString:
         mock_router = return_mixed_string(*values)
 
         # Test model response
-        response1 = await mock_router.acompletion(**kw)
-        content1 = response1.choices[0].message.content
+        response1 = await mock_router.completion(**kw)
+        content1 = response1
         parsed1 = orjson.loads(content1)
         assert parsed1 == {"name": "Alice", "age": 25, "active": True}
 
         # Test JSON response
-        response2 = await mock_router.acompletion(**kw)
-        content2 = response2.choices[0].message.content
+        response2 = await mock_router.completion(**kw)
+        content2 = response2
         parsed2 = orjson.loads(content2)
         assert parsed2 == {"type": "json"}
 
         # Test Python code response
-        response3 = await mock_router.acompletion(**kw)
-        content3 = response3.choices[0].message.content
+        response3 = await mock_router.completion(**kw)
+        content3 = response3
         assert content3 == "```python\nx = 1\n```"
 
     @pytest.mark.asyncio
@@ -399,12 +398,12 @@ class TestReturnMixedString:
         value = Value(source="test", type="generic")
         mock_router = return_mixed_string(value, default="default_response")
 
-        response1 = await mock_router.acompletion(**kw)
-        response2 = await mock_router.acompletion(**kw)  # Should use default
+        response1 = await mock_router.completion(**kw)
+        response2 = await mock_router.completion(**kw)  # Should use default
 
         expected1 = "--- Start of string ---\ntest\n--- End of string ---"
-        assert response1.choices[0].message.content == expected1
-        assert response2.choices[0].message.content == "default_response"
+        assert response1 == expected1
+        assert response2 == "default_response"
 
     def test_returns_router_type(self) -> None:
         """Test that return_mixed_string returns correct type."""
@@ -413,22 +412,6 @@ class TestReturnMixedString:
 
         # Should return AsyncMock (from return_string)
         assert isinstance(result, AsyncMock)
-
-
-@pytest.mark.asyncio
-async def test_integration_with_litellm() -> None:
-    """Integration test to ensure mocks work with litellm expectations."""
-    mock_router = return_string("integration test response")
-
-    # Test with various parameters that litellm might pass
-    response = await mock_router.acompletion(
-        model="gpt-3.5-turbo", messages=[{"role": "user", "content": "test"}], temperature=0.7
-    )
-
-    assert isinstance(response, ModelResponse)
-    assert response.choices[0].message.content == "integration test response"
-    assert hasattr(response, "model")
-    assert hasattr(response, "choices")
 
 
 class TestAsyncBehavior:
@@ -442,13 +425,13 @@ class TestAsyncBehavior:
         mock_router = return_string("response1", "response2", "response3")
 
         # Make concurrent calls
-        tasks = [mock_router.acompletion(**kw) for _ in range(3)]
+        tasks = [mock_router.completion(**kw) for _ in range(3)]
         responses = await asyncio.gather(*tasks)
 
         # All responses should be valid ModelResponse objects
         for response in responses:
-            assert isinstance(response, ModelResponse)
-            assert response.choices[0].message.content in ["response1", "response2", "response3"]
+            assert isinstance(response, str)
+            assert response in ["response1", "response2", "response3"]
 
     @pytest.mark.asyncio
     async def test_mock_maintains_state(self) -> None:
@@ -458,8 +441,8 @@ class TestAsyncBehavior:
         # Sequential calls should return values in order
         responses = []
         for _ in range(5):  # More calls than values
-            response = await mock_router.acompletion(**kw)
-            responses.append(response.choices[0].message.content)
+            response = await mock_router.completion(**kw)
+            responses.append(response)
 
         # First three should be in order, rest should be the last value
         assert responses == ["first", "second", "third", "third", "third"]

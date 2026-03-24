@@ -12,7 +12,7 @@ from fabricatio_improve.models.improve import Improvement
 class CorrectKwargs[T: SketchedAble](ReferencedKwargs[T], total=False):
     """Arguments for content correction operations.
 
-    Extends GenerateKwargs with parameters for correcting content based on
+    Extends LLMKwargs with parameters for correcting content based on
     specific criteria and templates.
     """
 
@@ -28,7 +28,7 @@ class ReviewInnerKwargs[T](ValidateKwargs[T], total=False):
 class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
     """Arguments for content review operations.
 
-    Extends GenerateKwargs with parameters for evaluating content against
+    Extends LLMKwargs with parameters for evaluating content against
     specific topics and review criteria.
     """
 

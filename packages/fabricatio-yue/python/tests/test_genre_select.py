@@ -3,12 +3,12 @@
 from typing import List
 
 import pytest
+from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_json_obj_string
 from fabricatio_mock.utils import install_router
 from fabricatio_yue.capabilities.genre import SelectGenre
 from fabricatio_yue.config import yue_config
-from litellm import Router
 from pydantic import JsonValue
 
 

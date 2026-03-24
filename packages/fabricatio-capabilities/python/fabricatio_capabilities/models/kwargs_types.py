@@ -8,7 +8,7 @@ from fabricatio_core.models.kwargs_types import ValidateKwargs
 class CompositeScoreKwargs(ValidateKwargs[Dict[str, float]], total=False):
     """Arguments for composite score generation operations.
 
-    Extends GenerateKwargs with parameters for generating composite scores
+    Extends LLMKwargs with parameters for generating composite scores
     based on specific criteria and weights.
     """
 

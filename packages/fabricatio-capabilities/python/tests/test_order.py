@@ -5,10 +5,10 @@ from typing import List, Union
 import pytest
 from fabricatio_capabilities.capabilities.order import Ordering
 from fabricatio_core.models.generic import WithBriefing
+from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_json_obj_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 def with_briefing_factory(name: str, briefing: str) -> WithBriefing:

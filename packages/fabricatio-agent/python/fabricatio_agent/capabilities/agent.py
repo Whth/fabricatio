@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Unpack
 from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
-from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
@@ -49,7 +49,7 @@ class Agent(
         memory: bool = False,
         top_k: int = 100,
         boost_recent: bool = True,
-        **kwargs: Unpack[GenerateKwargs],
+        **kwargs: Unpack[LLMKwargs],
     ) -> None | List[Any]:
         """Process and fulfill a request using various agent capabilities.
 
@@ -62,7 +62,7 @@ class Agent(
             memory (bool, optional): Whether to use memory in processing. Defaults to False.
             top_k (int, optional): Number of top memories to recall. Defaults to 100.
             boost_recent (bool, optional): Whether to boost recent memories. Defaults to True.
-            **kwargs (Unpack[GenerateKwargs]): Additional keyword arguments for generation.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for generation.
 
         Returns:
             None | List[Any]: None if not capable, otherwise a list of execution results.

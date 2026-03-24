@@ -6,12 +6,12 @@ import pytest
 from fabricatio_core import Role, Task
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.role import RoleName
+from fabricatio_core.rust import Router
 from fabricatio_digest.capabilities.digest import Digest
 from fabricatio_digest.models.tasklist import TaskList
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string, return_string
 from fabricatio_mock.utils import install_router, make_n_roles
-from litellm import Router
 
 
 class MockRole(Role):

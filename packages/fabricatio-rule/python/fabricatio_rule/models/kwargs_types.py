@@ -9,7 +9,7 @@ from fabricatio_rule.models.rule import RuleSet
 class CheckKwargs(ReferencedKwargs[Improvement], total=False):
     """Arguments for content checking operations.
 
-    Extends GenerateKwargs with parameters for checking content against
+    Extends LLMKwargs with parameters for checking content against
     specific criteria and templates.
     """
 

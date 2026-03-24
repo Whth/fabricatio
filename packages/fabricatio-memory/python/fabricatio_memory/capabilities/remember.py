@@ -6,7 +6,7 @@ from typing import Optional, Self, Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
-from fabricatio_core.models.kwargs_types import GenerateKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.utils import fallback_kwargs, ok
 from pydantic import Field, PrivateAttr
 
@@ -19,7 +19,7 @@ from fabricatio_memory.rust import MemoryStore
 class RememberScopedConfig(ScopedConfig):
     """Configuration class for memory-related settings in the Remember capability."""
 
-    memory_llm: GenerateKwargs = Field(default_factory=GenerateKwargs)
+    memory_llm: LLMKwargs = Field(default_factory=LLMKwargs)
     """Configuration for LLM generation parameters used in memory operations."""
     memory_store_name: Optional[str] = Field(default=None)
     """The memory system instance used for storing and retrieving memories."""

@@ -43,7 +43,7 @@ class ValidateKwargs[T](LLMKwargs, total=False):
 class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     """Arguments for selection operations.
 
-    Extends GenerateKwargs with parameters for selecting among options,
+    Extends LLMKwargs with parameters for selecting among options,
     such as the number of items to choose.
     """
 

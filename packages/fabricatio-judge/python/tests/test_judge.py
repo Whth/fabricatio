@@ -5,13 +5,13 @@ from typing import Any, Dict, List, Optional
 import pytest
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VoteJudge
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 from pydantic import Field
 
 

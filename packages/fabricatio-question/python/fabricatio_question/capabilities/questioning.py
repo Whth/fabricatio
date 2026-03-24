@@ -8,7 +8,7 @@ from typing import List, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
-from fabricatio_core.models.kwargs_types import GenerateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.utils import ok
 
 from fabricatio_question.config import question_config
@@ -23,7 +23,7 @@ class Questioning(Propose):
     interactions.
     """
 
-    async def selection(self, q: str, k: int = 1, **kwargs: Unpack[GenerateKwargs]) -> str | List[str]:
+    async def selection(self, q: str, k: int = 1, **kwargs: Unpack[LLMKwargs]) -> str | List[str]:
         """Create an interactive selection prompt for the user.
 
         This method first uses the LLM to generate a well-structured selection question
@@ -62,7 +62,7 @@ class Questioning(Propose):
 
         return await question.multiple(k)
 
-    async def selection_string(self, q: str, k: int = 1, **kwargs: Unpack[GenerateKwargs]) -> str:
+    async def selection_string(self, q: str, k: int = 1, **kwargs: Unpack[LLMKwargs]) -> str:
         """Generates a selection question and returns the formatted response with selected indices.
 
         This method creates a selection question using the internal propose method to generate

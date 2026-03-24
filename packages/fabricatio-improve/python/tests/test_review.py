@@ -2,13 +2,13 @@
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_improve.capabilities.review import Review
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_string
 from fabricatio_mock.utils import install_router
-from litellm import Router
 
 
 class ReviewerRole(LLMTestRole, Review):
