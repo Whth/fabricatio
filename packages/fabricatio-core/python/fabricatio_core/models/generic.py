@@ -236,11 +236,8 @@ class Vectorizable(ABC):
         """Prepare the model for vectorization."""
 
     @final
-    def prepare_vectorization(self, max_length: Optional[int] = None) -> str:
+    def prepare_vectorization(self) -> str:
         """Prepare the vectorization of the model.
-
-        Args:
-            max_length (Optional[int]): The maximum token length for the vectorization. Defaults to the configuration.
 
         Returns:
             str: The prepared vectorization of the model.
@@ -248,14 +245,7 @@ class Vectorizable(ABC):
         Raises:
             ValueError: If the chunk exceeds the maximum sequence length.
         """
-        from litellm.utils import token_counter
-
-        max_length = max_length or CONFIG.embedding.max_sequence_length
-        chunk = self._prepare_vectorization_inner()
-        if max_length and (length := token_counter(text=chunk)) > max_length:
-            raise ValueError(f"Chunk exceeds maximum sequence length {max_length}, got {length}, see \n{chunk}")
-
-        return chunk
+        return self._prepare_vectorization_inner()
 
 
 class ScopedConfig(Base, ABC):
