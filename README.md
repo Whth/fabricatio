@@ -95,6 +95,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] TreeSetter-based ACE
 - [ ] Self-Extensible Agent
 - [ ] Add more examples
+- [x] Port build workflow to `Justfile`
 
 ## Installation
 

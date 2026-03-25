@@ -7,7 +7,7 @@ pub use openai::*;
 use crate::ThrydError::ModelNotSupported;
 use crate::connections::{CONNECTIONS_POOL, ClientEntry};
 use crate::model::{CompletionModel, EmbeddingModel};
-use crate::{Result, ThrydError};
+use crate::{ProviderName, Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
@@ -89,8 +89,8 @@ pub enum ProviderType {
 }
 
 fn need_all(
-    name: Option<String>,
-    api_key: Option<String>,
+    name: Option<ProviderName>,
+    api_key: Option<SecretString>,
     endpoint: Option<String>,
 ) -> Result<(String, SecretString, Url)> {
     Ok((
@@ -107,8 +107,8 @@ fn need_all(
 
 pub fn create_provider(
     provider_type: ProviderType,
-    name: Option<String>,
-    api_key: Option<String>,
+    name: Option<ProviderName>,
+    api_key: Option<SecretString>,
     endpoint: Option<String>,
 ) -> Result<Arc<dyn Provider>> {
     match provider_type {
@@ -117,7 +117,6 @@ pub fn create_provider(
                 .ok_or_else(|| {
                     ThrydError::ProviderCreate("OpenAI API key not provided!".to_string())
                 })
-                .map(SecretString::from)
                 .map(OpenaiCompatible::openai)
                 .or_else(|e| OpenaiCompatible::openai_from_env().ok_or(e))?,
         )),

@@ -1,7 +1,5 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
-use fabricatio_constants::ROUTER_VARNAME;
-use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
@@ -9,8 +7,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
-    Router as ThrydRouter, create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
+    ProviderType, Router as ThrydRouter,
 };
 use tokio::sync::RwLock;
 
@@ -144,10 +142,10 @@ impl Router {
         let p = create_provider(
             provider_type,
             name,
-            api_key.map(|k| k.get_secret_value().to_string()),
+            api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -268,10 +266,10 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
         let p = create_provider(
             config.provider_type,
             config.name,
-            config.api_key.map(|k| k.get_secret_value().to_string()),
+            config.api_key.map(|k| k.get_secret_value().into()),
             config.api_endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         router.add_provider(p).into_pyresult()?;
     }
