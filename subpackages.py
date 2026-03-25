@@ -186,7 +186,6 @@ def make_dist(project_root: Union[str, Path]) -> bool:
                     "build",
                     "-o",
                     DIST.as_posix(),
-                    "--sdist",
                     "--strip",
                 ],
             ],
