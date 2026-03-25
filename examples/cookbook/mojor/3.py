@@ -8,7 +8,8 @@ from fabricatio_core.utils import ok
 
 
 class WritePoem(Action, Review, Correct):
-    """an Action about Review and Correct"""
+    """an Action about Review and Correct."""
+
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> Any:

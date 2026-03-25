@@ -3,6 +3,7 @@
 from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio_core.utils import ok
 
 
 class Hello(Action):
@@ -15,8 +16,6 @@ class Hello(Action):
         logger.info("executing talk action")
         return ret
 
-    """Main function."""
-
 
 (
     Role(name="talker", description="talker role")
@@ -24,4 +23,4 @@ class Hello(Action):
     .dispatch()
 )
 
-logger.info(Task(name="say hi").delegate_blocking("talk"))
+logger.info(ok(Task(name="say hi").delegate_blocking("talk")))

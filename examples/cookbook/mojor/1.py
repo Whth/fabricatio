@@ -22,7 +22,8 @@ class Hello(Action):  # The class name is the name of the action
 
 
 class Say(Action):
-    """an Action"""
+    """an Action."""
+
     output_key: str = "task1"
 
     async def _execute(self, *_: Any, **cxt) -> Any:
