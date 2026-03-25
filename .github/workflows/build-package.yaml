@@ -199,3 +199,12 @@ jobs:
             ${{ matrix.os }}-${{ matrix.python-version }}-generic/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+      - name: Upload build logs
+        if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs-${{ matrix.os }}-${{ matrix.python-version }}
+          path: logs/**
+          retention-days: 90
+          compression-level: 6
+          overwrite: true
