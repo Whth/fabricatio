@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
-    ProviderType, Router as ThrydRouter,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
+    Router as ThrydRouter, create_provider,
 };
 use tokio::sync::RwLock;
 
@@ -145,7 +145,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -269,7 +269,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.api_key.map(|k| k.get_secret_value().into()),
             config.api_endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         router.add_provider(p).into_pyresult()?;
     }
