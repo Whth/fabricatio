@@ -5,6 +5,6 @@ use pyo3::prelude::*;
 /// import the module.
 #[pymodule]
 
-fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn rust(_python: Python, _m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }

@@ -25,7 +25,7 @@ fix:
     ruff check --fix --unsafe-fixes
 
 # Build binary distribution (default target).
-bdist dist_dir=DIST data_dir=DATA py_ver=PY:
+bdist py_ver=PY dist_dir=DIST data_dir=DATA:
     mkdir -p "{{ dist_dir }}" "{{ data_dir }}"
     rm -rf "{{ dist_dir }}"/*
     uv run --only-dev subpackages.py -py "{{ py_ver }}" -dd "{{ dist_dir }}" --bdist
@@ -62,7 +62,7 @@ test_raw:
 test: py_sync test_raw
 
 # Build and prepare for publishing.
-publish dist_dir=DIST py_ver=PY:
+publish py_ver=PY dist_dir=DIST:
     mkdir -p "{{ dist_dir }}"
     rm -rf "{{ dist_dir }}"/*
     uv run --only-dev subpackages.py -py "{{ py_ver }}" -dd "{{ dist_dir }}" --publish
