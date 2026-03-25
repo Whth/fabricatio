@@ -102,11 +102,11 @@ class VoteJudgeRole(LLMTestRole, VoteJudge):
     vote_llm: Dict[float, ValidateKwargs[JudgeMent]] = Field(
         default_factory=lambda: {
             0.5: {"temperature": 0.5},
-            0.7: {"temperature": 0.7, "model": "openai/gpt-3.5-turbo"},
+            0.7: {"temperature": 0.7, "send_to": "openai/gpt-3.5-turbo"},
             0.9: {"temperature": 0.9},
         }
     )
-    vote_pass_threshold: float = 0.5  # Default threshold
+    vote_pass_threshold: float | None = 0.5  # Default threshold
 
 
 # Fixtures

@@ -41,7 +41,7 @@ class GenerateDeck(Propose):
         Returns:
             A Deck object containing metadata and models
         """
-        ov_kwargs = override_kwargs(kwargs, defualt=None)
+        ov_kwargs = override_kwargs(kwargs, default=None)
 
         metadata = await self.propose(
             ModelMetaData,
