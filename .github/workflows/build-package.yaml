@@ -163,7 +163,7 @@ jobs:
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
           npm install -g pnpm
-          make publish PY=${{ matrix.python-version }} DIST="${{ matrix.os }}-${{ matrix.python-version }}"
+          just publish ${{ matrix.python-version }} "${{ matrix.os }}-${{ matrix.python-version }}"
         shell: bash
         env:
           MATURIN_USERNAME: __token__

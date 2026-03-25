@@ -84,11 +84,11 @@ jobs:
 
       - name: Compile extensions
         run: |
-          make dev PY=${{ matrix.python-version }}
+          just dev ${{ matrix.python-version }}
 
       - name: Test
         run: |
-          make test
+          just test
         shell: bash
 
       - name: Upload coverage to Codecov
