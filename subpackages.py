@@ -301,6 +301,7 @@ if __name__ == "__main__":
     PYTHON_VERSION = args.pyversion
     DIST_DIR = Path(args.distdir).absolute()
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logging.info(f"Using Python version: {PYTHON_VERSION}")
     logging.info(f"Using distribution directory: {DIST_DIR.as_posix()}")
     logging.info(f"Using log directory: {LOG_DIR.as_posix()}")
