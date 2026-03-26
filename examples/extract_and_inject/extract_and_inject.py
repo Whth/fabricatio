@@ -10,7 +10,7 @@ from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectT
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_tool.fs import gather_files
 from fabricatio_typst.rust import BibManager
-from litellm.utils import token_counter
+from fabricatio_core.rust import tokens_of
 
 MAX_TOKEN = 64000
 
@@ -19,7 +19,7 @@ def _reader(path: str) -> Optional[str]:
     string = Path(path).read_text(encoding="utf-8")
     string = string.split("References\n")[0]
     string = string.split("参考文献\n")[0]
-    if (leng := token_counter(text=string)) > MAX_TOKEN:
+    if (leng := tokens_of(text=string)) > MAX_TOKEN:
         logger.warn(f"{path} is too long, got {leng} tokens, skip.")
         return None
     logger.info(f"Read {path} get {leng} tokens.")

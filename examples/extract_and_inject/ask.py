@@ -3,7 +3,7 @@
 import asyncio
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.capabilities import MilvusRAG
+from fabricatio_milvus.capabilities.milvus import MilvusRAG
 from fabricatio.models import ArticleChunk
 from fabricatio_core.utils import ok
 from questionary import text

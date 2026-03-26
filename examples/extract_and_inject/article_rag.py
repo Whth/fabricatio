@@ -4,7 +4,7 @@ import asyncio
 
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as BaseRole
-from fabricatio.actions import MilvusRAGTalk
+from fabricatio_milvus.actions.rag import MilvusRAGTalk
 from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_core.utils import ok
 
