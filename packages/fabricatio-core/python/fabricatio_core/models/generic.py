@@ -13,7 +13,6 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
-    SecretStr,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
@@ -316,24 +315,12 @@ class ScopedConfig(Base, ABC):
 class EmbeddingScopedConfig(ScopedConfig):
     """Configuration for embedding-related settings."""
 
-    embedding_api_endpoint: Optional[str] = None
-    """The OpenAI API endpoint."""
-
-    embedding_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
-
     embedding_send_to: Optional[str] = None
     """The LLM model name."""
 
 
 class LLMScopedConfig(ScopedConfig):
     """Configuration for LLM-related settings."""
-
-    llm_api_endpoint: Optional[str] = None
-    """The OpenAI API endpoint."""
-
-    llm_api_key: Optional[SecretStr] = None
-    """The OpenAI API key."""
 
     llm_send_to: Optional[str] = None
     """The group name of which the requests will be sent."""
