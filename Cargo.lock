@@ -2574,7 +2574,7 @@ dependencies = [
 
 [[package]]
 name = "fabricatio-config"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "dotenvy",
  "fabricatio-constants",
@@ -8264,7 +8264,7 @@ dependencies = [
 
 [[package]]
 name = "thryd"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "async-openai",
  "async-trait",

@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-config"
-version = "0.3.1-dev0"
+version = "0.3.1"
 edition = "2024"
 readme = "README.md"
 
