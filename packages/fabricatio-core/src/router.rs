@@ -264,10 +264,10 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
 ) -> PyResult<ThrydRouter<T>> {
     for config in configs {
         let p = create_provider(
-            config.provider_type,
+            config.ptype,
             config.name,
-            config.api_key.map(|k| k.get_secret_value().into()),
-            config.api_endpoint,
+            config.key.map(|k| k.get_secret_value().into()),
+            config.base_url,
         )
         .into_pyresult()?;
 

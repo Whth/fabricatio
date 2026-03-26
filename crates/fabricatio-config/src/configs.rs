@@ -106,21 +106,18 @@ impl Default for TemplateManagerConfig {
 pub struct TemplateConfig {
     pub mapping_template: String,
 
-    // Task Management Templates
     /// The name of the task briefing template which will be used to brief a task.
     pub task_briefing_template: String,
 
     /// The name of the dependencies template which will be used to manage dependencies.
     pub dependencies_template: String,
 
-    // Decision Making Templates
     /// The name of the make choice template which will be used to make a choice.
     pub make_choice_template: String,
 
     /// The name of the make judgment template which will be used to make a judgment.
     pub make_judgment_template: String,
 
-    // String Processing Templates
     ///  The name of the code string template which will be used to generate a code string.
     pub code_string_template: String,
 
@@ -139,7 +136,6 @@ pub struct TemplateConfig {
     /// The name of the pathstr template which will be used to acquire a path of strings.
     pub pathstr_template: String,
 
-    // Object and Data Templates
     /// The name of the create json object template which will be used to create a json object.
     pub create_json_obj_template: String,
 }
@@ -152,17 +148,17 @@ pub struct TemplateConfig {
 #[pyclass(from_py_object, get_all)]
 pub struct ProviderConfig {
     /// The type of the provider (e.g., OpenAI, Anthropic).
-    pub provider_type: ProviderType,
+    pub ptype: ProviderType,
 
     /// Optional name identifier for the provider instance.
     pub name: Option<ProviderName>,
 
     /// Optional authentication key for the provider API.
-    pub api_key: Option<SecretStr>,
+    pub key: Option<SecretStr>,
 
     /// Optional URL endpoint for the provider's API. Must be a valid URL if provided.
     #[validate(url)]
-    pub api_endpoint: Option<String>,
+    pub base_url: Option<String>,
 }
 
 /// Configuration for a specific deployment.
@@ -242,109 +238,46 @@ impl Default for EmitterConfig {
     }
 }
 
-/// Configuration structure containing all system components
+/// Configuration structure containing all system components.
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[gen_stub_pyclass]
 #[pyclass(from_py_object)]
 pub struct Config {
-    /// Embedding configuration
-    ///
-    /// Configuration parameters for embedding models, including:
-    /// - `model`: Optional model name/identifier
-    /// - `dimensions`: Vector dimensions for embeddings
-    /// - `timeout`: Request timeout in seconds (min 1)
-    /// - `max_sequence_length`: Maximum input sequence length
-    /// - `caching`: Enable/disable result caching
-    /// - `api_endpoint`: API service URL endpoint
-    /// - `api_key`: Authentication key (secure storage)
+    /// Embedding configuration parameters.
     #[pyo3(get)]
     pub embedding: EmbeddingConfig,
 
-    /// LLM configuration
-    ///
-    /// Language Learning Model settings with validation rules:
-    /// - `api_endpoint`: Valid URL for API service
-    /// - `api_key`: Secure authentication token
-    /// - `timeout`: Minimum 1 second
-    /// - `max_retries`: Minimum 1 retry attempt
-    /// - `model`: Model identifier string
-    /// - `temperature`: Range 0.0-2.0 for response randomness
-    /// - `stop_sign`: Token generation stop sequence(s)
-    /// - `top_p`: Nucleus sampling threshold (0.0-1.0)
-    /// - `generation_count`: Minimum 1 completion per prompt
-    /// - `stream`: Streaming response flag
-    /// - `max_tokens`: Minimum 1 generated tokens
-    /// - `rpm`: Requests per minute limit (≥1)
-    /// - `tpm`: Tokens per minute limit (≥1)
-    /// - `presence_penalty`: Repetition penalty (-2.0-2.0)
-    /// - `frequency_penalty`: Frequency-based penalty (-2.0-2.0)
+    /// Language Learning Model settings with validation rules.
     #[pyo3(get)]
     pub llm: LLMConfig,
 
-    /// Debugging configuration
-    ///
-    /// Debug settings containing:
-    /// - `log_level`: Logging verbosity level (default: "INFO")
+    /// Debug settings containing log level and verbosity.
     #[pyo3(get)]
     pub debug: DebugConfig,
 
-    /// Template configuration
-    ///
-    /// Template paths/names for various operations:
-    /// - `task_briefing_template`: Task description template
-    /// - `dependencies_template`: Dependency management template
-    /// - `make_choice_template`: Decision-making template
-    /// - `make_judgment_template`: Judgment evaluation template
-    /// - `generic_string_template`: General string review template
-    /// - `co_validation_template`: String co-validation template
-    /// - `liststr_template`: String list display template
-    /// - `pathstr_template`: Path string acquisition template
-    /// - `create_json_obj_template`: JSON object creation template
-    /// - ...
+    /// Template paths/names for various operations.
     #[pyo3(get)]
     pub templates: TemplateConfig,
 
-    /// Template manager configuration
-    ///
-    /// Template loading and management settings:
-    /// - `template_dir`: Directories to search for templates
-    /// - `active_loading`: Flag to enable template pre-loading
-    /// - `template_suffix`: File extension for templates
+    /// Template loading and management settings.
     #[pyo3(get)]
     pub template_manager: TemplateManagerConfig,
 
-    /// Routing configuration
-    ///
-    /// Request routing and load balancing settings:
-    /// - `max_parallel_requests`: Max concurrent requests
-    /// - `allowed_fails`: Failures before circuit breaking
-    /// - `retry_after`: Seconds to wait between retries
-    /// - `cooldown_time`: Failure cooldown period
+    /// Request routing and load balancing settings.
     #[pyo3(get)]
     pub routing: RoutingConfig,
 
-    /// General application settings
-    ///
-    /// Global behavior configuration:
-    /// - `confirm_on_ops`: Require operation confirmation
-    /// - `use_json_repair`: Auto-repair malformed JSON
+    /// Global behavior configuration options.
     #[pyo3(get)]
     pub general: GeneralConfig,
 
-    /// EventEmitter system configuration
-    ///
-    /// Event emission control settings:
-    /// - `delimiter`: Event name segment separator
+    /// Event emission control settings.
     #[pyo3(get)]
     pub emitter: EmitterConfig,
 
-    /// Extension configuration store
-    ///
     /// Additional configuration values as key-value pairs.
-    /// Used for storing arbitrary extra configuration data.
     pub ext: HashMap<String, Value>,
 }
-
 #[gen_stub_pymethods]
 #[pymethods]
 impl Config {
