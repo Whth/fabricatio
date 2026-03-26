@@ -68,95 +68,28 @@ class Config:
     r"""Configuration structure containing all system components."""
     @property
     def embedding(self) -> EmbeddingConfig:
-        r"""Embedding configuration.
-
-        Configuration parameters for embedding models, including:
-        - `model`: Optional model name/identifier
-        - `dimensions`: Vector dimensions for embeddings
-        - `timeout`: Request timeout in seconds (min 1)
-        - `max_sequence_length`: Maximum input sequence length
-        - `caching`: Enable/disable result caching
-        - `api_endpoint`: API service URL endpoint
-        - `api_key`: Authentication key (secure storage)
-        """
+        r"""Embedding configuration parameters."""
     @property
     def llm(self) -> LLMConfig:
-        r"""LLM configuration.
-
-        Language Learning Model settings with validation rules:
-        - `api_endpoint`: Valid URL for API service
-        - `api_key`: Secure authentication token
-        - `timeout`: Minimum 1 second
-        - `max_retries`: Minimum 1 retry attempt
-        - `model`: Model identifier string
-        - `temperature`: Range 0.0-2.0 for response randomness
-        - `stop_sign`: Token generation stop sequence(s)
-        - `top_p`: Nucleus sampling threshold (0.0-1.0)
-        - `generation_count`: Minimum 1 completion per prompt
-        - `stream`: Streaming response flag
-        - `max_tokens`: Minimum 1 generated tokens
-        - `rpm`: Requests per minute limit (≥1)
-        - `tpm`: Tokens per minute limit (≥1)
-        - `presence_penalty`: Repetition penalty (-2.0-2.0)
-        - `frequency_penalty`: Frequency-based penalty (-2.0-2.0)
-        """
+        r"""Language Learning Model settings with validation rules."""
     @property
     def debug(self) -> DebugConfig:
-        r"""Debugging configuration.
-
-        Debug settings containing:
-        - `log_level`: Logging verbosity level (default: "INFO")
-        """
+        r"""Debug settings containing log level and verbosity."""
     @property
     def templates(self) -> TemplateConfig:
-        r"""Template configuration.
-
-        Template paths/names for various operations:
-        - `task_briefing_template`: Task description template
-        - `dependencies_template`: Dependency management template
-        - `make_choice_template`: Decision-making template
-        - `make_judgment_template`: Judgment evaluation template
-        - `generic_string_template`: General string review template
-        - `co_validation_template`: String co-validation template
-        - `liststr_template`: String list display template
-        - `pathstr_template`: Path string acquisition template
-        - `create_json_obj_template`: JSON object creation template
-        - ...
-        """
+        r"""Template paths/names for various operations."""
     @property
     def template_manager(self) -> TemplateManagerConfig:
-        r"""Template manager configuration.
-
-        Template loading and management settings:
-        - `template_dir`: Directories to search for templates
-        - `active_loading`: Flag to enable template pre-loading
-        - `template_suffix`: File extension for templates
-        """
+        r"""Template loading and management settings."""
     @property
     def routing(self) -> RoutingConfig:
-        r"""Routing configuration.
-
-        Request routing and load balancing settings:
-        - `max_parallel_requests`: Max concurrent requests
-        - `allowed_fails`: Failures before circuit breaking
-        - `retry_after`: Seconds to wait between retries
-        - `cooldown_time`: Failure cooldown period
-        """
+        r"""Request routing and load balancing settings."""
     @property
     def general(self) -> GeneralConfig:
-        r"""General application settings.
-
-        Global behavior configuration:
-        - `confirm_on_ops`: Require operation confirmation
-        - `use_json_repair`: Auto-repair malformed JSON
-        """
+        r"""Global behavior configuration options."""
     @property
     def emitter(self) -> EmitterConfig:
-        r"""EventEmitter system configuration.
-
-        Event emission control settings:
-        - `delimiter`: Event name segment separator
-        """
+        r"""Event emission control settings."""
     def load(self, name: builtins.str, cls: typing.Any) -> typing.Any:
         r"""Load configuration data for a given section name and instantiate a Python class.
 
@@ -202,7 +135,7 @@ class DeploymentConfig:
     Defines the identity, grouping, and rate limits for a deployed service instance.
     """
     @property
-    def identifier(self) -> builtins.str:
+    def id(self) -> builtins.str:
         r"""Unique identifier for the deployment."""
     @property
     def group(self) -> builtins.str:
@@ -321,16 +254,16 @@ class ProviderConfig:
     Contains the necessary details to connect to and authenticate with a service provider.
     """
     @property
-    def provider_type(self) -> ProviderType:
+    def ptype(self) -> ProviderType:
         r"""The type of the provider (e.g., OpenAI, Anthropic)."""
     @property
     def name(self) -> typing.Optional[builtins.str]:
         r"""Optional name identifier for the provider instance."""
     @property
-    def api_key(self) -> typing.Optional[SecretStr]:
+    def key(self) -> typing.Optional[SecretStr]:
         r"""Optional authentication key for the provider API."""
     @property
-    def api_endpoint(self) -> typing.Optional[builtins.str]:
+    def base_url(self) -> typing.Optional[builtins.str]:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
 
 @typing.final
@@ -461,10 +394,10 @@ class RoutingConfig:
     def providers(self) -> builtins.list[ProviderConfig]:
         r"""List of configured providers available for routing."""
     @property
-    def embedding_model_deployments(self) -> builtins.list[DeploymentConfig]:
+    def embedding_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured embedding model deployments associated with the providers."""
     @property
-    def completion_model_deployments(self) -> builtins.list[DeploymentConfig]:
+    def completion_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured completion model deployments associated with the providers."""
     @property
     def cache_database_path(self) -> typing.Optional[pathlib.Path]:

@@ -15,7 +15,7 @@ use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
 use strum_macros::EnumIter;
-use tracing::{debug, trace};
+use tracing::*;
 
 /// Represents all standard OpenAI API v1 endpoints.
 ///
