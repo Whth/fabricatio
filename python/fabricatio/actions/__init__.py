@@ -32,9 +32,18 @@ if is_installed("fabricatio_typst"):
     ]
 
     if is_installed("fabricatio_rag"):
-        __all__ += ["ArticleConsultRAG", "ChunkArticle", "TweakArticleRAG", "WriteArticleContentRAG"]
+        from fabricatio_typst.actions.article_rag import (
+            ArticleConsultRAG,
+            ChunkArticle,
+            TweakArticleMilvusRAG,
+            WriteArticleContentRAG,
+        )
+
+        __all__ += ["ArticleConsultRAG", "ChunkArticle", "TweakArticleMilvusRAG", "WriteArticleContentRAG"]
 if is_installed("fabricatio_rag"):
-    __all__ += ["InjectToDB", "RAGTalk"]
+    from fabricatio_milvus.actions.rag import InjectToDB, MilvusRAGTalk
+
+    __all__ += ["InjectToDB", "MilvusRAGTalk"]
 
 if is_installed("fabricatio_actions"):
     from fabricatio_actions.actions import (
