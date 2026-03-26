@@ -24,7 +24,11 @@ pub struct Router<Tag: ModelTypeTag> {
 
 impl<Tag: ModelTypeTag> Router<Tag> {
     pub fn add_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
-        debug!("Adding provider `{}`", provider.provider_name());
+        debug!(
+            "Adding provider `{}`, base_url: `{}`",
+            provider.provider_name(),
+            provider.endpoint()
+        );
         self.providers
             .try_insert(provider.provider_name().to_string(), provider)
             .map_err(|e| {
@@ -159,6 +163,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         tpm: Option<Quota>,
     ) -> Result<Deployment<Tag::Model>> {
         let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
+        debug!("Creating deployment for `{model_name}` of `{provider_name}`");
         Ok(Deployment::new(Tag::create_model(
             self.get_provider(provider_name)?,
             model_name,

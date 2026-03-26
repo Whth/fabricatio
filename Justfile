@@ -85,3 +85,12 @@ py packages_dir=PACKAGES template_url=PY_TEMPLATE_URL:
 # Create new Rust package template.
 rs packages_dir=PACKAGES template_url=RS_TEMPLATE_URL:
     cookiecutter "{{ template_url }}" -o "{{ packages_dir }}" -v
+
+alias v := version
+alias r := release
+
+version:
+    verbu packages/* crates/* -g || true
+
+release:
+    verbu packages/* crates/* . -r || true

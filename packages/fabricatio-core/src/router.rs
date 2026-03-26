@@ -283,7 +283,7 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
 ) -> PyResult<ThrydRouter<T>> {
     for config in configs {
         router
-            .deploy(config.group, config.identifier, config.rpm, config.tpm)
+            .deploy(config.group, config.id, config.rpm, config.tpm)
             .into_pyresult()?;
     }
     Ok(router)
@@ -292,11 +292,11 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
 pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     let cr = ThrydRouter::default();
     let cr = add_providers_from_configs(cr, config.routing.providers.clone())?;
-    let cr = add_models_from_configs(cr, config.routing.completion_model_deployments.clone())?;
+    let cr = add_models_from_configs(cr, config.routing.completion_deployments.clone())?;
 
     let er = ThrydRouter::default();
     let er = add_providers_from_configs(er, config.routing.providers.clone())?;
-    let er = add_models_from_configs(er, config.routing.embedding_model_deployments.clone())?;
+    let er = add_models_from_configs(er, config.routing.embedding_deployments.clone())?;
 
     Ok(Router::new(er, cr))
 }

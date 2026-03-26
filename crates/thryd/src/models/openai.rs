@@ -15,6 +15,7 @@ use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
 use strum_macros::EnumIter;
+use tracing::{debug, trace};
 
 /// Represents all standard OpenAI API v1 endpoints.
 ///
@@ -74,26 +75,27 @@ impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
         let stream = request.stream;
         let request = CreateChatCompletionRequest {
-            messages: vec![
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(request.message)
-                    .build()?
-                    .into(),
-            ],
             top_p: request.top_p,
             temperature: request.temperature,
             max_completion_tokens: request.max_completion_tokens,
             presence_penalty: request.presence_penalty,
             frequency_penalty: request.frequency_penalty,
             ..CreateChatCompletionRequestArgs::default()
+                .model(self.model_name())
                 .stream(request.stream)
+                .messages([ChatCompletionRequestUserMessageArgs::default()
+                    .content(request.message)
+                    .build()?
+                    .into()])
                 .build()?
         };
 
+        let v = to_value(request)?;
+        trace!("Completion request: {v:?}",);
         if stream {
             let res = self
                 .provider
-                .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
+                .post(OpenAiRoute::ChatCompletions.as_ref(), &v)
                 .await?
                 .error_for_status()?
                 .bytes_stream()
@@ -120,7 +122,7 @@ impl CompletionModel for OpenaiModel {
         } else {
             let content = if let Some(choice) = self
                 .provider
-                .post(OpenAiRoute::ChatCompletions.as_ref(), &to_value(request)?)
+                .post(OpenAiRoute::ChatCompletions.as_ref(), &v)
                 .await?
                 .error_for_status()?
                 .json::<CreateChatCompletionResponse>()
@@ -146,9 +148,10 @@ impl EmbeddingModel for OpenaiModel {
             .input(request.texts)
             .build()?;
 
+        let v = to_value(request)?;
         Ok(self
             .provider
-            .post(OpenAiRoute::Embeddings.as_ref(), &to_value(request)?)
+            .post(OpenAiRoute::Embeddings.as_ref(), &v)
             .await?
             .json::<CreateEmbeddingResponse>()
             .await?

@@ -169,7 +169,7 @@ pub struct ProviderConfig {
 #[pyclass(from_py_object, get_all)]
 pub struct DeploymentConfig {
     /// Unique identifier for the deployment.
-    pub identifier: DeploymentIdentifier,
+    pub id: DeploymentIdentifier,
 
     /// Name of the route group this deployment belongs to.
     pub group: RouteGroupName,
@@ -193,10 +193,10 @@ pub struct RoutingConfig {
     pub providers: Vec<ProviderConfig>,
 
     /// List of configured embedding model deployments associated with the providers.
-    pub embedding_model_deployments: Vec<DeploymentConfig>,
+    pub embedding_deployments: Vec<DeploymentConfig>,
 
     /// List of configured completion model deployments associated with the providers.
-    pub completion_model_deployments: Vec<DeploymentConfig>,
+    pub completion_deployments: Vec<DeploymentConfig>,
 
     /// Path to the cache database file.
     pub cache_database_path: Option<PathBuf>,
