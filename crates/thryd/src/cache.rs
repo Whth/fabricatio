@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
 
 use std::path::Path;
+use std::sync::Arc;
 
 const CACHE_TABLE: TableDefinition<&str, CacheValue> = TableDefinition::new("cache");
 
@@ -60,8 +61,9 @@ impl Value for CacheValue {
 }
 
 /// Persistent cache using redb
+#[derive(Clone)]
 pub struct PersistentCache {
-    db: Database,
+    db: Arc<Database>,
 }
 
 impl PersistentCache {
@@ -69,11 +71,11 @@ impl PersistentCache {
     pub fn create_or_open(path: impl AsRef<Path>) -> Result<Self> {
         if path.as_ref().exists() {
             Database::open(path.as_ref())
-                .map(|db| Self { db })
+                .map(|db| Self { db: Arc::new(db) })
                 .map_err(|e| e.into())
         } else {
             Database::create(path.as_ref())
-                .map(|db| Self { db })
+                .map(|db| Self { db: Arc::new(db) })
                 .map_err(|e| e.into())
         }
     }
@@ -102,6 +104,7 @@ impl PersistentCache {
         trx.open_table(CACHE_TABLE)?.insert(key.as_ref(), value)?;
 
         trx.commit()?;
+
         Ok(())
     }
 

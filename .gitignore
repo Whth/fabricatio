@@ -176,3 +176,4 @@ logs
 www
 
 *.pdb
+*.db

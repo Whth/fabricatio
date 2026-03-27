@@ -1,5 +1,6 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
+use fabricatio_logger::trace;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
@@ -7,8 +8,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
-    Router as ThrydRouter, create_provider,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
+    PersistentCache, ProviderType, Router as ThrydRouter, create_provider,
 };
 use tokio::sync::RwLock;
 
@@ -248,11 +249,10 @@ impl Router {
         let cr = self.completion_router.clone();
 
         future_into_py(python, async move {
-            er.write()
-                .await
-                .mount_cache(file_path.clone())
-                .into_pyresult()?;
-            cr.write().await.mount_cache(file_path).into_pyresult()?;
+            let cache = PersistentCache::create_or_open(file_path).into_pyresult()?;
+
+            er.write().await.mount_cache(cache.clone());
+            cr.write().await.mount_cache(cache);
             Ok(())
         })
     }
@@ -290,14 +290,21 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
 }
 
 pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
+    trace!("Initializing router from config");
     let cr = ThrydRouter::default();
     let cr = add_providers_from_configs(cr, config.routing.providers.clone())?;
-    let cr = add_models_from_configs(cr, config.routing.completion_deployments.clone())?;
+    let mut cr = add_models_from_configs(cr, config.routing.completion_deployments.clone())?;
 
     let er = ThrydRouter::default();
     let er = add_providers_from_configs(er, config.routing.providers.clone())?;
-    let er = add_models_from_configs(er, config.routing.embedding_deployments.clone())?;
+    let mut er = add_models_from_configs(er, config.routing.embedding_deployments.clone())?;
 
+    if let Some(p) = config.routing.cache_database_path.as_ref() {
+        trace!("Mounting cache database at {}", p.display());
+        let cache = PersistentCache::create_or_open(p).into_pyresult()?;
+        cr.mount_cache(cache.clone());
+        er.mount_cache(cache);
+    }
     Ok(Router::new(er, cr))
 }
 

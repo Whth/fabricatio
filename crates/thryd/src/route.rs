@@ -8,7 +8,6 @@ use async_trait::async_trait;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::collections::{BTreeMap, HashMap};
-use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::*;
 pub type DeploymentIdentifier = String;
@@ -191,21 +190,31 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
 
-        if let Some(cache) = &self.cache
-            && let Some(val) =
-                cache.get_de::<Tag::Response>(Tag::prepare_cache_key(&request).as_str())
-        {
-            trace!("Cache hit for: {}", Tag::prepare_cache_key(&request));
-            Ok(val)
+        if let Some(cache) = &self.cache {
+            let key = Tag::prepare_cache_key(&request);
+
+            if let Some(val) = cache.get_de::<Tag::Response>(key.as_str()) {
+                debug!("Cache hit for: {key}");
+                Ok(val)
+            } else {
+                debug!("Cache missed for: {key}");
+                let res = Tag::execute_request(d, request).await?;
+                cache.set_ser(key, &res)?;
+                Ok(res)
+            }
         } else {
-            trace!("Cache missed for: {}", Tag::prepare_cache_key(&request));
             Tag::execute_request(d, request).await
         }
     }
 
-    pub fn mount_cache(&mut self, cache_path: PathBuf) -> Result<&mut Self> {
-        self.cache = Some(PersistentCache::create_or_open(cache_path)?);
-        Ok(self)
+    pub fn mount_cache(&mut self, cache: PersistentCache) -> &mut Self {
+        self.cache = Some(cache);
+        self
+    }
+
+    pub fn unmount_cache(&mut self) -> &mut Self {
+        self.cache = None;
+        self
     }
 }
 
