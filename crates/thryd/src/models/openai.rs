@@ -126,7 +126,15 @@ impl CompletionModel for OpenaiModel {
                 .await?
                 .error_for_status()?
                 .json::<CreateChatCompletionResponse>()
-                .await?
+                .await
+                .inspect(|resp| {
+                    if let Some(usage) = resp.usage.as_ref() {
+                        debug!(
+                            "Request tokens usages: Input {} | Output {} | Total {}",
+                            usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+                        )
+                    }
+                })?
                 .choices
                 .first()
                 && let Some(content) = choice.message.content.clone()

@@ -446,7 +446,7 @@ class UseLLM(LLMScopedConfig, ABC):
         cap = Capture.capture_snippet()
 
         def _validator(resp: str) -> Optional[List[CodeSnippet]]:
-            matches = cap.capture_all(resp)
+            matches = cap.capture_all(resp.strip())
             if not matches:
                 return None
             return [CodeSnippet(source=src, write_to=pth) for pth, src in matches]
