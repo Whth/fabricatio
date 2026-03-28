@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio.capabilities import UseLLM
 
 
 class WritePoem(Action, UseLLM):

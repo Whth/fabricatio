@@ -2,9 +2,15 @@
 
 import asyncio
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as BaseRole
+from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_milvus.capabilities.milvus import MilvusRAG
 from questionary import text
+
+
+class Role(ProposeTask, BaseRole):
+    """basic role."""
 
 
 class Talk(Action, MilvusRAG):

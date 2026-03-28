@@ -50,7 +50,7 @@ class WriteDocumentation(Action, UseLLM):
     output_key: str = "dump_text"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        return await self.aask(task_input.briefing, system_message=task_input.dependencies_prompt)
+        return await self.aask(f"{task_input.dependencies_prompt}\n{task_input.briefing}")
 
 
 class TestCancel(Action):

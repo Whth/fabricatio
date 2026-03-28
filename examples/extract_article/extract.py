@@ -3,11 +3,17 @@
 import asyncio
 from typing import TYPE_CHECKING, List
 
-from fabricatio import Event, Role, Task, WorkFlow, logger
+from fabricatio import Event, Task, WorkFlow, logger
+from fabricatio import Role as BaseRole
 from fabricatio.actions import ExtractArticleEssence
+from fabricatio_capabilities.capabilities.task import ProposeTask
 
 if TYPE_CHECKING:
     from fabricatio.models import ArticleEssence
+
+
+class Role(BaseRole, ProposeTask):
+    """basic role."""
 
 
 async def main() -> None:

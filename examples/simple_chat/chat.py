@@ -3,10 +3,11 @@
 import asyncio
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio.capabilities import UseLLM
 from questionary import text
 
 
-class Talk(Action):
+class Talk(Action, UseLLM):
     """Action that says hello to the world."""
 
     output_key: str = "task_output"
@@ -17,8 +18,7 @@ class Talk(Action):
             while True:
                 user_say = await text("User: ").ask_async()
                 gpt_say = await self.aask(
-                    user_say,
-                    system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                    f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}\n{user_say}",
                 )
                 print(f"GPT: {gpt_say}")  # noqa: T201
                 counter += 1

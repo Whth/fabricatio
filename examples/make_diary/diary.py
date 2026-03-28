@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import datetime
-from typing import Dict, Optional, Set, Unpack
+from typing import Any, Dict, Optional, Set
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
@@ -40,9 +40,8 @@ class WriteDiary(Action, UseLLM):
         seq = sorted(json_data.items(), key=lambda x: datetime.strptime(x[0], "%Y-%m-%d"))
 
         res = await self.aask(
-            task_input.briefing,
-            system_message=[
-                f"{c}\nWrite a diary for the {d},according to the commits, 不要太流水账或者只是将commit翻译为中文,应该着重与高级的设计抉择和设计思考,保持日记整体200字左右。"
+            [
+                f"{task_input.briefing}\n{c}\nWrite a diary for the {d},according to the commits, 不要太流水账或者只是将commit翻译为中文,应该着重与高级的设计抉择和设计思考,保持日记整体200字左右。"
                 for d, c in seq
             ],
             temperature=1.5,
@@ -58,17 +57,17 @@ class DumpText(Action, Handle):
     toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task, dump_text: str, **_: Unpack) -> Optional[str]:
+    async def _execute(self, task_input: Task, dump_text: str, **_: Any) -> Optional[str]:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
             goal=["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
         )
 
-        path = await self.handle_fine_grind(
+        resc = await self.handle_fine_grind(
             task_input.assembled_prompt, {"text_to_dump": dump_text}, {"written_file_path": "path of the written file"}
         )
-        if path:
-            return path[0]
+        if resc:
+            return resc.take("written_file_path")
 
         return None
 

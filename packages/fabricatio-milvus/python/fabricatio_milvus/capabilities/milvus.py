@@ -4,7 +4,7 @@ from functools import cache
 from operator import itemgetter
 from typing import List, Optional, Self, Type, Unpack
 
-from fabricatio_core import CONFIG, logger
+from fabricatio_core import logger
 from fabricatio_core.utils import ok
 from fabricatio_rag.capabilities.rag import RAG
 from more_itertools import flatten, unique
@@ -75,11 +75,7 @@ class MilvusRAG(MilvusScopedConfig, RAG):
         """
         if create and collection_name and not self.check_client().client.has_collection(collection_name):
             kwargs["dimension"] = ok(
-                kwargs.get("dimension")
-                or self.milvus_dimensions
-                or milvus_config.milvus_dimensions
-                or self.embedding_dimensions
-                or CONFIG.embedding.dimensions,
+                kwargs.get("dimension") or self.milvus_dimensions or milvus_config.milvus_dimensions,
                 "`dimension` is not set at any level.",
             )
             self.client.create_collection(collection_name, auto_id=True, **kwargs)

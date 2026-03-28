@@ -2,9 +2,15 @@
 
 import asyncio
 
-from fabricatio import Role, logger
+from fabricatio import Role as RoleBase
+from fabricatio import logger
+from fabricatio.capabilities import Correct, Review
 from questionary import confirm
 from rich import print as r_print
+
+
+class Role(RoleBase, Correct, Review):
+    """Role use to review and correct."""
 
 
 async def main() -> None:
@@ -21,7 +27,9 @@ async def main() -> None:
     logger.info(f"Code: \n{code}")
 
     while await confirm("Do you want to review the code?").ask_async():
-        code = await role.correct_string(code, topic="If the cli app is of good design", supervisor_check=False)
+        imp = await role.review_string(code, topic="If the cli app is of good design")
+
+        code = await role.correct_string(code, imp)
         r_print(code)
     logger.info(f"Corrected: \n{code}")
 

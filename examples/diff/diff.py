@@ -8,6 +8,7 @@ from typing import Optional
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import DiffEdit
+from fabricatio_core.utils import ok
 
 essay_to_fix = """
 In my learn jorney, there is many teacher taht tought me, but the most i respect is our class moniter, Miss Li. She not only teach very carefull, but also care about every student very much.
@@ -42,8 +43,12 @@ class TweakEssay(Action, DiffEdit):
         Returns:
             str: The corrected essay text with suggested improvements
         """
+        essay = ok(essay, "essay is None!")
+
         logger.info(f"Tweaking essay... words: {len(essay)}")
-        return await self.diff_edit(essay, "fix all spelling mistakes and typo or wrong usage of words in the essay.")
+        return ok(
+            await self.diff_edit(essay, "fix all spelling mistakes and typo or wrong usage of words in the essay.")
+        )
 
 
 # Configure role workflow for essay tweaking

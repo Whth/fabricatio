@@ -8,9 +8,9 @@ from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as BaseRole
 from fabricatio.actions import ExtractArticleEssence, FixArticleEssence, InjectToDB, PersistentAll
 from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.rust import tokens_of
 from fabricatio_tool.fs import gather_files
 from fabricatio_typst.rust import BibManager
-from fabricatio_core.rust import tokens_of
 
 MAX_TOKEN = 64000
 

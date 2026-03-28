@@ -88,7 +88,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Add Plugin system.
 - [x] Replace litellm with native rust impl
     - [x] Port deprecated mock utils to thryd impl
-    - [ ] Port tests to new mock utils
+    - [x] Port tests to new mock utils
     - [ ] Sync documentations
 - [ ] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage

@@ -3,10 +3,11 @@
 import asyncio
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio.capabilities import Propose
 from fabricatio_core.parser import PythonCapture
 
 
-class WriteCode(Action):
+class WriteCode(Action, Propose):
     """Action that says hello to the world."""
 
     output_key: str = "task_output"

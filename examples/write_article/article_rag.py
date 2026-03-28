@@ -3,9 +3,15 @@
 import asyncio
 from pathlib import Path
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as RoleBase
 from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleMilvusRAG
 from fabricatio.models import Article, ArticleOutline, ArticleProposal
+from fabricatio_core.capabilities.propose import Propose
+
+
+class Role(RoleBase, Propose):
+    """Role that can propose tasks."""
 
 
 class Connect(Action):
@@ -29,11 +35,9 @@ async def main() -> None:
         description="Write an outline for an article in typst format.",
         llm_top_p=0.4,
         llm_temperature=1.15,
-        llm_model="openai/qwen-turbo",
+        llm_send_to="openai/qwen-turbo",
         llm_stream=True,
-        llm_rpm=1000,
-        llm_tpm=1000000,
-        llm_max_tokens=8190,
+        llm_max_completion_tokens=8190,
         skills={
             Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
                 name="Generate Article Outline",

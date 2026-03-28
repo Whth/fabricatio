@@ -2,9 +2,15 @@
 
 import asyncio
 
-from fabricatio import Event, Role, Task, logger
+from fabricatio import Event, Task, logger
+from fabricatio import Role as RoleBase
 from fabricatio.workflows import WriteOutlineCorrectedWorkFlow
+from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_core.utils import ok
+
+
+class Role(RoleBase, ProposeTask):
+    """Role that can propose tasks."""
 
 
 async def main() -> None:
