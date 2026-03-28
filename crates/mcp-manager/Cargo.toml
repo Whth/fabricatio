@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 futures = "0.3.32"
-rmcp = { version = "1.2.0", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "1.3.0", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 tokio = { version = "1.50.0", features = ["process", "rt-multi-thread", "sync"] }

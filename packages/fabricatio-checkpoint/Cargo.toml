@@ -10,13 +10,13 @@ blake3 = "1.8.3"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
 git2 = { version = "0.20.4", features = ["vendored-libgit2"], default-features = false }
-moka = { version = "0.12.14", features = ["sync"] }
+moka = { version = "0.12.15", features = ["sync"] }
 
 pyo3 = { version = ">=0.24.2" }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
 rayon = "1.11.0"
-pyo3-stub-gen = "0.19.0"
+pyo3-stub-gen = "0.20.0"
 
 
 

@@ -6,7 +6,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = "0.19.0"
+pyo3-stub-gen = "0.20.0"
 fabricatio-core = { path = "../../packages/fabricatio-core", default-features = false, optional = true }
 fabricatio-memory = { path = "../../packages/fabricatio-memory", default-features = false, optional = true }
 fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = false, optional = true }
