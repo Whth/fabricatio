@@ -79,7 +79,7 @@ class Capture:
         logger.debug(f"Captured text: \n{cap}")
         return cap
 
-    def capture_all(self, text: str) -> List[Tuple[str]]:
+    def capture_all(self, text: str) -> List[Tuple[str,...]]:
         """Capture all matches of the pattern in the text.
 
         Args:
@@ -168,7 +168,7 @@ class Capture:
         Note:
             - This method creates a Capture instance with a pattern specific to snippets.
         """
-        return cls(pattern=rf"^(.+?)\s*$\n^{l_sep}(?:\w+)\s*$\n^(.*?)$\n^{r_sep}\s*$")
+        return cls(pattern=rf"^(.+?)\s*\n^{l_sep}\S*\n(.*?)\n^{r_sep}\s*$")
 
     @classmethod
     @lru_cache(32)

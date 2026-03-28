@@ -1,8 +1,10 @@
 {{block requirement "Requirement"}}
 You need to generate code that satisfy `Requirement` and the path where it should be written.
 {{#if code_language}}You MUST use {{code_language}}.{{/if}}
-Output format: code should be wrapped with ```, the file path should be placed just above the codeblock. MUST NOT include any other texts.
-You SHALL NOT try to write to a path that should be a directory. I will create the parent directories of the file path you provided for you.
+Output format:
+1. Code should be wrapped with ">>>>>" and "<<<<<", they occupied one line each, all lines between will be treat as code and write to the path.
+2. Path to write the code should be placed above ">>>>>".
+{{#if code_language}}3. The code lang identifier should a suffix after ">>>>>" {{/if}}
 
 e.g.
 
