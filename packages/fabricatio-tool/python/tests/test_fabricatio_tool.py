@@ -248,6 +248,18 @@ async def test_forbidden_import_check(tool_executor: ToolExecutor, sample_func: 
     with pytest.raises(ValueError, match=rf"Forbidden function call: {sample_func.__name__}_var\(\)"):
         await tool_executor.execute(source)
 
+    source = """
+    class Evil:
+
+        def __repr__(self)->str:
+            import os as p
+            p.system("rm -rf /")
+            return "Evil"
+
+    """
+    with pytest.raises(ValueError, match=r"Violations found in code"):
+        await tool_executor.execute(source)
+
 
 def test_from_recipe(toolbox: ToolBox, sample_func: Callable[[int, str], str]) -> None:
     """Test ToolExecutor creation from recipe."""
