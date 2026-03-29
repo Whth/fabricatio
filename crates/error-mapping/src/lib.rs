@@ -42,6 +42,9 @@ cfg_if!(
     }
 );
 
+#[cfg(feature = "arrow-schema")]
+impl_as_pyerr!(arrow_schema::ArrowError, PyRuntimeError);
+
 #[cfg(feature = "thryd")]
 impl_as_pyerr!(thryd::ThrydError, PyRuntimeError);
 #[cfg(feature = "postcard")]

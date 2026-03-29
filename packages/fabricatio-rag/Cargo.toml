@@ -16,7 +16,7 @@ prost = "0.14.3"
 fabricatio-logger = { workspace = true }
 error-mapping = { workspace = true, features = [
     "tonic", "http", "strum", "lancedb", "serde_json", "pythonize",
-    "pyo3_cast"
+    "pyo3_cast", "arrow-schema"
 ] }
 pyo3-stub-gen = "0.20.0"
 strum = { version = "0.28.0", features = ["derive"] }

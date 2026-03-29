@@ -1,6 +1,6 @@
 [package]
 name = "error-mapping"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -23,9 +23,13 @@ lancedb = { version = "0.27.1", default-features = false, optional = true }
 strum = { version = "0.28.0", default-features = false, optional = true }
 thryd = { path = "../thryd", default-features = false, optional = true }
 postcard = { version = "1.1.3", default-features = false, optional = true }
+arrow-schema = { version = "57.3.0", default-features = false, optional = true }
+
+
 
 [features]
 default = ["std"]
+arrow-schema = ["dep:arrow-schema"]
 strum = ["dep:strum"]
 lancedb = ["dep:lancedb"]
 git2 = ["dep:git2"]

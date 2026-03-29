@@ -279,21 +279,27 @@ impl VectorStoreTable {
             &mut metadata_seq,
         );
 
-        let batch = RecordBatch::try_new(
-            schema_ref.clone(),
-            vec![
-                Arc::new(StringArray::from(id_seq.clone())),
-                Arc::new(Time64MicrosecondArray::from(timestamp_seq)),
-                Arc::new(
-                    FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(vector_seq, ndim),
-                ),
-                Arc::new(StringArray::from(content_seq)),
-                Arc::new(StringArray::from(metadata_seq)),
-            ],
-        );
-
-        let it = RecordBatchIterator::new(vec![batch], schema_ref);
-        table.add(it).execute().await.into_pyresult()?;
+        table
+            .add(
+                RecordBatch::try_new(
+                    schema_ref.clone(),
+                    vec![
+                        Arc::new(StringArray::from(id_seq.clone())),
+                        Arc::new(Time64MicrosecondArray::from(timestamp_seq)),
+                        Arc::new(
+                            FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
+                                vector_seq, ndim,
+                            ),
+                        ),
+                        Arc::new(StringArray::from(content_seq)),
+                        Arc::new(StringArray::from(metadata_seq)),
+                    ],
+                )
+                .into_pyresult()?,
+            )
+            .execute()
+            .await
+            .into_pyresult()?;
         Ok(id_seq)
     }
 
