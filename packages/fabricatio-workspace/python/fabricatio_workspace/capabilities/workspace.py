@@ -8,4 +8,5 @@ from fabricatio_core.capabilities.usages import UseLLM
 class Workspace(UseLLM, ABC):
     """This class contains the capabilities for the workspace."""
 
-    async def workspace(self, **kwargs) -> None: ...
+    async def workspace(self, **kwargs) -> None:
+        """Todo"""
