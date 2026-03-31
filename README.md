@@ -89,7 +89,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Replace litellm with native rust impl
     - [x] Port deprecated mock utils to thryd impl
     - [x] Port tests to new mock utils
-    - [ ] Sync documentations
+    - [x] Sync documentations
 - [ ] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
 - [ ] TreeSetter-based ACE
@@ -192,55 +192,67 @@ Below is a unified view of the same configuration expressed in different formats
 ### Environment variables or dotenv file
 
 ```dotenv
-FABRICATIO_LLM__API_ENDPOINT=https://api.openai.com
-FABRICATIO_LLM__API_KEY=your_openai_api_key
-FABRICATIO_LLM__TIMEOUT=300
-FABRICATIO_LLM__MAX_RETRIES=3
-FABRICATIO_LLM__MODEL=openai/gpt-3.5-turbo
+FABRICATIO_LLM__SEND_TO=openai/gpt-3.5-turbo
 FABRICATIO_LLM__TEMPERATURE=1.0
 FABRICATIO_LLM__TOP_P=0.35
-FABRICATIO_LLM__GENERATION_COUNT=1
 FABRICATIO_LLM__STREAM=false
-FABRICATIO_LLM__MAX_TOKENS=8192
+FABRICATIO_LLM__MAX_COMPLETION_TOKENS=8192
 FABRICATIO_DEBUG__LOG_LEVEL=INFO
 ```
 
 ### `fabricatio.toml` file
 
 ```toml
+[debug]
+log_level = "DEBUG"
+
+
 [llm]
-api_endpoint = "https://api.openai.com"
-api_key = "your_openai_api_key"
-timeout = 300
-max_retries = 3
-model = "openai/gpt-3.5-turbo"
+send_to = "base" # send req to `base` group by default
+max_completion_tokens = 32000
+stream = false
 temperature = 1.0
 top_p = 0.35
-generation_count = 1
-stream = false
-max_tokens = 8192
 
-[debug]
-log_level = "INFO"
+
+[routing]
+providers = [
+    { ptype = "OpenAICompatible", key = "sk-...", name = "mm", base_url = "https://api.example.com/v1/" }
+]
+
+completion_deployments = [
+    { id = "mm/a-completion-model", group = 'base', tpm = 100_000, rpm = 1000 }
+]
+cache_database_path = "path/to/.cache.db"
+
 ```
 
 ### `pyproject.toml` file
 
 ```toml
+[tool.fabricatio.debug]
+log_level = "DEBUG"
+
+
 [tool.fabricatio.llm]
-api_endpoint = "https://api.openai.com"
-api_key = "your_openai_api_key"
-timeout = 300
-max_retries = 3
-model = "openai/gpt-3.5-turbo"
+send_to = "base" # send req to `base` group by default
+max_completion_tokens = 32000
+stream = false
 temperature = 1.0
 top_p = 0.35
-generation_count = 1
-stream = false
-max_tokens = 8192
 
-[tool.fabricatio.debug]
-log_level = "INFO"
+
+[tool.fabricatio.routing]
+providers = [
+    { ptype = "OpenAICompatible", key = "sk-...", name = "mm", base_url = "https://api.example.com/v1/" }
+]
+
+completion_deployments = [
+    { id = "mm/a-completion-model", group = 'base', tpm = 100_000, rpm = 1000 }
+]
+cache_database_path = "path/to/.cache.db"
+
+
 ```
 
 ## Contributing
