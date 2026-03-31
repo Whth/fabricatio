@@ -2728,6 +2728,7 @@ dependencies = [
  "fabricatio-diff",
  "fabricatio-memory",
  "fabricatio-rag",
+ "fabricatio-workspace",
  "pyo3-build-config",
  "pyo3-stub-gen",
 ]
@@ -2790,6 +2791,21 @@ dependencies = [
  "tokio",
  "tower-http",
  "which",
+]
+
+[[package]]
+name = "fabricatio-workspace"
+version = "0.0.0"
+dependencies = [
+ "blake3",
+ "error-mapping",
+ "fabricatio-logger",
+ "git2",
+ "moka",
+ "pyo3",
+ "pyo3-stub-gen",
+ "rayon",
+ "utils",
 ]
 
 [[package]]

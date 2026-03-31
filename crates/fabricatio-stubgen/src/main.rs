@@ -47,6 +47,10 @@ fn main() -> Result<()> {
     #[cfg(feature = "rag")]
     fabricatio_rag::stub_info()?.generate()?;
 
+    #[cfg(feature = "workspace")]
+    fabricatio_workspace::stub_info()?.generate()?;
+
+
     #[cfg(feature = "all")]
     {
         fabricatio_core::stub_info()?.generate()?;
@@ -54,6 +58,7 @@ fn main() -> Result<()> {
         fabricatio_diff::stub_info()?.generate()?;
         fabricatio_checkpoint::stub_info()?.generate()?;
         fabricatio_rag::stub_info()?.generate()?;
+        fabricatio_workspace::stub_info()?.generate()?;
     }
 
     Ok(())

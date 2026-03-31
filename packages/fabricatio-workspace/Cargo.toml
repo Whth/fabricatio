@@ -1,9 +1,10 @@
 [package]
-name = "fabricatio-checkpoint"
+name = "fabricatio-workspace"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
 
 [dependencies]
 blake3 = "1.8.3"

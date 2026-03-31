@@ -12,6 +12,7 @@ fabricatio-memory = { path = "../../packages/fabricatio-memory", default-feature
 fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = false, optional = true }
 fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", default-features = false, optional = true }
 fabricatio-rag = { path = "../../packages/fabricatio-rag", default-features = false, optional = true }
+fabricatio-workspace = { path = "../../packages/fabricatio-workspace", default-features = false, optional = true }
 
 
 
@@ -25,7 +26,8 @@ all = ["fabricatio-core/stubgen",
     "fabricatio-memory/stubgen",
     "fabricatio-diff/stubgen",
     "fabricatio-checkpoint/stubgen",
-    "fabricatio-rag/stubgen"
+    "fabricatio-rag/stubgen",
+    "fabricatio-workspace/stubgen"
 ]
 
 
@@ -34,5 +36,6 @@ memory = ["fabricatio-memory/stubgen"]
 diff = ["fabricatio-diff/stubgen"]
 checkpoint = ["fabricatio-checkpoint/stubgen"]
 rag = ["fabricatio-rag/stubgen"]
+workspace = ["fabricatio-workspace/stubgen"]
 
 default = []
