@@ -50,7 +50,6 @@ fn main() -> Result<()> {
     #[cfg(feature = "workspace")]
     fabricatio_workspace::stub_info()?.generate()?;
 
-
     #[cfg(feature = "all")]
     {
         fabricatio_core::stub_info()?.generate()?;
