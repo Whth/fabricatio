@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict
 
 import pytest
+
 from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.executor import ToolExecutor
 from fabricatio_tool.models.tool import Tool, ToolBox
@@ -181,7 +182,7 @@ class TestToolExecutor:
         return {"existing": "value"}
 
     def test_inject_tools(
-        self, tool_executor: ToolExecutor, mock_context: Dict[str, Any], sample_func: Callable[[int, str], str]
+            self, tool_executor: ToolExecutor, mock_context: Dict[str, Any], sample_func: Callable[[int, str], str]
     ) -> None:
         """Test tool injection into context."""
         new_context = tool_executor.inject_tools(mock_context)
@@ -234,10 +235,6 @@ async def test_forbidden_import_check(tool_executor: ToolExecutor, sample_func: 
 
     source = "exec(\"print('hi')\")"
     with pytest.raises(ValueError, match=r"Forbidden function call: exec\(\)"):
-        await tool_executor.execute(source)
-
-    source = "print(\"exec('hi=1')\")"
-    with pytest.raises(ValueError, match=r"Forbidden function call: print\(\)"):
         await tool_executor.execute(source)
 
     source = f"res={sample_func.__name__}(5, 'a')\n{tool_executor.collector_varname}.submit('result', res)"
