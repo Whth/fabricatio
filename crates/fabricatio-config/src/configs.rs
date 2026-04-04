@@ -3,6 +3,7 @@ use macro_utils::TemplateDefault;
 use pyo3::prelude::*;
 
 use crate::secstr::SecretStr;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 
@@ -20,7 +21,7 @@ use validator::Validate;
 /// This structure contains all parameters needed to configure and interact with LLM services.
 /// All fields are optional to allow partial configuration from different sources.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate, Default)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct LLMConfig {
     pub send_to: Option<String>,
@@ -51,13 +52,13 @@ pub struct LLMConfig {
 
 /// Embedding configuration structure
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct EmbeddingConfig {
     pub send_to: Option<String>,
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct DebugConfig {
     pub log_level: String,
@@ -76,7 +77,7 @@ impl Default for DebugConfig {
 }
 
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct TemplateManagerConfig {
     /// The directory containing the templates.
@@ -101,7 +102,7 @@ impl Default for TemplateManagerConfig {
 
 /// Template configuration structure
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct TemplateConfig {
     pub mapping_template: String,
@@ -144,7 +145,7 @@ pub struct TemplateConfig {
 ///
 /// Contains the necessary details to connect to and authenticate with a service provider.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
 pub struct ProviderConfig {
     /// The type of the provider (e.g., OpenAI, Anthropic).
@@ -165,7 +166,7 @@ pub struct ProviderConfig {
 ///
 /// Defines the identity, grouping, and rate limits for a deployed service instance.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
 pub struct DeploymentConfig {
     /// Unique identifier for the deployment.
@@ -186,7 +187,7 @@ pub struct DeploymentConfig {
 /// Manages the list of available providers and their corresponding deployments
 /// to handle load balancing and request routing.
 #[derive(Debug, Clone, Default, Deserialize, Serialize, Validate)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
 pub struct RoutingConfig {
     /// List of configured providers available for routing.
@@ -204,7 +205,7 @@ pub struct RoutingConfig {
 
 /// General configuration structure for application-wide settings
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct GeneralConfig {
     /// Whether to automatically repair malformed JSON
@@ -223,7 +224,7 @@ impl Default for GeneralConfig {
 ///
 /// Contains settings for controlling event emission and listener behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all, set_all)]
 pub struct EmitterConfig {
     /// The delimiter used to separate the event name into segments
@@ -240,7 +241,7 @@ impl Default for EmitterConfig {
 
 /// Configuration structure containing all system components.
 #[derive(Default, Clone, Serialize, Deserialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 pub struct Config {
     /// Embedding configuration parameters.
@@ -278,7 +279,8 @@ pub struct Config {
     /// Additional configuration values as key-value pairs.
     pub ext: HashMap<String, Value>,
 }
-#[gen_stub_pymethods]
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Config {
     /// Load configuration data for a given section name and instantiate a Python class

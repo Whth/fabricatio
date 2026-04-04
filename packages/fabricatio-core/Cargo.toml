@@ -40,6 +40,6 @@ tempfile = "3.27.0"
 
 [features]
 default = ["pyo3/extension-module"]
-stubgen = []
+stubgen = ["fabricatio-logger/stubgen", "fabricatio-config/stubgen"]
 
 

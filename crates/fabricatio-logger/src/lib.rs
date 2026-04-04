@@ -35,11 +35,11 @@ mod renderer;
 pub use initializer::*;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use pyo3_stub_gen::derive::*;
+
 pub use tracing::{debug, error, info, trace, warn};
 
 #[derive(Default)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", pyo3_stub_gen::derive::gen_stub_pyclass)]
 #[pyclass]
 pub struct Logger;
 
@@ -64,7 +64,7 @@ impl Logger {
         Ok("<Unknown>".to_string())
     }
 }
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", pyo3_stub_gen::derive::gen_stub_pymethods)]
 #[pymethods]
 impl Logger {
     fn info(&self, msg: &str) -> PyResult<()> {

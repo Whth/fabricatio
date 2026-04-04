@@ -8,7 +8,8 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = "0.20.0"
+pyo3-stub-gen = { version = "0.20.0", optional = true }
+
 pyo3 = "0.28.2"
 fabricatio-constants = { path = "../fabricatio-constants" }
 
@@ -21,3 +22,10 @@ figment = { version = "0.10.19", features = ["env", "toml"] }
 validator = { version = "0.20.0", features = ["derive"] }
 
 thryd = { path = "../thryd", features = ["pyo3", "pystub"] }
+
+
+
+
+[features]
+
+stubgen = ["dep:pyo3-stub-gen"]

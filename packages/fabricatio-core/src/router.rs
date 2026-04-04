@@ -3,17 +3,18 @@ use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::trace;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
-use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
-    PersistentCache, ProviderType, Router as ThrydRouter, create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag,
+    ModelTypeTag, PersistentCache, ProviderType, Router as ThrydRouter,
 };
 use tokio::sync::RwLock;
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 #[derive(Default)]
 pub struct Router {
@@ -33,13 +34,13 @@ impl Router {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Router {
     #[allow(clippy::too_many_arguments)]
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
-    )]
+    ))]
     #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
@@ -89,10 +90,10 @@ impl Router {
         })
     }
 
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]", imports = ("typing",)
         )
-    )]
+    ))]
     /// Sends an embedding request to the specified group.
     ///
     /// Args:
@@ -116,9 +117,10 @@ impl Router {
         })
     }
 
-    #[gen_stub(
+
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
+    ))]
     #[pyo3(signature = (provider_type, name = None, api_key = None, endpoint = None))]
     /// Adds a provider to the router.
     ///
@@ -146,7 +148,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -158,9 +160,9 @@ impl Router {
         })
     }
 
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
+    ))]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds a completion model to the specified group.
     ///
@@ -192,9 +194,9 @@ impl Router {
         })
     }
 
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
+    ))]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds an embedding model to the specified group.
     ///
@@ -227,9 +229,10 @@ impl Router {
         })
     }
 
-    #[gen_stub(
+
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
+    ))]
     /// Mount cache database to all routers, create if not exists.
     ///
     /// Initializes and mounts a shared cache database file for both completion and embedding routers.
@@ -269,7 +272,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         router.add_provider(p).into_pyresult()?;
     }
@@ -308,7 +311,7 @@ pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     Ok(Router::new(er, cr))
 }
 
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 /// Count tokens of a text
 pub fn tokens_of(text: String) -> u64 {
