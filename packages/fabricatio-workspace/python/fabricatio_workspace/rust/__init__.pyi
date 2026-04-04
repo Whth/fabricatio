@@ -15,8 +15,35 @@ def fork(repo_path: builtins.str | os.PathLike | pathlib.Path, to: builtins.str 
          branch_name: builtins.str, base_branch: typing.Optional[builtins.str] = None,
          exist_ok: builtins.bool = False) -> pathlib.Path:
     r"""
-    Safely forks a new worktree.
-    1. Pre-checks branch conflicts and path existence.
-    2. Creates branch if missing.
-    3. Adds worktree with cleanup on failure.
+    Forks a new Git worktree with safety checks and automatic cleanup.
+    
+    This function creates a new worktree linked to a specific branch. It handles
+    branch creation, conflict detection across existing worktrees, and ensures
+    atomicity by cleaning up partial directories if the worktree addition fails.
+    
+    Args:
+        repo_path (PathBuf): The absolute or relative path to the main Git repository.
+        to (PathBuf): The destination path where the new worktree will be created.
+        branch_name (str): The name of the branch to associate with the new worktree.
+        base_branch (Optional[str]): The name of the existing branch to use as the starting point
+            for creating `branch_name` if it does not already exist. If `None`, the current
+            `HEAD` of the main repository is used as the base.
+        exist_ok (bool): If `True`, the function will return the path of an existing worktree
+            if one is already checked out to `branch_name`, instead of raising an error.
+            If `False`, a conflict raises a `RuntimeError`.
+    
+    Returns:
+        PathBuf: The absolute path to the newly created (or existing) worktree directory.
+    
+    Raises:
+        RuntimeError: If `branch_name` is already checked out in another worktree and `exist_ok` is `False`.
+        RuntimeError: If `branch_name` already exists as a local branch but is not checked out in any worktree
+            (preventing accidental overwriting or ambiguous state).
+        RuntimeError: If the destination path `to` already exists on the filesystem.
+        RuntimeError: If the underlying Git operation to add the worktree fails.
+    
+    Note:
+        - If the branch `branch_name` does not exist, it will be created automatically.
+        - If `base_branch` is provided but invalid, the function falls back to using the current `HEAD`.
+        - Partial directories created at `to` during a failed operation are automatically removed.
     """

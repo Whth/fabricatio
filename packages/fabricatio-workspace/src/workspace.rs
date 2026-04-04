@@ -6,11 +6,37 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::gen_stub_pyfunction;
 use std::path::PathBuf;
 
+/// Forks a new Git worktree with safety checks and automatic cleanup.
 ///
-/// Safely forks a new worktree.
-/// 1. Pre-checks branch conflicts and path existence.
-/// 2. Creates branch if missing.
-/// 3. Adds worktree with cleanup on failure.
+/// This function creates a new worktree linked to a specific branch. It handles
+/// branch creation, conflict detection across existing worktrees, and ensures
+/// atomicity by cleaning up partial directories if the worktree addition fails.
+///
+/// Args:
+///     repo_path (PathBuf): The absolute or relative path to the main Git repository.
+///     to (PathBuf): The destination path where the new worktree will be created.
+///     branch_name (str): The name of the branch to associate with the new worktree.
+///     base_branch (Optional[str]): The name of the existing branch to use as the starting point
+///         for creating `branch_name` if it does not already exist. If `None`, the current
+///         `HEAD` of the main repository is used as the base.
+///     exist_ok (bool): If `True`, the function will return the path of an existing worktree
+///         if one is already checked out to `branch_name`, instead of raising an error.
+///         If `False`, a conflict raises a `RuntimeError`.
+///
+/// Returns:
+///     PathBuf: The absolute path to the newly created (or existing) worktree directory.
+///
+/// Raises:
+///     RuntimeError: If `branch_name` is already checked out in another worktree and `exist_ok` is `False`.
+///     RuntimeError: If `branch_name` already exists as a local branch but is not checked out in any worktree
+///         (preventing accidental overwriting or ambiguous state).
+///     RuntimeError: If the destination path `to` already exists on the filesystem.
+///     RuntimeError: If the underlying Git operation to add the worktree fails.
+///
+/// Note:
+///     - If the branch `branch_name` does not exist, it will be created automatically.
+///     - If `base_branch` is provided but invalid, the function falls back to using the current `HEAD`.
+///     - Partial directories created at `to` during a failed operation are automatically removed.
 #[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature=(repo_path, to, branch_name, base_branch=None, exist_ok=false))]
@@ -23,12 +49,7 @@ pub fn fork(
 ) -> PyResult<PathBuf> {
     let repo = Repository::open(&repo_path).into_pyresult()?;
 
-    // --- Phase 1: Pre-checks (No side effects) ---
-
-    // 1. Check for branch conflicts in existing worktrees
-
     let wt_list = repo.worktrees().into_pyresult()?;
-
 
     for wt_name in wt_list.iter().flatten() {
         trace!("Looking worktree: {wt_name}");
@@ -49,8 +70,6 @@ pub fn fork(
         }
     }
 
-
-    // 3. Ensure branch exists
     let b_ref = if let Some(base) = base_branch {
         repo.find_branch(&base, BranchType::Local).into_pyresult().map(|b| b.into_reference()).or_else(
             |_| {
@@ -69,10 +88,8 @@ pub fn fork(
             PyRuntimeError::new_err(
                 format!("Branch `{branch_name}` already exists, can't create other one with the same name!")
             )
-        )
+        );
     };
-
-    // --- Phase 2: Execute with Rollback ---
 
     if to.exists() {
         return Err(PyRuntimeError::new_err(
@@ -80,11 +97,10 @@ pub fn fork(
         ));
     }
 
-
     match repo.worktree(branch_name, &to, Some(WorktreeAddOptions::new().reference(Some(&b_ref)).checkout_existing(true))) {
         Ok(wt) => Ok(wt.path().to_path_buf()),
         Err(e) => {
-            let _ = std::fs::remove_dir_all(&to); // Cleanup partial state
+            let _ = std::fs::remove_dir_all(&to);
             Err(PyRuntimeError::new_err(format!("Worktree creation failed: {}", e)))
         }
     }
