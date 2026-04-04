@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
@@ -10,6 +10,7 @@ mod workspace;
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    fabricatio_logger::init_logger_auto()?;
     workspace::register(python, m)?;
     Ok(())
 }
