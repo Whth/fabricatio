@@ -90,7 +90,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Port deprecated mock utils to thryd impl
     - [x] Port tests to new mock utils
     - [x] Sync documentations
-- [ ] Add worktree-based isolated development subpackage
+- [x] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
 - [ ] TreeSetter-based ACE
 - [ ] Self-Extensible Agent

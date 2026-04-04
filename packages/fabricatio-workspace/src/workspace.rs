@@ -60,52 +60,70 @@ pub fn fork(
             && ref_name.ends_with(branch_name)
         {
             return if exist_ok {
-                trace!("Use exist worktree: {}",wt.path().display());
+                trace!("Use exist worktree: {}", wt.path().display());
                 Ok(wt.path().to_path_buf())
             } else {
-                Err(PyRuntimeError::new_err(
-                    format!("Branch `{branch_name}` is occupied by worktree `{wt_name}` at {}", wt.path().display())
-                ))
+                Err(PyRuntimeError::new_err(format!(
+                    "Branch `{branch_name}` is occupied by worktree `{wt_name}` at {}",
+                    wt.path().display()
+                )))
             };
         }
     }
 
     let b_ref = if let Some(base) = base_branch {
-        repo.find_branch(&base, BranchType::Local).into_pyresult().map(|b| b.into_reference()).or_else(
-            |_| {
+        repo.find_branch(&base, BranchType::Local)
+            .into_pyresult()
+            .map(|b| b.into_reference())
+            .or_else(|_| {
                 debug!("Branch `{base}` not found or not available, using head instead.");
 
                 repo.head().into_pyresult()
-            }
-        )?
+            })?
     } else if repo.find_branch(branch_name, BranchType::Local).is_err() {
-        repo
-            .branch(branch_name, &repo.head().into_pyresult()?.peel_to_commit().into_pyresult()?, false)
-            .into_pyresult()?
-            .into_reference()
+        repo.branch(
+            branch_name,
+            &repo
+                .head()
+                .into_pyresult()?
+                .peel_to_commit()
+                .into_pyresult()?,
+            false,
+        )
+        .into_pyresult()?
+        .into_reference()
     } else {
-        return Err(
-            PyRuntimeError::new_err(
-                format!("Branch `{branch_name}` already exists, can't create other one with the same name!")
-            )
-        );
+        return Err(PyRuntimeError::new_err(format!(
+            "Branch `{branch_name}` already exists, can't create other one with the same name!"
+        )));
     };
 
     if to.exists() {
-        return Err(PyRuntimeError::new_err(
-            format!("Can not create a worktree at {}, since the path is already occupied.", to.display())
-        ));
+        return Err(PyRuntimeError::new_err(format!(
+            "Can not create a worktree at {}, since the path is already occupied.",
+            to.display()
+        )));
     }
 
-    match repo.worktree(branch_name, &to, Some(WorktreeAddOptions::new().reference(Some(&b_ref)).checkout_existing(true))) {
+    match repo.worktree(
+        branch_name,
+        &to,
+        Some(
+            WorktreeAddOptions::new()
+                .reference(Some(&b_ref))
+                .checkout_existing(true),
+        ),
+    ) {
         Ok(wt) => Ok(wt.path().to_path_buf()),
         Err(e) => {
             let _ = std::fs::remove_dir_all(&to);
-            Err(PyRuntimeError::new_err(format!("Worktree creation failed: {}", e)))
+            Err(PyRuntimeError::new_err(format!(
+                "Worktree creation failed: {}",
+                e
+            )))
         }
     }
 }
-
 
 /// Prunes all stale worktrees from the repository and ensures branch availability.
 ///
@@ -151,7 +169,10 @@ pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
                 continue;
             }
 
-            trace!("Pruning stale worktree: {wt_name} at {}", wt.path().display());
+            trace!(
+                "Pruning stale worktree: {wt_name} at {}",
+                wt.path().display()
+            );
             wt.prune(None).into_pyresult()?;
             pruned_count += 1;
         }
@@ -192,11 +213,7 @@ pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
 #[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature=(worktree_path, msg, files=None))]
-pub fn commit(
-    worktree_path: PathBuf,
-    msg: &str,
-    files: Option<Vec<String>>,
-) -> PyResult<String> {
+pub fn commit(worktree_path: PathBuf, msg: &str, files: Option<Vec<String>>) -> PyResult<String> {
     let repo = Repository::open(&worktree_path).into_pyresult()?;
 
     // 1. Prepare Index
@@ -204,13 +221,18 @@ pub fn commit(
 
     // 2. Stage files
     if let Some(file_list) = files {
-        if file_list.is_empty() {} else {
+        if file_list.is_empty() {
+        } else {
             for file in file_list {
-                index.add_path(std::path::Path::new(&file)).into_pyresult()?;
+                index
+                    .add_path(std::path::Path::new(&file))
+                    .into_pyresult()?;
             }
         }
     } else {
-        index.add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None).into_pyresult()?;
+        index
+            .add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None)
+            .into_pyresult()?;
     }
 
     index.write().into_pyresult()?;
@@ -220,21 +242,26 @@ pub fn commit(
     let tree = repo.find_tree(tree_id).into_pyresult()?;
 
     // 4. Get Parent Commit (HEAD)
-    let parent_commit = repo.head().into_pyresult()?
-        .peel_to_commit().into_pyresult()?;
+    let parent_commit = repo
+        .head()
+        .into_pyresult()?
+        .peel_to_commit()
+        .into_pyresult()?;
 
     // 5. Get Signature (Author/Committer)
     let signature = repo.signature().into_pyresult()?;
 
     // 6. Create Commit
-    let commit_oid = repo.commit(
-        Some("HEAD"), // Update HEAD reference
-        &signature,   // Author
-        &signature,   // Committer
-        msg,          // Message
-        &tree,        // Tree
-        &[&parent_commit], // Parents
-    ).into_pyresult()?;
+    let commit_oid = repo
+        .commit(
+            Some("HEAD"),      // Update HEAD reference
+            &signature,        // Author
+            &signature,        // Committer
+            msg,               // Message
+            &tree,             // Tree
+            &[&parent_commit], // Parents
+        )
+        .into_pyresult()?;
 
     Ok(commit_oid.to_string())
 }

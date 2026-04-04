@@ -9,8 +9,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag,
-    ModelTypeTag, PersistentCache, ProviderType, Router as ThrydRouter,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
+    PersistentCache, ProviderType, Router as ThrydRouter, create_provider,
 };
 use tokio::sync::RwLock;
 
@@ -117,7 +117,6 @@ impl Router {
         })
     }
 
-
     #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
     ))]
@@ -148,7 +147,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -229,7 +228,6 @@ impl Router {
         })
     }
 
-
     #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
     ))]
@@ -272,7 +270,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         router.add_provider(p).into_pyresult()?;
     }
