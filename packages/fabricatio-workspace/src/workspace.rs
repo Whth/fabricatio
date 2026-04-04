@@ -3,7 +3,7 @@ use fabricatio_logger::{debug, trace};
 use git2::{BranchType, Repository, WorktreeAddOptions};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3_stub_gen::derive::gen_stub_pyfunction;
+use pyo3_stub_gen::derive::*;
 use std::path::PathBuf;
 
 /// Forks a new Git worktree with safety checks and automatic cleanup.
@@ -105,7 +105,62 @@ pub fn fork(
         }
     }
 }
+
+
+/// Prunes all stale worktrees from the repository and ensures branch availability.
+///
+/// This function scans the repository for worktrees that are no longer valid
+/// (e.g., the working directory has been manually deleted or corrupted) and removes
+/// their metadata. It effectively cleans up the repository state, ensuring that
+/// branches previously locked by these stale worktrees are released and can be
+/// used again.
+///
+/// This is analogous to running `git worktree prune` but with additional safety
+/// checks to ensure internal consistency within the application's context.
+///
+/// Args:
+///     repo_path (PathBuf): The absolute or relative path to the main Git repository
+///         where stale worktrees should be pruned.
+///
+/// Returns:
+///     int: The number of stale worktrees successfully pruned.
+///
+/// Raises:
+///     RuntimeError: If the repository cannot be opened or if there is an error
+///         accessing the worktree metadata directory.
+///
+/// Note:
+///     - This operation only removes the metadata links in `.git/worktrees`.
+///     - It does not delete the actual working directory files if they still exist on disk;
+///       it only cleans up the repository's reference to them.
+///     - After pruning, branches associated with these worktrees are considered free
+///       and can be checked out in new worktrees.
+#[gen_stub_pyfunction]
+#[pyfunction]
+#[pyo3(signature=(repo_path))]
+pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
+    let repo = Repository::open(&repo_path).into_pyresult()?;
+
+    let mut pruned_count = 0;
+    let wt_list = repo.worktrees().into_pyresult()?;
+
+    for wt_name in wt_list.iter().flatten() {
+        trace!("Checking worktree for pruning: {wt_name}");
+        if let Ok(wt) = repo.find_worktree(wt_name) {
+            if !wt.is_prunable(None).into_pyresult()? {
+                continue;
+            }
+
+            trace!("Pruning stale worktree: {wt_name} at {}", wt.path().display());
+            wt.prune(None).into_pyresult()?;
+            pruned_count += 1;
+        }
+    }
+
+    Ok(pruned_count)
+}
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fork, m)?)?;
+    m.add_function(wrap_pyfunction!(prune, m)?)?;
     Ok(())
 }

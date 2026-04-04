@@ -8,6 +8,7 @@ import typing
 
 __all__ = [
     "fork",
+    "prune",
 ]
 
 
@@ -46,4 +47,37 @@ def fork(repo_path: builtins.str | os.PathLike | pathlib.Path, to: builtins.str 
         - If the branch `branch_name` does not exist, it will be created automatically.
         - If `base_branch` is provided but invalid, the function falls back to using the current `HEAD`.
         - Partial directories created at `to` during a failed operation are automatically removed.
+    """
+
+
+def prune(repo_path: builtins.str | os.PathLike | pathlib.Path) -> builtins.int:
+    r"""
+    Prunes all stale worktrees from the repository and ensures branch availability.
+    
+    This function scans the repository for worktrees that are no longer valid
+    (e.g., the working directory has been manually deleted or corrupted) and removes
+    their metadata. It effectively cleans up the repository state, ensuring that
+    branches previously locked by these stale worktrees are released and can be
+    used again.
+    
+    This is analogous to running `git worktree prune` but with additional safety
+    checks to ensure internal consistency within the application's context.
+    
+    Args:
+        repo_path (PathBuf): The absolute or relative path to the main Git repository
+            where stale worktrees should be pruned.
+    
+    Returns:
+        int: The number of stale worktrees successfully pruned.
+    
+    Raises:
+        RuntimeError: If the repository cannot be opened or if there is an error
+            accessing the worktree metadata directory.
+    
+    Note:
+        - This operation only removes the metadata links in `.git/worktrees`.
+        - It does not delete the actual working directory files if they still exist on disk;
+          it only cleans up the repository's reference to them.
+        - After pruning, branches associated with these worktrees are considered free
+          and can be checked out in new worktrees.
     """

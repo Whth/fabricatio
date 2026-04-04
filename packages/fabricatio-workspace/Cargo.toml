@@ -17,7 +17,7 @@ pyo3 = { version = "0.28.2" }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
 rayon = "1.11.0"
-pyo3-stub-gen = "0.20.0"
+pyo3-stub-gen = { version = "0.20.0" }
 
 
 
