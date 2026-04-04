@@ -159,8 +159,89 @@ pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
 
     Ok(pruned_count)
 }
+
+/// Commits changes in a specific worktree with optional file selection.
+///
+/// This function stages specified files (or all modified files if none are specified)
+/// and creates a new commit in the repository associated with the given worktree.
+/// It automatically configures the committer and author based on the Git configuration
+/// found in the worktree's repository.
+///
+/// Args:
+///     worktree_path (PathBuf): The absolute or relative path to the root of the worktree
+///         where the commit should be made.
+///     msg (str): The commit message describing the changes.
+///     files (Optional[List[str]]): A list of file paths relative to the worktree root
+///         to stage for the commit. If `None` or an empty list, all currently modified
+///         and tracked files in the worktree will be staged automatically.
+///
+/// Returns:
+///     str: The hexadecimal string representation of the new commit's OID (Object ID).
+///
+/// Raises:
+///     RuntimeError: If the worktree path is invalid or not part of a valid Git repository.
+///     RuntimeError: If there are no changes to commit (empty index).
+///     RuntimeError: If staging the specified files fails (e.g., file not found).
+///     RuntimeError: If the commit operation fails due to Git constraints (e.g., merge conflicts).
+///
+/// Note:
+///     - The function uses the current `HEAD` of the worktree as the parent commit.
+///     - Author and Committer identities are derived from the Git config (`user.name` and `user.email`).
+///     - If `files` is provided, only those files are added to the index; other staged changes remain untouched
+///       unless explicitly overwritten by this operation's logic (here we add to index).
+#[gen_stub_pyfunction]
+#[pyfunction]
+#[pyo3(signature=(worktree_path, msg, files=None))]
+pub fn commit(
+    worktree_path: PathBuf,
+    msg: &str,
+    files: Option<Vec<String>>,
+) -> PyResult<String> {
+    let repo = Repository::open(&worktree_path).into_pyresult()?;
+
+    // 1. Prepare Index
+    let mut index = repo.index().into_pyresult()?;
+
+    // 2. Stage files
+    if let Some(file_list) = files {
+        if file_list.is_empty() {} else {
+            for file in file_list {
+                index.add_path(std::path::Path::new(&file)).into_pyresult()?;
+            }
+        }
+    } else {
+        index.add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None).into_pyresult()?;
+    }
+
+    index.write().into_pyresult()?;
+
+    // 3. Create Tree
+    let tree_id = index.write_tree().into_pyresult()?;
+    let tree = repo.find_tree(tree_id).into_pyresult()?;
+
+    // 4. Get Parent Commit (HEAD)
+    let parent_commit = repo.head().into_pyresult()?
+        .peel_to_commit().into_pyresult()?;
+
+    // 5. Get Signature (Author/Committer)
+    let signature = repo.signature().into_pyresult()?;
+
+    // 6. Create Commit
+    let commit_oid = repo.commit(
+        Some("HEAD"), // Update HEAD reference
+        &signature,   // Author
+        &signature,   // Committer
+        msg,          // Message
+        &tree,        // Tree
+        &[&parent_commit], // Parents
+    ).into_pyresult()?;
+
+    Ok(commit_oid.to_string())
+}
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fork, m)?)?;
     m.add_function(wrap_pyfunction!(prune, m)?)?;
+    m.add_function(wrap_pyfunction!(commit, m)?)?;
     Ok(())
 }

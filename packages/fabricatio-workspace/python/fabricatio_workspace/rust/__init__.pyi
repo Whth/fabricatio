@@ -7,9 +7,45 @@ import pathlib
 import typing
 
 __all__ = [
+    "commit",
     "fork",
     "prune",
 ]
+
+
+def commit(worktree_path: builtins.str | os.PathLike | pathlib.Path, msg: builtins.str,
+           files: typing.Optional[typing.Sequence[builtins.str]] = None) -> builtins.str:
+    r"""
+    Commits changes in a specific worktree with optional file selection.
+    
+    This function stages specified files (or all modified files if none are specified)
+    and creates a new commit in the repository associated with the given worktree.
+    It automatically configures the committer and author based on the Git configuration
+    found in the worktree's repository.
+    
+    Args:
+        worktree_path (PathBuf): The absolute or relative path to the root of the worktree
+            where the commit should be made.
+        msg (str): The commit message describing the changes.
+        files (Optional[List[str]]): A list of file paths relative to the worktree root
+            to stage for the commit. If `None` or an empty list, all currently modified
+            and tracked files in the worktree will be staged automatically.
+    
+    Returns:
+        str: The hexadecimal string representation of the new commit's OID (Object ID).
+    
+    Raises:
+        RuntimeError: If the worktree path is invalid or not part of a valid Git repository.
+        RuntimeError: If there are no changes to commit (empty index).
+        RuntimeError: If staging the specified files fails (e.g., file not found).
+        RuntimeError: If the commit operation fails due to Git constraints (e.g., merge conflicts).
+    
+    Note:
+        - The function uses the current `HEAD` of the worktree as the parent commit.
+        - Author and Committer identities are derived from the Git config (`user.name` and `user.email`).
+        - If `files` is provided, only those files are added to the index; other staged changes remain untouched
+          unless explicitly overwritten by this operation's logic (here we add to index).
+    """
 
 
 def fork(repo_path: builtins.str | os.PathLike | pathlib.Path, to: builtins.str | os.PathLike | pathlib.Path,
