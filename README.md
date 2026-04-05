@@ -90,11 +90,15 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Port deprecated mock utils to thryd impl
     - [x] Port tests to new mock utils
     - [x] Sync documentations
+    - [ ] Router cache support ttl and eviction
 - [x] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
 - [ ] TreeSetter-based ACE
 - [ ] Self-Extensible Agent
 - [ ] Add more examples
+- [ ] `ToolExecuter` exec results feedback to llm
+- [ ] use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
+- [ ] Add Texts-based skill system, as a subpackage
 - [x] Port build workflow to `Justfile`
 
 ## Installation
@@ -271,4 +275,3 @@ Special thanks to the contributors and maintainers of:
 - [PyO3](https://github.com/PyO3/pyo3)
 - [Maturin](https://github.com/PyO3/maturin)
 - [Handlebars.rs](https://github.com/sunng87/handlebars-rust)
-- [LiteLLM](https://github.com/BerriAI/litellm)
