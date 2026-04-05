@@ -7,7 +7,6 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use std::path::PathBuf;
 
-
 /// Forks a new Git worktree with safety checks and automatic cleanup.
 ///
 /// This function creates a new worktree linked to a specific branch. It handles
@@ -92,8 +91,8 @@ pub fn fork(
                 .into_pyresult()?,
             false,
         )
-            .into_pyresult()?
-            .into_reference()
+        .into_pyresult()?
+        .into_reference()
     } else {
         return Err(PyRuntimeError::new_err(format!(
             "Branch `{branch_name}` already exists, can't create other one with the same name!"
@@ -223,7 +222,8 @@ pub fn commit(worktree_path: PathBuf, msg: &str, files: Option<Vec<String>>) -> 
 
     // 2. Stage files
     if let Some(file_list) = files {
-        if file_list.is_empty() {} else {
+        if file_list.is_empty() {
+        } else {
             for file in file_list {
                 index
                     .add_path(std::path::Path::new(&file))
