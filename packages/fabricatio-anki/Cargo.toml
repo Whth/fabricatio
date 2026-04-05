@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 [dependencies]
 clap = { version = "4.6.0", features = ["derive"] }
 
-pyo3 = { version = "0.28.2", features = ["extension-module"] }
+pyo3 = { version = "0.28.3", features = ["extension-module"] }
 deck_loader = { path = "../../crates/deck_loader" }
 pythonize = "0.28.0"
 sanitize-filename = "0.6.0"

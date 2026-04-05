@@ -1,12 +1,12 @@
 [package]
 name = "fabricatio-stubgen"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = "0.20.0"
+pyo3-stub-gen = "0.21.0"
 fabricatio-core = { path = "../../packages/fabricatio-core", default-features = false, optional = true }
 fabricatio-memory = { path = "../../packages/fabricatio-memory", default-features = false, optional = true }
 fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = false, optional = true }
@@ -17,7 +17,7 @@ fabricatio-workspace = { path = "../../packages/fabricatio-workspace", default-f
 
 
 [build-dependencies]
-pyo3-build-config = "0.28.2"
+pyo3-build-config = "0.28.3"
 
 
 
