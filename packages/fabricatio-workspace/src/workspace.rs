@@ -3,8 +3,10 @@ use fabricatio_logger::{debug, trace};
 use git2::{BranchType, Repository, WorktreeAddOptions};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use std::path::PathBuf;
+
 
 /// Forks a new Git worktree with safety checks and automatic cleanup.
 ///
@@ -37,7 +39,7 @@ use std::path::PathBuf;
 ///     - If the branch `branch_name` does not exist, it will be created automatically.
 ///     - If `base_branch` is provided but invalid, the function falls back to using the current `HEAD`.
 ///     - Partial directories created at `to` during a failed operation are automatically removed.
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature=(repo_path, to, branch_name, base_branch=None, exist_ok=false))]
 pub fn fork(
@@ -90,8 +92,8 @@ pub fn fork(
                 .into_pyresult()?,
             false,
         )
-        .into_pyresult()?
-        .into_reference()
+            .into_pyresult()?
+            .into_reference()
     } else {
         return Err(PyRuntimeError::new_err(format!(
             "Branch `{branch_name}` already exists, can't create other one with the same name!"
@@ -153,7 +155,7 @@ pub fn fork(
 ///       it only cleans up the repository's reference to them.
 ///     - After pruning, branches associated with these worktrees are considered free
 ///       and can be checked out in new worktrees.
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature=(repo_path))]
 pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
@@ -210,7 +212,7 @@ pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
 ///     - Author and Committer identities are derived from the Git config (`user.name` and `user.email`).
 ///     - If `files` is provided, only those files are added to the index; other staged changes remain untouched
 ///       unless explicitly overwritten by this operation's logic (here we add to index).
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature=(worktree_path, msg, files=None))]
 pub fn commit(worktree_path: PathBuf, msg: &str, files: Option<Vec<String>>) -> PyResult<String> {
@@ -221,8 +223,7 @@ pub fn commit(worktree_path: PathBuf, msg: &str, files: Option<Vec<String>>) -> 
 
     // 2. Stage files
     if let Some(file_list) = files {
-        if file_list.is_empty() {
-        } else {
+        if file_list.is_empty() {} else {
             for file in file_list {
                 index
                     .add_path(std::path::Path::new(&file))
