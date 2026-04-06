@@ -97,7 +97,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Self-Extensible Agent
 - [ ] Add more examples
 - [ ] `ToolExecuter` exec results feedback to llm
-- [ ] use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
+- [x] use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
 - [ ] Add Texts-based skill system, as a subpackage
 - [x] Port build workflow to `Justfile`
 
