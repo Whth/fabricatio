@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List
 
 import pytest
+
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
@@ -27,9 +28,7 @@ def note(content: str = "test content", importance: int = 5, tags: List[str] | N
     Returns:
         Note: Note object with test data
     """
-    if tags is None:
-        tags = ["test"]
-    return Note(content=content, importance=importance, tags=tags)
+    return Note(content=content, importance=importance, tags=tags or ["test"])
 
 
 class RememberRole(LLMTestRole, Remember):
@@ -72,12 +71,12 @@ def role(shared_temp_dir: Path) -> RememberRole:
     ("ret_value", "raw_input"),
     [
         (
-            note("Important meeting notes", 80, ["meeting", "work"]),
-            "Had a meeting about project deadlines",
+                note("Important meeting notes", 80, ["meeting", "work"]),
+                "Had a meeting about project deadlines",
         ),
         (
-            note("Shopping list", 30, ["personal", "shopping"]),
-            "Need to buy milk and bread",
+                note("Shopping list", 30, ["personal", "shopping"]),
+                "Need to buy milk and bread",
         ),
     ],
 )
