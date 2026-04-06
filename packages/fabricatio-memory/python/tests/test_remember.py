@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List
 
 import pytest
-
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
@@ -71,12 +70,12 @@ def role(shared_temp_dir: Path) -> RememberRole:
     ("ret_value", "raw_input"),
     [
         (
-                note("Important meeting notes", 80, ["meeting", "work"]),
-                "Had a meeting about project deadlines",
+            note("Important meeting notes", 80, ["meeting", "work"]),
+            "Had a meeting about project deadlines",
         ),
         (
-                note("Shopping list", 30, ["personal", "shopping"]),
-                "Need to buy milk and bread",
+            note("Shopping list", 30, ["personal", "shopping"]),
+            "Need to buy milk and bread",
         ),
     ],
 )
