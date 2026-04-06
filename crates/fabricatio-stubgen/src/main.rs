@@ -21,12 +21,6 @@
 //! - Static type checking support
 //! - Parameter and return type information
 //!
-//! ## Generated Stubs
-//!
-//! The tool generates type stubs for:
-//! - `fabricatio-core`: Core functionality and base types
-//! - `fabricatio-memory`: Memory management and data structures
-//! - `fabricatio-diff`: Diff operations and comparison utilities
 //!
 //! For more information, see the [README](https://github.com/Whth/fabricatio/blob/main/crates/fabricatio-stubgen/README.md).
 use pyo3_stub_gen::Result;
