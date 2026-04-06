@@ -1,4 +1,6 @@
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 
 use axum::Router;
 use error_mapping::AsPyErr;
@@ -8,6 +10,7 @@ use std::path::PathBuf;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 /// Starts the web UI service with the given frontend directory.
 fn start_service<'a>(

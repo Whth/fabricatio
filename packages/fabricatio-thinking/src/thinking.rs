@@ -1,6 +1,8 @@
 use fabricatio_logger::*;
 use fabricatio_logger::*;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::collections::HashMap;
 /// Represents a branch in the version control system, containing a list of commits and an estimated total number of commits.
 #[derive(Default, Debug)]
@@ -90,6 +92,7 @@ impl Branch {
 }
 
 /// Represents a simple version control system for managing branches and their commits.
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 #[derive(Default, Debug)]
 struct ThoughtVCS {
@@ -116,6 +119,7 @@ impl ThoughtVCS {
     }
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl ThoughtVCS {
     /// Creates a new instance of `ThoughtVCS` with default branches.

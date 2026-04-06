@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
-use pyo3_stub_gen::derive::gen_stub_pyfunction;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 use similar::{ChangeTag, TextDiff};
 use strsim::normalized_damerau_levenshtein;
@@ -19,7 +20,7 @@ use strsim::normalized_damerau_levenshtein;
 /// A f64 value representing the similarity rate between the two input strings.
 ///
 
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn rate(a: &str, b: &str) -> f64 {
     normalized_damerau_levenshtein(a, b)
@@ -41,7 +42,7 @@ fn rate(a: &str, b: &str) -> f64 {
 /// An `Option<String>` containing the first matching block of lines if found,
 /// or `None` if no match meets the precision threshold.
 
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature = (haystack, needle, match_precision = 0.9))]
 fn match_lines(haystack: &str, needle: &str, match_precision: f64) -> Option<String> {
@@ -90,7 +91,7 @@ fn match_lines(haystack: &str, needle: &str, match_precision: f64) -> Option<Str
 ///
 /// A `String` containing the diff output with each line prefixed by its change type.
 
-#[gen_stub_pyfunction]
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn show_diff(a: &str, b: &str) -> String {
     let diff = TextDiff::from_lines(a, b);

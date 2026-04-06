@@ -15,7 +15,10 @@ pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping" }
-
+pyo3-stub-gen = { version = "0.21.0", optional = true }
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]
 
 
 [build-dependencies]

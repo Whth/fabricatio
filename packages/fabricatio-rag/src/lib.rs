@@ -11,6 +11,7 @@ mod utils;
 
 use fabricatio_logger::init_logger_auto;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::define_stub_info_gatherer;
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -26,4 +27,5 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
+#[cfg(feature = "stubgen")]
 define_stub_info_gatherer!(stub_info);

@@ -4,6 +4,7 @@ use error_mapping::AsPyErr;
 use fabricatio_logger::*;
 use git2::{DiffOptions, IndexAddOption, Oid, Repository};
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
 use std::path::{Path, PathBuf, absolute};
@@ -20,7 +21,7 @@ pub type RepoEntry = Arc<Mutex<Repository>>;
 ///
 /// * `workspace` - The worktree directory being tracked
 /// * `repo` - The shared repository instance
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct CheckPointStore {
     #[pyo3(get)]
@@ -68,7 +69,7 @@ impl CheckPointStore {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl CheckPointStore {
     /// Saves the current state of the worktree as a new commit.

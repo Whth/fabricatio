@@ -5,6 +5,7 @@ use error_mapping::AsPyErr;
 use fabricatio_logger::debug;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use tonic::transport::Channel;
 
@@ -17,13 +18,13 @@ use tonic::transport::Channel;
 /// - Rerank texts based on relevance to a query
 ///
 /// All operations are asynchronous and return Python awaitables.
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 struct TEIClient {
     channel: Channel,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl TEIClient {
     /// Creates a new TEI client connected to the specified base URL.
@@ -35,9 +36,9 @@ impl TEIClient {
     /// An awaitable that resolves to a new TEIClient instance
 
     #[staticmethod]
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
-    )]
+    ))]
     fn connect<'a>(python: Python<'a>, base_url: String) -> PyResult<Bound<'a, PyAny>> {
         debug!("Connecting to {}", base_url);
         future_into_py(python, async move {
@@ -64,10 +65,10 @@ impl TEIClient {
     /// An awaitable that resolves to a list of tuples containing the index and score of each text,
     /// sorted by relevance score in descending order
     #[pyo3(signature = (query, texts, truncate=false, truncation_direction="Left"))]
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.Tuple[int, float]]]",imports=("typing",)
         )
-    )]
+    ))]
     fn arerank<'py>(
         &self,
         python: Python<'py>,
@@ -112,10 +113,10 @@ impl TEIClient {
     /// # Returns
     /// An awaitable that resolves to a list of lists of floats representing the token embeddings
     #[pyo3(signature = ( text, truncate=false, truncation_direction="Left"))]
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]",imports=("typing",)
         )
-    )]
+    ))]
     fn embed_all<'py>(
         &self,
         python: Python<'py>,
@@ -161,10 +162,10 @@ impl TEIClient {
     /// # Returns
     /// An awaitable that resolves to a list of floats representing the embeddings
     #[pyo3(signature = ( text,dimensions=None, truncate=false, truncation_direction="Left"))]
-    #[gen_stub(
+    #[cfg_attr(feature = "stubgen", gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[float]]",imports=("typing",)
         )
-    )]
+    ))]
     fn embed<'py>(
         &self,
         python: Python<'py>,

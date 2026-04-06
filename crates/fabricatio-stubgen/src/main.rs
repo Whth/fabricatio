@@ -50,5 +50,29 @@ fn main() -> Result<()> {
     #[cfg(feature = "workspace")]
     fabricatio_workspace::stub_info()?.generate()?;
 
+    #[cfg(feature = "agent")]
+    fabricatio_agent::stub_info()?.generate()?;
+
+    #[cfg(feature = "locale")]
+    fabricatio_locale::stub_info()?.generate()?;
+
+    #[cfg(feature = "thinking")]
+    fabricatio_thinking::stub_info()?.generate()?;
+
+    #[cfg(feature = "novel")]
+    fabricatio_novel::stub_info()?.generate()?;
+
+    #[cfg(feature = "anki")]
+    fabricatio_anki::stub_info()?.generate()?;
+
+    #[cfg(feature = "tool")]
+    fabricatio_tool::stub_info()?.generate()?;
+
+    #[cfg(feature = "typst")]
+    fabricatio_typst::stub_info()?.generate()?;
+
+    #[cfg(feature = "webui")]
+    fabricatio_webui::stub_info()?.generate()?;
+
     Ok(())
 }

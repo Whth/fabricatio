@@ -17,3 +17,9 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     typst_tools::register(python, m)?;
     Ok(())
 }
+
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::define_stub_info_gatherer;
+
+#[cfg(feature = "stubgen")]
+define_stub_info_gatherer!(stub_info);

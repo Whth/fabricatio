@@ -21,6 +21,11 @@ ignore = { version = "0.4.25" }
 
 error-mapping = { workspace = true, features = ["pythonize", "serde_json", "mcp-manager"] }
 rayon = "1.11.0"
+pyo3-stub-gen = { version = "0.21.0", optional = true }
+
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]
 
 
 

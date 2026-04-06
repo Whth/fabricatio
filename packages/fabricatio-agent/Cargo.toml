@@ -7,4 +7,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
+pyo3-stub-gen = { version = "0.21.0", optional = true }
+
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]
 

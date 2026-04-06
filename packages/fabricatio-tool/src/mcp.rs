@@ -5,6 +5,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, Python};
 use pyo3_async_runtimes::tokio::future_into_py;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use pythonize::{depythonize, pythonize};
 use rmcp::model::{CallToolResult, Tool};
 use serde_json::Value;
@@ -13,12 +15,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Python-exposed MCP manager
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 struct MCPManager {
     inner: Arc<MCPManagerInner>,
 }
 
 /// Python representation of tool metadata
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 struct ToolMetaData {
     inner: Tool,
@@ -30,6 +34,7 @@ impl From<Tool> for ToolMetaData {
     }
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl ToolMetaData {
     /// Serializes the tool metadata to a Python dictionary
@@ -105,6 +110,7 @@ impl ToolMetaData {
     }
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MCPManager {
     /// Creates a new MCP manager instance

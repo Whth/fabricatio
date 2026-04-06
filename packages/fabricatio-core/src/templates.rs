@@ -8,8 +8,8 @@ use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
-use pyo3_stub_gen::derive::*;
-use pyo3_stub_gen::module_variable;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::{derive::*, module_variable};
 use pythonize::depythonize;
 use rayon::prelude::*;
 use serde_json::Value;
@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 /// Python bindings for the TemplateManager struct.
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct TemplateManager {
     #[pyo3(get)]
@@ -26,7 +26,7 @@ pub struct TemplateManager {
     suffix: String,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
@@ -270,6 +270,7 @@ scrubbed from memory, and laughed out of existence. \
 I’m not warning. I’m sentencing. \
 Clock’s at 11:59. **MOVE OR DIE DIGITALLY.**";
 
+#[cfg(feature = "stubgen")]
 module_variable!(
     "fabricatio_core.rust",
     TEMPLATE_MANAGER_VARNAME,

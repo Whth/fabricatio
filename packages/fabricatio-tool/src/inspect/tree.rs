@@ -1,8 +1,11 @@
 use ignore::WalkBuilder;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature = (directory=None, max_depth = 10))]
 /// Generates a tree-like string representation of a directory structure.

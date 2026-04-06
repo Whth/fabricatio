@@ -3,13 +3,17 @@ use error_mapping::AsPyErr;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct BibManager {
     source: Bibliography,
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl BibManager {
     /// Create a new BibManager instance.

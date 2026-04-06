@@ -1,6 +1,8 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yaml2::wrapper::YamlNodeWrapper;
@@ -36,24 +38,28 @@ pub trait Commentable: AsRef<str> {
 impl<T: AsRef<str>> Commentable for T {}
 
 /// convert a raw tex string to typst
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn tex_to_typst(string: &str) -> PyResult<String> {
     tex2typst(string).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
 /// add comment to the string
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn comment(string: &str) -> String {
     string.comment()
 }
 
 /// remove comment from the string
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn uncomment(string: &str) -> String {
     string.uncomment()
 }
 
 /// Removes leading and trailing comment lines from a multi-line string.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn strip_comment(string: &str) -> String {
     let lines: Vec<&str> = string.lines().collect();
@@ -76,11 +82,13 @@ fn strip_comment(string: &str) -> String {
 
 /// Unified function to convert all supported TeX math expressions in a string to Typst format.
 /// Handles $...$, $$...$$, \(...\), and \[...\].
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn convert_all_tex_math(string: &str) -> PyResult<String> {
     conv_to_typst(string).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 /// A func to fix labels in a string.
 pub fn fix_misplaced_labels(string: &str) -> String {
@@ -106,6 +114,7 @@ pub fn fix_misplaced_labels(string: &str) -> String {
 }
 
 /// Split out metadata from a string
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a, PyAny>>, String) {
     let metadata = string
@@ -128,6 +137,7 @@ fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a,
 }
 
 /// Convert a Python object to a YAML string.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
     depythonize::<YamlNodeWrapper>(data)
@@ -139,6 +149,7 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
         })
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
     // Perform direct string replacement
@@ -146,6 +157,7 @@ fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<St
 }
 
 // Implement extract_body to find content enclosed by exactly two wrappers
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_body(string: &str, wrapper: &str) -> Option<String> {
     // Escape the wrapper string for regex safety
@@ -169,6 +181,7 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
 }
 
 /// Extract sections from markdown-style text by header level.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_sections(
     string: &str,

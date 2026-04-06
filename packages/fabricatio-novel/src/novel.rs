@@ -3,6 +3,8 @@ use epub_builder::{EpubBuilder, EpubContent, ZipLibrary};
 use error_mapping::AsPyErr;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::collections::hash_map::DefaultHasher;
 use std::fs::{read, write};
 use std::hash::{Hash, Hasher};
@@ -17,6 +19,7 @@ fn hash_to_filename(s: &str) -> String {
 }
 
 /// A Python-exposed builder for creating EPUB novels.
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 #[derive(Default)]
 struct NovelBuilder {
@@ -38,6 +41,7 @@ impl NovelBuilder {
     }
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl NovelBuilder {
     /// Creates a new uninitialized NovelBuilder instance.

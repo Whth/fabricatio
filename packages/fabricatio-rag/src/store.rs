@@ -18,6 +18,7 @@ use pyo3::types::{PyDict, PyList};
 
 use crate::utils;
 use pyo3_async_runtimes::tokio::future_into_py;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::depythonize;
 use rayon::prelude::*;
@@ -77,7 +78,7 @@ pub struct SearchedDocument {
     metadata: Option<JsonString>,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl SearchedDocument {
     /// Access the metadata of the document.
@@ -91,7 +92,7 @@ impl SearchedDocument {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl StoreDocument {
     /// Create a new Document instance.
@@ -220,7 +221,7 @@ impl SearchedDocument {
     }
 }
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub(crate) struct VectorStoreTable {
     ndim: i32,
@@ -347,7 +348,7 @@ impl VectorStoreTable {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl VectorStoreTable {
     /// Add multiple documents to the vector store.

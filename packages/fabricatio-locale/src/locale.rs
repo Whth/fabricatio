@@ -2,6 +2,8 @@ use polib::message::{Message as PoMessage, MessageMutView};
 use polib::po_file::{parse, write};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::io::BufWriter;
 use std::path::PathBuf;
@@ -9,12 +11,14 @@ use std::path::PathBuf;
 use error_mapping::*;
 
 #[derive(Clone, Default)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(get_all)]
 struct Msg {
     id: String,
     txt: String,
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Msg {
     #[new]
@@ -33,6 +37,7 @@ impl From<Msg> for PoMessage {
 }
 
 /// Reads a .po file and returns a vector of Message objects containing msgid and msgstr.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn read_pofile(file_path: PathBuf) -> PyResult<Vec<Msg>> {
     let catlog = parse(file_path.as_path()).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
@@ -51,6 +56,7 @@ fn read_pofile(file_path: PathBuf) -> PyResult<Vec<Msg>> {
 /// # Arguments
 /// * file_path: Path to the .po file.
 /// * messages: A vector of Message objects containing msgid and msgstr.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn update_pofile(file_path: PathBuf, messages: Vec<Msg>) -> PyResult<()> {
     let mut catalog =

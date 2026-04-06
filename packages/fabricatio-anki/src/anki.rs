@@ -3,10 +3,14 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pythonize::depythonize;
 
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
+
 use serde_yaml2::wrapper::YamlNodeWrapper;
 use std::fs;
 use std::path::PathBuf;
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(path)
@@ -15,6 +19,7 @@ fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
     Ok(())
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn create_deck_project(
     path: PathBuf,
@@ -36,6 +41,7 @@ fn create_deck_project(
     Ok(())
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyResult<()> {
     fs::create_dir_all(&dir_path)?;
@@ -51,6 +57,7 @@ fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyR
         })
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(project_path)
@@ -58,6 +65,7 @@ fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyRes
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature=(dir_path, front, back, css=None))]
 fn save_template(
@@ -109,6 +117,7 @@ fn extract_content_by_tag(html: &str, tag: &str) -> String {
 ///
 /// # Errors
 /// This function wraps its return in `PyResult` but does not currently produce recoverable errors.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_html_component(html: &str) -> PyResult<(String, String, String)> {
     use regex::Regex;

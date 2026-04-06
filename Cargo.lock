@@ -2563,6 +2563,7 @@ name = "fabricatio-agent"
 version = "0.0.0"
 dependencies = [
  "pyo3",
+ "pyo3-stub-gen",
 ]
 
 [[package]]
@@ -2573,6 +2574,7 @@ dependencies = [
  "deck_loader",
  "fabricatio-logger",
  "pyo3",
+ "pyo3-stub-gen",
  "pythonize",
  "regex",
  "sanitize-filename",
@@ -2669,6 +2671,7 @@ dependencies = [
  "error-mapping",
  "polib",
  "pyo3",
+ "pyo3-stub-gen",
 ]
 
 [[package]]
@@ -2713,6 +2716,7 @@ dependencies = [
  "error-mapping",
  "mime_guess",
  "pyo3",
+ "pyo3-stub-gen",
  "regex",
  "utils",
 ]
@@ -2748,11 +2752,19 @@ dependencies = [
 name = "fabricatio-stubgen"
 version = "0.1.4"
 dependencies = [
+ "fabricatio-agent",
+ "fabricatio-anki",
  "fabricatio-checkpoint",
  "fabricatio-core",
  "fabricatio-diff",
+ "fabricatio-locale",
  "fabricatio-memory",
+ "fabricatio-novel",
  "fabricatio-rag",
+ "fabricatio-thinking",
+ "fabricatio-tool",
+ "fabricatio-typst",
+ "fabricatio-webui",
  "fabricatio-workspace",
  "pyo3-stub-gen",
 ]
@@ -2763,6 +2775,7 @@ version = "0.0.0"
 dependencies = [
  "fabricatio-logger",
  "pyo3",
+ "pyo3-stub-gen",
 ]
 
 [[package]]
@@ -2775,6 +2788,7 @@ dependencies = [
  "mcp-manager",
  "pyo3",
  "pyo3-async-runtimes",
+ "pyo3-stub-gen",
  "pythonize",
  "rayon",
  "rmcp",
@@ -2795,6 +2809,7 @@ dependencies = [
  "nucleo-matcher",
  "pyo3",
  "pyo3-build-config",
+ "pyo3-stub-gen",
  "pythonize",
  "rayon",
  "regex",
@@ -2812,6 +2827,7 @@ dependencies = [
  "fabricatio-logger",
  "pyo3",
  "pyo3-async-runtimes",
+ "pyo3-stub-gen",
  "tokio",
  "tower-http",
  "which",

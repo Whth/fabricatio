@@ -12,9 +12,10 @@ use std::sync::OnceLock;
 use strum::{Display, EnumString, IntoStaticStr};
 
 use error_mapping::AsPyErr;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Clone)]
 struct Event {
@@ -24,7 +25,7 @@ struct Event {
 
 static DELIMITER: OnceLock<String> = OnceLock::new();
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Event {
     #[new]
@@ -207,7 +208,7 @@ impl Event {
     Serialize,
     Deserialize,
 )]
-#[gen_stub_pyclass_enum]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
 #[pyclass(from_py_object)]
 pub enum TaskStatus {
     Pending,
@@ -217,7 +218,7 @@ pub enum TaskStatus {
     Cancelled,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl TaskStatus {
     // Pickling support

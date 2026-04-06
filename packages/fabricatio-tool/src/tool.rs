@@ -1,12 +1,15 @@
 use crate::linter;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::collections::HashSet;
 
 const WHITELIST: &str = "whitelist";
 const BLACKLIST: &str = "blacklist";
 
 /// Configuration for checks, specifying the mode and target items.
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 struct CheckConfig {
@@ -14,6 +17,7 @@ struct CheckConfig {
     targets: HashSet<String>,
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl CheckConfig {
     /// Create a new CheckConfig instance with specified targets and mode.
@@ -32,6 +36,7 @@ impl CheckConfig {
 }
 
 /// Gathers violations in the provided source code based on the given configuration.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature = (source, modules=None, imports=None, calls=None))]
 fn gather_violations(

@@ -7,6 +7,7 @@ use fabricatio_logger::debug;
 use git2::Repository;
 use moka::sync::Cache;
 use pyo3::{PyResult, pyclass, pymethods};
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
 use std::fs;
@@ -19,7 +20,7 @@ use utils::mwrap;
 /// for each worktree directory. This enables independent version control and checkpointing
 /// without interfering with any existing Git repositories in the worktree.
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct CheckpointService {
     stores_root: PathBuf,
@@ -79,7 +80,7 @@ impl CheckpointService {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl CheckpointService {
     /// Gets or creates a shadow repository for the given worktree directory.

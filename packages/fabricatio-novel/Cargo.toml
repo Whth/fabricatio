@@ -13,3 +13,8 @@ pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
 
 error-mapping = { path = "../../crates/error-mapping", features = ["epub-builder"] }
 utils = { path = "../../crates/utils" }
+pyo3-stub-gen = { version = "0.21.0", optional = true }
+
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]

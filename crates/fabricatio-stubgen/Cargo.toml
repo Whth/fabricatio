@@ -13,6 +13,14 @@ fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = 
 fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", default-features = false, optional = true }
 fabricatio-rag = { path = "../../packages/fabricatio-rag", default-features = false, optional = true }
 fabricatio-workspace = { path = "../../packages/fabricatio-workspace", default-features = false, optional = true }
+fabricatio-agent = { path = "../../packages/fabricatio-agent", default-features = false, optional = true }
+fabricatio-locale = { path = "../../packages/fabricatio-locale", default-features = false, optional = true }
+fabricatio-thinking = { path = "../../packages/fabricatio-thinking", default-features = false, optional = true }
+fabricatio-novel = { path = "../../packages/fabricatio-novel", default-features = false, optional = true }
+fabricatio-anki = { path = "../../packages/fabricatio-anki", default-features = false, optional = true }
+fabricatio-tool = { path = "../../packages/fabricatio-tool", default-features = false, optional = true }
+fabricatio-typst = { path = "../../packages/fabricatio-typst", default-features = false, optional = true }
+fabricatio-webui = { path = "../../packages/fabricatio-webui", default-features = false, optional = true }
 
 
 
@@ -24,7 +32,15 @@ all = [
     "diff",
     "checkpoint",
     "rag",
-    "workspace"
+    "workspace",
+    "agent",
+    "locale",
+    "thinking",
+    "novel",
+    "anki",
+    "tool",
+    "typst",
+    "webui"
 
 ]
 
@@ -35,5 +51,13 @@ diff = ["fabricatio-diff/stubgen"]
 checkpoint = ["fabricatio-checkpoint/stubgen"]
 rag = ["fabricatio-rag/stubgen"]
 workspace = ["fabricatio-workspace/stubgen"]
+agent = ["fabricatio-agent/stubgen"]
+locale = ["fabricatio-locale/stubgen"]
+thinking = ["fabricatio-thinking/stubgen"]
+novel = ["fabricatio-novel/stubgen"]
+anki = ["fabricatio-anki/stubgen"]
+tool = ["fabricatio-tool/stubgen"]
+typst = ["fabricatio-typst/stubgen"]
+webui = ["fabricatio-webui/stubgen"]
 
 default = []
