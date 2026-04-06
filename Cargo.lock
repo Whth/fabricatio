@@ -2702,7 +2702,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tantivy 0.26.0",
- "utils",
  "uuid",
 ]
 

@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
 mod constants;
 mod memory;
@@ -8,10 +8,7 @@ mod store;
 mod traits;
 mod utils;
 
-use crate::constants::{
-    MAX_IMPORTANCE_SCORE, MAX_IMPORTANCE_SCORE_VARNAME, MIN_IMPORTANCE_SCORE,
-    MIN_IMPORTANCE_SCORE_VARNAME,
-};
+use crate::constants::*;
 use crate::memory::Memory;
 use crate::service::MemoryService;
 use crate::stat::MemoryStats;

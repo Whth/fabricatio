@@ -14,6 +14,7 @@ use tantivy::{Index, IndexWriter};
 
 type IndexName = String;
 
+/// Service class for managing memory stores and indexes.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct MemoryService {
@@ -54,16 +55,18 @@ impl MemoryService {
             .map_err(|e: Arc<PyErr>| Arc::try_unwrap(e).expect("Unable to unwrap Arc"))
     }
 }
-
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryService {
-    /// Creates a new MemoryService instance
+    /// Creates a new MemoryService instance.
     ///
-    /// # Arguments
-    /// * `store_root_directory` - The root directory where indexes will be stored
-    /// * `writer_buffer_size` - The buffer size for index writers (default: 15MB)
-    /// * `cache_size` - The maximum number of indexes to keep in cache (default: 10)
+    /// Args:
+    ///     store_root_directory (pathlib.Path): The root directory where indexes will be stored.
+    ///     writer_buffer_size (int, optional): The buffer size for index writers in bytes. Defaults to 15,000,000 (15MB).
+    ///     cache_size (int, optional): The maximum number of indexes to keep in cache. Defaults to 10.
+    ///
+    /// Returns:
+    ///     MemoryService: A new instance of the MemoryService.
     #[new]
     #[pyo3(signature = (store_root_directory , writer_buffer_size = 15_000_000,cache_size = 10))]
     pub fn new(store_root_directory: PathBuf, writer_buffer_size: usize, cache_size: u64) -> Self {
@@ -75,42 +78,41 @@ impl MemoryService {
         }
     }
 
-    /// Get a MemoryStore instance for the given store name
+    /// Gets a MemoryStore instance for the given store name.
     ///
     /// This method retrieves or creates an index for the given store name,
     /// then returns a MemoryStore instance that can be used to perform
     /// operations on that index.
     ///
-    /// # Arguments
-    /// * `store_name` - The name of the store to get
+    /// Args:
+    ///     store_name (str): The name of the store to get.
     ///
-    /// # Returns
-    /// * `PyResult<MemoryStore>` - A MemoryStore instance for the given store name
+    /// Returns:
+    ///     MemoryStore: A MemoryStore instance for the given store name.
     ///
-    /// # Errors
-    /// * If the store name is invalid
-    /// * If there's an error creating or opening the index
-    /// * If there's an error creating the MemoryStore instance
+    /// Raises:
+    ///     Exception: If the store name is invalid, if there's an error creating or opening the index,
+    ///                or if there's an error creating the MemoryStore instance.
     pub fn get_store(&self, store_name: IndexName) -> PyResult<MemoryStore> {
         let index = self.get_index(store_name.clone())?;
 
         MemoryStore::new(index, self.get_index_writer(store_name)?)
     }
 
-    /// List all stores in the system
+    /// Lists all stores in the system.
     ///
     /// This method returns a list of all store names. It can optionally return
     /// only the stores that are currently cached in memory.
     ///
-    /// # Arguments
-    /// * `cached_only` - If true, only return stores that are currently cached in memory.
-    ///                   If false (default), return all stores in the store directory.
+    /// Args:
+    ///     cached_only (bool, optional): If True, only return stores that are currently cached in memory.
+    ///                                   If False (default), return all stores in the store directory.
     ///
-    /// # Returns
-    /// * `PyResult<Vec<String>>` - A vector of store names
+    /// Returns:
+    ///     list[str]: A list of store names.
     ///
-    /// # Errors
-    /// * If there's an error reading the store directory
+    /// Raises:
+    ///     Exception: If there's an error reading the store directory.
     #[pyo3(signature = (cached_only = false))]
     pub fn list_stores(&self, cached_only: bool) -> PyResult<Vec<String>> {
         if !self.store_root_directory.exists() {

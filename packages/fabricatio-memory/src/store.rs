@@ -1,4 +1,4 @@
-use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE};
+use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
 use crate::memory::Memory;
 use crate::stat::MemoryStats;
 use crate::utils::{
@@ -12,15 +12,16 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex, MutexGuard};
+use tantivy::aggregation::AggregationCollector;
 use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
-use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::{doc, Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher};
+use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
 
-/// MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories
-/// in a Tantivy search index. It supports operations such as adding, updating, deleting, and searching
+/// MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories in a Tantivy search index.
+///
+/// It supports operations such as adding, updating, deleting, and searching
 /// memories based on various criteria like content, tags, importance, recency, and access frequency.
 ///
 /// The store handles memory access tracking by updating access counts and timestamps automatically
@@ -120,7 +121,19 @@ impl MemoryStore {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryStore {
-    /// Add a new memory to the system and return its ID
+    /// Adds a new memory to the system and returns its unique ID.
+    ///
+    /// Args:
+    ///     content (str): The text content of the memory.
+    ///     importance (int): The importance score of the memory.
+    ///     tags (list[str]): A list of tags associated with the memory.
+    ///     write (bool, optional): If True, commits the changes to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     str: The UUID of the newly added memory.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error adding the memory or writing to the index.
     #[pyo3(signature = (content, importance, tags, write = false))]
     pub fn add_memory(
         &self,
@@ -137,12 +150,28 @@ impl MemoryStore {
         Ok(memory.uuid)
     }
 
-    /// Write all changes to disk
+    /// Writes all pending changes to disk.
+    ///
+    /// Returns:
+    ///     None
+    ///
+    /// Raises:
+    ///     Exception: If there is an error committing the changes.
     pub fn write(&self) -> PyResult<()> {
         self.write_inner(self.writer.lock().into_pyresult()?, true)
     }
 
-    /// Retrieve a memory by its ID and update its access count
+    /// Retrieves a memory by its ID and updates its access count.
+    ///
+    /// Args:
+    ///     uuid (str): The unique identifier of the memory.
+    ///     write (bool, optional): If True, commits the access update to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     Memory | None: The retrieved Memory object, or None if not found.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error retrieving the memory or updating the index.
     #[pyo3(signature = (uuid, write = false))]
     pub fn get_memory(&self, uuid: &str, write: bool) -> PyResult<Option<Memory>> {
         if let Some((_, mut memory)) = self.top(uuid_query_of(uuid))? {
@@ -156,7 +185,20 @@ impl MemoryStore {
         }
     }
 
-    /// Update an existing memory's content, importance, or tags
+    /// Updates an existing memory's content, importance, or tags.
+    ///
+    /// Args:
+    ///     uuid (str): The unique identifier of the memory to update.
+    ///     content (str | None, optional): The new content. Defaults to None.
+    ///     importance (int | None, optional): The new importance score. Defaults to None.
+    ///     tags (list[str] | None, optional): The new list of tags. Defaults to None.
+    ///     write (bool, optional): If True, commits the changes to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     bool: True if the memory was found and updated, False otherwise.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error updating the memory or writing to the index.
     #[pyo3(signature = (uuid, content = None, importance = None, tags = None, write = false))]
     pub fn update_memory(
         &self,
@@ -196,7 +238,17 @@ impl MemoryStore {
         }
     }
 
-    /// Delete a memory by its ID
+    /// Deletes a memory by its ID.
+    ///
+    /// Args:
+    ///     uuid (str): The unique identifier of the memory to delete.
+    ///     write (bool, optional): If True, commits the deletion to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     bool: True if the deletion operation was processed (returns True even if memory didn't exist).
+    ///
+    /// Raises:
+    ///     Exception: If there is an error deleting the memory or writing to the index.
     #[pyo3(signature = (uuid, write = false))]
     pub fn delete_memory(&self, uuid: &str, write: bool) -> PyResult<bool> {
         let w = self.access_writer()?;
@@ -205,7 +257,19 @@ impl MemoryStore {
         Ok(true)
     }
 
-    /// Search memories by query string with optional recency boosting
+    /// Searches memories by query string with optional recency boosting.
+    ///
+    /// Args:
+    ///     query_str (str): The search query string.
+    ///     top_k (int, optional): The maximum number of results to return. Defaults to 20.
+    ///     boost_recent (bool, optional): If True, boosts the score of more recent memories. Defaults to False.
+    ///     write (bool, optional): If True, commits access updates to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     list[Memory]: A list of matching Memory objects, sorted by relevance.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error parsing the query or searching the index.
     #[pyo3(signature = (query_str, top_k = 20, boost_recent = false, write = false))]
     pub fn search_memories(
         &self,
@@ -224,10 +288,10 @@ impl MemoryStore {
                 (
                     score as f64
                         + if boost_recent {
-                        memory.calculate_relevance_score(0.01)
-                    } else {
-                        0.0
-                    },
+                            memory.calculate_relevance_score(0.01)
+                        } else {
+                            0.0
+                        },
                     memory,
                 )
             })
@@ -246,7 +310,18 @@ impl MemoryStore {
         self.update_access_and_write_batch(retrieved_memories, write)
     }
 
-    /// Search memories by tags
+    /// Searches memories by specific tags.
+    ///
+    /// Args:
+    ///     tags (list[str]): A list of tags to search for. Memories matching any of these tags will be returned.
+    ///     top_k (int, optional): The maximum number of results to return. Defaults to 20.
+    ///     write (bool, optional): If True, commits access updates to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     list[Memory]: A list of matching Memory objects.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error searching the index.
     #[pyo3(signature = (tags, top_k = 20, write = false))]
     pub fn search_by_tags(
         &self,
@@ -262,7 +337,18 @@ impl MemoryStore {
         self.search_memories(&query_str, top_k, false, write)
     }
 
-    /// Get memories filtered by minimum importance level
+    /// Gets memories filtered by a minimum importance level.
+    ///
+    /// Args:
+    ///     min_importance (int): The minimum importance score.
+    ///     top_k (int, optional): The maximum number of results to return. Defaults to 20.
+    ///     write (bool, optional): If True, commits access updates to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     list[Memory]: A list of Memory objects with importance >= min_importance.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error searching the index.
     #[pyo3(signature = (min_importance, top_k = 20, write = false))]
     pub fn get_memories_by_importance(
         &self,
@@ -284,7 +370,18 @@ impl MemoryStore {
         self.update_access_and_write_batch(memories, write)
     }
 
-    /// Get memories from the last N days
+    /// Gets memories from the last N days.
+    ///
+    /// Args:
+    ///     days (int): The number of days to look back.
+    ///     top_k (int, optional): The maximum number of results to return. Defaults to 20.
+    ///     write (bool, optional): If True, commits access updates to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     list[Memory]: A list of Memory objects created within the last N days.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error searching the index.
     #[pyo3(signature = (days, top_k = 20, write = false))]
     pub fn get_recent_memories(
         &self,
@@ -308,7 +405,17 @@ impl MemoryStore {
         self.update_access_and_write_batch(memories, write)
     }
 
-    /// Get memories sorted by access frequency
+    /// Gets memories sorted by access frequency (most accessed first).
+    ///
+    /// Args:
+    ///     top_k (int, optional): The maximum number of results to return. Defaults to 20.
+    ///     write (bool, optional): If True, commits access updates to disk immediately. Defaults to False.
+    ///
+    /// Returns:
+    ///     list[Memory]: A list of Memory objects sorted by access count in descending order.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error searching the index.
     #[pyo3(signature = (top_k = 20, write = false))]
     pub fn get_frequently_accessed(&self, top_k: usize, write: bool) -> PyResult<Vec<Memory>> {
         let searcher = self.searcher();
@@ -325,12 +432,22 @@ impl MemoryStore {
         self.update_access_and_write_batch(memories, write)
     }
 
-    /// Count the total number of memories in the system
+    /// Counts the total number of memories in the system.
+    ///
+    /// Returns:
+    ///     int: The total number of documents in the index.
     pub fn count_memories(&self) -> u64 {
         self.searcher().num_docs()
     }
 
-    /// Get aggregated statistics about all memories
+    /// Gets aggregated statistics about all memories.
+    ///
+    /// Returns:
+    ///     MemoryStats: An object containing total memories, average importance,
+    ///                  average access count, and average age in days.
+    ///
+    /// Raises:
+    ///     Exception: If there is an error calculating aggregations.
     pub fn stats(&self) -> PyResult<MemoryStats> {
         let searcher = self.searcher();
 

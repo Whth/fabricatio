@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use tantivy::schema::{Field, Schema, FAST, INDEXED, STORED, STRING, TEXT};
+use tantivy::schema::{FAST, Field, INDEXED, STORED, STRING, Schema, TEXT};
 
 pub mod field_names {
     pub const UUID: &str = "uuid";
