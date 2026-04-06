@@ -5,7 +5,7 @@ use serde::Deserialize;
 /// Memory statistics structure containing aggregated metrics about stored memories
 #[derive(Debug, Clone, Default, Deserialize)]
 #[gen_stub_pyclass]
-#[pyclass(get_all)]
+#[pyclass(get_all, skip_from_py_object)]
 pub struct MemoryStats {
     /// Total number of memories stored
     pub total_memories: u64,

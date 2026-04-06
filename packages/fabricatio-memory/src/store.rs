@@ -8,7 +8,7 @@ use crate::utils::{
 use chrono::Utc;
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
-use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
+use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tantivy::aggregation::AggregationCollector;
@@ -29,7 +29,7 @@ use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searc
 /// The implementation uses a Tantivy index with fields for content, tags, importance, timestamps,
 /// and access counts. It includes PyO3 bindings to allow Python usage.
 #[gen_stub_pyclass]
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 pub struct MemoryStore {
     index: Arc<Index>,
     /// tantivy allows only one writer at a time
@@ -63,7 +63,7 @@ impl MemoryStore {
         let searcher = self.searcher();
 
         searcher
-            .search(&term_query, &TopDocs::with_limit(k))
+            .search(&term_query, &TopDocs::with_limit(k).order_by_score())
             .into_pyresult()
             .map(|seq| cast_into_items(searcher, seq))
     }
