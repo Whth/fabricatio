@@ -1,4 +1,4 @@
-use crate::constants::{FIELDS, MAX_IMPORTANCE_SCORE, field_names};
+use crate::constants::{field_names, FIELDS, MAX_IMPORTANCE_SCORE};
 use crate::memory::Memory;
 use crate::stat::MemoryStats;
 use crate::utils::{
@@ -8,15 +8,16 @@ use crate::utils::{
 use chrono::Utc;
 use error_mapping::AsPyErr;
 use pyo3::prelude::*;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex, MutexGuard};
-use tantivy::aggregation::AggregationCollector;
 use tantivy::aggregation::agg_req::Aggregations;
 use tantivy::aggregation::agg_result::{AggregationResult, MetricResult};
+use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::TopDocs;
 use tantivy::query::*;
-use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher, doc};
+use tantivy::{doc, Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searcher};
 
 /// MemoryStore is a struct that provides an interface for storing, retrieving, and searching memories
 /// in a Tantivy search index. It supports operations such as adding, updating, deleting, and searching
@@ -28,7 +29,7 @@ use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searc
 ///
 /// The implementation uses a Tantivy index with fields for content, tags, importance, timestamps,
 /// and access counts. It includes PyO3 bindings to allow Python usage.
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(skip_from_py_object)]
 pub struct MemoryStore {
     index: Arc<Index>,
@@ -115,7 +116,8 @@ impl MemoryStore {
         Ok(memories)
     }
 }
-#[gen_stub_pymethods]
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryStore {
     /// Add a new memory to the system and return its ID
@@ -222,10 +224,10 @@ impl MemoryStore {
                 (
                     score as f64
                         + if boost_recent {
-                            memory.calculate_relevance_score(0.01)
-                        } else {
-                            0.0
-                        },
+                        memory.calculate_relevance_score(0.01)
+                    } else {
+                        0.0
+                    },
                     memory,
                 )
             })

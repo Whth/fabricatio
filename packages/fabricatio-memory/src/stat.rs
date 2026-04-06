@@ -1,10 +1,11 @@
 use pyo3::{pyclass, pymethods};
-use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use serde::Deserialize;
 
 /// Memory statistics structure containing aggregated metrics about stored memories
 #[derive(Debug, Clone, Default, Deserialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(get_all, skip_from_py_object)]
 pub struct MemoryStats {
     /// Total number of memories stored
@@ -17,7 +18,7 @@ pub struct MemoryStats {
     pub avg_age_days: f64,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryStats {
     /// Display memory statistics in a formatted string

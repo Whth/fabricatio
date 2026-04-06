@@ -4,7 +4,8 @@ use crate::utils::{is_valid_index_dir, sanitize_index_name};
 use error_mapping::AsPyErr;
 use moka::sync::Cache;
 use pyo3::prelude::*;
-use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -13,7 +14,7 @@ use tantivy::{Index, IndexWriter};
 
 type IndexName = String;
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct MemoryService {
     store_root_directory: PathBuf,
@@ -54,7 +55,7 @@ impl MemoryService {
     }
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryService {
     /// Creates a new MemoryService instance

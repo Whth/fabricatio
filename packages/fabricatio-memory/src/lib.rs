@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
+#![cfg_attr(feature = "stubgen", allow(dead_code, unused, ))]
 
 mod constants;
 mod memory;
@@ -10,21 +10,23 @@ mod utils;
 
 use crate::constants::{
     MAX_IMPORTANCE_SCORE, MAX_IMPORTANCE_SCORE_VARNAME, MIN_IMPORTANCE_SCORE,
-    MIN_IMPORTANCE_SCORE_VARNAME, MODULE_NAME,
+    MIN_IMPORTANCE_SCORE_VARNAME,
 };
 use crate::memory::Memory;
 use crate::service::MemoryService;
 use crate::stat::MemoryStats;
 use crate::store::MemoryStore;
 use pyo3::prelude::*;
-use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
-
+#[cfg(feature = "stubgen")]
+use pyo3_stub_gen::*;
+#[cfg(feature = "stubgen")]
 module_variable!(
     MODULE_NAME,
     MIN_IMPORTANCE_SCORE_VARNAME,
     u64,
     MIN_IMPORTANCE_SCORE
 );
+#[cfg(feature = "stubgen")]
 module_variable!(
     MODULE_NAME,
     MAX_IMPORTANCE_SCORE_VARNAME,
@@ -50,5 +52,5 @@ fn rust(_python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     Ok(())
 }
-
+#[cfg(feature = "stubgen")]
 define_stub_info_gatherer!(stub_info);

@@ -1,6 +1,7 @@
 use chrono::Utc;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
+#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,7 @@ use uuid::Uuid;
 
 /// Represents a memory object with content, importance, tags, and access statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(get_all, skip_from_py_object)]
 pub struct Memory {
     /// Unique identifier for the memory
@@ -31,7 +32,7 @@ pub struct Memory {
     pub last_accessed: i64,
 }
 
-#[gen_stub_pymethods]
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Memory {
     /// Convert the memory to a Python dictionary

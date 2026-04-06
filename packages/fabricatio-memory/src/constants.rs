@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use tantivy::schema::{FAST, Field, INDEXED, STORED, STRING, Schema, TEXT};
+use tantivy::schema::{Field, Schema, FAST, INDEXED, STORED, STRING, TEXT};
 
 pub mod field_names {
     pub const UUID: &str = "uuid";
@@ -15,6 +15,8 @@ pub static MAX_IMPORTANCE_SCORE: u64 = 100;
 pub static MAX_IMPORTANCE_SCORE_VARNAME: &str = "MAX_IMPORTANCE_SCORE";
 pub static MIN_IMPORTANCE_SCORE: u64 = 0;
 pub static MIN_IMPORTANCE_SCORE_VARNAME: &str = "MIN_IMPORTANCE_SCORE";
+
+#[cfg(feature = "stubgen")]
 pub(crate) static MODULE_NAME: &str = concat!(env!("CARGO_CRATE_NAME"), ".rust");
 
 pub static METADATA_FILE_NAME: &str = "meta.json";
