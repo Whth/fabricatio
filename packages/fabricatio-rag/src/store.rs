@@ -6,7 +6,7 @@ use arrow_array::array::*;
 use arrow_array::cast::AsArray;
 use arrow_array::types::*;
 
-use arrow_array::{RecordBatch, RecordBatchIterator};
+use arrow_array::RecordBatch;
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
 use lancedb::Table;
@@ -49,7 +49,7 @@ type DataContainers = (
     Vec<Option<JsonString>>,
 );
 
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(set_all, get_all, from_py_object)]
 #[derive(Clone, Debug)]
 pub struct StoreDocument {
@@ -63,7 +63,7 @@ pub struct StoreDocument {
 /// This structure contains the core information of a searched document including
 /// its unique identifier, content, timestamp of creation/modification, and any
 /// associated metadata stored as JSON string.
-#[gen_stub_pyclass]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(get_all, skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct SearchedDocument {
