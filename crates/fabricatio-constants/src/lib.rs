@@ -88,3 +88,4 @@ pub const CONFIG_VARNAME: &str = "CONFIG";
 pub const PY_SOURCE_KEY: &str = "py_source";
 
 pub const ROUTER_VARNAME: &str = "ROUTER";
+pub const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";

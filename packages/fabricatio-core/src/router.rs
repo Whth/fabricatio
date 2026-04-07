@@ -3,7 +3,6 @@ use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::trace;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -35,12 +34,13 @@ impl Router {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl Router {
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
-    ))]
+    )]
     #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
@@ -90,10 +90,10 @@ impl Router {
         })
     }
 
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]", imports = ("typing",)
         )
-    ))]
+    )]
     /// Sends an embedding request to the specified group.
     ///
     /// Args:
@@ -117,9 +117,9 @@ impl Router {
         })
     }
 
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    ))]
+    )]
     #[pyo3(signature = (provider_type, name = None, api_key = None, endpoint = None))]
     /// Adds a provider to the router.
     ///
@@ -159,9 +159,9 @@ impl Router {
         })
     }
 
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    ))]
+    )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds a completion model to the specified group.
     ///
@@ -193,9 +193,9 @@ impl Router {
         })
     }
 
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    ))]
+    )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds an embedding model to the specified group.
     ///
@@ -228,9 +228,9 @@ impl Router {
         })
     }
 
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    ))]
+    )]
     /// Mount cache database to all routers, create if not exists.
     ///
     /// Initializes and mounts a shared cache database file for both completion and embedding routers.

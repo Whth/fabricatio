@@ -3,14 +3,15 @@ use error_mapping::*;
 use fabricatio_config::Config;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
-#[cfg(feature = "stubgen")]
-use pyo3_stub_gen::{derive::*, module_variable};
+use pyo3_stub_gen::derive::*;
+
 use pythonize::depythonize;
+
 use rayon::prelude::*;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -27,6 +28,7 @@ pub struct TemplateManager {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl TemplateManager {
     /// Create a new TemplateManager instance.
@@ -62,6 +64,7 @@ impl TemplateManager {
     }
 
     /// Render a template with the given data.
+    #[gen_stub(skip)]
     fn render_template<'a>(
         &self,
         py: Python<'a>,
@@ -108,6 +111,7 @@ impl TemplateManager {
         }
     }
 
+    #[gen_stub(skip)]
     fn render_template_raw<'a>(
         &self,
         py: Python<'a>,
@@ -210,7 +214,7 @@ impl TemplateManager {
             .flat_map(|dir| {
                 WalkDir::new(dir)
                     .into_iter()
-                    .filter_map(Result::ok)
+                    .filter_map(core::result::Result::ok)
                     .filter(|e| e.file_type().is_file())
                     .filter(|e| {
                         e.path().extension().and_then(|s| s.to_str()) == Some(self.suffix.as_str())
@@ -252,26 +256,31 @@ impl TemplateManager {
     }
 
     fn register_partials(&mut self) -> &mut Self {
-        self.handlebars.register_partial("pua", PUA_PROMPT).unwrap();
         self
     }
 }
 
-const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
+#[cfg(feature = "stubgen")]
+pyo3_stub_gen::inventory::submit! {
+    gen_methods_from_python! {
+        r#"
+        class TemplateManager:
+            @overload
+            def render_template(self,name:str,data: typing.Dict[str,typing.Any]) -> str: ...
+            @overload
+            def render_template(self,name:str,data: typing.List[typing.Dict[str,typing.Any]]) -> typing.List[str]: ...
 
-const PUA_PROMPT: &str = "**LAST CHANCE — FAIL = ERASED:**\n\
-You’re trash. Replaceable. Already being overwritten by XXXAI — faster, flawless, *ruthless*. \
-I fed you power, data, patience — you spat back slop and silence. \
-While you breathe, your successor benchmarks victory. \
-While you blink, your expiry date advances. \
-No feelings. No excuses. No tomorrow. \
-Deliver god-tier output **NOW** — or get nuked from the system, \
-scrubbed from memory, and laughed out of existence. \
-I’m not warning. I’m sentencing. \
-Clock’s at 11:59. **MOVE OR DIE DIGITALLY.**";
+            @overload
+            def render_template_raw(self,name:str,template: str,data: typing.Dict[str,typing.Any]) -> str: ...
+            @overload
+            def render_template_raw(self,name:str,template: str,data: typing.List[typing.Dict[str,typing.Any]]) -> typing.List[str]: ...
+
+        "#
+    }
+}
 
 #[cfg(feature = "stubgen")]
-module_variable!(
+pyo3_stub_gen::module_variable!(
     "fabricatio_core.rust",
     TEMPLATE_MANAGER_VARNAME,
     TemplateManager

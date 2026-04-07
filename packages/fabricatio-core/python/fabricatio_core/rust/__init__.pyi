@@ -57,7 +57,7 @@ __all__ = [
     "tokens_of",
     "word_count",
 ]
-
+_T = typing.TypeVar("_T")
 CONFIG: Config
 ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
@@ -90,28 +90,8 @@ class Config:
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
-    def load(self, name: builtins.str, cls: typing.Any) -> typing.Any:
-        r"""Load configuration data for a given section name and instantiate a Python class.
-
-        This method performs configuration loading with the following behavior:
-        - Looks up configuration data by section name from extension configuration store
-        - Converts the data to Python objects using serde serialization
-        - Instantiates the provided Python class with the configuration data
-
-        # Arguments
-        * `name` - Name of the configuration section to load
-        * `cls` - Python class to instantiate, must accept keyword arguments
-
-        # Returns
-        `PyResult<Bound<'a, PyAny>>` containing either:
-        - Successfully initialized class instance with loaded config data
-        - Default-initialized class instance if section not found
-
-        # Errors
-        Returns PyRuntimeError if:
-        - Data deserialization to Python types fails
-        - Class initialization fails with invalid arguments
-        """
+    def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
+        r"""Load configuration data for a given section name and instantiate a Python class."""
 
 @typing.final
 class DebugConfig:
@@ -499,9 +479,16 @@ class TemplateManager:
     ) -> TemplateManager: ...
     def discover_templates(self) -> TemplateManager:
         r"""Discover the templates in the template directories."""
-    def render_template(self, name: builtins.str | os.PathLike | pathlib.Path, data: typing.Any) -> typing.Any:
-        r"""Render a template with the given data."""
-    def render_template_raw(self, template: builtins.str, data: typing.Any) -> typing.Any: ...
+    @typing.overload
+    def render_template(self, name: str, data: typing.Dict[str, typing.Any]) -> str: ...
+    @typing.overload
+    def render_template(self, name: str, data: typing.List[typing.Dict[str, typing.Any]]) -> typing.List[str]: ...
+    @typing.overload
+    def render_template_raw(self, name: str, template: str, data: typing.Dict[str, typing.Any]) -> str: ...
+    @typing.overload
+    def render_template_raw(
+        self, name: str, template: str, data: typing.List[typing.Dict[str, typing.Any]]
+    ) -> typing.List[str]: ...
 
 @typing.final
 class TemplateManagerConfig:

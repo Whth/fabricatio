@@ -8,7 +8,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3-stub-gen = { version = "0.21.0", optional = true }
+pyo3-stub-gen = { version = "0.21.0" }
 
 pyo3 = "0.28.3"
 fabricatio-constants = { path = "../fabricatio-constants" }
@@ -28,4 +28,4 @@ thryd = { path = "../thryd", features = ["pyo3", "pystub"] }
 
 [features]
 
-stubgen = ["dep:pyo3-stub-gen"]
+stubgen = []

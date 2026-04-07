@@ -3,7 +3,6 @@ use macro_utils::TemplateDefault;
 use pyo3::prelude::*;
 
 use crate::secstr::SecretStr;
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 
@@ -281,6 +280,7 @@ pub struct Config {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl Config {
     /// Load configuration data for a given section name and instantiate a Python class
@@ -303,17 +303,30 @@ impl Config {
     /// Returns PyRuntimeError if:
     /// - Data deserialization to Python types fails
     /// - Class initialization fails with invalid arguments
+    #[gen_stub(skip)]
     fn load<'a>(
         &self,
         python: Python<'a>,
         name: &str,
-        cls: Bound<'a, PyAny>,
+        config_cls: Bound<'a, PyAny>,
     ) -> PyResult<Bound<'a, PyAny>> {
         if let Some(data) = self.ext.get(name) {
             let any = pythonize(python, data)?;
-            cls.call((), Some(&any.cast_into_exact()?))
+            config_cls.call((), Some(&any.cast_into_exact()?))
         } else {
-            cls.call((), None)
+            config_cls.call((), None)
         }
+    }
+}
+
+#[cfg(feature = "stubgen")]
+pyo3_stub_gen::inventory::submit! {
+    gen_methods_from_python! {
+        r#"
+        class Config:
+
+            def load(self,name:str,config_cls: typing.Type[_T]) -> _T:
+                """Load configuration data for a given section name and instantiate a Python class"""
+        "#
     }
 }
