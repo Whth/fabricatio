@@ -2675,6 +2675,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fabricatio-lod"
+version = "0.0.0"
+dependencies = [
+ "fabricatio-constants",
+ "fabricatio-core",
+ "pyo3",
+ "pyo3-stub-gen",
+]
+
+[[package]]
 name = "fabricatio-logger"
 version = "0.2.3"
 dependencies = [
