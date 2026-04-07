@@ -3,7 +3,7 @@ use error_mapping::*;
 use fabricatio_config::Config;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{no_escape, Handlebars};
+use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;

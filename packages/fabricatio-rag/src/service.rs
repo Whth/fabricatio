@@ -6,7 +6,6 @@ use lancedb::Connection;
 use lancedb::index::Index;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 
 /// A service for managing vector stores using LanceDB.
@@ -21,13 +20,14 @@ struct VectorStoreService {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl VectorStoreService {
     /// Connect to a lancedb instance
     #[staticmethod]
-    #[cfg_attr(feature = "stubgen", gen_stub(
+    #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
-    ))]
+    )]
     fn connect<'a>(python: Python<'a>, uri: String) -> PyResult<Bound<'a, PyAny>> {
         future_into_py(python, async move {
             let conn = lancedb::connect(uri.as_str())
