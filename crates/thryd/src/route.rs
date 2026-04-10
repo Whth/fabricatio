@@ -5,9 +5,11 @@ use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
-use serde::Serialize;
+use dashmap::mapref::one::Ref;
+use dashmap::DashMap;
 use serde::de::DeserializeOwned;
-use std::collections::{BTreeMap, HashMap};
+use serde::Serialize;
+use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
 pub type DeploymentIdentifier = String;
@@ -15,38 +17,34 @@ pub type RouteGroupName = String;
 pub type ProviderName = String;
 pub type ModelName = String;
 
+pub type DeploymentEntry<Model> = Arc<Deployment<Model>>;
+
 pub struct Router<Tag: ModelTypeTag> {
     cache: Option<PersistentCache>,
-    providers: HashMap<ProviderName, Arc<dyn Provider>>,
-    groups: BTreeMap<RouteGroupName, Vec<Deployment<Tag::Model>>>,
+    providers: DashMap<ProviderName, Arc<dyn Provider>>,
+    groups: DashMap<RouteGroupName, Vec<DeploymentEntry<Tag::Model>>>,
 }
 
 impl<Tag: ModelTypeTag> Router<Tag> {
-    pub fn add_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
+    pub fn with_cache(database_file: impl AsRef<Path>) -> Result<Self> {
+        Ok(Self {
+            cache: Some(PersistentCache::create_or_open(database_file)?),
+            ..Self::default()
+        })
+    }
+
+    pub fn add_or_update_provider(&self, provider: Arc<dyn Provider>) -> &Self {
         debug!(
-            "Adding provider `{}`, base_url: `{}`",
+            "Insert provider `{}`, base_url: `{}`",
             provider.provider_name(),
             provider.endpoint()
         );
         self.providers
-            .try_insert(provider.provider_name().to_string(), provider)
-            .map_err(|e| {
-                ThrydError::Router(format!(
-                    "Provider with `{}` is already added.",
-                    e.entry.key()
-                ))
-            })?;
-        Ok(self)
+            .insert(provider.provider_name().to_string(), provider);
+        self
     }
 
-    pub fn add_or_update_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
-        if self.providers.contains_key(provider.provider_name()) {
-            self.remove_provider(provider.provider_name())?;
-        }
-        self.add_provider(provider)
-    }
-
-    pub fn remove_provider(&mut self, provider_name: &str) -> Result<&mut Self> {
+    pub fn remove_provider(&self, provider_name: &str) -> Result<&Self> {
         debug!("Removing provider `{}`", provider_name);
         self.providers.remove(provider_name).ok_or_else(|| {
             ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
@@ -54,28 +52,23 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         Ok(self)
     }
 
-    pub fn add_or_ok_provider(&mut self, provider: Arc<dyn Provider>) -> Result<&mut Self> {
-        if self.providers.contains_key(provider.provider_name()) {
-            Ok(self)
-        } else {
-            self.add_provider(provider)
-        }
-    }
-
     fn add_deployment(
-        &mut self,
+        &self,
         group: RouteGroupName,
         deployment: Deployment<Tag::Model>,
-    ) -> Result<&mut Self> {
-        self.groups.entry(group).or_default().push(deployment);
+    ) -> Result<&Self> {
+        self.groups
+            .entry(group)
+            .or_default()
+            .push(Arc::new(deployment));
         Ok(self)
     }
 
     fn remove_deployment(
-        &mut self,
+        &self,
         group: &str,
         deployment_identifier: DeploymentIdentifier,
-    ) -> Result<&mut Self> {
+    ) -> Result<&Self> {
         self.groups
             .get_mut(group)
             .ok_or_else(|| {
@@ -86,12 +79,12 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
     pub fn deploy(
-        &mut self,
+        &self,
         group: RouteGroupName,
         deployment_identifier: DeploymentIdentifier,
         rpm: Option<Quota>,
         tpm: Option<Quota>,
-    ) -> Result<&mut Self> {
+    ) -> Result<&Self> {
         debug!("Deploying `{}` to group `{}`", deployment_identifier, group);
         let d = self.create_deployment(deployment_identifier, rpm, tpm)?;
 
@@ -99,10 +92,10 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
     pub fn undeploy(
-        &mut self,
+        &self,
         group: RouteGroupName,
         deployment_identifier: DeploymentIdentifier,
-    ) -> Result<&mut Self> {
+    ) -> Result<&Self> {
         debug!(
             "Undeploying `{}` to group `{}`",
             deployment_identifier, group
@@ -111,14 +104,17 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         self.remove_deployment(group.as_str(), deployment_identifier)
     }
 
-    pub fn remove_group(&mut self, group: &str) -> Result<&mut Self> {
+    pub fn remove_group(&self, group: &str) -> Result<&Self> {
         self.groups.remove(group).ok_or_else(|| {
             ThrydError::Router(format!("Group with name `{}` is not added.", group))
         })?;
 
         Ok(self)
     }
-    fn get_group(&self, group: RouteGroupName) -> Result<&Vec<Deployment<Tag::Model>>> {
+    fn get_group(
+        &self,
+        group: RouteGroupName,
+    ) -> Result<Ref<'_, RouteGroupName, Vec<DeploymentEntry<Tag::Model>>>> {
         self.groups
             .get(group.as_str())
             .ok_or_else(|| ThrydError::Router(format!("Group with name `{}` is not added.", group)))
@@ -127,20 +123,21 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         &self,
         group: RouteGroupName,
         input_text: String,
-    ) -> Result<&Deployment<Tag::Model>> {
+    ) -> Result<DeploymentEntry<Tag::Model>> {
         let mut min_wait_time = u64::MAX;
-        let mut d_ref: Option<&Deployment<Tag::Model>> = None;
+        let mut d_ref: Option<DeploymentEntry<Tag::Model>> = None;
 
-        for d in self.get_group(group.clone())? {
+        let g = self.get_group(group.clone())?;
+
+        for d in g.value() {
             let wait_time = d.min_cooldown_time(input_text.clone()).await;
             if wait_time == 0 {
-                d_ref = Some(d);
+                d_ref = Some(d.clone());
                 break;
-            } else if wait_time < min_wait_time {
-            }
+            } else if wait_time < min_wait_time {}
             {
                 min_wait_time = wait_time;
-                d_ref = Some(d);
+                d_ref = Some(d.clone());
             }
         }
 
@@ -167,7 +164,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             self.get_provider(provider_name)?,
             model_name,
         )?)
-        .with_usage_constrain(rpm, tpm))
+            .with_usage_constrain(rpm, tpm))
     }
 
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
@@ -176,7 +173,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             .ok_or_else(|| {
                 ThrydError::Router(format!("Provider with `{}` is not added.", provider_name))
             })
-            .cloned()
+            .map(|p| p.value().clone())
     }
 
     pub async fn invoke(
@@ -206,24 +203,14 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             Tag::execute_request(d, request).await
         }
     }
-
-    pub fn mount_cache(&mut self, cache: PersistentCache) -> &mut Self {
-        self.cache = Some(cache);
-        self
-    }
-
-    pub fn unmount_cache(&mut self) -> &mut Self {
-        self.cache = None;
-        self
-    }
 }
 
 impl<Tag: ModelTypeTag> Default for Router<Tag> {
     fn default() -> Self {
         Self {
             cache: None,
-            providers: HashMap::default(),
-            groups: BTreeMap::default(),
+            providers: DashMap::default(),
+            groups: DashMap::default(),
         }
     }
 }
@@ -235,7 +222,7 @@ pub trait ModelTypeTag {
     type Request;
     type Response: DeserializeOwned + Serialize + Clone;
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-    -> Result<Box<Self::Model>>;
+                    -> Result<Box<Self::Model>>;
 
     fn prepare_input_text(request: &Self::Request) -> String;
 
@@ -244,7 +231,7 @@ pub trait ModelTypeTag {
     }
 
     async fn execute_request(
-        deployment: &Deployment<Self::Model>,
+        deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
     ) -> Result<Self::Response>;
 }
@@ -271,7 +258,7 @@ impl ModelTypeTag for CompletionTag {
     }
 
     async fn execute_request(
-        deployment: &Deployment<Self::Model>,
+        deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
     ) -> Result<Self::Response> {
         deployment.completion(request).await
@@ -296,7 +283,7 @@ impl ModelTypeTag for EmbeddingTag {
     }
 
     async fn execute_request(
-        deployment: &Deployment<Self::Model>,
+        deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
     ) -> Result<Self::Response> {
         deployment.embedding(request).await

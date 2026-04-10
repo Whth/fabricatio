@@ -93,6 +93,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Router cache support ttl and eviction
 - [x] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
+    - [ ] Non-blocking compact support
 - [ ] TreeSetter-based ACE
 - [ ] Self-Extensible Agent
 - [ ] Add more examples
@@ -101,6 +102,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Use `Thryd` impl to move some requests to rust side
 - [ ] Add Texts-based skill system, as a subpackage
 - [x] Port build workflow to `Justfile`
+- [x] `thryd::Router` use concurrent safe impl
 
 ## Installation
 

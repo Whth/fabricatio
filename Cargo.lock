@@ -8077,12 +8077,13 @@ dependencies = [
 
 [[package]]
 name = "thryd"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "async-openai",
  "async-trait",
  "blake3",
  "cached",
+ "dashmap",
  "eventsource-stream",
  "futures",
  "http",

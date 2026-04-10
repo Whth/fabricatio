@@ -350,18 +350,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-    def mount_cache(self, file_path: builtins.str | os.PathLike | pathlib.Path) -> typing.Awaitable[None]:
-        r"""Mount cache database to all routers, create if not exists.
-
-        Initializes and mounts a shared cache database file for both completion and embedding routers.
-        If the database does not exist, it will be created automatically.
-
-        Args:
-            file_path (PathBuf): The absolute or relative path to the cache database file.
-
-        Returns:
-            None: This is an asynchronous operation that modifies the router state.
-        """
 
 @typing.final
 class RoutingConfig:

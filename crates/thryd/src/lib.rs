@@ -1,5 +1,3 @@
-#![feature(associated_type_defaults)]
-#![feature(map_try_insert)]
 //! Thryd - A lightweight, embedded LLM request router with caching.
 //!
 //! This library provides:
