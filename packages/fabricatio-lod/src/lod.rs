@@ -1,3 +1,8 @@
+use fabricatio_constants::{CORE_PACKAGE_NAME, ROUTER_VARNAME, RUST_MODULE_NAME};
+use fabricatio_core::Router;
+use pyo3::exceptions::PyImportError;
+use thryd::CompletionRequest;
+
 use pyo3::prelude::*;
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
@@ -6,14 +11,36 @@ use pyo3_stub_gen::derive::*;
 #[pyclass]
 pub struct Lod {
     used_group: String,
+
+    router: Router,
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Lod {
-    #[new]
-    fn new(group: String) -> PyResult<Self> {
-        todo!()
+    #[staticmethod]
+    fn with_librian(group: String) -> PyResult<Self> {
+        let router = Python::attach(|py| {
+            py.import(CORE_PACKAGE_NAME)?
+                .getattr(RUST_MODULE_NAME)?
+                .getattr(ROUTER_VARNAME)?
+                .extract::<Router>()
+                .map_err(|e| PyImportError::new_err(e.to_string()))
+        })?;
+
+        Ok(Self {
+            used_group: group,
+            router,
+        })
+    }
+}
+
+impl Lod {
+    async fn completion(&self, req: CompletionRequest) -> thryd::Result<String> {
+        self.router
+            .completion_router
+            .invoke(self.used_group.clone(), req)
+            .await
     }
 }
 

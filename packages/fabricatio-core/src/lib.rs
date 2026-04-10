@@ -16,6 +16,7 @@ mod templates;
 mod text_file;
 mod word_split;
 
+pub use crate::router::Router;
 use crate::router::init_router_from_config;
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;

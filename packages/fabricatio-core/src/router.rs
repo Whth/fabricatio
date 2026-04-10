@@ -8,15 +8,16 @@ use std::fs;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType, Router as ThrydRouter, create_provider,
+    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
+    RouteGroupName, Router as ThrydRouter, create_provider,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Default, Clone)]
 pub struct Router {
-    embedding_router: Arc<ThrydRouter<EmbeddingTag>>,
-    completion_router: Arc<ThrydRouter<CompletionTag>>,
+    pub embedding_router: Arc<ThrydRouter<EmbeddingTag>>,
+    pub completion_router: Arc<ThrydRouter<CompletionTag>>,
 }
 
 impl Router {

@@ -2678,10 +2678,12 @@ dependencies = [
 name = "fabricatio-lod"
 version = "0.0.0"
 dependencies = [
+ "error-mapping",
  "fabricatio-constants",
  "fabricatio-core",
  "pyo3",
  "pyo3-stub-gen",
+ "thryd",
 ]
 
 [[package]]

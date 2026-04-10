@@ -5,10 +5,10 @@ use crate::tracker::Quota;
 use crate::{PersistentCache, ThrydError};
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
-use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
-use serde::de::DeserializeOwned;
+use dashmap::mapref::one::Ref;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
@@ -134,7 +134,8 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             if wait_time == 0 {
                 d_ref = Some(d.clone());
                 break;
-            } else if wait_time < min_wait_time {}
+            } else if wait_time < min_wait_time {
+            }
             {
                 min_wait_time = wait_time;
                 d_ref = Some(d.clone());
@@ -164,7 +165,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             self.get_provider(provider_name)?,
             model_name,
         )?)
-            .with_usage_constrain(rpm, tpm))
+        .with_usage_constrain(rpm, tpm))
     }
 
     fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
@@ -222,7 +223,7 @@ pub trait ModelTypeTag {
     type Request;
     type Response: DeserializeOwned + Serialize + Clone;
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-                    -> Result<Box<Self::Model>>;
+    -> Result<Box<Self::Model>>;
 
     fn prepare_input_text(request: &Self::Request) -> String;
 

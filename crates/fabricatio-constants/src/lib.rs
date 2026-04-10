@@ -45,6 +45,8 @@ pub const NAME: &str = "fabricatio";
 /// The name of the core package used by the application.
 pub const CORE_PACKAGE_NAME: &str = "fabricatio_core";
 
+pub const RUST_MODULE_NAME: &str = "rust";
+
 /// The default configuration file name used by the application.
 pub const CONFIG_FILE: &str = "fabricatio.toml";
 /// The GitHub repository owner for the application.
