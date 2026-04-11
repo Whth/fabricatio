@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
 use postcard::{from_bytes, to_stdvec};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -12,7 +12,6 @@ use std::sync::OnceLock;
 use strum::{Display, EnumString, IntoStaticStr};
 
 use error_mapping::AsPyErr;
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -26,6 +25,7 @@ struct Event {
 static DELIMITER: OnceLock<String> = OnceLock::new();
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl Event {
     #[new]
@@ -37,7 +37,12 @@ impl Event {
     }
 
     #[staticmethod]
-    fn instantiate_from(event: &Bound<'_, PyAny>) -> PyResult<Self> {
+    fn instantiate_from(
+        #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
+            '_,
+            PyAny,
+        >,
+    ) -> PyResult<Self> {
         if let Ok(event_str) = event.extract::<String>() {
             let delimiter = DELIMITER.get().expect("Delimiter not set!");
             let segments: Vec<String> = event_str.split(delimiter).map(|s| s.to_string()).collect();
@@ -48,29 +53,36 @@ impl Event {
                 if let Ok(s) = item.extract::<String>() {
                     segments.push(s);
                 } else {
-                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                        "List elements must be strings",
-                    ));
+                    return Err(PyValueError::new_err("List elements must be strings"));
                 }
             }
             Ok(Event { segments })
         } else if let Ok(py_event) = event.extract::<Self>() {
             Ok(py_event.clone())
         } else {
-            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Invalid event type",
-            ))
+            Err(PyTypeError::new_err("Invalid event type"))
         }
     }
     #[staticmethod]
-    fn quick_instantiate(event: &Bound<'_, PyAny>) -> PyResult<Self> {
+    fn quick_instantiate(
+        #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
+            '_,
+            PyAny,
+        >,
+    ) -> PyResult<Self> {
         let mut event = Self::instantiate_from(event)?;
         event.segments.push("*".to_string());
         event.segments.push(TaskStatus::Pending.to_string());
         Ok(event)
     }
 
-    fn derive(&self, event: &Bound<'_, PyAny>) -> PyResult<Self> {
+    fn derive(
+        &self,
+        #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
+            '_,
+            PyAny,
+        >,
+    ) -> PyResult<Self> {
         let mut new_event = self.clone();
         let sub = Event::instantiate_from(event)?;
         new_event.segments.extend(sub.segments);
@@ -88,7 +100,7 @@ impl Event {
 
     fn push<'py>(
         mut slf: PyRefMut<'py, Self>,
-        segment: Bound<'py, PyAny>,
+        #[gen_stub(override_type(type_repr = "TaskStatus | str "))] segment: Bound<'py, PyAny>,
     ) -> PyResult<PyRefMut<'py, Self>> {
         if let Ok(status) = segment.extract::<TaskStatus>() {
             slf.segments.push(status.to_string());
@@ -155,7 +167,10 @@ impl Event {
 
     fn concat<'py>(
         mut slf: PyRefMut<'py, Self>,
-        event: &Bound<'_, PyAny>,
+        #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
+            '_,
+            PyAny,
+        >,
     ) -> PyResult<PyRefMut<'py, Self>> {
         let other = Self::instantiate_from(event)?;
         slf.segments.extend(other.segments);
@@ -188,7 +203,7 @@ impl Event {
                 _ => unimplemented!(),
             })
         } else {
-            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            Err(PyTypeError::new_err(
                 "Comparison requires string or Event instance",
             ))
         }
