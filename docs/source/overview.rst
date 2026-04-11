@@ -1,5 +1,9 @@
 Overview
-========
+=======
+
+.. image:: /assets/band.png
+   :width: 80%
+   :align: center
 
 What is Fabricatio?
 -------------------
