@@ -17,6 +17,7 @@ __all__ = [
     "EmitterConfig",
     "Event",
     "GeneralConfig",
+    "JsonParser",
     "LLMConfig",
     "Logger",
     "ProviderConfig",
@@ -28,6 +29,7 @@ __all__ = [
     "TemplateConfig",
     "TemplateManager",
     "TemplateManagerConfig",
+    "TextCapturer",
     "blake3_hash",
     "detect_language",
     "extra_satisfied",
@@ -58,6 +60,8 @@ __all__ = [
     "word_count",
 ]
 _T = typing.TypeVar("_T")
+_K = typing.TypeVar("_K")
+_V = typing.TypeVar("_V")
 CONFIG: Config
 ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
@@ -182,6 +186,41 @@ class GeneralConfig:
     @use_json_repair.setter
     def use_json_repair(self, value: builtins.bool) -> None:
         r"""Whether to automatically repair malformed JSON."""
+
+@typing.final
+class JsonParser:
+    @staticmethod
+    def with_pattern(pattern: builtins.str) -> JsonParser:
+        r"""Create a new Capture instance."""
+    @staticmethod
+    def with_capturer(capturer: TextCapturer) -> JsonParser: ...
+    def capture(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[builtins.str]:
+        r"""Capture the first match of the pattern in the text.
+
+        Returns the captured text or None if no match is found.
+        """
+    def capture_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[builtins.str]:
+        r"""Capture all matches of the pattern in the text.
+
+        Returns a vector of tuples containing captured groups for each match.
+        """
+    def convert(self, text: builtins.str, fix: builtins.bool = True) -> typing.Any: ...
+    def convert_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[typing.Any]: ...
+    def validate_list(
+        self,
+        text: builtins.str,
+        elements_type: typing.Type[_T] | None,
+        length: typing.Optional[builtins.int],
+        fix: builtins.bool = True,
+    ) -> typing.List[_T] | None: ...
+    def validate_dict(
+        self,
+        text: builtins.str,
+        key_type: typing.Type[_K] | None,
+        value_type: typing.Type[_V] | None,
+        length: typing.Optional[builtins.int],
+        fix: builtins.bool = True,
+    ) -> typing.Dict[_K, _V] | None: ...
 
 @typing.final
 class LLMConfig:
@@ -498,6 +537,50 @@ class TemplateManagerConfig:
     @template_suffix.setter
     def template_suffix(self, value: builtins.str) -> None:
         r"""The suffix of the templates."""
+
+@typing.final
+class TextCapturer:
+    def cap(self, text: builtins.str) -> typing.Optional[builtins.str]: ...
+    def cap_all(self, text: builtins.str) -> builtins.list[builtins.str]: ...
+    @staticmethod
+    def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer: ...
+    @staticmethod
+    def capture_code_block(language: typing.Optional[builtins.str] = None) -> TextCapturer:
+        r"""Capture a code block of the given language.
+
+        Args:
+            language (Option<&str>): The programming language of the code block.
+            Capture all kinds of code block if it set to None.
+
+        Returns:
+            PyResult<Self>: An instance of TextCapturer configured to capture code blocks.
+        """
+    @staticmethod
+    def capture_generic_block(language: builtins.str = "String") -> TextCapturer:
+        r"""Capture a generic block of the given language.
+
+        Args:
+            language (&str): The language or identifier of the generic block.
+
+        Returns:
+            PyResult<Self>: An instance of TextCapturer configured to capture generic blocks.
+        """
+    @staticmethod
+    def capture_content(
+        left_delimiter: builtins.str, right_delimiter: typing.Optional[builtins.str] = None
+    ) -> TextCapturer:
+        r"""Capture content between delimiters.
+
+        Args:
+            left_delimiter (&str): The left delimiter marking the start of the content.
+            right_delimiter (Option<&str>): The right delimiter marking the end of the content.
+
+        Returns:
+            PyResult<Self>: An instance of TextCapturer configured to capture content between delimiters.
+
+        Note:
+            - If `right_delimiter` is not provided, it defaults to `left_delimiter`.
+        """
 
 @typing.final
 class ProviderType(enum.Enum):
