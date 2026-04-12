@@ -24,6 +24,7 @@ tokio = { version = "1.51.0", features = ["rt-multi-thread", "macros"] }
 human-units = { version = "0.5.3", features = ["iec-units"] }
 walkdir = "2.5.0"
 fabricatio-constants = { path = "crates/fabricatio-constants" }
+rustls = { version = "0.23.37", features = ["ring"] }
 
 [build-dependencies]
 pyo3-build-config = "0.28.3"

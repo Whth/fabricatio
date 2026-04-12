@@ -122,7 +122,7 @@ class TestCapture:
 
         capture = Capture(pattern=r"(\w+,\w+,\w+)")
         text = "Values: a,b,c"
-        result = capture.validate_with(text, list, str, deserializer=custom_deserializer)
+        result = capture.validate_with(text, list, str)
         assert result == ["a", "b", "c"]
 
     def test_validate_with_no_capture(self) -> None:

@@ -8,8 +8,8 @@ use std::fs;
 use std::sync::Arc;
 use thryd::tracker::Quota;
 use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
-    RouteGroupName, Router as ThrydRouter, create_provider,
+    create_provider, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag,
+    ProviderType, RouteGroupName, Router as ThrydRouter,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -63,7 +63,7 @@ impl Router {
     pub fn completion<'a>(
         &self,
         python: Python<'a>,
-        send_to: String,
+        send_to: RouteGroupName,
         message: String,
         stream: bool,
         top_p: Option<f32>,
@@ -104,7 +104,7 @@ impl Router {
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
-        send_to: String,
+        send_to: RouteGroupName,
         texts: Vec<String>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = EmbeddingRequest { texts };
@@ -146,7 +146,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -235,7 +235,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         router.add_or_update_provider(p);
     }

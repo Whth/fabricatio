@@ -24,11 +24,15 @@ strum = { version = "0.28.0", default-features = false, optional = true }
 thryd = { path = "../thryd", default-features = false, optional = true }
 postcard = { version = "1.1.3", default-features = false, optional = true }
 arrow-schema = { version = "57.3.0", default-features = false, optional = true }
+llm_json = { version = "1.0.3", default-features = true, optional = true }
+regex = { version = "1.12.3", default-features = false, optional = true }
 
 
 
 [features]
 default = ["std"]
+regex = ["dep:regex"]
+llm_json = ["dep:llm_json"]
 arrow-schema = ["dep:arrow-schema"]
 strum = ["dep:strum"]
 lancedb = ["dep:lancedb"]

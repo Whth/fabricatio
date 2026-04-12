@@ -42,6 +42,12 @@ cfg_if!(
     }
 );
 
+#[cfg(feature = "regex")]
+impl_as_pyerr!(regex::Error, PyRuntimeError);
+
+#[cfg(feature = "llm_json")]
+impl_as_pyerr!(llm_json::JsonRepairError, PyRuntimeError);
+
 #[cfg(feature = "arrow-schema")]
 impl_as_pyerr!(arrow_schema::ArrowError, PyRuntimeError);
 
