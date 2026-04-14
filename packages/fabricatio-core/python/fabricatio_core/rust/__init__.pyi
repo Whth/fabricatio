@@ -34,6 +34,7 @@ __all__ = [
     "detect_language",
     "extra_satisfied",
     "extras_satisfied",
+    "generic_parser",
     "is_arabic",
     "is_chinese",
     "is_dutch",
@@ -51,8 +52,11 @@ __all__ = [
     "is_swedish",
     "is_turkish",
     "is_vietnamese",
+    "json_parser",
     "list_installed",
     "logger",
+    "python_parser",
+    "snippet_parser",
     "split_into_chunks",
     "split_sentence_bounds",
     "split_word_bounds",
@@ -65,7 +69,11 @@ _V = typing.TypeVar("_V")
 CONFIG: Config
 ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
+generic_parser: TextCapturer
+json_parser: JsonParser
 logger: Logger
+python_parser: TextCapturer
+snippet_parser: TextCapturer
 
 @typing.final
 class Config:

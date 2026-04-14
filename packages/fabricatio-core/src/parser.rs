@@ -1,5 +1,6 @@
 //! A module for capturing patterns in text using regular expressions.
 
+use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use llm_json::repair_json;
 use pyo3::prelude::*;
@@ -40,7 +41,7 @@ impl TextCapturer {
         self.reg.captures_iter(text).map(Self::get_fist).collect()
     }
     #[staticmethod]
-    #[pyo3(signature=(l_sep=">>>>>",r_sep="<<<<<"))]
+    #[pyo3(signature=(l_sep=var_names::SNIPPET_LEFT_SEP,r_sep=var_names::SNIPPET_RIGHT_SEP))]
     pub fn capture_snippet(l_sep: &str, r_sep: &str) -> PyResult<Self> {
         Self::new(format!(r#"^(.+?)\s*\n^{l_sep}\S*\n(.*?)\n^{r_sep}\s*$"#))
     }
@@ -68,7 +69,7 @@ impl TextCapturer {
     /// Returns:
     ///     PyResult<Self>: An instance of TextCapturer configured to capture generic blocks.
     #[staticmethod]
-    #[pyo3(signature=(language="String"))]
+    #[pyo3(signature=(language=var_names::GENERIC_BLOCK_TYPE))]
     pub fn capture_generic_block(language: &str) -> PyResult<Self> {
         Self::new(format!(
             "--- Start of {} ---\n(.*?)\n--- End of {} ---",
@@ -261,25 +262,52 @@ impl JsonParser {
     }
 }
 
+mod var_names {
+    pub const JSON_PARSER: &str = "json_parser";
+    pub const PYTHON_PARSER: &str = "python_parser";
+    pub const GENERIC_PARSER: &str = "generic_parser";
+    pub const SNIPPET_PARSER: &str = "snippet_parser";
+
+    // Default arguments for parsers
+    pub const JSON_LANG: &str = "json";
+    pub const PYTHON_LANG: &str = "python";
+    pub const GENERIC_BLOCK_TYPE: &str = "String";
+    pub const SNIPPET_LEFT_SEP: &str = ">>>>>";
+    pub const SNIPPET_RIGHT_SEP: &str = "<<<<<";
+}
+
+cfg_if!(
+    if #[cfg(feature = "stubgen")]    {
+        use pyo3_stub_gen::module_variable;
+        module_variable!("fabricatio_core.rust", var_names::JSON_PARSER, JsonParser);
+        module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, TextCapturer);
+        module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, TextCapturer);
+        module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, TextCapturer);
+
+    }
+);
+
 /// Register the Capture class with the Python module.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TextCapturer>()?;
     m.add_class::<JsonParser>()?;
     m.add(
-        "json_parser",
-        JsonParser::with_capturer(TextCapturer::capture_code_block(Some("json"))?),
+        var_names::JSON_PARSER,
+        JsonParser::with_capturer(TextCapturer::capture_code_block(Some(
+            var_names::JSON_LANG,
+        ))?),
     )?;
     m.add(
-        "python_parser",
-        TextCapturer::capture_code_block(Some("python"))?,
+        var_names::PYTHON_PARSER,
+        TextCapturer::capture_code_block(Some(var_names::PYTHON_LANG))?,
     )?;
     m.add(
-        "generic_parser",
-        TextCapturer::capture_generic_block("String")?,
+        var_names::GENERIC_PARSER,
+        TextCapturer::capture_generic_block(var_names::GENERIC_BLOCK_TYPE)?,
     )?;
     m.add(
-        "snippet_parser",
-        TextCapturer::capture_snippet(">>>>>", "<<<<<")?,
+        var_names::SNIPPET_PARSER,
+        TextCapturer::capture_snippet(var_names::SNIPPET_LEFT_SEP, var_names::SNIPPET_RIGHT_SEP)?,
     )?;
     Ok(())
 }
