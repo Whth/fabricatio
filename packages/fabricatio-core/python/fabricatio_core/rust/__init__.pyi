@@ -10,13 +10,17 @@ __all__ = [
     "CONFIG",
     "ROUTER",
     "TEMPLATE_MANAGER",
+    "CodeBlockParser",
+    "CodeSnippetParser",
     "Config",
+    "ContentBlockParser",
     "DebugConfig",
     "DeploymentConfig",
     "EmbeddingConfig",
     "EmitterConfig",
     "Event",
     "GeneralConfig",
+    "GenericBlockParser",
     "JsonParser",
     "LLMConfig",
     "Logger",
@@ -76,6 +80,60 @@ python_parser: TextCapturer
 snippet_parser: TextCapturer
 
 @typing.final
+class CodeBlockParser:
+    @property
+    def language(self) -> builtins.str: ...
+    @staticmethod
+    def with_language(language: builtins.str) -> CodeBlockParser:
+        r"""Create a new CodeBlockParser instance.
+
+        Args:
+            language (Option<&str>): The programming language of the code block.
+                Capture all kinds of code block if it set to None.
+
+        Returns:
+            PyResult<Self>: A new CodeBlockParser instance.
+        """
+    def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
+        r"""Capture the first code block match in the text.
+
+        Returns the captured code block content or None if no match is found.
+        """
+    def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
+        r"""Capture all code block matches in the text.
+
+        Returns a vector of captured code block contents.
+        """
+
+@typing.final
+class CodeSnippetParser:
+    @property
+    def left_sep(self) -> builtins.str: ...
+    @property
+    def right_sep(self) -> builtins.str: ...
+    @staticmethod
+    def with_separators(left_sep: builtins.str = ">>>>>", right_sep: builtins.str = "<<<<<") -> CodeSnippetParser:
+        r"""Create a new CodeSnippetParser instance.
+
+        Args:
+            left_sep (&str): The left separator marking the start of the snippet.
+            right_sep (&str): The right separator marking the end of the snippet.
+
+        Returns:
+            PyResult<Self>: A new CodeSnippetParser instance.
+        """
+    def parse(self, text: builtins.str) -> builtins.list[tuple[pathlib.Path, builtins.str]]:
+        r"""Parse text into path-content pairs.
+
+        Captures all snippet matches from the text and groups them into pairs,
+        where each pair consists of a path and its corresponding content.
+
+        Returns:
+            Vec<(PathBuf, String)>: A vector of tuples containing the path
+            and content for each matched snippet.
+        """
+
+@typing.final
 class Config:
     r"""Configuration structure containing all system components."""
     @property
@@ -104,6 +162,37 @@ class Config:
         r"""Event emission control settings."""
     def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
+
+@typing.final
+class ContentBlockParser:
+    @property
+    def left_delimiter(self) -> builtins.str: ...
+    @property
+    def right_delimiter(self) -> builtins.str: ...
+    @staticmethod
+    def with_delimiters(
+        left_delimiter: builtins.str, right_delimiter: typing.Optional[builtins.str] = None
+    ) -> ContentBlockParser:
+        r"""Create a new ContentBlockParser instance.
+
+        Args:
+            left_delimiter (&str): The left delimiter marking the start of the content.
+            right_delimiter (Option<&str>): The right delimiter marking the end of the content.
+                Defaults to left_delimiter if not provided.
+
+        Returns:
+            PyResult<Self>: A new ContentBlockParser instance.
+        """
+    def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
+        r"""Capture the first content block match in the text.
+
+        Returns the captured content or None if no match is found.
+        """
+    def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
+        r"""Capture all content block matches in the text.
+
+        Returns a vector of captured contents.
+        """
 
 @typing.final
 class DebugConfig:
@@ -194,6 +283,31 @@ class GeneralConfig:
     @use_json_repair.setter
     def use_json_repair(self, value: builtins.bool) -> None:
         r"""Whether to automatically repair malformed JSON."""
+
+@typing.final
+class GenericBlockParser:
+    @property
+    def block_type(self) -> builtins.str: ...
+    @staticmethod
+    def with_block_type(block_type: builtins.str = "String") -> GenericBlockParser:
+        r"""Create a new GenericBlockParser instance.
+
+        Args:
+            block_type (&str): The type identifier of the generic block.
+
+        Returns:
+            PyResult<Self>: A new GenericBlockParser instance.
+        """
+    def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
+        r"""Capture the first generic block match in the text.
+
+        Returns the captured block content or None if no match is found.
+        """
+    def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
+        r"""Capture all generic block matches in the text.
+
+        Returns a vector of captured block contents.
+        """
 
 @typing.final
 class JsonParser:
@@ -553,7 +667,7 @@ class TextCapturer:
     @staticmethod
     def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer: ...
     @staticmethod
-    def capture_code_block(language: typing.Optional[builtins.str] = None) -> TextCapturer:
+    def capture_code_block(language: builtins.str = ".*?") -> TextCapturer:
         r"""Capture a code block of the given language.
 
         Args:

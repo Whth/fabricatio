@@ -10,6 +10,7 @@ use pythonize::pythonize;
 use regex::{Captures, Regex};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::path::PathBuf;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
@@ -55,10 +56,9 @@ impl TextCapturer {
     /// Returns:
     ///     PyResult<Self>: An instance of TextCapturer configured to capture code blocks.
     #[staticmethod]
-    #[pyo3(signature=(language=None))]
-    pub fn capture_code_block(language: Option<&str>) -> PyResult<Self> {
-        let lang = language.unwrap_or(".*?");
-        Self::new(format!("```{}\n(.*?)\n```", lang))
+    #[pyo3(signature=(language=".*?"))]
+    pub fn capture_code_block(language: &str) -> PyResult<Self> {
+        Self::capture_content(&format!("```{}\n", language), Some("\n```"))
     }
 
     /// Capture a generic block of the given language.
@@ -71,10 +71,10 @@ impl TextCapturer {
     #[staticmethod]
     #[pyo3(signature=(language=var_names::GENERIC_BLOCK_TYPE))]
     pub fn capture_generic_block(language: &str) -> PyResult<Self> {
-        Self::new(format!(
-            "--- Start of {} ---\n(.*?)\n--- End of {} ---",
-            language, language
-        ))
+        Self::capture_content(
+            &format!("--- Start of {} ---", language),
+            Some(&format!("--- End of {} ---", language)),
+        )
     }
 
     /// Capture content between delimiters.
@@ -201,11 +201,11 @@ impl JsonParser {
         if let Ok(val_list) = val.cast_into_exact::<PyList>()
             && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
             && (elements_type.is_none()
-                || elements_type.is_some_and(|t| {
-                    val_list
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                }))
+            || elements_type.is_some_and(|t| {
+            val_list
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        }))
         {
             Ok(Some(val_list))
         } else {
@@ -237,19 +237,19 @@ impl JsonParser {
         {
             let key_check = key_type.is_none()
                 || key_type.is_some_and(|t| {
-                    val_dict
-                        .keys()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .keys()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             let value_check = value_type.is_none()
                 || value_type.is_some_and(|t| {
-                    val_dict
-                        .values()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .values()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             if key_check && value_check {
                 Ok(Some(val_dict))
@@ -262,12 +262,226 @@ impl JsonParser {
     }
 }
 
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass]
+pub struct CodeBlockParser {
+    capturer: TextCapturer,
+    #[pyo3(get)]
+    language: String,
+}
+
+impl CodeBlockParser {
+    fn new(language: &str) -> PyResult<Self> {
+        Ok(Self {
+            capturer: TextCapturer::capture_code_block(language)?,
+            language: language.to_string(),
+        })
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[pymethods]
+impl CodeBlockParser {
+    /// Create a new CodeBlockParser instance.
+    ///
+    /// Args:
+    ///     language (Option<&str>): The programming language of the code block.
+    ///         Capture all kinds of code block if it set to None.
+    ///
+    /// Returns:
+    ///     PyResult<Self>: A new CodeBlockParser instance.
+    #[staticmethod]
+    pub fn with_language(language: &str) -> PyResult<Self> {
+        Self::new(language)
+    }
+
+    /// Capture the first code block match in the text.
+    ///
+    /// Returns the captured code block content or None if no match is found.
+    pub fn capture(&self, text: &str) -> Option<String> {
+        self.capturer.cap(text)
+    }
+
+    /// Capture all code block matches in the text.
+    ///
+    /// Returns a vector of captured code block contents.
+    pub fn capture_all(&self, text: &str) -> Vec<String> {
+        self.capturer.cap_all(text)
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass]
+pub struct CodeSnippetParser {
+    capturer: TextCapturer,
+    #[pyo3(get)]
+    left_sep: String,
+    #[pyo3(get)]
+    right_sep: String,
+}
+
+impl CodeSnippetParser {
+    fn new(l_sep: &str, r_sep: &str) -> PyResult<Self> {
+        Ok(Self {
+            capturer: TextCapturer::capture_snippet(l_sep, r_sep)?,
+            left_sep: l_sep.to_string(),
+            right_sep: r_sep.to_string(),
+        })
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[pymethods]
+impl CodeSnippetParser {
+    /// Create a new CodeSnippetParser instance.
+    ///
+    /// Args:
+    ///     left_sep (&str): The left separator marking the start of the snippet.
+    ///     right_sep (&str): The right separator marking the end of the snippet.
+    ///
+    /// Returns:
+    ///     PyResult<Self>: A new CodeSnippetParser instance.
+    #[staticmethod]
+    #[pyo3(signature=(left_sep=var_names::SNIPPET_LEFT_SEP, right_sep=var_names::SNIPPET_RIGHT_SEP)
+    )]
+    pub fn with_separators(left_sep: &str, right_sep: &str) -> PyResult<Self> {
+        Self::new(left_sep, right_sep)
+    }
+
+    /// Parse text into path-content pairs.
+    ///
+    /// Captures all snippet matches from the text and groups them into pairs,
+    /// where each pair consists of a path and its corresponding content.
+    ///
+    /// Returns:
+    ///     Vec<(PathBuf, String)>: A vector of tuples containing the path
+    ///     and content for each matched snippet.
+    pub fn parse(&self, text: &str) -> Vec<(PathBuf, String)> {
+        self.capturer
+            .cap_all(text)
+            .chunks(2)
+            .filter_map(|e| {
+                if let [path, content] = e {
+                    Some((PathBuf::new().join(path), content.to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass]
+pub struct GenericBlockParser {
+    capturer: TextCapturer,
+    #[pyo3(get)]
+    block_type: String,
+}
+
+impl GenericBlockParser {
+    fn new(block_type: &str) -> PyResult<Self> {
+        Ok(Self {
+            capturer: TextCapturer::capture_generic_block(block_type)?,
+            block_type: block_type.to_string(),
+        })
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[pymethods]
+impl GenericBlockParser {
+    /// Create a new GenericBlockParser instance.
+    ///
+    /// Args:
+    ///     block_type (&str): The type identifier of the generic block.
+    ///
+    /// Returns:
+    ///     PyResult<Self>: A new GenericBlockParser instance.
+    #[staticmethod]
+    #[pyo3(signature=(block_type=var_names::GENERIC_BLOCK_TYPE))]
+    pub fn with_block_type(block_type: &str) -> PyResult<Self> {
+        Self::new(block_type)
+    }
+
+    /// Capture the first generic block match in the text.
+    ///
+    /// Returns the captured block content or None if no match is found.
+    pub fn capture(&self, text: &str) -> Option<String> {
+        self.capturer.cap(text)
+    }
+
+    /// Capture all generic block matches in the text.
+    ///
+    /// Returns a vector of captured block contents.
+    pub fn capture_all(&self, text: &str) -> Vec<String> {
+        self.capturer.cap_all(text)
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass]
+pub struct ContentBlockParser {
+    capturer: TextCapturer,
+    #[pyo3(get)]
+    left_delimiter: String,
+    #[pyo3(get)]
+    right_delimiter: String,
+}
+
+impl ContentBlockParser {
+    fn new(left_delimiter: &str, right_delimiter: Option<&str>) -> PyResult<Self> {
+        let right = right_delimiter.unwrap_or(left_delimiter);
+        Ok(Self {
+            capturer: TextCapturer::capture_content(left_delimiter, right_delimiter)?,
+            left_delimiter: left_delimiter.to_string(),
+            right_delimiter: right.to_string(),
+        })
+    }
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[pymethods]
+impl ContentBlockParser {
+    /// Create a new ContentBlockParser instance.
+    ///
+    /// Args:
+    ///     left_delimiter (&str): The left delimiter marking the start of the content.
+    ///     right_delimiter (Option<&str>): The right delimiter marking the end of the content.
+    ///         Defaults to left_delimiter if not provided.
+    ///
+    /// Returns:
+    ///     PyResult<Self>: A new ContentBlockParser instance.
+    #[staticmethod]
+    #[pyo3(signature=(left_delimiter, right_delimiter=None))]
+    pub fn with_delimiters(left_delimiter: &str, right_delimiter: Option<&str>) -> PyResult<Self> {
+        Self::new(left_delimiter, right_delimiter)
+    }
+
+    /// Capture the first content block match in the text.
+    ///
+    /// Returns the captured content or None if no match is found.
+    pub fn capture(&self, text: &str) -> Option<String> {
+        self.capturer.cap(text)
+    }
+
+    /// Capture all content block matches in the text.
+    ///
+    /// Returns a vector of captured contents.
+    pub fn capture_all(&self, text: &str) -> Vec<String> {
+        self.capturer.cap_all(text)
+    }
+}
+
 mod var_names {
     pub const JSON_PARSER: &str = "json_parser";
     pub const PYTHON_PARSER: &str = "python_parser";
     pub const GENERIC_PARSER: &str = "generic_parser";
     pub const SNIPPET_PARSER: &str = "snippet_parser";
-
     // Default arguments for parsers
     pub const JSON_LANG: &str = "json";
     pub const PYTHON_LANG: &str = "python";
@@ -291,23 +505,26 @@ cfg_if!(
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TextCapturer>()?;
     m.add_class::<JsonParser>()?;
+    m.add_class::<CodeBlockParser>()?;
+    m.add_class::<CodeSnippetParser>()?;
+    m.add_class::<GenericBlockParser>()?;
+    m.add_class::<ContentBlockParser>()?;
     m.add(
         var_names::JSON_PARSER,
-        JsonParser::with_capturer(TextCapturer::capture_code_block(Some(
-            var_names::JSON_LANG,
-        ))?),
+        JsonParser::with_capturer(TextCapturer::capture_code_block(var_names::JSON_LANG)?),
     )?;
     m.add(
         var_names::PYTHON_PARSER,
-        TextCapturer::capture_code_block(Some(var_names::PYTHON_LANG))?,
+        CodeBlockParser::with_language(var_names::PYTHON_LANG)?,
     )?;
     m.add(
         var_names::GENERIC_PARSER,
-        TextCapturer::capture_generic_block(var_names::GENERIC_BLOCK_TYPE)?,
+        GenericBlockParser::with_block_type(var_names::GENERIC_BLOCK_TYPE)?,
     )?;
     m.add(
         var_names::SNIPPET_PARSER,
-        TextCapturer::capture_snippet(var_names::SNIPPET_LEFT_SEP, var_names::SNIPPET_RIGHT_SEP)?,
+        CodeSnippetParser::with_separators(var_names::SNIPPET_LEFT_SEP, var_names::SNIPPET_RIGHT_SEP)?,
     )?;
+
     Ok(())
 }

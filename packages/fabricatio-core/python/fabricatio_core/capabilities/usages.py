@@ -259,7 +259,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[List[str]]: The validated response as a list of strings.
         """
-        from fabricatio_core.parser import JsonCapture
+        from fabricatio_core.rust import json_parser
 
         if isinstance(requirement, str):
             return await self.aask_validate(
@@ -267,7 +267,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     CONFIG.templates.liststr_template,
                     {"requirement": requirement, "k": k},
                 ),
-                lambda resp: JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=k),
+                lambda resp: json_parser.validate_list(resp, elements_type=str, length=k),
                 **kwargs,
             )
         if isinstance(requirement, list):
@@ -276,7 +276,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     CONFIG.templates.liststr_template,
                     [{"requirement": r, "k": k} for r in requirement],
                 ),
-                lambda resp: JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=k),
+                lambda resp: json_parser.validate_list(resp, elements_type=str, length=k),
                 **kwargs,
             )
         return None
@@ -346,15 +346,15 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[str]: The generated string.
         """
-        from fabricatio_core.parser import GenericCapture
+        from fabricatio_core.rust import generic_parser
 
         if isinstance(requirement, str):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
                     CONFIG.templates.generic_string_template,
-                    {"requirement": requirement, "language": GenericCapture.capture_type},
+                    {"requirement": requirement, "language": generic_parser},
                 ),
-                validator=GenericCapture.capture,
+                validator=generic_parser.cap,
                 **kwargs,
             )
         if isinstance(requirement, list):
@@ -363,7 +363,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     CONFIG.templates.generic_string_template,
                     [{"requirement": r, "language": GenericCapture.capture_type} for r in requirement],
                 ),
-                validator=GenericCapture.capture,
+                validator=generic_parser.cap,
                 **kwargs,
             )
         return None
@@ -482,7 +482,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[List[T]]: The final validated selection result list, with element types matching the input `choices`.
         """
-        from fabricatio_core.parser import JsonCapture
+        from fabricatio_core.rust import json_parser
 
         def _is_included_fn(query: Set[str], choice: T) -> bool:
             return choice.name in query
@@ -505,7 +505,7 @@ class UseLLM(LLMScopedConfig, ABC):
         logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
         def _validate(response: str) -> List[T] | None:
-            ret = JsonCapture.validate_with(response, target_type=List, elements_type=str, length=k)
+            ret = json_parser.validate_list(response, elements_type=str, length=k)
             if ret is None:
                 return None
             q = set(ret)

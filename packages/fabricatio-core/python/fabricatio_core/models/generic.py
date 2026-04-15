@@ -433,9 +433,13 @@ class InstantiateFromString(Base, ABC):
         Returns:
             Self | None: The instance of the class or None if the string is not valid.
         """
-        from fabricatio_core.parser import JsonCapture
+        from fabricatio_core.rust import json_parser
 
-        obj = JsonCapture.convert_with(string, cls.model_validate_json)
+        obj = cls.model_validate(
+            json_parser.convert(
+                string,
+            )
+        )
         logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
         return obj
 

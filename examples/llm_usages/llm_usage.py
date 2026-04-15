@@ -2,9 +2,16 @@
 
 import asyncio
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as RoleBase
 from fabricatio.capabilities import Propose
-from fabricatio_core.parser import PythonCapture
+from fabricatio_capabilities.capabilities.task import ProposeTask
+from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.rust import python_parser
+
+
+class Role(RoleBase, ProposeTask):
+    """Basic role."""
 
 
 class WriteCode(Action, Propose):
@@ -15,11 +22,11 @@ class WriteCode(Action, Propose):
     async def _execute(self, task_input: Task[str], **_) -> str:
         return await self.aask_validate(
             task_input.briefing,
-            validator=PythonCapture.capture,
+            validator=python_parser.cap,
         )
 
 
-class WriteDocumentation(Action):
+class WriteDocumentation(UseLLM, Action):
     """write documentation for the code in markdown format."""
 
     output_key: str = "task_output"
