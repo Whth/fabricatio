@@ -9,8 +9,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.parser import JsonCapture
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TEMPLATE_MANAGER, json_parser
 from fabricatio_core.utils import ok, override_kwargs
 from more_itertools import flatten, windowed
 from pydantic import Field, NonNegativeInt, PositiveInt, create_model
@@ -139,7 +138,7 @@ class Rating(Propose, ABC):
             or dict(zip(criteria, criteria, strict=True))
         )
 
-        return await self.rate_fine_grind(to_rate, manual, score_range, **kwargs)
+        return await self.rate_fine_grind(to_rate, ok(manual), score_range, **kwargs)
 
     async def draft_rating_manual(
         self, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
@@ -157,10 +156,8 @@ class Rating(Propose, ABC):
 
         def _validator(response: str) -> Dict[str, str] | None:
             if (
-                (json_data := JsonCapture.validate_with(response, target_type=dict, elements_type=str)) is not None
-                and json_data.keys() == criteria
-                and all(isinstance(v, str) for v in json_data.values())
-            ):
+                json_data := json_parser.validate_dict(response, key_type=str, value_type=str)
+            ) is not None and json_data.keys() == criteria:
                 return json_data
             return None
 
@@ -211,7 +208,9 @@ class Rating(Propose, ABC):
                 )
             ),
             validator=lambda resp: (
-                set(out) if (out := JsonCapture.validate_with(resp, list, str, criteria_count)) is not None else out
+                set(out)
+                if (out := json_parser.validate_list(resp, elements_type=str, length=criteria_count)) is not None
+                else out
             ),
             **kwargs,
         )
@@ -263,9 +262,7 @@ class Rating(Propose, ABC):
                     )
                     for pair in (permutations(examples, 2))
                 ],
-                validator=lambda resp: JsonCapture.validate_with(
-                    resp, target_type=list, elements_type=str, length=reasons_count
-                ),
+                validator=lambda resp: json_parser.validate_list(resp, elements_type=str, length=reasons_count),
                 **kwargs,
             )
         )
@@ -282,9 +279,7 @@ class Rating(Propose, ABC):
                 )
             ),
             validator=lambda resp: (
-                set(out)
-                if (out := JsonCapture.validate_with(resp, target_type=list, elements_type=str, length=criteria_count))
-                else None
+                set(out) if (out := json_parser.validate_list(resp, elements_type=str, length=criteria_count)) else None
             ),
             **kwargs,
         )
@@ -324,7 +319,7 @@ class Rating(Propose, ABC):
                 )
                 for pair in windows
             ],
-            validator=lambda resp: JsonCapture.validate_with(resp, target_type=float),
+            validator=lambda resp: out if isinstance(out := json_parser.convert(resp), float) else None,
             **kwargs,
         )
         if not all(relative_weights):

@@ -3,11 +3,10 @@
 import asyncio
 from typing import Dict, List, Set
 
-import orjson
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
 from fabricatio.capabilities import ProposeTask, Rating
-from fabricatio_core.parser import JsonCapture
+from fabricatio_core.rust import json_parser
 from fabricatio_core.utils import ok
 
 
@@ -37,13 +36,7 @@ class WhatToRate(Action):
 
     async def _execute(self, task_input: Task, rate_topic: str, **_) -> List[str]:
         def _validate(resp: str) -> List[str] | None:
-            if (
-                (cap := JsonCapture.convert_with(resp, orjson.loads)) is not None
-                and isinstance(cap, list)
-                and all(isinstance(i, str) for i in cap)
-            ):
-                return cap
-            return None
+            return json_parser.validate_list(resp, str)
 
         return await self.aask_validate(
             f"This is task briefing:\n{task_input.briefing}\n\n"

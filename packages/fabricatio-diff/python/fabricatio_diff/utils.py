@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from fabricatio_core.parser import Capture
+from fabricatio_core.rust import ContentBlockParser
 
 
 class Delimiters(StrEnum):
@@ -18,7 +18,7 @@ class Delimiters(StrEnum):
     """Right delimiter for replace blocks."""
 
 
-SearchCapture = Capture.capture_content(Delimiters.SEARCH_LEFT, Delimiters.SEARCH_RIGHT)
+SearchCapture = ContentBlockParser.with_delimiters(Delimiters.SEARCH_LEFT, Delimiters.SEARCH_RIGHT)
 """Capture instance for search blocks."""
-ReplaceCapture = Capture.capture_content(Delimiters.REPLACE_LEFT, Delimiters.REPLACE_RIGHT)
+ReplaceCapture = ContentBlockParser.with_delimiters(Delimiters.REPLACE_LEFT, Delimiters.REPLACE_RIGHT)
 """Capture instance for replace blocks."""
