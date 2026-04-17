@@ -67,7 +67,9 @@ __all__ = [
     "tokens_of",
     "word_count",
 ]
-
+_T = typing.TypeVar("_T")
+_K = typing.TypeVar("_K")
+_V = typing.TypeVar("_V")
 CONFIG: Config
 ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
@@ -329,16 +331,16 @@ class JsonParser:
     def validate_list(
         self,
         text: builtins.str,
-        elements_type: typing.Type[_T] | None,
-        length: typing.Optional[builtins.int],
+        elements_type: typing.Type[_T] | None = None,
+        length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
     ) -> typing.List[_T] | None: ...
     def validate_dict(
         self,
         text: builtins.str,
-        key_type: typing.Type[_K] | None,
-        value_type: typing.Type[_V] | None,
-        length: typing.Optional[builtins.int],
+        key_type: typing.Type[_K] | None = None,
+        value_type: typing.Type[_V] | None = None,
+        length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
     ) -> typing.Dict[_K, _V] | None: ...
 

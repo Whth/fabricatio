@@ -182,7 +182,7 @@ impl JsonParser {
             .try_collect::<Vec<Bound<PyAny>>>()
     }
 
-    #[pyo3(signature=(text, elements_type, length, fix=true))]
+    #[pyo3(signature=(text, elements_type=None, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.List[_T]|None", imports = ("typing",))
     )]
@@ -213,7 +213,7 @@ impl JsonParser {
         }
     }
 
-    #[pyo3(signature=(text, key_type, value_type, length, fix=true))]
+    #[pyo3(signature=(text, key_type=None, value_type=None, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Dict[_K, _V]|None", imports = ("typing",))
     )]
