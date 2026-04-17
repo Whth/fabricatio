@@ -8,6 +8,7 @@ use fabricatio_constants::*;
 use fabricatio_logger::{Logger, init_logger};
 
 mod event;
+mod formatter;
 mod hash;
 mod hbs_helpers;
 mod language;
@@ -30,6 +31,7 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
         module_variable!("fabricatio_core.rust", ROUTER_VARNAME, crate::router::Router);
         define_stub_info_gatherer!(stub_info);
+
 
     }
 );

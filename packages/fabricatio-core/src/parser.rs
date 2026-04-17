@@ -1,5 +1,6 @@
 //! A module for capturing patterns in text using regular expressions.
 
+use crate::formatter::{generic_block_footer, generic_block_header};
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use llm_json::repair_json;
@@ -27,7 +28,7 @@ impl TextCapturer {
     }
 
     fn get_fist(captures: Captures) -> String {
-        captures.get(0).unwrap().as_str().to_string()
+        captures.get(1).unwrap().as_str().to_string()
     }
 }
 
@@ -41,6 +42,11 @@ impl TextCapturer {
     fn cap_all(&self, text: &str) -> Vec<String> {
         self.reg.captures_iter(text).map(Self::get_fist).collect()
     }
+    #[staticmethod]
+    pub fn with_pattern(pattern: &str) -> PyResult<Self> {
+        Self::new(pattern)
+    }
+
     #[staticmethod]
     #[pyo3(signature=(l_sep=var_names::SNIPPET_LEFT_SEP,r_sep=var_names::SNIPPET_RIGHT_SEP))]
     pub fn capture_snippet(l_sep: &str, r_sep: &str) -> PyResult<Self> {
@@ -58,7 +64,7 @@ impl TextCapturer {
     #[staticmethod]
     #[pyo3(signature=(language=".*?"))]
     pub fn capture_code_block(language: &str) -> PyResult<Self> {
-        Self::capture_content(&format!("```{}\n", language), Some("\n```"))
+        Self::capture_content(&format!("```{}", language), Some("```"))
     }
 
     /// Capture a generic block of the given language.
@@ -72,8 +78,8 @@ impl TextCapturer {
     #[pyo3(signature=(language=var_names::GENERIC_BLOCK_TYPE))]
     pub fn capture_generic_block(language: &str) -> PyResult<Self> {
         Self::capture_content(
-            &format!("--- Start of {} ---", language),
-            Some(&format!("--- End of {} ---", language)),
+            &generic_block_header(language),
+            Some(&generic_block_footer(language)),
         )
     }
 
@@ -92,7 +98,7 @@ impl TextCapturer {
     #[pyo3(signature=(left_delimiter,right_delimiter=None))]
     pub fn capture_content(left_delimiter: &str, right_delimiter: Option<&str>) -> PyResult<Self> {
         let right = right_delimiter.unwrap_or(left_delimiter);
-        Self::new(format!("{}(.*?){}", left_delimiter, right))
+        Self::new(format!("{}\n(.*?)\n{}", left_delimiter, right))
     }
 }
 
@@ -201,11 +207,11 @@ impl JsonParser {
         if let Ok(val_list) = val.cast_into_exact::<PyList>()
             && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
             && (elements_type.is_none()
-                || elements_type.is_some_and(|t| {
-                    val_list
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                }))
+            || elements_type.is_some_and(|t| {
+            val_list
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        }))
         {
             Ok(Some(val_list))
         } else {
@@ -237,19 +243,19 @@ impl JsonParser {
         {
             let key_check = key_type.is_none()
                 || key_type.is_some_and(|t| {
-                    val_dict
-                        .keys()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .keys()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             let value_check = value_type.is_none()
                 || value_type.is_some_and(|t| {
-                    val_dict
-                        .values()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .values()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             if key_check && value_check {
                 Ok(Some(val_dict))
