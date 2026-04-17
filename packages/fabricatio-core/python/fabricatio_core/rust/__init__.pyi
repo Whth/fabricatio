@@ -67,17 +67,15 @@ __all__ = [
     "tokens_of",
     "word_count",
 ]
-_T = typing.TypeVar("_T")
-_K = typing.TypeVar("_K")
-_V = typing.TypeVar("_V")
+
 CONFIG: Config
 ROUTER: Router
 TEMPLATE_MANAGER: TemplateManager
-generic_parser: TextCapturer
+generic_parser: GenericBlockParser
 json_parser: JsonParser
 logger: Logger
-python_parser: TextCapturer
-snippet_parser: TextCapturer
+python_parser: CodeBlockParser
+snippet_parser: CodeSnippetParser
 
 @typing.final
 class CodeBlockParser:

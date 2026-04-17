@@ -218,13 +218,12 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[Dict[str, str]]: The validated response as a mapping of strings.
         """
-        from fabricatio_core.parser import JsonCapture
+        from fabricatio_core.rust import json_parser
 
         def _validate(resp: str) -> None | Dict[str, str]:
-            if (obj := JsonCapture.validate_with(resp, target_type=dict, elements_type=str, length=k)) and all(
-                isinstance(v, str) for v in obj.values()
-            ):
-                return obj
+            obj = json_parser.validate_dict(resp, key_type=str, value_type=str, length=k)
+            if obj is not None and all(isinstance(v, str) for v in obj.values()):
+                return dict(obj)
             return None
 
         return await self.aask_validate(
@@ -348,22 +347,23 @@ class UseLLM(LLMScopedConfig, ABC):
         """
         from fabricatio_core.rust import generic_parser
 
+        GENERIC_BLOCK_TYPE = "String"
         if isinstance(requirement, str):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
                     CONFIG.templates.generic_string_template,
-                    {"requirement": requirement, "language": generic_parser},
+                    {"requirement": requirement, "language": GENERIC_BLOCK_TYPE},
                 ),
-                validator=generic_parser.cap,
+                validator=generic_parser.capture,
                 **kwargs,
             )
         if isinstance(requirement, list):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
                     CONFIG.templates.generic_string_template,
-                    [{"requirement": r, "language": GenericCapture.capture_type} for r in requirement],
+                    [{"requirement": r, "language": GENERIC_BLOCK_TYPE} for r in requirement],
                 ),
-                validator=generic_parser.cap,
+                validator=generic_parser.capture,
                 **kwargs,
             )
         return None
@@ -392,18 +392,22 @@ class UseLLM(LLMScopedConfig, ABC):
             None | str | List[str | None]: The generated code string(s). Returns a single string if requirement
             is a string, or a list of strings/None values if requirement is a list.
         """
-        from fabricatio_core.parser import Capture
+        from fabricatio_core.rust import python_parser
 
-        cap = Capture.capture_code_block(code_language)
-
+        if isinstance(requirement, list):
+            return await self.aask_validate(
+                TEMPLATE_MANAGER.render_template(
+                    CONFIG.templates.code_string_template,
+                    [{"requirement": r, "code_language": code_language} for r in requirement],
+                ),
+                validator=python_parser.capture,
+                **kwargs,
+            )
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.code_string_template,
-                {"requirement": requirement, "code_language": code_language}
-                if isinstance(requirement, str)
-                else [{"requirement": r, "code_language": code_language} for r in requirement],
+                CONFIG.templates.code_string_template, {"requirement": requirement, "code_language": code_language}
             ),
-            validator=cap.capture,
+            validator=python_parser.capture,
             **kwargs,
         )
 
@@ -441,22 +445,26 @@ class UseLLM(LLMScopedConfig, ABC):
             Returns a list of CodeSnippet objects if requirement is a string, or a list of lists of
             CodeSnippet objects or None if requirement is a list.
         """
-        from fabricatio_core.parser import Capture
-
-        cap = Capture.capture_snippet()
+        from fabricatio_core.rust import snippet_parser
 
         def _validator(resp: str) -> Optional[List[CodeSnippet]]:
-            matches = cap.capture_all(resp.strip())
+            matches = snippet_parser.parse(resp.strip())
             if not matches:
                 return None
             return [CodeSnippet(source=src, write_to=pth) for pth, src in matches]
 
+        if isinstance(requirement, list):
+            return await self.aask_validate(
+                TEMPLATE_MANAGER.render_template(
+                    CONFIG.templates.code_snippet_template,
+                    [{"requirement": r, "code_language": code_language} for r in requirement],
+                ),
+                validator=_validator,
+                **kwargs,
+            )
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.code_snippet_template,
-                {"requirement": requirement, "code_language": code_language}
-                if isinstance(requirement, str)
-                else [{"requirement": r, "code_language": code_language} for r in requirement],
+                CONFIG.templates.code_snippet_template, {"requirement": requirement, "code_language": code_language}
             ),
             validator=_validator,
             **kwargs,
@@ -569,14 +577,23 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
-        from fabricatio_core.parser import JsonCapture
+        from fabricatio_core.rust import json_parser
+
+        def _validate_bool(resp: str) -> Optional[bool]:
+            try:
+                result = json_parser.convert(resp)
+                if isinstance(result, bool):
+                    return result
+            except Exception:
+                pass
+            return None
 
         return await self.aask_validate(
             question=TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.make_judgment_template,
                 {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case},
             ),
-            validator=lambda resp: JsonCapture.validate_with(resp, target_type=bool),
+            validator=_validate_bool,
             **kwargs,
         )
 

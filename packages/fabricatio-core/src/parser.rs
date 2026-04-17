@@ -201,11 +201,11 @@ impl JsonParser {
         if let Ok(val_list) = val.cast_into_exact::<PyList>()
             && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
             && (elements_type.is_none()
-            || elements_type.is_some_and(|t| {
-            val_list
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        }))
+                || elements_type.is_some_and(|t| {
+                    val_list
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                }))
         {
             Ok(Some(val_list))
         } else {
@@ -237,19 +237,19 @@ impl JsonParser {
         {
             let key_check = key_type.is_none()
                 || key_type.is_some_and(|t| {
-                val_dict
-                    .keys()
-                    .iter()
-                    .all(|item| item.is_instance(t).unwrap_or(false))
-            });
+                    val_dict
+                        .keys()
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                });
 
             let value_check = value_type.is_none()
                 || value_type.is_some_and(|t| {
-                val_dict
-                    .values()
-                    .iter()
-                    .all(|item| item.is_instance(t).unwrap_or(false))
-            });
+                    val_dict
+                        .values()
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                });
 
             if key_check && value_check {
                 Ok(Some(val_dict))
@@ -494,9 +494,9 @@ cfg_if!(
     if #[cfg(feature = "stubgen")]    {
         use pyo3_stub_gen::module_variable;
         module_variable!("fabricatio_core.rust", var_names::JSON_PARSER, JsonParser);
-        module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, TextCapturer);
-        module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, TextCapturer);
-        module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, TextCapturer);
+        module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, CodeBlockParser);
+        module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, GenericBlockParser);
+        module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, CodeSnippetParser);
 
     }
 );
@@ -523,7 +523,10 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     )?;
     m.add(
         var_names::SNIPPET_PARSER,
-        CodeSnippetParser::with_separators(var_names::SNIPPET_LEFT_SEP, var_names::SNIPPET_RIGHT_SEP)?,
+        CodeSnippetParser::with_separators(
+            var_names::SNIPPET_LEFT_SEP,
+            var_names::SNIPPET_RIGHT_SEP,
+        )?,
     )?;
 
     Ok(())
