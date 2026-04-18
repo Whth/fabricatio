@@ -27,8 +27,12 @@ impl TextCapturer {
         })
     }
 
-    fn get_fist(captures: Captures) -> String {
-        captures.get(1).unwrap().as_str().to_string()
+    fn get_first(captures: Captures) -> String {
+        if let Some(mat) = captures.get(1) {
+            mat.as_str().to_string()
+        } else {
+            captures.get(0).unwrap().as_str().to_string()
+        }
     }
 }
 
@@ -36,11 +40,11 @@ impl TextCapturer {
 #[pymethods]
 impl TextCapturer {
     fn cap(&self, text: &str) -> Option<String> {
-        self.reg.captures(text).map(Self::get_fist)
+        self.reg.captures(text).map(Self::get_first)
     }
 
     fn cap_all(&self, text: &str) -> Vec<String> {
-        self.reg.captures_iter(text).map(Self::get_fist).collect()
+        self.reg.captures_iter(text).map(Self::get_first).collect()
     }
     #[staticmethod]
     pub fn with_pattern(pattern: &str) -> PyResult<Self> {
@@ -207,11 +211,11 @@ impl JsonParser {
         if let Ok(val_list) = val.cast_into_exact::<PyList>()
             && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
             && (elements_type.is_none()
-                || elements_type.is_some_and(|t| {
-                    val_list
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                }))
+            || elements_type.is_some_and(|t| {
+            val_list
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        }))
         {
             Ok(Some(val_list))
         } else {
@@ -243,19 +247,19 @@ impl JsonParser {
         {
             let key_check = key_type.is_none()
                 || key_type.is_some_and(|t| {
-                    val_dict
-                        .keys()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .keys()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             let value_check = value_type.is_none()
                 || value_type.is_some_and(|t| {
-                    val_dict
-                        .values()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                val_dict
+                    .values()
+                    .iter()
+                    .all(|item| item.is_instance(t).unwrap_or(false))
+            });
 
             if key_check && value_check {
                 Ok(Some(val_dict))
