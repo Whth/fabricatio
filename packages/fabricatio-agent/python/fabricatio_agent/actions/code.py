@@ -3,7 +3,7 @@
 from typing import ClassVar, List, Optional, Set
 
 from fabricatio_core import Action, Task, logger
-from fabricatio_core.models.containers import CodeSnippet
+from fabricatio_core.rust import CodeSnippet
 from fabricatio_core.utils import ok
 from fabricatio_tool.capabilities.handle_task import HandleTask
 from fabricatio_tool.models.tool import ToolBox
