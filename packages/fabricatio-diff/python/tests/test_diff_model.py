@@ -83,14 +83,14 @@ class TestDiffApply(TestDiffModel):
         diff = Diff(search="old line", replace="new line")
         # "old line" might match "oldline" with lower precision
         text = "oldline"
-        result = diff.apply(text, match_precision=0.6)
+        diff.apply(text, match_precision=0.6)
         # At low precision, similarity between "old line" and "oldline" might pass
 
     def test_apply_first_match_only(self) -> None:
         """Test that apply only replaces the first matching window."""
         diff = Diff(search="a", replace="X")
         # match_lines treats "a" as single line, won't match "a\na\na" well
-        result = diff.apply("a\na\na")
+        diff.apply("a\na\na")
         # At precision 1.0, "a" won't match "a\na\na" unless exact
 
     def test_apply_preserves_surrounding(self) -> None:

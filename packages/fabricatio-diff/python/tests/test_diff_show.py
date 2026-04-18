@@ -4,7 +4,6 @@ This module contains pytest test cases verifying the correctness of unified
 diff generation between two strings.
 """
 
-import pytest
 from fabricatio_diff.rust import show_diff
 
 

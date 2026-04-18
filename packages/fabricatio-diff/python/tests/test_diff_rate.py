@@ -4,7 +4,6 @@ This module contains pytest test cases verifying the correctness of the
 normalized Damerau-Levenshtein distance calculation for string similarity.
 """
 
-import pytest
 from fabricatio_diff.rust import rate
 
 

@@ -5,8 +5,8 @@ use pyo3_stub_gen::derive::*;
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yaml2::wrapper::YamlNodeWrapper;
-use tex2typst_rs::tex2typst;
 use tex_convertor::convert_all_tex_math as conv_to_typst;
+use tex2typst_rs::tex2typst;
 
 /// A trait to add and remove comments from a string-like type.
 pub trait Commentable: AsRef<str> {
@@ -271,10 +271,8 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
 fn extract_sections(
     string: &str,
     level: usize,
-    section_char: Option<&str>,
+    section_char: &str,
 ) -> PyResult<Vec<(String, String)>> {
-    let section_char = section_char.unwrap_or("#");
-
     // Build the header prefix: section_char repeated `level` times followed by space
     // e.g., for level=1 with "#": "# " ; for level=2 with "=": "== "
     let header_prefix = section_char.repeat(level);

@@ -7,7 +7,6 @@ operations exposed from the Rust implementation via PyO3.
 Tests cover both successful execution paths and error handling scenarios.
 """
 
-import pytest
 from fabricatio_core.rust import (
     CodeBlockParser,
     CodeSnippet,
@@ -21,7 +20,6 @@ from fabricatio_core.rust import (
     python_parser,
     snippet_parser,
 )
-
 
 # =============================================================================
 # TextCapturer Tests
@@ -137,7 +135,7 @@ class TestJsonParser:
     def test_capture_valid_json(self) -> None:
         """Test capturing a valid JSON string."""
         parser = JsonParser.with_pattern(r"```json\s*(.*?)\s*```")
-        text = "```json\n{\"key\": \"value\"}\n```"
+        text = '```json\n{"key": "value"}\n```'
         result = parser.capture(text, fix=False)
         assert result == '{"key": "value"}'
 
@@ -145,7 +143,7 @@ class TestJsonParser:
         """Test capturing with JSON repair enabled."""
         parser = JsonParser.with_pattern(r"```json\s*(.*?)\s*```")
         # Missing closing brace - should be repaired
-        text = "```json\n{\"key\": \"value\"\n```"
+        text = '```json\n{"key": "value"\n```'
         result = parser.capture(text, fix=True)
         assert result is not None
         assert '"key"' in result
@@ -160,7 +158,7 @@ class TestJsonParser:
     def test_capture_all_multiple_json_blocks(self) -> None:
         """Test capturing all JSON blocks from text."""
         parser = JsonParser.with_pattern(r"```json\s*(.*?)\s*```")
-        text = "```json\n{\"a\": 1}\n```\n```json\n{\"b\": 2}\n```"
+        text = '```json\n{"a": 1}\n```\n```json\n{"b": 2}\n```'
         result = parser.capture_all(text, fix=False)
         assert len(result) == 2
         assert result[0] == '{"a": 1}'
@@ -185,7 +183,7 @@ class TestJsonParser:
     def test_convert_all_multiple_json_objects(self) -> None:
         """Test converting all captured JSON objects."""
         parser = JsonParser.with_pattern(r"```json\s*(.*?)\s*```")
-        text = "```json\n{\"a\": 1}\n```\n```json\n{\"b\": 2}\n```"
+        text = '```json\n{"a": 1}\n```\n```json\n{"b": 2}\n```'
         results = parser.convert_all(text, fix=False)
         assert len(results) == 2
         assert results[0]["a"] == 1
@@ -309,7 +307,7 @@ class TestCodeSnippetParser:
         assert parser.right_sep == ">>>>"
 
     def test_parse_single_snippet(self) -> None:
-        """Test parsing a single snippet with correct format.
+        r"""Test parsing a single snippet with correct format.
 
         Format: {prefix}\n{sep}{language}\n{source}\n{rsep}$
         """
@@ -465,7 +463,7 @@ class TestModuleLevelParsers:
 
     def test_json_parser_capture_with_defaults(self) -> None:
         """Test json_parser can capture JSON code blocks."""
-        text = "```json\n{\"key\": \"value\"}\n```"
+        text = '```json\n{"key": "value"}\n```'
         result = json_parser.capture(text, fix=False)
         assert result is not None
         assert "key" in result
