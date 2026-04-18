@@ -1,13 +1,12 @@
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, Python, wrap_pyfunction};
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::{depythonize, pythonize};
 use regex::Regex;
 use serde_yaml2::wrapper::YamlNodeWrapper;
-use tex_convertor::convert_all_tex_math as conv_to_typst;
 use tex2typst_rs::tex2typst;
+use tex_convertor::convert_all_tex_math as conv_to_typst;
 
 /// A trait to add and remove comments from a string-like type.
 pub trait Commentable: AsRef<str> {
@@ -268,6 +267,7 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
 ///     A list of tuples containing (header_text, section_content).
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+#[pyo3(signature=(string, level=1, section_char="#"))]
 fn extract_sections(
     string: &str,
     level: usize,
@@ -275,29 +275,43 @@ fn extract_sections(
 ) -> PyResult<Vec<(String, String)>> {
     let section_char = section_char.unwrap_or("#");
 
-    // Create the regex pattern dynamically based on inputs
-    let pattern = format!(
-        r"^{}\{{{}\}}\s+(.+?)\n((?:(?!^{}\{{{}\}}\s).|\n)*)",
-        regex::escape(section_char),
-        level,
-        regex::escape(section_char),
-        level
-    );
-
-    let re = Regex::new(&pattern).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    // Build the header prefix: section_char repeated `level` times followed by space
+    // e.g., for level=1 with "#": "# " ; for level=2 with "=": "== "
+    let header_prefix = section_char.repeat(level);
 
     let mut results = Vec::new();
+    let mut current_header = String::new();
+    let mut current_content = String::new();
+    let mut in_section = false;
 
-    for cap in re.captures_iter(string) {
-        let header_text = cap
-            .get(1)
-            .map(|m| m.as_str().to_string())
-            .unwrap_or_default();
-        let section_content = cap
-            .get(2)
-            .map(|m| m.as_str().to_string())
-            .unwrap_or_default();
-        results.push((header_text, section_content));
+    for line in string.lines() {
+        let trimmed = line.trim();
+        // Check if line starts with header_prefix followed by whitespace (or is exactly the prefix)
+        if trimmed.starts_with(&header_prefix) {
+            let rest = &trimmed[header_prefix.len()..];
+            if rest.is_empty() || rest.starts_with(' ') {
+                // Save previous section if exists
+                if in_section && !current_header.is_empty() {
+                    results.push((current_header.clone(), current_content.trim().to_string()));
+                }
+                // Start new section
+                current_header = rest.trim().to_string();
+                current_content.clear();
+                in_section = true;
+                continue;
+            }
+        }
+        if in_section {
+            if !current_content.is_empty() {
+                current_content.push('\n');
+            }
+            current_content.push_str(trimmed);
+        }
+    }
+
+    // Don't forget the last section
+    if in_section && !current_header.is_empty() {
+        results.push((current_header, current_content.trim().to_string()));
     }
 
     Ok(results)
