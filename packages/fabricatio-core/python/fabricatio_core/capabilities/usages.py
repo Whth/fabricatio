@@ -22,10 +22,9 @@ from pydantic import NonNegativeInt, PositiveInt
 
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
-from fabricatio_core.models.containers import CodeSnippet
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, logger
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import first_available, ok
 
 
@@ -448,10 +447,7 @@ class UseLLM(LLMScopedConfig, ABC):
         from fabricatio_core.rust import snippet_parser
 
         def _validator(resp: str) -> Optional[List[CodeSnippet]]:
-            matches = snippet_parser.parse(resp.strip())
-            if not matches:
-                return None
-            return [CodeSnippet(source=src, write_to=pth) for pth, src in matches]
+            return matches if (matches := snippet_parser.parse(resp.strip())) else None
 
         if isinstance(requirement, list):
             return await self.aask_validate(

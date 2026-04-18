@@ -11,6 +11,8 @@ use pythonize::pythonize;
 use regex::{Captures, Regex};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -23,29 +25,63 @@ pub struct TextCapturer {
 impl TextCapturer {
     fn new(pattern: impl AsRef<str>) -> PyResult<Self> {
         Ok(Self {
-            reg: Regex::new(format!("(?si){}", pattern.as_ref()).as_str()).into_pyresult()?,
+            reg: Regex::new(format!("(?smi){}", pattern.as_ref()).as_str()).into_pyresult()?,
         })
     }
 
-    fn get_first(captures: Captures) -> String {
-        if let Some(mat) = captures.get(1) {
-            mat.as_str().to_string()
-        } else {
-            captures.get(0).unwrap().as_str().to_string()
-        }
+    pub fn get_group_1(captures: Captures) -> String {
+        captures.get(1).unwrap().as_str().to_string()
+    }
+
+    pub fn get_group_2(captures: Captures) -> (String, String) {
+        (
+            captures.get(1).unwrap().as_str().to_string(),
+            captures.get(2).unwrap().as_str().to_string(),
+        )
+    }
+
+    pub fn get_group_3(captures: Captures) -> (String, String, String) {
+        (
+            captures.get(1).unwrap().as_str().to_string(),
+            captures.get(2).unwrap().as_str().to_string(),
+            captures.get(3).unwrap().as_str().to_string(),
+        )
     }
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl TextCapturer {
-    fn cap(&self, text: &str) -> Option<String> {
-        self.reg.captures(text).map(Self::get_first)
+    fn cap1(&self, text: &str) -> Option<String> {
+        self.reg.captures(text).map(Self::get_group_1)
     }
 
-    fn cap_all(&self, text: &str) -> Vec<String> {
-        self.reg.captures_iter(text).map(Self::get_first).collect()
+    fn cap1_all(&self, text: &str) -> Vec<String> {
+        self.reg
+            .captures_iter(text)
+            .map(Self::get_group_1)
+            .collect()
     }
+
+    fn cap2(&self, text: &str) -> Option<(String, String)> {
+        self.reg.captures(text).map(Self::get_group_2)
+    }
+    fn cap2_all(&self, text: &str) -> Vec<(String, String)> {
+        self.reg
+            .captures_iter(text)
+            .map(Self::get_group_2)
+            .collect()
+    }
+    fn cap3(&self, text: &str) -> Option<(String, String, String)> {
+        self.reg.captures(text).map(Self::get_group_3)
+    }
+    fn cap3_all(&self, text: &str) -> Vec<(String, String, String)> {
+        self.reg
+            .captures_iter(text)
+            .map(Self::get_group_3)
+            .collect()
+    }
+
     #[staticmethod]
     pub fn with_pattern(pattern: &str) -> PyResult<Self> {
         Self::new(pattern)
@@ -54,7 +90,7 @@ impl TextCapturer {
     #[staticmethod]
     #[pyo3(signature=(l_sep=var_names::SNIPPET_LEFT_SEP,r_sep=var_names::SNIPPET_RIGHT_SEP))]
     pub fn capture_snippet(l_sep: &str, r_sep: &str) -> PyResult<Self> {
-        Self::new(format!(r#"^(.+?)\s*\n^{l_sep}\S*\n(.*?)\n^{r_sep}\s*$"#))
+        Self::new(format!(r"^(.*?)\n{l_sep}(.*?)\n(.*?)\n{r_sep}$"))
     }
 
     /// Capture a code block of the given language.
@@ -147,10 +183,10 @@ impl JsonParser {
     /// Returns the captured text or None if no match is found.
     #[pyo3(signature=(text, fix=true))]
     pub fn capture(&self, text: &str, fix: bool) -> PyResult<Option<String>> {
-        if fix && let Some(cap_string) = self.capturer.cap(text) {
+        if fix && let Some(cap_string) = self.capturer.cap1(text) {
             Self::fix_json_string(cap_string).map(Some)
         } else {
-            Ok(self.capturer.cap(text))
+            Ok(self.capturer.cap1(text))
         }
     }
 
@@ -161,12 +197,12 @@ impl JsonParser {
     pub fn capture_all(&self, text: &str, fix: bool) -> PyResult<Vec<String>> {
         if fix {
             self.capturer
-                .cap_all(text)
+                .cap1_all(text)
                 .into_iter()
                 .map(Self::fix_json_string)
                 .try_collect()
         } else {
-            Ok(self.capturer.cap_all(text))
+            Ok(self.capturer.cap1_all(text))
         }
     }
     #[pyo3(signature=(text, fix=true))]
@@ -211,11 +247,11 @@ impl JsonParser {
         if let Ok(val_list) = val.cast_into_exact::<PyList>()
             && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
             && (elements_type.is_none()
-            || elements_type.is_some_and(|t| {
-            val_list
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        }))
+                || elements_type.is_some_and(|t| {
+                    val_list
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                }))
         {
             Ok(Some(val_list))
         } else {
@@ -247,19 +283,19 @@ impl JsonParser {
         {
             let key_check = key_type.is_none()
                 || key_type.is_some_and(|t| {
-                val_dict
-                    .keys()
-                    .iter()
-                    .all(|item| item.is_instance(t).unwrap_or(false))
-            });
+                    val_dict
+                        .keys()
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                });
 
             let value_check = value_type.is_none()
                 || value_type.is_some_and(|t| {
-                val_dict
-                    .values()
-                    .iter()
-                    .all(|item| item.is_instance(t).unwrap_or(false))
-            });
+                    val_dict
+                        .values()
+                        .iter()
+                        .all(|item| item.is_instance(t).unwrap_or(false))
+                });
 
             if key_check && value_check {
                 Ok(Some(val_dict))
@@ -310,14 +346,45 @@ impl CodeBlockParser {
     ///
     /// Returns the captured code block content or None if no match is found.
     pub fn capture(&self, text: &str) -> Option<String> {
-        self.capturer.cap(text)
+        self.capturer.cap1(text)
     }
 
     /// Capture all code block matches in the text.
     ///
     /// Returns a vector of captured code block contents.
     pub fn capture_all(&self, text: &str) -> Vec<String> {
-        self.capturer.cap_all(text)
+        self.capturer.cap1_all(text)
+    }
+}
+/// Represents a code snippet extracted from text, containing its source code,
+/// programming language, and the target file path for writing.
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass(get_all)]
+pub struct CodeSnippet {
+    /// The source code content of the snippet.
+    source: String,
+    /// The programming language of the snippet.
+    language: String,
+    /// The file path where the snippet should be written.
+    write_to: PathBuf,
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[pymethods]
+impl CodeSnippet {
+    #[pyo3(signature=(parent_dirs=true))]
+    pub fn write(&self, parent_dirs: bool) -> PyResult<()> {
+        if parent_dirs
+            && let Some(parent) = self.write_to.parent()
+            && !parent.exists()
+        {
+            std::fs::create_dir_all(parent).into_pyresult()?;
+        }
+
+        let mut file = File::create(&self.write_to).into_pyresult()?;
+        file.write_all(self.source.as_bytes()).into_pyresult()?;
+        Ok(())
     }
 }
 
@@ -368,16 +435,14 @@ impl CodeSnippetParser {
     /// Returns:
     ///     Vec<(PathBuf, String)>: A vector of tuples containing the path
     ///     and content for each matched snippet.
-    pub fn parse(&self, text: &str) -> Vec<(PathBuf, String)> {
+    pub fn parse(&self, text: &str) -> Vec<CodeSnippet> {
         self.capturer
-            .cap_all(text)
-            .chunks(2)
-            .filter_map(|e| {
-                if let [path, content] = e {
-                    Some((PathBuf::new().join(path), content.to_string()))
-                } else {
-                    None
-                }
+            .cap3_all(text)
+            .into_iter()
+            .map(|(write_to, language, source)| CodeSnippet {
+                write_to: PathBuf::new().join(write_to),
+                language,
+                source,
             })
             .collect()
     }
@@ -421,14 +486,14 @@ impl GenericBlockParser {
     ///
     /// Returns the captured block content or None if no match is found.
     pub fn capture(&self, text: &str) -> Option<String> {
-        self.capturer.cap(text)
+        self.capturer.cap1(text)
     }
 
     /// Capture all generic block matches in the text.
     ///
     /// Returns a vector of captured block contents.
     pub fn capture_all(&self, text: &str) -> Vec<String> {
-        self.capturer.cap_all(text)
+        self.capturer.cap1_all(text)
     }
 }
 
@@ -476,14 +541,14 @@ impl ContentBlockParser {
     ///
     /// Returns the captured content or None if no match is found.
     pub fn capture(&self, text: &str) -> Option<String> {
-        self.capturer.cap(text)
+        self.capturer.cap1(text)
     }
 
     /// Capture all content block matches in the text.
     ///
     /// Returns a vector of captured contents.
     pub fn capture_all(&self, text: &str) -> Vec<String> {
-        self.capturer.cap_all(text)
+        self.capturer.cap1_all(text)
     }
 }
 
@@ -517,6 +582,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<JsonParser>()?;
     m.add_class::<CodeBlockParser>()?;
     m.add_class::<CodeSnippetParser>()?;
+    m.add_class::<CodeSnippet>()?;
     m.add_class::<GenericBlockParser>()?;
     m.add_class::<ContentBlockParser>()?;
     m.add(

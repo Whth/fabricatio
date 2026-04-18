@@ -11,6 +11,7 @@ __all__ = [
     "ROUTER",
     "TEMPLATE_MANAGER",
     "CodeBlockParser",
+    "CodeSnippet",
     "CodeSnippetParser",
     "Config",
     "ContentBlockParser",
@@ -67,6 +68,7 @@ __all__ = [
     "tokens_of",
     "word_count",
 ]
+
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
 _V = typing.TypeVar("_V")
@@ -106,6 +108,22 @@ class CodeBlockParser:
         """
 
 @typing.final
+class CodeSnippet:
+    r"""Represents a code snippet extracted from text, containing its source code,
+    programming language, and the target file path for writing.
+    """
+    @property
+    def source(self) -> builtins.str:
+        r"""The source code content of the snippet."""
+    @property
+    def language(self) -> builtins.str:
+        r"""The programming language of the snippet."""
+    @property
+    def write_to(self) -> pathlib.Path:
+        r"""The file path where the snippet should be written."""
+    def write(self, parent_dirs: builtins.bool = True) -> None: ...
+
+@typing.final
 class CodeSnippetParser:
     @property
     def left_sep(self) -> builtins.str: ...
@@ -122,7 +140,7 @@ class CodeSnippetParser:
         Returns:
             PyResult<Self>: A new CodeSnippetParser instance.
         """
-    def parse(self, text: builtins.str) -> builtins.list[tuple[pathlib.Path, builtins.str]]:
+    def parse(self, text: builtins.str) -> builtins.list[CodeSnippet]:
         r"""Parse text into path-content pairs.
 
         Captures all snippet matches from the text and groups them into pairs,
@@ -662,8 +680,12 @@ class TemplateManagerConfig:
 
 @typing.final
 class TextCapturer:
-    def cap(self, text: builtins.str) -> typing.Optional[builtins.str]: ...
-    def cap_all(self, text: builtins.str) -> builtins.list[builtins.str]: ...
+    def cap1(self, text: builtins.str) -> typing.Optional[builtins.str]: ...
+    def cap1_all(self, text: builtins.str) -> builtins.list[builtins.str]: ...
+    def cap2(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str]]: ...
+    def cap2_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str]]: ...
+    def cap3(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str, builtins.str]]: ...
+    def cap3_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str, builtins.str]]: ...
     @staticmethod
     def with_pattern(pattern: builtins.str) -> TextCapturer: ...
     @staticmethod
