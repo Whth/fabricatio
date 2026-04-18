@@ -9,16 +9,14 @@ use crate::store::CheckPointStore;
 use error_mapping::*;
 use pyo3::prelude::*;
 
-/// Registers the `ShadowRepoManager` class with the Python module.
+/// Registers the CheckpointService and CheckPointStore classes with the Python module.
 ///
-/// # Arguments
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
 ///
-/// * `_` - The Python interpreter instance (unused)
-/// * `m` - The Python module to register the class with
-///
-/// # Errors
-///
-/// Returns a `PyErr` if registration fails
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CheckPointStore>()?;
     m.add_class::<CheckpointService>()?;

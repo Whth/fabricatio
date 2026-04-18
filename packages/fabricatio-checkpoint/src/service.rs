@@ -88,39 +88,27 @@ impl CheckpointService {
     /// This method first checks the cache for an existing repository. If not found,
     /// it either opens an existing bare repository from disk or creates a new one.
     ///
-    /// # Arguments
+    /// Args:
+    ///     worktree_dir: The directory to be tracked by the shadow repository.
     ///
-    /// * `worktree_dir` - The directory to be tracked by the shadow repository
-    ///
-    /// # Returns
-    ///
-    /// A `CheckPointStore` instance for the specified worktree
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if repository operations fail
+    /// Returns:
+    ///     A CheckPointStore instance for the specified worktree.
     fn get_store(&self, worktree_dir: PathBuf) -> PyResult<CheckPointStore> {
         let worktree_dir = normalized_path_of(worktree_dir)?;
         self.create_or_open(worktree_dir.clone(), self.repo_root_of(worktree_dir))
     }
 
-    /// Creates a new `CheckpointService` instance.
+    /// Creates a new CheckpointService instance.
     ///
     /// Initializes a shadow repository manager with the specified root directory
     /// and cache size. Creates the shadow root directory if it doesn't exist.
     ///
-    /// # Arguments
+    /// Args:
+    ///     stores_root: The root directory where shadow repositories will be stored.
+    ///     cache_size: Maximum number of repositories to keep in the in-memory cache.
     ///
-    /// * `stores_root` - The root directory where shadow repositories will be stored
-    /// * `cache_size` - Maximum number of repositories to keep in the in-memory cache
-    ///
-    /// # Returns
-    ///
-    /// A new `CheckpointService` instance
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if the stores root directory cannot be created
+    /// Returns:
+    ///     A new CheckpointService instance.
     #[pyo3(signature = (stores_root, cache_size=10))]
     #[new]
     fn new(stores_root: PathBuf, cache_size: u64) -> PyResult<Self> {
@@ -132,11 +120,17 @@ impl CheckpointService {
     }
 
     /// Returns a list of all managed workspaces.
+    ///
+    /// Returns:
+    ///     A list of paths to managed workspace directories.
     fn workspaces(&self) -> PyResult<Vec<PathBuf>> {
         managed_workspaces(&self.stores_root)
     }
 
     /// Prunes stores which manage an invalid workspace.
+    ///
+    /// Returns:
+    ///     PyResult<()> indicating success.
     fn prune_invalid(&self) -> PyResult<()> {
         prune_stores(self.stores_root.clone())
     }

@@ -31,12 +31,12 @@ struct TEIClient {
 impl TEIClient {
     /// Creates a new TEI client connected to the specified base URL.
     ///
-    /// # Arguments
-    /// * `base_url` - The URL to connect to, e.g., "http://localhost:8080"
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     base_url: The URL to connect to, e.g., "http://localhost:8080".
     ///
-    /// # Returns
-    /// An awaitable that resolves to a new TEIClient instance
-
+    /// Returns:
+    ///     An awaitable that resolves to a new TEIClient instance.
     #[staticmethod]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
@@ -57,15 +57,15 @@ impl TEIClient {
 
     /// Reranks a list of texts based on their relevance to the given query.
     ///
-    /// # Arguments
-    /// * `query` - The query string to compare against
-    /// * `texts` - A vector of text strings to rerank
-    /// * `truncate` - Whether to truncate the input texts if they exceed the maximum length
-    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     query: The query string to compare against.
+    ///     texts: A list of text strings to rerank.
+    ///     truncate: Whether to truncate the input texts if they exceed the maximum length.
+    ///     truncation_direction: Direction of truncation, either "Left" or "Right".
     ///
-    /// # Returns
-    /// An awaitable that resolves to a list of tuples containing the index and score of each text,
-    /// sorted by relevance score in descending order
+    /// Returns:
+    ///     An awaitable that resolves to a list of (index, score) tuples sorted by relevance.
     #[pyo3(signature = (query, texts, truncate=false, truncation_direction="Left"))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.Tuple[int, float]]]",imports=("typing",)
@@ -107,13 +107,14 @@ impl TEIClient {
 
     /// Generates token-level embeddings for the given text.
     ///
-    /// # Arguments
-    /// * `text` - The input text to generate token embeddings for
-    /// * `truncate` - Whether to truncate the input text if it exceeds the maximum length
-    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     text: The input text to generate token embeddings for.
+    ///     truncate: Whether to truncate the input text if it exceeds the maximum length.
+    ///     truncation_direction: Direction of truncation, either "Left" or "Right".
     ///
-    /// # Returns
-    /// An awaitable that resolves to a list of lists of floats representing the token embeddings
+    /// Returns:
+    ///     An awaitable that resolves to a list of lists of floats representing token embeddings.
     #[pyo3(signature = ( text, truncate=false, truncation_direction="Left"))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]",imports=("typing",)
@@ -155,14 +156,15 @@ impl TEIClient {
 
     /// Generates embeddings for the given text.
     ///
-    /// # Arguments
-    /// * `text` - The input text to generate embeddings for
-    /// * `dimensions` - Optional parameter to specify the number of dimensions in the output embeddings
-    /// * `truncate` - Whether to truncate the input text if it exceeds the maximum length
-    /// * `truncation_direction` - Direction of truncation, either "Left", "Right"
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     text: The input text to generate embeddings for.
+    ///     dimensions: Optional number of dimensions in the output embeddings.
+    ///     truncate: Whether to truncate the input text if it exceeds the maximum length.
+    ///     truncation_direction: Direction of truncation, either "Left" or "Right".
     ///
-    /// # Returns
-    /// An awaitable that resolves to a list of floats representing the embeddings
+    /// Returns:
+    ///     An awaitable that resolves to a list of floats representing the embeddings.
     #[pyo3(signature = ( text,dimensions=None, truncate=false, truncation_direction="Left"))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[float]]",imports=("typing",)
@@ -201,7 +203,14 @@ impl TEIClient {
     }
 }
 
-/// register the module
+/// Registers the TEIClient class with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TEIClient>()?;
     Ok(())

@@ -21,6 +21,11 @@ struct Msg {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Msg {
+    /// Creates a new Msg instance.
+    ///
+    /// Args:
+    ///     id: The message identifier (msgid).
+    ///     txt: The message translation (msgstr).
     #[new]
     fn new(id: String, txt: String) -> Self {
         Self { id, txt }
@@ -53,9 +58,9 @@ fn read_pofile(file_path: PathBuf) -> PyResult<Vec<Msg>> {
 
 /// Updates a .po file with the provided messages.
 ///
-/// # Arguments
-/// * file_path: Path to the .po file.
-/// * messages: A vector of Message objects containing msgid and msgstr.
+/// Args:
+///     file_path: Path to the .po file.
+///     messages: A vector of Message objects containing msgid and msgstr.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn update_pofile(file_path: PathBuf, messages: Vec<Msg>) -> PyResult<()> {
@@ -72,7 +77,14 @@ fn update_pofile(file_path: PathBuf, messages: Vec<Msg>) -> PyResult<()> {
     Ok(())
 }
 
-/// Registers the functions in the module.
+/// Registers the locale functions and Msg class with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(read_pofile, m)?)?;
     m.add_function(wrap_pyfunction!(update_pofile, m)?)?;

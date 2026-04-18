@@ -31,14 +31,25 @@ pub struct TemplateManager {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl TemplateManager {
-    /// Create a new TemplateManager instance.
+    /// Creates a new TemplateManager instance.
 
     #[getter]
+    /// Returns the number of registered templates.
+    ///
+    /// Returns:
+    ///     The count of templates currently registered.
     fn template_count(&self) -> usize {
         self.handlebars.get_templates().len()
     }
 
-    /// Add a template directory to the list of template directories.
+    /// Adds a template directory to the list of template directories.
+    ///
+    /// Args:
+    ///     source: The path to the template directory.
+    ///     rediscovery: Whether to immediately discover templates (default: False).
+    ///
+    /// Returns:
+    ///     A mutable reference to self for method chaining.
     #[pyo3(signature=(source, rediscovery=false))]
     fn add_store(mut slf: PyRefMut<Self>, source: PathBuf, rediscovery: bool) -> PyRefMut<Self> {
         slf.templates_stores.push(source);
@@ -46,6 +57,15 @@ impl TemplateManager {
         rediscovery.then(|| slf.discover_templates_inner());
         slf
     }
+
+    /// Adds multiple template directories to the list.
+    ///
+    /// Args:
+    ///     sources: A list of paths to template directories.
+    ///     rediscovery: Whether to immediately discover templates (default: False).
+    ///
+    /// Returns:
+    ///     A mutable reference to self for method chaining.
     #[pyo3(signature=(sources, rediscovery=false))]
     fn add_stores(
         mut slf: PyRefMut<Self>,
@@ -57,13 +77,23 @@ impl TemplateManager {
         slf
     }
 
-    /// Discover the templates in the template directories.
+    /// Discovers and registers all templates from the configured directories.
+    ///
+    /// Returns:
+    ///     A mutable reference to self for method chaining.
     fn discover_templates(mut slf: PyRefMut<Self>) -> PyRefMut<Self> {
         slf.discover_templates_inner();
         slf
     }
 
-    /// Render a template with the given data.
+    /// Renders a template with the given data.
+    ///
+    /// Args:
+    ///     name: The path to the template file.
+    ///     data: A dictionary or list of dictionaries containing template variables.
+    ///
+    /// Returns:
+    ///     The rendered template string, or a list of strings if data is a list.
     #[gen_stub(skip)]
     fn render_template<'a>(
         &self,
@@ -111,6 +141,14 @@ impl TemplateManager {
         }
     }
 
+    /// Renders a template from a raw template string.
+    ///
+    /// Args:
+    ///     template: The raw template string.
+    ///     data: A dictionary or list of dictionaries containing template variables.
+    ///
+    /// Returns:
+    ///     The rendered template string, or a list of strings if data is a list.
     #[gen_stub(skip)]
     fn render_template_raw<'a>(
         &self,
@@ -182,15 +220,13 @@ impl TemplateManager {
     /// that templates found in later directories will override templates with the same
     /// name from earlier directories.
     ///
-    /// # Template Override Behavior
+    /// Note:
+    ///     When multiple templates with the same name are found across different directories,
+    ///     the template from the directory that appears later in the `templates_dir` vector
+    ///     will take precedence and override any previously registered template with the same name.
     ///
-    /// When multiple templates with the same name are found across different directories,
-    /// the template from the directory that appears later in the `templates_dir` vector
-    /// will take precedence and override any previously registered template with the same name.
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for method chaining.
+    /// Returns:
+    ///     A mutable reference to self for method chaining.
     fn discover_templates_inner(&mut self) -> &mut Self {
         self.handlebars.clear_templates();
         self.gather_templates().iter().for_each(|(name, path)| {
@@ -286,6 +322,14 @@ pyo3_stub_gen::module_variable!(
     TemplateManager
 );
 
+/// Registers the TemplateManager class with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
     let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;

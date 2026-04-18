@@ -12,14 +12,12 @@ use std::path::PathBuf;
 ///
 /// Skips hidden files and respects .gitignore.
 ///
-/// # Arguments
+/// Args:
+///     directory: Root path to visualize (default: current directory).
+///     max_depth: Maximum depth to traverse (default: 10).
 ///
-/// * `directory`: Root path to visualize
-/// * `max_depth`: Maximum depth to traverse (0 = root only, 1 = direct children, ...)
-///
-/// # Returns
-///
-/// A formatted string resembling the Unix `tree` command output.
+/// Returns:
+///     A formatted string resembling the Unix `tree` command output.
 pub fn treeview(directory: Option<PathBuf>, max_depth: usize) -> PyResult<String> {
     let directory = directory.unwrap_or_else(|| PathBuf::from("."));
 
@@ -124,6 +122,14 @@ struct TreeEntry {
     is_last: bool,
 }
 
+/// Registers the treeview function with the Python module.
+///
+/// Args:
+///     _py: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(super) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(treeview, m)?)?;
     Ok(())

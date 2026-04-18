@@ -52,10 +52,24 @@ impl TextCapturer {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl TextCapturer {
+    /// Captures the first match and extracts group 1.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     The first captured group if a match is found.
     fn cap1(&self, text: &str) -> Option<String> {
         self.reg.captures(text).map(Self::get_group_1)
     }
 
+    /// Captures all matches and extracts group 1 from each.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     A list of first captured groups from all matches.
     fn cap1_all(&self, text: &str) -> Vec<String> {
         self.reg
             .captures_iter(text)
@@ -63,18 +77,49 @@ impl TextCapturer {
             .collect()
     }
 
+    /// Captures the first match and extracts groups 1 and 2.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     A tuple of (group1, group2) if a match is found.
     fn cap2(&self, text: &str) -> Option<(String, String)> {
         self.reg.captures(text).map(Self::get_group_2)
     }
+
+    /// Captures all matches and extracts groups 1 and 2 from each.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     A list of (group1, group2) tuples from all matches.
     fn cap2_all(&self, text: &str) -> Vec<(String, String)> {
         self.reg
             .captures_iter(text)
             .map(Self::get_group_2)
             .collect()
     }
+
+    /// Captures the first match and extracts groups 1, 2, and 3.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     A tuple of (group1, group2, group3) if a match is found.
     fn cap3(&self, text: &str) -> Option<(String, String, String)> {
         self.reg.captures(text).map(Self::get_group_3)
     }
+
+    /// Captures all matches and extracts groups 1, 2, and 3 from each.
+    ///
+    /// Args:
+    ///     text: The text to search within.
+    ///
+    /// Returns:
+    ///     A list of (group1, group2, group3) tuples from all matches.
     fn cap3_all(&self, text: &str) -> Vec<(String, String, String)> {
         self.reg
             .captures_iter(text)
@@ -82,11 +127,26 @@ impl TextCapturer {
             .collect()
     }
 
+    /// Creates a TextCapturer with a custom regex pattern.
+    ///
+    /// Args:
+    ///     pattern: The regex pattern to use.
+    ///
+    /// Returns:
+    ///     A new TextCapturer instance.
     #[staticmethod]
     pub fn with_pattern(pattern: &str) -> PyResult<Self> {
         Self::new(pattern)
     }
 
+    /// Creates a TextCapturer for capturing code snippets with separators.
+    ///
+    /// Args:
+    ///     l_sep: The left separator (default: ">>>>>").
+    ///     r_sep: The right separator (default: "<<<<<").
+    ///
+    /// Returns:
+    ///     A new TextCapturer instance configured for snippets.
     #[staticmethod]
     #[pyo3(signature=(l_sep=var_names::SNIPPET_LEFT_SEP,r_sep=var_names::SNIPPET_RIGHT_SEP))]
     pub fn capture_snippet(l_sep: &str, r_sep: &str) -> PyResult<Self> {
@@ -165,7 +225,13 @@ impl JsonParser {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl JsonParser {
-    /// Create a new Capture instance.
+    /// Creates a JsonParser with a custom regex pattern.
+    ///
+    /// Args:
+    ///     pattern: The regex pattern to use for capturing JSON.
+    ///
+    /// Returns:
+    ///     A new JsonParser instance.
     #[staticmethod]
     pub fn with_pattern(pattern: &str) -> PyResult<Self> {
         Ok(Self {
@@ -173,14 +239,26 @@ impl JsonParser {
         })
     }
 
+    /// Creates a JsonParser with an existing TextCapturer.
+    ///
+    /// Args:
+    ///     capturer: The TextCapturer to use.
+    ///
+    /// Returns:
+    ///     A new JsonParser instance.
     #[staticmethod]
     pub fn with_capturer(capturer: TextCapturer) -> Self {
         Self { capturer }
     }
 
-    /// Capture the first match of the pattern in the text.
+    /// Captures and optionally repairs the first JSON match in text.
     ///
-    /// Returns the captured text or None if no match is found.
+    /// Args:
+    ///     text: The text to search within.
+    ///     fix: Whether to attempt JSON repair on the captured content.
+    ///
+    /// Returns:
+    ///     The captured text or None if no match is found.
     #[pyo3(signature=(text, fix=true))]
     pub fn capture(&self, text: &str, fix: bool) -> PyResult<Option<String>> {
         if fix && let Some(cap_string) = self.capturer.cap1(text) {
@@ -190,9 +268,14 @@ impl JsonParser {
         }
     }
 
-    /// Capture all matches of the pattern in the text.
+    /// Captures and optionally repairs all JSON matches in text.
     ///
-    /// Returns a vector of tuples containing captured groups for each match.
+    /// Args:
+    ///     text: The text to search within.
+    ///     fix: Whether to attempt JSON repair on each captured content.
+    ///
+    /// Returns:
+    ///     A list of captured JSON strings.
     #[pyo3(signature=(text, fix=true))]
     pub fn capture_all(&self, text: &str, fix: bool) -> PyResult<Vec<String>> {
         if fix {
@@ -205,6 +288,16 @@ impl JsonParser {
             Ok(self.capturer.cap1_all(text))
         }
     }
+
+    /// Converts captured text to a Python object.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     text: The text to parse as JSON.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The parsed Python object.
     #[pyo3(signature=(text, fix=true))]
     pub fn convert<'a>(
         &self,
@@ -215,6 +308,15 @@ impl JsonParser {
         pythonize(python, &Self::deserialize::<Value>(text, fix)?).into_pyresult()
     }
 
+    /// Converts all captured JSON strings to Python objects.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     text: The text to search within.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     A list of parsed Python objects.
     #[pyo3(signature=(text, fix=true))]
     pub fn convert_all<'a>(
         &self,
@@ -228,6 +330,17 @@ impl JsonParser {
             .try_collect::<Vec<Bound<PyAny>>>()
     }
 
+    /// Validates that the text parses to a list with optional constraints.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     text: The text to parse as JSON.
+    ///     elements_type: Optional type to check all elements against.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated list or None if validation fails.
     #[pyo3(signature=(text, elements_type=None, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.List[_T]|None", imports = ("typing",))
@@ -373,6 +486,13 @@ pub struct CodeSnippet {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl CodeSnippet {
+    /// Writes the code snippet to its designated file path.
+    ///
+    /// Args:
+    ///     parent_dirs: Whether to create parent directories if they don't exist.
+    ///
+    /// Returns:
+    ///     PyResult<()> indicating success.
     #[pyo3(signature=(parent_dirs=true))]
     pub fn write(&self, parent_dirs: bool) -> PyResult<()> {
         if parent_dirs
@@ -576,7 +696,14 @@ cfg_if!(
     }
 );
 
-/// Register the Capture class with the Python module.
+/// Registers the parser classes with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TextCapturer>()?;
     m.add_class::<JsonParser>()?;

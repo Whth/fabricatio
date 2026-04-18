@@ -12,6 +12,14 @@ use std::path::PathBuf;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+/// Compiles an Anki deck from a path to an output file.
+///
+/// Args:
+///     path: The path to the Anki deck.
+///     output: The output file path.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(path)
         .export_deck(output)
@@ -21,6 +29,18 @@ fn compile_deck(path: PathBuf, output: PathBuf) -> PyResult<()> {
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+/// Creates a new Anki deck project with the given configuration.
+///
+/// Args:
+///     path: The directory path for the project.
+///     deck_name: Optional name for the deck.
+///     deck_description: Optional description for the deck.
+///     author: Optional author name.
+///     model_name: Optional model name.
+///     fields: Optional list of field names.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 fn create_deck_project(
     path: PathBuf,
     deck_name: Option<String>,
@@ -43,6 +63,15 @@ fn create_deck_project(
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+/// Saves metadata to a YAML file in the specified directory.
+///
+/// Args:
+///     dir_path: The directory path.
+///     name: The name for the metadata file (without extension).
+///     data: The Python object to serialize as YAML.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyResult<()> {
     fs::create_dir_all(&dir_path)?;
     depythonize::<YamlNodeWrapper>(&data)
@@ -59,6 +88,15 @@ fn save_metadata(dir_path: PathBuf, name: String, data: Bound<'_, PyAny>) -> PyR
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+/// Adds CSV data to an Anki deck project.
+///
+/// Args:
+///     project_path: The path to the Anki deck project.
+///     model_name: The name of the model to add data to.
+///     data: The path to the CSV file.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyResult<()> {
     AnkiDeckLoader::new(project_path)
         .add_csv_data(model_name, &data)
@@ -67,6 +105,16 @@ fn add_csv_data(project_path: PathBuf, model_name: &str, data: PathBuf) -> PyRes
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
+/// Saves Anki card templates (front, back, and optional CSS) to files.
+///
+/// Args:
+///     dir_path: The directory to save templates in.
+///     front: The front template content.
+///     back: The back template content.
+///     css: Optional CSS content.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 #[pyo3(signature=(dir_path, front, back, css=None))]
 fn save_template(
     dir_path: PathBuf,
@@ -86,12 +134,12 @@ fn save_template(
 
 /// Extracts content located within all occurrences of a specified HTML tag.
 ///
-/// # Arguments
-/// * `html` - A string slice containing the HTML content to search within.
-/// * `tag` - The name of the HTML tag whose content needs to be extracted.
+/// Args:
+///     html: The HTML content to search within.
+///     tag: The name of the HTML tag whose content needs to be extracted.
 ///
-/// # Returns
-/// A concatenated string of all contents found between the opening and closing of the specified tags.
+/// Returns:
+///     A concatenated string of all contents found between the opening and closing tags.
 fn extract_content_by_tag(html: &str, tag: &str) -> String {
     use regex::Regex;
 
@@ -106,17 +154,14 @@ fn extract_content_by_tag(html: &str, tag: &str) -> String {
 
 /// Extracts JavaScript, CSS, and layout components from an HTML string.
 ///
-/// # Arguments
-/// * `html` - A string slice containing the full HTML content.
+/// Args:
+///     html: The full HTML content.
 ///
-/// # Returns
-/// A tuple with three strings:
-/// 1. Layout (HTML content without script and style sections).
-/// 2. JavaScript content (extracted from `<script>` tags).
-/// 3. CSS content (extracted from `<style>` tags).
-///
-/// # Errors
-/// This function wraps its return in `PyResult` but does not currently produce recoverable errors.
+/// Returns:
+///     A tuple containing (layout, javascript_content, css_content).
+///     - layout: HTML content without script and style sections
+///     - javascript_content: Extracted from script tags
+///     - css_content: Extracted from style tags
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_html_component(html: &str) -> PyResult<(String, String, String)> {
@@ -137,6 +182,14 @@ fn extract_html_component(html: &str) -> PyResult<(String, String, String)> {
     Ok((layout, js_content, css_content))
 }
 
+/// Registers the Anki deck functions with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile_deck, m)?)?;
     m.add_function(wrap_pyfunction!(create_deck_project, m)?)?;

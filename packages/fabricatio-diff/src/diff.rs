@@ -10,16 +10,12 @@ use strsim::normalized_damerau_levenshtein;
 /// - 1.0 means the strings are identical
 /// - 0.0 means the strings are completely different
 ///
-/// # Arguments
+/// Args:
+///     a: The first string to compare.
+///     b: The second string to compare.
 ///
-/// - `a`: The first string to compare.
-/// - `b`: The second string to compare.
-///
-/// # Returns
-///
-/// A f64 value representing the similarity rate between the two input strings.
-///
-
+/// Returns:
+///     A f64 value representing the similarity rate between the two input strings.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn rate(a: &str, b: &str) -> f64 {
@@ -31,17 +27,14 @@ fn rate(a: &str, b: &str) -> f64 {
 /// This function uses the normalized Damerau-Levenshtein distance to find a matching block
 /// of lines with similarity score equal to or greater than `match_precision`.
 ///
-/// # Arguments
+/// Args:
+///     haystack: The full text to search within.
+///     needle: The text pattern to find within the haystack.
+///     match_precision: Threshold for similarity score between 0.0 and 1.0 (default: 0.9).
 ///
-/// - `haystack`: The full text to search within
-/// - `needle`: The text pattern to find within the haystack
-/// - `match_precision`: Threshold for similarity score between 0.0 and 1.0 (default: 0.9)
-///
-/// # Returns
-///
-/// An `Option<String>` containing the first matching block of lines if found,
-/// or `None` if no match meets the precision threshold.
-
+/// Returns:
+///     An Option containing the first matching block of lines if found,
+///     or None if no match meets the precision threshold.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature = (haystack, needle, match_precision = 0.9))]
@@ -82,15 +75,12 @@ fn match_lines(haystack: &str, needle: &str, match_precision: f64) -> Option<Str
 /// - Lines prefixed with `+` indicate additions from `b`
 /// - Unchanged lines are prefixed with a space
 ///
-/// # Arguments
+/// Args:
+///     a: The original/old text content.
+///     b: The modified/new text content.
 ///
-/// - `a`: The original/old text content
-/// - `b`: The modified/new text content
-///
-/// # Returns
-///
-/// A `String` containing the diff output with each line prefixed by its change type.
-
+/// Returns:
+///     A String containing the diff output with each line prefixed by its change type.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn show_diff(a: &str, b: &str) -> String {
@@ -108,6 +98,14 @@ fn show_diff(a: &str, b: &str) -> String {
     result
 }
 
+/// Registers the diff functions with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(show_diff, m)?)?;
     m.add_function(wrap_pyfunction!(rate, m)?)?;

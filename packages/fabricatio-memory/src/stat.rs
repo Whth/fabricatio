@@ -21,7 +21,10 @@ pub struct MemoryStats {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MemoryStats {
-    /// Display memory statistics in a formatted string
+    /// Returns a formatted string displaying all memory statistics.
+    ///
+    /// Returns:
+    ///     A human-readable string representation of the MemoryStats.
     fn display(&self) -> String {
         format!(
             "Total Memories: {}\nAverage Importance: {}\nAverage Access Count: {}\nAverage Age (Days): {}",

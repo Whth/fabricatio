@@ -37,17 +37,31 @@ impl From<Tool> for ToolMetaData {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl ToolMetaData {
-    /// Serializes the tool metadata to a Python dictionary
+    /// Serializes the tool metadata to a Python dictionary.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///
+    /// Returns:
+    ///     A Python dictionary representation of the tool metadata.
     fn dump_dict<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         pythonize(python, &self.inner).into_pyresult()
     }
 
     #[getter]
+    /// Returns the name of the tool.
+    ///
+    /// Returns:
+    ///     The tool name as a string.
     fn name(&self) -> String {
         self.inner.name.to_string()
     }
 
     #[getter]
+    /// Returns the description of the tool.
+    ///
+    /// Returns:
+    ///     The tool description as a string.
     fn description(&self) -> String {
         self.inner
             .description
@@ -57,25 +71,52 @@ impl ToolMetaData {
     }
 
     #[getter]
+    /// Returns the input schema as a Python object.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///
+    /// Returns:
+    ///     The input schema as a Python object.
     fn input_schema<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         pythonize(python, &self.inner.input_schema).into_pyresult()
     }
 
     #[getter]
+    /// Returns the input schema as a JSON string.
+    ///
+    /// Returns:
+    ///     The input schema as a JSON string.
     fn input_schema_string(&self) -> String {
         serde_json::to_string(&self.inner.input_schema).unwrap_or_default()
     }
 
     #[getter]
+    /// Returns the annotations as a Python object.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///
+    /// Returns:
+    ///     The annotations as a Python object.
     fn annotations<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         pythonize(python, &self.inner.annotations).into_pyresult()
     }
+
     #[getter]
+    /// Returns the annotations as a JSON string.
+    ///
+    /// Returns:
+    ///     The annotations as a JSON string.
     fn annotations_string(&self) -> String {
         serde_json::to_string(&self.inner.annotations).unwrap_or_default()
     }
 
     #[getter]
+    /// Returns the function signature header.
+    ///
+    /// Returns:
+    ///     The function signature as a string.
     fn function_header(&self) -> PyResult<String> {
         let inner = &self.inner;
         Ok(format!(
@@ -85,7 +126,12 @@ impl ToolMetaData {
                 .ok_or(PyRuntimeError::new_err("Invalid input schema"))?
         ))
     }
+
     #[getter]
+    /// Returns the function docstring.
+    ///
+    /// Returns:
+    ///     The function docstring as a string.
     fn function_docstring(&self) -> PyResult<String> {
         let inner = &self.inner;
         Ok(format!(
@@ -97,7 +143,12 @@ impl ToolMetaData {
             .unwrap_or_default()
         ))
     }
+
     #[getter]
+    /// Returns the complete function string with header and docstring.
+    ///
+    /// Returns:
+    ///     The complete function definition as a string.
     fn function_string(&self) -> PyResult<String> {
         let header = self.function_header()?;
         let docstring = self
@@ -113,10 +164,14 @@ impl ToolMetaData {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl MCPManager {
-    /// Creates a new MCP manager instance
+    /// Creates a new MCP manager instance.
     ///
-    /// # Arguments
-    /// * `server_configs` - Python dictionary containing server configurations
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     server_configs: Python dictionary containing server configurations.
+    ///
+    /// Returns:
+    ///     An awaitable that resolves to a new MCPManager instance.
     #[staticmethod]
     fn create<'a>(
         python: Python<'a>,
@@ -133,7 +188,14 @@ impl MCPManager {
         })
     }
 
-    /// Retrieves list of tools from a client
+    /// Retrieves list of tools from a client.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client.
+    ///
+    /// Returns:
+    ///     An awaitable that resolves to a list of ToolMetaData objects.
     fn list_tools<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
 
@@ -147,7 +209,15 @@ impl MCPManager {
         })
     }
 
-    /// Retrieves a tool from a client
+    /// Retrieves a tool from a client.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client.
+    ///     tool_name: The name of the tool.
+    ///
+    /// Returns:
+    ///     An awaitable that resolves to a ToolMetaData object or None.
     fn get_tool<'a>(
         &self,
         python: Python<'a>,
@@ -164,13 +234,14 @@ impl MCPManager {
         })
     }
 
-    /// Retrieves a list of tool names from a client
+    /// Retrieves a list of tool names from a client.
     ///
-    /// # Arguments
-    /// * `client_id` - The ID of the client to retrieve tools from
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client to retrieve tools from.
     ///
-    /// # Returns
-    /// * `PyResult<Vec<String>>` - A list of tool names or an error if the operation fails
+    /// Returns:
+    ///     An awaitable that resolves to a list of tool names.
     fn list_tool_names<'a>(
         &self,
         python: Python<'a>,
@@ -191,13 +262,14 @@ impl MCPManager {
         })
     }
 
-    /// Retrieves a mapping of tool names to their descriptions from a client
+    /// Retrieves a mapping of tool names to their descriptions from a client.
     ///
-    /// # Arguments
-    /// * `client_id` - The ID of the client to retrieve tools from
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client.
     ///
-    /// # Returns
-    /// * `PyResult<HashMap<String, String>>` - A mapping of tool names to descriptions or an error if the operation fails
+    /// Returns:
+    ///     An awaitable that resolves to a dict mapping tool names to descriptions.
     fn description_mapping<'a>(
         &self,
         python: Python<'a>,
@@ -223,30 +295,46 @@ impl MCPManager {
         })
     }
 
-    /// Returns a list of all server names currently managed by the MCP manager
+    /// Returns a list of all server names currently managed by the MCP manager.
+    ///
+    /// Returns:
+    ///     A list of server names.
     fn server_list(&self) -> Vec<String> {
         self.inner.server_list()
     }
 
-    /// Returns the number of servers currently managed by the MCP manager
+    /// Returns the number of servers currently managed by the MCP manager.
+    ///
+    /// Returns:
+    ///     The number of servers.
     fn server_count(&self) -> usize {
         self.inner.server_count()
     }
 
-    /// Checks if a client is still connected and responsive
+    /// Checks if a client is still connected and responsive.
     ///
-    /// # Arguments
-    /// * `client_id` - The ID of the client to ping
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client to ping.
     ///
-    /// # Returns
-    /// * `PyResult<bool>` - Ok(true) if the client is connected, Ok(false) if not, or an error if the client doesn't exist
+    /// Returns:
+    ///     An awaitable that resolves to True if connected, False otherwise.
     fn ping<'a>(&self, python: Python<'a>, client_id: String) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         future_into_py(python, async move {
             inner.ping(&client_id).await.into_pyresult()
         })
     }
-    /// Executes a tool on a client and returns the result
+    /// Executes a tool on a client and returns the result.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client.
+    ///     tool_name: The name of the tool to execute.
+    ///     arguments: Optional dictionary of tool arguments.
+    ///
+    /// Returns:
+    ///     An awaitable that resolves to a list of result strings.
     fn call_tool<'a>(
         &self,
         python: Python<'a>,
@@ -276,25 +364,26 @@ impl MCPManager {
         })
     }
 
-    /// Checks if a client exists in the manager
+    /// Checks if a client exists in the manager.
     ///
-    /// # Arguments
-    /// * `client_id` - The ID of the client to check
+    /// Args:
+    ///     client_id: The ID of the client to check.
     ///
-    /// # Returns
-    /// * `bool` - True if the client exists, false otherwise
+    /// Returns:
+    ///     True if the client exists, False otherwise.
     fn has_client(&self, client_id: String) -> bool {
         self.inner.has_client(client_id.as_str())
     }
 
-    /// Checks if a tool exists for a specific client
+    /// Checks if a tool exists for a specific client.
     ///
-    /// # Arguments
-    /// * `client_id` - The ID of the client
-    /// * `tool_name` - The name of the tool to check
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///     client_id: The ID of the client.
+    ///     tool_name: The name of the tool to check.
     ///
-    /// # Returns
-    /// * `PyResult<bool>` - True if the tool exists, false otherwise, or an error if the operation fails
+    /// Returns:
+    ///     An awaitable that resolves to True if the tool exists, False otherwise.
     pub fn has_tool<'a>(
         &self,
         python: Python<'a>,
@@ -312,7 +401,14 @@ impl MCPManager {
     }
 }
 
-/// Registers Python module components
+/// Registers the MCP manager classes with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MCPManager>()?;
     m.add_class::<ToolMetaData>()?;

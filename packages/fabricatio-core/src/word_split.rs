@@ -3,14 +3,32 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use unicode_segmentation::UnicodeSegmentation;
 
-/// split the string into words
+/// Splits a string into words using Unicode word boundaries.
+///
+/// This function uses Unicode segmentation to properly handle words in
+/// various languages, not just whitespace-separated tokens.
+///
+/// Args:
+///     string: The input string to split.
+///
+/// Returns:
+///     A list of word strings.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn split_word_bounds(string: &str) -> Vec<String> {
     string.split_word_bounds().map(|s| s.to_string()).collect()
 }
 
-/// split the string into sentences
+/// Splits a string into sentences using Unicode sentence boundaries.
+///
+/// This function uses Unicode segmentation to properly identify sentence
+/// boundaries across different writing systems.
+///
+/// Args:
+///     string: The input string to split.
+///
+/// Returns:
+///     A list of sentence strings.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn split_sentence_bounds(string: &str) -> Vec<String> {
@@ -20,19 +38,18 @@ fn split_sentence_bounds(string: &str) -> Vec<String> {
         .collect()
 }
 
-/// Splits a given string into chunks based on the specified maximum chunk size and overlapping rate.
+/// Splits a string into chunks based on maximum size and overlapping rate.
 ///
-/// The function prioritizes splitting at sentence boundaries. If a sentence exceeds the maximum chunk size,
-/// it will be split into smaller parts. The overlapping rate determines how much overlap there should be
-/// between consecutive chunks.
+/// The function prioritizes splitting at sentence boundaries. If a sentence
+/// exceeds the maximum chunk size, it will be split at word boundaries.
 ///
-/// # Parameters
-/// - `string`: The input string to be split.
-/// - `max_chunk_size`: The maximum number of words allowed in a chunk.
-/// - `max_overlapping_rate`: The rate of overlapping between consecutive chunks, expressed as a fraction of the chunk size.
+/// Args:
+///     string: The input string to be split.
+///     max_chunk_size: The maximum number of words allowed in a chunk.
+///     max_overlapping_rate: The rate of overlapping between consecutive chunks (default: 0.3).
 ///
-/// # Returns
-/// A vector of strings, where each string is a chunk of the original input.
+/// Returns:
+///     A list of chunk strings.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 #[pyo3(signature = (string, max_chunk_size, max_overlapping_rate=0.3))]
@@ -69,7 +86,16 @@ fn split_into_chunks(
     res
 }
 
-/// get the tail of the sentences of a long string.
+/// Extracts tail sentences from a string up to a maximum size.
+///
+/// This is an internal helper function used for creating overlapping chunks.
+///
+/// Args:
+///     string: The input string.
+///     max_size: The maximum word count for the tail.
+///
+/// Returns:
+///     A list of sentence strings that form the tail.
 fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
     let mut res: Vec<String> = vec![];
     for s in split_sentence_bounds(string).iter().rev() {
@@ -83,7 +109,16 @@ fn get_tail_sentences(string: &str, max_size: usize) -> Vec<String> {
     res
 }
 
-/// count the words
+/// Counts the number of words in a string.
+///
+/// This function splits the string by word boundaries and counts
+/// non-empty tokens.
+///
+/// Args:
+///     string: The input string.
+///
+/// Returns:
+///     The number of words in the string.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 pub(crate) fn word_count(string: &str) -> usize {
@@ -93,7 +128,14 @@ pub(crate) fn word_count(string: &str) -> usize {
         .count()
 }
 
-/// register the module
+/// Registers the word splitting functions with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(split_word_bounds, m)?)?;
     m.add_function(wrap_pyfunction!(word_count, m)?)?;

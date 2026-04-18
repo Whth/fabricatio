@@ -16,16 +16,11 @@ pub type RepoEntry = Arc<Mutex<Repository>>;
 ///
 /// This class manages the shadow repository and provides methods for
 /// saving checkpoints, rolling back files, and retrieving commit history.
-///
-/// # Fields
-///
-/// * `workspace` - The worktree directory being tracked
-/// * `repo` - The shared repository instance
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct CheckPointStore {
     #[pyo3(get)]
-    /// The worktree directory being tracked
+    /// The worktree directory being tracked.
     workspace: PathBuf,
     repo: RepoEntry,
 }
@@ -77,23 +72,14 @@ impl CheckPointStore {
     /// This method stages all changes in the worktree directory and creates a new commit
     /// in the shadow repository. It acts as a checkpoint that can later be restored.
     ///
-    /// # Arguments
+    /// Args:
+    ///     commit_msg: Optional commit message; defaults to empty string if not provided.
     ///
-    /// * `commit_msg` - Optional commit message; defaults to empty string if not provided
+    /// Returns:
+    ///     The commit ID (OID) as a string.
     ///
-    /// # Returns
-    ///
-    /// The commit ID (OID) as a string
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - Git operations fail (staging, committing, etc.)
-    ///
-    /// # Note
-    ///
-    /// If there are no changes to commit, this method returns the ID of the last commit (the HEAD).
+    /// Note:
+    ///     If there are no changes to commit, this method returns the ID of the last commit (the HEAD).
     #[pyo3(signature=( commit_msg=None))]
     pub fn save(&self, commit_msg: Option<String>) -> PyResult<String> {
         let repo = self.access_repo()?;
@@ -132,15 +118,8 @@ impl CheckPointStore {
     ///
     /// This method retrieves the ID of the current HEAD commit in the shadow repository.
     ///
-    /// # Returns
-    ///
-    /// The commit ID (OID) as a string
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - Git operations fail while retrieving the HEAD commit
+    /// Returns:
+    ///     The commit ID (OID) as a string.
     fn head(&self) -> PyResult<String> {
         let repo = self.access_repo()?;
         head_commit_of(&repo).map(|commit| commit.id().to_string())
@@ -152,15 +131,8 @@ impl CheckPointStore {
     /// backwards through the parent commits. The commits are returned in reverse
     /// chronological order (newest first).
     ///
-    /// # Returns
-    ///
-    /// A vector of commit IDs (OIDs as strings) in reverse chronological order
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - Git operations fail while walking the commit history
+    /// Returns:
+    ///     A list of commit IDs (OIDs as strings) in reverse chronological order.
     pub fn commits(&self) -> PyResult<Vec<String>> {
         let repo = self.access_repo()?;
         let mut revwk = repo.revwalk().into_pyresult()?;
@@ -177,16 +149,8 @@ impl CheckPointStore {
     /// Performs a hard reset of the worktree directory to match the state at the specified commit.
     /// This discards all changes in the working directory and index, making them match the commit.
     ///
-    /// # Arguments
-    ///
-    /// * `commit_id` - The commit ID (OID as string) to reset to
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - The commit ID is invalid
-    /// - The reset operation fails
+    /// Args:
+    ///     commit_id: The commit ID (OID as string) to reset to.
     pub fn reset(&self, commit_id: String) -> PyResult<()> {
         debug!(
             "Resetting workspace {} to commit {}...",
@@ -206,18 +170,9 @@ impl CheckPointStore {
     /// This rolls back a single file to its state at the specified commit,
     /// checking out that file from the commit's tree.
     ///
-    /// # Arguments
-    ///
-    /// * `commit_id` - The commit ID (OID as string) to restore from
-    /// * `file_path` - The relative path to the file within the worktree
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - The commit ID is invalid
-    /// - The file is not found in the commit
-    /// - The checkout operation fails
+    /// Args:
+    ///     commit_id: The commit ID (OID as string) to restore from.
+    ///     file_path: The relative path to the file within the worktree.
     pub fn rollback(&self, commit_id: String, file_path: PathBuf) -> PyResult<()> {
         let file_path = absolute(&file_path).into_pyresult()?;
         let norm_file_path = self.norm_repo_rel_path(&file_path)?;
@@ -247,21 +202,12 @@ impl CheckPointStore {
     /// returning a patch-format diff string. If the commit has no parent (initial commit),
     /// it compares against an empty tree.
     ///
-    /// # Arguments
+    /// Args:
+    ///     commit_id: The commit ID (OID as string) to get the diff from.
+    ///     file_path: The relative path to the file within the worktree.
     ///
-    /// * `commit_id` - The commit ID (OID as string) to get the diff from
-    /// * `file_path` - The relative path to the file within the worktree
-    ///
-    /// # Returns
-    ///
-    /// A string containing the unified diff in patch format
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - The commit ID is invalid
-    /// - Git diff operations fail
+    /// Returns:
+    ///     A string containing the unified diff in patch format.
     pub fn get_file_diff(&self, commit_id: String, file_path: PathBuf) -> PyResult<String> {
         let file_path = absolute(&file_path).into_pyresult()?;
         let file_path = self.norm_repo_rel_path(file_path)?;
@@ -304,15 +250,8 @@ impl CheckPointStore {
     ///
     /// Returns a list of file paths that have changed since the last commit.
     ///
-    /// # Returns
-    ///
-    /// A vector of file paths that have changed since the last commit
-    ///
-    /// # Errors
-    ///
-    /// Returns a `PyErr` if:
-    /// - The shadow repository is not found
-    /// - Git status operations fail
+    /// Returns:
+    ///     A list of file paths that have changed since the last commit.
     pub fn get_status(&self) -> PyResult<Vec<String>> {
         let repo = self.access_repo()?;
         let statuses = repo.statuses(None).into_pyresult()?;

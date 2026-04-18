@@ -12,6 +12,13 @@ use std::path::{Path, PathBuf, absolute};
 use std::sync::MutexGuard;
 
 #[inline]
+/// Gets the head commit from a repository.
+///
+/// Args:
+///     repo: A mutex guard holding the repository.
+///
+/// Returns:
+///     The head commit of the repository.
 pub(crate) fn head_commit_of<'a>(repo: &'a MutexGuard<'a, Repository>) -> PyResult<Commit<'a>> {
     repo.head()
         .into_pyresult()?
@@ -19,10 +26,25 @@ pub(crate) fn head_commit_of<'a>(repo: &'a MutexGuard<'a, Repository>) -> PyResu
         .into_pyresult()
 }
 
+/// Normalizes a path to an absolute path.
+///
+/// Args:
+///     path: The path to normalize.
+///
+/// Returns:
+///     The absolute path.
 pub(crate) fn normalized_path_of<P: AsRef<Path>>(path: P) -> PyResult<PathBuf> {
     absolute(path).into_pyresult()
 }
 
+/// Normalizes a path relative to a root directory.
+///
+/// Args:
+///     root: The root directory.
+///     path: The path to make relative.
+///
+/// Returns:
+///     The relative path.
 pub(crate) fn normalized_rel_path(root: &PathBuf, path: PathBuf) -> PyResult<PathBuf> {
     if path.is_relative() {
         Ok(path)
@@ -91,6 +113,16 @@ macro_rules! dir_entries {
     };
 }
 
+/// Returns a list of all managed workspace directories.
+///
+/// Iterates through all repositories under the stores root and returns
+/// their worktree directories.
+///
+/// Args:
+///     stores_root: The root directory containing store repositories.
+///
+/// Returns:
+///     A list of paths to managed workspace directories.
 pub(crate) fn managed_workspaces(stores_root: &PathBuf) -> PyResult<Vec<PathBuf>> {
     Ok(dir_entries!(stores_root)
         .filter_map(|entry| Repository::open(entry).ok())
@@ -121,6 +153,14 @@ pub(crate) fn prune_stores(stores_root: PathBuf) -> PyResult<()> {
     Ok(())
 }
 
+/// Registers the checkpoint utility functions with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(prune_stores, m)?)?;
     Ok(())

@@ -11,7 +11,10 @@ use tex2typst_rs::tex2typst;
 
 /// A trait to add and remove comments from a string-like type.
 pub trait Commentable: AsRef<str> {
-    /// Adds a comment (`//`) to each line of the string.
+    /// Adds a comment prefix `//` to each line of the string.
+    ///
+    /// Returns:
+    ///     A new string with `//` prepended to each line.
     fn comment(&self) -> String {
         self.as_ref()
             .lines() // Split the string into lines
@@ -20,7 +23,10 @@ pub trait Commentable: AsRef<str> {
             .join("\n") // Join the lines back into a single string with newline characters
     }
 
-    /// Removes comments (`//`) from each line of the string.
+    /// Removes the comment prefix `//` from each line of the string.
+    ///
+    /// Returns:
+    ///     A new string with `//` or `// ` prefix removed from each line.
     fn uncomment(&self) -> String {
         self.as_ref()
             .lines() // Split the string into lines
@@ -29,7 +35,7 @@ pub trait Commentable: AsRef<str> {
                     .or_else(|| line.strip_prefix("//"))
                     .unwrap_or(line) // Remove `//` or `// ` prefix if present
             })
-            .collect::<Vec<_>>() // Collect the lines into a Vec<&str>
+            .collect::<Vec<_>>() // Collect the lines back into a Vec<&str>
             .join("\n") // Join the lines back into a single string with newline characters
     }
 }
@@ -37,21 +43,39 @@ pub trait Commentable: AsRef<str> {
 // Implement the `Commentable` trait for all types that implement `AsRef<str>`.
 impl<T: AsRef<str>> Commentable for T {}
 
-/// convert a raw tex string to typst
+/// Converts a raw LaTeX string to Typst format.
+///
+/// Args:
+///     string: The raw LaTeX string to convert.
+///
+/// Returns:
+///     A PyResult containing the converted Typst string.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn tex_to_typst(string: &str) -> PyResult<String> {
     tex2typst(string).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
-/// add comment to the string
+/// Adds comment prefix `//` to each line of the string.
+///
+/// Args:
+///     string: The input string to comment.
+///
+/// Returns:
+///     A string with `//` prepended to each line.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn comment(string: &str) -> String {
     string.comment()
 }
 
-/// remove comment from the string
+/// Removes comment prefix `//` from each line of the string.
+///
+/// Args:
+///     string: The input string to uncomment.
+///
+/// Returns:
+///     A string with comment prefixes removed from each line.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn uncomment(string: &str) -> String {
@@ -59,6 +83,12 @@ fn uncomment(string: &str) -> String {
 }
 
 /// Removes leading and trailing comment lines from a multi-line string.
+///
+/// Args:
+///     string: The input string to strip comments from.
+///
+/// Returns:
+///     A string with leading and trailing comment lines removed.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn strip_comment(string: &str) -> String {
@@ -80,17 +110,33 @@ fn strip_comment(string: &str) -> String {
     lines[start..end].join("\n")
 }
 
-/// Unified function to convert all supported TeX math expressions in a string to Typst format.
-/// Handles $...$, $$...$$, \(...\), and \[...\].
+/// Converts all supported TeX math expressions in a string to Typst format.
+///
+/// Handles $...$, $$...$$, \(...\), and \[...\] delimiters.
+///
+/// Args:
+///     string: The input string containing TeX math expressions.
+///
+/// Returns:
+///     A PyResult containing the string with converted math expressions.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn convert_all_tex_math(string: &str) -> PyResult<String> {
     conv_to_typst(string).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
+/// Fixes misplaced labels in a string by moving them outside display math blocks.
+///
+/// Labels in the format <label> that appear inside \[...\] blocks are moved
+/// to outside the block.
+///
+/// Args:
+///     string: The input string to fix.
+///
+/// Returns:
+///     A string with misplaced labels moved outside display math blocks.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
-/// A func to fix labels in a string.
 pub fn fix_misplaced_labels(string: &str) -> String {
     // Match \[ ... \] blocks, non-greedy matching for the content inside
     let block_re = Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap();
@@ -113,7 +159,16 @@ pub fn fix_misplaced_labels(string: &str) -> String {
         .into_owned()
 }
 
-/// Split out metadata from a string
+/// Splits metadata (YAML front matter) from a Typst document string.
+///
+/// Extracts leading comment lines as YAML metadata and returns the remaining content.
+///
+/// Args:
+///     python: The Python interpreter instance.
+///     string: The input string with potential YAML front matter.
+///
+/// Returns:
+///     A tuple of (parsed metadata as Python object or None, remaining string content).
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a, PyAny>>, String) {
@@ -136,7 +191,13 @@ fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a,
     }
 }
 
-/// Convert a Python object to a YAML string.
+/// Converts a Python object to a YAML string with comment formatting.
+///
+/// Args:
+///     data: The Python object to convert.
+///
+/// Returns:
+///     A PyResult containing the YAML string with `//` comments.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
@@ -149,6 +210,15 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
         })
 }
 
+/// Replaces the body content enclosed by two wrapper strings.
+///
+/// Args:
+///     string: The original string containing the wrapped body.
+///     wrapper: The wrapper string that marks the beginning and end.
+///     new_body: The new body content to insert.
+///
+/// Returns:
+///     The string with the body replaced, or None if wrapper not found.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<String> {
@@ -156,7 +226,14 @@ fn replace_thesis_body(string: &str, wrapper: &str, new_body: &str) -> Option<St
     Some(string.replace(&extract_body(string, wrapper)?, &new_body))
 }
 
-// Implement extract_body to find content enclosed by exactly two wrappers
+/// Extracts the body content enclosed by exactly two wrapper strings.
+///
+/// Args:
+///     string: The string containing the wrapped body.
+///     wrapper: The wrapper string that marks the beginning and end.
+///
+/// Returns:
+///     The body content if exactly one match found, None otherwise.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_body(string: &str, wrapper: &str) -> Option<String> {
@@ -180,7 +257,15 @@ fn extract_body(string: &str, wrapper: &str) -> Option<String> {
     first_match.get(1).map(|m| m.as_str().to_string())
 }
 
-/// Extract sections from markdown-style text by header level.
+/// Extracts sections from markdown-style text by header level.
+///
+/// Args:
+///     string: The markdown text to parse.
+///     level: The header level to extract (e.g., 1 for #, 2 for ##).
+///     section_char: Optional character to use as header marker (default: #).
+///
+/// Returns:
+///     A list of tuples containing (header_text, section_content).
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extract_sections(
@@ -218,6 +303,14 @@ fn extract_sections(
     Ok(results)
 }
 
+/// Registers the Typst utility functions with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(comment, m)?)?;
     m.add_function(wrap_pyfunction!(uncomment, m)?)?;

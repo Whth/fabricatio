@@ -106,11 +106,28 @@ fn is_strict_control_char(b: u8) -> bool {
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
-/// judge if a file is likely text, dir or path not exist are considered false.
+/// Determines if a file is likely text content.
+///
+/// This function uses heuristics to determine if a file contains text.
+/// Directories and non-existent paths return False.
+///
+/// Args:
+///     path: The path to the file to check.
+///
+/// Returns:
+///     True if the file appears to be text, False otherwise.
 pub fn is_likely_text(path: PathBuf) -> PyResult<bool> {
     is_text(path, &TextHeuristic::default()).into_pyresult()
 }
 
+/// Registers the text file utility functions with the Python module.
+///
+/// Args:
+///     _py: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_likely_text, m)?)?;
     Ok(())

@@ -351,17 +351,13 @@ impl VectorStoreTable {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl VectorStoreTable {
-    /// Add multiple documents to the vector store.
+    /// Adds multiple documents to the vector store.
     ///
-    /// This method takes a list of documents and asynchronously adds them to the table.
-    /// Each document will be assigned a unique ID and timestamp upon insertion.
+    /// Args:
+    ///     documents: A list of StoreDocument objects to be added to the store.
     ///
-    /// # Arguments
-    /// * `documents` - A list of `Document` objects to be added to the store
-    ///
-    /// # Returns
-    /// A Python Future that resolves to a list of strings representing the IDs
-    /// of the documents that were successfully added to the store.
+    /// Returns:
+    ///     An awaitable that resolves to a list of document IDs.
     fn add_documents<'a>(
         &self,
         python: Python<'a>,
@@ -381,18 +377,14 @@ impl VectorStoreTable {
         )
     }
 
-    /// Search for documents similar to the given embedding vector.
+    /// Searches for documents similar to the given embedding vector.
     ///
-    /// This method performs a nearest neighbor search in the vector store to find
-    /// documents whose embeddings are closest to the provided query embedding.
+    /// Args:
+    ///     embedding: A vector representing the query embedding for similarity search.
+    ///     limit: The maximum number of similar documents to return.
     ///
-    /// # Arguments
-    /// * `embedding` - A vector representing the query embedding for similarity search
-    /// * `limit` - The maximum number of similar documents to return
-    ///
-    /// # Returns
-    /// A Python Future that resolves to a list of `SearchedDocument` objects
-    /// representing the most similar documents found in the store.
+    /// Returns:
+    ///     An awaitable that resolves to a list of SearchedDocument objects.
     fn search_document<'a>(
         &self,
         python: Python<'a>,

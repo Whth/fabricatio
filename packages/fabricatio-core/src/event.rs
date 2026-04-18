@@ -28,6 +28,10 @@ static DELIMITER: OnceLock<String> = OnceLock::new();
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl Event {
+    /// Creates a new Event instance.
+    ///
+    /// Args:
+    ///     segments: Optional list of event segments. Defaults to empty list.
     #[new]
     #[pyo3(signature = (segments=None))]
     fn new(segments: Option<Vec<String>>) -> Self {
@@ -36,6 +40,13 @@ impl Event {
         }
     }
 
+    /// Creates an Event from various input types.
+    ///
+    /// Args:
+    ///     event: A string, list of strings, or another Event instance.
+    ///
+    /// Returns:
+    ///     A new Event instance with segments extracted from the input.
     #[staticmethod]
     fn instantiate_from(
         #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
@@ -63,6 +74,14 @@ impl Event {
             Err(PyTypeError::new_err("Invalid event type"))
         }
     }
+
+    /// Creates an Event with wildcard and pending status appended.
+    ///
+    /// Args:
+    ///     event: A string, list of strings, or another Event instance.
+    ///
+    /// Returns:
+    ///     A new Event instance with "*" and "Pending" segments appended.
     #[staticmethod]
     fn quick_instantiate(
         #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
@@ -76,6 +95,13 @@ impl Event {
         Ok(event)
     }
 
+    /// Derives a new event by appending segments from another event.
+    ///
+    /// Args:
+    ///     event: A string, list of strings, or another Event instance to append.
+    ///
+    /// Returns:
+    ///     A new Event with the combined segments.
     fn derive(
         &self,
         #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
@@ -89,15 +115,30 @@ impl Event {
         Ok(new_event)
     }
 
+    /// Collapses the event segments into a single delimited string.
+    ///
+    /// Returns:
+    ///     A string with segments joined by the configured delimiter.
     fn collapse(&self) -> String {
         self.segments
             .join(DELIMITER.get().expect("Delimiter not set!"))
     }
 
+    /// Creates a copy of the event.
+    ///
+    /// Returns:
+    ///     A clone of this Event instance.
     fn fork(&self) -> Self {
         self.clone()
     }
 
+    /// Pushes a segment onto the event.
+    ///
+    /// Args:
+    ///     segment: A TaskStatus enum or string to append.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push<'py>(
         mut slf: PyRefMut<'py, Self>,
         #[gen_stub(override_type(type_repr = "TaskStatus | str "))] segment: Bound<'py, PyAny>,
@@ -126,45 +167,84 @@ impl Event {
         Ok(slf)
     }
 
+    /// Appends a wildcard segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_wildcard<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push("*".to_string());
         slf
     }
 
+    /// Appends a Pending status segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_pending<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push(TaskStatus::Pending.to_string());
         slf
     }
 
+    /// Appends a Running status segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_running<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push(TaskStatus::Running.to_string());
         slf
     }
 
+    /// Appends a Finished status segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_finished<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push(TaskStatus::Finished.to_string());
         slf
     }
 
+    /// Appends a Failed status segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_failed<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push(TaskStatus::Failed.to_string());
         slf
     }
 
+    /// Appends a Cancelled status segment to the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn push_cancelled<'py>(mut slf: PyRefMut<'py, Self>) -> PyRefMut<'py, Self> {
         slf.segments.push(TaskStatus::Cancelled.to_string());
         slf
     }
 
+    /// Removes and returns the last segment.
+    ///
+    /// Returns:
+    ///     The last segment if present, None otherwise.
     fn pop(&mut self) -> Option<String> {
         self.segments.pop()
     }
 
+    /// Clears all segments from the event.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance.
     fn clear(mut slf: PyRefMut<Self>) -> PyRefMut<Self> {
         slf.segments.clear();
         slf
     }
 
+    /// Concatenates another event's segments onto this event.
+    ///
+    /// Args:
+    ///     event: A string, list of strings, or another Event instance to append.
+    ///
+    /// Returns:
+    ///     A mutable reference to this Event instance with combined segments.
     fn concat<'py>(
         mut slf: PyRefMut<'py, Self>,
         #[gen_stub(override_type(type_repr = "typing.List[str] | str | Event"))] event: &Bound<
@@ -177,12 +257,24 @@ impl Event {
         Ok(slf)
     }
 
+    /// Computes the hash of the collapsed event string.
+    ///
+    /// Returns:
+    ///     The hash value as a u64.
     fn __hash__(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         self.collapse().hash(&mut hasher);
         hasher.finish()
     }
 
+    /// Compares this event with another value for equality.
+    ///
+    /// Args:
+    ///     other: Another Event instance or string to compare against.
+    ///     op: The comparison operation (Eq or Ne).
+    ///
+    /// Returns:
+    ///     True if the comparison holds, False otherwise.
     fn __richcmp__(
         &self,
         other: &Bound<'_, PyAny>,
@@ -277,7 +369,14 @@ impl TaskStatus {
     }
 }
 
-/// register the module
+/// Registers the Event and TaskStatus classes with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance (unused).
+///     m: The Python module to register classes with.
+///
+/// Returns:
+///     PyResult<()> indicating success or failure.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     DELIMITER

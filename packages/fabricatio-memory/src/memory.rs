@@ -35,14 +35,31 @@ pub struct Memory {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Memory {
-    /// Convert the memory to a Python dictionary
+    /// Converts the memory to a Python dictionary.
+    ///
+    /// Args:
+    ///     python: The Python interpreter instance.
+    ///
+    /// Returns:
+    ///     A Python dictionary representation of the Memory.
     pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         Ok(pythonize(python, self)?.cast_into::<PyDict>()?)
     }
 }
 
 impl Memory {
-    /// Create a new memory with the given parameters
+    /// Creates a new memory with the given parameters.
+    ///
+    /// Args:
+    ///     content: The text content of the memory.
+    ///     importance: The importance score of the memory (0 to MAX_IMPORTANCE_SCORE).
+    ///     tags: A list of tags associated with the memory.
+    ///
+    /// Returns:
+    ///     A new Memory instance.
+    ///
+    /// Raises:
+    ///     PyValueError: If importance exceeds MAX_IMPORTANCE_SCORE.
     pub fn new(content: String, importance: u64, tags: Vec<String>) -> PyResult<Self> {
         let now = Utc::now().timestamp();
 
@@ -64,13 +81,27 @@ impl Memory {
         })
     }
 
-    /// Update the access count and last accessed timestamp
+    /// Updates the access count and last accessed timestamp.
+    ///
+    /// This method should be called whenever the memory is accessed
+    /// to track usage statistics.
     pub fn update_access(&mut self) {
         self.access_count += 1;
         self.last_accessed = Utc::now().timestamp();
     }
 
-    /// Calculate relevance score based on importance, recency, and access frequency
+    /// Calculates a relevance score based on importance, recency, and access frequency.
+    ///
+    /// The score combines three factors:
+    /// - Importance (static weight)
+    /// - Recency (exponential decay based on time)
+    /// - Frequency (logarithmic access count)
+    ///
+    /// Args:
+    ///     decay_factor: The rate at which recency score decreases over time.
+    ///
+    /// Returns:
+    ///     A composite relevance score as a float.
     pub fn calculate_relevance_score(&self, decay_factor: f64) -> f64 {
         let time_factor = (Utc::now().timestamp() - self.timestamp) as f64 / 86400.0; // days
         let recency_score = (-time_factor * decay_factor).exp();

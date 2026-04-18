@@ -16,14 +16,12 @@ struct Branch {
 impl Branch {
     /// Adds a new commit to the branch if the serial matches the next expected commit index.
     ///
-    /// # Arguments
+    /// Args:
+    ///     content: The content of the commit.
+    ///     serial: The serial number (1-based) of the commit to be added.
     ///
-    /// * `content` - The content of the commit.
-    /// * `serial` - The serial number (1-based) of the commit to be added.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(new_commit_count)` if the commit was added, or `None` if the serial does not match.
+    /// Returns:
+    ///     Some(new_commit_count) if the commit was added, or None if the serial does not match.
     fn commit(&mut self, content: String, serial: usize) -> Option<usize> {
         if serial - 1 != self.commits.len() {
             warn!(
@@ -40,26 +38,23 @@ impl Branch {
 
     /// Sets the estimated total number of commits for this branch.
     ///
-    /// # Arguments
+    /// Args:
+    ///     estimated: The new estimated number of commits.
     ///
-    /// * `estimated` - The new estimated number of commits.
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for chaining.
+    /// Returns:
+    ///     A mutable reference to self for chaining.
     fn estimate(&mut self, estimated: usize) -> &mut Self {
         self.estimated = estimated;
         self
     }
+
     /// Returns a new `Branch` instance containing commits up to the given serial number.
     ///
-    /// # Arguments
+    /// Args:
+    ///     serial: The number of commits to include in the new branch (exclusive).
     ///
-    /// * `serial` - The number of commits to include in the new branch (exclusive).
-    ///
-    /// # Returns
-    ///
-    /// A new `Branch` with commits up to the specified serial.
+    /// Returns:
+    ///     A new `Branch` with commits up to the specified serial.
     fn checkout(&self, serial: usize) -> Option<Self> {
         if serial > self.commits.len() {
             None
@@ -73,14 +68,12 @@ impl Branch {
 
     /// Revises the content of an existing commit at the given serial number.
     ///
-    /// # Arguments
+    /// Args:
+    ///     content: The new content for the commit.
+    ///     serial: The serial number (1-based) of the commit to revise.
     ///
-    /// * `content` - The new content for the commit.
-    /// * `serial` - The serial number (1-based) of the commit to revise.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(serial)` if the commit was revised, or `None` if the serial is out of bounds.
+    /// Returns:
+    ///     Some(serial) if the commit was revised, or None if the serial is out of bounds.
     fn revise(&mut self, content: String, serial: usize) -> Option<usize> {
         if serial > self.commits.len() {
             None
@@ -103,14 +96,12 @@ struct ThoughtVCS {
 impl ThoughtVCS {
     /// Retrieves a mutable reference to a branch by name, optionally inserting it if it does not exist.
     ///
-    /// # Arguments
+    /// Args:
+    ///     name: The name of the branch, or None for the default branch.
+    ///     insert: Whether to insert the branch if it does not exist.
     ///
-    /// * `name` - The name of the branch, or `None` for the default branch.
-    /// * `insert` - Whether to insert the branch if it does not exist.
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to the branch if found or inserted, otherwise `None`.
+    /// Returns:
+    ///     A mutable reference to the branch if found or inserted, otherwise None.
     fn branch(&mut self, name: Option<String>, insert: bool) -> Option<&mut Branch> {
         if !self.branches.contains_key(&name) && insert {
             self.branches.insert(name.clone(), Branch::default());
@@ -124,26 +115,23 @@ impl ThoughtVCS {
 impl ThoughtVCS {
     /// Creates a new instance of `ThoughtVCS` with default branches.
     ///
-    /// # Returns
-    ///
-    /// A new `ThoughtVCS` instance initialized with default branch data.
+    /// Returns:
+    ///     A new `ThoughtVCS` instance initialized with default branch data.
     #[new]
     fn new() -> Self {
         ThoughtVCS::default()
     }
     /// Commits new content to a branch, creating the branch if necessary.
     ///
-    /// # Arguments
+    /// Args:
+    ///     content: The content of the commit.
+    ///     serial: The serial number (1-based) for the commit.
+    ///     estimated: The estimated total number of commits for the branch.
+    ///     branch: The name of the branch, or None for the default branch.
+    ///     insert: Whether to create the branch if it does not exist.
     ///
-    /// * `content` - The content of the commit.
-    /// * `serial` - The serial number (1-based) for the commit.
-    /// * `estimated` - The estimated total number of commits for the branch.
-    /// * `branch` - The name of the branch, or `None` for the default branch.
-    /// * `insert` - Whether to create the branch if it does not exist.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(new_commit_count)` if the commit was added, or `None` otherwise.
+    /// Returns:
+    ///     Some(new_commit_count) if the commit was added, or None otherwise.
     #[pyo3(signature=(content,serial,estimated,branch=None,insert=true))]
     fn commit(
         &mut self,
@@ -159,15 +147,13 @@ impl ThoughtVCS {
 
     /// Revises the content of an existing commit in a branch.
     ///
-    /// # Arguments
+    /// Args:
+    ///     content: The new content for the commit.
+    ///     serial: The serial number (1-based) of the commit to revise.
+    ///     branch: The name of the branch, or None for the default branch.
     ///
-    /// * `content` - The new content for the commit.
-    /// * `serial` - The serial number (1-based) of the commit to revise.
-    /// * `branch` - The name of the branch, or `None` for the default branch.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(serial)` if the commit was revised, or `None` otherwise.
+    /// Returns:
+    ///     Some(serial) if the commit was revised, or None otherwise.
     fn revise(&mut self, content: String, serial: usize, branch: Option<String>) -> Option<usize> {
         self.branch(branch, false)
             .and_then(|branch| branch.revise(content, serial))
@@ -175,14 +161,12 @@ impl ThoughtVCS {
 
     /// Checks out a branch at a specific commit serial, truncating it to that point.
     ///
-    /// # Arguments
+    /// Args:
+    ///     branch: The name of the branch to checkout.
+    ///     serial: The number of commits to include in the checked-out branch.
     ///
-    /// * `branch` - The name of the branch to checkout.
-    /// * `serial` - The number of commits to include in the checked-out branch.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(branch_name)` if the checkout was successful, or `None` otherwise.
+    /// Returns:
+    ///     Some(branch_name) if the checkout was successful, or None otherwise.
     fn checkout(&mut self, branch: String, serial: usize) -> Option<String> {
         if let Some(br) = self
             .branch(Some(branch.clone()), false)
@@ -200,15 +184,13 @@ impl ThoughtVCS {
     /// This function retrieves all commits associated with the specified branch.
     /// If the branch does not exist, it returns an empty vector.
     ///
-    /// # Arguments
+    /// Args:
+    ///     branch: An optional string representing the name of the branch.
+    ///         If None, the default branch is used.
     ///
-    /// * `branch` - An optional string representing the name of the branch.
-    ///              If `None`, the default branch is used.
-    ///
-    /// # Returns
-    ///
-    /// A vector of strings where each string represents a commit in the branch.
-    /// If the branch does not exist and cannot be found, an empty vector is returned.
+    /// Returns:
+    ///     A vector of strings where each string represents a commit in the branch.
+    ///     If the branch does not exist, an empty vector is returned.
     #[pyo3(signature = (branch = None))]
     fn export_branch(&mut self, branch: Option<String>) -> Vec<String> {
         self.branch(branch, false)
@@ -216,16 +198,15 @@ impl ThoughtVCS {
             .unwrap_or_default()
     }
 
+    /// Exports the list of commits as a formatted string.
     ///
-    /// # Arguments
+    /// Args:
+    ///     branch: An optional string representing the name of the branch.
+    ///         If None, the default branch is used.
     ///
-    /// * `branch` - An optional string representing the name of the branch.
-    ///              If `None`, the default branch is used.
-    ///
-    /// # Returns
-    ///
-    /// A formatted string where each line represents a commit in the branch, prefixed with "- ".
-    /// If the branch does not exist, returns an empty string.
+    /// Returns:
+    ///     A formatted string where each line represents a commit in the branch.
+    ///     If the branch does not exist, returns an empty string.
     #[pyo3(signature = (branch = None))]
     fn export_branch_string(&mut self, branch: Option<String>) -> String {
         self.branch(branch, false)
@@ -243,14 +224,12 @@ impl ThoughtVCS {
 
 /// Registers the `ThoughtVCS` class with the given Python module.
 ///
-/// # Arguments
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
 ///
-/// * `_` - The Python interpreter instance.
-/// * `m` - The Python module to register the class with.
-///
-/// # Returns
-///
-/// Returns `PyResult<()>` indicating success or failure.
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ThoughtVCS>()?;
     Ok(())

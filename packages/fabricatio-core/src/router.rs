@@ -224,6 +224,14 @@ impl Router {
     }
 }
 
+/// Adds providers to a router from configuration.
+///
+/// Args:
+///     router: The router to add providers to.
+///     configs: A list of provider configurations.
+///
+/// Returns:
+///     The router with providers added.
 pub fn add_providers_from_configs<T: ModelTypeTag>(
     router: ThrydRouter<T>,
     configs: Vec<ProviderConfig>,
@@ -243,6 +251,14 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
     Ok(router)
 }
 
+/// Adds models to a router from configuration.
+///
+/// Args:
+///     router: The router to add models to.
+///     configs: A list of deployment configurations.
+///
+/// Returns:
+///     The router with models added.
 pub fn add_models_from_configs<T: ModelTypeTag>(
     router: ThrydRouter<T>,
     configs: Vec<DeploymentConfig>,
@@ -255,6 +271,16 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
     Ok(router)
 }
 
+/// Initializes a Router from a configuration object.
+///
+/// This function creates both embedding and completion routers from the config,
+/// loading providers and models from the configured paths.
+///
+/// Args:
+///     config: The configuration object containing routing settings.
+///
+/// Returns:
+///     A new Router instance configured according to the config.
 pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     trace!("Initializing router from config");
     let (cr, er) = if let Some(p) = config.routing.cache_database_path.as_ref() {
@@ -276,13 +302,29 @@ pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     Ok(Router::new(er, cr))
 }
 
+/// Counts the number of tokens in a text string.
+///
+/// This function uses the thryd library's token counting mechanism.
+///
+/// Args:
+///     text: The input text to count tokens in.
+///
+/// Returns:
+///     The number of tokens in the text.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
-/// Count tokens of a text
 pub fn tokens_of(text: String) -> u64 {
     thryd::count_token(text)
 }
 
+/// Registers the router functions and classes with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
     m.add_class::<ProviderType>()?;

@@ -9,13 +9,11 @@ static SCANNER: Lazy<PythonPackageScanner> = Lazy::new(PythonPackageScanner::def
 
 /// Checks if a Python package is installed.
 ///
-/// # Arguments
+/// Args:
+///     pkg_name: The name of the package to check.
 ///
-/// * `pkg_name` - The name of the package to check.
-///
-/// # Returns
-///
-/// * `bool` - True if the package is installed, false otherwise.
+/// Returns:
+///     True if the package is installed, False otherwise.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn is_installed(pkg_name: &str) -> bool {
@@ -24,9 +22,8 @@ fn is_installed(pkg_name: &str) -> bool {
 
 /// Lists all installed Python packages.
 ///
-/// # Returns
-///
-/// * `Vec<String>` - A vector containing the names of all installed packages.
+/// Returns:
+///     A list of names of all installed packages.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn list_installed() -> Vec<String> {
@@ -35,14 +32,12 @@ fn list_installed() -> Vec<String> {
 
 /// Checks if a specific extra (optional dependency) of a Python package is satisfied.
 ///
-/// # Arguments
+/// Args:
+///     pkg_name: The name of the package.
+///     extra_name: The name of the extra/optional dependency.
 ///
-/// * `pkg_name` - The name of the package.
-/// * `extra_name` - The name of the extra/optional dependency.
-///
-/// # Returns
-///
-/// * `bool` - True if the extra is satisfied, false otherwise.
+/// Returns:
+///     True if the extra is satisfied, False otherwise.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn extra_satisfied(pkg_name: &str, extra_name: &str) -> bool {
@@ -51,21 +46,26 @@ fn extra_satisfied(pkg_name: &str, extra_name: &str) -> bool {
 
 /// Checks if all specified extras (optional dependencies) of a Python package are satisfied.
 ///
-/// # Arguments
+/// Args:
+///     pkg_name: The name of the package.
+///     extras: A list of extra/optional dependency names to check.
 ///
-/// * `pkg_name` - The name of the package.
-/// * `extras` - A vector containing the names of the extras/optional dependencies.
-///
-/// # Returns
-///
-/// * `bool` - True if all extras are satisfied, false otherwise.
+/// Returns:
+///     True if all extras are satisfied, False otherwise.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 pub fn extras_satisfied(pkg_name: &str, extras: Vec<String>) -> bool {
     SCANNER.extras_satisfied(pkg_name, extras)
 }
 
-/// Registers the Python functions with the module.
+/// Registers the Python package scanning functions with the module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_installed, m)?)?;
     m.add_function(wrap_pyfunction!(list_installed, m)?)?;
