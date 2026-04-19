@@ -344,9 +344,8 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[str]: The generated string.
         """
-        from fabricatio_core.rust import generic_parser
+        from fabricatio_core.rust import GENERIC_BLOCK_TYPE, generic_parser
 
-        GENERIC_BLOCK_TYPE = "String"
         if isinstance(requirement, str):
             return await self.aask_validate(
                 TEMPLATE_MANAGER.render_template(
@@ -576,13 +575,7 @@ class UseLLM(LLMScopedConfig, ABC):
         from fabricatio_core.rust import json_parser
 
         def _validate_bool(resp: str) -> Optional[bool]:
-            try:
-                result = json_parser.convert(resp)
-                if isinstance(result, bool):
-                    return result
-            except Exception:
-                pass
-            return None
+            return result if (result:= json_parser.convert(resp)) and isinstance(result, bool) else None 
 
         return await self.aask_validate(
             question=TEMPLATE_MANAGER.render_template(

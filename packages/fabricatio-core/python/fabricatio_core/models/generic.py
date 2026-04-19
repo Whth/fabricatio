@@ -435,11 +435,11 @@ class InstantiateFromString(Base, ABC):
         """
         from fabricatio_core.rust import json_parser
 
-        obj = cls.model_validate(
-            json_parser.convert(
-                string,
-            )
-        )
+        converted = json_parser.convert(string)
+        if converted is None:
+            logger.debug(f"Instantiate `{cls.__name__}` from string, Failed (conversion returned None).")
+            return None
+        obj = cls.model_validate(converted)
         logger.debug(f"Instantiate `{cls.__name__}` from string, {'Failed' if obj is None else 'Success'}.")
         return obj
 

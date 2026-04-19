@@ -3,6 +3,7 @@
 use crate::formatter::{generic_block_footer, generic_block_header};
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
+use fabricatio_logger::warn;
 use llm_json::repair_json;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
@@ -260,11 +261,11 @@ impl JsonParser {
     /// Returns:
     ///     The captured text or None if no match is found.
     #[pyo3(signature=(text, fix=true))]
-    pub fn capture(&self, text: &str, fix: bool) -> PyResult<Option<String>> {
+    pub fn capture(&self, text: &str, fix: bool) -> Option<String> {
         if fix && let Some(cap_string) = self.capturer.cap1(text) {
-            Self::fix_json_string(cap_string).map(Some)
+            Self::fix_json_string(cap_string).ok()
         } else {
-            Ok(self.capturer.cap1(text))
+            self.capturer.cap1(text)
         }
     }
 
@@ -277,15 +278,15 @@ impl JsonParser {
     /// Returns:
     ///     A list of captured JSON strings.
     #[pyo3(signature=(text, fix=true))]
-    pub fn capture_all(&self, text: &str, fix: bool) -> PyResult<Vec<String>> {
+    pub fn capture_all(&self, text: &str, fix: bool) -> Vec<String> {
         if fix {
             self.capturer
                 .cap1_all(text)
                 .into_iter()
-                .map(Self::fix_json_string)
-                .try_collect()
+                .filter_map(|e| Self::fix_json_string(e).ok())
+                .collect()
         } else {
-            Ok(self.capturer.cap1_all(text))
+            self.capturer.cap1_all(text)
         }
     }
 
@@ -297,15 +298,20 @@ impl JsonParser {
     ///     fix: Whether to attempt JSON repair before parsing.
     ///
     /// Returns:
-    ///     The parsed Python object.
+    ///     The parsed Python object or None if conversion fails.
     #[pyo3(signature=(text, fix=true))]
     pub fn convert<'a>(
         &self,
         python: Python<'a>,
         text: &str,
         fix: bool,
-    ) -> PyResult<Bound<'a, PyAny>> {
-        pythonize(python, &Self::deserialize::<Value>(text, fix)?).into_pyresult()
+    ) -> Option<Bound<'a, PyAny>> {
+        let val = Self::deserialize::<Value>(text, fix).ok()?;
+        let py_val = pythonize(python, &val);
+        if py_val.is_err() {
+            warn!("JsonParser: failed to convert text");
+        }
+        py_val.ok()
     }
 
     /// Converts all captured JSON strings to Python objects.
@@ -323,17 +329,16 @@ impl JsonParser {
         python: Python<'a>,
         text: &str,
         fix: bool,
-    ) -> PyResult<Vec<Bound<'a, PyAny>>> {
-        self.capture_all(text, fix)?
+    ) -> Vec<Bound<'a, PyAny>> {
+        self.capture_all(text, fix)
             .into_iter()
-            .map(|json| pythonize(python, &Self::deserialize::<Value>(json, fix)?).into_pyresult())
-            .try_collect::<Vec<Bound<PyAny>>>()
+            .filter_map(|json| pythonize(python, &Self::deserialize::<Value>(json, fix).ok()?).ok())
+            .collect()
     }
 
     /// Validates that the text parses to a list with optional constraints.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     text: The text to parse as JSON.
     ///     elements_type: Optional type to check all elements against.
     ///     length: Optional exact length requirement.
@@ -355,23 +360,68 @@ impl JsonParser {
         >,
         length: Option<usize>,
         fix: bool,
-    ) -> PyResult<Option<Bound<'a, PyList>>> {
-        let val = self.convert(python, text, fix)?;
-        if let Ok(val_list) = val.cast_into_exact::<PyList>()
-            && (length.is_none() || length.is_some_and(|l| val_list.len() == l))
-            && (elements_type.is_none()
-                || elements_type.is_some_and(|t| {
-                    val_list
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                }))
-        {
-            Ok(Some(val_list))
-        } else {
-            Ok(None)
-        }
+    ) -> Option<Bound<'a, PyList>> {
+        self.convert(python, text, fix)
+            .and_then(|val| {
+                val.cast_into_exact::<PyList>()
+                    .map_err(|_| {
+                        warn!(
+                            "validate_list: validation failed for text with length={:?}, elements_type={:?}",
+                            length,
+                            elements_type.map(|t| t.to_string())
+                        );
+                    })
+                    .ok()
+            })
+            .and_then(|val_list| {
+                let len = val_list.len();
+                (length.is_none() || length.is_some_and(|l| len == l))
+                    .then_some(&val_list)
+                    .map_or_else(
+                        || {
+                            warn!(
+                                "validate_list: length mismatch - expected {:?}, got {}",
+                                length,
+                                len
+                            );
+                            None
+                        },
+                        |_| Some(val_list.clone()),
+                    )
+            })
+            .and_then(|val_list| {
+                elements_type
+                    .map(|t| {
+                        val_list
+                            .iter()
+                            .all(|item| item.is_instance(t).unwrap_or(false))
+                    })
+                    .unwrap_or(true)
+                    .then_some(&val_list)
+                    .map_or_else(
+                        || {
+                            warn!(
+                                "validate_list: element type check failed for type={:?}",
+                                elements_type.map(|t| t.to_string())
+                            );
+                            None
+                        },
+                        |_| Some(val_list.clone()),
+                    )
+            })
     }
 
+    /// Validates that the text parses to a dictionary with optional constraints.
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     key_type: Optional type to check all keys against.
+    ///     value_type: Optional type to check all values against.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated dictionary or None if validation fails.
     #[pyo3(signature=(text, key_type=None, value_type=None, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Dict[_K, _V]|None", imports = ("typing",))
@@ -389,35 +439,62 @@ impl JsonParser {
         >,
         length: Option<usize>,
         fix: bool,
-    ) -> PyResult<Option<Bound<'a, PyDict>>> {
-        let val = self.convert(python, text, fix)?;
-        if let Ok(val_dict) = val.cast_into_exact::<PyDict>()
-            && (length.is_none() || length.is_some_and(|l| val_dict.len() == l))
-        {
-            let key_check = key_type.is_none()
-                || key_type.is_some_and(|t| {
+    ) -> Option<Bound<'a, PyDict>> {
+        self.convert(python, text, fix)
+            .and_then(|val| {
+                val.cast_into_exact::<PyDict>()
+                    .map_err(|_| {
+                        warn!(
+                            "validate_dict: validation failed for text with length={:?}",
+                            length
+                        );
+                    })
+                    .ok()
+            })
+            .and_then(|val_dict| {
+                let len = val_dict.len();
+                (length.is_none() || length.is_some_and(|l| len == l))
+                    .then_some(&val_dict)
+                    .map_or_else(
+                        || {
+                            warn!(
+                                "validate_dict: length mismatch - expected {:?}, got {}",
+                                length, len
+                            );
+                            None
+                        },
+                        |_| Some(val_dict.clone()),
+                    )
+            })
+            .and_then(|val_dict| {
+                let key_check = key_type.is_none()
+                    || key_type.is_some_and(|t| {
                     val_dict
                         .keys()
                         .iter()
                         .all(|item| item.is_instance(t).unwrap_or(false))
                 });
 
-            let value_check = value_type.is_none()
-                || value_type.is_some_and(|t| {
+                let value_check = value_type.is_none()
+                    || value_type.is_some_and(|t| {
                     val_dict
                         .values()
                         .iter()
                         .all(|item| item.is_instance(t).unwrap_or(false))
                 });
 
-            if key_check && value_check {
-                Ok(Some(val_dict))
-            } else {
-                Ok(None)
-            }
-        } else {
-            Ok(None)
-        }
+                (key_check && value_check).then_some(&val_dict).map_or_else(
+                    || {
+                        warn!(
+                            "validate_dict: type check failed with key_type={:?}, value_type={:?}",
+                            key_type.map(|t| t.to_string()),
+                            value_type.map(|t| t.to_string())
+                        );
+                        None
+                    },
+                    |_| Some(val_dict.clone()),
+                )
+            })
     }
 }
 
@@ -692,6 +769,9 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, CodeBlockParser);
         module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, GenericBlockParser);
         module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, CodeSnippetParser);
+        module_variable!("fabricatio_core.rust", "GENERIC_BLOCK_TYPE", &str,var_names::GENERIC_BLOCK_TYPE);
+        module_variable!("fabricatio_core.rust", "SNIPPET_LEFT_SEP",  &str,var_names::SNIPPET_LEFT_SEP);
+        module_variable!("fabricatio_core.rust", "SNIPPET_RIGHT_SEP",  &str,var_names::SNIPPET_RIGHT_SEP);
 
     }
 );
@@ -731,6 +811,9 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
             var_names::SNIPPET_RIGHT_SEP,
         )?,
     )?;
+    m.add(stringify!(GENERIC_BLOCK_TYPE), var_names::GENERIC_BLOCK_TYPE)?;
+    m.add(stringify!(SNIPPET_LEFT_SEP), var_names::SNIPPET_LEFT_SEP)?;
+    m.add(stringify!(SNIPPET_RIGHT_SEP), var_names::SNIPPET_RIGHT_SEP)?;
 
     Ok(())
 }

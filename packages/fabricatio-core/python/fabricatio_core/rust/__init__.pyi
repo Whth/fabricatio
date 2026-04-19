@@ -8,7 +8,10 @@ import typing
 
 __all__ = [
     "CONFIG",
+    "GENERIC_BLOCK_TYPE",
     "ROUTER",
+    "SNIPPET_LEFT_SEP",
+    "SNIPPET_RIGHT_SEP",
     "TEMPLATE_MANAGER",
     "CodeBlockParser",
     "CodeSnippet",
@@ -73,7 +76,10 @@ _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
 _V = typing.TypeVar("_V")
 CONFIG: Config
+GENERIC_BLOCK_TYPE: builtins.str = "String"
 ROUTER: Router
+SNIPPET_LEFT_SEP: builtins.str = ">>>>>"
+SNIPPET_RIGHT_SEP: builtins.str = "<<<<<"
 TEMPLATE_MANAGER: TemplateManager
 generic_parser: GenericBlockParser
 json_parser: JsonParser
@@ -121,7 +127,15 @@ class CodeSnippet:
     @property
     def write_to(self) -> pathlib.Path:
         r"""The file path where the snippet should be written."""
-    def write(self, parent_dirs: builtins.bool = True) -> None: ...
+    def write(self, parent_dirs: builtins.bool = True) -> None:
+        r"""Writes the code snippet to its designated file path.
+
+        Args:
+            parent_dirs: Whether to create parent directories if they don't exist.
+
+        Returns:
+            PyResult<()> indicating success.
+        """
 
 @typing.final
 class CodeSnippetParser:
@@ -271,26 +285,135 @@ class EmitterConfig:
 class Event:
     @property
     def segments(self) -> builtins.list[builtins.str]: ...
-    def __new__(cls, segments: typing.Optional[typing.Sequence[builtins.str]] = None) -> Event: ...
+    def __new__(cls, segments: typing.Optional[typing.Sequence[builtins.str]] = None) -> Event:
+        r"""Creates a new Event instance.
+
+        Args:
+            segments: Optional list of event segments. Defaults to empty list.
+        """
     @staticmethod
-    def instantiate_from(event: typing.List[str] | str | Event) -> Event: ...
+    def instantiate_from(event: typing.List[str] | str | Event) -> Event:
+        r"""Creates an Event from various input types.
+
+        Args:
+            event: A string, list of strings, or another Event instance.
+
+        Returns:
+            A new Event instance with segments extracted from the input.
+        """
     @staticmethod
-    def quick_instantiate(event: typing.List[str] | str | Event) -> Event: ...
-    def derive(self, event: typing.List[str] | str | Event) -> Event: ...
-    def collapse(self) -> builtins.str: ...
-    def fork(self) -> Event: ...
-    def push(self, segment: TaskStatus | str) -> Event: ...
-    def push_wildcard(self) -> Event: ...
-    def push_pending(self) -> Event: ...
-    def push_running(self) -> Event: ...
-    def push_finished(self) -> Event: ...
-    def push_failed(self) -> Event: ...
-    def push_cancelled(self) -> Event: ...
-    def pop(self) -> typing.Optional[builtins.str]: ...
-    def clear(self) -> Event: ...
-    def concat(self, event: typing.List[str] | str | Event) -> Event: ...
-    def __hash__(self) -> builtins.int: ...
-    def __richcmp__(self, other: typing.Any, op: int) -> builtins.bool: ...
+    def quick_instantiate(event: typing.List[str] | str | Event) -> Event:
+        r"""Creates an Event with wildcard and pending status appended.
+
+        Args:
+            event: A string, list of strings, or another Event instance.
+
+        Returns:
+            A new Event instance with "*" and "Pending" segments appended.
+        """
+    def derive(self, event: typing.List[str] | str | Event) -> Event:
+        r"""Derives a new event by appending segments from another event.
+
+        Args:
+            event: A string, list of strings, or another Event instance to append.
+
+        Returns:
+            A new Event with the combined segments.
+        """
+    def collapse(self) -> builtins.str:
+        r"""Collapses the event segments into a single delimited string.
+
+        Returns:
+            A string with segments joined by the configured delimiter.
+        """
+    def fork(self) -> Event:
+        r"""Creates a copy of the event.
+
+        Returns:
+            A clone of this Event instance.
+        """
+    def push(self, segment: TaskStatus | str) -> Event:
+        r"""Pushes a segment onto the event.
+
+        Args:
+            segment: A TaskStatus enum or string to append.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_wildcard(self) -> Event:
+        r"""Appends a wildcard segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_pending(self) -> Event:
+        r"""Appends a Pending status segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_running(self) -> Event:
+        r"""Appends a Running status segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_finished(self) -> Event:
+        r"""Appends a Finished status segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_failed(self) -> Event:
+        r"""Appends a Failed status segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def push_cancelled(self) -> Event:
+        r"""Appends a Cancelled status segment to the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def pop(self) -> typing.Optional[builtins.str]:
+        r"""Removes and returns the last segment.
+
+        Returns:
+            The last segment if present, None otherwise.
+        """
+    def clear(self) -> Event:
+        r"""Clears all segments from the event.
+
+        Returns:
+            A mutable reference to this Event instance.
+        """
+    def concat(self, event: typing.List[str] | str | Event) -> Event:
+        r"""Concatenates another event's segments onto this event.
+
+        Args:
+            event: A string, list of strings, or another Event instance to append.
+
+        Returns:
+            A mutable reference to this Event instance with combined segments.
+        """
+    def __hash__(self) -> builtins.int:
+        r"""Computes the hash of the collapsed event string.
+
+        Returns:
+            The hash value as a u64.
+        """
+    def __richcmp__(self, other: typing.Any, op: int) -> builtins.bool:
+        r"""Compares this event with another value for equality.
+
+        Args:
+            other: Another Event instance or string to compare against.
+            op: The comparison operation (Eq or Ne).
+
+        Returns:
+            True if the comparison holds, False otherwise.
+        """
 
 @typing.final
 class GeneralConfig:
@@ -331,28 +454,84 @@ class GenericBlockParser:
 class JsonParser:
     @staticmethod
     def with_pattern(pattern: builtins.str) -> JsonParser:
-        r"""Create a new Capture instance."""
-    @staticmethod
-    def with_capturer(capturer: TextCapturer) -> JsonParser: ...
-    def capture(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[builtins.str]:
-        r"""Capture the first match of the pattern in the text.
+        r"""Creates a JsonParser with a custom regex pattern.
 
-        Returns the captured text or None if no match is found.
+        Args:
+            pattern: The regex pattern to use for capturing JSON.
+
+        Returns:
+            A new JsonParser instance.
+        """
+    @staticmethod
+    def with_capturer(capturer: TextCapturer) -> JsonParser:
+        r"""Creates a JsonParser with an existing TextCapturer.
+
+        Args:
+            capturer: The TextCapturer to use.
+
+        Returns:
+            A new JsonParser instance.
+        """
+    def capture(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[builtins.str]:
+        r"""Captures and optionally repairs the first JSON match in text.
+
+        Args:
+            text: The text to search within.
+            fix: Whether to attempt JSON repair on the captured content.
+
+        Returns:
+            The captured text or None if no match is found.
         """
     def capture_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[builtins.str]:
-        r"""Capture all matches of the pattern in the text.
+        r"""Captures and optionally repairs all JSON matches in text.
 
-        Returns a vector of tuples containing captured groups for each match.
+        Args:
+            text: The text to search within.
+            fix: Whether to attempt JSON repair on each captured content.
+
+        Returns:
+            A list of captured JSON strings.
         """
-    def convert(self, text: builtins.str, fix: builtins.bool = True) -> typing.Any: ...
-    def convert_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[typing.Any]: ...
+    def convert(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[typing.Any]:
+        r"""Converts captured text to a Python object.
+
+        Args:
+            python: The Python interpreter instance.
+            text: The text to parse as JSON.
+            fix: Whether to attempt JSON repair before parsing.
+
+        Returns:
+            The parsed Python object or None if conversion fails.
+        """
+    def convert_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[typing.Any]:
+        r"""Converts all captured JSON strings to Python objects.
+
+        Args:
+            python: The Python interpreter instance.
+            text: The text to search within.
+            fix: Whether to attempt JSON repair before parsing.
+
+        Returns:
+            A list of parsed Python objects.
+        """
     def validate_list(
         self,
         text: builtins.str,
         elements_type: typing.Type[_T] | None = None,
         length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
-    ) -> typing.List[_T] | None: ...
+    ) -> typing.List[_T] | None:
+        r"""Validates that the text parses to a list with optional constraints.
+
+        Args:
+            text: The text to parse as JSON.
+            elements_type: Optional type to check all elements against.
+            length: Optional exact length requirement.
+            fix: Whether to attempt JSON repair before parsing.
+
+        Returns:
+            The validated list or None if validation fails.
+        """
     def validate_dict(
         self,
         text: builtins.str,
@@ -360,7 +539,19 @@ class JsonParser:
         value_type: typing.Type[_V] | None = None,
         length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
-    ) -> typing.Dict[_K, _V] | None: ...
+    ) -> typing.Dict[_K, _V] | None:
+        r"""Validates that the text parses to a dictionary with optional constraints.
+
+        Args:
+            text: The text to parse as JSON.
+            key_type: Optional type to check all keys against.
+            value_type: Optional type to check all values against.
+            length: Optional exact length requirement.
+            fix: Whether to attempt JSON repair before parsing.
+
+        Returns:
+            The validated dictionary or None if validation fails.
+        """
 
 @typing.final
 class LLMConfig:
@@ -636,16 +827,42 @@ class TemplateManager:
     def templates_stores(self) -> builtins.list[pathlib.Path]: ...
     @property
     def template_count(self) -> builtins.int:
-        r"""Create a new TemplateManager instance."""
+        r"""Creates a new TemplateManager instance.
+        Returns the number of registered templates.
+
+        Returns:
+            The count of templates currently registered.
+        """
     def add_store(
         self, source: builtins.str | os.PathLike | pathlib.Path, rediscovery: builtins.bool = False
     ) -> TemplateManager:
-        r"""Add a template directory to the list of template directories."""
+        r"""Adds a template directory to the list of template directories.
+
+        Args:
+            source: The path to the template directory.
+            rediscovery: Whether to immediately discover templates (default: False).
+
+        Returns:
+            A mutable reference to self for method chaining.
+        """
     def add_stores(
         self, sources: typing.Sequence[builtins.str | os.PathLike | pathlib.Path], rediscovery: builtins.bool = False
-    ) -> TemplateManager: ...
+    ) -> TemplateManager:
+        r"""Adds multiple template directories to the list.
+
+        Args:
+            sources: A list of paths to template directories.
+            rediscovery: Whether to immediately discover templates (default: False).
+
+        Returns:
+            A mutable reference to self for method chaining.
+        """
     def discover_templates(self) -> TemplateManager:
-        r"""Discover the templates in the template directories."""
+        r"""Discovers and registers all templates from the configured directories.
+
+        Returns:
+            A mutable reference to self for method chaining.
+        """
     @typing.overload
     def render_template(self, name: str, data: typing.Dict[str, typing.Any]) -> str: ...
     @typing.overload
@@ -680,16 +897,81 @@ class TemplateManagerConfig:
 
 @typing.final
 class TextCapturer:
-    def cap1(self, text: builtins.str) -> typing.Optional[builtins.str]: ...
-    def cap1_all(self, text: builtins.str) -> builtins.list[builtins.str]: ...
-    def cap2(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str]]: ...
-    def cap2_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str]]: ...
-    def cap3(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str, builtins.str]]: ...
-    def cap3_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str, builtins.str]]: ...
+    def cap1(self, text: builtins.str) -> typing.Optional[builtins.str]:
+        r"""Captures the first match and extracts group 1.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            The first captured group if a match is found.
+        """
+    def cap1_all(self, text: builtins.str) -> builtins.list[builtins.str]:
+        r"""Captures all matches and extracts group 1 from each.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            A list of first captured groups from all matches.
+        """
+    def cap2(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str]]:
+        r"""Captures the first match and extracts groups 1 and 2.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            A tuple of (group1, group2) if a match is found.
+        """
+    def cap2_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str]]:
+        r"""Captures all matches and extracts groups 1 and 2 from each.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            A list of (group1, group2) tuples from all matches.
+        """
+    def cap3(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str, builtins.str]]:
+        r"""Captures the first match and extracts groups 1, 2, and 3.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            A tuple of (group1, group2, group3) if a match is found.
+        """
+    def cap3_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str, builtins.str]]:
+        r"""Captures all matches and extracts groups 1, 2, and 3 from each.
+
+        Args:
+            text: The text to search within.
+
+        Returns:
+            A list of (group1, group2, group3) tuples from all matches.
+        """
     @staticmethod
-    def with_pattern(pattern: builtins.str) -> TextCapturer: ...
+    def with_pattern(pattern: builtins.str) -> TextCapturer:
+        r"""Creates a TextCapturer with a custom regex pattern.
+
+        Args:
+            pattern: The regex pattern to use.
+
+        Returns:
+            A new TextCapturer instance.
+        """
     @staticmethod
-    def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer: ...
+    def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer:
+        r"""Creates a TextCapturer for capturing code snippets with separators.
+
+        Args:
+            l_sep: The left separator (default: ">>>>>").
+            r_sep: The right separator (default: "<<<<<").
+
+        Returns:
+            A new TextCapturer instance configured for snippets.
+        """
     @staticmethod
     def capture_code_block(language: builtins.str = ".*?") -> TextCapturer:
         r"""Capture a code block of the given language.
@@ -748,101 +1030,294 @@ class TaskStatus(enum.Enum):
     def __getnewargs__(self) -> tuple[builtins.int]: ...
 
 def blake3_hash(content: bytes) -> builtins.str:
-    r"""Calculate hash with blake3 as backbone."""
+    r"""Calculates a BLAKE3 hash of the given content.
+
+    Args:
+        content: The byte content to hash.
+
+    Returns:
+        A hexadecimal string representation of the BLAKE3 hash.
+    """
 
 def detect_language(string: builtins.str) -> builtins.str:
-    r"""Detect the language of a string."""
+    r"""Detects the language of a given string and returns its full native name.
+
+    This function uses the whichlang library to detect the primary language
+    of the input text and converts it to a human-readable string.
+
+    Args:
+        string: The input text string to analyze.
+
+    Returns:
+        A string containing the detected language name in its native script.
+    """
 
 def extra_satisfied(pkg_name: builtins.str, extra_name: builtins.str) -> builtins.bool:
     r"""Checks if a specific extra (optional dependency) of a Python package is satisfied.
 
-    # Arguments
+    Args:
+        pkg_name: The name of the package.
+        extra_name: The name of the extra/optional dependency.
 
-    * `pkg_name` - The name of the package.
-    * `extra_name` - The name of the extra/optional dependency.
-
-    # Returns
-
-    * `bool` - True if the extra is satisfied, false otherwise.
+    Returns:
+        True if the extra is satisfied, False otherwise.
     """
 
 def extras_satisfied(pkg_name: builtins.str, extras: typing.Sequence[builtins.str]) -> builtins.bool:
     r"""Checks if all specified extras (optional dependencies) of a Python package are satisfied.
 
-    # Arguments
+    Args:
+        pkg_name: The name of the package.
+        extras: A list of extra/optional dependency names to check.
 
-    * `pkg_name` - The name of the package.
-    * `extras` - A vector containing the names of the extras/optional dependencies.
-
-    # Returns
-
-    * `bool` - True if all extras are satisfied, false otherwise.
+    Returns:
+        True if all extras are satisfied, False otherwise.
     """
 
-def is_arabic(string: builtins.str) -> builtins.bool: ...
-def is_chinese(string: builtins.str) -> builtins.bool: ...
-def is_dutch(string: builtins.str) -> builtins.bool: ...
-def is_english(string: builtins.str) -> builtins.bool: ...
-def is_french(string: builtins.str) -> builtins.bool: ...
-def is_german(string: builtins.str) -> builtins.bool: ...
-def is_hindi(string: builtins.str) -> builtins.bool: ...
+def is_arabic(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Arabic.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Arabic, False otherwise.
+    """
+
+def is_chinese(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Simplified Chinese.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Mandarin Chinese, False otherwise.
+    """
+
+def is_dutch(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Dutch.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Dutch, False otherwise.
+    """
+
+def is_english(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in English.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is English, False otherwise.
+    """
+
+def is_french(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in French.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is French, False otherwise.
+    """
+
+def is_german(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in German.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is German, False otherwise.
+    """
+
+def is_hindi(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Hindi.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Hindi, False otherwise.
+    """
+
 def is_installed(pkg_name: builtins.str) -> builtins.bool:
     r"""Checks if a Python package is installed.
 
-    # Arguments
+    Args:
+        pkg_name: The name of the package to check.
 
-    * `pkg_name` - The name of the package to check.
-
-    # Returns
-
-    * `bool` - True if the package is installed, false otherwise.
+    Returns:
+        True if the package is installed, False otherwise.
     """
 
-def is_italian(string: builtins.str) -> builtins.bool: ...
-def is_japanese(string: builtins.str) -> builtins.bool: ...
-def is_korean(string: builtins.str) -> builtins.bool: ...
-def is_likely_text(path: builtins.str | os.PathLike | pathlib.Path) -> builtins.bool:
-    r"""Judge if a file is likely text, dir or path not exist are considered false."""
+def is_italian(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Italian.
 
-def is_portuguese(string: builtins.str) -> builtins.bool: ...
-def is_russian(string: builtins.str) -> builtins.bool: ...
-def is_swedish(string: builtins.str) -> builtins.bool: ...
-def is_turkish(string: builtins.str) -> builtins.bool: ...
-def is_vietnamese(string: builtins.str) -> builtins.bool: ...
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Italian, False otherwise.
+    """
+
+def is_japanese(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Japanese.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Japanese, False otherwise.
+    """
+
+def is_korean(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Korean.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Korean, False otherwise.
+    """
+
+def is_likely_text(path: builtins.str | os.PathLike | pathlib.Path) -> builtins.bool:
+    r"""Determines if a file is likely text content.
+
+    This function uses heuristics to determine if a file contains text.
+    Directories and non-existent paths return False.
+
+    Args:
+        path: The path to the file to check.
+
+    Returns:
+        True if the file appears to be text, False otherwise.
+    """
+
+def is_portuguese(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Portuguese.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Portuguese, False otherwise.
+    """
+
+def is_russian(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Russian.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Russian, False otherwise.
+    """
+
+def is_swedish(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Swedish.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Swedish, False otherwise.
+    """
+
+def is_turkish(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Turkish.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Turkish, False otherwise.
+    """
+
+def is_vietnamese(string: builtins.str) -> builtins.bool:
+    r"""Checks if the given string is written in Vietnamese.
+
+    Args:
+        string: The input text string to check.
+
+    Returns:
+        True if the detected language is Vietnamese, False otherwise.
+    """
+
 def list_installed() -> builtins.list[builtins.str]:
     r"""Lists all installed Python packages.
 
-    # Returns
-
-    * `Vec<String>` - A vector containing the names of all installed packages.
+    Returns:
+        A list of names of all installed packages.
     """
 
 def split_into_chunks(
     string: builtins.str, max_chunk_size: builtins.int, max_overlapping_rate: builtins.float = 0.3
 ) -> builtins.list[builtins.str]:
-    r"""Splits a given string into chunks based on the specified maximum chunk size and overlapping rate.
+    r"""Splits a string into chunks based on maximum size and overlapping rate.
 
-    The function prioritizes splitting at sentence boundaries. If a sentence exceeds the maximum chunk size,
-    it will be split into smaller parts. The overlapping rate determines how much overlap there should be
-    between consecutive chunks.
+    The function prioritizes splitting at sentence boundaries. If a sentence
+    exceeds the maximum chunk size, it will be split at word boundaries.
 
-    # Parameters
-    - `string`: The input string to be split.
-    - `max_chunk_size`: The maximum number of words allowed in a chunk.
-    - `max_overlapping_rate`: The rate of overlapping between consecutive chunks, expressed as a fraction of the chunk size.
+    Args:
+        string: The input string to be split.
+        max_chunk_size: The maximum number of words allowed in a chunk.
+        max_overlapping_rate: The rate of overlapping between consecutive chunks (default: 0.3).
 
-    # Returns
-    A vector of strings, where each string is a chunk of the original input.
+    Returns:
+        A list of chunk strings.
     """
 
 def split_sentence_bounds(string: builtins.str) -> builtins.list[builtins.str]:
-    r"""Split the string into sentences."""
+    r"""Splits a string into sentences using Unicode sentence boundaries.
+
+    This function uses Unicode segmentation to properly identify sentence
+    boundaries across different writing systems.
+
+    Args:
+        string: The input string to split.
+
+    Returns:
+        A list of sentence strings.
+    """
 
 def split_word_bounds(string: builtins.str) -> builtins.list[builtins.str]:
-    r"""Split the string into words."""
+    r"""Splits a string into words using Unicode word boundaries.
+
+    This function uses Unicode segmentation to properly handle words in
+    various languages, not just whitespace-separated tokens.
+
+    Args:
+        string: The input string to split.
+
+    Returns:
+        A list of word strings.
+    """
 
 def tokens_of(text: builtins.str) -> builtins.int:
-    r"""Count tokens of a text."""
+    r"""Counts the number of tokens in a text string.
+
+    This function uses the thryd library's token counting mechanism.
+
+    Args:
+        text: The input text to count tokens in.
+
+    Returns:
+        The number of tokens in the text.
+    """
 
 def word_count(string: builtins.str) -> builtins.int:
-    r"""Count the words."""
+    r"""Counts the number of words in a string.
+
+    This function splits the string by word boundaries and counts
+    non-empty tokens.
+
+    Args:
+        string: The input string.
+
+    Returns:
+        The number of words in the string.
+    """
