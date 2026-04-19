@@ -18,7 +18,6 @@ pub(crate) fn wraped<T>(seq: Vec<T>) -> Vec<Option<T>> {
 /// Converts a JSON string to a Python dictionary.
 ///
 /// Args:
-///     python: The Python interpreter instance.
 ///     v: A JSON string to parse.
 ///
 /// Returns:

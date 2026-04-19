@@ -31,13 +31,9 @@ pub struct TemplateManager {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl TemplateManager {
-    /// Creates a new TemplateManager instance.
-
     #[getter]
-    /// Returns the number of registered templates.
-    ///
-    /// Returns:
-    ///     The count of templates currently registered.
+
+    /// The count of templates currently registered.
     fn template_count(&self) -> usize {
         self.handlebars.get_templates().len()
     }

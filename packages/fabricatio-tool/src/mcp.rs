@@ -39,9 +39,6 @@ impl From<Tool> for ToolMetaData {
 impl ToolMetaData {
     /// Serializes the tool metadata to a Python dictionary.
     ///
-    /// Args:
-    ///     python: The Python interpreter instance.
-    ///
     /// Returns:
     ///     A Python dictionary representation of the tool metadata.
     fn dump_dict<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
@@ -73,9 +70,6 @@ impl ToolMetaData {
     #[getter]
     /// Returns the input schema as a Python object.
     ///
-    /// Args:
-    ///     python: The Python interpreter instance.
-    ///
     /// Returns:
     ///     The input schema as a Python object.
     fn input_schema<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
@@ -93,9 +87,6 @@ impl ToolMetaData {
 
     #[getter]
     /// Returns the annotations as a Python object.
-    ///
-    /// Args:
-    ///     python: The Python interpreter instance.
     ///
     /// Returns:
     ///     The annotations as a Python object.
@@ -167,7 +158,6 @@ impl MCPManager {
     /// Creates a new MCP manager instance.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     server_configs: Python dictionary containing server configurations.
     ///
     /// Returns:
@@ -191,7 +181,6 @@ impl MCPManager {
     /// Retrieves list of tools from a client.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client.
     ///
     /// Returns:
@@ -212,7 +201,6 @@ impl MCPManager {
     /// Retrieves a tool from a client.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client.
     ///     tool_name: The name of the tool.
     ///
@@ -237,7 +225,6 @@ impl MCPManager {
     /// Retrieves a list of tool names from a client.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client to retrieve tools from.
     ///
     /// Returns:
@@ -265,7 +252,6 @@ impl MCPManager {
     /// Retrieves a mapping of tool names to their descriptions from a client.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client.
     ///
     /// Returns:
@@ -314,7 +300,6 @@ impl MCPManager {
     /// Checks if a client is still connected and responsive.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client to ping.
     ///
     /// Returns:
@@ -328,7 +313,6 @@ impl MCPManager {
     /// Executes a tool on a client and returns the result.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client.
     ///     tool_name: The name of the tool to execute.
     ///     arguments: Optional dictionary of tool arguments.
@@ -378,7 +362,6 @@ impl MCPManager {
     /// Checks if a tool exists for a specific client.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     client_id: The ID of the client.
     ///     tool_name: The name of the tool to check.
     ///

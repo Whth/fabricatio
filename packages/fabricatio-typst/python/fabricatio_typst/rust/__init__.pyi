@@ -114,7 +114,6 @@ def split_out_metadata(string: builtins.str) -> tuple[typing.Optional[typing.Any
     Extracts leading comment lines as YAML metadata and returns the remaining content.
 
     Args:
-        python: The Python interpreter instance.
         string: The input string with potential YAML front matter.
 
     Returns:

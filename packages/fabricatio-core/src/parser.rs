@@ -293,7 +293,6 @@ impl JsonParser {
     /// Converts captured text to a Python object.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     text: The text to parse as JSON.
     ///     fix: Whether to attempt JSON repair before parsing.
     ///
@@ -317,7 +316,6 @@ impl JsonParser {
     /// Converts all captured JSON strings to Python objects.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     text: The text to search within.
     ///     fix: Whether to attempt JSON repair before parsing.
     ///
@@ -469,19 +467,19 @@ impl JsonParser {
             .and_then(|val_dict| {
                 let key_check = key_type.is_none()
                     || key_type.is_some_and(|t| {
-                    val_dict
-                        .keys()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                        val_dict
+                            .keys()
+                            .iter()
+                            .all(|item| item.is_instance(t).unwrap_or(false))
+                    });
 
                 let value_check = value_type.is_none()
                     || value_type.is_some_and(|t| {
-                    val_dict
-                        .values()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                        val_dict
+                            .values()
+                            .iter()
+                            .all(|item| item.is_instance(t).unwrap_or(false))
+                    });
 
                 (key_check && value_check).then_some(&val_dict).map_or_else(
                     || {
@@ -546,8 +544,10 @@ impl CodeBlockParser {
         self.capturer.cap1_all(text)
     }
 }
-/// Represents a code snippet extracted from text, containing its source code,
-/// programming language, and the target file path for writing.
+/// Represents a code snippet extracted from text.
+///
+///
+/// Contains its source code, programming language, and the target file path for writing.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(get_all)]
 pub struct CodeSnippet {
@@ -811,7 +811,10 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
             var_names::SNIPPET_RIGHT_SEP,
         )?,
     )?;
-    m.add(stringify!(GENERIC_BLOCK_TYPE), var_names::GENERIC_BLOCK_TYPE)?;
+    m.add(
+        stringify!(GENERIC_BLOCK_TYPE),
+        var_names::GENERIC_BLOCK_TYPE,
+    )?;
     m.add(stringify!(SNIPPET_LEFT_SEP), var_names::SNIPPET_LEFT_SEP)?;
     m.add(stringify!(SNIPPET_RIGHT_SEP), var_names::SNIPPET_RIGHT_SEP)?;
 

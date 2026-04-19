@@ -32,7 +32,6 @@ impl TEIClient {
     /// Creates a new TEI client connected to the specified base URL.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     base_url: The URL to connect to, e.g., "http://localhost:8080".
     ///
     /// Returns:
@@ -58,7 +57,6 @@ impl TEIClient {
     /// Reranks a list of texts based on their relevance to the given query.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     query: The query string to compare against.
     ///     texts: A list of text strings to rerank.
     ///     truncate: Whether to truncate the input texts if they exceed the maximum length.
@@ -108,7 +106,6 @@ impl TEIClient {
     /// Generates token-level embeddings for the given text.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     text: The input text to generate token embeddings for.
     ///     truncate: Whether to truncate the input text if it exceeds the maximum length.
     ///     truncation_direction: Direction of truncation, either "Left" or "Right".
@@ -157,7 +154,6 @@ impl TEIClient {
     /// Generates embeddings for the given text.
     ///
     /// Args:
-    ///     python: The Python interpreter instance.
     ///     text: The input text to generate embeddings for.
     ///     dimensions: Optional number of dimensions in the output embeddings.
     ///     truncate: Whether to truncate the input text if it exceeds the maximum length.

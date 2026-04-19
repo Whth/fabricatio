@@ -575,7 +575,7 @@ class UseLLM(LLMScopedConfig, ABC):
         from fabricatio_core.rust import json_parser
 
         def _validate_bool(resp: str) -> Optional[bool]:
-            return result if (result:= json_parser.convert(resp)) and isinstance(result, bool) else None 
+            return result if (result := json_parser.convert(resp)) and isinstance(result, bool) else None
 
         return await self.aask_validate(
             question=TEMPLATE_MANAGER.render_template(

@@ -37,9 +37,6 @@ pub struct Memory {
 impl Memory {
     /// Converts the memory to a Python dictionary.
     ///
-    /// Args:
-    ///     python: The Python interpreter instance.
-    ///
     /// Returns:
     ///     A Python dictionary representation of the Memory.
     pub fn to_dict<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyDict>> {

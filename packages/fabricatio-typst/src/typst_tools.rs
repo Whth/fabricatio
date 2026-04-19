@@ -163,7 +163,6 @@ pub fn fix_misplaced_labels(string: &str) -> String {
 /// Extracts leading comment lines as YAML metadata and returns the remaining content.
 ///
 /// Args:
-///     python: The Python interpreter instance.
 ///     string: The input string with potential YAML front matter.
 ///
 /// Returns:
