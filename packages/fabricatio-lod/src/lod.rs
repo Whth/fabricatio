@@ -1,11 +1,10 @@
-use fabricatio_constants::{CORE_PACKAGE_NAME, ROUTER_VARNAME, RUST_MODULE_NAME};
+use fabricatio_constants::*;
 use fabricatio_core::Router;
 use pyo3::exceptions::PyImportError;
-use thryd::CompletionRequest;
-
 use pyo3::prelude::*;
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
+use thryd::{CompletionRequest, RouteGroupName};
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
@@ -15,11 +14,12 @@ pub struct Lod {
     router: Router,
 }
 
+
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl Lod {
     #[staticmethod]
-    fn with_librian(group: String) -> PyResult<Self> {
+    fn with_librian(group: RouteGroupName) -> PyResult<Self> {
         let router = Python::attach(|py| {
             py.import(CORE_PACKAGE_NAME)?
                 .getattr(RUST_MODULE_NAME)?
@@ -44,12 +44,22 @@ impl Lod {
     }
 }
 
+/// A placeholder function for the lod module.
+///
+/// This function is currently a no-op placeholder.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn foo() {}
 
+/// Registers the Lod class with the Python module.
+///
+/// Args:
+///     _: The Python interpreter instance.
+///     m: The Python module to register with.
+///
+/// Returns:
+///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(foo, m)?)?;
     m.add_class::<Lod>()?;
     Ok(())
 }
