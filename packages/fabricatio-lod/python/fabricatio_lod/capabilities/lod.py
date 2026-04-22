@@ -8,4 +8,5 @@ from fabricatio_core.capabilities.usages import UseLLM
 class Lod(UseLLM, ABC):
     """This class contains the capabilities for the lod."""
 
-    async def lod(self, **kwargs) -> None: ...
+    async def lod(self, **kwargs) -> None:
+        """Lod cap."""
