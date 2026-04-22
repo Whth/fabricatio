@@ -177,3 +177,5 @@ www
 
 *.pdb
 *.db
+uv.lock
+Cargo.lock
