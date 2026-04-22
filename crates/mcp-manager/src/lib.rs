@@ -86,13 +86,13 @@ impl MCPManager {
                     Transport::Stream if config.url.is_some() => {
                         ().into_dyn()
                             .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
-                            .map_err(|e| McpError::ServiceInitError(e.to_string()))
+                            .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                             .await
                     }
                     Transport::Worker if config.url.is_some() => {
                         ().into_dyn()
                             .serve(WorkerTransport::from_uri(config.url.unwrap()))
-                            .map_err(|e| McpError::ServiceInitError(e.to_string()))
+                            .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                             .await
                     }
                     _ => async { Err(McpError::ServiceNotSupportedError) }.await,
@@ -133,7 +133,7 @@ impl MCPManager {
             Ok(proc) => {
                 ().into_dyn()
                     .serve(proc)
-                    .map_err(|e| McpError::ServiceInitError(e.to_string()))
+                    .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                     .boxed()
             }
             Err(e) => async move { Err(McpError::IoError(e)) }.boxed(),

@@ -17,7 +17,7 @@ pub enum McpError {
 
     /// Service initialization error
     #[error("Service initialization error: {0}")]
-    ServiceInitError(String),
+    ServiceInitError(#[from] Box<rmcp::service::ClientInitializeError>),
 
     #[error("Service not supported")]
     ServiceNotSupportedError,
