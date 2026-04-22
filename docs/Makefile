@@ -4,9 +4,9 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
-SPHINXINTL    ?= sphinx-intl
-LANG             ?= zh_CN
+SPHINXBUILD   ?= uv run --no-dev --group docs sphinx-build
+SPHINXINTL    ?= uv run --no-dev --group docs sphinx-intl
+LANG          ?= zh_CN
 SOURCEDIR     = source
 BUILDDIR      = build
 

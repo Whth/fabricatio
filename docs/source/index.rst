@@ -1,5 +1,5 @@
 fabricatio documentation
-=======================
+========================
 
 **Fabricatio**: Streamlined Python library for building LLM applications with event-based agent structure.
 
@@ -18,6 +18,9 @@ fabricatio documentation
    development
    contributing
    code-style
+   rust-crates
+   usage
+   workflow-patterns
 
 .. toctree::
    :maxdepth: 1
