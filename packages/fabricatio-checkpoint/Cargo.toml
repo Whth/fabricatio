@@ -15,8 +15,8 @@ moka = { version = "0.12.15", features = ["sync"] }
 pyo3 = { version = "0.28.3" }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
-rayon = "1.11.0"
-pyo3-stub-gen = "0.21.0"
+rayon = "1.12.0"
+pyo3-stub-gen = "0.22.1"
 
 
 

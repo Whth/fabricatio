@@ -18,16 +18,16 @@ error-mapping = { workspace = true, features = [
     "tonic", "http", "strum", "lancedb", "serde_json", "pythonize",
     "pyo3_cast", "arrow-schema"
 ] }
-pyo3-stub-gen = "0.21.0"
+pyo3-stub-gen = "0.22.1"
 strum = { version = "0.28.0", features = ["derive"] }
 lancedb = { version = "0.27.2", default-features = false }
 pythonize = "0.28.0"
-uuid = { version = "1.23.0", features = ["v7"] }
+uuid = { version = "1.23.1", features = ["v7"] }
 cached = "0.59.0"
 serde_json = { version = "1.0.149", default-features = false }
-arrow-array = { version = "57.3.0", default-features = false }
-tokio = { version = "1.51.0", default-features = false }
-rayon = { version = "1.11.0", default-features = false }
+arrow-array = { version = "<=57.3.0", default-features = false }
+tokio = { version = "1.52.1", default-features = false }
+rayon = { version = "1.12.0", default-features = false }
 futures-util = { version = "0.3.32", default-features = false }
 
 
