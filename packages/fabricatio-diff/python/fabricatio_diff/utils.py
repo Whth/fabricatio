@@ -8,13 +8,13 @@ from fabricatio_core.rust import ContentBlockParser
 class Delimiters(StrEnum):
     """Enum class representing delimiters used for search and replace operations."""
 
-    SEARCH_LEFT = "<<<<SEARCH\n"
+    SEARCH_LEFT = "<<<<SEARCH"
     """Left delimiter for search blocks."""
-    SEARCH_RIGHT = "\nSEARCH<<<<"
+    SEARCH_RIGHT = "SEARCH<<<<"
     """Right delimiter for search blocks."""
-    REPLACE_LEFT = "<<<<REPLACE\n"
+    REPLACE_LEFT = "<<<<REPLACE"
     """Left delimiter for replace blocks."""
-    REPLACE_RIGHT = "\nREPLACE<<<<"
+    REPLACE_RIGHT = "REPLACE<<<<"
     """Right delimiter for replace blocks."""
 
 

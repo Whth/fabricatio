@@ -49,6 +49,6 @@ class Diff(Display):
             str: A string representation of the Diff object.
         """
         return (
-            f"{Delimiters.SEARCH_LEFT}{self.search}{Delimiters.SEARCH_RIGHT}\n"
-            f"{Delimiters.REPLACE_LEFT}{self.replace}{Delimiters.REPLACE_RIGHT}"
+            f"{Delimiters.SEARCH_LEFT}\n{self.search}\n{Delimiters.SEARCH_RIGHT}\n"
+            f"{Delimiters.REPLACE_LEFT}\n{self.replace}\n{Delimiters.REPLACE_RIGHT}"
         )

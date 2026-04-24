@@ -103,7 +103,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Add Texts-based skill system, as a subpackage
 - [x] Port build workflow to `Justfile`
 - [x] `thryd::Router` use concurrent safe impl
-- [ ] Replace parser with native rust impl
+- [x] Replace parser with native rust impl
+- [ ] Better memory impl
+- [ ] RAG package refactor, move rerank and embedding to `thryd`
+- [ ] Replace `UseLLM` with native rust impl
 
 ## Installation
 

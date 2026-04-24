@@ -184,7 +184,7 @@ async def test_order_string_invalid_response(
             [],
             [],
             "order empty list",
-            None,
+            [],
         ),
         (
             ["single"],
