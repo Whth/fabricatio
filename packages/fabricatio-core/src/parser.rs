@@ -451,35 +451,37 @@ impl JsonParser {
             })
             .and_then(|val_dict| {
                 let len = val_dict.len();
-                (length.is_none() || length.is_some_and(|l| l == 0) || length.is_some_and(|l| len == l))
-                    .then_some(&val_dict)
-                    .map_or_else(
-                        || {
-                            warn!(
-                                "validate_dict: length mismatch - expected {:?}, got {}",
-                                length, len
-                            );
-                            None
-                        },
-                        |_| Some(val_dict.clone()),
-                    )
+                (length.is_none()
+                    || length.is_some_and(|l| l == 0)
+                    || length.is_some_and(|l| len == l))
+                .then_some(&val_dict)
+                .map_or_else(
+                    || {
+                        warn!(
+                            "validate_dict: length mismatch - expected {:?}, got {}",
+                            length, len
+                        );
+                        None
+                    },
+                    |_| Some(val_dict.clone()),
+                )
             })
             .and_then(|val_dict| {
                 let key_check = key_type.is_none()
                     || key_type.is_some_and(|t| {
-                    val_dict
-                        .keys()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                        val_dict
+                            .keys()
+                            .iter()
+                            .all(|item| item.is_instance(t).unwrap_or(false))
+                    });
 
                 let value_check = value_type.is_none()
                     || value_type.is_some_and(|t| {
-                    val_dict
-                        .values()
-                        .iter()
-                        .all(|item| item.is_instance(t).unwrap_or(false))
-                });
+                        val_dict
+                            .values()
+                            .iter()
+                            .all(|item| item.is_instance(t).unwrap_or(false))
+                    });
 
                 (key_check && value_check).then_some(&val_dict).map_or_else(
                     || {
