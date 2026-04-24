@@ -60,61 +60,61 @@ Capability Packages
 
 These packages provide domain-specific capabilities that can be mixed into your Roles:
 
-+-------------------------------+----------------------------------------------------------+
-| Package                       | Purpose                                                  |
-+===============================+==========================================================+
-| ``fabricatio-capabilities``   | Core capabilities: Extract, Propose, Rating, Task        |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| Package                       | Purpose                                                   |
++===============================+===========================================================+
+| ``fabricatio-capabilities``   | Core capabilities: Extract, Propose, Rating, Task         |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-rag``            | Retrieval-Augmented Generation with Milvus integration    |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-rule``           | Rule-based content validation, correction, and enforcement|
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-judge``          | Evidence-based decision making and content evaluation      |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-agent``          | Full AI agent framework with autonomous task fulfillment   |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-judge``          | Evidence-based decision making and content evaluation     |
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-agent``          | Full AI agent framework with autonomous task fulfillment  |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-memory``         | Long-term and short-term memory management for agents     |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-actions``        | File system operations and output management actions      |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-improve``        | Content review, correction, and refinement                |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-digest``         | Raw requirement parsing and task list generation          |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-tagging``        | Intelligent data classification and tag management        |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-translate``      | Multi-language translation with batch processing           |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-translate``      | Multi-language translation with batch processing          |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-typst``          | Academic content generation in Typst format               |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-tool``           | Dynamic tool discovery and native Python execution        |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-plot``           | Publication-quality matplotlib charts from dataframes     |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-locale``         | PO file-based internationalization support               |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-locale``         | PO file-based internationalization support                |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-thinking``       | Version-controlled sequential reasoning process           |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-team``           | Multi-agent collaboration and role-based coordination      |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-team``           | Multi-agent collaboration and role-based coordination     |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-character``      | Character profile generation for narrative content        |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-novel``          | End-to-end novel generation with character integration    |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-checkpoint``     | Git-like workflow state versioning and rollback           |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-milvus``         | Milvus vector database integration for RAG               |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-anki``           | AI-powered Anki flashcard deck generation                |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-question``       | Strategic questioning for planning and information gathering|
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-milvus``         | Milvus vector database integration for RAG                |
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-anki``           | AI-powered Anki flashcard deck generation                 |
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-question``       | Strategic questioning for planning and info gathering     |
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-yue``            | YuE music generation lyrics composition                   |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
 | ``fabricatio-diff``           | Intelligent diff-based code/text editing                  |
-+-------------------------------+----------------------------------------------------------+
-| ``fabricatio-capable``         | Dynamic capability assessment and validation              |
-+-------------------------------+----------------------------------------------------------+
++-------------------------------+-----------------------------------------------------------+
+| ``fabricatio-capable``        | Dynamic capability assessment and validation              |
++-------------------------------+-----------------------------------------------------------+
 
 Integration Packages
 ~~~~~~~~~~~~~~~~~~~~
@@ -124,9 +124,9 @@ Integration Packages
 +===========================+==========================================================+
 | ``fabricatio-webui``      | Web-based user interface                                 |
 +---------------------------+----------------------------------------------------------+
-| ``fabricatio-workspace``   | Isolated development workspace management with git         |
+| ``fabricatio-workspace``   | Isolated development workspace management with git      |
 +---------------------------+----------------------------------------------------------+
-| ``fabricatio-lod``        | Level-based context compression *(in development)*        |
+| ``fabricatio-lod``        | Level-based context compression *(in development)*       |
 +---------------------------+----------------------------------------------------------+
 
 Core Packages
@@ -135,7 +135,7 @@ Core Packages
 +---------------------------+----------------------------------------------------------+
 | Package                   | Purpose                                                  |
 +===========================+==========================================================+
-| ``fabricatio-core``       | Event system, Role framework, Task engine, Toolbox,       |
+| ``fabricatio-core``       | Event system, Role framework, Task engine, Toolbox,      |
 |                           | File utilities, Handlebars templating, Type models       |
 +---------------------------+----------------------------------------------------------+
 | ``fabricatio-mock``       | Testing utilities with mock LLM roles and fixtures       |
@@ -151,11 +151,11 @@ Rust Crates
 +---------------------------+----------------------------------------------------------+
 | ``fabricatio-logger``     | Structured logging utilities                             |
 +---------------------------+----------------------------------------------------------+
-| ``fabricatio-constants``  | Constants and shared values                             |
+| ``fabricatio-constants``  | Constants and shared values                              |
 +---------------------------+----------------------------------------------------------+
 | ``fabricatio-stubgen``    | Python stub file generation                              |
 +---------------------------+----------------------------------------------------------+
-| ``thryd``                 | Router engine: routing, caching, rate limiting            |
+| ``thryd``                 | Router engine: routing, caching, rate limiting           |
 +---------------------------+----------------------------------------------------------+
 
 Quick Reference by Use Case
@@ -351,18 +351,8 @@ Package authors can use the ``make py`` command to generate new Python subpackag
 External Dependencies Summary
 -----------------------------
 
-Some packages require external dependencies beyond fabricatio packages:
-
-+---------------------------+----------------------------------------------------------+
-| Package                   | External Dependencies                                     |
-+===========================+==========================================================+
-| ``fabricatio-rag``        | ``pymilvus>=2.5.4``, TEI service                        |
-+---------------------------+----------------------------------------------------------+
-| ``fabricatio-milvus``     | ``pymilvus>=2.5.4``, Milvus database                    |
-+---------------------------+----------------------------------------------------------+
-| ``fabricatio-plot``        | ``matplotlib``                                           |
-+---------------------------+----------------------------------------------------------+
-| ``fabricatio-workspace``  | ``git``                                                  |
-+---------------------------+----------------------------------------------------------+
-| ``fabricatio-webui``      | ``grpcio``, gRPC services                                |
-+---------------------------+----------------------------------------------------------+
+- ``fabricatio-rag`` — ``pymilvus>=2.5.4``, TEI service
+- ``fabricatio-milvus`` — ``pymilvus>=2.5.4``, Milvus database
+- ``fabricatio-plot`` — ``matplotlib``
+- ``fabricatio-workspace`` — ``git``
+- ``fabricatio-webui`` — ``grpcio``, gRPC services

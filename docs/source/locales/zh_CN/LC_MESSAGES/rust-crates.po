@@ -1,0 +1,376 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/rust-crates.rst:2
+msgid "Rust Crates"
+msgstr ""
+
+#: ../../source/rust-crates.rst:4
+msgid ""
+"Fabricatio's performance-critical components are implemented in Rust as "
+"independent crates, providing high-performance routing, caching, and "
+"system integration for the Python ecosystem."
+msgstr ""
+
+#: ../../source/rust-crates.rst:8
+msgid "thryd"
+msgstr ""
+
+#: ../../source/rust-crates.rst:10
+msgid ""
+"**Router Engine** - High-performance LLM request routing with intelligent"
+" caching and rate limiting."
+msgstr ""
+
+#: ../../source/rust-crates.rst:28
+msgid "Key Features:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:30
+msgid ""
+"**Multi-Provider Routing**: OpenAI-compatible APIs, custom providers via "
+"trait"
+msgstr ""
+
+#: ../../source/rust-crates.rst:31
+msgid ""
+"**Intelligent Caching**: redb embedded database with automatic request "
+"deduplication"
+msgstr ""
+
+#: ../../source/rust-crates.rst:32
+msgid "**Token Tracking**: Accurate counting via tiktoken with TPM/RPM quotas"
+msgstr ""
+
+#: ../../source/rust-crates.rst:33
+msgid "**Rate Limiting**: Sliding window algorithm (60 buckets × 60s default)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:34
+msgid "**Load Balancing**: Route to multiple deployments in a group"
+msgstr ""
+
+#: ../../source/rust-crates.rst:35
+msgid "**Async-First**: Built on Tokio for high-concurrency workloads"
+msgstr ""
+
+#: ../../source/rust-crates.rst:36
+msgid "**PyO3 Bindings**: Optional Python access via ``thryd`` Python package"
+msgstr ""
+
+#: ../../source/rust-crates.rst:47
+msgid "thryd Architecture"
+msgstr ""
+
+#: ../../source/rust-crates.rst:83
+msgid "Core Concepts"
+msgstr ""
+
+#: ../../source/rust-crates.rst:85
+msgid "**Providers** (``Provider`` trait)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:86
+msgid ""
+"API service wrappers. Built-in: ``OpenAICompatible``, ``DummyProvider``. "
+"Implement the trait to add custom providers."
+msgstr ""
+
+#: ../../source/rust-crates.rst:89
+msgid "**Models** (``CompletionModel``, ``EmbeddingModel``)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:90
+msgid "Specific LLM instances with API interaction logic."
+msgstr ""
+
+#: ../../source/rust-crates.rst:92
+msgid "**Deployments** (``Deployment``)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:93
+msgid "Models wrapped with rate limiting and usage tracking."
+msgstr ""
+
+#: ../../source/rust-crates.rst:95
+msgid "**Routers** (``Router<CompletionTag>``, ``Router<EmbeddingTag>``)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:96
+msgid "Manage multiple deployments, route requests by group name."
+msgstr ""
+
+#: ../../source/rust-crates.rst:120
+msgid "Rate Limiting Internals"
+msgstr ""
+
+#: ../../source/rust-crates.rst:122
+msgid "Thryd uses a **sliding window algorithm** with configurable parameters:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:124
+msgid "**BUCKET_COUNT**: Number of time buckets (default: 60)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:125
+msgid "**BUCKETS_WINDOW_S**: Window size in seconds (default: 60)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:145
+msgid "fabricatio-config"
+msgstr ""
+
+#: ../../source/rust-crates.rst:147
+msgid ""
+"**Configuration Management** - Multi-source configuration loading with "
+"validation."
+msgstr ""
+
+#: ../../source/rust-crates.rst:160 ../../source/rust-crates.rst:209
+#: ../../source/rust-crates.rst:257
+msgid "Features:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:162
+msgid "**Multi-Source Loading**: env, TOML, pyproject.toml, global config"
+msgstr ""
+
+#: ../../source/rust-crates.rst:163
+msgid "**Validation**: URL, range, and type validation via validator crate"
+msgstr ""
+
+#: ../../source/rust-crates.rst:164
+msgid "**Secret Handling**: SecretStr for API keys with redaction in logs"
+msgstr ""
+
+#: ../../source/rust-crates.rst:165
+msgid "**PyO3 Integration**: Full Python class generation"
+msgstr ""
+
+#: ../../source/rust-crates.rst:167
+msgid "Configuration Sources (priority order):"
+msgstr ""
+
+#: ../../source/rust-crates.rst:169
+msgid "Call arguments (Python API)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:170
+msgid "``.env`` file"
+msgstr ""
+
+#: ../../source/rust-crates.rst:171
+msgid "Environment variables"
+msgstr ""
+
+#: ../../source/rust-crates.rst:172
+msgid "``./fabricatio.toml``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:173
+msgid "``./pyproject.toml`` ``[tool.fabricatio]``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:174
+msgid "``<ROAMING>/fabricatio/fabricatio.toml``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:175
+msgid "Built-in defaults"
+msgstr ""
+
+#: ../../source/rust-crates.rst:177
+msgid "Configuration Structure:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:196
+msgid "fabricatio-logger"
+msgstr ""
+
+#: ../../source/rust-crates.rst:198
+msgid ""
+"**Structured Logging** - Performance-optimized logging with loguru-style "
+"formatting."
+msgstr ""
+
+#: ../../source/rust-crates.rst:211
+msgid "**Loguru-Style Format**: ANSI colors, module/line context"
+msgstr ""
+
+#: ../../source/rust-crates.rst:212
+msgid "**Log Rotation**: never, minutely, hourly, daily options"
+msgstr ""
+
+#: ../../source/rust-crates.rst:213
+msgid "**Thread-Safe**: Global logger with Tokio runtime support"
+msgstr ""
+
+#: ../../source/rust-crates.rst:214
+msgid "**Python Integration**: Auto-configure from Python settings"
+msgstr ""
+
+#: ../../source/rust-crates.rst:216
+msgid "Log Levels: TRACE < DEBUG < INFO < WARN < ERROR"
+msgstr ""
+
+#: ../../source/rust-crates.rst:219
+msgid "fabricatio-constants"
+msgstr ""
+
+#: ../../source/rust-crates.rst:221
+msgid "**Shared Constants** - Application-wide path and variable definitions."
+msgstr ""
+
+#: ../../source/rust-crates.rst:233
+msgid "Platform Paths:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:236
+msgid "Platform"
+msgstr ""
+
+#: ../../source/rust-crates.rst:236
+msgid "Config Directory"
+msgstr ""
+
+#: ../../source/rust-crates.rst:238
+msgid "Linux"
+msgstr ""
+
+#: ../../source/rust-crates.rst:238
+msgid "``$XDG_CONFIG_HOME`` or ``$HOME/.config``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:239
+msgid "macOS"
+msgstr ""
+
+#: ../../source/rust-crates.rst:239
+msgid "``$HOME/Library/Application Support``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:240
+msgid "Windows"
+msgstr ""
+
+#: ../../source/rust-crates.rst:240
+#, python-brace-format
+msgid "``{FOLDERID_RoamingAppData}``"
+msgstr ""
+
+#: ../../source/rust-crates.rst:244
+msgid "fabricatio-stubgen"
+msgstr ""
+
+#: ../../source/rust-crates.rst:246
+msgid ""
+"**Stub Generator** - Python ``.pyi`` stub file generation for PyO3 "
+"modules."
+msgstr ""
+
+#: ../../source/rust-crates.rst:259
+msgid "**Automatic Discovery**: Scans packages for PyO3 bindings"
+msgstr ""
+
+#: ../../source/rust-crates.rst:260
+msgid "**Type Annotations**: Full signatures in generated ``.pyi`` files"
+msgstr ""
+
+#: ../../source/rust-crates.rst:261
+msgid "**Multi-Package**: Handles all fabricatio packages in one run"
+msgstr ""
+
+#: ../../source/rust-crates.rst:262
+msgid "**Opt-In**: Enabled via ``stubgen`` feature flag"
+msgstr ""
+
+#: ../../source/rust-crates.rst:265
+msgid "Additional Crates"
+msgstr ""
+
+#: ../../source/rust-crates.rst:267
+msgid "**tex-convertor** - LaTeX to Typst conversion"
+msgstr ""
+
+#: ../../source/rust-crates.rst:274
+msgid "**scanner** - Python package filesystem scanner"
+msgstr ""
+
+#: ../../source/rust-crates.rst:281
+msgid "**error-mapping** - Error type mapping between Rust/Python"
+msgstr ""
+
+#: ../../source/rust-crates.rst:288
+msgid "**mcp-manager** - Model Context Protocol server management"
+msgstr ""
+
+#: ../../source/rust-crates.rst:295
+msgid "**deck_loader** - Anki deck file loading/generation"
+msgstr ""
+
+#: ../../source/rust-crates.rst:302
+msgid "**signify** - Case conversion utilities (snake → Camel, etc.)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:309
+msgid "**macro-utils** - Procedural macro utilities"
+msgstr ""
+
+#: ../../source/rust-crates.rst:316
+msgid "**utils** - Internal utilities placeholder"
+msgstr ""
+
+#: ../../source/rust-crates.rst:324
+msgid "Rust Crate Dependencies"
+msgstr ""
+
+#: ../../source/rust-crates.rst:360
+msgid "Building Rust Crates"
+msgstr ""
+
+#: ../../source/rust-crates.rst:377
+msgid "Development Requirements"
+msgstr ""
+
+#: ../../source/rust-crates.rst:379
+msgid "Rust 1.70+"
+msgstr ""
+
+#: ../../source/rust-crates.rst:380
+msgid "``cargo`` package manager"
+msgstr ""
+
+#: ../../source/rust-crates.rst:381
+msgid "``maturin`` for Python bindings (used in workspace)"
+msgstr ""
+
+#: ../../source/rust-crates.rst:384
+msgid "PyO3 Integration"
+msgstr ""
+
+#: ../../source/rust-crates.rst:386
+msgid "Crates are exposed to Python via PyO3:"
+msgstr ""
+
+#: ../../source/rust-crates.rst:399
+msgid "Feature Flags Summary"
+msgstr ""
+

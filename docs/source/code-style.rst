@@ -1,5 +1,5 @@
 Code Style Guide
-===============
+================
 
 This document outlines the code style conventions used in the Fabricatio project.
 
@@ -32,7 +32,7 @@ Edition and Build Configuration
      crate-type = ["cdylib"]
 
 Naming Conventions
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 - **Functions and variables**: ``snake_case``
 
@@ -56,7 +56,7 @@ Naming Conventions
      pub const SEPARATE: char = '/';
 
 Module Organization
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 - Use ``pub mod`` for public modules, ``mod`` for private
 
@@ -76,7 +76,7 @@ Module Organization
      // In models/mod.rs or models.rs
 
 Error Handling
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 - **Use ``thiserror``** for creating error enums with ``#[derive(Error)]``
 
@@ -221,7 +221,7 @@ Feature Flags
 -----
 
 Python Conventions
------------------
+------------------
 
 Type Hints
 ~~~~~~~~~~

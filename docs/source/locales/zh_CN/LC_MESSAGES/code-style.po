@@ -1,0 +1,491 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/code-style.rst:2
+msgid "Code Style Guide"
+msgstr ""
+
+#: ../../source/code-style.rst:4
+msgid ""
+"This document outlines the code style conventions used in the Fabricatio "
+"project."
+msgstr ""
+
+#: ../../source/code-style.rst:13
+msgid "Rust Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:16
+msgid "Edition and Build Configuration"
+msgstr ""
+
+#: ../../source/code-style.rst:18
+msgid "**Edition 2024**: All Rust crates use ``edition = \"2024\"``"
+msgstr ""
+
+#: ../../source/code-style.rst:27
+msgid "**CDYLIB for PyO3**: Python-bound crates use ``crate-type = [\"cdylib\"]``"
+msgstr ""
+
+#: ../../source/code-style.rst:35 ../../source/code-style.rst:270
+msgid "Naming Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:37 ../../source/code-style.rst:279
+msgid "**Functions and variables**: ``snake_case``"
+msgstr ""
+
+#: ../../source/code-style.rst:44
+msgid "**Types and structs**: ``PascalCase``"
+msgstr ""
+
+#: ../../source/code-style.rst:51
+msgid "**Constants**: ``SCREAMING_SNAKE_CASE``"
+msgstr ""
+
+#: ../../source/code-style.rst:59
+msgid "Module Organization"
+msgstr ""
+
+#: ../../source/code-style.rst:61
+msgid "Use ``pub mod`` for public modules, ``mod`` for private"
+msgstr ""
+
+#: ../../source/code-style.rst:69
+msgid "Module files: Use ``mod.rs`` for submodules or individual ``.rs`` files"
+msgstr ""
+
+#: ../../source/code-style.rst:79
+msgid "Error Handling"
+msgstr ""
+
+#: ../../source/code-style.rst:81
+msgid "**Use ``thiserror``** for creating error enums with ``#[derive(Error)]``"
+msgstr ""
+
+#: ../../source/code-style.rst:98
+msgid ""
+"**Error variants** should have human-readable messages using "
+"``#[error(...)]``"
+msgstr ""
+
+#: ../../source/code-style.rst:101
+msgid "Doc Comments"
+msgstr ""
+
+#: ../../source/code-style.rst:103
+msgid "**Crate-level**: Use ``//!`` at the top of lib.rs"
+msgstr ""
+
+#: ../../source/code-style.rst:113
+msgid "**Function-level**: Use ``///`` with markdown formatting"
+msgstr ""
+
+#: ../../source/code-style.rst:123
+msgid "PyO3 Patterns"
+msgstr ""
+
+#: ../../source/code-style.rst:125
+msgid "**PyModule**: ``#[pymodule]`` with `` Bound<'_, PyModule>`` parameter"
+msgstr ""
+
+#: ../../source/code-style.rst:134
+msgid ""
+"**PyClass**: ``#[pyclass]`` with optional ``#[cfg_attr(feature = "
+"\"stubgen\", ...)]``"
+msgstr ""
+
+#: ../../source/code-style.rst:143
+msgid ""
+"**PyMethods**: ``#[pymethods]`` with ``#[cfg_attr(...)]`` for conditional"
+" stub generation"
+msgstr ""
+
+#: ../../source/code-style.rst:154 ../../source/code-style.rst:251
+msgid "Async Patterns"
+msgstr ""
+
+#: ../../source/code-style.rst:156
+msgid "**Use ``async-trait``** for async methods in traits"
+msgstr ""
+
+#: ../../source/code-style.rst:167
+msgid "**Let chains** for conditional await"
+msgstr ""
+
+#: ../../source/code-style.rst:177
+msgid "**Tokio** for async runtime with multi-thread features"
+msgstr ""
+
+#: ../../source/code-style.rst:184
+msgid "Traits and Generics"
+msgstr ""
+
+#: ../../source/code-style.rst:186
+msgid "**Generic bounds** use ``?Sized`` when appropriate"
+msgstr ""
+
+#: ../../source/code-style.rst:194
+msgid "**Builder pattern** with ``mut self`` and ``-> Self``"
+msgstr ""
+
+#: ../../source/code-style.rst:204
+msgid "Feature Flags"
+msgstr ""
+
+#: ../../source/code-style.rst:206
+msgid "Use ``#[cfg(feature = \"...\")]`` for optional functionality"
+msgstr ""
+
+#: ../../source/code-style.rst:213
+msgid "Define features in ``[features]`` section"
+msgstr ""
+
+#: ../../source/code-style.rst:224
+msgid "Python Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:227
+msgid "Type Hints"
+msgstr ""
+
+#: ../../source/code-style.rst:229
+msgid ""
+"**Full annotations** required (project uses ``Typing :: Typed`` "
+"classifier)"
+msgstr ""
+
+#: ../../source/code-style.rst:237
+msgid "**Generic type aliases** using ``type`` statement"
+msgstr ""
+
+#: ../../source/code-style.rst:244
+msgid "**Self returns** for method chaining"
+msgstr ""
+
+#: ../../source/code-style.rst:253
+msgid "**``async def``** for all async functions"
+msgstr ""
+
+#: ../../source/code-style.rst:261
+msgid "**Use asyncio primitives**: ``create_task``, ``Queue``, ``sleep``"
+msgstr ""
+
+#: ../../source/code-style.rst:272
+msgid "**Classes**: ``PascalCase``"
+msgstr ""
+
+#: ../../source/code-style.rst:286
+msgid "**Private attributes**: ``_prefix``"
+msgstr ""
+
+#: ../../source/code-style.rst:294
+msgid "Docstring Style"
+msgstr ""
+
+#: ../../source/code-style.rst:296
+msgid ""
+"**Google-style docstrings** (configured in ruff: ``convention = "
+"\"google\"``)"
+msgstr ""
+
+#: ../../source/code-style.rst:312
+msgid "**Module-level docstrings** at top of file"
+msgstr ""
+
+#: ../../source/code-style.rst:327
+msgid "Pydantic v2 Patterns"
+msgstr ""
+
+#: ../../source/code-style.rst:329
+msgid "**``ConfigDict``** for model configuration"
+msgstr ""
+
+#: ../../source/code-style.rst:335
+msgid "**``Field``** for field definitions with docstrings as descriptions"
+msgstr ""
+
+#: ../../source/code-style.rst:345
+msgid "**``PrivateAttr``** for private fields"
+msgstr ""
+
+#: ../../source/code-style.rst:353
+msgid "**Generic models** with ``[T]`` syntax"
+msgstr ""
+
+#: ../../source/code-style.rst:361
+msgid "Imports Organization"
+msgstr ""
+
+#: ../../source/code-style.rst:363
+msgid "**Type checking blocks** for circular imports"
+msgstr ""
+
+#: ../../source/code-style.rst:372
+msgid "**typing extensions** for modern Python versions"
+msgstr ""
+
+#: ../../source/code-style.rst:379
+msgid "Decorators"
+msgstr ""
+
+#: ../../source/code-style.rst:381
+msgid "**``@final``** from typing for preventing subclassing"
+msgstr ""
+
+#: ../../source/code-style.rst:388
+msgid "**Custom decorators** in ``decorators.py``"
+msgstr ""
+
+#: ../../source/code-style.rst:400
+msgid "Git Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:403
+msgid "Branch Naming"
+msgstr ""
+
+#: ../../source/code-style.rst:405
+msgid "**Feature branches**: ``feat/<feature-name>``"
+msgstr ""
+
+#: ../../source/code-style.rst:411
+msgid "**Bugfix branches**: ``fix/<bug-name>``"
+msgstr ""
+
+#: ../../source/code-style.rst:413
+msgid "**Chore branches**: ``chore/<task-name>``"
+msgstr ""
+
+#: ../../source/code-style.rst:416
+msgid "Commit Messages"
+msgstr ""
+
+#: ../../source/code-style.rst:418
+msgid ""
+"**Subject line**: Short, descriptive summary (50 chars or less "
+"recommended)"
+msgstr ""
+
+#: ../../source/code-style.rst:420
+msgid "**Body**: Explain \"why\" not \"what\""
+msgstr ""
+
+#: ../../source/code-style.rst:426
+msgid "**Types**: Use conventional commit prefixes"
+msgstr ""
+
+#: ../../source/code-style.rst:428
+msgid "``feat:`` - New feature"
+msgstr ""
+
+#: ../../source/code-style.rst:429
+msgid "``fix:`` - Bug fix"
+msgstr ""
+
+#: ../../source/code-style.rst:430
+msgid "``docs:`` - Documentation"
+msgstr ""
+
+#: ../../source/code-style.rst:431
+msgid "``refactor:`` - Code refactoring"
+msgstr ""
+
+#: ../../source/code-style.rst:432
+msgid "``test:`` - Adding tests"
+msgstr ""
+
+#: ../../source/code-style.rst:433
+msgid "``chore:`` - Maintenance tasks"
+msgstr ""
+
+#: ../../source/code-style.rst:438
+msgid "Documentation Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:441
+msgid "Rust Documentation"
+msgstr ""
+
+#: ../../source/code-style.rst:443
+msgid "**Crate documentation** in ``lib.rs`` with module-level doc comments"
+msgstr ""
+
+#: ../../source/code-style.rst:445
+msgid "**README files** for each crate with:"
+msgstr ""
+
+#: ../../source/code-style.rst:447
+msgid "Badges (crates.io, docs.rs, license)"
+msgstr ""
+
+#: ../../source/code-style.rst:448
+msgid "Overview section"
+msgstr ""
+
+#: ../../source/code-style.rst:449
+msgid "Key features list"
+msgstr ""
+
+#: ../../source/code-style.rst:450
+msgid "Usage examples"
+msgstr ""
+
+#: ../../source/code-style.rst:451
+msgid "Installation instructions"
+msgstr ""
+
+#: ../../source/code-style.rst:452
+msgid "Configuration details"
+msgstr ""
+
+#: ../../source/code-style.rst:455
+msgid "Python Documentation"
+msgstr ""
+
+#: ../../source/code-style.rst:457
+msgid "**Package README** in ``README.md`` with similar structure"
+msgstr ""
+
+#: ../../source/code-style.rst:459
+msgid "**Docstrings** on all public classes and functions"
+msgstr ""
+
+#: ../../source/code-style.rst:464
+msgid "Testing Conventions"
+msgstr ""
+
+#: ../../source/code-style.rst:467
+msgid "Python Testing (pytest)"
+msgstr ""
+
+#: ../../source/code-style.rst:469
+msgid "**Test file location**: ``python/tests/`` or ``python/<package>/tests/``"
+msgstr ""
+
+#: ../../source/code-style.rst:475
+msgid "**Test naming**: ``test_<functionality>.py``"
+msgstr ""
+
+#: ../../source/code-style.rst:485
+msgid "**Fixtures** with descriptive docstrings"
+msgstr ""
+
+#: ../../source/code-style.rst:500
+msgid "**Parametrized tests** with ``@pytest.mark.parametrize``"
+msgstr ""
+
+#: ../../source/code-style.rst:508
+msgid "**Async mode**: ``asyncio_mode = \"auto\"`` in pytest config"
+msgstr ""
+
+#: ../../source/code-style.rst:517
+msgid "Rust Testing"
+msgstr ""
+
+#: ../../source/code-style.rst:519
+msgid "**Inline tests** with ``#[test]`` or ``#[cfg(test)]`` module"
+msgstr ""
+
+#: ../../source/code-style.rst:526
+msgid "**Doc tests** in documentation comments"
+msgstr ""
+
+#: ../../source/code-style.rst:539
+msgid "Linting and Formatting"
+msgstr ""
+
+#: ../../source/code-style.rst:542
+msgid "Rust"
+msgstr ""
+
+#: ../../source/code-style.rst:544
+msgid "**Formatting**: ``cargo fmt``"
+msgstr ""
+
+#: ../../source/code-style.rst:550
+msgid "**Linting**: ``cargo clippy``"
+msgstr ""
+
+#: ../../source/code-style.rst:552
+msgid "**Applied automatically** via ``just fix``"
+msgstr ""
+
+#: ../../source/code-style.rst:555
+msgid "Python"
+msgstr ""
+
+#: ../../source/code-style.rst:557
+msgid "**Ruff** for linting and formatting"
+msgstr ""
+
+#: ../../source/code-style.rst:575
+msgid "**Pyright** for type checking"
+msgstr ""
+
+#: ../../source/code-style.rst:582
+msgid "**Format command**:"
+msgstr ""
+
+#: ../../source/code-style.rst:591
+msgid "Project Structure"
+msgstr ""
+
+#: ../../source/code-style.rst:594
+msgid "Python Package Structure"
+msgstr ""
+
+#: ../../source/code-style.rst:615
+msgid "Rust Crate Structure"
+msgstr ""
+
+#: ../../source/code-style.rst:629
+msgid "Module Exports"
+msgstr ""
+
+#: ../../source/code-style.rst:631
+msgid "**Python**: Export in ``__init__.py``"
+msgstr ""
+
+#: ../../source/code-style.rst:641
+msgid "**Rust**: Re-export in ``lib.rs``"
+msgstr ""
+
+#: ../../source/code-style.rst:652
+msgid "Development Commands"
+msgstr ""
+
+#: ../../source/code-style.rst:677
+msgid "See Also"
+msgstr ""
+
+#: ../../source/code-style.rst:679
+msgid ":doc:`contributing` - Contributing guidelines"
+msgstr ""
+
+#: ../../source/code-style.rst:680
+msgid ":doc:`development` - Development setup"
+msgstr ""
+
+#: ../../source/code-style.rst:681
+msgid ":doc:`architecture` - Project architecture"
+msgstr ""
+

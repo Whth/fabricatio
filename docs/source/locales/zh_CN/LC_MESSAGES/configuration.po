@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-07 16:55+0800\n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -17,150 +17,590 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: ../../source/configuration.rst:2
-msgid "Configuration"
+#, fuzzy
+msgid "Configuration Guide"
 msgstr "配置"
 
 #: ../../source/configuration.rst:4
-#, fuzzy
 msgid ""
-"Fabricatio supports flexible configuration through multiple sources, with"
-" the following priority order: `Call Arguments` > `./.env` > `Environment"
-" Variables` > `./fabricatio.toml` > `./pyproject.toml` > "
-"`<ROMANING>/fabricatio/fabricatio.toml` > `Builtin Defaults`."
+"Fabricatio provides a flexible, multi-source configuration system with "
+"clear priority order. This guide covers all configuration options and "
+"their interactions."
 msgstr ""
-"Fabricatio支持通过多种来源进行灵活配置，优先级顺序如下：``调用参数`` > ``./.env`` > ``环境变量`` > "
-"``./fabricatio.toml`` > ``./pyproject.toml`` > "
-"``<ROAMING>/fabricatio/fabricatio.toml`` > ``内置默认值``。"
 
-#: ../../source/configuration.rst:7
-msgid ""
-"Below is a unified view of the same configuration expressed in different "
-"formats:"
-msgstr "以下是相同配置在不同格式下的统一视图："
+#: ../../source/configuration.rst:11
+msgid "Quick Start Tutorial"
+msgstr ""
 
-#: ../../source/configuration.rst:10
-#, fuzzy
-msgid "Environment variables or dotenv file"
-msgstr "环境变量或.env文件"
+#: ../../source/configuration.rst:13
+msgid "This section walks you through setting up Fabricatio for the first time."
+msgstr ""
+
+#: ../../source/configuration.rst:16
+msgid "Step 1: Install Fabricatio"
+msgstr ""
 
 #: ../../source/configuration.rst:27
-#, fuzzy
-msgid "`fabricatio.toml` file"
-msgstr "fabricatio.toml文件"
+msgid "Step 2: Create a Configuration File"
+msgstr ""
 
-#: ../../source/configuration.rst:47
-#, fuzzy
-msgid "`pyproject.toml` file"
-msgstr "pyproject.toml文件"
+#: ../../source/configuration.rst:29
+msgid "Create a ``fabricatio.toml`` in your project root:"
+msgstr ""
 
-#: ../../source/configuration.rst:67
-msgid "Configuration Options"
-msgstr "配置选项"
+#: ../../source/configuration.rst:56
+msgid "Step 3: Verify Your Setup"
+msgstr ""
 
-#: ../../source/configuration.rst:69
-msgid "**LLM Settings:**"
-msgstr "**大语言模型设置:**"
-
-#: ../../source/configuration.rst:71
-msgid "``api_endpoint``: The API endpoint for the LLM service"
-msgstr "``api_endpoint``: 大语言模型服务的API端点"
-
-#: ../../source/configuration.rst:72
-msgid "``api_key``: Your API key for authentication"
-msgstr "``api_key``: 用于身份验证的API密钥"
-
-#: ../../source/configuration.rst:73
-msgid "``timeout``: Request timeout in seconds (default: 300)"
-msgstr "``timeout``: 请求超时时间（秒，默认：300）"
-
-#: ../../source/configuration.rst:74
-msgid "``max_retries``: Maximum number of retry attempts (default: 3)"
-msgstr "``max_retries``: 最大重试次数（默认：3）"
-
-#: ../../source/configuration.rst:75
-msgid "``model``: Model identifier (e.g., \"openai/gpt-3.5-turbo\")"
-msgstr "``model``: 模型标识符（例如\"openai/gpt-3.5-turbo\"）"
-
-#: ../../source/configuration.rst:76
-msgid "``temperature``: Sampling temperature (0.0 to 2.0)"
-msgstr "``temperature``: 采样温度（0.0至2.0）"
-
-#: ../../source/configuration.rst:77
-msgid "``top_p``: Nucleus sampling parameter"
-msgstr "``top_p``: 核心采样参数"
-
-#: ../../source/configuration.rst:78
-msgid "``generation_count``: Number of generations per request"
-msgstr "``generation_count``: 每次请求的生成次数"
+#: ../../source/configuration.rst:58
+msgid "Create a simple test script:"
+msgstr ""
 
 #: ../../source/configuration.rst:79
-msgid "``stream``: Enable streaming responses"
-msgstr "``stream``: 启用流式响应"
-"`[stream](file://L:\r"
-"ust_proj\\fabricatio\\packages\\fabricatio-"
-"core\\python\\fabricatio_core\\models\\kwargs_types.py#L30-L30)`: 启用流式响应"
+msgid "Step 4: Configure Your First Agent"
+msgstr ""
 
-#: ../../source/configuration.rst:80
-msgid "``max_tokens``: Maximum tokens in response"
-msgstr "``max_tokens``: 响应中的最大令牌数"
+#: ../../source/configuration.rst:81
+msgid "Here's a complete example using configuration:"
+msgstr ""
 
-#: ../../source/configuration.rst:82
-msgid "**Debug Settings:**"
-msgstr "**调试设置:**"
-
-#: ../../source/configuration.rst:84
-msgid "``log_level``: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
-msgstr "``log_level``: 日志级别（DEBUG, INFO, WARNING, ERROR, CRITICAL）"
-
-#: ../../source/configuration.rst:87
-msgid "Configuration Priority"
+#: ../../source/configuration.rst:111
+#, fuzzy
+msgid "Configuration Sources & Priority"
 msgstr "配置优先级"
 
-#: ../../source/configuration.rst:89
-msgid ""
-"Configuration values are resolved in the following order (highest to "
-"lowest priority):"
-msgstr "配置值按以下顺序解析（优先级从高到低）："
-
-#: ../../source/configuration.rst:91
-msgid "**Call Arguments** - Parameters passed directly to function calls"
-msgstr "**调用参数** - 直接传递给函数调用的参数"
-
-#: ../../source/configuration.rst:92
-msgid "**./.env** - Environment file in the current working directory"
-msgstr "**./.env** - 当前工作目录中的环境文件"
-
-#: ../../source/configuration.rst:93
-msgid ""
-"**Environment Variables** - System environment variables with "
-"``FABRICATIO_`` prefix"
-msgstr "**环境变量** - 带有``FABRICATIO_``前缀的系统环境变量"
-
-#: ../../source/configuration.rst:94
-msgid ""
-"**./fabricatio.toml** - Configuration file in the current working "
-"directory"
-msgstr "**./fabricatio.toml** - 当前工作目录中的配置文件"
-
-#: ../../source/configuration.rst:95
-msgid ""
-"**./pyproject.toml** - Project configuration file (under "
-"``[tool.fabricatio]``)"
-msgstr "**./pyproject.toml** - 项目配置文件（位于``[tool.fabricatio]``下）"
-
-#: ../../source/configuration.rst:96
+#: ../../source/configuration.rst:113
 #, fuzzy
 msgid ""
-"**<ROMANING>/fabricatio/fabricatio.toml** - User-specific configuration "
-"file"
-msgstr "**<ROAMING>/fabricatio/fabricatio.toml** - 用户特定的配置文件"
+"Fabricatio loads configuration from multiple sources in the following "
+"priority order (highest to lowest):"
+msgstr "配置值按以下顺序解析（优先级从高到低）："
 
-#: ../../source/configuration.rst:97
-msgid "**Builtin Defaults** - Default values provided by the library"
-msgstr "**内置默认值** - 库提供的默认值"
+#: ../../source/configuration.rst:137
+msgid ""
+"This means you can override any configuration at runtime using "
+"environment variables or programmatically."
+msgstr ""
+
+#: ../../source/configuration.rst:140
+#, fuzzy
+msgid "Configuration File Formats"
+msgstr "配置优先级"
+
+#: ../../source/configuration.rst:143
+#, fuzzy
+msgid "fabricatio.toml"
+msgstr "fabricatio.toml文件"
+
+#: ../../source/configuration.rst:145
+#, fuzzy
+msgid "The primary configuration file format:"
+msgstr "配置优先级"
+
+#: ../../source/configuration.rst:172
+#, fuzzy
+msgid "pyproject.toml"
+msgstr "pyproject.toml文件"
+
+#: ../../source/configuration.rst:174
+msgid "Configuration via ``[tool.fabricatio]`` table:"
+msgstr ""
+
+#: ../../source/configuration.rst:198
+#, fuzzy
+msgid "Environment Variables / .env"
+msgstr "环境变量或.env文件"
+
+#: ../../source/configuration.rst:200
+msgid ""
+"Prefix all config keys with ``FABRICATIO_`` and use double underscores "
+"for nesting:"
+msgstr ""
+
+#: ../../source/configuration.rst:212
+#, fuzzy
+msgid "Configuration Sections"
+msgstr "配置选项"
+
+#: ../../source/configuration.rst:215
+msgid "[debug]"
+msgstr ""
+
+#: ../../source/configuration.rst:218
+msgid "Key"
+msgstr ""
+
+#: ../../source/configuration.rst:218
+msgid "Description"
+msgstr ""
+
+#: ../../source/configuration.rst:218
+msgid "Default"
+msgstr ""
+
+#: ../../source/configuration.rst:220
+msgid "``log_level``"
+msgstr ""
+
+#: ../../source/configuration.rst:220
+msgid "Logging level"
+msgstr ""
+
+#: ../../source/configuration.rst:220
+msgid "``INFO``"
+msgstr ""
+
+#: ../../source/configuration.rst:224
+msgid "[llm]"
+msgstr ""
+
+#: ../../source/configuration.rst:243
+msgid "[routing]"
+msgstr ""
+
+#: ../../source/configuration.rst:246
+#, fuzzy
+msgid "Provider Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:248
+msgid "Providers define LLM endpoints:"
+msgstr ""
+
+#: ../../source/configuration.rst:259
+msgid "Supported provider types:"
+msgstr ""
+
+#: ../../source/configuration.rst:261
+msgid "``OpenAICompatible`` - OpenAI API compatible endpoints"
+msgstr ""
+
+#: ../../source/configuration.rst:262
+msgid "``Anthropic`` - Anthropic API"
+msgstr ""
+
+#: ../../source/configuration.rst:263
+msgid "``AzureOpenAI`` - Microsoft Azure OpenAI"
+msgstr ""
+
+#: ../../source/configuration.rst:264
+msgid "``GoogleAI`` - Google AI (Gemini)"
+msgstr ""
+
+#: ../../source/configuration.rst:265
+msgid "``Local`` - Local model endpoints"
+msgstr ""
+
+#: ../../source/configuration.rst:268
+#, fuzzy
+msgid "Deployment Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:270
+msgid "Deployments define available models:"
+msgstr ""
+
+#: ../../source/configuration.rst:282
+#, fuzzy
+msgid "Cache Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:290
+msgid "Router Features"
+msgstr ""
+
+#: ../../source/configuration.rst:292
+msgid "The ``thryd`` crate provides:"
+msgstr ""
+
+#: ../../source/configuration.rst:294
+msgid "**TPM/RPM limiting**: Per-deployment rate limiting"
+msgstr ""
+
+#: ../../source/configuration.rst:295
+msgid "**Response caching**: SQLite-based request caching"
+msgstr ""
+
+#: ../../source/configuration.rst:296
+msgid "**Concurrent routing**: Thread-safe provider selection"
+msgstr ""
+
+#: ../../source/configuration.rst:299
+#, fuzzy
+msgid "Programmatic Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:302
+#, fuzzy
+msgid "Role-level Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:304
+msgid "Pass configuration directly to Roles:"
+msgstr ""
+
+#: ../../source/configuration.rst:319
+#, fuzzy
+msgid "Action-level Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:321
+#, fuzzy
+msgid "Override configuration per action call:"
+msgstr "配置选项"
+
+#: ../../source/configuration.rst:337
+msgid "aask() vs aask_structured()"
+msgstr ""
+
+#: ../../source/configuration.rst:339
+msgid "``aask()`` - Simple text responses:"
+msgstr ""
+
+#: ../../source/configuration.rst:345
+msgid "``aask_structured()`` - Typed responses with Pydantic:"
+msgstr ""
+
+#: ../../source/configuration.rst:362
+msgid "Real-World Configuration Examples"
+msgstr ""
+
+#: ../../source/configuration.rst:365
+msgid "Example 1: Single Provider with OpenAI"
+msgstr ""
+
+#: ../../source/configuration.rst:388
+msgid "Example 2: Multi-Provider with Fallback"
+msgstr ""
+
+#: ../../source/configuration.rst:407
+msgid "Usage:"
+msgstr ""
+
+#: ../../source/configuration.rst:418
+msgid "Example 3: Anthropic with Claude"
+msgstr ""
+
+#: ../../source/configuration.rst:437
+msgid "Example 4: Azure OpenAI"
+msgstr ""
+
+#: ../../source/configuration.rst:457
+msgid "Example 5: Local Model Setup"
+msgstr ""
+
+#: ../../source/configuration.rst:475
+msgid "Advanced: Multiple Provider Setup"
+msgstr ""
+
+#: ../../source/configuration.rst:478
+msgid "Load Balancing Across Providers"
+msgstr ""
+
+#: ../../source/configuration.rst:493
+msgid "Using Different Groups:"
+msgstr ""
+
+#: ../../source/configuration.rst:504
+msgid "Environment-Specific Configs"
+msgstr ""
+
+#: ../../source/configuration.rst:507
+msgid "Development (.env.local)"
+msgstr ""
+
+#: ../../source/configuration.rst:516
+msgid "Staging (fabricatio.staging.toml)"
+msgstr ""
+
+#: ../../source/configuration.rst:518
+msgid "Create ``fabricatio.staging.toml``:"
+msgstr ""
+
+#: ../../source/configuration.rst:541
+#, fuzzy
+msgid "Production (fabricatio.toml)"
+msgstr "fabricatio.toml文件"
+
+#: ../../source/configuration.rst:556
+msgid "Loading Environment-Specific Config"
+msgstr ""
+
+#: ../../source/configuration.rst:558
+msgid ""
+"Fabricatio automatically loads ``fabricatio.toml`` from the current "
+"directory. To use environment-specific configurations:"
+msgstr ""
+
+#: ../../source/configuration.rst:568
+#, fuzzy
+msgid "Or use environment variables:"
+msgstr "环境变量或.env文件"
+
+#: ../../source/configuration.rst:576
+msgid "Template Discovery Configuration"
+msgstr ""
+
+#: ../../source/configuration.rst:578
+msgid "Fabricatio searches for templates in multiple locations:"
+msgstr ""
+
+#: ../../source/configuration.rst:587
+msgid "Download templates:"
+msgstr ""
+
+#: ../../source/configuration.rst:598
+#, fuzzy
+msgid "Caching Configuration"
+msgstr "配置"
+
+#: ../../source/configuration.rst:600
+msgid "Fabricatio uses SQLite for request caching. Configure cache behavior:"
+msgstr ""
+
+#: ../../source/configuration.rst:607
+#, fuzzy
+msgid "Cache Environment Variables:"
+msgstr "环境变量或.env文件"
+
+#: ../../source/configuration.rst:613
+msgid ""
+"Cache is automatically enabled when ``cache_database_path`` is "
+"configured. To disable caching, simply omit this configuration or set it "
+"to an empty path."
+msgstr ""
+
+#: ../../source/configuration.rst:616
+msgid "Troubleshooting"
+msgstr ""
+
+#: ../../source/configuration.rst:618
+msgid "**Config not being loaded?**"
+msgstr ""
+
+#: ../../source/configuration.rst:620
+msgid "Check file location matches expected paths"
+msgstr ""
+
+#: ../../source/configuration.rst:621
+msgid ""
+"Verify ``[tool.fabricatio]`` section in pyproject.toml (not "
+"``[tool.fabricatio.routing]``)"
+msgstr ""
+
+#: ../../source/configuration.rst:622
+msgid "Enable debug logging: ``FABRICATIO_DEBUG__LOG_LEVEL=DEBUG``"
+msgstr ""
+
+#: ../../source/configuration.rst:623
+msgid "Confirm the file is valid TOML syntax"
+msgstr ""
+
+#: ../../source/configuration.rst:625
+#, fuzzy
+msgid "**Environment variables not working?**"
+msgstr "环境变量或.env文件"
+
+#: ../../source/configuration.rst:627
+msgid "Use double underscores: ``FABRICATIO_LLM__TEMPERATURE`` (not single)"
+msgstr ""
+
+#: ../../source/configuration.rst:628
+#, fuzzy
+msgid "Verify .env file is in the current working directory"
+msgstr "**./.env** - 当前工作目录中的环境文件"
+
+#: ../../source/configuration.rst:629
+msgid "Check for trailing whitespace in .env file"
+msgstr ""
+
+#: ../../source/configuration.rst:630
+msgid "Ensure no quotes around values (unless required)"
+msgstr ""
+
+#: ../../source/configuration.rst:632
+msgid "**Provider authentication failures?**"
+msgstr ""
+
+#: ../../source/configuration.rst:634
+msgid "Verify API key is correct and has no leading/trailing spaces"
+msgstr ""
+
+#: ../../source/configuration.rst:635
+msgid "Check base_url includes trailing slash (/v1/)"
+msgstr ""
+
+#: ../../source/configuration.rst:636
+msgid "Ensure rate limits (TPM/RPM) are set appropriately"
+msgstr ""
+
+#: ../../source/configuration.rst:637
+msgid "For Azure, verify api_version is correct"
+msgstr ""
+
+#: ../../source/configuration.rst:639
+msgid "**Rate limit errors (429)?**"
+msgstr ""
+
+#: ../../source/configuration.rst:641
+msgid "Check TPM/RPM limits in your deployment configuration"
+msgstr ""
+
+#: ../../source/configuration.rst:642
+msgid "Reduce request frequency or increase limits"
+msgstr ""
+
+#: ../../source/configuration.rst:643
+msgid "Enable caching to reduce API calls"
+msgstr ""
+
+#: ../../source/configuration.rst:644
+msgid "Consider adding fallback providers"
+msgstr ""
+
+#: ../../source/configuration.rst:646
+msgid "**Request timeout errors?**"
+msgstr ""
+
+#: ../../source/configuration.rst:648
+msgid "Increase ``timeout`` value in [llm] section"
+msgstr ""
+
+#: ../../source/configuration.rst:649
+msgid "Check network connectivity to API endpoint"
+msgstr ""
+
+#: ../../source/configuration.rst:650
+msgid "For local models, increase timeout to 300+ seconds"
+msgstr ""
+
+#: ../../source/configuration.rst:652
+msgid "**Structured output parsing errors?**"
+msgstr ""
+
+#: ../../source/configuration.rst:654
+msgid "Ensure response_format is a Pydantic BaseModel"
+msgstr ""
+
+#: ../../source/configuration.rst:655
+msgid "Check that your model supports structured output"
+msgstr ""
+
+#: ../../source/configuration.rst:656
+msgid "Verify temperature is set appropriately (lower values help)"
+msgstr ""
+
+#: ../../source/configuration.rst:658
+msgid "**Cache database errors?**"
+msgstr ""
+
+#: ../../source/configuration.rst:660
+msgid "Ensure the cache directory exists and is writable"
+msgstr ""
+
+#: ../../source/configuration.rst:661
+msgid "Check disk space availability"
+msgstr ""
+
+#: ../../source/configuration.rst:662
+msgid "Delete the cache file to reset if corrupted"
+msgstr ""
+
+#: ../../source/configuration.rst:664
+msgid "**Debug logging not showing?**"
+msgstr ""
+
+#: ../../source/configuration.rst:666
+msgid "Set ``log_level = \"TRACE\"`` for most verbose output"
+msgstr ""
+
+#: ../../source/configuration.rst:667
+msgid "Check that debug config is in the correct section"
+msgstr ""
+
+#: ../../source/configuration.rst:668
+msgid "Verify no other configuration is overriding it"
+msgstr ""
+
+#: ../../source/configuration.rst:670
+msgid "**Model not found errors?**"
+msgstr ""
+
+#: ../../source/configuration.rst:672
+msgid "Verify deployment ID matches provider naming (provider/model-name)"
+msgstr ""
+
+#: ../../source/configuration.rst:673
+msgid "Check that the model is available in your account/region"
+msgstr ""
+
+#: ../../source/configuration.rst:674
+msgid "For local models, ensure the server is running"
+msgstr ""
+
+#: ../../source/configuration.rst:677
+#, fuzzy
+msgid "Common Configuration Patterns"
+msgstr "配置选项"
+
+#: ../../source/configuration.rst:680
+msgid "Pattern 1: Development with Local Caching"
+msgstr ""
+
+#: ../../source/configuration.rst:703
+msgid "Pattern 2: Production with Multiple Tiers"
+msgstr ""
+
+#: ../../source/configuration.rst:729
+msgid "Pattern 3: Cost-Optimized Setup"
+msgstr ""
+
+#: ../../source/configuration.rst:749
+msgid "Migration Guide"
+msgstr ""
+
+#: ../../source/configuration.rst:752
+msgid "Migrating from v0.x to v1.x"
+msgstr ""
+
+#: ../../source/configuration.rst:754
+msgid "The configuration format has been updated:"
+msgstr ""
+
+#: ../../source/configuration.rst:756
+msgid "**Old format:**"
+msgstr ""
+
+#: ../../source/configuration.rst:763
+msgid "**New format:**"
+msgstr ""
+
+#: ../../source/configuration.rst:770
+msgid "Key changes:"
+msgstr ""
+
+#: ../../source/configuration.rst:772
+msgid ""
+"``[fabricatio]`` section renamed to specific sections (``[debug]``, "
+"``[llm]``, ``[routing]``)"
+msgstr ""
+
+#: ../../source/configuration.rst:773
+msgid "Provider configuration uses inline TOML tables"
+msgstr ""
+
+#: ../../source/configuration.rst:774
+msgid "Environment variables now use double underscores for nesting"
+msgstr ""
+
+#: ../../source/configuration.rst:776
+msgid ""
+"For more information, see the `full migration guide "
+"<https://fabricatio.readthedocs.io/en/latest/migration.html>`_."
+msgstr ""
 
 #~ msgid ""
 #~ "`[max_tokens](file://L:\r"
@@ -172,4 +612,93 @@ msgstr "**内置默认值** - 库提供的默认值"
 #~ "ust_proj\\fabricatio\\packages\\fabricatio-"
 #~ "core\\python\\fabricatio_core\\models\\kwargs_types.py#L29-L29)`: "
 #~ "响应中的最大tokens数"
+
+#~ msgid ""
+#~ "Fabricatio supports flexible configuration "
+#~ "through multiple sources, with the "
+#~ "following priority order: `Call Arguments` "
+#~ "> `./.env` > `Environment Variables` >"
+#~ " `./fabricatio.toml` > `./pyproject.toml` > "
+#~ "`<ROMANING>/fabricatio/fabricatio.toml` > `Builtin "
+#~ "Defaults`."
+#~ msgstr ""
+#~ "Fabricatio支持通过多种来源进行灵活配置，优先级顺序如下：``调用参数`` > ``./.env`` "
+#~ "> ``环境变量`` > ``./fabricatio.toml`` > "
+#~ "``./pyproject.toml`` > "
+#~ "``<ROAMING>/fabricatio/fabricatio.toml`` > ``内置默认值``。"
+
+#~ msgid ""
+#~ "Below is a unified view of the "
+#~ "same configuration expressed in different "
+#~ "formats:"
+#~ msgstr "以下是相同配置在不同格式下的统一视图："
+
+#~ msgid "**LLM Settings:**"
+#~ msgstr "**大语言模型设置:**"
+
+#~ msgid "``api_endpoint``: The API endpoint for the LLM service"
+#~ msgstr "``api_endpoint``: 大语言模型服务的API端点"
+
+#~ msgid "``api_key``: Your API key for authentication"
+#~ msgstr "``api_key``: 用于身份验证的API密钥"
+
+#~ msgid "``timeout``: Request timeout in seconds (default: 300)"
+#~ msgstr "``timeout``: 请求超时时间（秒，默认：300）"
+
+#~ msgid "``max_retries``: Maximum number of retry attempts (default: 3)"
+#~ msgstr "``max_retries``: 最大重试次数（默认：3）"
+
+#~ msgid "``model``: Model identifier (e.g., \"openai/gpt-3.5-turbo\")"
+#~ msgstr "``model``: 模型标识符（例如\"openai/gpt-3.5-turbo\"）"
+
+#~ msgid "``temperature``: Sampling temperature (0.0 to 2.0)"
+#~ msgstr "``temperature``: 采样温度（0.0至2.0）"
+
+#~ msgid "``top_p``: Nucleus sampling parameter"
+#~ msgstr "``top_p``: 核心采样参数"
+
+#~ msgid "``generation_count``: Number of generations per request"
+#~ msgstr "``generation_count``: 每次请求的生成次数"
+
+#~ msgid "``stream``: Enable streaming responses"
+#~ msgstr ""
+#~ "``stream``: 启用流式响应`[stream](file://L:\r"
+#~ "ust_proj\\fabricatio\\packages\\fabricatio-"
+#~ "core\\python\\fabricatio_core\\models\\kwargs_types.py#L30-L30)`: "
+#~ "启用流式响应"
+
+#~ msgid "``max_tokens``: Maximum tokens in response"
+#~ msgstr "``max_tokens``: 响应中的最大令牌数"
+
+#~ msgid "**Debug Settings:**"
+#~ msgstr "**调试设置:**"
+
+#~ msgid "``log_level``: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+#~ msgstr "``log_level``: 日志级别（DEBUG, INFO, WARNING, ERROR, CRITICAL）"
+
+#~ msgid "**Call Arguments** - Parameters passed directly to function calls"
+#~ msgstr "**调用参数** - 直接传递给函数调用的参数"
+
+#~ msgid ""
+#~ "**Environment Variables** - System environment"
+#~ " variables with ``FABRICATIO_`` prefix"
+#~ msgstr "**环境变量** - 带有``FABRICATIO_``前缀的系统环境变量"
+
+#~ msgid ""
+#~ "**./fabricatio.toml** - Configuration file in"
+#~ " the current working directory"
+#~ msgstr "**./fabricatio.toml** - 当前工作目录中的配置文件"
+
+#~ msgid ""
+#~ "**./pyproject.toml** - Project configuration "
+#~ "file (under ``[tool.fabricatio]``)"
+#~ msgstr "**./pyproject.toml** - 项目配置文件（位于``[tool.fabricatio]``下）"
+
+#~ msgid ""
+#~ "**<ROMANING>/fabricatio/fabricatio.toml** - User-"
+#~ "specific configuration file"
+#~ msgstr "**<ROAMING>/fabricatio/fabricatio.toml** - 用户特定的配置文件"
+
+#~ msgid "**Builtin Defaults** - Default values provided by the library"
+#~ msgstr "**内置默认值** - 库提供的默认值"
 

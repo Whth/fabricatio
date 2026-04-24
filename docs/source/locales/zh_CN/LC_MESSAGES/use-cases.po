@@ -1,0 +1,424 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/use-cases.rst:2
+msgid "Use Cases & Examples"
+msgstr ""
+
+#: ../../source/use-cases.rst:4
+msgid "This guide covers common use cases with detailed examples."
+msgstr ""
+
+#: ../../source/use-cases.rst:7
+msgid "Basic Chat Agent"
+msgstr ""
+
+#: ../../source/use-cases.rst:9
+msgid "The simplest Fabricatio application - a role that responds to user input."
+msgstr ""
+
+#: ../../source/use-cases.rst:67 ../../source/use-cases.rst:156
+#: ../../source/use-cases.rst:209 ../../source/use-cases.rst:262
+#: ../../source/use-cases.rst:311 ../../source/use-cases.rst:364
+#: ../../source/use-cases.rst:419 ../../source/use-cases.rst:468
+#: ../../source/use-cases.rst:530 ../../source/use-cases.rst:580
+#: ../../source/use-cases.rst:671 ../../source/use-cases.rst:756
+#: ../../source/use-cases.rst:877 ../../source/use-cases.rst:972
+#: ../../source/use-cases.rst:1061
+msgid "Key patterns:"
+msgstr ""
+
+#: ../../source/use-cases.rst:69
+msgid "``Role`` wraps the agent with skills"
+msgstr ""
+
+#: ../../source/use-cases.rst:70
+msgid "``Event.quick_instantiate()`` creates a trigger event"
+msgstr ""
+
+#: ../../source/use-cases.rst:71
+msgid "``WorkFlow`` sequences the actions to execute"
+msgstr ""
+
+#: ../../source/use-cases.rst:72
+msgid "``Task`` carries input and can be proposed or created directly"
+msgstr ""
+
+#: ../../source/use-cases.rst:73
+msgid "``delegate()`` sends task to the workflow registered for that event"
+msgstr ""
+
+#: ../../source/use-cases.rst:76
+msgid "Retrieval-Augmented Generation (RAG)"
+msgstr ""
+
+#: ../../source/use-cases.rst:78
+msgid "Combine LLM with your document knowledge base using Milvus vector search."
+msgstr ""
+
+#: ../../source/use-cases.rst:158
+msgid "Inherit ``MilvusRAG`` capability for vector search"
+msgstr ""
+
+#: ../../source/use-cases.rst:159
+msgid "``init_client()`` initializes the Milvus connection"
+msgstr ""
+
+#: ../../source/use-cases.rst:160
+msgid "``view()`` creates or opens a collection"
+msgstr ""
+
+#: ../../source/use-cases.rst:161
+msgid "``consume_string()`` ingests documents"
+msgstr ""
+
+#: ../../source/use-cases.rst:162
+msgid "``aask_retrieved()`` combines retrieval with generation"
+msgstr ""
+
+#: ../../source/use-cases.rst:165
+msgid "Code Review"
+msgstr ""
+
+#: ../../source/use-cases.rst:167
+msgid "Automated code review with structured output."
+msgstr ""
+
+#: ../../source/use-cases.rst:211
+msgid "``Review`` capability provides structured review methods"
+msgstr ""
+
+#: ../../source/use-cases.rst:212
+msgid "``review_string()`` returns a structured review result"
+msgstr ""
+
+#: ../../source/use-cases.rst:213
+msgid "``supervisor_check()`` adds LLM validation layer"
+msgstr ""
+
+#: ../../source/use-cases.rst:214
+msgid "Results have ``display()`` for formatted output"
+msgstr ""
+
+#: ../../source/use-cases.rst:217
+msgid "Code Correction"
+msgstr ""
+
+#: ../../source/use-cases.rst:219
+msgid "Review code and automatically apply corrections based on review feedback."
+msgstr ""
+
+#: ../../source/use-cases.rst:264
+msgid ""
+"Combine ``Review`` and ``Correct`` capabilities for review-correction "
+"workflow"
+msgstr ""
+
+#: ../../source/use-cases.rst:265
+msgid "``review_string()`` with topic parameter for focused reviews"
+msgstr ""
+
+#: ../../source/use-cases.rst:266
+msgid "``correct_string()`` applies improvements identified in review"
+msgstr ""
+
+#: ../../source/use-cases.rst:269
+msgid "Task Proposal"
+msgstr ""
+
+#: ../../source/use-cases.rst:271
+msgid "Let the LLM propose tasks based on objectives."
+msgstr ""
+
+#: ../../source/use-cases.rst:313
+msgid "``ProposeTask`` capability lets LLM decompose objectives into tasks"
+msgstr ""
+
+#: ../../source/use-cases.rst:314
+msgid "``mode=\"agentic\"`` for complex autonomous decomposition"
+msgstr ""
+
+#: ../../source/use-cases.rst:315
+msgid "``mode=\"standard\"`` for simpler task proposals"
+msgstr ""
+
+#: ../../source/use-cases.rst:316
+msgid "Iterate over proposed tasks and delegate each"
+msgstr ""
+
+#: ../../source/use-cases.rst:319
+msgid "Structured Output"
+msgstr ""
+
+#: ../../source/use-cases.rst:321
+msgid "Get type-safe responses from LLM using Pydantic models."
+msgstr ""
+
+#: ../../source/use-cases.rst:366
+msgid "Define Pydantic model with expected fields"
+msgstr ""
+
+#: ../../source/use-cases.rst:367
+msgid "``aask_structured()`` returns typed instance"
+msgstr ""
+
+#: ../../source/use-cases.rst:368
+msgid "Automatic validation of LLM response"
+msgstr ""
+
+#: ../../source/use-cases.rst:371
+msgid "Extracting Structured Data"
+msgstr ""
+
+#: ../../source/use-cases.rst:373
+msgid "Extract information from unstructured text."
+msgstr ""
+
+#: ../../source/use-cases.rst:421
+msgid "``Extract`` capability for structured extraction from text"
+msgstr ""
+
+#: ../../source/use-cases.rst:422
+msgid "``extract_string()`` parses text into Pydantic model"
+msgstr ""
+
+#: ../../source/use-cases.rst:423
+msgid "Support for optional fields with defaults"
+msgstr ""
+
+#: ../../source/use-cases.rst:426
+msgid "Diff Editing"
+msgstr ""
+
+#: ../../source/use-cases.rst:428
+msgid ""
+"Automatically fix spelling, wording, and other text issues with diff-"
+"based editing."
+msgstr ""
+
+#: ../../source/use-cases.rst:470
+msgid "``DiffEdit`` capability for automatic text correction"
+msgstr ""
+
+#: ../../source/use-cases.rst:471
+msgid "``diff_edit()`` applies fixes while preserving meaning"
+msgstr ""
+
+#: ../../source/use-cases.rst:472
+msgid "``to_task_output()`` converts action result to task output"
+msgstr ""
+
+#: ../../source/use-cases.rst:473
+msgid "``delegate_blocking()`` for synchronous execution"
+msgstr ""
+
+#: ../../source/use-cases.rst:476
+msgid "Rule-Based Processing"
+msgstr ""
+
+#: ../../source/use-cases.rst:478
+msgid "Apply structured rules to content."
+msgstr ""
+
+#: ../../source/use-cases.rst:532
+msgid "Define rules with ``RuleSet`` - each rule has pattern, action, and message"
+msgstr ""
+
+#: ../../source/use-cases.rst:533
+msgid "Actions: ``reject`` blocks content, ``replace`` substitutes text"
+msgstr ""
+
+#: ../../source/use-cases.rst:534
+msgid "``apply_rules()`` processes content through all matching rules"
+msgstr ""
+
+#: ../../source/use-cases.rst:535
+msgid "Rules are executed in order, first match determines action"
+msgstr ""
+
+#: ../../source/use-cases.rst:538
+msgid "Content Improvement"
+msgstr ""
+
+#: ../../source/use-cases.rst:540
+msgid "Improve writing quality with style and clarity enhancements."
+msgstr ""
+
+#: ../../source/use-cases.rst:582
+msgid "``Improve`` capability for content enhancement"
+msgstr ""
+
+#: ../../source/use-cases.rst:583
+msgid "``improve_string()`` with style and focus parameters"
+msgstr ""
+
+#: ../../source/use-cases.rst:584
+msgid "Multiple improvement dimensions supported"
+msgstr ""
+
+#: ../../source/use-cases.rst:587
+msgid "Task Handling with File Operations"
+msgstr ""
+
+#: ../../source/use-cases.rst:589
+msgid "Write and save generated content to files using tool execution."
+msgstr ""
+
+#: ../../source/use-cases.rst:673
+msgid "``HandleTask`` capability enables tool execution within actions"
+msgstr ""
+
+#: ../../source/use-cases.rst:674
+msgid "``fs_toolbox`` provides file system operations (write, read, etc.)"
+msgstr ""
+
+#: ../../source/use-cases.rst:675
+msgid "``handle()`` executes skills with input/output schema"
+msgstr ""
+
+#: ../../source/use-cases.rst:676
+msgid "Chain multiple actions in a WorkFlow for pipeline execution"
+msgstr ""
+
+#: ../../source/use-cases.rst:677
+msgid "``dependencies_prompt`` passes data between workflow steps"
+msgstr ""
+
+#: ../../source/use-cases.rst:680
+msgid "Task Cancellation and Checkpoint"
+msgstr ""
+
+#: ../../source/use-cases.rst:682
+msgid "Cancel long-running tasks and retrieve partial outputs."
+msgstr ""
+
+#: ../../source/use-cases.rst:758
+msgid "``publish()`` triggers a workflow without waiting"
+msgstr ""
+
+#: ../../source/use-cases.rst:759
+msgid "``cancel()`` stops task execution"
+msgstr ""
+
+#: ../../source/use-cases.rst:760
+msgid "``get_output()`` retrieves partial results after cancellation"
+msgstr ""
+
+#: ../../source/use-cases.rst:761
+msgid "``extra_init_context`` provides initial state for workflows"
+msgstr ""
+
+#: ../../source/use-cases.rst:764
+msgid "Diary Generation from Commit History"
+msgstr ""
+
+#: ../../source/use-cases.rst:766
+msgid "Generate diaries from structured data like git commits."
+msgstr ""
+
+#: ../../source/use-cases.rst:879
+msgid "``read_dependency()`` reads external files with a registered reader"
+msgstr ""
+
+#: ../../source/use-cases.rst:880
+msgid "``goals`` list guides LLM behavior for structured output"
+msgstr ""
+
+#: ../../source/use-cases.rst:881
+msgid "``override_dependencies()`` replaces dependency source"
+msgstr ""
+
+#: ../../source/use-cases.rst:882
+msgid "``move_to()`` redirects task to a different event/workflow"
+msgstr ""
+
+#: ../../source/use-cases.rst:885
+msgid "Article Extraction and Storage"
+msgstr ""
+
+#: ../../source/use-cases.rst:887
+msgid "Extract key essence from articles and store in vector database."
+msgstr ""
+
+#: ../../source/use-cases.rst:974
+msgid "``ExtractArticleEssence`` extracts key content from articles"
+msgstr ""
+
+#: ../../source/use-cases.rst:975
+msgid "``FixArticleEssence`` post-processes extracted content"
+msgstr ""
+
+#: ../../source/use-cases.rst:976
+msgid "``PersistentAll`` saves extracted data to disk"
+msgstr ""
+
+#: ../../source/use-cases.rst:977
+msgid "``InjectToDB`` stores processed data in vector database"
+msgstr ""
+
+#: ../../source/use-cases.rst:978
+msgid "``gather_files`` collects files matching pattern"
+msgstr ""
+
+#: ../../source/use-cases.rst:979
+msgid "Custom ``reader`` function for domain-specific file handling"
+msgstr ""
+
+#: ../../source/use-cases.rst:982
+msgid "Anki Deck Generation"
+msgstr ""
+
+#: ../../source/use-cases.rst:984
+msgid "Generate Anki flashcards from CSV question banks."
+msgstr ""
+
+#: ../../source/use-cases.rst:1063
+msgid "``GenerateDeck`` capability for flashcard generation"
+msgstr ""
+
+#: ../../source/use-cases.rst:1064
+msgid "``generate_deck()`` creates deck from CSV column names and requirements"
+msgstr ""
+
+#: ../../source/use-cases.rst:1065
+msgid "``add_csv_data()`` associates question bank data with deck"
+msgstr ""
+
+#: ../../source/use-cases.rst:1066
+msgid "``compile_deck()`` produces .apkg package for Anki import"
+msgstr ""
+
+#: ../../source/use-cases.rst:1067
+msgid "``AppendTopicAnalysis`` provides topic analysis on CSV data"
+msgstr ""
+
+#: ../../source/use-cases.rst:1070
+msgid "Example Categories"
+msgstr ""
+
+#: ../../source/use-cases.rst:1072
+msgid "The repository includes the following example directories:"
+msgstr ""
+
+#: ../../source/use-cases.rst:1119
+msgid "Running Examples"
+msgstr ""
+

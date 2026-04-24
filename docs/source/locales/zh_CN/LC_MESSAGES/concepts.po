@@ -1,0 +1,310 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/concepts.rst:2
+msgid "Core Concepts"
+msgstr ""
+
+#: ../../source/concepts.rst:4
+msgid "This guide explains the fundamental concepts that power Fabricatio."
+msgstr ""
+
+#: ../../source/concepts.rst:7
+msgid "Event-Driven Architecture"
+msgstr ""
+
+#: ../../source/concepts.rst:9
+msgid ""
+"Fabricatio uses an event-driven architecture where agents respond to "
+"events rather than direct method calls. This pattern enables loose "
+"coupling and flexible composition."
+msgstr ""
+
+#: ../../source/concepts.rst:12
+msgid "Event System"
+msgstr ""
+
+#: ../../source/concepts.rst:14
+msgid "Events are the triggers that initiate workflow execution:"
+msgstr ""
+
+#: ../../source/concepts.rst:26
+msgid "Events support:"
+msgstr ""
+
+#: ../../source/concepts.rst:28
+msgid "**Quick instantiation**: ``Event.quick_instantiate(name)``"
+msgstr ""
+
+#: ../../source/concepts.rst:29
+msgid "**String conversion**: ``.collapse()`` returns the event name"
+msgstr ""
+
+#: ../../source/concepts.rst:30
+msgid "**Custom payload**: Events can carry data (see advanced usage)"
+msgstr ""
+
+#: ../../source/concepts.rst:33
+msgid "EventEmitter Pattern"
+msgstr ""
+
+#: ../../source/concepts.rst:35
+msgid "The ``EventEmitter`` provides publish-subscribe functionality:"
+msgstr ""
+
+#: ../../source/concepts.rst:53
+msgid "Roles"
+msgstr ""
+
+#: ../../source/concepts.rst:55
+msgid ""
+"A ``Role`` is the primary agent entity that orchestrates skills and LLM "
+"interactions."
+msgstr ""
+
+#: ../../source/concepts.rst:73
+msgid "Role Lifecycle"
+msgstr ""
+
+#: ../../source/concepts.rst:95
+msgid "Skills"
+msgstr ""
+
+#: ../../source/concepts.rst:97
+msgid "A ``Skill`` maps an Event to a WorkFlow:"
+msgstr ""
+
+#: ../../source/concepts.rst:108
+msgid ""
+"Skills are stored in the Role's skill registry and retrieved by event "
+"name during delegation."
+msgstr ""
+
+#: ../../source/concepts.rst:111
+msgid "WorkFlows"
+msgstr ""
+
+#: ../../source/concepts.rst:113
+msgid "A ``WorkFlow`` defines a sequence of Actions:"
+msgstr ""
+
+#: ../../source/concepts.rst:135
+msgid "WorkFlow Execution Flow"
+msgstr ""
+
+#: ../../source/concepts.rst:160
+msgid "Tasks"
+msgstr ""
+
+#: ../../source/concepts.rst:162
+msgid "``Task`` represents a unit of work:"
+msgstr ""
+
+#: ../../source/concepts.rst:175
+msgid "Task Properties"
+msgstr ""
+
+#: ../../source/concepts.rst:177
+msgid "``name``: Identifier for the task"
+msgstr ""
+
+#: ../../source/concepts.rst:178
+msgid "``briefing``: Instructions for execution"
+msgstr ""
+
+#: ../../source/concepts.rst:179
+msgid "``input``: Input data for actions"
+msgstr ""
+
+#: ../../source/concepts.rst:180
+msgid "``output``: Result after execution"
+msgstr ""
+
+#: ../../source/concepts.rst:181
+msgid "``status``: Current state (pending, running, completed, failed)"
+msgstr ""
+
+#: ../../source/concepts.rst:184
+msgid "Delegation Modes"
+msgstr ""
+
+#: ../../source/concepts.rst:200
+msgid "Actions"
+msgstr ""
+
+#: ../../source/concepts.rst:202
+msgid "``Action`` is the atomic execution unit:"
+msgstr ""
+
+#: ../../source/concepts.rst:223
+msgid "Action Lifecycle"
+msgstr ""
+
+#: ../../source/concepts.rst:248
+msgid "Capability Mixins"
+msgstr ""
+
+#: ../../source/concepts.rst:250
+msgid "Capabilities are mixins that provide reusable functionality:"
+msgstr ""
+
+#: ../../source/concepts.rst:253
+msgid "LLM Capability"
+msgstr ""
+
+#: ../../source/concepts.rst:255
+msgid "``UseLLM`` provides LLM interaction:"
+msgstr ""
+
+#: ../../source/concepts.rst:280
+msgid "Other Capabilities"
+msgstr ""
+
+#: ../../source/concepts.rst:283
+msgid "Capability"
+msgstr ""
+
+#: ../../source/concepts.rst:283
+msgid "Provides"
+msgstr ""
+
+#: ../../source/concepts.rst:285
+msgid "``UseLLM``"
+msgstr ""
+
+#: ../../source/concepts.rst:285
+msgid "LLM interaction methods"
+msgstr ""
+
+#: ../../source/concepts.rst:287
+msgid "``Review``"
+msgstr ""
+
+#: ../../source/concepts.rst:287
+msgid "Code/content review methods"
+msgstr ""
+
+#: ../../source/concepts.rst:289
+msgid "``Extract``"
+msgstr ""
+
+#: ../../source/concepts.rst:289
+msgid "Structured extraction from text"
+msgstr ""
+
+#: ../../source/concepts.rst:291
+msgid "``ProposeTask``"
+msgstr ""
+
+#: ../../source/concepts.rst:291
+msgid "Task proposal generation"
+msgstr ""
+
+#: ../../source/concepts.rst:293
+msgid "``Improve``"
+msgstr ""
+
+#: ../../source/concepts.rst:293
+msgid "Content improvement"
+msgstr ""
+
+#: ../../source/concepts.rst:295
+msgid "``Rule``"
+msgstr ""
+
+#: ../../source/concepts.rst:295
+msgid "Rule-based processing"
+msgstr ""
+
+#: ../../source/concepts.rst:297
+msgid "``MilvusRAG``"
+msgstr ""
+
+#: ../../source/concepts.rst:297
+msgid "Vector store RAG"
+msgstr ""
+
+#: ../../source/concepts.rst:301
+msgid "Logger Integration"
+msgstr ""
+
+#: ../../source/concepts.rst:303
+msgid "Fabricatio provides structured logging:"
+msgstr ""
+
+#: ../../source/concepts.rst:314
+msgid "Logger output includes:"
+msgstr ""
+
+#: ../../source/concepts.rst:316
+msgid "Timestamp"
+msgstr ""
+
+#: ../../source/concepts.rst:317
+msgid "Log level"
+msgstr ""
+
+#: ../../source/concepts.rst:318
+msgid "Module name"
+msgstr ""
+
+#: ../../source/concepts.rst:319
+msgid "Message"
+msgstr ""
+
+#: ../../source/concepts.rst:322
+msgid "Logger Configuration"
+msgstr ""
+
+#: ../../source/concepts.rst:330
+msgid "Async Execution"
+msgstr ""
+
+#: ../../source/concepts.rst:332
+msgid "All Fabricatio operations are async-first:"
+msgstr ""
+
+#: ../../source/concepts.rst:353
+msgid "Best Practices"
+msgstr ""
+
+#: ../../source/concepts.rst:355
+msgid ""
+"**Always use async/await** Never mix sync and async code without proper "
+"handling."
+msgstr ""
+
+#: ../../source/concepts.rst:358
+msgid "**Handle exceptions** Use try/except for graceful error handling:"
+msgstr ""
+
+#: ../../source/concepts.rst:368
+msgid ""
+"**Set appropriate timeouts** Configure timeouts for long-running "
+"operations:"
+msgstr ""
+
+#: ../../source/concepts.rst:376
+msgid ""
+"**Use structured output for reliability** Prefer ``aask_structured()`` "
+"over ``aask()`` when possible."
+msgstr ""
+

@@ -1,0 +1,224 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/workflow-patterns.rst:2
+msgid "Workflow Patterns"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:4
+msgid ""
+"This guide documents common workflow patterns and best practices for "
+"building Fabricatio applications."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:7
+msgid "Event Flow Overview"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:9
+msgid "Fabricatio's event-driven architecture follows a consistent flow pattern:"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:53
+msgid "Simple Action Workflow"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:55
+msgid "The most basic pattern - a single action responding to an event."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:99
+msgid "Multi-Step Pipeline"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:101
+msgid "Chain multiple actions where each step's output feeds into the next."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:171
+msgid "Parallel Actions"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:173
+msgid "Execute multiple independent actions concurrently."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:233
+msgid "Conditional Branching"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:235
+msgid "Use different workflows based on task characteristics."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:291
+msgid "Task Proposal Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:293
+msgid "Let the LLM decompose a goal into multiple tasks."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:355
+msgid "Error Handling Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:357
+msgid "Graceful error handling with fallback actions."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:423
+msgid "RAG Workflow Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:425
+msgid "Retrieval-augmented generation with document ingestion and query."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:499
+msgid "Structured Output Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:501
+msgid "Use Pydantic models for reliable structured responses."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:567
+msgid "Review-Improvement Loop"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:569
+msgid "Iterative refinement through review cycles."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:647
+msgid "Checkpoint Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:649
+msgid "Save workflow state for recovery."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:715
+msgid "Team Collaboration Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:717
+msgid "Multiple agents working together."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:792
+msgid "EventEmitter Wildcard Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:794
+msgid "Using wildcards for flexible event routing."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:879
+msgid "Task Lifecycle Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:881
+msgid "Task states and transitions."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:943
+msgid "Role and Skill Registration Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:945
+msgid "How roles register and handle skills."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1014
+msgid "Capability Mixin Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1016
+msgid "Combining capabilities with actions."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1078
+msgid "Role Inheritance Pattern"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1080
+msgid "Creating specialized roles through inheritance."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1169
+msgid "Best Practices Summary"
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1171
+msgid ""
+"**Keep Actions Single-Purpose** Small, focused actions are easier to test"
+" and reuse."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1174
+msgid ""
+"**Use Structured Output** ``aask_structured()`` provides reliable, typed "
+"responses."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1177
+msgid "**Handle Errors Explicitly** Use try/except and fallback workflows."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1180
+msgid "**Log Appropriately** Use ``logger`` for debugging and monitoring."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1183
+msgid "**Profile in Development** Use ``viztracer`` to identify bottlenecks."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1186
+msgid "**Configure Timeouts** Set reasonable timeouts for LLM calls."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1189
+msgid ""
+"**Test Workflows Independently** Unit test actions, integration test "
+"workflows."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1192
+msgid ""
+"**Use EventEmitter Wildcards Wisely** Wildcard patterns like ``user::*`` "
+"enable flexible routing but avoid overly broad matches that could cause "
+"unexpected behavior."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1196
+msgid ""
+"**Leverage Capability Mixins** Combine capabilities to create powerful "
+"actions without code duplication."
+msgstr ""
+
+#: ../../source/workflow-patterns.rst:1199
+msgid ""
+"**Design for Concurrency** Use ``asyncio.gather()`` for parallel action "
+"execution when actions are independent."
+msgstr ""
+

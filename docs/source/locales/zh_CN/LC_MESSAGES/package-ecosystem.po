@@ -1,0 +1,234 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/package-ecosystem.rst:2
+msgid "Package Ecosystem Guide"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:4
+msgid ""
+"Fabricatio is organized as a monorepo with 31 Python packages and 4 Rust "
+"crates. This guide provides an overview of the ecosystem and helps you "
+"understand which packages to use for your use case."
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:7
+msgid "Package Architecture"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:9
+msgid ""
+"The following diagram illustrates the high-level architecture and "
+"dependencies between packages:"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:56
+msgid "Package Categories"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:59
+msgid "Capability Packages"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:61
+msgid ""
+"These packages provide domain-specific capabilities that can be mixed "
+"into your Roles:"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:120
+msgid "Integration Packages"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:133
+msgid "Core Packages"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:145
+msgid "Rust Crates"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:162
+msgid "Quick Reference by Use Case"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:164
+msgid "**Simple Chat Agent**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:165
+msgid "``fabricatio-core`` + ``fabricatio-capabilities``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:167
+msgid "**RAG Application**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:168
+msgid "``fabricatio-rag`` or ``fabricatio-milvus``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:170
+msgid "**Code Review**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:171
+msgid "``fabricatio-core`` + ``fabricatio-capabilities`` + ``fabricatio-diff``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:173
+msgid "**Content Generation**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:174
+msgid "``fabricatio-core`` + ``fabricatio-improve`` + ``fabricatio-digest``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:176
+msgid "**Multi-Agent System**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:177
+msgid "``fabricatio-agent`` + ``fabricatio-team``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:179
+msgid "**Document Processing**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:180
+msgid "``fabricatio-core`` + ``fabricatio-rule`` + ``fabricatio-typst``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:182
+msgid "**Translation**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:183
+msgid "``fabricatio-translate`` + ``fabricatio-locale``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:185
+msgid "**Academic Writing**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:186
+msgid "``fabricatio-typst`` + ``fabricatio-rag``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:188
+msgid "**Novel Writing**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:189
+msgid "``fabricatio-novel`` + ``fabricatio-character``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:191
+msgid "**Flashcard Learning**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:192
+msgid "``fabricatio-anki`` + ``fabricatio-capabilities``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:195
+msgid "Package Dependencies Graph"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:307
+msgid "Installation Patterns"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:309
+msgid "**Minimal (core only)**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:310
+msgid "``pip install fabricatio``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:312
+msgid "**With RAG**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:313
+msgid "``pip install fabricatio[rag]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:315
+msgid "**With Milvus vector database**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:316
+msgid "``pip install fabricatio[milvus]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:318
+msgid "**With all capabilities**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:319
+msgid "``pip install fabricatio[full]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:321
+msgid "**Selective**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:322
+msgid "``pip install fabricatio[rag,rule,judge,capabilities,agent]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:324
+msgid "**Development workspace**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:325
+msgid "``pip install fabricatio[workspace,checkpoint]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:327
+msgid "**Academic writing**"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:328
+msgid "``pip install fabricatio[typst,rag]``"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:331
+msgid "Package Development"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:333
+msgid "Each package follows a consistent structure:"
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:349
+msgid ""
+"Package authors can use the ``make py`` command to generate new Python "
+"subpackages from templates."
+msgstr ""
+
+#: ../../source/package-ecosystem.rst:352
+msgid "External Dependencies Summary"
+msgstr ""
+

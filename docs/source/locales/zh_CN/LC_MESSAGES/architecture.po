@@ -1,0 +1,231 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Whth
+# This file is distributed under the same license as the fabricatio package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: fabricatio \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/architecture.rst:2
+msgid "Architecture Overview"
+msgstr ""
+
+#: ../../source/architecture.rst:4
+msgid ""
+"Fabricatio is a Python LLM application framework built with an event-"
+"driven, multi-agent architecture. It leverages Rust (via PyO3) for "
+"performance-critical components, Handlebars for templating, and async "
+"Python for workflow orchestration."
+msgstr ""
+
+#: ../../source/architecture.rst:7
+msgid "Event-Driven Agent Architecture"
+msgstr ""
+
+#: ../../source/architecture.rst:9
+msgid ""
+"At its core, Fabricatio implements an event-driven agent pattern where "
+"roles respond to events through registered skills that map to workflow "
+"sequences:"
+msgstr ""
+
+#: ../../source/architecture.rst:31
+msgid "Core Concepts"
+msgstr ""
+
+#: ../../source/architecture.rst:33
+msgid "**Role**"
+msgstr ""
+
+#: ../../source/architecture.rst:34
+msgid ""
+"The primary agent entity. A Role wraps a set of Skills and provides the "
+"interface for task delegation and LLM interaction."
+msgstr ""
+
+#: ../../source/architecture.rst:36
+msgid "**Event**"
+msgstr ""
+
+#: ../../source/architecture.rst:37
+msgid ""
+"A trigger mechanism using ``EventEmitter`` pattern. Events are identified"
+" by name and can be quickly instantiated via "
+"``Event.quick_instantiate()``."
+msgstr ""
+
+#: ../../source/architecture.rst:39
+msgid "**Skill**"
+msgstr ""
+
+#: ../../source/architecture.rst:40
+msgid ""
+"A named capability that maps an Event to a WorkFlow. Skills are stored in"
+" a Role's skill registry."
+msgstr ""
+
+#: ../../source/architecture.rst:42
+msgid "**WorkFlow**"
+msgstr ""
+
+#: ../../source/architecture.rst:43
+msgid ""
+"A sequence of Actions to execute. WorkFlows can be synchronous (blocking)"
+" or asynchronous."
+msgstr ""
+
+#: ../../source/architecture.rst:45
+msgid "**Task**"
+msgstr ""
+
+#: ../../source/architecture.rst:46
+msgid ""
+"A unit of work assigned to a Role. Tasks carry input data and can be "
+"delegated to registered Skills."
+msgstr ""
+
+#: ../../source/architecture.rst:48
+msgid "**Action**"
+msgstr ""
+
+#: ../../source/architecture.rst:49
+msgid ""
+"The atomic execution unit. Actions implement the actual logic and can "
+"access LLM capabilities through mixins."
+msgstr ""
+
+#: ../../source/architecture.rst:52
+msgid "Project Structure"
+msgstr ""
+
+#: ../../source/architecture.rst:54
+msgid "Fabricatio uses a hybrid Python/Rust monorepo structure:"
+msgstr ""
+
+#: ../../source/architecture.rst:146
+msgid "Rust Crates Architecture"
+msgstr ""
+
+#: ../../source/architecture.rst:148
+msgid ""
+"The Rust crates provide performance-critical functionality with Python "
+"bindings:"
+msgstr ""
+
+#: ../../source/architecture.rst:180
+msgid "Build System"
+msgstr ""
+
+#: ../../source/architecture.rst:182
+msgid "Fabricatio uses a hybrid Python/Rust build system:"
+msgstr ""
+
+#: ../../source/architecture.rst:204 ../../source/architecture.rst:402
+msgid "Key Technologies"
+msgstr ""
+
+#: ../../source/architecture.rst:206 ../../source/architecture.rst:404
+msgid "**PyO3**: Rust-Python bindings for native extension modules"
+msgstr ""
+
+#: ../../source/architecture.rst:207 ../../source/architecture.rst:409
+msgid "**maturin**: Build tool for Python extensions written in Rust"
+msgstr ""
+
+#: ../../source/architecture.rst:208 ../../source/architecture.rst:405
+msgid "**Handlebars.rs**: Rust template engine compiled to Python"
+msgstr ""
+
+#: ../../source/architecture.rst:209 ../../source/architecture.rst:406
+msgid "**async/await**: Full async execution with ``asyncio``"
+msgstr ""
+
+#: ../../source/architecture.rst:210 ../../source/architecture.rst:407
+msgid "**Pydantic V2**: Type validation and data models"
+msgstr ""
+
+#: ../../source/architecture.rst:211 ../../source/architecture.rst:408
+msgid "**uv**: Package management and workspace tooling"
+msgstr ""
+
+#: ../../source/architecture.rst:212
+msgid "**redb**: Embedded database for request caching"
+msgstr ""
+
+#: ../../source/architecture.rst:215
+msgid "Rust-Python Integration"
+msgstr ""
+
+#: ../../source/architecture.rst:217
+msgid ""
+"Fabricatio achieves tight Rust-Python integration through several "
+"mechanisms:"
+msgstr ""
+
+#: ../../source/architecture.rst:256
+msgid "Dependency Resolution Flow"
+msgstr ""
+
+#: ../../source/architecture.rst:258
+msgid "When Fabricatio processes an LLM request:"
+msgstr ""
+
+#: ../../source/architecture.rst:300
+msgid "Data Flow: RAG Pipeline"
+msgstr ""
+
+#: ../../source/architecture.rst:332
+msgid "Data Flow: Multi-Agent Team Collaboration"
+msgstr ""
+
+#: ../../source/architecture.rst:362
+msgid "Component Hierarchy"
+msgstr ""
+
+#: ../../source/architecture.rst:410
+msgid "**redb**: Embedded key-value store for request caching"
+msgstr ""
+
+#: ../../source/architecture.rst:411
+msgid "**tiktoken**: Token counting for rate limit estimation"
+msgstr ""
+
+#: ../../source/architecture.rst:414
+msgid "Configuration Priority"
+msgstr ""
+
+#: ../../source/architecture.rst:416
+msgid ""
+"Configuration values are resolved in the following order (highest to "
+"lowest priority):"
+msgstr ""
+
+#: ../../source/architecture.rst:440
+msgid "The ``ROAMING`` path is platform-dependent:"
+msgstr ""
+
+#: ../../source/architecture.rst:442
+msgid "**Linux**: ``$XDG_CONFIG_HOME`` or ``$HOME/.config/fabricatio``"
+msgstr ""
+
+#: ../../source/architecture.rst:443
+msgid "**macOS**: ``$HOME/Library/Application Support/fabricatio``"
+msgstr ""
+
+#: ../../source/architecture.rst:444
+msgid "**Windows**: ``%APPDATA%\\fabricatio``"
+msgstr ""
+

@@ -228,15 +228,15 @@ Configuration Sections
 +===========================+===========================+=========+
 | ``send_to``               | Default routing group     | ``base``|
 +---------------------------+---------------------------+---------+
-| ``max_completion_tokens`` | Max tokens in response    | ``16000``|
+| ``max_completion_tokens`` | Max tokens in response    |``16000``|
 +---------------------------+---------------------------+---------+
-| ``stream``                | Enable streaming responses| ``false``|
+| ``stream``                | Enable streaming responses|``false``|
 +---------------------------+---------------------------+---------+
-| ``temperature``           | Sampling temperature       | ``1.0`` |
+| ``temperature``           | Sampling temperature      | ``1.0`` |
 +---------------------------+---------------------------+---------+
 | ``top_p``                | Nucleus sampling threshold | ``1.0`` |
 +---------------------------+---------------------------+---------+
-| ``timeout``              | Request timeout (seconds) | ``120`` |
+| ``timeout``              | Request timeout (seconds)  | ``120`` |
 +---------------------------+---------------------------+---------+
 
 [routing]

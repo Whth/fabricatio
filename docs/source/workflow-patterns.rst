@@ -1,10 +1,10 @@
 Workflow Patterns
-================
+=================
 
 This guide documents common workflow patterns and best practices for building Fabricatio applications.
 
 Event Flow Overview
-------------------
+-------------------
 
 Fabricatio's event-driven architecture follows a consistent flow pattern:
 
@@ -50,7 +50,7 @@ Fabricatio's event-driven architecture follows a consistent flow pattern:
                                       └──────────────┘
 
 Simple Action Workflow
----------------------
+----------------------
 
 The most basic pattern - a single action responding to an event.
 
@@ -96,7 +96,7 @@ The most basic pattern - a single action responding to an event.
     result = await task.delegate_blocking("greet")
 
 Multi-Step Pipeline
-------------------
+-------------------
 
 Chain multiple actions where each step's output feeds into the next.
 
@@ -230,7 +230,7 @@ Execute multiple independent actions concurrently.
         return results
 
 Conditional Branching
---------------------
+---------------------
 
 Use different workflows based on task characteristics.
 
@@ -352,7 +352,7 @@ Let the LLM decompose a goal into multiple tasks.
         result = await executor.execute_step(task.briefing)
 
 Error Handling Pattern
----------------------
+----------------------
 
 Graceful error handling with fallback actions.
 
@@ -420,7 +420,7 @@ Graceful error handling with fallback actions.
     )
 
 RAG Workflow Pattern
--------------------
+--------------------
 
 Retrieval-augmented generation with document ingestion and query.
 
@@ -564,7 +564,7 @@ Use Pydantic models for reliable structured responses.
     print(f"Issues: {result.issues}")
 
 Review-Improvement Loop
-----------------------
+-----------------------
 
 Iterative refinement through review cycles.
 
@@ -644,7 +644,7 @@ Iterative refinement through review cycles.
         return content
 
 Checkpoint Pattern
------------------
+------------------
 
 Save workflow state for recovery.
 
@@ -876,7 +876,7 @@ Using wildcards for flexible event routing.
     # system_handler is called
 
 Task Lifecycle Pattern
----------------------
+----------------------
 
 Task states and transitions.
 
@@ -1166,7 +1166,7 @@ Creating specialized roles through inheritance.
     tasks = await planner.propose_task("Build a web app")
 
 Best Practices Summary
----------------------
+----------------------
 
 1. **Keep Actions Single-Purpose**
    Small, focused actions are easier to test and reuse.
