@@ -1,16 +1,15 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
-use fabricatio_logger::trace;
+use fabricatio_logger::{error, trace, warn};
+use futures::future::{join_all, try_join_all};
+use futures::FutureExt;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::sync::Arc;
 use thryd::tracker::Quota;
-use thryd::{
-    CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, ModelTypeTag, ProviderType,
-    RouteGroupName, Router as ThrydRouter, create_provider,
-};
+use thryd::{create_provider, Completion, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType, RouteGroupName, Router as ThrydRouter};
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
@@ -88,7 +87,69 @@ impl Router {
             r.invoke(send_to, req).await.into_pyresult()
         })
     }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
+        )
+    )]
+    #[pyo3(signature = (send_to, messages,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
+    )]
+    /// Sends a batch of completion requests to the specified group and returns all responses.
+    ///
+    /// Note:
+    ///     Although a 'stream' argument exists for protocol compatibility, this
+    ///     implementation always aggregates the full response before returning.
+    ///     It does not yield chunks asynchronously.
+    ///
+    /// Args:
+    ///     send_to (RouteGroupName): The router group name to route the completion requests.
+    ///     messages (List[str]): A list of user prompt contents.
+    ///     stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
+    ///     top_p (Optional[float]): Nucleus sampling parameter. Defaults to 1.0 if None.
+    ///     temperature (Optional[float]): Controls randomness. Defaults to 0.7 if None.
+    ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
+    ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
+    ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+    ///
+    /// Returns:
+    ///     List[str | None]: A list of complete aggregated response contents. Failed requests return None.
+    pub fn completion_batch<'a>(
+        &self,
+        python: Python<'a>,
+        send_to: RouteGroupName,
+        messages: Vec<String>,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let reqs = messages.into_iter().map(|message| CompletionRequest {
+            message,
+            top_p,
+            temperature,
+            stream,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        }).collect::<Vec<_>>();
 
+        let r = self.completion_router.clone();
+
+
+        future_into_py(python, async move {
+            Ok(join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+                .map(|results|
+                    results.into_iter().map(|res| if res.is_ok() {
+                        res.ok()
+                    } else {
+                        error!("Error in completion batch: {:?}", res);
+                        None
+                    }).collect::<Vec<Option<Completion>>>()
+                ).await)
+        })
+    }
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]", imports = ("typing",)
         )
@@ -113,6 +174,44 @@ impl Router {
 
         future_into_py(python, async move {
             r.invoke(send_to, req).await.into_pyresult()
+        })
+    }
+
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]|None]]", imports = ("typing",)
+        )
+    )]
+    /// Sends a batch of embedding requests to the specified group and returns all embedding vectors.
+    ///
+    /// Args:
+    ///     send_to (RouteGroupName): The router group name to route the embedding requests.
+    ///     texts (List[str]): A list of text strings to generate embeddings for.
+    ///
+    /// Returns:
+    ///     List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
+    ///         Failed requests return None.
+    pub fn embedding_batch<'a>(
+        &self,
+        python: Python<'a>,
+        send_to: RouteGroupName,
+        texts: Vec<String>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let reqs = texts.into_iter().map(|text| EmbeddingRequest {
+            texts: vec![text],
+        }).collect::<Vec<_>>();
+
+        let r = self.embedding_router.clone();
+
+        future_into_py(python, async move {
+            Ok(join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+                .map(|results|
+                    results.into_iter().map(|res| if res.is_ok() {
+                        res.ok()
+                    } else {
+                        error!("Error in embedding batch: {:?}", res);
+                        None
+                    }).collect::<Vec<Option<Embeddings>>>()
+                ).await)
         })
     }
 
@@ -146,7 +245,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -243,7 +342,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         router.add_or_update_provider(p);
     }
