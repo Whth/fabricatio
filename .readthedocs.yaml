@@ -14,8 +14,8 @@ build:
       - pip install uv
     post_install:
       - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      - export PATH="$HOME/.cargo/bin:$PATH" && rustup default nightly
-      - . $READTHEDOCS_VIRTUALENV_PATH/bin/activate && uv sync --no-install-project --group docs --index https://pypi.org/simple --active --inexact
+      - rustup default nightly
+      - export PATH="$HOME/.cargo/bin:$PATH" && . $READTHEDOCS_VIRTUALENV_PATH/bin/activate && uv sync --no-install-project --group docs --index https://pypi.org/simple --active --inexact
 
 
       # Build documentation in the "docs/" directory with Sphinx
