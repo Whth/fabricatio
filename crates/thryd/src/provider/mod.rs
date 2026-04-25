@@ -7,7 +7,7 @@ pub use openai::*;
 use crate::ThrydError::ModelNotSupported;
 use crate::connections::{CONNECTIONS_POOL, ClientEntry};
 use crate::model::{CompletionModel, EmbeddingModel};
-use crate::{ProviderName, Result, ThrydError};
+use crate::{ModelName, ProviderName, RerankerModel, Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
@@ -60,7 +60,7 @@ pub trait Provider: Send + Sync {
 
     fn create_completion_model(
         self: Arc<Self>,
-        model_name: String,
+        model_name: ModelName,
     ) -> Result<Box<dyn CompletionModel>> {
         Err(ModelNotSupported {
             model: model_name,
@@ -70,8 +70,18 @@ pub trait Provider: Send + Sync {
 
     fn create_embedding_model(
         self: Arc<Self>,
-        model_name: String,
+        model_name: ModelName,
     ) -> Result<Box<dyn EmbeddingModel>> {
+        Err(ModelNotSupported {
+            model: model_name,
+            provider: self.provider_name().to_string(),
+        })
+    }
+
+    fn create_reranker_model(
+        self: Arc<Self>,
+        model_name: ModelName,
+    ) -> Result<Box<dyn RerankerModel>> {
         Err(ModelNotSupported {
             model: model_name,
             provider: self.provider_name().to_string(),

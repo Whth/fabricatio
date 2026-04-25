@@ -6,7 +6,7 @@ use async_openai::types::chat::{
     CreateChatCompletionStreamResponse,
 };
 
-use crate::ThrydError;
+use crate::{Completion, Embeddings, ThrydError};
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
@@ -72,7 +72,7 @@ impl Model for OpenaiModel {
 
 #[async_trait]
 impl CompletionModel for OpenaiModel {
-    async fn completion(&self, request: CompletionRequest) -> crate::Result<String> {
+    async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion> {
         let stream = request.stream;
         let request = CreateChatCompletionRequest {
             top_p: request.top_p,
@@ -150,7 +150,7 @@ impl CompletionModel for OpenaiModel {
 
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<Vec<f32>>> {
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Embeddings> {
         let request = CreateEmbeddingRequestArgs::default()
             .model(self.model_name())
             .input(request.texts)
@@ -166,6 +166,6 @@ impl EmbeddingModel for OpenaiModel {
             .data
             .into_iter()
             .map(|e| e.embedding)
-            .collect::<Vec<Vec<f32>>>())
+            .collect::<Embeddings>())
     }
 }

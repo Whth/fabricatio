@@ -19,6 +19,15 @@ pub struct CompletionRequest {
     pub presence_penalty: Option<f32>,
     pub frequency_penalty: Option<f32>,
 }
+#[derive(Debug, Clone, Serialize)]
+pub struct RerankerRequest {
+    pub query: String,
+    pub documents: Vec<String>,
+}
+
+pub type Ranking = Vec<(usize, f32)>;
+pub type Embeddings = Vec<Vec<f32>>;
+pub type Completion = String;
 
 pub trait Model: Send + Sync {
     fn model_name(&self) -> &str;
@@ -36,10 +45,15 @@ pub trait Model: Send + Sync {
 
 #[async_trait]
 pub trait CompletionModel: Model {
-    async fn completion(&self, request: CompletionRequest) -> crate::Result<String>;
+    async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion>;
 }
 
 #[async_trait]
 pub trait EmbeddingModel: Model {
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Vec<Vec<f32>>>;
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Embeddings>;
+}
+
+#[async_trait]
+pub trait RerankerModel: Model {
+    async fn rerank(&self, request: RerankerRequest) -> crate::Result<Ranking>;
 }

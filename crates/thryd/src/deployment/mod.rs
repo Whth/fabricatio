@@ -1,9 +1,28 @@
-use crate::Result;
-use crate::UsageTracker;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::tracker::count_token;
+use crate::{
+    Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, Result, UsageTracker,
+};
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};
+
+macro_rules! with_tracking {
+    ($tracker:expr, $input:expr, $res:expr) => {{
+        if $res.is_ok() {
+            $tracker
+                .lock()
+                .await
+                .add_request_raw($input, "".to_string());
+        }
+        $res
+    }};
+    ($tracker:expr, $input:expr, $res:expr, $output:expr) => {{
+        if $res.is_ok() {
+            $tracker.lock().await.add_request_raw($input, $output);
+        }
+        $res
+    }};
+}
 
 pub struct Deployment<M: ?Sized + Model> {
     model: Box<M>,
@@ -57,33 +76,47 @@ impl<M: ?Sized + Model> Deployment<M> {
         }
     }
 
-    pub async fn completion(&self, request: CompletionRequest) -> Result<String>
+    pub async fn completion(&self, request: CompletionRequest) -> Result<Completion>
     where
         M: CompletionModel,
     {
-        let input = request.message.to_string();
-        let res = self.model.completion(request).await;
-        if let Some(tracker) = self.usage_tracker.as_ref()
-            && let Ok(r) = &res
-        {
-            tracker.lock().await.add_request_raw(input, r.to_string());
+        if let Some(tracker) = &self.usage_tracker {
+            let input = request.message.clone();
+            let res = self.model.completion(request).await;
+            with_tracking!(
+                tracker,
+                input,
+                res,
+                res.as_ref().map(|r| r.to_string()).unwrap_or_default()
+            )
+        } else {
+            self.model.completion(request).await
         }
-
-        res
     }
 
-    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Vec<Vec<f32>>>
+    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Embeddings>
     where
         M: EmbeddingModel,
     {
-        let input = request.texts.iter().cloned().collect();
-        let res = self.model.embedding(request).await;
-        if let Some(tracker) = self.usage_tracker.as_ref()
-            && res.is_ok()
-        {
-            tracker.lock().await.add_request_raw(input, "".to_string());
+        if let Some(tracker) = &self.usage_tracker {
+            let input = request.texts.iter().cloned().collect();
+            let res = self.model.embedding(request).await;
+            with_tracking!(tracker, input, res)
+        } else {
+            self.model.embedding(request).await
         }
+    }
 
-        res
+    pub async fn rerank(&self, request: RerankerRequest) -> Result<Ranking>
+    where
+        M: RerankerModel,
+    {
+        if let Some(tracker) = &self.usage_tracker {
+            let input = request.documents.iter().cloned().collect();
+            let res = self.model.rerank(request).await;
+            with_tracking!(tracker, input, res)
+        } else {
+            self.model.rerank(request).await
+        }
     }
 }

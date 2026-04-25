@@ -2,7 +2,9 @@ use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
-use crate::{PersistentCache, ThrydError};
+use crate::{
+    Completion, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest, ThrydError,
+};
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -241,11 +243,40 @@ pub trait ModelTypeTag {
 pub struct CompletionTag;
 #[derive(Default)]
 pub struct EmbeddingTag;
+
+#[derive(Default)]
+pub struct RerankerTag;
+
+#[async_trait]
+impl ModelTypeTag for RerankerTag {
+    type Model = dyn RerankerModel;
+    type Request = RerankerRequest;
+    type Response = Ranking;
+
+    fn create_model(
+        provider: Arc<dyn Provider>,
+        model_name: ModelName,
+    ) -> Result<Box<Self::Model>> {
+        provider.create_reranker_model(model_name)
+    }
+
+    fn prepare_input_text(request: &Self::Request) -> String {
+        request.documents.iter().cloned().collect()
+    }
+
+    async fn execute_request(
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        deployment.rerank(request).await
+    }
+}
+
 #[async_trait]
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
     type Request = CompletionRequest;
-    type Response = String;
+    type Response = Completion;
 
     fn create_model(
         provider: Arc<dyn Provider>,
@@ -270,7 +301,7 @@ impl ModelTypeTag for CompletionTag {
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
     type Request = EmbeddingRequest;
-    type Response = Vec<Vec<f32>>;
+    type Response = Embeddings;
 
     fn create_model(
         provider: Arc<dyn Provider>,
