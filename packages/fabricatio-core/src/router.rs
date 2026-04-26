@@ -1,15 +1,19 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
-use fabricatio_logger::{error, trace, warn};
-use futures::future::{join_all, try_join_all};
+use fabricatio_logger::{error, trace};
 use futures::FutureExt;
+use futures::future::join_all;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::sync::Arc;
 use thryd::tracker::Quota;
-use thryd::{create_provider, Completion, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType, RouteGroupName, Router as ThrydRouter};
+use thryd::{
+    Completion, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Embeddings,
+    ModelTypeTag, ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter,
+    create_provider,
+};
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
@@ -17,17 +21,95 @@ use thryd::{create_provider, Completion, CompletionRequest, CompletionTag, Embed
 pub struct Router {
     pub embedding_router: Arc<ThrydRouter<EmbeddingTag>>,
     pub completion_router: Arc<ThrydRouter<CompletionTag>>,
+    pub reranker_router: Arc<ThrydRouter<RerankerTag>>,
 }
 
 impl Router {
     pub fn new(
         embedding_router: ThrydRouter<EmbeddingTag>,
         completion_router: ThrydRouter<CompletionTag>,
+        reranker_router: ThrydRouter<RerankerTag>,
     ) -> Self {
         Self {
             embedding_router: Arc::new(embedding_router),
             completion_router: Arc::new(completion_router),
+            reranker_router: Arc::new(reranker_router),
         }
+    }
+
+    pub async fn embedding_batch_rs(
+        self,
+        send_to: RouteGroupName,
+        reqs: Vec<EmbeddingRequest>,
+    ) -> Vec<Option<Embeddings>> {
+        Self::embedding_batch_inner(send_to, reqs, self.embedding_router.clone()).await
+    }
+
+    pub async fn embedding_batch_inner(
+        send_to: RouteGroupName,
+        reqs: Vec<EmbeddingRequest>,
+        r: Arc<ThrydRouter<EmbeddingTag>>,
+    ) -> Vec<Option<Embeddings>> {
+        join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+            .map(|results| {
+                results
+                    .into_iter()
+                    .map(|res| {
+                        if res.is_ok() {
+                            res.ok()
+                        } else {
+                            error!("Error in embedding batch: {:?}", res);
+                            None
+                        }
+                    })
+                    .collect::<Vec<Option<Embeddings>>>()
+            })
+            .await
+    }
+
+    pub async fn completion_batch_rs(
+        &self,
+        send_to: RouteGroupName,
+        reqs: Vec<CompletionRequest>,
+    ) -> Vec<Option<Completion>> {
+        Self::completion_batch_inner(send_to, reqs, self.completion_router.clone()).await
+    }
+
+    pub async fn completion_batch_inner(
+        send_to: RouteGroupName,
+        reqs: Vec<CompletionRequest>,
+        r: Arc<ThrydRouter<CompletionTag>>,
+    ) -> Vec<Option<Completion>> {
+        join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+            .map(|results| {
+                results
+                    .into_iter()
+                    .map(|res| {
+                        if res.is_ok() {
+                            res.ok()
+                        } else {
+                            error!("Error in completion batch: {:?}", res);
+                            None
+                        }
+                    })
+                    .collect::<Vec<Option<Completion>>>()
+            })
+            .await
+    }
+
+    pub async fn completion_rs(
+        self,
+        send_to: RouteGroupName,
+        req: CompletionRequest,
+    ) -> PyResult<Completion> {
+        Self::completion_inner(send_to, req, self.completion_router.clone()).await
+    }
+    pub async fn completion_inner(
+        send_to: RouteGroupName,
+        req: CompletionRequest,
+        r: Arc<ThrydRouter<CompletionTag>>,
+    ) -> PyResult<Completion> {
+        r.invoke(send_to, req).await.into_pyresult()
     }
 }
 
@@ -84,9 +166,10 @@ impl Router {
         let r = self.completion_router.clone();
 
         future_into_py(python, async move {
-            r.invoke(send_to, req).await.into_pyresult()
+            Self::completion_inner(send_to, req, r).await
         })
     }
+
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
@@ -125,31 +208,26 @@ impl Router {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let reqs = messages.into_iter().map(|message| CompletionRequest {
-            message,
-            top_p,
-            temperature,
-            stream,
-            max_completion_tokens,
-            presence_penalty,
-            frequency_penalty,
-        }).collect::<Vec<_>>();
+        let reqs = messages
+            .into_iter()
+            .map(|message| CompletionRequest {
+                message,
+                top_p,
+                temperature,
+                stream,
+                max_completion_tokens,
+                presence_penalty,
+                frequency_penalty,
+            })
+            .collect::<Vec<_>>();
 
         let r = self.completion_router.clone();
 
-
         future_into_py(python, async move {
-            Ok(join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
-                .map(|results|
-                    results.into_iter().map(|res| if res.is_ok() {
-                        res.ok()
-                    } else {
-                        error!("Error in completion batch: {:?}", res);
-                        None
-                    }).collect::<Vec<Option<Completion>>>()
-                ).await)
+            Ok(Self::completion_batch_inner(send_to, reqs, r).await)
         })
     }
+
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]]]", imports = ("typing",)
         )
@@ -196,22 +274,15 @@ impl Router {
         send_to: RouteGroupName,
         texts: Vec<String>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let reqs = texts.into_iter().map(|text| EmbeddingRequest {
-            texts: vec![text],
-        }).collect::<Vec<_>>();
+        let reqs = texts
+            .into_iter()
+            .map(|text| EmbeddingRequest { texts: vec![text] })
+            .collect::<Vec<_>>();
 
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            Ok(join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
-                .map(|results|
-                    results.into_iter().map(|res| if res.is_ok() {
-                        res.ok()
-                    } else {
-                        error!("Error in embedding batch: {:?}", res);
-                        None
-                    }).collect::<Vec<Option<Embeddings>>>()
-                ).await)
+            Ok(Self::embedding_batch_inner(send_to, reqs, r).await)
         })
     }
 
@@ -245,7 +316,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -342,7 +413,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         router.add_or_update_provider(p);
     }
@@ -382,15 +453,20 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
 ///     A new Router instance configured according to the config.
 pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     trace!("Initializing router from config");
-    let (cr, er) = if let Some(p) = config.routing.cache_database_path.as_ref() {
+    let (cr, er, rr) = if let Some(p) = config.routing.cache_database_path.as_ref() {
         trace!("Mounting cache databases at {}", p.display());
         fs::create_dir_all(p).into_pyresult()?;
         (
             ThrydRouter::with_cache(p.join("completions")).into_pyresult()?,
             ThrydRouter::with_cache(p.join("embeddings")).into_pyresult()?,
+            ThrydRouter::with_cache(p.join("rankings")).into_pyresult()?,
         )
     } else {
-        (ThrydRouter::default(), ThrydRouter::default())
+        (
+            ThrydRouter::default(),
+            ThrydRouter::default(),
+            ThrydRouter::default(),
+        )
     };
     let cr = add_providers_from_configs(cr, config.routing.providers.clone())?;
     let cr = add_models_from_configs(cr, config.routing.completion_deployments.clone())?;
@@ -398,7 +474,7 @@ pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
     let er = add_providers_from_configs(er, config.routing.providers.clone())?;
     let er = add_models_from_configs(er, config.routing.embedding_deployments.clone())?;
 
-    Ok(Router::new(er, cr))
+    Ok(Router::new(er, cr, rr))
 }
 
 /// Counts the number of tokens in a text string.
