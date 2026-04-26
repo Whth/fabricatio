@@ -5,6 +5,7 @@ use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_logger::warn;
 use llm_json::repair_json;
+use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
 use pyo3_stub_gen::derive::*;
@@ -12,6 +13,7 @@ use pythonize::pythonize;
 use regex::{Captures, Regex};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -204,7 +206,8 @@ impl TextCapturer {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
 pub struct JsonParser {
     capturer: TextCapturer,
 }
@@ -213,7 +216,7 @@ impl JsonParser {
     fn fix_json_string(json: impl AsRef<str>) -> PyResult<String> {
         repair_json(json.as_ref(), &Default::default()).into_pyresult()
     }
-    fn deserialize<T: DeserializeOwned>(text: impl AsRef<str>, fix: bool) -> PyResult<T> {
+    pub fn deserialize<T: DeserializeOwned>(text: impl AsRef<str>, fix: bool) -> PyResult<T> {
         if fix {
             serde_json::from_str::<T>(Self::fix_json_string(text)?.as_str()).into_pyresult()
         } else {
@@ -250,6 +253,10 @@ impl JsonParser {
     #[staticmethod]
     pub fn with_capturer(capturer: TextCapturer) -> Self {
         Self { capturer }
+    }
+    #[staticmethod]
+    pub fn capture_json_codeblock() -> Self {
+        JsonParser::with_capturer(TextCapturer::capture_code_block(var_names::JSON_LANG).unwrap())
     }
 
     /// Captures and optionally repairs the first JSON match in text.
@@ -359,7 +366,7 @@ impl JsonParser {
         length: Option<usize>,
         fix: bool,
     ) -> Option<Bound<'a, PyList>> {
-        self.convert(python, text, fix)
+        let val_list = self.convert(python, text, fix)
             .and_then(|val| {
                 val.cast_into_exact::<PyList>()
                     .map_err(|_| {
@@ -370,43 +377,34 @@ impl JsonParser {
                         );
                     })
                     .ok()
-            })
-            .and_then(|val_list| {
-                let len = val_list.len();
-                (length.is_none() || length.is_some_and(|l| l == 0) || length.is_some_and(|l| len == l))
-                    .then_some(&val_list)
-                    .map_or_else(
-                        || {
-                            warn!(
-                                "validate_list: length mismatch - expected {:?}, got {}",
-                                length,
-                                len
-                            );
-                            None
-                        },
-                        |_| Some(val_list.clone()),
-                    )
-            })
-            .and_then(|val_list| {
-                elements_type
-                    .map(|t| {
-                        val_list
-                            .iter()
-                            .all(|item| item.is_instance(t).unwrap_or(false))
-                    })
-                    .unwrap_or(true)
-                    .then_some(&val_list)
-                    .map_or_else(
-                        || {
-                            warn!(
-                                "validate_list: element type check failed for type={:?}",
-                                elements_type.map(|t| t.to_string())
-                            );
-                            None
-                        },
-                        |_| Some(val_list.clone()),
-                    )
-            })
+            })?;
+
+        let len = val_list.len();
+        if let Some(l) = length
+            && l != 0 && len != l {
+                warn!("validate_list: length mismatch - expected {:?}, got {}", length, len);
+                return None;
+            }
+
+        if let Some(t) = elements_type
+            && !val_list.iter().all(|item| item.is_instance(t).unwrap_or(false)) {
+                warn!("validate_list: element type check failed for type={:?}", t.to_string());
+                return None;
+            }
+
+        Some(val_list)
+    }
+
+
+    pub fn validate_list_str(&self, text: &str, length: Option<usize>, fix: bool) -> Option<Vec<String>> {
+        let val = Self::deserialize::<Vec<String>>(text, fix).ok()?;
+        let len = val.len();
+        if let Some(l) = length
+            && l != 0 && len != l {
+                warn!("validate_list_str: length mismatch - expected {:?}, got {}", length, len);
+                return None;
+            }
+        Some(val)
     }
 
     /// Validates that the text parses to a dictionary with optional constraints.
@@ -438,68 +436,58 @@ impl JsonParser {
         length: Option<usize>,
         fix: bool,
     ) -> Option<Bound<'a, PyDict>> {
-        self.convert(python, text, fix)
+        let val_dict = self.convert(python, text, fix)
             .and_then(|val| {
                 val.cast_into_exact::<PyDict>()
                     .map_err(|_| {
-                        warn!(
-                            "validate_dict: validation failed for text with length={:?}",
-                            length
-                        );
+                        warn!("validate_dict: validation failed for text with length={:?}", length);
                     })
                     .ok()
-            })
-            .and_then(|val_dict| {
-                let len = val_dict.len();
-                (length.is_none()
-                    || length.is_some_and(|l| l == 0)
-                    || length.is_some_and(|l| len == l))
-                .then_some(&val_dict)
-                .map_or_else(
-                    || {
-                        warn!(
-                            "validate_dict: length mismatch - expected {:?}, got {}",
-                            length, len
-                        );
-                        None
-                    },
-                    |_| Some(val_dict.clone()),
-                )
-            })
-            .and_then(|val_dict| {
-                let key_check = key_type.is_none()
-                    || key_type.is_some_and(|t| {
-                        val_dict
-                            .keys()
-                            .iter()
-                            .all(|item| item.is_instance(t).unwrap_or(false))
-                    });
+            })?;
 
-                let value_check = value_type.is_none()
-                    || value_type.is_some_and(|t| {
-                        val_dict
-                            .values()
-                            .iter()
-                            .all(|item| item.is_instance(t).unwrap_or(false))
-                    });
 
-                (key_check && value_check).then_some(&val_dict).map_or_else(
-                    || {
-                        warn!(
-                            "validate_dict: type check failed with key_type={:?}, value_type={:?}",
-                            key_type.map(|t| t.to_string()),
-                            value_type.map(|t| t.to_string())
-                        );
-                        None
-                    },
-                    |_| Some(val_dict.clone()),
-                )
-            })
+        let len = val_dict.len();
+        if let Some(l) = length
+            && l != 0 && len != l {
+                warn!("validate_dict: length mismatch - expected {:?}, got {}", length, len);
+                return None;
+            }
+
+        if let Some(t) = key_type
+            && !val_dict.keys().iter().all(|item| item.is_instance(t).unwrap_or(false)) {
+                warn!("validate_dict: type check failed with key_type={:?}", t.to_string());
+                return None;
+            }
+
+        if let Some(t) = value_type
+            && !val_dict.values().iter().all(|item| item.is_instance(t).unwrap_or(false)) {
+                warn!("validate_dict: type check failed with value_type={:?}", t.to_string());
+                return None;
+            }
+
+        Some(val_dict)
+    }
+
+    pub fn validate_dict_str_str(
+        &self,
+        text: &str,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<HashMap<String, String>> {
+        let val = Self::deserialize::<HashMap<String, String>>(text, fix).ok()?;
+        let len = val.len();
+        if let Some(l) = length
+            && l != 0 && len != l {
+                warn!("validate_dict_str_str: length mismatch - expected {:?}, got {}", length, len);
+                return None;
+            }
+        Some(val)
     }
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
 pub struct CodeBlockParser {
     capturer: TextCapturer,
     #[pyo3(get)]
@@ -530,6 +518,11 @@ impl CodeBlockParser {
     #[staticmethod]
     pub fn with_language(language: &str) -> PyResult<Self> {
         Self::new(language)
+    }
+
+    #[staticmethod]
+    pub fn capture_python() -> Self {
+        Self::with_language(var_names::PYTHON_LANG).unwrap()
     }
 
     /// Capture the first code block match in the text.
@@ -588,7 +581,8 @@ impl CodeSnippet {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
 pub struct CodeSnippetParser {
     capturer: TextCapturer,
     #[pyo3(get)]
@@ -626,6 +620,15 @@ impl CodeSnippetParser {
         Self::new(left_sep, right_sep)
     }
 
+    #[staticmethod]
+    pub fn default() -> Self {
+        Self::with_separators(
+            var_names::SNIPPET_LEFT_SEP,
+            var_names::SNIPPET_RIGHT_SEP,
+        ).unwrap()
+    }
+
+
     /// Parse text into path-content pairs.
     ///
     /// Captures all snippet matches from the text and groups them into pairs,
@@ -648,7 +651,8 @@ impl CodeSnippetParser {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
 pub struct GenericBlockParser {
     capturer: TextCapturer,
     #[pyo3(get)]
@@ -681,6 +685,12 @@ impl GenericBlockParser {
         Self::new(block_type)
     }
 
+    #[staticmethod]
+    pub fn capture_generic_string() -> Self {
+        GenericBlockParser::with_block_type(var_names::GENERIC_BLOCK_TYPE).unwrap()
+    }
+
+
     /// Capture the first generic block match in the text.
     ///
     /// Returns the captured block content or None if no match is found.
@@ -697,7 +707,8 @@ impl GenericBlockParser {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
 pub struct ContentBlockParser {
     capturer: TextCapturer,
     #[pyo3(get)]
@@ -778,6 +789,20 @@ cfg_if!(
     }
 );
 
+
+
+
+
+
+pub static JSON_PARSER: Lazy<JsonParser> = Lazy::new(JsonParser::capture_json_codeblock);
+
+pub static PYTHON_PARSER: Lazy<CodeBlockParser> = Lazy::new(CodeBlockParser::capture_python);
+
+
+pub static GENERIC_PARSER: Lazy<GenericBlockParser> = Lazy::new(GenericBlockParser::capture_generic_string);
+
+
+pub static SNIPPET_PARSER: Lazy<CodeSnippetParser> = Lazy::new(CodeSnippetParser::default);
 /// Registers the parser classes with the Python module.
 ///
 /// Args:
@@ -796,29 +821,20 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ContentBlockParser>()?;
     m.add(
         var_names::JSON_PARSER,
-        JsonParser::with_capturer(TextCapturer::capture_code_block(var_names::JSON_LANG)?),
+        JSON_PARSER.to_owned(),
     )?;
     m.add(
         var_names::PYTHON_PARSER,
-        CodeBlockParser::with_language(var_names::PYTHON_LANG)?,
+        PYTHON_PARSER.to_owned(),
     )?;
     m.add(
         var_names::GENERIC_PARSER,
-        GenericBlockParser::with_block_type(var_names::GENERIC_BLOCK_TYPE)?,
+        GENERIC_PARSER.to_owned(),
     )?;
     m.add(
         var_names::SNIPPET_PARSER,
-        CodeSnippetParser::with_separators(
-            var_names::SNIPPET_LEFT_SEP,
-            var_names::SNIPPET_RIGHT_SEP,
-        )?,
+        SNIPPET_PARSER.to_owned(),
     )?;
-    m.add(
-        stringify!(GENERIC_BLOCK_TYPE),
-        var_names::GENERIC_BLOCK_TYPE,
-    )?;
-    m.add(stringify!(SNIPPET_LEFT_SEP), var_names::SNIPPET_LEFT_SEP)?;
-    m.add(stringify!(SNIPPET_RIGHT_SEP), var_names::SNIPPET_RIGHT_SEP)?;
 
     Ok(())
 }
