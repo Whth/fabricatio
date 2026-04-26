@@ -201,6 +201,7 @@ impl RouterUsage {
 #[pymethods]
 impl RouterUsage {
     #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
     pub fn ask<'a>(
         &self,
         python: Python<'a>,
@@ -245,6 +246,7 @@ impl RouterUsage {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
     pub fn mapping_strings<'a>(
         &self,
         python: Python<'a>,

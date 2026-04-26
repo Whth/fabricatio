@@ -822,10 +822,6 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, CodeBlockParser);
         module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, GenericBlockParser);
         module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, CodeSnippetParser);
-        module_variable!("fabricatio_core.rust", "GENERIC_BLOCK_TYPE", &str,var_names::GENERIC_BLOCK_TYPE);
-        module_variable!("fabricatio_core.rust", "SNIPPET_LEFT_SEP",  &str,var_names::SNIPPET_LEFT_SEP);
-        module_variable!("fabricatio_core.rust", "SNIPPET_RIGHT_SEP",  &str,var_names::SNIPPET_RIGHT_SEP);
-
     }
 );
 
