@@ -12,13 +12,13 @@ mod formatter;
 mod hash;
 mod hbs_helpers;
 mod language;
+pub mod router_usage;
 mod parser;
 mod router;
 mod scan;
 mod templates;
 mod text_file;
 mod word_split;
-pub mod llm_usage;
 
 use crate::router::init_router_from_config;
 pub use crate::router::Router;
@@ -54,11 +54,13 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
             .as_ref()
             .map(|r| r.parse().unwrap_or_default()),
     );
-    m.add(ROUTER_VARNAME, init_router_from_config(&conf)?)?;
+
+    let r = init_router_from_config(&conf)?;
+    m.add(ROUTER_VARNAME, r.clone())?;
     m.add(CONFIG_VARNAME, conf)?;
 
     m.add(LOGGER_VARNAME, Logger)?;
-
+    router_usage::register(python, m, r)?;
     language::register(python, m)?;
     templates::register(python, m)?;
     hash::register(python, m)?;
