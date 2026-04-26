@@ -381,29 +381,49 @@ impl JsonParser {
 
         let len = val_list.len();
         if let Some(l) = length
-            && l != 0 && len != l {
-                warn!("validate_list: length mismatch - expected {:?}, got {}", length, len);
-                return None;
-            }
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_list: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
 
         if let Some(t) = elements_type
-            && !val_list.iter().all(|item| item.is_instance(t).unwrap_or(false)) {
-                warn!("validate_list: element type check failed for type={:?}", t.to_string());
-                return None;
-            }
+            && !val_list
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        {
+            warn!(
+                "validate_list: element type check failed for type={:?}",
+                t.to_string()
+            );
+            return None;
+        }
 
         Some(val_list)
     }
 
-
-    pub fn validate_list_str(&self, text: &str, length: Option<usize>, fix: bool) -> Option<Vec<String>> {
+    pub fn validate_list_str(
+        &self,
+        text: &str,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<Vec<String>> {
         let val = Self::deserialize::<Vec<String>>(text, fix).ok()?;
         let len = val.len();
         if let Some(l) = length
-            && l != 0 && len != l {
-                warn!("validate_list_str: length mismatch - expected {:?}, got {}", length, len);
-                return None;
-            }
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_list_str: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
         Some(val)
     }
 
@@ -436,34 +456,54 @@ impl JsonParser {
         length: Option<usize>,
         fix: bool,
     ) -> Option<Bound<'a, PyDict>> {
-        let val_dict = self.convert(python, text, fix)
-            .and_then(|val| {
-                val.cast_into_exact::<PyDict>()
-                    .map_err(|_| {
-                        warn!("validate_dict: validation failed for text with length={:?}", length);
-                    })
-                    .ok()
-            })?;
-
+        let val_dict = self.convert(python, text, fix).and_then(|val| {
+            val.cast_into_exact::<PyDict>()
+                .map_err(|_| {
+                    warn!(
+                        "validate_dict: validation failed for text with length={:?}",
+                        length
+                    );
+                })
+                .ok()
+        })?;
 
         let len = val_dict.len();
         if let Some(l) = length
-            && l != 0 && len != l {
-                warn!("validate_dict: length mismatch - expected {:?}, got {}", length, len);
-                return None;
-            }
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_dict: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
 
         if let Some(t) = key_type
-            && !val_dict.keys().iter().all(|item| item.is_instance(t).unwrap_or(false)) {
-                warn!("validate_dict: type check failed with key_type={:?}", t.to_string());
-                return None;
-            }
+            && !val_dict
+                .keys()
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        {
+            warn!(
+                "validate_dict: type check failed with key_type={:?}",
+                t.to_string()
+            );
+            return None;
+        }
 
         if let Some(t) = value_type
-            && !val_dict.values().iter().all(|item| item.is_instance(t).unwrap_or(false)) {
-                warn!("validate_dict: type check failed with value_type={:?}", t.to_string());
-                return None;
-            }
+            && !val_dict
+                .values()
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        {
+            warn!(
+                "validate_dict: type check failed with value_type={:?}",
+                t.to_string()
+            );
+            return None;
+        }
 
         Some(val_dict)
     }
@@ -477,10 +517,15 @@ impl JsonParser {
         let val = Self::deserialize::<HashMap<String, String>>(text, fix).ok()?;
         let len = val.len();
         if let Some(l) = length
-            && l != 0 && len != l {
-                warn!("validate_dict_str_str: length mismatch - expected {:?}, got {}", length, len);
-                return None;
-            }
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_dict_str_str: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
         Some(val)
     }
 }
@@ -622,12 +667,8 @@ impl CodeSnippetParser {
 
     #[staticmethod]
     pub fn default() -> Self {
-        Self::with_separators(
-            var_names::SNIPPET_LEFT_SEP,
-            var_names::SNIPPET_RIGHT_SEP,
-        ).unwrap()
+        Self::with_separators(var_names::SNIPPET_LEFT_SEP, var_names::SNIPPET_RIGHT_SEP).unwrap()
     }
-
 
     /// Parse text into path-content pairs.
     ///
@@ -689,7 +730,6 @@ impl GenericBlockParser {
     pub fn capture_generic_string() -> Self {
         GenericBlockParser::with_block_type(var_names::GENERIC_BLOCK_TYPE).unwrap()
     }
-
 
     /// Capture the first generic block match in the text.
     ///
@@ -789,18 +829,12 @@ cfg_if!(
     }
 );
 
-
-
-
-
-
 pub static JSON_PARSER: Lazy<JsonParser> = Lazy::new(JsonParser::capture_json_codeblock);
 
 pub static PYTHON_PARSER: Lazy<CodeBlockParser> = Lazy::new(CodeBlockParser::capture_python);
 
-
-pub static GENERIC_PARSER: Lazy<GenericBlockParser> = Lazy::new(GenericBlockParser::capture_generic_string);
-
+pub static GENERIC_PARSER: Lazy<GenericBlockParser> =
+    Lazy::new(GenericBlockParser::capture_generic_string);
 
 pub static SNIPPET_PARSER: Lazy<CodeSnippetParser> = Lazy::new(CodeSnippetParser::default);
 /// Registers the parser classes with the Python module.
@@ -819,22 +853,10 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CodeSnippet>()?;
     m.add_class::<GenericBlockParser>()?;
     m.add_class::<ContentBlockParser>()?;
-    m.add(
-        var_names::JSON_PARSER,
-        JSON_PARSER.to_owned(),
-    )?;
-    m.add(
-        var_names::PYTHON_PARSER,
-        PYTHON_PARSER.to_owned(),
-    )?;
-    m.add(
-        var_names::GENERIC_PARSER,
-        GENERIC_PARSER.to_owned(),
-    )?;
-    m.add(
-        var_names::SNIPPET_PARSER,
-        SNIPPET_PARSER.to_owned(),
-    )?;
+    m.add(var_names::JSON_PARSER, JSON_PARSER.to_owned())?;
+    m.add(var_names::PYTHON_PARSER, PYTHON_PARSER.to_owned())?;
+    m.add(var_names::GENERIC_PARSER, GENERIC_PARSER.to_owned())?;
+    m.add(var_names::SNIPPET_PARSER, SNIPPET_PARSER.to_owned())?;
 
     Ok(())
 }
