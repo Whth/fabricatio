@@ -220,10 +220,7 @@ class UseLLM(LLMScopedConfig, ABC):
         from fabricatio_core.rust import json_parser
 
         def _validate(resp: str) -> None | Dict[str, str]:
-            obj = json_parser.validate_dict(resp, key_type=str, value_type=str, length=k)
-            if obj is not None and all(isinstance(v, str) for v in obj.values()):
-                return dict(obj)
-            return None
+            return json_parser.validate_dict(resp, key_type=str, value_type=str, length=k)
 
         return await self.aask_validate(
             TEMPLATE_MANAGER.render_template(
