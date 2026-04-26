@@ -28,8 +28,8 @@
 //! See individual method docs for LIFO queue behavior.
 
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
-use crate::provider::dummy::DummyProvider;
 use crate::provider::Provider;
+use crate::provider::dummy::DummyProvider;
 use crate::{Completion, Embeddings, Ranking, RerankerModel, RerankerRequest};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};

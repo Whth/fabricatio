@@ -4,9 +4,9 @@ pub mod openai;
 pub use dummy::*;
 pub use openai::*;
 
-use crate::connections::{ClientEntry, CONNECTIONS_POOL};
-use crate::model::{CompletionModel, EmbeddingModel};
 use crate::ThrydError::ModelNotSupported;
+use crate::connections::{CONNECTIONS_POOL, ClientEntry};
+use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{ModelName, ProviderName, RerankerModel, Result, ThrydError};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
