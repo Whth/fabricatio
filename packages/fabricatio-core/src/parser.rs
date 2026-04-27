@@ -589,7 +589,8 @@ impl CodeBlockParser {
 ///
 /// Contains its source code, programming language, and the target file path for writing.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(get_all)]
+#[derive(Clone)]
+#[pyclass(get_all, from_py_object)]
 pub struct CodeSnippet {
     /// The source code content of the snippet.
     source: String,

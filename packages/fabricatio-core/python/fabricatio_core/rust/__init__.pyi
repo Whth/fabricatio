@@ -69,7 +69,6 @@ __all__ = [
     "tokens_of",
     "word_count",
 ]
-
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
 _V = typing.TypeVar("_V")
@@ -829,6 +828,180 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+    @typing.overload
+    def listing_strings(
+        self,
+        requirement: str,
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[str]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
+    @typing.overload
+    def listing_strings(
+        self,
+        requirement: typing.List[str],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[str]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
+    @typing.overload
+    def generic_string(
+        self,
+        requirement: str,
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[str]]: ...
+    @typing.overload
+    def generic_string(
+        self,
+        requirement: typing.List[str],
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+    @typing.overload
+    def code_string(
+        self,
+        requirement: str,
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[str]]: ...
+    @typing.overload
+    def code_string(
+        self,
+        requirement: typing.List[str],
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+    @typing.overload
+    def code_snippets(
+        self,
+        requirement: str,
+        max_validations: int,
+        default: typing.Optional[typing.List[CodeSnippet]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
+    @typing.overload
+    def code_snippets(
+        self,
+        requirement: typing.List[str],
+        max_validations: int,
+        default: typing.Optional[typing.List[CodeSnippet]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
+    @typing.overload
+    def judging(
+        self,
+        requirement: str,
+        max_validations: int,
+        default: typing.Optional[bool],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[bool]]: ...
+    @typing.overload
+    def judging(
+        self,
+        requirement: typing.List[str],
+        max_validations: int,
+        default: typing.Optional[bool],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
+    @typing.overload
+    def choosing(
+        self,
+        requirement: str,
+        valid_names: typing.List[str],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[int]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
+    @typing.overload
+    def choosing(
+        self,
+        requirement: typing.List[str],
+        valid_names: typing.List[str],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[int]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
 
 @typing.final
 class RoutingConfig:

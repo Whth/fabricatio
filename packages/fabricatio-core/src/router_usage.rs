@@ -1,4 +1,7 @@
-use crate::{Router, parser::JSON_PARSER};
+use crate::{
+    Router,
+    parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER},
+};
 use fabricatio_logger::*;
 use futures::StreamExt;
 use futures::future::join_all;
@@ -8,6 +11,32 @@ use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use std::collections::HashMap;
 use thryd::{CompletionRequest, RouteGroupName};
+
+/// Bundled completion parameters shared across all inner ask/mapping functions.
+#[derive(Clone)]
+struct CompletionParams {
+    send_to: RouteGroupName,
+    stream: bool,
+    top_p: Option<f32>,
+    temperature: Option<f32>,
+    max_completion_tokens: Option<u32>,
+    presence_penalty: Option<f32>,
+    frequency_penalty: Option<f32>,
+}
+
+impl CompletionParams {
+    fn to_request(&self, message: String) -> CompletionRequest {
+        CompletionRequest {
+            message,
+            stream: self.stream,
+            top_p: self.top_p,
+            temperature: self.temperature,
+            max_completion_tokens: self.max_completion_tokens,
+            presence_penalty: self.presence_penalty,
+            frequency_penalty: self.frequency_penalty,
+        }
+    }
+}
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
@@ -21,21 +50,13 @@ impl RouterUsage {
         Self { router }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn ask_validate_batch_inner<F, T>(
         &self,
         questions: Vec<String>,
         validator: F,
         default: Option<T>,
         max_validations: usize,
-
-        send_to: RouteGroupName,
-        stream: bool,
-        top_p: Option<f32>,
-        temperature: Option<f32>,
-        max_completion_tokens: Option<u32>,
-        presence_penalty: Option<f32>,
-        frequency_penalty: Option<f32>,
+        params: &CompletionParams,
     ) -> PyResult<Vec<Option<T>>>
     where
         F: FnOnce(&str) -> Option<T> + Clone,
@@ -53,13 +74,7 @@ impl RouterUsage {
                 validator.clone(),
                 default.clone(),
                 max_validations,
-                send_to.clone(),
-                stream,
-                top_p,
-                temperature,
-                max_completion_tokens,
-                presence_penalty,
-                frequency_penalty,
+                params,
             )
         }))
         .await
@@ -67,21 +82,13 @@ impl RouterUsage {
         .try_collect::<Vec<Option<T>>>()
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn ask_validate_inner<F, T>(
         &self,
         question: String,
         validator: F,
         default: Option<T>,
         max_validations: usize,
-
-        send_to: RouteGroupName,
-        stream: bool,
-        top_p: Option<f32>,
-        temperature: Option<f32>,
-        max_completion_tokens: Option<u32>,
-        presence_penalty: Option<f32>,
-        frequency_penalty: Option<f32>,
+        params: &CompletionParams,
     ) -> PyResult<Option<T>>
     where
         F: FnOnce(&str) -> Option<T> + Clone,
@@ -92,20 +99,12 @@ impl RouterUsage {
             ));
         }
 
-        let req = CompletionRequest {
-            message: question,
-            stream,
-            top_p,
-            temperature,
-            max_completion_tokens,
-            presence_penalty,
-            frequency_penalty,
-        };
+        let req = params.to_request(question);
         let a: Option<T> = futures::stream::iter(1..=max_validations)
             .map(|i| {
                 (
                     i,
-                    send_to.clone(),
+                    params.send_to.clone(),
                     req.clone(),
                     self.router.completion_router.clone(),
                     validator.clone(),
@@ -131,66 +130,278 @@ impl RouterUsage {
         Ok(a)
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn mapping_str_inner(
         &self,
         requirement: String,
         k: Option<usize>,
         max_validations: usize,
         default: Option<HashMap<String, String>>,
-
-        send_to: RouteGroupName,
-        stream: bool,
-        top_p: Option<f32>,
-        temperature: Option<f32>,
-        max_completion_tokens: Option<u32>,
-        presence_penalty: Option<f32>,
-        frequency_penalty: Option<f32>,
+        params: &CompletionParams,
     ) -> PyResult<Option<HashMap<String, String>>> {
         self.ask_validate_inner(
             requirement,
             |resp| JSON_PARSER.validate_dict_str_str(resp, k, true),
             default,
             max_validations,
-            send_to,
-            stream,
-            top_p,
-            temperature,
-            max_completion_tokens,
-            presence_penalty,
-            frequency_penalty,
+            params,
         )
         .await
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn mapping_str_batch_inner(
         &self,
         requirements: Vec<String>,
         k: Option<usize>,
         max_validations: usize,
         default: Option<HashMap<String, String>>,
-
-        send_to: RouteGroupName,
-        stream: bool,
-        top_p: Option<f32>,
-        temperature: Option<f32>,
-        max_completion_tokens: Option<u32>,
-        presence_penalty: Option<f32>,
-        frequency_penalty: Option<f32>,
+        params: &CompletionParams,
     ) -> PyResult<Vec<Option<HashMap<String, String>>>> {
         self.ask_validate_batch_inner(
             requirements,
             |resp| JSON_PARSER.validate_dict_str_str(resp, k, true),
             default,
             max_validations,
-            send_to,
-            stream,
-            top_p,
-            temperature,
-            max_completion_tokens,
-            presence_penalty,
-            frequency_penalty,
+            params,
+        )
+        .await
+    }
+    pub async fn list_str_inner(
+        &self,
+        requirement: String,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<String>>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<Vec<String>>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| JSON_PARSER.validate_list_str(resp, k, true),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn list_str_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<String>>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<Vec<String>>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| JSON_PARSER.validate_list_str(resp, k, true),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+    pub async fn generic_str_inner(
+        &self,
+        requirement: String,
+        max_validations: usize,
+        default: Option<String>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<String>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| GENERIC_PARSER.capture(resp),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn generic_str_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        max_validations: usize,
+        default: Option<String>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<String>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| GENERIC_PARSER.capture(resp),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+    pub async fn code_str_inner(
+        &self,
+        requirement: String,
+        max_validations: usize,
+        default: Option<String>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<String>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| PYTHON_PARSER.capture(resp),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn code_str_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        max_validations: usize,
+        default: Option<String>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<String>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| PYTHON_PARSER.capture(resp),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+    pub async fn code_snippets_inner(
+        &self,
+        requirement: String,
+        max_validations: usize,
+        default: Option<Vec<CodeSnippet>>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<Vec<CodeSnippet>>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| {
+                let v = SNIPPET_PARSER.parse(resp);
+                if v.is_empty() { None } else { Some(v) }
+            },
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn code_snippets_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        max_validations: usize,
+        default: Option<Vec<CodeSnippet>>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<Vec<CodeSnippet>>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| {
+                let v = SNIPPET_PARSER.parse(resp);
+                if v.is_empty() { None } else { Some(v) }
+            },
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+    pub async fn judge_inner(
+        &self,
+        requirement: String,
+        max_validations: usize,
+        default: Option<bool>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<bool>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| {
+                JSON_PARSER
+                    .capture(resp, true)
+                    .and_then(|s| serde_json::from_str::<bool>(&s).ok())
+            },
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn judge_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        max_validations: usize,
+        default: Option<bool>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<bool>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| {
+                JSON_PARSER
+                    .capture(resp, true)
+                    .and_then(|s| serde_json::from_str::<bool>(&s).ok())
+            },
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+    pub async fn choose_inner(
+        &self,
+        requirement: String,
+        valid_names: Vec<String>,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<usize>>,
+        params: &CompletionParams,
+    ) -> PyResult<Option<Vec<usize>>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| {
+                let names = JSON_PARSER.validate_list_str(resp, k, true)?;
+                let indices: Vec<usize> = names
+                    .iter()
+                    .filter_map(|n| valid_names.iter().position(|v| v == n))
+                    .collect();
+                if names.is_empty() || !indices.is_empty() {
+                    Some(indices)
+                } else {
+                    None
+                }
+            },
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn choose_batch_inner(
+        &self,
+        requirements: Vec<String>,
+        valid_names: Vec<String>,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<usize>>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<Vec<usize>>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| {
+                let names = JSON_PARSER.validate_list_str(resp, k, true)?;
+                let indices: Vec<usize> = names
+                    .iter()
+                    .filter_map(|n| valid_names.iter().position(|v| v == n))
+                    .collect();
+                if names.is_empty() || !indices.is_empty() {
+                    Some(indices)
+                } else {
+                    None
+                }
+            },
+            default,
+            max_validations,
+            params,
         )
         .await
     }
@@ -214,29 +425,38 @@ impl RouterUsage {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
         if let Ok(msg_seq) = question.extract::<Vec<String>>() {
             self.router.completion_batch(
                 python,
-                send_to,
+                params.send_to.clone(),
                 msg_seq,
-                stream,
-                top_p,
-                temperature,
-                max_completion_tokens,
-                presence_penalty,
-                frequency_penalty,
+                params.stream,
+                params.top_p,
+                params.temperature,
+                params.max_completion_tokens,
+                params.presence_penalty,
+                params.frequency_penalty,
             )
         } else if let Ok(msg) = question.extract::<String>() {
             self.router.completion(
                 python,
-                send_to,
+                params.send_to.clone(),
                 msg,
-                stream,
-                top_p,
-                temperature,
-                max_completion_tokens,
-                presence_penalty,
-                frequency_penalty,
+                params.stream,
+                params.top_p,
+                params.temperature,
+                params.max_completion_tokens,
+                params.presence_penalty,
+                params.frequency_penalty,
             )
         } else {
             Err(PyTypeError::new_err(
@@ -264,40 +484,292 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
 
         if let Ok(msg_seq) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.mapping_str_batch_inner(
-                    msg_seq,
-                    k,
-                    max_validations,
-                    default,
-                    send_to,
-                    stream,
-                    top_p,
-                    temperature,
-                    max_completion_tokens,
-                    presence_penalty,
-                    frequency_penalty,
-                )
-                .await
+                slf.mapping_str_batch_inner(msg_seq, k, max_validations, default, &params)
+                    .await
             })
         } else if let Ok(msg) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.mapping_str_inner(
-                    msg,
-                    k,
-                    max_validations,
-                    default,
-                    send_to,
-                    stream,
-                    top_p,
-                    temperature,
-                    max_completion_tokens,
-                    presence_penalty,
-                    frequency_penalty,
-                )
-                .await
+                slf.mapping_str_inner(msg, k, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn listing_strings<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<String>>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.list_str_batch_inner(reqs, k, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.list_str_inner(req, k, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn generic_string<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        max_validations: usize,
+        default: Option<String>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.generic_str_batch_inner(reqs, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.generic_str_inner(req, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn code_string<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        max_validations: usize,
+        default: Option<String>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.code_str_batch_inner(reqs, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.code_str_inner(req, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn code_snippets<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        max_validations: usize,
+        default: Option<Vec<CodeSnippet>>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.code_snippets_batch_inner(reqs, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.code_snippets_inner(req, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn judging<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        max_validations: usize,
+        default: Option<bool>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.judge_batch_inner(reqs, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.judge_inner(req, max_validations, default, &params)
+                    .await
+            })
+        } else {
+            Err(PyTypeError::new_err(
+                "requirement must be a string or a list of strings",
+            ))
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[gen_stub(skip)]
+    pub fn choosing<'a>(
+        &self,
+        python: Python<'a>,
+        requirement: Bound<'a, PyAny>,
+        valid_names: Vec<String>,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<Vec<usize>>,
+
+        send_to: RouteGroupName,
+        stream: bool,
+        top_p: Option<f32>,
+        temperature: Option<f32>,
+        max_completion_tokens: Option<u32>,
+        presence_penalty: Option<f32>,
+        frequency_penalty: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let slf = self.to_owned();
+        let params = CompletionParams {
+            send_to,
+            stream,
+            top_p,
+            temperature,
+            max_completion_tokens,
+            presence_penalty,
+            frequency_penalty,
+        };
+
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
+            future_into_py(python, async move {
+                slf.choose_batch_inner(reqs, valid_names, k, max_validations, default, &params)
+                    .await
+            })
+        } else if let Ok(req) = requirement.extract::<String>() {
+            future_into_py(python, async move {
+                slf.choose_inner(req, valid_names, k, max_validations, default, &params)
+                    .await
             })
         } else {
             Err(PyTypeError::new_err(
@@ -319,6 +791,30 @@ pyo3_stub_gen::inventory::submit! {
             def mapping_strings(self, requirement: str, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
             @overload
             def mapping_strings(self, requirement: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+            @overload
+            def listing_strings(self, requirement: str, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
+            @overload
+            def listing_strings(self, requirement: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
+            @overload
+            def generic_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[str]]: ...
+            @overload
+            def generic_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+            @overload
+            def code_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[str]]: ...
+            @overload
+            def code_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+            @overload
+            def code_snippets(self, requirement: str, max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
+            @overload
+            def code_snippets(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
+            @overload
+            def judging(self, requirement: str, max_validations: int, default: typing.Optional[bool], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[bool]]: ...
+            @overload
+            def judging(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[bool], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
+            @overload
+            def choosing(self, requirement: str, valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
+            @overload
+            def choosing(self, requirement: typing.List[str], valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
         "#
     }
 }
