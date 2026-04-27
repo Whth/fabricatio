@@ -1,0 +1,43 @@
+"""Example of proposing a structured task to a role, creating an ArticleOutline from a natural-language briefing."""
+
+from pathlib import Path
+from typing import Any
+
+from fabricatio import Action, Event, Role, Task, WorkFlow, logger
+from fabricatio.actions import PersistentAll
+from fabricatio.capabilities import Propose
+from fabricatio.models import ArticleOutline
+from fabricatio_core.utils import ok
+
+
+class ProposeObj(Action, Propose):
+    """Propose a structured ArticleOutline object from a natural-language briefing. Uses the Propose capability to have the LLM construct a typed Pydantic model from free text."""
+
+    llm_send_to: str | None = "openai/qwq-plus"
+    llm_max_completion_tokens: int | None = 8190
+    llm_stream: bool | None = True
+    llm_temperature: float | None = 0.6
+    output_key: str = "task_output"
+
+    async def _execute(self, briefing: str, **_) -> Any:
+        return await self.propose(
+            ArticleOutline,
+            f"{briefing}\n\n\n\n\nAccording to the above plaintext article outline, "
+            f"I need you to create an `ArticleOutline` obj against it."
+            f"Note the heading shall not contain any heading numbers.",
+        )
+
+
+Role(
+    name="talker",
+    skills={
+        Event.quick_instantiate("talk").collapse(): WorkFlow(
+            name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
+        ).update_init_context(briefing=Path("briefing.txt").read_text(encoding="utf-8"))
+    },
+)
+
+if __name__ == "__main__":
+    task: Task[ArticleOutline] = Task(name="write outline")
+    article_outline = ok(task.delegate_blocking("talk"))
+    logger.info(f"article_outline:\n{article_outline.display()}")

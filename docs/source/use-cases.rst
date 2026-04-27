@@ -1071,75 +1071,62 @@ Example Categories
 
 The repository includes the following example directories:
 
-+---------------------------+---------------------------------------------------+
-| Example                   | Description                                       |
-+===========================+===================================================+
-| ``simple_chat``           | Basic chat interaction                            |
-+---------------------------+---------------------------------------------------+
-| ``simple_rag``            | RAG with Milvus vector store                      |
-+---------------------------+---------------------------------------------------+
-| ``reviewer``              | Code review with structured output                |
-+---------------------------+---------------------------------------------------+
-| ``propose_task``          | Task proposal by LLM                              |
-+---------------------------+---------------------------------------------------+
-| ``write_article``         | Article writing with RAG and post-processing      |
-+---------------------------+---------------------------------------------------+
-| ``write_outline``         | Article outline generation in typst format       |
-+---------------------------+---------------------------------------------------+
-| ``rules``                 | Rule-based content processing                    |
-+---------------------------+---------------------------------------------------+
-| ``diff``                  | Diff-based text correction (spelling/wording)    |
-+---------------------------+---------------------------------------------------+
-| ``correct``               | Review + Correct code improvement workflow        |
-+---------------------------+---------------------------------------------------+
-| ``task_handle``           | Task handling with file operations               |
-+---------------------------+---------------------------------------------------+
-| ``extract_article``       | Article essence extraction                        |
-+---------------------------+---------------------------------------------------+
-| ``extract_and_inject``    | Article extraction with persistent storage        |
-+---------------------------+---------------------------------------------------+
-| ``anki_deck``             | Anki flashcard deck generation from CSV           |
-+---------------------------+---------------------------------------------------+
-| ``make_diary``            | Diary generation from git commit history         |
-+---------------------------+---------------------------------------------------+
-| ``llm_usages``            | Various LLM usage patterns (validate, ask, code)  |
-+---------------------------+---------------------------------------------------+
-| ``search_bibtex``          | BibTeX citation key search                        |
-+---------------------------+---------------------------------------------------+
-| ``novel``                 | Novel writing workflow with epub output           |
-+---------------------------+---------------------------------------------------+
-| ``cookbook``              | Recipe/cooking workflow example                   |
-+---------------------------+---------------------------------------------------+
-| ``minor``                 | Simple hello world example                        |
-+---------------------------+---------------------------------------------------+
-| ``yue``                   | Musical composition example                       |
-+---------------------------+---------------------------------------------------+
++-----------------------+-------------------------------------------------------+
+| Category              | Contents                                              |
++=======================+=======================================================+
+| ``basics``            | Hello world, basic workflow, simple interactive chat  |
++-----------------------+-------------------------------------------------------+
+| ``generation``        | Content generation: poems, articles, novels, songs,   |
+|                       | diaries, outlines                                     |
++-----------------------+-------------------------------------------------------+
+| ``rag``               | Retrieval-Augmented Generation: extraction, injection,|
+|                       | chunking, Milvus Q&A                                  |
++-----------------------+-------------------------------------------------------+
+| ``review``            | Code review, correction, diff editing, quality        |
++-----------------------+-------------------------------------------------------+
+| ``task_management``   | Task proposal, delegation, handling, cancellation,    |
+|                       | LLM-driven code generation                            |
++-----------------------+-------------------------------------------------------+
+| ``rating``            | Multi-criteria rating and composite scoring           |
++-----------------------+-------------------------------------------------------+
+| ``integrations``      | Anki deck generation, BibTeX search, ruleset drafting |
++-----------------------+-------------------------------------------------------+
 
 Running Examples
 ----------------
 
 .. code-block:: bash
 
-    # Run simple chat
-    python examples/simple_chat/chat.py
+    # Basics — hello world and simple chat
+    python examples/basics/hello_fabricatio.py
+    python examples/basics/simple_chat.py
 
-    # Run RAG example
-    python examples/simple_rag/simple_rag.py
+    # Generation — content creation
+    python examples/generation/write_outline.py
+    python examples/generation/write_outline_corrected.py
+    python examples/generation/write_article.py
+    python examples/generation/write_novel.py
+    python examples/generation/generate_diary.py
 
-    # Run code review
-    python examples/reviewer/review.py
+    # RAG — retrieval-augmented generation
+    python examples/rag/simple_rag.py
+    python examples/rag/extract_article.py
+    python examples/rag/extract_and_inject.py
 
-    # Run diff editing
-    python examples/diff/diff.py
+    # Review — code review and correction
+    python examples/review/review.py
+    python examples/review/correct.py
+    python examples/review/correct_loop.py
+    python examples/review/diff_edit.py
 
-    # Run code correction
-    python examples/correct/correct.py
+    # Task management — delegation and cancellation
+    python examples/task_management/propose_task.py
+    python examples/task_management/task_with_cancellation.py
 
-    # Run task handling
-    python examples/task_handle/handle_task.py
+    # Rating — multi-criteria evaluation
+    python examples/rating/rate_food.py
 
-    # Run Anki deck generation
-    python examples/anki_deck/deck_gen.py
-
-    # Run article extraction
-    python examples/extract_article/extract.py
+    # Integrations — tools and plugins
+    python examples/integrations/anki_deck_gen.py
+    python examples/integrations/bibtex_search.py
+    python examples/integrations/draft_ruleset.py

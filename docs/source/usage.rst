@@ -77,17 +77,59 @@ For asynchronous execution:
    if __name__ == "__main__":
        asyncio.run(main())
 
+Delegation Modes
+^^^^^^^^^^^^^^^^
+
+Fabricatio provides two delegation modes:
+
+- ``delegate()`` (async, non-blocking): Returns a ``Task`` handle. Use this when
+  you need to run multiple tasks concurrently or want to avoid blocking the event
+  loop.
+- ``delegate_blocking()`` (sync): Blocks until the task completes. Use this in
+  synchronous contexts or simple scripts where concurrency is not needed.
+
+Fire-and-forget: You can call ``delegate()`` and discard the result if you only
+need to trigger the side effect. The task will still be processed by the Role.
+
+Why async matters: Concurrent task execution lets you interleave LLM calls,
+database queries, and external API requests without blocking the event loop.
+This is critical for chat loops, streaming responses, and real-time applications
+where latency must be kept low.
+
 Usage Scenarios
 ---------------
 
 Fabricatio supports various usage scenarios:
 
-- Simple Chat
-- Retrieval-Augmented Generation (RAG)
-- Article Extraction
-- Propose Task
-- Code Review
-- Write Outline
+Simple Chat
+  Interactive conversational loop. Demonstrates ``Action`` as a stateful chat
+  handler — each turn appends to conversation history, and the workflow persists
+  context across interactions.
+
+Retrieval-Augmented Generation (RAG)
+  Retrieves relevant documents *before* the LLM call. Shows how ``Action``\ s
+  compose external data (embeddings, vector DB) with generation — the retrieval
+  step feeds context into the prompt step.
+
+Article Extraction
+  Parses and injects structured data into vector databases. Demonstrates
+  multi-step pipelines: fetch, parse, chunk, embed, and store — each a separate
+  ``Action``.
+
+Propose Task
+  LLM-driven task decomposition from natural language. The LLM analyses a user
+  request and breaks it into sub-tasks, each of which can be dispatched as a new
+  workflow.
+
+Code Review
+  Demonstrates the review→correct workflow pattern: review code, collect
+  feedback, then apply corrections in a follow-up action — all within the same
+  workflow.
+
+Write Outline
+  Demonstrates structured output generation with typst formatting. The
+  ``Action`` returns a structured schema that is rendered into a formatted
+  document.
 
 For detailed examples and advanced usage patterns, explore the ``examples/`` directory in the repository.
 
@@ -96,18 +138,23 @@ Key Concepts
 
 **Actions**
   The basic unit of work in Fabricatio. Each action performs a specific task and can be chained together.
+  *Why:* Encapsulate LLM calls and side effects so they're composable and testable.
 
 **Workflows**
   A sequence of actions that define how tasks are processed.
+  *Why:* Chain actions into deterministic pipelines — each step's output feeds the next.
 
 **Events**
   Triggers that initiate workflows. Events follow an event-driven architecture pattern.
+  *Why:* Decouple task submission from execution — the same event can trigger different workflows in different Roles.
 
 **Roles**
   Entities that manage workflows and handle task delegation.
+  *Why:* Own workflows and LLM configuration, enabling different agents with different capabilities.
 
 **Tasks**
   Work items that get processed through workflows.
+  *Why:* Carry state through a workflow, track dependencies, and support cancellation.
 
 Getting Started
 ---------------
@@ -117,5 +164,10 @@ Getting Started
 3. Create workflows combining your actions
 4. Register workflows with roles using events
 5. Submit tasks for processing
+
+   ``Task.delegate(event_name)`` dispatches the task to the ``Role`` that owns
+   the matching workflow. The task carries state (``init_context``,
+   ``dependencies``) across workflow steps, so each action in the chain has
+   access to previous results.
 
 For detailed examples and advanced usage patterns, explore the ``examples/`` directory in the repository.
