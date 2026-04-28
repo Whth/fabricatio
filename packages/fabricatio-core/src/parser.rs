@@ -7,13 +7,13 @@ use fabricatio_logger::warn;
 use llm_json::repair_json;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyType};
+use pyo3::types::{PyDict, PyList, PySet, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -406,6 +406,22 @@ impl JsonParser {
         Some(val_list)
     }
 
+    /// Validates that the text parses to a `Vec<String>` with optional length constraint.
+    ///
+    /// This is a typed convenience wrapper over `deserialize` that avoids Python
+    /// GIL interaction since it operates on pure Rust types.
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated `Vec<String>` or None if deserialization or length check fails.
+    #[pyo3(signature=(text, length=None, fix=true))]
+    #[gen_stub(
+        override_return_type(type_repr = "typing.List[str]|None", imports = ("typing",))
+    )]
     pub fn validate_list_str(
         &self,
         text: &str,
@@ -425,6 +441,71 @@ impl JsonParser {
             return None;
         }
         Some(val)
+    }
+
+    /// Validates that the text parses to a set with optional constraints.
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     elements_type: Optional type to check all elements against.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated set or None if validation fails.
+    #[pyo3(signature=(text, elements_type=None, length=None, fix=true))]
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Set[_T]|None", imports = ("typing",))
+    )]
+    pub fn validate_set<'a>(
+        &self,
+        python: Python<'a>,
+        text: &str,
+
+        #[gen_stub(override_type(type_repr = "typing.Type[_T]|None"))] elements_type: Option<
+            &Bound<PyType>,
+        >,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<Bound<'a, PySet>> {
+        let val_set = self.convert(python, text, fix)
+            .and_then(|val| {
+                val.cast_into_exact::<PySet>()
+                    .map_err(|_| {
+                        warn!(
+                            "validate_set: validation failed for text with length={:?}, elements_type={:?}",
+                            length,
+                            elements_type.map(|t| t.to_string())
+                        );
+                    })
+                    .ok()
+            })?;
+
+        let len = val_set.len();
+        if let Some(l) = length
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_set: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
+
+        if let Some(t) = elements_type
+            && !val_set
+                .iter()
+                .all(|item| item.is_instance(t).unwrap_or(false))
+        {
+            warn!(
+                "validate_set: element type check failed for type={:?}",
+                t.to_string()
+            );
+            return None;
+        }
+
+        Some(val_set)
     }
 
     /// Validates that the text parses to a dictionary with optional constraints.
@@ -508,6 +589,22 @@ impl JsonParser {
         Some(val_dict)
     }
 
+    /// Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
+    ///
+    /// This is a typed convenience wrapper over `deserialize` that avoids Python
+    /// GIL interaction since it operates on pure Rust types.
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated `HashMap<String, String>` or None if deserialization or length check fails.
+    #[pyo3(signature=(text, length=None, fix=true))]
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Dict[str, str]|None", imports = ("typing",))
+    )]
     pub fn validate_dict_str_str(
         &self,
         text: &str,
@@ -823,7 +920,7 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, CodeBlockParser);
         module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, GenericBlockParser);
         module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, CodeSnippetParser);
-        module_variable!("fabricatio_core.rust", var_names::GENERIC_BLOCK_TYPE, String);
+        module_variable!("fabricatio_core.rust", stringify!(GENERIC_BLOCK_TYPE), String);
     }
 );
 

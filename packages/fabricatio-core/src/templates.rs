@@ -2,7 +2,7 @@ use crate::hbs_helpers::*;
 use error_mapping::*;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{no_escape, Handlebars};
+use handlebars::{Handlebars, no_escape};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -107,32 +107,14 @@ impl TemplateManager {
                     "Template '{name}' not found"
                 )));
             }
-
             let seq = depythonize::<Vec<Value>>(data).into_pyresult()?;
-
-            let mut rendered_raw: Vec<(usize, String)> = seq
-                .iter()
-                .enumerate()
-                .par_bridge()
-                .map(|(idx, item)| {
-                    Ok::<(usize, String), PyErr>((
-                        idx,
-                        self.handlebars.render(&name, item).into_pyresult()?,
-                    ))
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .try_collect()?;
-            rendered_raw.sort_by_key(|x| x.0);
-            let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
+            let rendered = self.render_batch(&name, &seq).into_pyresult()?;
             let py_list = PyList::new(py, rendered)?;
             Ok(py_list.as_any().clone())
         } else {
             trace!("Rendering single template: {name}");
             let json_data = depythonize::<Value>(data).into_pyresult()?;
-
-            let rendered_content = self.handlebars.render(&name, &json_data).into_pyresult()?;
-
+            let rendered_content = self.render(&name, &json_data).into_pyresult()?;
             let py_string = PyString::new(py, &rendered_content);
             Ok(py_string.as_any().clone())
         }
@@ -155,34 +137,12 @@ impl TemplateManager {
     ) -> PyResult<Bound<'a, PyAny>> {
         if data.is_instance_of::<PyList>() {
             let seq = depythonize::<Vec<Value>>(data).into_pyresult()?;
-
-            let mut rendered_raw: Vec<(usize, String)> = seq
-                .iter()
-                .enumerate()
-                .par_bridge()
-                .map(|(idx, item)| {
-                    Ok::<(usize, String), PyErr>((
-                        idx,
-                        self.handlebars
-                            .render_template(template, item)
-                            .into_pyresult()?,
-                    ))
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .try_collect()?;
-            rendered_raw.sort_by_key(|x| x.0);
-            let rendered: Vec<String> = rendered_raw.into_iter().map(|x| x.1).collect();
+            let rendered = self.render_raw_batch(template, &seq).into_pyresult()?;
             let py_list = PyList::new(py, &rendered)?;
             Ok(py_list.as_any().clone())
         } else {
             let json_data = depythonize::<Value>(data).into_pyresult()?;
-
-            let rendered_content = self
-                .handlebars
-                .render_template(template, &json_data)
-                .into_pyresult()?;
-
+            let rendered_content = self.render_raw(template, &json_data).into_pyresult()?;
             let py_string = PyString::new(py, &rendered_content);
             Ok(py_string.as_any().clone())
         }
@@ -283,6 +243,58 @@ impl TemplateManager {
             .collect()
     }
 
+    /// Renders a registered template by name with the given data.
+    pub fn render(&self, name: &str, data: &Value) -> Result<String, handlebars::RenderError> {
+        self.handlebars.render(name, data)
+    }
+
+    /// Renders a registered template for each data item in parallel via rayon.
+    /// Preserves input order via index-sorting after parallel collection.
+    pub fn render_batch(
+        &self,
+        name: &str,
+        data: &[Value],
+    ) -> Result<Vec<String>, handlebars::RenderError> {
+        let mut results: Vec<(usize, String)> = data
+            .iter()
+            .enumerate()
+            .par_bridge()
+            .map(|(idx, item)| self.handlebars.render(name, item).map(|s| (idx, s)))
+            .collect::<Result<Vec<_>, _>>()?;
+        results.sort_by_key(|x| x.0);
+        Ok(results.into_iter().map(|x| x.1).collect())
+    }
+
+    /// Renders a raw template string with the given data.
+    pub fn render_raw(
+        &self,
+        template: &str,
+        data: &Value,
+    ) -> Result<String, handlebars::RenderError> {
+        self.handlebars.render_template(template, data)
+    }
+
+    /// Renders a raw template string for each data item in parallel via rayon.
+    /// Preserves input order via index-sorting after parallel collection.
+    pub fn render_raw_batch(
+        &self,
+        template: &str,
+        data: &[Value],
+    ) -> Result<Vec<String>, handlebars::RenderError> {
+        let mut results: Vec<(usize, String)> = data
+            .iter()
+            .enumerate()
+            .par_bridge()
+            .map(|(idx, item)| {
+                self.handlebars
+                    .render_template(template, item)
+                    .map(|s| (idx, s))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        results.sort_by_key(|x| x.0);
+        Ok(results.into_iter().map(|x| x.1).collect())
+    }
+
     fn register_builtin_helper(&mut self) -> &mut Self {
         self.handlebars.register_helper("len", Box::new(len));
         self.handlebars.register_helper("lang", Box::new(getlang));
@@ -332,9 +344,7 @@ pyo3_stub_gen::module_variable!(
     TemplateManager
 );
 
-
 pub static TEMPLATE_MANAGER: Lazy<TemplateManager> = Lazy::new(TemplateManager::from_config);
-
 
 /// Registers the TemplateManager class with the Python module.
 ///
@@ -346,9 +356,6 @@ pub static TEMPLATE_MANAGER: Lazy<TemplateManager> = Lazy::new(TemplateManager::
 ///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
-    m.add(
-        TEMPLATE_MANAGER_VARNAME,
-        TEMPLATE_MANAGER.to_owned(),
-    )?;
+    m.add(TEMPLATE_MANAGER_VARNAME, TEMPLATE_MANAGER.to_owned())?;
     Ok(())
 }

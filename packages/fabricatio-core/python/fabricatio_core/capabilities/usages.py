@@ -11,7 +11,6 @@ It provides structured functionality for managing language model operations,
 embedding generation, and tool selection workflows.
 """
 
-import asyncio
 import traceback
 from abc import ABC
 from asyncio import gather
@@ -34,6 +33,40 @@ class UseLLM(LLMScopedConfig, ABC):
     This class provides methods to deploy LLMs, query them for responses, and handle various configurations
     related to LLM usage such as API keys, endpoints, and rate limits.
     """
+
+    def _resolve_completion_params(
+        self,
+        send_to: Optional[str] = None,
+        stream: Optional[bool] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_completion_tokens: Optional[int] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
+        /,
+        **_,
+    ) -> LLMKwargs:
+        """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
+        return LLMKwargs(
+            send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"),
+            stream=first_available(
+                (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
+            ),
+            top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
+            temperature=first_available(
+                (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
+            ),
+            max_completion_tokens=first_available(
+                (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
+                raise_exception=False,
+            ),
+            presence_penalty=first_available(
+                (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False
+            ),
+            frequency_penalty=first_available(
+                (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
+            ),
+        )
 
     @overload
     async def aask(
@@ -89,41 +122,17 @@ class UseLLM(LLMScopedConfig, ABC):
             str | List[str]: The content of the model's response message. Returns a single string if input is a string,
                 or a list of strings if input is a list of strings.
         """
+        kw = self._resolve_completion_params(
+            stream=stream,
+            send_to=send_to,
+            temperature=temperature,
+            top_p=top_p,
+            max_completion_tokens=max_completion_tokens,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+        )
 
-        def _resolve_config() -> LLMKwargs:
-            return LLMKwargs(
-                send_to=ok(
-                    send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"
-                ),
-                stream=first_available(
-                    (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
-                ),
-                top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
-                temperature=first_available(
-                    (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
-                ),
-                max_completion_tokens=first_available(
-                    (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
-                    raise_exception=False,
-                ),
-                presence_penalty=first_available(
-                    (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False
-                ),
-                frequency_penalty=first_available(
-                    (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
-                ),
-            )
-
-        kw = _resolve_config()
-
-        if isinstance(question, str):
-            # the reason why use rust.ROUTER is to make sure the mock utils can patch the rust module,
-            # since ROUTER itself is readonly and can't be mocked.
-            return await rust.ROUTER.completion(message=question, **kw)
-
-        if isinstance(question, list):
-            return await asyncio.gather(*[rust.ROUTER.completion(message=q, **kw) for q in question])
-        raise NotImplementedError("Question must be either a string or a list of strings.")
+        return await rust.router_usage.ask(question=question, **kw)
 
     @overload
     async def aask_validate[T](
@@ -217,18 +226,13 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[Dict[str, str]]: The validated response as a mapping of strings.
         """
-        from fabricatio_core.rust import json_parser
-
-        def _validate(resp: str) -> None | Dict[str, str]:
-            return json_parser.validate_dict(resp, key_type=str, value_type=str, length=k)
-
-        return await self.aask_validate(
-            TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.mapping_template,
-                {"requirement": requirement, "k": k},
-            ),
-            _validate,
-            **kwargs,
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.mapping_strings(
+            requirement=requirement,
+            k=k if k > 0 else None,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
         )
 
     @overload
@@ -254,27 +258,14 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[List[str]]: The validated response as a list of strings.
         """
-        from fabricatio_core.rust import json_parser
-
-        if isinstance(requirement, str):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.liststr_template,
-                    {"requirement": requirement, "k": k},
-                ),
-                lambda resp: json_parser.validate_list(resp, elements_type=str, length=k),
-                **kwargs,
-            )
-        if isinstance(requirement, list):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.liststr_template,
-                    [{"requirement": r, "k": k} for r in requirement],
-                ),
-                lambda resp: json_parser.validate_list(resp, elements_type=str, length=k),
-                **kwargs,
-            )
-        return None
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.listing_strings(
+            requirement=requirement,
+            k=k if k > 0 else None,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
+        )
 
     async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
@@ -341,27 +332,13 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[str]: The generated string.
         """
-        from fabricatio_core.rust import GENERIC_BLOCK_TYPE, generic_parser
-
-        if isinstance(requirement, str):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.generic_string_template,
-                    {"requirement": requirement, "language": GENERIC_BLOCK_TYPE},
-                ),
-                validator=generic_parser.capture,
-                **kwargs,
-            )
-        if isinstance(requirement, list):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.generic_string_template,
-                    [{"requirement": r, "language": GENERIC_BLOCK_TYPE} for r in requirement],
-                ),
-                validator=generic_parser.capture,
-                **kwargs,
-            )
-        return None
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.generic_string(
+            requirement=requirement,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
+        )
 
     @overload
     async def acode_string(
@@ -387,23 +364,13 @@ class UseLLM(LLMScopedConfig, ABC):
             None | str | List[str | None]: The generated code string(s). Returns a single string if requirement
             is a string, or a list of strings/None values if requirement is a list.
         """
-        from fabricatio_core.rust import python_parser
-
-        if isinstance(requirement, list):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.code_string_template,
-                    [{"requirement": r, "code_language": code_language} for r in requirement],
-                ),
-                validator=python_parser.capture,
-                **kwargs,
-            )
-        return await self.aask_validate(
-            TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.code_string_template, {"requirement": requirement, "code_language": code_language}
-            ),
-            validator=python_parser.capture,
-            **kwargs,
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.code_string(
+            requirement=requirement,
+            code_language=code_language,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
         )
 
     @overload
@@ -440,26 +407,13 @@ class UseLLM(LLMScopedConfig, ABC):
             Returns a list of CodeSnippet objects if requirement is a string, or a list of lists of
             CodeSnippet objects or None if requirement is a list.
         """
-        from fabricatio_core.rust import snippet_parser
-
-        def _validator(resp: str) -> Optional[List[CodeSnippet]]:
-            return matches if (matches := snippet_parser.parse(resp.strip())) else None
-
-        if isinstance(requirement, list):
-            return await self.aask_validate(
-                TEMPLATE_MANAGER.render_template(
-                    CONFIG.templates.code_snippet_template,
-                    [{"requirement": r, "code_language": code_language} for r in requirement],
-                ),
-                validator=_validator,
-                **kwargs,
-            )
-        return await self.aask_validate(
-            TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.code_snippet_template, {"requirement": requirement, "code_language": code_language}
-            ),
-            validator=_validator,
-            **kwargs,
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.code_snippets(
+            requirement=requirement,
+            code_language=code_language,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
         )
 
     async def achoose[T: WithBriefing](
@@ -505,15 +459,15 @@ class UseLLM(LLMScopedConfig, ABC):
         logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
         def _validate(response: str) -> List[T] | None:
-            ret = json_parser.validate_list(response, elements_type=str, length=k)
-            if ret is None:
+            q = json_parser.validate_set(response, elements_type=str, length=k)
+
+            if q is None:
                 return None
-            q = set(ret)
+
             final_ret = [cho for cho in choices if is_included_fn(q, cho)]
 
-            if ret and not final_ret:
-                logger.error(f"Invalid choices that nothing got selected: {ret}")
-                return None
+            if not final_ret or (k and final_ret != k):
+                logger.error(f"Invalid choices that nothing got selected: {q}")
 
             return final_ret
 
@@ -569,18 +523,14 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
-        from fabricatio_core.rust import json_parser
-
-        def _validate_bool(resp: str) -> Optional[bool]:
-            return result if (result := json_parser.convert(resp)) and isinstance(result, bool) else None
-
-        return await self.aask_validate(
-            question=TEMPLATE_MANAGER.render_template(
-                CONFIG.templates.make_judgment_template,
-                {"prompt": prompt, "affirm_case": affirm_case, "deny_case": deny_case},
-            ),
-            validator=_validate_bool,
-            **kwargs,
+        params = self._resolve_completion_params(**kwargs)
+        return await rust.router_usage.judging(
+            requirement=prompt,
+            affirm_case=affirm_case,
+            deny_case=deny_case,
+            max_validations=kwargs.pop("max_validations", 3),
+            default=kwargs.pop("default", None),
+            **params,
         )
 
 

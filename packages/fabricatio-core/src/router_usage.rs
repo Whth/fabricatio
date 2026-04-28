@@ -1,7 +1,11 @@
+use crate::templates::TEMPLATE_MANAGER;
 use crate::{
     Router,
     parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER},
 };
+use cfg_if::cfg_if;
+use error_mapping::AsPyErr;
+use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
 use futures::StreamExt;
 use futures::future::join_all;
@@ -9,6 +13,7 @@ use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use thryd::{CompletionRequest, RouteGroupName};
 
@@ -494,14 +499,25 @@ impl RouterUsage {
             frequency_penalty,
         };
 
-        if let Ok(msg_seq) = requirement.extract::<Vec<String>>() {
+        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.mapping_str_batch_inner(msg_seq, k, max_validations, default, &params)
+                let data: Vec<Value> = reqs
+                    .iter()
+                    .map(|r| json!({"requirement": r, "k": k}))
+                    .collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.mapping_template, &data)
+                    .into_pyresult()?;
+                slf.mapping_str_batch_inner(rendered, k, max_validations, default, &params)
                     .await
             })
-        } else if let Ok(msg) = requirement.extract::<String>() {
+        } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.mapping_str_inner(msg, k, max_validations, default, &params)
+                let data = json!({"requirement": req, "k": k});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.mapping_template, &data)
+                    .into_pyresult()?;
+                slf.mapping_str_inner(rendered, k, max_validations, default, &params)
                     .await
             })
         } else {
@@ -541,12 +557,25 @@ impl RouterUsage {
 
         if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.list_str_batch_inner(reqs, k, max_validations, default, &params)
+                let data: Vec<Value> = reqs
+                    .iter()
+                    .map(|r| json!({"requirement": r, "k": k}))
+                    .collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.liststr_template, &data)
+                    .into_pyresult()?;
+
+                slf.list_str_batch_inner(rendered, k, max_validations, default, &params)
                     .await
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.list_str_inner(req, k, max_validations, default, &params)
+                let data = json!({"requirement": req, "k": k});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.liststr_template, &data)
+                    .into_pyresult()?;
+
+                slf.list_str_inner(rendered, k, max_validations, default, &params)
                     .await
             })
         } else {
@@ -585,12 +614,25 @@ impl RouterUsage {
 
         if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.generic_str_batch_inner(reqs, max_validations, default, &params)
+                let data: Vec<Value> = reqs
+                    .iter()
+                    .map(|r| json!({"requirement": r, "language": "String"}))
+                    .collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.generic_string_template, &data)
+                    .into_pyresult()?;
+
+                slf.generic_str_batch_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.generic_str_inner(req, max_validations, default, &params)
+                let data = json!({"requirement": req, "language": "String"});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.generic_string_template, &data)
+                    .into_pyresult()?;
+
+                slf.generic_str_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else {
@@ -605,6 +647,7 @@ impl RouterUsage {
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
+        code_language: Option<String>,
         max_validations: usize,
         default: Option<String>,
 
@@ -629,12 +672,25 @@ impl RouterUsage {
 
         if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.code_str_batch_inner(reqs, max_validations, default, &params)
+                let data: Vec<Value> = reqs
+                    .iter()
+                    .map(|r| json!({"requirement": r, "code_language": code_language}))
+                    .collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.code_string_template, &data)
+                    .into_pyresult()?;
+
+                slf.code_str_batch_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.code_str_inner(req, max_validations, default, &params)
+                let data = json!({"requirement": req, "code_language": code_language});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.code_string_template, &data)
+                    .into_pyresult()?;
+
+                slf.code_str_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else {
@@ -649,6 +705,7 @@ impl RouterUsage {
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
+        code_language: Option<String>,
         max_validations: usize,
         default: Option<Vec<CodeSnippet>>,
 
@@ -673,12 +730,25 @@ impl RouterUsage {
 
         if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.code_snippets_batch_inner(reqs, max_validations, default, &params)
+                let data: Vec<Value> = reqs
+                    .iter()
+                    .map(|r| json!({"requirement": r, "code_language": code_language}))
+                    .collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.code_snippet_template, &data)
+                    .into_pyresult()?;
+
+                slf.code_snippets_batch_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.code_snippets_inner(req, max_validations, default, &params)
+                let data = json!({"requirement": req, "code_language": code_language});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.code_snippet_template, &data)
+                    .into_pyresult()?;
+
+                slf.code_snippets_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else {
@@ -695,6 +765,8 @@ impl RouterUsage {
         requirement: Bound<'a, PyAny>,
         max_validations: usize,
         default: Option<bool>,
+        affirm_case: String,
+        deny_case: String,
 
         send_to: RouteGroupName,
         stream: bool,
@@ -717,12 +789,23 @@ impl RouterUsage {
 
         if let Ok(reqs) = requirement.extract::<Vec<String>>() {
             future_into_py(python, async move {
-                slf.judge_batch_inner(reqs, max_validations, default, &params)
+                let data: Vec<Value> = reqs.iter().map(|r| json!({"prompt": r, "affirm_case": affirm_case.clone(), "deny_case": deny_case.clone()})).collect();
+                let rendered = TEMPLATE_MANAGER
+                    .render_batch(&CONFIG.templates.make_judgment_template, &data)
+                    .into_pyresult()?;
+
+                slf.judge_batch_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
-                slf.judge_inner(req, max_validations, default, &params)
+                let data =
+                    json!({"prompt": req, "affirm_case": affirm_case, "deny_case": deny_case});
+                let rendered = TEMPLATE_MANAGER
+                    .render(&CONFIG.templates.make_judgment_template, &data)
+                    .into_pyresult()?;
+
+                slf.judge_inner(rendered, max_validations, default, &params)
                     .await
             })
         } else {
@@ -778,7 +861,7 @@ impl RouterUsage {
         }
     }
 }
-
+#[cfg(feature = "stubgen")]
 pyo3_stub_gen::inventory::submit! {
     gen_methods_from_python! {
         r#"
@@ -800,17 +883,17 @@ pyo3_stub_gen::inventory::submit! {
             @overload
             def generic_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
             @overload
-            def code_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[str]]: ...
+            def code_string(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[str]]: ...
             @overload
-            def code_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+            def code_string(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
             @overload
-            def code_snippets(self, requirement: str, max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
+            def code_snippets(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
             @overload
-            def code_snippets(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
+            def code_snippets(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
             @overload
-            def judging(self, requirement: str, max_validations: int, default: typing.Optional[bool], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[bool]]: ...
+            def judging(self, requirement: str, max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[bool]]: ...
             @overload
-            def judging(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[bool], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
+            def judging(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
             @overload
             def choosing(self, requirement: str, valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float]) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
             @overload
@@ -818,9 +901,17 @@ pyo3_stub_gen::inventory::submit! {
         "#
     }
 }
+cfg_if!(
+    if #[cfg(feature = "stubgen")]    {
+        use pyo3_stub_gen::module_variable;
+        module_variable!("fabricatio_core.rust", ROUTER_USAGE_VARNAME, RouterUsage);
+    }
+);
+
+const ROUTER_USAGE_VARNAME: &str = "router_usage";
 
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>, router: Router) -> PyResult<()> {
     m.add_class::<RouterUsage>()?;
-    m.add("router_usage", RouterUsage::new(router))?;
+    m.add(ROUTER_USAGE_VARNAME, RouterUsage::new(router))?;
     Ok(())
 }
