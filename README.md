@@ -109,6 +109,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Add Reranker support in `thryd`
 - [ ] Replace `UseLLM` with native rust impl
 - [ ] Diff use `Hashline` impl instead of `StringGrep`
+- [ ] Placeholder based multiple-agents edits
 
 ## Installation
 
