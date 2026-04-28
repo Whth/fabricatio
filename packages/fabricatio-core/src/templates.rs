@@ -2,7 +2,7 @@ use crate::hbs_helpers::*;
 use error_mapping::*;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
 use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -11,6 +11,7 @@ use pyo3_stub_gen::derive::*;
 
 use pythonize::depythonize;
 
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -18,7 +19,8 @@ use walkdir::WalkDir;
 
 /// Python bindings for the TemplateManager struct.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
+#[derive(Clone)]
+#[pyclass(skip_from_py_object)]
 pub struct TemplateManager {
     #[pyo3(get)]
     templates_stores: Vec<PathBuf>,
@@ -188,6 +190,19 @@ impl TemplateManager {
 }
 
 impl TemplateManager {
+    fn from_config() -> Self {
+        Self::new(
+            fabricatio_config::CONFIG
+                .template_manager
+                .template_stores
+                .clone(),
+            fabricatio_config::CONFIG
+                .template_manager
+                .template_suffix
+                .clone(),
+            fabricatio_config::CONFIG.template_manager.active_loading,
+        )
+    }
     fn new(template_dir: Vec<PathBuf>, suffix: String, active_loading: bool) -> Self {
         // Convert Python paths to Rust PathBufs
 
@@ -317,6 +332,10 @@ pyo3_stub_gen::module_variable!(
     TemplateManager
 );
 
+
+pub static TEMPLATE_MANAGER: Lazy<TemplateManager> = Lazy::new(TemplateManager::from_config);
+
+
 /// Registers the TemplateManager class with the Python module.
 ///
 /// Args:
@@ -329,17 +348,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
     m.add(
         TEMPLATE_MANAGER_VARNAME,
-        TemplateManager::new(
-            fabricatio_config::CONFIG
-                .template_manager
-                .template_stores
-                .clone(),
-            fabricatio_config::CONFIG
-                .template_manager
-                .template_suffix
-                .clone(),
-            fabricatio_config::CONFIG.template_manager.active_loading,
-        ),
+        TEMPLATE_MANAGER.to_owned(),
     )?;
     Ok(())
 }
