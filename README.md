@@ -107,7 +107,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Better memory impl
 - [ ] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
-- [ ] Replace `UseLLM` with native rust impl
+- [x] Replace `UseLLM` with native rust impl
 - [ ] Diff use `Hashline` impl instead of `StringGrep`
 - [ ] Placeholder based multiple-agents edits
 
