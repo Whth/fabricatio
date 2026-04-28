@@ -4,14 +4,12 @@ use fabricatio_constants::{CONFIG_FILE, GLOBAL_CONFIG_FILE, NAME};
 use figment::providers::{Data, Env, Format, Toml};
 use figment::value::{Dict, Map};
 use figment::{Error, Figment, Metadata, Profile, Provider};
-use pyo3::exceptions::PyRuntimeError;
-use pyo3::{PyErr, PyResult};
 use std::ops::Deref;
 use std::path::Path;
 
 impl Config {
-    pub fn new() -> PyResult<Self> {
-        Config::from(Config::figment()).map_err(|e| PyErr::new::<PyRuntimeError, _>(e.to_string()))
+    pub fn new() -> Result<Self, String> {
+        Config::from(Config::figment()).map_err(|e| e.to_string())
     }
     fn figment() -> Figment {
         Figment::new()

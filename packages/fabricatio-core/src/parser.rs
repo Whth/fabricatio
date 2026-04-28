@@ -823,6 +823,7 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", var_names::PYTHON_PARSER, CodeBlockParser);
         module_variable!("fabricatio_core.rust", var_names::GENERIC_PARSER, GenericBlockParser);
         module_variable!("fabricatio_core.rust", var_names::SNIPPET_PARSER, CodeSnippetParser);
+        module_variable!("fabricatio_core.rust", var_names::GENERIC_BLOCK_TYPE, String);
     }
 );
 
@@ -854,6 +855,10 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add(var_names::PYTHON_PARSER, PYTHON_PARSER.to_owned())?;
     m.add(var_names::GENERIC_PARSER, GENERIC_PARSER.to_owned())?;
     m.add(var_names::SNIPPET_PARSER, SNIPPET_PARSER.to_owned())?;
+
+    use var_names::GENERIC_BLOCK_TYPE;
+
+    m.add(stringify!(GENERIC_BLOCK_TYPE), GENERIC_BLOCK_TYPE)?;
 
     Ok(())
 }

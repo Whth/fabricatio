@@ -45,19 +45,19 @@ cfg_if!(
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
     m.add_class::<Config>()?;
-    let conf: Config = Config::new()?;
     init_logger(
-        conf.debug.log_level.as_str(),
-        conf.debug.log_dir.clone(),
-        conf.debug
+        fabricatio_config::CONFIG.debug.log_level.as_str(),
+        fabricatio_config::CONFIG.debug.log_dir.clone(),
+        fabricatio_config::CONFIG
+            .debug
             .rotation
             .as_ref()
             .map(|r| r.parse().unwrap_or_default()),
     );
 
-    let r = init_router_from_config(&conf)?;
+    let r = init_router_from_config()?;
     m.add(ROUTER_VARNAME, r.clone())?;
-    m.add(CONFIG_VARNAME, conf)?;
+    m.add(CONFIG_VARNAME, fabricatio_config::CONFIG.clone())?;
 
     m.add(LOGGER_VARNAME, Logger)?;
     router_usage::register(python, m, r)?;

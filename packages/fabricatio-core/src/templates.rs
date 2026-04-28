@@ -1,6 +1,5 @@
 use crate::hbs_helpers::*;
 use error_mapping::*;
-use fabricatio_config::Config;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
 use handlebars::{Handlebars, no_escape};
@@ -328,13 +327,18 @@ pyo3_stub_gen::module_variable!(
 ///     PyResult<()> indicating success.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TemplateManager>()?;
-    let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     m.add(
         TEMPLATE_MANAGER_VARNAME,
         TemplateManager::new(
-            conf.template_manager.template_stores,
-            conf.template_manager.template_suffix,
-            conf.template_manager.active_loading,
+            fabricatio_config::CONFIG
+                .template_manager
+                .template_stores
+                .clone(),
+            fabricatio_config::CONFIG
+                .template_manager
+                .template_suffix
+                .clone(),
+            fabricatio_config::CONFIG.template_manager.active_loading,
         ),
     )?;
     Ok(())

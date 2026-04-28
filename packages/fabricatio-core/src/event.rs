@@ -1,5 +1,3 @@
-use fabricatio_config::Config;
-use fabricatio_constants::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
@@ -378,9 +376,8 @@ impl TaskStatus {
 /// Returns:
 ///     PyResult<()> indicating success or failure.
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    let conf = m.getattr(CONFIG_VARNAME)?.extract::<Config>()?;
     DELIMITER
-        .set(conf.emitter.delimiter)
+        .set(fabricatio_config::CONFIG.emitter.delimiter.clone())
         .map_err(PyValueError::new_err)?;
     m.add_class::<TaskStatus>()?;
     m.add_class::<Event>()?;

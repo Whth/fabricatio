@@ -1,5 +1,5 @@
 use error_mapping::AsPyErr;
-use fabricatio_config::{Config, DeploymentConfig, ProviderConfig, SecretStr};
+use fabricatio_config::{DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::{error, trace};
 use futures::FutureExt;
 use futures::future::join_all;
@@ -451,9 +451,13 @@ pub fn add_models_from_configs<T: ModelTypeTag>(
 ///
 /// Returns:
 ///     A new Router instance configured according to the config.
-pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
+pub fn init_router_from_config() -> PyResult<Router> {
     trace!("Initializing router from config");
-    let (cr, er, rr) = if let Some(p) = config.routing.cache_database_path.as_ref() {
+    let (cr, er, rr) = if let Some(p) = fabricatio_config::CONFIG
+        .routing
+        .cache_database_path
+        .as_ref()
+    {
         trace!("Mounting cache databases at {}", p.display());
         fs::create_dir_all(p).into_pyresult()?;
         (
@@ -468,11 +472,23 @@ pub fn init_router_from_config(config: &Config) -> PyResult<Router> {
             ThrydRouter::default(),
         )
     };
-    let cr = add_providers_from_configs(cr, config.routing.providers.clone())?;
-    let cr = add_models_from_configs(cr, config.routing.completion_deployments.clone())?;
+    let cr = add_providers_from_configs(cr, fabricatio_config::CONFIG.routing.providers.clone())?;
+    let cr = add_models_from_configs(
+        cr,
+        fabricatio_config::CONFIG
+            .routing
+            .completion_deployments
+            .clone(),
+    )?;
 
-    let er = add_providers_from_configs(er, config.routing.providers.clone())?;
-    let er = add_models_from_configs(er, config.routing.embedding_deployments.clone())?;
+    let er = add_providers_from_configs(er, fabricatio_config::CONFIG.routing.providers.clone())?;
+    let er = add_models_from_configs(
+        er,
+        fabricatio_config::CONFIG
+            .routing
+            .embedding_deployments
+            .clone(),
+    )?;
 
     Ok(Router::new(er, cr, rr))
 }

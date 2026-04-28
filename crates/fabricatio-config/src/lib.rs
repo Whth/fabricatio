@@ -35,3 +35,9 @@ mod secstr;
 
 pub use crate::configs::*;
 pub use crate::secstr::*;
+
+use once_cell::sync::Lazy;
+
+/// Global configuration instance, loaded once at first access.
+pub static CONFIG: Lazy<Config> =
+    Lazy::new(|| Config::new().expect("Failed to load fabricatio configuration"));
