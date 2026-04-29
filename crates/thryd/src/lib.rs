@@ -126,14 +126,14 @@
 pub mod cache;
 pub mod connections;
 pub mod constants;
-mod deployment;
+pub mod deployment;
 pub mod error;
 mod model;
 pub mod models;
 pub mod provider;
 pub mod route;
 pub mod tracker;
-pub(crate) mod utils;
+pub mod utils;
 
 // Re-exports from submodules for ergonomic API access
 

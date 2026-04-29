@@ -8,6 +8,7 @@
 //! - [`current_timestamp()`] - Used by [`crate::tracker`] for sliding window rate limiting
 //! - [`build_headers()`] - Used by providers to construct authenticated HTTP headers
 
+use crate::{ModelName, ProviderName, SEPARATE, ThrydError};
 use http::header::AUTHORIZATION;
 use http::{HeaderMap, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
@@ -32,7 +33,20 @@ pub(crate) fn current_timestamp() -> TimeStamp {
         .expect("Time went backwards")
         .as_millis()
 }
-
+/// Parse a deployment identifier into provider and model names.
+///
+/// # Arguments
+/// * `identifier` - String in `"{provider}{SEPARATE}{model}"` format
+///
+/// # Returns
+/// * `Ok((ProviderName, ModelName))` on successful parse
+/// * `Err(ThrydError::Router)` if the format is invalid
+pub fn analyze_identifier(identifier: String) -> crate::Result<(ProviderName, ModelName)> {
+    identifier
+        .split_once(SEPARATE)
+        .ok_or_else(|| ThrydError::Router(format!("Invalid identifier `{}`", identifier)))
+        .map(|(provider_name, model_name)| (provider_name.to_string(), model_name.to_string()))
+}
 /// Builds HTTP headers with Bearer token authorization.
 ///
 /// Creates an authorization header in the format `Bearer <api_key>`.

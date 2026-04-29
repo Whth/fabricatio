@@ -737,7 +737,7 @@ class Router:
         name: typing.Optional[builtins.str] = None,
         api_key: typing.Optional[SecretStr] = None,
         endpoint: typing.Optional[builtins.str] = None,
-    ) -> typing.Awaitable[None]:
+    ) -> None:
         r"""Adds a provider to the router.
 
         This method registers a new provider with both the completion and embedding routers.
@@ -757,7 +757,7 @@ class Router:
         model_identifier: builtins.str,
         rpm: typing.Optional[builtins.int] = None,
         tpm: typing.Optional[builtins.int] = None,
-    ) -> typing.Awaitable[None]:
+    ) -> None:
         r"""Adds a completion model to the specified group.
 
         Registers a new model identifier within a specific routing group for completion tasks.
@@ -777,7 +777,7 @@ class Router:
         model_identifier: builtins.str,
         rpm: typing.Optional[builtins.int] = None,
         tpm: typing.Optional[builtins.int] = None,
-    ) -> typing.Awaitable[None]:
+    ) -> None:
         r"""Adds an embedding model to the specified group.
 
         Registers a new model identifier within a specific routing group for embedding tasks.
@@ -791,6 +791,9 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
+    def add_or_update_dummy_completion_model(
+        self, group: builtins.str, model_identifier: builtins.str, responses: typing.Sequence[builtins.str]
+    ) -> None: ...
 
 @typing.final
 class RouterUsage:

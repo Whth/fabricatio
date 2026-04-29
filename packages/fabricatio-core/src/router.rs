@@ -1,6 +1,6 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{DeploymentConfig, ProviderConfig, SecretStr};
-use fabricatio_logger::{error, trace};
+use fabricatio_logger::{debug, error, trace};
 use futures::FutureExt;
 use futures::future::join_all;
 use pyo3::prelude::*;
@@ -8,11 +8,14 @@ use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::sync::Arc;
+use thryd::deployment::Deployment;
+use thryd::provider::Provider;
 use thryd::tracker::Quota;
+use thryd::utils::analyze_identifier;
 use thryd::{
-    Completion, CompletionRequest, CompletionTag, EmbeddingRequest, EmbeddingTag, Embeddings,
-    ModelTypeTag, ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter,
-    create_provider,
+    Completion, CompletionModel, CompletionRequest, CompletionTag, DeploymentIdentifier,
+    DummyModel, DummyProvider, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag,
+    ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -286,9 +289,6 @@ impl Router {
         })
     }
 
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
     #[pyo3(signature = (provider_type, name = None, api_key = None, endpoint = None))]
     /// Adds a provider to the router.
     ///
@@ -302,14 +302,13 @@ impl Router {
     ///
     /// Returns:
     ///     None: This is an asynchronous operation that modifies the router state.
-    pub fn add_provider<'a>(
+    pub fn add_provider(
         &self,
-        python: Python<'a>,
         provider_type: ProviderType,
         name: Option<String>,
         api_key: Option<SecretStr>,
         endpoint: Option<String>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<()> {
         let p = create_provider(
             provider_type,
             name,
@@ -321,16 +320,11 @@ impl Router {
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
 
-        future_into_py(python, async move {
-            cr.add_or_update_provider(p.clone());
-            er.add_or_update_provider(p);
-            Ok(())
-        })
+        cr.add_or_update_provider(p.clone());
+        er.add_or_update_provider(p);
+        Ok(())
     }
 
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds a completion model to the specified group.
     ///
@@ -344,25 +338,19 @@ impl Router {
     ///
     /// Returns:
     ///     None: This is an asynchronous operation that modifies the router state.
-    pub fn add_completion_model<'a>(
+    pub fn add_completion_model(
         &self,
-        python: Python<'a>,
-        group: String,
-        model_identifier: String,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
         rpm: Option<Quota>,
         tpm: Option<Quota>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<()> {
         let cr = self.completion_router.clone();
-        future_into_py(python, async move {
-            cr.deploy(group, model_identifier, rpm, tpm)
-                .into_pyresult()?;
-            Ok(())
-        })
+        cr.deploy(group, model_identifier, rpm, tpm)
+            .into_pyresult()?;
+        Ok(())
     }
 
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
-    )]
     #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
     /// Adds an embedding model to the specified group.
     ///
@@ -376,21 +364,48 @@ impl Router {
     ///
     /// Returns:
     ///     None: This is an asynchronous operation that modifies the router state.
-    pub fn add_embedding_model<'a>(
+    pub fn add_embedding_model(
         &self,
-        python: Python<'a>,
-        group: String,
-        model_identifier: String,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
         rpm: Option<Quota>,
         tpm: Option<Quota>,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    ) -> PyResult<()> {
         let er = self.embedding_router.clone();
+        er.deploy(group, model_identifier, rpm, tpm)
+            .into_pyresult()?;
+        Ok(())
+    }
 
-        future_into_py(python, async move {
-            er.deploy(group, model_identifier, rpm, tpm)
-                .into_pyresult()?;
-            Ok(())
-        })
+    pub fn add_or_update_dummy_completion_model(
+        &self,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
+        responses: Vec<String>,
+    ) -> PyResult<()> {
+        if self
+            .completion_router
+            .remove_deployment(group.as_str(), model_identifier.clone())
+            .is_ok()
+        {
+            debug!("Removed existing deployment for {:?}", model_identifier)
+        }
+
+        let (provider_name, model_name) = analyze_identifier(model_identifier).into_pyresult()?;
+        let provider = self
+            .completion_router
+            .get_provider(provider_name)
+            .into_pyresult()?;
+
+        let dummy_model =
+            DummyModel::new(model_name, provider).with_completion_responses(responses);
+
+        let deployment = Deployment::new(Box::new(dummy_model) as Box<dyn CompletionModel>);
+
+        self.completion_router
+            .add_deployment(group, deployment)
+            .into_pyresult()?;
+        Ok(())
     }
 }
 

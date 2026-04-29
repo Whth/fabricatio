@@ -68,6 +68,7 @@ use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
+use crate::utils::analyze_identifier;
 use crate::{
     Completion, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest, ThrydError,
 };
@@ -211,7 +212,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// # Arguments
     /// * `group` - Name of the group to add the deployment to
     /// * `deployment` - The deployment to add
-    fn add_deployment(
+    pub fn add_deployment(
         &self,
         group: RouteGroupName,
         deployment: Deployment<Tag::Model>,
@@ -228,7 +229,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// # Arguments
     /// * `group` - Name of the group to remove from
     /// * `deployment_identifier` - Identifier of the deployment to remove
-    fn remove_deployment(
+    pub fn remove_deployment(
         &self,
         group: &str,
         deployment_identifier: DeploymentIdentifier,
@@ -329,7 +330,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
     /// Get a reference to a group's deployment list.
-    fn get_group(
+    pub fn get_group(
         &self,
         group: RouteGroupName,
     ) -> Result<Ref<'_, RouteGroupName, Vec<DeploymentEntry<Tag::Model>>>> {
@@ -377,21 +378,6 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         })
     }
 
-    /// Parse a deployment identifier into provider and model names.
-    ///
-    /// # Arguments
-    /// * `identifier` - String in `"{provider}{SEPARATE}{model}"` format
-    ///
-    /// # Returns
-    /// * `Ok((ProviderName, ModelName))` on successful parse
-    /// * `Err(ThrydError::Router)` if the format is invalid
-    fn analyze_identifier(identifier: String) -> Result<(ProviderName, ModelName)> {
-        identifier
-            .split_once(SEPARATE)
-            .ok_or_else(|| ThrydError::Router(format!("Invalid identifier `{}`", identifier)))
-            .map(|(provider_name, model_name)| (provider_name.to_string(), model_name.to_string()))
-    }
-
     /// Create a deployment for a model from a provider.
     ///
     /// # Arguments
@@ -404,7 +390,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         rpm: Option<Quota>,
         tpm: Option<Quota>,
     ) -> Result<Deployment<Tag::Model>> {
-        let (provider_name, model_name) = Self::analyze_identifier(identifier)?;
+        let (provider_name, model_name) = analyze_identifier(identifier)?;
         debug!("Creating deployment for `{model_name}` of `{provider_name}`");
         Ok(Deployment::new(Tag::create_model(
             self.get_provider(provider_name)?,
@@ -414,7 +400,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
     /// Get a provider by name.
-    fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
+    pub fn get_provider(&self, provider_name: ProviderName) -> Result<Arc<dyn Provider>> {
         self.providers
             .get(provider_name.as_str())
             .ok_or_else(|| {
