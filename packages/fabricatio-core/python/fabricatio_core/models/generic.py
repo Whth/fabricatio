@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, final, overload
+from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
 
 import orjson
 from pydantic import (
@@ -17,7 +17,9 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.journal import logger
+from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.utils import first_available, ok
 
 
 class Base(BaseModel, ABC):
@@ -342,6 +344,46 @@ class LLMScopedConfig(ScopedConfig):
 
     llm_frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
+
+    def _resolve_completion_params(
+        self,
+        send_to: Optional[str] = None,
+        stream: Optional[bool] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        max_completion_tokens: Optional[int] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
+        /,
+        **_,
+    ) -> LLMKwargs:
+        """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
+        return LLMKwargs(
+            send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"),
+            stream=first_available(
+                (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
+            ),
+            top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
+            temperature=first_available(
+                (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
+            ),
+            max_completion_tokens=first_available(
+                (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
+                raise_exception=False,
+            ),
+            presence_penalty=first_available(
+                (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False
+            ),
+            frequency_penalty=first_available(
+                (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
+            ),
+        )
+
+    def _resolve_validation_params[T](
+        self, default: None | T = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs]
+    ) -> ValidateKwargs[T]:
+        res = self._resolve_completion_params(**kwargs)
+        return ValidateKwargs(default=default, max_validations=max_validations, **res)
 
 
 class UnsortGenerate(GenerateJsonSchema):

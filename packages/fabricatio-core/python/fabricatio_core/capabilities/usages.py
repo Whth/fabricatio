@@ -24,7 +24,7 @@ from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
-from fabricatio_core.utils import first_available, ok
+from fabricatio_core.utils import ok
 
 
 class UseLLM(LLMScopedConfig, ABC):
@@ -33,40 +33,6 @@ class UseLLM(LLMScopedConfig, ABC):
     This class provides methods to deploy LLMs, query them for responses, and handle various configurations
     related to LLM usage such as API keys, endpoints, and rate limits.
     """
-
-    def _resolve_completion_params(
-        self,
-        send_to: Optional[str] = None,
-        stream: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
-        /,
-        **_,
-    ) -> LLMKwargs:
-        """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
-        return LLMKwargs(
-            send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"),
-            stream=first_available(
-                (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
-            ),
-            top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
-            temperature=first_available(
-                (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
-            ),
-            max_completion_tokens=first_available(
-                (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
-                raise_exception=False,
-            ),
-            presence_penalty=first_available(
-                (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False
-            ),
-            frequency_penalty=first_available(
-                (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
-            ),
-        )
 
     @overload
     async def aask(
@@ -140,7 +106,7 @@ class UseLLM(LLMScopedConfig, ABC):
         question: str,
         validator: Callable[[str], T | None],
         default: T = ...,
-        max_validations: PositiveInt = 2,
+        max_validations: PositiveInt = 3,
         **kwargs: Unpack[LLMKwargs],
     ) -> T: ...
 
@@ -150,7 +116,7 @@ class UseLLM(LLMScopedConfig, ABC):
         question: List[str],
         validator: Callable[[str], T | None],
         default: T = ...,
-        max_validations: PositiveInt = 2,
+        max_validations: PositiveInt = 3,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[T]: ...
 
@@ -160,7 +126,7 @@ class UseLLM(LLMScopedConfig, ABC):
         question: str,
         validator: Callable[[str], T | None],
         default: None = None,
-        max_validations: PositiveInt = 2,
+        max_validations: PositiveInt = 3,
         **kwargs: Unpack[LLMKwargs],
     ) -> Optional[T]: ...
 
@@ -170,7 +136,7 @@ class UseLLM(LLMScopedConfig, ABC):
         question: List[str],
         validator: Callable[[str], T | None],
         default: None = None,
-        max_validations: PositiveInt = 2,
+        max_validations: PositiveInt = 3,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[Optional[T]]: ...
 
@@ -213,9 +179,19 @@ class UseLLM(LLMScopedConfig, ABC):
 
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
+    @overload
     async def amapping_str(
         self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
-    ) -> Optional[Dict[str, str]]:
+    ) -> Optional[Dict[str, str]]: ...
+
+    @overload
+    async def amapping_str(
+        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    ) -> List[Optional[Dict[str, str]]] | None: ...
+
+    async def amapping_str(
+        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    ) -> None | Dict[str, str] | List[Optional[Dict[str, str]]]:
         """Asynchronously generates a mapping of strings based on a given requirement.
 
         Args:
@@ -226,12 +202,10 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[Dict[str, str]]: The validated response as a mapping of strings.
         """
-        params = self._resolve_completion_params(**kwargs)
+        params = self._resolve_validation_params(**kwargs)
         return await rust.router_usage.mapping_strings(
             requirement=requirement,
-            k=k if k > 0 else None,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
+            k=k,
             **params,
         )
 
@@ -258,16 +232,11 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[List[str]]: The validated response as a list of strings.
         """
-        params = self._resolve_completion_params(**kwargs)
         return await rust.router_usage.listing_strings(
-            requirement=requirement,
-            k=k if k > 0 else None,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
-            **params,
+            requirement=requirement, k=k, **self._resolve_validation_params(**kwargs)
         )
 
-    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs]) -> Optional[List[str]]:
+    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[str]]) -> Optional[List[str]]:
         """Asynchronously generates a list of strings based on a given requirement.
 
         Args:
@@ -332,12 +301,8 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[str]: The generated string.
         """
-        params = self._resolve_completion_params(**kwargs)
         return await rust.router_usage.generic_string(
-            requirement=requirement,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
-            **params,
+            requirement=requirement, **self._resolve_validation_params(**kwargs)
         )
 
     @overload
@@ -364,13 +329,8 @@ class UseLLM(LLMScopedConfig, ABC):
             None | str | List[str | None]: The generated code string(s). Returns a single string if requirement
             is a string, or a list of strings/None values if requirement is a list.
         """
-        params = self._resolve_completion_params(**kwargs)
         return await rust.router_usage.code_string(
-            requirement=requirement,
-            code_language=code_language,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
-            **params,
+            requirement=requirement, code_language=code_language, **self._resolve_validation_params(**kwargs)
         )
 
     @overload
@@ -407,13 +367,8 @@ class UseLLM(LLMScopedConfig, ABC):
             Returns a list of CodeSnippet objects if requirement is a string, or a list of lists of
             CodeSnippet objects or None if requirement is a list.
         """
-        params = self._resolve_completion_params(**kwargs)
         return await rust.router_usage.code_snippets(
-            requirement=requirement,
-            code_language=code_language,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
-            **params,
+            requirement=requirement, code_language=code_language, **self._resolve_validation_params(**kwargs)
         )
 
     async def achoose[T: WithBriefing](
@@ -505,13 +460,31 @@ class UseLLM(LLMScopedConfig, ABC):
             ),
         )[0]
 
+    @overload
     async def ajudge(
         self,
         prompt: str,
         affirm_case: str = "",
         deny_case: str = "",
         **kwargs: Unpack[ValidateKwargs[bool]],
-    ) -> Optional[bool]:
+    ) -> Optional[bool]: ...
+
+    @overload
+    async def ajudge(
+        self,
+        prompt: List[str],
+        affirm_case: str = "",
+        deny_case: str = "",
+        **kwargs: Unpack[ValidateKwargs[bool]],
+    ) -> List[Optional[bool]] | None: ...
+
+    async def ajudge(
+        self,
+        prompt: str | List[str],
+        affirm_case: str = "",
+        deny_case: str = "",
+        **kwargs: Unpack[ValidateKwargs[bool]],
+    ) -> Optional[bool] | List[Optional[bool]]:
         """Asynchronously judges a prompt using AI validation.
 
         Args:
@@ -523,14 +496,11 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
-        params = self._resolve_completion_params(**kwargs)
         return await rust.router_usage.judging(
             requirement=prompt,
             affirm_case=affirm_case,
             deny_case=deny_case,
-            max_validations=kwargs.pop("max_validations", 3),
-            default=kwargs.pop("default", None),
-            **params,
+            **self._resolve_validation_params(**kwargs),
         )
 
 

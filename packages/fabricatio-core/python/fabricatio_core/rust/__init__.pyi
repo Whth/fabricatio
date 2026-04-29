@@ -100,7 +100,6 @@ class CodeBlockParser:
         Returns:
             PyResult<Self>: A new CodeBlockParser instance.
         """
-
     @staticmethod
     def capture_python() -> CodeBlockParser: ...
     def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
@@ -108,7 +107,6 @@ class CodeBlockParser:
 
         Returns the captured code block content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all code block matches in the text.
 
@@ -121,19 +119,15 @@ class CodeSnippet:
 
     Contains its source code, programming language, and the target file path for writing.
     """
-
     @property
     def source(self) -> builtins.str:
         r"""The source code content of the snippet."""
-
     @property
     def language(self) -> builtins.str:
         r"""The programming language of the snippet."""
-
     @property
     def write_to(self) -> pathlib.Path:
         r"""The file path where the snippet should be written."""
-
     def write(self, parent_dirs: builtins.bool = True) -> None:
         r"""Writes the code snippet to its designated file path.
 
@@ -161,7 +155,6 @@ class CodeSnippetParser:
         Returns:
             PyResult<Self>: A new CodeSnippetParser instance.
         """
-
     @staticmethod
     def default() -> CodeSnippetParser: ...
     def parse(self, text: builtins.str) -> builtins.list[CodeSnippet]:
@@ -178,39 +171,30 @@ class CodeSnippetParser:
 @typing.final
 class Config:
     r"""Configuration structure containing all system components."""
-
     @property
     def embedding(self) -> EmbeddingConfig:
         r"""Embedding configuration parameters."""
-
     @property
     def llm(self) -> LLMConfig:
         r"""Language Learning Model settings with validation rules."""
-
     @property
     def debug(self) -> DebugConfig:
         r"""Debug settings containing log level and verbosity."""
-
     @property
     def templates(self) -> TemplateConfig:
         r"""Template paths/names for various operations."""
-
     @property
     def template_manager(self) -> TemplateManagerConfig:
         r"""Template loading and management settings."""
-
     @property
     def routing(self) -> RoutingConfig:
         r"""Request routing and load balancing settings."""
-
     @property
     def general(self) -> GeneralConfig:
         r"""Global behavior configuration options."""
-
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
-
     def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
 
@@ -234,13 +218,11 @@ class ContentBlockParser:
         Returns:
             PyResult<Self>: A new ContentBlockParser instance.
         """
-
     def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
         r"""Capture the first content block match in the text.
 
         Returns the captured content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all content block matches in the text.
 
@@ -262,19 +244,15 @@ class DeploymentConfig:
 
     Defines the identity, grouping, and rate limits for a deployed service instance.
     """
-
     @property
     def id(self) -> builtins.str:
         r"""Unique identifier for the deployment."""
-
     @property
     def group(self) -> builtins.str:
         r"""Name of the route group this deployment belongs to."""
-
     @property
     def tpm(self) -> typing.Optional[builtins.int]:
         r"""Optional quota limit for tokens per minute (TPM)."""
-
     @property
     def rpm(self) -> typing.Optional[builtins.int]:
         r"""Optional quota limit for requests per minute (RPM)."""
@@ -282,7 +260,6 @@ class DeploymentConfig:
 @typing.final
 class EmbeddingConfig:
     r"""Embedding configuration structure."""
-
     @property
     def send_to(self) -> typing.Optional[builtins.str]: ...
 
@@ -292,7 +269,6 @@ class EmitterConfig:
 
     Contains settings for controlling event emission and listener behavior
     """
-
     @property
     def delimiter(self) -> builtins.str:
         r"""The delimiter used to separate the event name into segments."""
@@ -307,7 +283,6 @@ class Event:
         Args:
             segments: Optional list of event segments. Defaults to empty list.
         """
-
     @staticmethod
     def instantiate_from(event: typing.List[str] | str | Event) -> Event:
         r"""Creates an Event from various input types.
@@ -318,7 +293,6 @@ class Event:
         Returns:
             A new Event instance with segments extracted from the input.
         """
-
     @staticmethod
     def quick_instantiate(event: typing.List[str] | str | Event) -> Event:
         r"""Creates an Event with wildcard and pending status appended.
@@ -329,7 +303,6 @@ class Event:
         Returns:
             A new Event instance with "*" and "Pending" segments appended.
         """
-
     def derive(self, event: typing.List[str] | str | Event) -> Event:
         r"""Derives a new event by appending segments from another event.
 
@@ -339,21 +312,18 @@ class Event:
         Returns:
             A new Event with the combined segments.
         """
-
     def collapse(self) -> builtins.str:
         r"""Collapses the event segments into a single delimited string.
 
         Returns:
             A string with segments joined by the configured delimiter.
         """
-
     def fork(self) -> Event:
         r"""Creates a copy of the event.
 
         Returns:
             A clone of this Event instance.
         """
-
     def push(self, segment: TaskStatus | str) -> Event:
         r"""Pushes a segment onto the event.
 
@@ -363,63 +333,54 @@ class Event:
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_wildcard(self) -> Event:
         r"""Appends a wildcard segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_pending(self) -> Event:
         r"""Appends a Pending status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_running(self) -> Event:
         r"""Appends a Running status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_finished(self) -> Event:
         r"""Appends a Finished status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_failed(self) -> Event:
         r"""Appends a Failed status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_cancelled(self) -> Event:
         r"""Appends a Cancelled status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def pop(self) -> typing.Optional[builtins.str]:
         r"""Removes and returns the last segment.
 
         Returns:
             The last segment if present, None otherwise.
         """
-
     def clear(self) -> Event:
         r"""Clears all segments from the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def concat(self, event: typing.List[str] | str | Event) -> Event:
         r"""Concatenates another event's segments onto this event.
 
@@ -429,14 +390,12 @@ class Event:
         Returns:
             A mutable reference to this Event instance with combined segments.
         """
-
     def __hash__(self) -> builtins.int:
         r"""Computes the hash of the collapsed event string.
 
         Returns:
             The hash value as a u64.
         """
-
     def __richcmp__(self, other: typing.Any, op: int) -> builtins.bool:
         r"""Compares this event with another value for equality.
 
@@ -451,7 +410,6 @@ class Event:
 @typing.final
 class GeneralConfig:
     r"""General configuration structure for application-wide settings."""
-
     @property
     def use_json_repair(self) -> builtins.bool:
         r"""Whether to automatically repair malformed JSON."""
@@ -470,7 +428,6 @@ class GenericBlockParser:
         Returns:
             PyResult<Self>: A new GenericBlockParser instance.
         """
-
     @staticmethod
     def capture_generic_string() -> GenericBlockParser: ...
     def capture(self, text: builtins.str) -> typing.Optional[builtins.str]:
@@ -478,7 +435,6 @@ class GenericBlockParser:
 
         Returns the captured block content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all generic block matches in the text.
 
@@ -497,7 +453,6 @@ class JsonParser:
         Returns:
             A new JsonParser instance.
         """
-
     @staticmethod
     def with_capturer(capturer: TextCapturer) -> JsonParser:
         r"""Creates a JsonParser with an existing TextCapturer.
@@ -508,7 +463,6 @@ class JsonParser:
         Returns:
             A new JsonParser instance.
         """
-
     @staticmethod
     def capture_json_codeblock() -> JsonParser: ...
     def capture(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[builtins.str]:
@@ -521,7 +475,6 @@ class JsonParser:
         Returns:
             The captured text or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[builtins.str]:
         r"""Captures and optionally repairs all JSON matches in text.
 
@@ -532,7 +485,6 @@ class JsonParser:
         Returns:
             A list of captured JSON strings.
         """
-
     def convert(self, text: builtins.str, fix: builtins.bool = True) -> typing.Optional[typing.Any]:
         r"""Converts captured text to a Python object.
 
@@ -543,7 +495,6 @@ class JsonParser:
         Returns:
             The parsed Python object or None if conversion fails.
         """
-
     def convert_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[typing.Any]:
         r"""Converts all captured JSON strings to Python objects.
 
@@ -554,7 +505,6 @@ class JsonParser:
         Returns:
             A list of parsed Python objects.
         """
-
     def validate_list(
         self,
         text: builtins.str,
@@ -573,7 +523,6 @@ class JsonParser:
         Returns:
             The validated list or None if validation fails.
         """
-
     def validate_list_str(
         self, text: builtins.str, length: typing.Optional[builtins.int] = None, fix: builtins.bool = True
     ) -> typing.List[str] | None:
@@ -590,7 +539,6 @@ class JsonParser:
         Returns:
             The validated `Vec<String>` or None if deserialization or length check fails.
         """
-
     def validate_set(
         self,
         text: builtins.str,
@@ -609,7 +557,6 @@ class JsonParser:
         Returns:
             The validated set or None if validation fails.
         """
-
     def validate_dict(
         self,
         text: builtins.str,
@@ -630,7 +577,6 @@ class JsonParser:
         Returns:
             The validated dictionary or None if validation fails.
         """
-
     def validate_dict_str_str(
         self, text: builtins.str, length: typing.Optional[builtins.int] = None, fix: builtins.bool = True
     ) -> typing.Dict[str, str] | None:
@@ -655,7 +601,6 @@ class LLMConfig:
     This structure contains all parameters needed to configure and interact with LLM services.
     All fields are optional to allow partial configuration from different sources.
     """
-
     @property
     def send_to(self) -> typing.Optional[builtins.str]: ...
     @property
@@ -685,19 +630,15 @@ class ProviderConfig:
 
     Contains the necessary details to connect to and authenticate with a service provider.
     """
-
     @property
     def ptype(self) -> ProviderType:
         r"""The type of the provider (e.g., OpenAI, Anthropic)."""
-
     @property
     def name(self) -> typing.Optional[builtins.str]:
         r"""Optional name identifier for the provider instance."""
-
     @property
     def key(self) -> typing.Optional[SecretStr]:
         r"""Optional authentication key for the provider API."""
-
     @property
     def base_url(self) -> typing.Optional[builtins.str]:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
@@ -734,7 +675,6 @@ class Router:
         Returns:
             str: The complete aggregated response content.
         """
-
     def completion_batch(
         self,
         send_to: builtins.str,
@@ -766,7 +706,6 @@ class Router:
         Returns:
             List[str | None]: A list of complete aggregated response contents. Failed requests return None.
         """
-
     def embedding(
         self, send_to: builtins.str, texts: typing.Sequence[builtins.str]
     ) -> typing.Awaitable[typing.List[typing.List[float]]]:
@@ -779,7 +718,6 @@ class Router:
         Returns:
             List[List[float]]: A list of embedding vectors corresponding to the input texts.
         """
-
     def embedding_batch(
         self, send_to: builtins.str, texts: typing.Sequence[builtins.str]
     ) -> typing.Awaitable[typing.List[typing.List[float] | None]]:
@@ -793,7 +731,6 @@ class Router:
             List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
                 Failed requests return None.
         """
-
     def add_provider(
         self,
         provider_type: ProviderType,
@@ -814,7 +751,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-
     def add_completion_model(
         self,
         group: builtins.str,
@@ -835,7 +771,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-
     def add_embedding_model(
         self,
         group: builtins.str,
@@ -884,6 +819,18 @@ class RouterUsage:
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[str]]: ...
     @typing.overload
+    def ask(
+        self,
+        question: typing.Union[str, typing.List[str]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
+    @typing.overload
     def mapping_strings(
         self,
         requirement: str,
@@ -913,6 +860,23 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+    @typing.overload
+    def mapping_strings(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.Dict[str, str]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[
+        typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]
+    ]: ...
     @typing.overload
     def listing_strings(
         self,
@@ -944,6 +908,23 @@ class RouterUsage:
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
     @typing.overload
+    def listing_strings(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[str]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[
+        typing.Union[typing.Optional[typing.List[str]], typing.List[typing.Optional[typing.List[str]]]]
+    ]: ...
+    @typing.overload
     def generic_string(
         self,
         requirement: str,
@@ -971,6 +952,20 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+    @typing.overload
+    def generic_string(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_string(
         self,
@@ -1001,6 +996,21 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+    @typing.overload
+    def code_string(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        code_language: typing.Optional[str],
+        max_validations: int,
+        default: typing.Optional[str],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_snippets(
         self,
@@ -1031,6 +1041,23 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
+    @typing.overload
+    def code_snippets(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        code_language: typing.Optional[str],
+        max_validations: int,
+        default: typing.Optional[typing.List[CodeSnippet]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[
+        typing.Union[typing.Optional[typing.List[CodeSnippet]], typing.List[typing.Optional[typing.List[CodeSnippet]]]]
+    ]: ...
     @typing.overload
     def judging(
         self,
@@ -1064,6 +1091,22 @@ class RouterUsage:
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
     @typing.overload
+    def judging(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        max_validations: int,
+        default: typing.Optional[bool],
+        affirm_case: str,
+        deny_case: str,
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
+    @typing.overload
     def choosing(
         self,
         requirement: str,
@@ -1095,6 +1138,24 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
+    @typing.overload
+    def choosing(
+        self,
+        requirement: typing.Union[str, typing.List[str]],
+        valid_names: typing.List[str],
+        k: typing.Optional[int],
+        max_validations: int,
+        default: typing.Optional[typing.List[int]],
+        send_to: str,
+        stream: bool,
+        top_p: typing.Optional[float],
+        temperature: typing.Optional[float],
+        max_completion_tokens: typing.Optional[int],
+        presence_penalty: typing.Optional[float],
+        frequency_penalty: typing.Optional[float],
+    ) -> typing.Awaitable[
+        typing.Union[typing.Optional[typing.List[int]], typing.List[typing.Optional[typing.List[int]]]]
+    ]: ...
 
 @typing.final
 class RoutingConfig:
@@ -1103,19 +1164,15 @@ class RoutingConfig:
     Manages the list of available providers and their corresponding deployments
     to handle load balancing and request routing.
     """
-
     @property
     def providers(self) -> builtins.list[ProviderConfig]:
         r"""List of configured providers available for routing."""
-
     @property
     def embedding_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured embedding model deployments associated with the providers."""
-
     @property
     def completion_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured completion model deployments associated with the providers."""
-
     @property
     def cache_database_path(self) -> typing.Optional[pathlib.Path]:
         r"""Path to the cache database file."""
@@ -1128,49 +1185,38 @@ class SecretStr:
 @typing.final
 class TemplateConfig:
     r"""Template configuration structure."""
-
     @property
     def mapping_template(self) -> builtins.str: ...
     @property
     def task_briefing_template(self) -> builtins.str:
         r"""The name of the task briefing template which will be used to brief a task."""
-
     @property
     def dependencies_template(self) -> builtins.str:
         r"""The name of the dependencies template which will be used to manage dependencies."""
-
     @property
     def make_choice_template(self) -> builtins.str:
         r"""The name of the make choice template which will be used to make a choice."""
-
     @property
     def make_judgment_template(self) -> builtins.str:
         r"""The name of the make judgment template which will be used to make a judgment."""
-
     @property
     def code_string_template(self) -> builtins.str:
         r"""The name of the code string template which will be used to generate a code string."""
-
     @property
     def code_snippet_template(self) -> builtins.str:
         r"""The name of the code snippet template which will be used to generate a code snippet."""
-
     @property
     def generic_string_template(self) -> builtins.str:
         r"""The name of the generic string template which will be used to review a string."""
-
     @property
     def co_validation_template(self) -> builtins.str:
         r"""The name of the co-validation template which will be used to co-validate a string."""
-
     @property
     def liststr_template(self) -> builtins.str:
         r"""The name of the liststr template which will be used to display a list of strings."""
-
     @property
     def pathstr_template(self) -> builtins.str:
         r"""The name of the pathstr template which will be used to acquire a path of strings."""
-
     @property
     def create_json_obj_template(self) -> builtins.str:
         r"""The name of the create json object template which will be used to create a json object."""
@@ -1178,13 +1224,11 @@ class TemplateConfig:
 @typing.final
 class TemplateManager:
     r"""Python bindings for the TemplateManager struct."""
-
     @property
     def templates_stores(self) -> builtins.list[pathlib.Path]: ...
     @property
     def template_count(self) -> builtins.int:
         r"""The count of templates currently registered."""
-
     def add_store(
         self, source: builtins.str | os.PathLike | pathlib.Path, rediscovery: builtins.bool = False
     ) -> TemplateManager:
@@ -1197,7 +1241,6 @@ class TemplateManager:
         Returns:
             A mutable reference to self for method chaining.
         """
-
     def add_stores(
         self, sources: typing.Sequence[builtins.str | os.PathLike | pathlib.Path], rediscovery: builtins.bool = False
     ) -> TemplateManager:
@@ -1210,14 +1253,12 @@ class TemplateManager:
         Returns:
             A mutable reference to self for method chaining.
         """
-
     def discover_templates(self) -> TemplateManager:
         r"""Discovers and registers all templates from the configured directories.
 
         Returns:
             A mutable reference to self for method chaining.
         """
-
     @typing.overload
     def render_template(self, name: str, data: typing.Dict[str, typing.Any]) -> str: ...
     @typing.overload
@@ -1234,11 +1275,9 @@ class TemplateManagerConfig:
     @property
     def template_stores(self) -> builtins.list[pathlib.Path]:
         r"""The directory containing the templates."""
-
     @property
     def active_loading(self) -> builtins.bool:
         r"""Whether to enable active loading of templates."""
-
     @property
     def template_suffix(self) -> builtins.str:
         r"""The suffix of the templates."""
@@ -1254,7 +1293,6 @@ class TextCapturer:
         Returns:
             The first captured group if a match is found.
         """
-
     def cap1_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Captures all matches and extracts group 1 from each.
 
@@ -1264,7 +1302,6 @@ class TextCapturer:
         Returns:
             A list of first captured groups from all matches.
         """
-
     def cap2(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str]]:
         r"""Captures the first match and extracts groups 1 and 2.
 
@@ -1274,7 +1311,6 @@ class TextCapturer:
         Returns:
             A tuple of (group1, group2) if a match is found.
         """
-
     def cap2_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str]]:
         r"""Captures all matches and extracts groups 1 and 2 from each.
 
@@ -1284,7 +1320,6 @@ class TextCapturer:
         Returns:
             A list of (group1, group2) tuples from all matches.
         """
-
     def cap3(self, text: builtins.str) -> typing.Optional[tuple[builtins.str, builtins.str, builtins.str]]:
         r"""Captures the first match and extracts groups 1, 2, and 3.
 
@@ -1294,7 +1329,6 @@ class TextCapturer:
         Returns:
             A tuple of (group1, group2, group3) if a match is found.
         """
-
     def cap3_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str, builtins.str]]:
         r"""Captures all matches and extracts groups 1, 2, and 3 from each.
 
@@ -1304,7 +1338,6 @@ class TextCapturer:
         Returns:
             A list of (group1, group2, group3) tuples from all matches.
         """
-
     @staticmethod
     def with_pattern(pattern: builtins.str) -> TextCapturer:
         r"""Creates a TextCapturer with a custom regex pattern.
@@ -1315,7 +1348,6 @@ class TextCapturer:
         Returns:
             A new TextCapturer instance.
         """
-
     @staticmethod
     def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer:
         r"""Creates a TextCapturer for capturing code snippets with separators.
@@ -1327,7 +1359,6 @@ class TextCapturer:
         Returns:
             A new TextCapturer instance configured for snippets.
         """
-
     @staticmethod
     def capture_code_block(language: builtins.str = ".*?") -> TextCapturer:
         r"""Capture a code block of the given language.
@@ -1339,7 +1370,6 @@ class TextCapturer:
         Returns:
             PyResult<Self>: An instance of TextCapturer configured to capture code blocks.
         """
-
     @staticmethod
     def capture_generic_block(language: builtins.str = "String") -> TextCapturer:
         r"""Capture a generic block of the given language.
@@ -1350,7 +1380,6 @@ class TextCapturer:
         Returns:
             PyResult<Self>: An instance of TextCapturer configured to capture generic blocks.
         """
-
     @staticmethod
     def capture_content(
         left_delimiter: builtins.str, right_delimiter: typing.Optional[builtins.str] = None
