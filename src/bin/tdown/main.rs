@@ -305,6 +305,10 @@ fn create_backup(template_dir: &PathBuf, verbose: bool) -> error::Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<(), error::Error> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .ok();
+
     let cli = Cli::parse();
     let client = Client::builder().user_agent(CLI_NAME).build()?;
 
