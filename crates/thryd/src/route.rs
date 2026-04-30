@@ -70,7 +70,8 @@ use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
 use crate::{
-    Completion, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest, ThrydError,
+    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embeddings, Ranking, RerankerModel,
+    RerankerRequest, ThrydError, TieredCache,
 };
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
@@ -133,7 +134,7 @@ pub type DeploymentEntry<Model> = Arc<Deployment<Model>>;
 pub struct Router<Tag: ModelTypeTag> {
     /// Optional persistent cache for request deduplication.
     /// `None` when caching is disabled.
-    cache: Option<PersistentCache>,
+    cache: Option<TieredCache>,
 
     /// Registered providers by name. Thread-safe concurrent map.
     providers: DashMap<ProviderName, Arc<dyn Provider>>,
@@ -159,7 +160,27 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// ```
     pub fn with_cache(database_file: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
-            cache: Some(PersistentCache::create_or_open(database_file)?),
+            cache: Some(TieredCache::create_or_open(
+                database_file,
+                DEFAULT_TTL_SECS,
+                DEFAULT_MAX_CAPACITY,
+            )?),
+            ..Self::default()
+        })
+    }
+
+    /// Create a router with custom cache TTL and capacity.
+    pub fn with_cache_config(
+        database_file: impl AsRef<Path>,
+        ttl_secs: u64,
+        max_capacity: u64,
+    ) -> Result<Self> {
+        Ok(Self {
+            cache: Some(TieredCache::create_or_open(
+                database_file,
+                ttl_secs,
+                max_capacity,
+            )?),
             ..Self::default()
         })
     }
@@ -449,6 +470,20 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ///     frequency_penalty: None,
     /// }).await?;
     /// ```
+    /// Invoke a request bypassing all cache layers.
+    /// Always calls the LLM directly and never writes to cache.
+    pub async fn invoke_fresh(
+        &self,
+        send_to: RouteGroupName,
+        request: Tag::Request,
+    ) -> Result<Tag::Response> {
+        debug!("Invoking route (no cache): {}", send_to);
+        let d = self
+            .wait_for_any(send_to, Tag::prepare_input_text(&request))
+            .await?;
+        Tag::execute_request(d, request).await
+    }
+
     pub async fn invoke(
         &self,
         send_to: RouteGroupName,
@@ -469,7 +504,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             } else {
                 debug!("Cache missed for: {key}");
                 let res = Tag::execute_request(d, request).await?;
-                cache.set_ser(key, &res)?;
+                cache.set_ser(&key, &res)?;
                 Ok(res)
             }
         } else {
