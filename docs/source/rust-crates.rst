@@ -44,7 +44,7 @@ Key Features:
     response = await llm.aask("Hello", send_to="base")
 
 thryd Architecture
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
@@ -299,26 +299,46 @@ Additional Crates
     deck_loader/
     └── src/lib.rs              # genanki-rs-rev, csv, yaml
 
-**signify** - Case conversion utilities (snake → Camel, etc.)
+**signify** (v0.1.1) - JSON Schema to Python signature converter
 
 .. code-block:: text
 
     signify/
-    └── src/lib.rs              # heck, serde
+    └── src/lib.rs              # heck, serde, serde_json
 
-**macro-utils** - Procedural macro utilities
+Features:
+
+- ``schema_to_signature(&Value) -> String`` - Python function signature from JSON Schema
+- ``schema_to_docstring_args(&Value) -> String`` - Google-style Args section
+- Snake_case conversion of property names
+- Type mapping: string, number, integer, boolean, array, object
+- Required/optional parameter ordering with ``Optional[T]`` wrapping
+
+**macro-utils** (v0.1.1) - Procedural macro utilities
 
 .. code-block:: text
 
     macro-utils/
     └── src/lib.rs              # quote, syn (proc-macro crate)
 
-**utils** - Internal utilities placeholder
+Features:
+
+- Single derive macro: ``TemplateDefault``
+- Generates ``Default`` impls for structs with ``_template`` suffixed fields
+- Supports optional ``#[suffix(...)]`` attribute for custom suffixes
+
+**utils** (v0.1.2) - Shared utility functions
 
 .. code-block:: text
 
     utils/
-    └── src/lib.rs              # (empty, no dependencies)
+    └── src/lib.rs              # No external dependencies
+
+Features:
+
+- Single public function: ``mwrap<T>(item: T) -> Arc<Mutex<T>>``
+- Thread-safe shared mutable ownership wrapper
+- Combines Arc (atomic reference counting) with Mutex (mutual exclusion)
 
 Rust Crate Dependencies
 -----------------------
@@ -357,7 +377,7 @@ Rust Crate Dependencies
     └── pyo3 (optional)   # Python bindings
 
 Building Rust Crates
--------------------
+--------------------
 
 .. code-block:: bash
 
@@ -374,14 +394,14 @@ Building Rust Crates
     cargo fmt --check
 
 Development Requirements
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Rust 1.70+
 - ``cargo`` package manager
 - ``maturin`` for Python bindings (used in workspace)
 
 PyO3 Integration
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 Crates are exposed to Python via PyO3:
 
@@ -398,12 +418,13 @@ Crates are exposed to Python via PyO3:
 Feature Flags Summary
 ~~~~~~~~~~~~~~~~~~~~~
 
-===========  ==========================================================
-Crate        Features
-===========  ==========================================================
-thryd        ``pyo3`` (Python bindings), ``pystub`` (stub generation)
-fabricatio-config  ``stubgen`` (Python stub generation)
-fabricatio-logger  ``stubgen`` (Python stub generation)
-fabricatio-stubgen  ``all``, ``core``, ``memory``, ``diff``, ...
-error-mapping  ``std``, ``git2``, ``epub-builder``, ``handlebars``, ``tantivy``, ``mcp-manager``, ``thryd``, ...
-===========  ==========================================================
+===========  ============================================================
+Crate        Features                                                     
+===========  ============================================================
+thryd        ``pyo3`` (Python bindings), ``pystub`` (stub generation)     
+config       ``stubgen`` (Python stub generation)                        
+logger       ``stubgen`` (Python stub generation)                        
+stubgen      ``all``, ``core``, ``memory``, ``diff``, ...                
+error-map    ``std``, ``git2``, ``epub-builder``, ``handlebars``,        
+             ``tantivy``, ``mcp-manager``, ``thryd``, ...                
+===========  ============================================================

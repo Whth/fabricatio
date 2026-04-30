@@ -129,14 +129,14 @@ Fabricatio uses a hybrid Python/Rust monorepo structure:
     │   │   └── fabricatio-stubgen/     # Python stub generation
     │   │
     │   └── Utility Crates
-    │       ├── utils/                  # Shared utilities
-    │       ├── error-mapping/          # Error type mapping
-    │       ├── tex-convertor/          # TeX conversion
-    │       ├── signify/                # Signing utilities
-    │       ├── scanner/                # File scanning
-    │       ├── mcp-manager/           # MCP protocol manager
-    │       ├── macro-utils/            # Macro utilities
-    │       └── deck_loader/           # Deck file loading
+    │       ├── utils/                  # Thread-safe Arc/Mutex wrapper utility
+    │       ├── error-mapping/          # Rust error to Python exception mapping
+    │       ├── tex-convertor/          # LaTeX to Typst conversion
+    │       ├── signify/                # JSON Schema to Python signature converter
+    │       ├── scanner/                # Python package filesystem scanner
+    │       ├── mcp-manager/           # Model Context Protocol client manager
+    │       ├── macro-utils/            # Procedural macro utilities (TemplateDefault derive)
+    │       └── deck_loader/           # Anki deck file loading/generation
     │
     ├── pyproject.toml                  # Python workspace configuration
     ├── Cargo.toml                      # Rust workspace configuration

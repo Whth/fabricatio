@@ -1,7 +1,7 @@
 Package Ecosystem Guide
-======================
+=========================
 
-Fabricatio is organized as a monorepo with 31 Python packages and 4 Rust crates. This guide provides an overview of the ecosystem and helps you understand which packages to use for your use case.
+Fabricatio is organized as a monorepo with 31 Python packages and 13 Rust crates. This guide provides an overview of the ecosystem and helps you understand which packages to use for your use case.
 
 Package Architecture
 --------------------
@@ -157,6 +157,22 @@ Rust Crates
 +---------------------------+----------------------------------------------------------+
 | ``thryd``                 | Router engine: routing, caching, rate limiting           |
 +---------------------------+----------------------------------------------------------+
+| ``utils``                 | Shared utility functions (Arc/Mutex wrapper)             |
++---------------------------+----------------------------------------------------------+
+| ``macro-utils``           | Procedural macro utilities (TemplateDefault derive)      |
++---------------------------+----------------------------------------------------------+
+| ``signify``               | JSON Schema to Python signature converter                |
++---------------------------+----------------------------------------------------------+
+| ``error-mapping``         | Rust error to Python exception mapping                   |
++---------------------------+----------------------------------------------------------+
+| ``tex-convertor``         | LaTeX to Typst conversion                                |
++---------------------------+----------------------------------------------------------+
+| ``scanner``               | Python package filesystem scanner                        |
++---------------------------+----------------------------------------------------------+
+| ``mcp-manager``           | Model Context Protocol client manager                    |
++---------------------------+----------------------------------------------------------+
+| ``deck_loader``           | Anki deck file loading/generation                        |
++---------------------------+----------------------------------------------------------+
 
 Quick Reference by Use Case
 ---------------------------
@@ -298,61 +314,7 @@ Package Dependencies Graph
     │   (Translation)                                       │
     │                                                         │
     ├── fabricatio-plot ───────────────────────────────────▶ fabricatio-core
-    │   (Chart generation)                                 │    + matplotlib
+    │   (Data visualization)                               │
     │                                                         │
-    └── fabricatio-mock ──────────────────────────────────▶ fabricatio-core
-        (Testing utilities)                                 │
-
-Installation Patterns
----------------------
-
-**Minimal (core only)**
-    ``pip install fabricatio``
-
-**With RAG**
-    ``pip install fabricatio[rag]``
-
-**With Milvus vector database**
-    ``pip install fabricatio[milvus]``
-
-**With all capabilities**
-    ``pip install fabricatio[full]``
-
-**Selective**
-    ``pip install fabricatio[rag,rule,judge,capabilities,agent]``
-
-**Development workspace**
-    ``pip install fabricatio[workspace,checkpoint]``
-
-**Academic writing**
-    ``pip install fabricatio[typst,rag]``
-
-Package Development
--------------------
-
-Each package follows a consistent structure:
-
-::
-
-    packages/
-    └── fabricatio-{name}/
-        ├── README.md
-        ├── pyproject.toml
-        ├── src/
-        │   └── fabricatio_{name}/
-        │       ├── __init__.py
-        │       └── ...
-        └── python/
-            └── fabricatio_{name}/  # Pure Python fallback
-                └── ...
-
-Package authors can use the ``make py`` command to generate new Python subpackages from templates.
-
-External Dependencies Summary
------------------------------
-
-- ``fabricatio-rag`` — ``pymilvus>=2.5.4``, TEI service
-- ``fabricatio-milvus`` — ``pymilvus>=2.5.4``, Milvus database
-- ``fabricatio-plot`` — ``matplotlib``
-- ``fabricatio-workspace`` — ``git``
-- ``fabricatio-webui`` — ``grpcio``, gRPC services
+    └── fabricatio-lod ────────────────────────────────────▶ fabricatio-core
+        (Context compression, in development)
