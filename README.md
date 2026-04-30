@@ -83,34 +83,68 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 ## TODO
 
 - [ ] Add api support.
+    - [ ] Define API types + REST route handlers + wire into axum server
+    - [ ] Add CORS/error middleware + Python binding for server config
+    - [ ] Integration tests + API docs
 - [ ] Run as mcp server.
+    - [ ] Feature flag + `McpServer` struct + tool registry + `tools/list`
+    - [ ] stdio + HTTP transports + `tools/call` dispatch
+    - [ ] Register Fabricatio tools as MCP tools + Python binding + tests
 - [ ] Finalize the webui.
+    - [ ] Chat interface + API client + WebSocket/SSE streaming
+    - [ ] Config panel + agent status dashboard
+    - [ ] Error handling + loading states + UX polish
 - [ ] Add Plugin system.
+    - [ ] Plugin protocol + registry + lifecycle (load/unload)
+    - [ ] Hook points in core lifecycle + entry-point discovery
+    - [ ] Plugin config support + validation + tests
 - [x] Replace litellm with native rust impl
     - [x] Port deprecated mock utils to thryd impl
     - [x] Port tests to new mock utils
     - [x] Sync documentations
     - [ ] Router cache support ttl and eviction
+        - [ ] TTL check on read + eviction on write + access_count tracking
+        - [ ] Configurable TTL parameter + LRU capacity eviction + tests
 - [x] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
-    - [ ] Non-blocking compact support
+    - [ ] Package skeleton + `CompressionLevel` enum + compression strategies
+    - [ ] Async compression + Python bindings + tests
 - [ ] TreeSetter-based ACE
+    - [ ] tree-sitter dep + AST node types + tree edit operations (insert/replace/delete/move)
+    - [ ] TreeSetter orchestrator + Python bindings + multi-language round-trip tests
 - [ ] Self-Extensible Agent
+    - [ ] Capability protocol + runtime registry + dynamic method injection on Role
+    - [ ] Config-based discovery + hot-reload + tests
 - [ ] Add more examples
+    - [ ] Write missing examples (Structured Output, Extract, Improve)
+    - [ ] Document undocumented examples + cross-link `use-cases.rst` + examples index
 - [ ] `ToolExecuter` exec results feedback to llm
+    - [ ] Add `history` to `CompletionRequest` + update providers + Python binding
+    - [ ] `ResultCollector.to_history_messages` + feedback loop in `handle_fine_grind` + tests
 - [x] Use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
 - [ ] Use `Thryd` impl to move some requests to rust side
+    - [x] All core LLM operations already routed through `rust.router_usage`
+    - [ ] Move param resolution to Rust + expose `DummyModel` via PyO3
 - [ ] Add Texts-based skill system, as a subpackage
+    - [ ] Skill YAML/JSON schema + loader + directory scanner
+    - [ ] Wire into Role + validation + example skill file + tests
 - [x] Port build workflow to `Justfile`
 - [x] `thryd::Router` use concurrent safe impl
 - [x] Replace parser with native rust impl
 - [ ] Better memory impl
 - [ ] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
+    - [ ] TEI as `Provider` in thryd + `RerankerModel` for OpenAI-compat
+    - [ ] Replace RAG's TEI client with thryd router + remove gRPC deps + tests
 - [x] Replace `UseLLM` with native rust impl
     - [ ] Fix the mock utils that is break by the replacement.
+    - [ ] router support `no_cache`
 - [ ] Diff use `Hashline` impl instead of `StringGrep`
+    - [ ] `HashLine` struct + hash-based line matching in Rust
+    - [ ] Replace `match_lines` + `Diff.apply` + benchmarks + edge-case tests
 - [ ] Placeholder based multiple-agents edits
+    - [ ] `DiffConflict` type + three-way merge algorithm
+    - [ ] Conflict detection + resolution strategies (ours/theirs/llm_decide) + Python bindings + tests
 
 ## Installation
 
