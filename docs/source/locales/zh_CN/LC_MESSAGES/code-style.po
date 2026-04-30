@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-04-30 12:05+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -21,471 +20,479 @@ msgstr ""
 
 #: ../../source/code-style.rst:2
 msgid "Code Style Guide"
-msgstr ""
+msgstr "代码风格指南"
 
 #: ../../source/code-style.rst:4
 msgid ""
 "This document outlines the code style conventions used in the Fabricatio "
 "project."
-msgstr ""
+msgstr "本文档概述了 Fabricatio 项目中使用的代码风格规范。"
 
 #: ../../source/code-style.rst:13
 msgid "Rust Conventions"
-msgstr ""
+msgstr "Rust 规范"
 
 #: ../../source/code-style.rst:16
 msgid "Edition and Build Configuration"
-msgstr ""
+msgstr "版本与构建配置"
 
 #: ../../source/code-style.rst:18
 msgid "**Edition 2024**: All Rust crates use ``edition = \"2024\"``"
-msgstr ""
+msgstr "**Edition 2024**：所有 Rust crate 使用 ``edition = \"2024\"``"
 
 #: ../../source/code-style.rst:27
 msgid "**CDYLIB for PyO3**: Python-bound crates use ``crate-type = [\"cdylib\"]``"
-msgstr ""
+msgstr "**PyO3 的 CDYLIB**：与 Python 绑定的 crate 使用 ``crate-type = [\"cdylib\"]``"
 
 #: ../../source/code-style.rst:35 ../../source/code-style.rst:270
 msgid "Naming Conventions"
-msgstr ""
+msgstr "命名规范"
 
 #: ../../source/code-style.rst:37 ../../source/code-style.rst:279
 msgid "**Functions and variables**: ``snake_case``"
-msgstr ""
+msgstr "**函数和变量**：``snake_case``"
 
 #: ../../source/code-style.rst:44
 msgid "**Types and structs**: ``PascalCase``"
-msgstr ""
+msgstr "**类型和结构体**：``PascalCase``"
 
 #: ../../source/code-style.rst:51
 msgid "**Constants**: ``SCREAMING_SNAKE_CASE``"
-msgstr ""
+msgstr "**常量**：``SCREAMING_SNAKE_CASE``"
 
 #: ../../source/code-style.rst:59
 msgid "Module Organization"
-msgstr ""
+msgstr "模块组织"
 
 #: ../../source/code-style.rst:61
 msgid "Use ``pub mod`` for public modules, ``mod`` for private"
-msgstr ""
+msgstr "公共模块使用 ``pub mod``，私有模块使用 ``mod``"
 
 #: ../../source/code-style.rst:69
 msgid "Module files: Use ``mod.rs`` for submodules or individual ``.rs`` files"
-msgstr ""
+msgstr "模块文件：子模块使用 ``mod.rs``，或使用单独的 ``.rs`` 文件"
 
 #: ../../source/code-style.rst:79
 msgid "Error Handling"
-msgstr ""
+msgstr "错误处理"
 
 #: ../../source/code-style.rst:81
 msgid "**Use ``thiserror``** for creating error enums with ``#[derive(Error)]``"
-msgstr ""
+msgstr "**使用 ``thiserror``** 通过 ``#[derive(Error)]`` 创建错误枚举"
 
 #: ../../source/code-style.rst:98
 msgid ""
 "**Error variants** should have human-readable messages using "
 "``#[error(...)]``"
-msgstr ""
+msgstr "**错误变体** 应使用 ``#[error(...)]`` 提供人类可读的错误信息"
 
 #: ../../source/code-style.rst:101
 msgid "Doc Comments"
-msgstr ""
+msgstr "文档注释"
 
 #: ../../source/code-style.rst:103
 msgid "**Crate-level**: Use ``//!`` at the top of lib.rs"
-msgstr ""
+msgstr "**Crate 级别**：在 lib.rs 顶部使用 ``//!``"
 
 #: ../../source/code-style.rst:113
 msgid "**Function-level**: Use ``///`` with markdown formatting"
-msgstr ""
+msgstr "**函数级别**：使用 ``///`` 并采用 Markdown 格式"
 
 #: ../../source/code-style.rst:123
 msgid "PyO3 Patterns"
-msgstr ""
+msgstr "PyO3 模式"
 
 #: ../../source/code-style.rst:125
 msgid "**PyModule**: ``#[pymodule]`` with `` Bound<'_, PyModule>`` parameter"
-msgstr ""
+msgstr "**PyModule**：``#[pymodule]`` 配合 ``Bound<'_, PyModule>`` 参数"
 
 #: ../../source/code-style.rst:134
 msgid ""
 "**PyClass**: ``#[pyclass]`` with optional ``#[cfg_attr(feature = "
 "\"stubgen\", ...)]``"
 msgstr ""
+"**PyClass**：``#[pyclass]`` 配合可选的 ``#[cfg_attr(feature = "
+"\"stubgen\", ...)]``"
 
 #: ../../source/code-style.rst:143
 msgid ""
 "**PyMethods**: ``#[pymethods]`` with ``#[cfg_attr(...)]`` for conditional"
 " stub generation"
 msgstr ""
+"**PyMethods**：``#[pymethods]`` 配合 ``#[cfg_attr(...)]`` 用于条件性"
+"存根生成"
 
 #: ../../source/code-style.rst:154 ../../source/code-style.rst:251
 msgid "Async Patterns"
-msgstr ""
+msgstr "异步模式"
 
 #: ../../source/code-style.rst:156
 msgid "**Use ``async-trait``** for async methods in traits"
-msgstr ""
+msgstr "**使用 ``async-trait``** 在 trait 中定义异步方法"
 
 #: ../../source/code-style.rst:167
 msgid "**Let chains** for conditional await"
-msgstr ""
+msgstr "**Let 链** 用于条件性 await"
 
 #: ../../source/code-style.rst:177
 msgid "**Tokio** for async runtime with multi-thread features"
-msgstr ""
+msgstr "**Tokio** 用于多线程异步运行时"
 
 #: ../../source/code-style.rst:184
 msgid "Traits and Generics"
-msgstr ""
+msgstr "Trait 与泛型"
 
 #: ../../source/code-style.rst:186
 msgid "**Generic bounds** use ``?Sized`` when appropriate"
-msgstr ""
+msgstr "**泛型约束** 在适当时使用 ``?Sized``"
 
 #: ../../source/code-style.rst:194
 msgid "**Builder pattern** with ``mut self`` and ``-> Self``"
-msgstr ""
+msgstr "**建造者模式** 使用 ``mut self`` 和 ``-> Self``"
 
 #: ../../source/code-style.rst:204
 msgid "Feature Flags"
-msgstr ""
+msgstr "Feature 标志"
 
 #: ../../source/code-style.rst:206
 msgid "Use ``#[cfg(feature = \"...\")]`` for optional functionality"
-msgstr ""
+msgstr "使用 ``#[cfg(feature = \"...\")]`` 控制可选功能"
 
 #: ../../source/code-style.rst:213
 msgid "Define features in ``[features]`` section"
-msgstr ""
+msgstr "在 ``[features]`` 部分定义 feature"
 
 #: ../../source/code-style.rst:224
 msgid "Python Conventions"
-msgstr ""
+msgstr "Python 规范"
 
 #: ../../source/code-style.rst:227
 msgid "Type Hints"
-msgstr ""
+msgstr "类型提示"
 
 #: ../../source/code-style.rst:229
 msgid ""
 "**Full annotations** required (project uses ``Typing :: Typed`` "
 "classifier)"
 msgstr ""
+"要求**完整的类型注解**（项目使用 ``Typing :: Typed`` "
+"分类器）"
 
 #: ../../source/code-style.rst:237
 msgid "**Generic type aliases** using ``type`` statement"
-msgstr ""
+msgstr "**泛型类型别名** 使用 ``type`` 语句"
 
 #: ../../source/code-style.rst:244
 msgid "**Self returns** for method chaining"
-msgstr ""
+msgstr "**返回 Self** 用于方法链式调用"
 
 #: ../../source/code-style.rst:253
 msgid "**``async def``** for all async functions"
-msgstr ""
+msgstr "**``async def``** 用于所有异步函数"
 
 #: ../../source/code-style.rst:261
 msgid "**Use asyncio primitives**: ``create_task``, ``Queue``, ``sleep``"
-msgstr ""
+msgstr "**使用 asyncio 原语**：``create_task``、``Queue``、``sleep``"
 
 #: ../../source/code-style.rst:272
 msgid "**Classes**: ``PascalCase``"
-msgstr ""
+msgstr "**类**：``PascalCase``"
 
 #: ../../source/code-style.rst:286
 msgid "**Private attributes**: ``_prefix``"
-msgstr ""
+msgstr "**私有属性**：``_prefix``"
 
 #: ../../source/code-style.rst:294
 msgid "Docstring Style"
-msgstr ""
+msgstr "文档字符串风格"
 
 #: ../../source/code-style.rst:296
 msgid ""
 "**Google-style docstrings** (configured in ruff: ``convention = "
 "\"google\"``)"
 msgstr ""
+"**Google 风格文档字符串** （在 ruff 中配置：``convention = "
+"google"``）"
 
 #: ../../source/code-style.rst:312
 msgid "**Module-level docstrings** at top of file"
-msgstr ""
+msgstr "**模块级文档字符串** 位于文件顶部"
 
 #: ../../source/code-style.rst:327
 msgid "Pydantic v2 Patterns"
-msgstr ""
+msgstr "Pydantic v2 模式"
 
 #: ../../source/code-style.rst:329
 msgid "**``ConfigDict``** for model configuration"
-msgstr ""
+msgstr "**``ConfigDict``** 用于模型配置"
 
 #: ../../source/code-style.rst:335
 msgid "**``Field``** for field definitions with docstrings as descriptions"
-msgstr ""
+msgstr "**``Field``** 用于字段定义，文档字符串作为描述"
 
 #: ../../source/code-style.rst:345
 msgid "**``PrivateAttr``** for private fields"
-msgstr ""
+msgstr "**``PrivateAttr``** 用于私有字段"
 
 #: ../../source/code-style.rst:353
 msgid "**Generic models** with ``[T]`` syntax"
-msgstr ""
+msgstr "**泛型模型** 使用 ``[T]`` 语法"
 
 #: ../../source/code-style.rst:361
 msgid "Imports Organization"
-msgstr ""
+msgstr "导入组织"
 
 #: ../../source/code-style.rst:363
 msgid "**Type checking blocks** for circular imports"
-msgstr ""
+msgstr "**类型检查块** 用于处理循环导入"
 
 #: ../../source/code-style.rst:372
 msgid "**typing extensions** for modern Python versions"
-msgstr ""
+msgstr "**typing extensions** 用于现代 Python 版本"
 
 #: ../../source/code-style.rst:379
 msgid "Decorators"
-msgstr ""
+msgstr "装饰器"
 
 #: ../../source/code-style.rst:381
 msgid "**``@final``** from typing for preventing subclassing"
-msgstr ""
+msgstr "**``@final``** 来自 typing 模块，用于防止子类化"
 
 #: ../../source/code-style.rst:388
 msgid "**Custom decorators** in ``decorators.py``"
-msgstr ""
+msgstr "**自定义装饰器** 位于 ``decorators.py``"
 
 #: ../../source/code-style.rst:400
 msgid "Git Conventions"
-msgstr ""
+msgstr "Git 规范"
 
 #: ../../source/code-style.rst:403
 msgid "Branch Naming"
-msgstr ""
+msgstr "分支命名"
 
 #: ../../source/code-style.rst:405
 msgid "**Feature branches**: ``feat/<feature-name>``"
-msgstr ""
+msgstr "**功能分支**：``feat/<feature-name>``"
 
 #: ../../source/code-style.rst:411
 msgid "**Bugfix branches**: ``fix/<bug-name>``"
-msgstr ""
+msgstr "**修复分支**：``fix/<bug-name>``"
 
 #: ../../source/code-style.rst:413
 msgid "**Chore branches**: ``chore/<task-name>``"
-msgstr ""
+msgstr "**维护分支**：``chore/<task-name>``"
 
 #: ../../source/code-style.rst:416
 msgid "Commit Messages"
-msgstr ""
+msgstr "提交信息"
 
 #: ../../source/code-style.rst:418
 msgid ""
 "**Subject line**: Short, descriptive summary (50 chars or less "
 "recommended)"
 msgstr ""
+"**主题行**：简短、描述性的摘要（建议 50 个字符以内）"
 
 #: ../../source/code-style.rst:420
 msgid "**Body**: Explain \"why\" not \"what\""
-msgstr ""
+msgstr "**正文**：解释"为什么"而不是"做了什么""
 
 #: ../../source/code-style.rst:426
 msgid "**Types**: Use conventional commit prefixes"
-msgstr ""
+msgstr "**类型**：使用约定式提交前缀"
 
 #: ../../source/code-style.rst:428
 msgid "``feat:`` - New feature"
-msgstr ""
+msgstr "``feat:`` - 新功能"
 
 #: ../../source/code-style.rst:429
 msgid "``fix:`` - Bug fix"
-msgstr ""
+msgstr "``fix:`` - Bug 修复"
 
 #: ../../source/code-style.rst:430
 msgid "``docs:`` - Documentation"
-msgstr ""
+msgstr "``docs:`` - 文档"
 
 #: ../../source/code-style.rst:431
 msgid "``refactor:`` - Code refactoring"
-msgstr ""
+msgstr "``refactor:`` - 代码重构"
 
 #: ../../source/code-style.rst:432
 msgid "``test:`` - Adding tests"
-msgstr ""
+msgstr "``test:`` - 添加测试"
 
 #: ../../source/code-style.rst:433
 msgid "``chore:`` - Maintenance tasks"
-msgstr ""
+msgstr "``chore:`` - 维护任务"
 
 #: ../../source/code-style.rst:438
 msgid "Documentation Conventions"
-msgstr ""
+msgstr "文档规范"
 
 #: ../../source/code-style.rst:441
 msgid "Rust Documentation"
-msgstr ""
+msgstr "Rust 文档"
 
 #: ../../source/code-style.rst:443
 msgid "**Crate documentation** in ``lib.rs`` with module-level doc comments"
-msgstr ""
+msgstr "**Crate 文档** 在 ``lib.rs`` 中使用模块级文档注释"
 
 #: ../../source/code-style.rst:445
 msgid "**README files** for each crate with:"
-msgstr ""
+msgstr "每个 crate 的 **README 文件** 包含："
 
 #: ../../source/code-style.rst:447
 msgid "Badges (crates.io, docs.rs, license)"
-msgstr ""
+msgstr "徽章（crates.io、docs.rs、许可证）"
 
 #: ../../source/code-style.rst:448
 msgid "Overview section"
-msgstr ""
+msgstr "概述部分"
 
 #: ../../source/code-style.rst:449
 msgid "Key features list"
-msgstr ""
+msgstr "主要功能列表"
 
 #: ../../source/code-style.rst:450
 msgid "Usage examples"
-msgstr ""
+msgstr "使用示例"
 
 #: ../../source/code-style.rst:451
 msgid "Installation instructions"
-msgstr ""
+msgstr "安装说明"
 
 #: ../../source/code-style.rst:452
 msgid "Configuration details"
-msgstr ""
+msgstr "配置详情"
 
 #: ../../source/code-style.rst:455
 msgid "Python Documentation"
-msgstr ""
+msgstr "Python 文档"
 
 #: ../../source/code-style.rst:457
 msgid "**Package README** in ``README.md`` with similar structure"
-msgstr ""
+msgstr "**包的 README** 位于 ``README.md``，结构类似"
 
 #: ../../source/code-style.rst:459
 msgid "**Docstrings** on all public classes and functions"
-msgstr ""
+msgstr "所有公共类和函数都需要**文档字符串**"
 
 #: ../../source/code-style.rst:464
 msgid "Testing Conventions"
-msgstr ""
+msgstr "测试规范"
 
 #: ../../source/code-style.rst:467
 msgid "Python Testing (pytest)"
-msgstr ""
+msgstr "Python 测试（pytest）"
 
 #: ../../source/code-style.rst:469
 msgid "**Test file location**: ``python/tests/`` or ``python/<package>/tests/``"
-msgstr ""
+msgstr "**测试文件位置**：``python/tests/`` 或 ``python/<package>/tests/``"
 
 #: ../../source/code-style.rst:475
 msgid "**Test naming**: ``test_<functionality>.py``"
-msgstr ""
+msgstr "**测试命名**：``test_<功能名>.py``"
 
 #: ../../source/code-style.rst:485
 msgid "**Fixtures** with descriptive docstrings"
-msgstr ""
+msgstr "**Fixture** 使用描述性的文档字符串"
 
 #: ../../source/code-style.rst:500
 msgid "**Parametrized tests** with ``@pytest.mark.parametrize``"
-msgstr ""
+msgstr "**参数化测试** 使用 ``@pytest.mark.parametrize``"
 
 #: ../../source/code-style.rst:508
 msgid "**Async mode**: ``asyncio_mode = \"auto\"`` in pytest config"
-msgstr ""
+msgstr "**异步模式**：在 pytest 配置中设置 ``asyncio_mode = \"auto\"``"
 
 #: ../../source/code-style.rst:517
 msgid "Rust Testing"
-msgstr ""
+msgstr "Rust 测试"
 
 #: ../../source/code-style.rst:519
 msgid "**Inline tests** with ``#[test]`` or ``#[cfg(test)]`` module"
-msgstr ""
+msgstr "**内联测试** 使用 ``#[test]`` 或 ``#[cfg(test)]`` 模块"
 
 #: ../../source/code-style.rst:526
 msgid "**Doc tests** in documentation comments"
-msgstr ""
+msgstr "**文档测试** 在文档注释中"
 
 #: ../../source/code-style.rst:539
 msgid "Linting and Formatting"
-msgstr ""
+msgstr "代码检查与格式化"
 
 #: ../../source/code-style.rst:542
 msgid "Rust"
-msgstr ""
+msgstr "Rust"
 
 #: ../../source/code-style.rst:544
 msgid "**Formatting**: ``cargo fmt``"
-msgstr ""
+msgstr "**格式化**：``cargo fmt``"
 
 #: ../../source/code-style.rst:550
 msgid "**Linting**: ``cargo clippy``"
-msgstr ""
+msgstr "**代码检查**：``cargo clippy``"
 
 #: ../../source/code-style.rst:552
 msgid "**Applied automatically** via ``just fix``"
-msgstr ""
+msgstr "**自动应用** 通过 ``just fix``"
 
 #: ../../source/code-style.rst:555
 msgid "Python"
-msgstr ""
+msgstr "Python"
 
 #: ../../source/code-style.rst:557
 msgid "**Ruff** for linting and formatting"
-msgstr ""
+msgstr "**Ruff** 用于代码检查和格式化"
 
 #: ../../source/code-style.rst:575
 msgid "**Pyright** for type checking"
-msgstr ""
+msgstr "**Pyright** 用于类型检查"
 
 #: ../../source/code-style.rst:582
 msgid "**Format command**:"
-msgstr ""
+msgstr "**格式化命令**："
 
 #: ../../source/code-style.rst:591
 msgid "Project Structure"
-msgstr ""
+msgstr "项目结构"
 
 #: ../../source/code-style.rst:594
 msgid "Python Package Structure"
-msgstr ""
+msgstr "Python 包结构"
 
 #: ../../source/code-style.rst:615
 msgid "Rust Crate Structure"
-msgstr ""
+msgstr "Rust Crate 结构"
 
 #: ../../source/code-style.rst:629
 msgid "Module Exports"
-msgstr ""
+msgstr "模块导出"
 
 #: ../../source/code-style.rst:631
 msgid "**Python**: Export in ``__init__.py``"
-msgstr ""
+msgstr "**Python**：在 ``__init__.py`` 中导出"
 
 #: ../../source/code-style.rst:641
 msgid "**Rust**: Re-export in ``lib.rs``"
-msgstr ""
+msgstr "**Rust**：在 ``lib.rs`` 中重新导出"
 
 #: ../../source/code-style.rst:652
 msgid "Development Commands"
-msgstr ""
+msgstr "开发命令"
 
 #: ../../source/code-style.rst:677
 msgid "See Also"
-msgstr ""
+msgstr "另请参阅"
 
 #: ../../source/code-style.rst:679
 msgid ":doc:`contributing` - Contributing guidelines"
-msgstr ""
+msgstr ":doc:`contributing` - 贡献指南"
 
 #: ../../source/code-style.rst:680
 msgid ":doc:`development` - Development setup"
-msgstr ""
+msgstr ":doc:`development` - 开发环境配置"
 
 #: ../../source/code-style.rst:681
 msgid ":doc:`architecture` - Project architecture"
-msgstr ""
-
+msgstr ":doc:`architecture` - 项目架构"

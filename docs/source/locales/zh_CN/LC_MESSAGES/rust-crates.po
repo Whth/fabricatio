@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"PO-Revision-Date: 2026-04-30 21:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -21,356 +20,451 @@ msgstr ""
 
 #: ../../source/rust-crates.rst:2
 msgid "Rust Crates"
-msgstr ""
+msgstr "Rust Crate 模块"
 
 #: ../../source/rust-crates.rst:4
 msgid ""
 "Fabricatio's performance-critical components are implemented in Rust as "
 "independent crates, providing high-performance routing, caching, and "
 "system integration for the Python ecosystem."
-msgstr ""
+msgstr "Fabricatio 的性能关键组件使用 Rust 实现为独立的 crate，为 Python 生态系统提供高性能的路由、缓存和系统集成能力。"
 
-#: ../../source/rust-crates.rst:8
+#: ../../source/rust-crates.rst:8 ../../source/rust-crates.rst:424
 msgid "thryd"
-msgstr ""
+msgstr "thryd"
 
 #: ../../source/rust-crates.rst:10
 msgid ""
 "**Router Engine** - High-performance LLM request routing with intelligent"
 " caching and rate limiting."
-msgstr ""
+msgstr "**路由引擎** - 高性能 LLM 请求路由，支持智能缓存和速率限制。"
 
 #: ../../source/rust-crates.rst:28
 msgid "Key Features:"
-msgstr ""
+msgstr "核心特性："
 
 #: ../../source/rust-crates.rst:30
 msgid ""
 "**Multi-Provider Routing**: OpenAI-compatible APIs, custom providers via "
 "trait"
-msgstr ""
+msgstr "**多提供商路由**：兼容 OpenAI 的 API，通过 trait 支持自定义提供商"
 
 #: ../../source/rust-crates.rst:31
 msgid ""
 "**Intelligent Caching**: redb embedded database with automatic request "
 "deduplication"
-msgstr ""
+msgstr "**智能缓存**：基于 redb 嵌入式数据库，自动请求去重"
 
 #: ../../source/rust-crates.rst:32
 msgid "**Token Tracking**: Accurate counting via tiktoken with TPM/RPM quotas"
-msgstr ""
+msgstr "Token 追踪：基于 tiktoken 的精确计数，支持 TPM/RPM 配额"
 
 #: ../../source/rust-crates.rst:33
 msgid "**Rate Limiting**: Sliding window algorithm (60 buckets × 60s default)"
-msgstr ""
+msgstr "**速率限制**：滑动窗口算法（默认 60 个桶 × 60 秒）"
 
 #: ../../source/rust-crates.rst:34
 msgid "**Load Balancing**: Route to multiple deployments in a group"
-msgstr ""
+msgstr "**负载均衡**：将请求路由到组内的多个部署"
 
 #: ../../source/rust-crates.rst:35
 msgid "**Async-First**: Built on Tokio for high-concurrency workloads"
-msgstr ""
+msgstr "**异步优先**：基于 Tokio 构建，适用于高并发工作负载"
 
 #: ../../source/rust-crates.rst:36
 msgid "**PyO3 Bindings**: Optional Python access via ``thryd`` Python package"
-msgstr ""
+msgstr "**PyO3 绑定**：通过 ``thryd`` Python 包可选地提供 Python 访问接口"
 
 #: ../../source/rust-crates.rst:47
 msgid "thryd Architecture"
-msgstr ""
+msgstr "thryd 架构"
 
 #: ../../source/rust-crates.rst:83
 msgid "Core Concepts"
-msgstr ""
+msgstr "核心概念"
 
 #: ../../source/rust-crates.rst:85
 msgid "**Providers** (``Provider`` trait)"
-msgstr ""
+msgstr "**提供商** (``Provider`` trait)"
 
 #: ../../source/rust-crates.rst:86
 msgid ""
 "API service wrappers. Built-in: ``OpenAICompatible``, ``DummyProvider``. "
 "Implement the trait to add custom providers."
-msgstr ""
+msgstr "API 服务封装器。内置：``OpenAICompatible``、``DummyProvider``。实现该 trait 即可添加自定义提供商。"
 
 #: ../../source/rust-crates.rst:89
 msgid "**Models** (``CompletionModel``, ``EmbeddingModel``)"
-msgstr ""
+msgstr "**模型** (``CompletionModel``、``EmbeddingModel``)"
 
 #: ../../source/rust-crates.rst:90
 msgid "Specific LLM instances with API interaction logic."
-msgstr ""
+msgstr "具有 API 交互逻辑的具体 LLM 实例。"
 
 #: ../../source/rust-crates.rst:92
 msgid "**Deployments** (``Deployment``)"
-msgstr ""
+msgstr "**部署** (``Deployment``)"
 
 #: ../../source/rust-crates.rst:93
 msgid "Models wrapped with rate limiting and usage tracking."
-msgstr ""
+msgstr "封装了速率限制和使用追踪的模型。"
 
 #: ../../source/rust-crates.rst:95
 msgid "**Routers** (``Router<CompletionTag>``, ``Router<EmbeddingTag>``)"
-msgstr ""
+msgstr "**路由器** (``Router<CompletionTag>``、``Router<EmbeddingTag>``)"
 
 #: ../../source/rust-crates.rst:96
 msgid "Manage multiple deployments, route requests by group name."
-msgstr ""
+msgstr "管理多个部署，按组名路由请求。"
 
 #: ../../source/rust-crates.rst:120
 msgid "Rate Limiting Internals"
-msgstr ""
+msgstr "速率限制内部机制"
 
 #: ../../source/rust-crates.rst:122
 msgid "Thryd uses a **sliding window algorithm** with configurable parameters:"
-msgstr ""
+msgstr "Thryd 使用**滑动窗口算法**，支持以下可配置参数："
 
 #: ../../source/rust-crates.rst:124
 msgid "**BUCKET_COUNT**: Number of time buckets (default: 60)"
-msgstr ""
+msgstr "**BUCKET_COUNT**：时间桶数量（默认：60）"
 
 #: ../../source/rust-crates.rst:125
 msgid "**BUCKETS_WINDOW_S**: Window size in seconds (default: 60)"
-msgstr ""
+msgstr "**BUCKETS_WINDOW_S**：窗口大小，单位为秒（默认：60）"
 
 #: ../../source/rust-crates.rst:145
 msgid "fabricatio-config"
-msgstr ""
+msgstr "fabricatio-config"
 
 #: ../../source/rust-crates.rst:147
 msgid ""
 "**Configuration Management** - Multi-source configuration loading with "
 "validation."
-msgstr ""
+msgstr "**配置管理** - 支持多源配置加载和验证。"
 
 #: ../../source/rust-crates.rst:160 ../../source/rust-crates.rst:209
-#: ../../source/rust-crates.rst:257
+#: ../../source/rust-crates.rst:257 ../../source/rust-crates.rst:309
+#: ../../source/rust-crates.rst:324 ../../source/rust-crates.rst:337
 msgid "Features:"
-msgstr ""
+msgstr "特性："
 
 #: ../../source/rust-crates.rst:162
 msgid "**Multi-Source Loading**: env, TOML, pyproject.toml, global config"
-msgstr ""
+msgstr "**多源加载**：环境变量、TOML、pyproject.toml、全局配置"
 
 #: ../../source/rust-crates.rst:163
 msgid "**Validation**: URL, range, and type validation via validator crate"
-msgstr ""
+msgstr "**验证**：通过 validator crate 进行 URL、范围和类型验证"
 
 #: ../../source/rust-crates.rst:164
 msgid "**Secret Handling**: SecretStr for API keys with redaction in logs"
-msgstr ""
+msgstr "**密钥处理**：使用 SecretStr 管理 API 密钥，日志中自动脱敏"
 
 #: ../../source/rust-crates.rst:165
 msgid "**PyO3 Integration**: Full Python class generation"
-msgstr ""
+msgstr "**PyO3 集成**：完整的 Python 类生成"
 
 #: ../../source/rust-crates.rst:167
 msgid "Configuration Sources (priority order):"
-msgstr ""
+msgstr "配置来源（按优先级排序）："
 
 #: ../../source/rust-crates.rst:169
 msgid "Call arguments (Python API)"
-msgstr ""
+msgstr "调用参数（Python API）"
 
 #: ../../source/rust-crates.rst:170
 msgid "``.env`` file"
-msgstr ""
+msgstr "``.env`` 文件"
 
 #: ../../source/rust-crates.rst:171
 msgid "Environment variables"
-msgstr ""
+msgstr "环境变量"
 
 #: ../../source/rust-crates.rst:172
 msgid "``./fabricatio.toml``"
-msgstr ""
+msgstr "``./fabricatio.toml``"
 
 #: ../../source/rust-crates.rst:173
 msgid "``./pyproject.toml`` ``[tool.fabricatio]``"
-msgstr ""
+msgstr "``./pyproject.toml`` ``[tool.fabricatio]``"
 
 #: ../../source/rust-crates.rst:174
 msgid "``<ROAMING>/fabricatio/fabricatio.toml``"
-msgstr ""
+msgstr "``<ROAMING>/fabricatio/fabricatio.toml``"
 
 #: ../../source/rust-crates.rst:175
 msgid "Built-in defaults"
-msgstr ""
+msgstr "内置默认值"
 
 #: ../../source/rust-crates.rst:177
 msgid "Configuration Structure:"
-msgstr ""
+msgstr "配置结构："
 
 #: ../../source/rust-crates.rst:196
 msgid "fabricatio-logger"
-msgstr ""
+msgstr "fabricatio-logger"
 
 #: ../../source/rust-crates.rst:198
 msgid ""
 "**Structured Logging** - Performance-optimized logging with loguru-style "
 "formatting."
-msgstr ""
+msgstr "**结构化日志** - 性能优化的日志系统，支持 loguru 风格的格式化。"
 
 #: ../../source/rust-crates.rst:211
 msgid "**Loguru-Style Format**: ANSI colors, module/line context"
-msgstr ""
+msgstr "**Loguru 风格格式**：ANSI 颜色、模块/行号上下文"
 
 #: ../../source/rust-crates.rst:212
 msgid "**Log Rotation**: never, minutely, hourly, daily options"
-msgstr ""
+msgstr "**日志轮转**：支持按分钟、按小时、按天轮转或不轮转"
 
 #: ../../source/rust-crates.rst:213
 msgid "**Thread-Safe**: Global logger with Tokio runtime support"
-msgstr ""
+msgstr "**线程安全**：全局日志器，支持 Tokio 运行时"
 
 #: ../../source/rust-crates.rst:214
 msgid "**Python Integration**: Auto-configure from Python settings"
-msgstr ""
+msgstr "**Python 集成**：从 Python 设置自动配置"
 
 #: ../../source/rust-crates.rst:216
 msgid "Log Levels: TRACE < DEBUG < INFO < WARN < ERROR"
-msgstr ""
+msgstr "日志级别：TRACE < DEBUG < INFO < WARN < ERROR"
 
 #: ../../source/rust-crates.rst:219
 msgid "fabricatio-constants"
-msgstr ""
+msgstr "fabricatio-constants"
 
 #: ../../source/rust-crates.rst:221
 msgid "**Shared Constants** - Application-wide path and variable definitions."
-msgstr ""
+msgstr "**共享常量** - 应用全局的路径和变量定义。"
 
 #: ../../source/rust-crates.rst:233
 msgid "Platform Paths:"
-msgstr ""
+msgstr "平台路径："
 
 #: ../../source/rust-crates.rst:236
 msgid "Platform"
-msgstr ""
+msgstr "平台"
 
 #: ../../source/rust-crates.rst:236
 msgid "Config Directory"
-msgstr ""
+msgstr "配置目录"
 
 #: ../../source/rust-crates.rst:238
 msgid "Linux"
-msgstr ""
+msgstr "Linux"
 
 #: ../../source/rust-crates.rst:238
 msgid "``$XDG_CONFIG_HOME`` or ``$HOME/.config``"
-msgstr ""
+msgstr "``$XDG_CONFIG_HOME`` 或 ``$HOME/.config``"
 
 #: ../../source/rust-crates.rst:239
 msgid "macOS"
-msgstr ""
+msgstr "macOS"
 
 #: ../../source/rust-crates.rst:239
 msgid "``$HOME/Library/Application Support``"
-msgstr ""
+msgstr "``$HOME/Library/Application Support``"
 
 #: ../../source/rust-crates.rst:240
 msgid "Windows"
-msgstr ""
+msgstr "Windows"
 
 #: ../../source/rust-crates.rst:240
 #, python-brace-format
 msgid "``{FOLDERID_RoamingAppData}``"
-msgstr ""
+msgstr "``{FOLDERID_RoamingAppData}``"
 
 #: ../../source/rust-crates.rst:244
 msgid "fabricatio-stubgen"
-msgstr ""
+msgstr "fabricatio-stubgen"
 
 #: ../../source/rust-crates.rst:246
 msgid ""
 "**Stub Generator** - Python ``.pyi`` stub file generation for PyO3 "
 "modules."
-msgstr ""
+msgstr "**存根生成器** - 为 PyO3 模块生成 Python ``.pyi`` 存根文件。"
 
 #: ../../source/rust-crates.rst:259
 msgid "**Automatic Discovery**: Scans packages for PyO3 bindings"
-msgstr ""
+msgstr "**自动发现**：扫描包中的 PyO3 绑定"
 
 #: ../../source/rust-crates.rst:260
 msgid "**Type Annotations**: Full signatures in generated ``.pyi`` files"
-msgstr ""
+msgstr "**类型注解**：在生成的 ``.pyi`` 文件中包含完整签名"
 
 #: ../../source/rust-crates.rst:261
 msgid "**Multi-Package**: Handles all fabricatio packages in one run"
-msgstr ""
+msgstr "**多包支持**：一次运行处理所有 fabricatio 包"
 
 #: ../../source/rust-crates.rst:262
 msgid "**Opt-In**: Enabled via ``stubgen`` feature flag"
-msgstr ""
+msgstr "**可选启用**：通过 ``stubgen`` feature flag 启用"
 
 #: ../../source/rust-crates.rst:265
 msgid "Additional Crates"
-msgstr ""
+msgstr "其他 Crate 模块"
 
 #: ../../source/rust-crates.rst:267
 msgid "**tex-convertor** - LaTeX to Typst conversion"
-msgstr ""
+msgstr "**tex-convertor** - LaTeX 转 Typst 转换工具"
 
 #: ../../source/rust-crates.rst:274
 msgid "**scanner** - Python package filesystem scanner"
-msgstr ""
+msgstr "**scanner** - Python 包文件系统扫描器"
 
 #: ../../source/rust-crates.rst:281
 msgid "**error-mapping** - Error type mapping between Rust/Python"
-msgstr ""
+msgstr "**error-mapping** - Rust/Python 间的错误类型映射"
 
 #: ../../source/rust-crates.rst:288
 msgid "**mcp-manager** - Model Context Protocol server management"
-msgstr ""
+msgstr "**mcp-manager** - Model Context Protocol 服务器管理"
 
 #: ../../source/rust-crates.rst:295
 msgid "**deck_loader** - Anki deck file loading/generation"
-msgstr ""
+msgstr "**deck_loader** - Anki 牌组文件加载/生成"
 
 #: ../../source/rust-crates.rst:302
-msgid "**signify** - Case conversion utilities (snake → Camel, etc.)"
-msgstr ""
+msgid "**signify** (v0.1.1) - JSON Schema to Python signature converter"
+msgstr "**signify** (v0.1.1) - JSON Schema 到 Python 签名的转换器"
 
-#: ../../source/rust-crates.rst:309
-msgid "**macro-utils** - Procedural macro utilities"
-msgstr ""
+#: ../../source/rust-crates.rst:311
+msgid ""
+"``schema_to_signature(&Value) -> String`` - Python function signature "
+"from JSON Schema"
+msgstr "``schema_to_signature(&Value) -> String`` - 从 JSON Schema 生成 Python 函数签名"
 
-#: ../../source/rust-crates.rst:316
-msgid "**utils** - Internal utilities placeholder"
-msgstr ""
+#: ../../source/rust-crates.rst:312
+msgid "``schema_to_docstring_args(&Value) -> String`` - Google-style Args section"
+msgstr "``schema_to_docstring_args(&Value) -> String`` - Google 风格 Args 段落"
 
-#: ../../source/rust-crates.rst:324
+#: ../../source/rust-crates.rst:313
+msgid "Snake_case conversion of property names"
+msgstr "属性名的 Snake_case 转换"
+
+#: ../../source/rust-crates.rst:314
+msgid "Type mapping: string, number, integer, boolean, array, object"
+msgstr "类型映射：string、number、integer、boolean、array、object"
+
+#: ../../source/rust-crates.rst:315
+msgid "Required/optional parameter ordering with ``Optional[T]`` wrapping"
+msgstr "必需/可选参数排序，支持 ``Optional[T]`` 包装"
+
+#: ../../source/rust-crates.rst:317
+msgid "**macro-utils** (v0.1.1) - Procedural macro utilities"
+msgstr "**macro-utils** (v0.1.1) - 过程宏工具"
+
+#: ../../source/rust-crates.rst:326
+msgid "Single derive macro: ``TemplateDefault``"
+msgstr "单一派生宏：``TemplateDefault``"
+
+#: ../../source/rust-crates.rst:327
+msgid "Generates ``Default`` impls for structs with ``_template`` suffixed fields"
+msgstr "为具有 ``_template`` 后缀字段的结构体生成 ``Default`` 实现"
+
+#: ../../source/rust-crates.rst:328
+msgid "Supports optional ``#[suffix(...)]`` attribute for custom suffixes"
+msgstr "支持可选的 ``#[suffix(...)]`` 属性用于自定义后缀"
+
+#: ../../source/rust-crates.rst:330
+msgid "**utils** (v0.1.2) - Shared utility functions"
+msgstr "**utils** (v0.1.2) - 共享工具函数"
+
+#: ../../source/rust-crates.rst:339
+msgid "Single public function: ``mwrap<T>(item: T) -> Arc<Mutex<T>>``"
+msgstr "单一公共函数：``mwrap<T>(item: T) -> Arc<Mutex<T>>``"
+
+#: ../../source/rust-crates.rst:340
+msgid "Thread-safe shared mutable ownership wrapper"
+msgstr "线程安全的共享可变所有权封装"
+
+#: ../../source/rust-crates.rst:341
+msgid "Combines Arc (atomic reference counting) with Mutex (mutual exclusion)"
+msgstr "结合 Arc（原子引用计数）与 Mutex（互斥锁）"
+
+#: ../../source/rust-crates.rst:344
 msgid "Rust Crate Dependencies"
-msgstr ""
-
-#: ../../source/rust-crates.rst:360
-msgid "Building Rust Crates"
-msgstr ""
-
-#: ../../source/rust-crates.rst:377
-msgid "Development Requirements"
-msgstr ""
-
-#: ../../source/rust-crates.rst:379
-msgid "Rust 1.70+"
-msgstr ""
+msgstr "Rust Crate 依赖"
 
 #: ../../source/rust-crates.rst:380
-msgid "``cargo`` package manager"
-msgstr ""
+msgid "Building Rust Crates"
+msgstr "构建 Rust Crate"
 
-#: ../../source/rust-crates.rst:381
-msgid "``maturin`` for Python bindings (used in workspace)"
-msgstr ""
-
-#: ../../source/rust-crates.rst:384
-msgid "PyO3 Integration"
-msgstr ""
-
-#: ../../source/rust-crates.rst:386
-msgid "Crates are exposed to Python via PyO3:"
-msgstr ""
+#: ../../source/rust-crates.rst:397
+msgid "Development Requirements"
+msgstr "开发环境要求"
 
 #: ../../source/rust-crates.rst:399
+msgid "Rust 1.70+"
+msgstr "Rust 1.70+"
+
+#: ../../source/rust-crates.rst:400
+msgid "``cargo`` package manager"
+msgstr "``cargo`` 包管理器"
+
+#: ../../source/rust-crates.rst:401
+msgid "``maturin`` for Python bindings (used in workspace)"
+msgstr "``maturin`` 用于 Python 绑定（工作空间中使用）"
+
+#: ../../source/rust-crates.rst:404
+msgid "PyO3 Integration"
+msgstr "PyO3 集成"
+
+#: ../../source/rust-crates.rst:406
+msgid "Crates are exposed to Python via PyO3:"
+msgstr "Crate 通过 PyO3 暴露给 Python："
+
+#: ../../source/rust-crates.rst:419
 msgid "Feature Flags Summary"
-msgstr ""
+msgstr "Feature Flag 总结"
+
+#: ../../source/rust-crates.rst:422
+msgid "Crate"
+msgstr "Crate"
+
+#: ../../source/rust-crates.rst:422
+msgid "Features"
+msgstr "特性"
+
+#: ../../source/rust-crates.rst:424
+msgid "``pyo3`` (Python bindings), ``pystub`` (stub generation)"
+msgstr "``pyo3`` （Python 绑定）、``pystub`` （存根生成）"
+
+#: ../../source/rust-crates.rst:425
+msgid "config"
+msgstr "config"
+
+#: ../../source/rust-crates.rst:425 ../../source/rust-crates.rst:426
+msgid "``stubgen`` (Python stub generation)"
+msgstr "``stubgen`` （Python 存根生成）"
+
+#: ../../source/rust-crates.rst:426
+msgid "logger"
+msgstr "logger"
+
+#: ../../source/rust-crates.rst:427
+msgid "stubgen"
+msgstr "stubgen"
+
+#: ../../source/rust-crates.rst:427
+msgid "``all``, ``core``, ``memory``, ``diff``, ..."
+msgstr "``all``、``core``、``memory``、``diff`` 等"
+
+#: ../../source/rust-crates.rst:428
+msgid "error-map"
+msgstr "error-map"
+
+#: ../../source/rust-crates.rst:428
+msgid ""
+"``std``, ``git2``, ``epub-builder``, ``handlebars``, ``tantivy``, ``mcp-"
+"manager``, ``thryd``, ..."
+msgstr "``std``、``git2``、``epub-builder``、``handlebars``、``tantivy``、``mcp-manager``、``thryd`` 等"
+
+#~ msgid "**signify** - Case conversion utilities (snake → Camel, etc.)"
+#~ msgstr "**signify** - 大小写转换工具（snake → Camel 等）"
+
+#~ msgid "**utils** - Internal utilities placeholder"
+#~ msgstr "**utils** - 内部工具占位模块"
 

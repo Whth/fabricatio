@@ -162,7 +162,7 @@ Key patterns:
 - ``aask_retrieved()`` combines retrieval with generation
 
 Code Review
-----------
+-----------
 
 Automated code review with structured output.
 
@@ -423,7 +423,7 @@ Key patterns:
 - Support for optional fields with defaults
 
 Diff Editing
------------
+------------
 
 Automatically fix spelling, wording, and other text issues with diff-based editing.
 
@@ -1067,7 +1067,7 @@ Key patterns:
 - ``AppendTopicAnalysis`` provides topic analysis on CSV data
 
 Example Categories
------------------
+------------------
 
 The repository includes the following example directories:
 

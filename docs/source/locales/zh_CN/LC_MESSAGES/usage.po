@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-07 16:55+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"PO-Revision-Date: 2026-04-30 20:55+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -17,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: ../../source/usage.rst:2
 msgid "Usage"
@@ -68,115 +67,210 @@ msgid "For asynchronous execution:"
 msgstr "对于异步执行："
 
 #: ../../source/usage.rst:81
+msgid "Delegation Modes"
+msgstr "委派模式"
+
+#: ../../source/usage.rst:83
+msgid "Fabricatio provides two delegation modes:"
+msgstr "Fabricatio 提供两种委派模式："
+
+#: ../../source/usage.rst:85
+msgid ""
+"``delegate()`` (async, non-blocking): Returns a ``Task`` handle. Use this"
+" when you need to run multiple tasks concurrently or want to avoid "
+"blocking the event loop."
+msgstr "``delegate()``\ （异步，非阻塞）：返回一个 ``Task`` 句柄。当您需要并发运行多个任务或希望避免阻塞事件循环时使用此方法。"
+
+#: ../../source/usage.rst:88
+msgid ""
+"``delegate_blocking()`` (sync): Blocks until the task completes. Use this"
+" in synchronous contexts or simple scripts where concurrency is not "
+"needed."
+msgstr "``delegate_blocking()``\ （同步）：阻塞直到任务完成。在同步上下文或不需要并发的简单脚本中使用此方法。"
+
+#: ../../source/usage.rst:91
+msgid ""
+"Fire-and-forget: You can call ``delegate()`` and discard the result if "
+"you only need to trigger the side effect. The task will still be "
+"processed by the Role."
+msgstr "发射即忘：如果只需要触发副作用，可以调用 ``delegate()`` 并丢弃结果。任务仍会被角色处理。"
+
+#: ../../source/usage.rst:94
+msgid ""
+"Why async matters: Concurrent task execution lets you interleave LLM "
+"calls, database queries, and external API requests without blocking the "
+"event loop. This is critical for chat loops, streaming responses, and "
+"real-time applications where latency must be kept low."
+msgstr "为什么异步很重要：并发任务执行可以让您在不阻塞事件循环的情况下交错执行 LLM 调用、数据库查询和外部 API 请求。这对于聊天循环、流式响应以及需要保持低延迟的实时应用程序至关重要。"
+
+#: ../../source/usage.rst:100
 msgid "Usage Scenarios"
 msgstr "使用场景"
 
-#: ../../source/usage.rst:83
+#: ../../source/usage.rst:102
 msgid "Fabricatio supports various usage scenarios:"
 msgstr "Fabricatio 支持各种使用场景："
 
-#: ../../source/usage.rst:85
+#: ../../source/usage.rst:104
 msgid "Simple Chat"
 msgstr "简单聊天"
 
-#: ../../source/usage.rst:86
+#: ../../source/usage.rst:105
+msgid ""
+"Interactive conversational loop. Demonstrates ``Action`` as a stateful "
+"chat handler — each turn appends to conversation history, and the "
+"workflow persists context across interactions."
+msgstr "交互式对话循环。演示 ``Action`` 作为有状态的聊天处理器——每轮对话都会追加到对话历史中，工作流在多次交互间保持上下文。"
+
+#: ../../source/usage.rst:109
 msgid "Retrieval-Augmented Generation (RAG)"
 msgstr "检索增强生成 (RAG)"
 
-#: ../../source/usage.rst:87
+#: ../../source/usage.rst:110
+msgid ""
+"Retrieves relevant documents *before* the LLM call. Shows how "
+"``Action``\\ s compose external data (embeddings, vector DB) with "
+"generation — the retrieval step feeds context into the prompt step."
+msgstr "在 LLM 调用\ *之前*\ 检索相关文档。展示 ``Action`` 如何将外部数据（嵌入向量、向量数据库）与生成相结合——检索步骤将上下文提供给提示步骤。"
+
+#: ../../source/usage.rst:114
 msgid "Article Extraction"
 msgstr "文章提取"
 
-#: ../../source/usage.rst:88
+#: ../../source/usage.rst:115
+msgid ""
+"Parses and injects structured data into vector databases. Demonstrates "
+"multi-step pipelines: fetch, parse, chunk, embed, and store — each a "
+"separate ``Action``."
+msgstr "解析并将结构化数据注入向量数据库。演示多步管道：获取、解析、分块、嵌入和存储——每一步都是一个独立的 ``Action``。"
+
+#: ../../source/usage.rst:119
 msgid "Propose Task"
 msgstr "任务提案"
 
-#: ../../source/usage.rst:89
-#, fuzzy
-msgid "Code Review"
-msgstr "概述"
+#: ../../source/usage.rst:120
+msgid ""
+"LLM-driven task decomposition from natural language. The LLM analyses a "
+"user request and breaks it into sub-tasks, each of which can be "
+"dispatched as a new workflow."
+msgstr "基于 LLM 的自然语言任务分解。LLM 分析用户请求并将其拆分为子任务，每个子任务可以作为新的工作流进行调度。"
 
-#: ../../source/usage.rst:90
+#: ../../source/usage.rst:124
+msgid "Code Review"
+msgstr "代码审查"
+
+#: ../../source/usage.rst:125
+msgid ""
+"Demonstrates the review→correct workflow pattern: review code, collect "
+"feedback, then apply corrections in a follow-up action — all within the "
+"same workflow."
+msgstr "演示审查→修正的工作流模式：审查代码、收集反馈，然后在后续操作中应用修正——全部在同一工作流内完成。"
+
+#: ../../source/usage.rst:129
 msgid "Write Outline"
 msgstr "撰写大纲"
 
-#: ../../source/usage.rst:92 ../../source/usage.rst:121
+#: ../../source/usage.rst:130
+msgid ""
+"Demonstrates structured output generation with typst formatting. The "
+"``Action`` returns a structured schema that is rendered into a formatted "
+"document."
+msgstr "演示使用 typst 格式化的结构化输出生成。``Action`` 返回一个结构化模式，被渲染为格式化的文档。"
+
+#: ../../source/usage.rst:134 ../../source/usage.rst:173
 msgid ""
 "For detailed examples and advanced usage patterns, explore the "
 "``examples/`` directory in the repository."
 msgstr "有关详细示例和高级使用模式，请探索存储库中的 ``examples/`` 目录。"
 
-#: ../../source/usage.rst:95
+#: ../../source/usage.rst:137
 msgid "Key Concepts"
 msgstr "关键概念"
 
-#: ../../source/usage.rst:97
+#: ../../source/usage.rst:139
 msgid "**Actions**"
 msgstr "**操作**"
 
-#: ../../source/usage.rst:98
+#: ../../source/usage.rst:140
 msgid ""
 "The basic unit of work in Fabricatio. Each action performs a specific "
-"task and can be chained together."
-msgstr "Fabricatio 中的基本工作单元。每个操作执行特定任务，并可以串联在一起。"
+"task and can be chained together. *Why:* Encapsulate LLM calls and side "
+"effects so they're composable and testable."
+msgstr "Fabricatio 中的基本工作单元。每个操作执行特定任务，并可以串联在一起。\ *原因：*\ 封装 LLM 调用和副作用，使其可组合且可测试。"
 
-#: ../../source/usage.rst:100
+#: ../../source/usage.rst:143
 msgid "**Workflows**"
 msgstr "**工作流**"
 
-#: ../../source/usage.rst:101
-msgid "A sequence of actions that define how tasks are processed."
-msgstr "定义任务如何被处理的一系列操作。"
+#: ../../source/usage.rst:144
+msgid ""
+"A sequence of actions that define how tasks are processed. *Why:* Chain "
+"actions into deterministic pipelines — each step's output feeds the next."
+msgstr "定义任务处理方式的操作序列。\ *原因：*\ 将操作链接为确定性管道——每一步的输出馈入下一步。"
 
-#: ../../source/usage.rst:103
+#: ../../source/usage.rst:147
 msgid "**Events**"
 msgstr "**事件**"
 
-#: ../../source/usage.rst:104
+#: ../../source/usage.rst:148
 msgid ""
 "Triggers that initiate workflows. Events follow an event-driven "
-"architecture pattern."
-msgstr "触发工作流的机制。事件遵循事件驱动架构模式。"
+"architecture pattern. *Why:* Decouple task submission from execution — "
+"the same event can trigger different workflows in different Roles."
+msgstr "触发工作流的机制。事件遵循事件驱动架构模式。\ *原因：*\ 将任务提交与执行解耦——同一事件可以在不同角色中触发不同的工作流。"
 
-#: ../../source/usage.rst:106
+#: ../../source/usage.rst:151
 msgid "**Roles**"
 msgstr "**角色**"
 
-#: ../../source/usage.rst:107
-msgid "Entities that manage workflows and handle task delegation."
-msgstr "管理工作流并处理任务委派的实体。"
+#: ../../source/usage.rst:152
+msgid ""
+"Entities that manage workflows and handle task delegation. *Why:* Own "
+"workflows and LLM configuration, enabling different agents with different"
+" capabilities."
+msgstr "管理工作流和处理任务委派的实体。\ *原因：*\ 拥有各自的工作流和 LLM 配置，使不同代理具备不同能力。"
 
-#: ../../source/usage.rst:109
+#: ../../source/usage.rst:155
 msgid "**Tasks**"
 msgstr "**任务**"
 
-#: ../../source/usage.rst:110
-msgid "Work items that get processed through workflows."
-msgstr "通过工作流进行处理的工作项。"
+#: ../../source/usage.rst:156
+msgid ""
+"Work items that get processed through workflows. *Why:* Carry state "
+"through a workflow, track dependencies, and support cancellation."
+msgstr "通过工作流处理的工作项。\ *原因：*\ 在工作流中携带状态、跟踪依赖关系并支持取消。"
 
-#: ../../source/usage.rst:113
+#: ../../source/usage.rst:160
 msgid "Getting Started"
 msgstr "入门指南"
 
-#: ../../source/usage.rst:115
+#: ../../source/usage.rst:162
 msgid "Install fabricatio with desired capabilities"
 msgstr "安装带有所需功能的 fabricatio"
 
-#: ../../source/usage.rst:116
+#: ../../source/usage.rst:163
 msgid "Define your actions by subclassing ``Action``"
 msgstr "通过继承 ``Action`` 来定义您的操作"
 
-#: ../../source/usage.rst:117
+#: ../../source/usage.rst:164
 msgid "Create workflows combining your actions"
 msgstr "创建组合您操作的工作流"
 
-#: ../../source/usage.rst:118
+#: ../../source/usage.rst:165
 msgid "Register workflows with roles using events"
 msgstr "使用事件将工作流注册到角色"
 
-#: ../../source/usage.rst:119
+#: ../../source/usage.rst:166
 msgid "Submit tasks for processing"
 msgstr "提交任务以进行处理"
+
+#: ../../source/usage.rst:168
+msgid ""
+"``Task.delegate(event_name)`` dispatches the task to the ``Role`` that "
+"owns the matching workflow. The task carries state (``init_context``, "
+"``dependencies``) across workflow steps, so each action in the chain has "
+"access to previous results."
+msgstr "``Task.delegate(event_name)`` 将任务调度到拥有匹配工作流的 ``Role``。任务在工作流步骤间携带状态（``init_context``、``dependencies``），因此链中的每个操作都可以访问之前的结果。"
 
 #~ msgid "Available Examples"
 #~ msgstr "可用示例"
@@ -240,4 +334,19 @@ msgstr "提交任务以进行处理"
 #~ "ust_proj\\fabricatio\\packages\\fabricatio-"
 #~ "core\\python\\fabricatio_core\\models\\action.py#L28-L90)` "
 #~ "定义您的操作"
+
+#~ msgid "A sequence of actions that define how tasks are processed."
+#~ msgstr "定义任务如何被处理的一系列操作。"
+
+#~ msgid ""
+#~ "Triggers that initiate workflows. Events "
+#~ "follow an event-driven architecture "
+#~ "pattern."
+#~ msgstr "触发工作流的机制。事件遵循事件驱动架构模式。"
+
+#~ msgid "Entities that manage workflows and handle task delegation."
+#~ msgstr "管理工作流并处理任务委派的实体。"
+
+#~ msgid "Work items that get processed through workflows."
+#~ msgstr "通过工作流进行处理的工作项。"
 

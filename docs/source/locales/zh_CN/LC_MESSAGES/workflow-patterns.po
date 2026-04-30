@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -21,187 +20,191 @@ msgstr ""
 
 #: ../../source/workflow-patterns.rst:2
 msgid "Workflow Patterns"
-msgstr ""
+msgstr "工作流模式"
 
 #: ../../source/workflow-patterns.rst:4
 msgid ""
 "This guide documents common workflow patterns and best practices for "
 "building Fabricatio applications."
 msgstr ""
+"本指南记录了构建 Fabricatio 应用程序时常见的工作流模式和最佳实践。"
 
 #: ../../source/workflow-patterns.rst:7
 msgid "Event Flow Overview"
-msgstr ""
+msgstr "事件流概览"
 
 #: ../../source/workflow-patterns.rst:9
 msgid "Fabricatio's event-driven architecture follows a consistent flow pattern:"
-msgstr ""
+msgstr "Fabricatio 的事件驱动架构遵循一致的流程模式："
 
 #: ../../source/workflow-patterns.rst:53
 msgid "Simple Action Workflow"
-msgstr ""
+msgstr "简单动作工作流"
 
 #: ../../source/workflow-patterns.rst:55
 msgid "The most basic pattern - a single action responding to an event."
-msgstr ""
+msgstr "最基本的模式——单个动作响应一个事件。"
 
 #: ../../source/workflow-patterns.rst:99
 msgid "Multi-Step Pipeline"
-msgstr ""
+msgstr "多步骤流水线"
 
 #: ../../source/workflow-patterns.rst:101
 msgid "Chain multiple actions where each step's output feeds into the next."
-msgstr ""
+msgstr "将多个动作串联，每个步骤的输出作为下一个步骤的输入。"
 
 #: ../../source/workflow-patterns.rst:171
 msgid "Parallel Actions"
-msgstr ""
+msgstr "并行动作"
 
 #: ../../source/workflow-patterns.rst:173
 msgid "Execute multiple independent actions concurrently."
-msgstr ""
+msgstr "并发执行多个相互独立的动作。"
 
 #: ../../source/workflow-patterns.rst:233
 msgid "Conditional Branching"
-msgstr ""
+msgstr "条件分支"
 
 #: ../../source/workflow-patterns.rst:235
 msgid "Use different workflows based on task characteristics."
-msgstr ""
+msgstr "根据任务特征使用不同的工作流。"
 
 #: ../../source/workflow-patterns.rst:291
 msgid "Task Proposal Pattern"
-msgstr ""
+msgstr "任务提议模式"
 
 #: ../../source/workflow-patterns.rst:293
 msgid "Let the LLM decompose a goal into multiple tasks."
-msgstr ""
+msgstr "让 LLM 将一个目标分解为多个任务。"
 
 #: ../../source/workflow-patterns.rst:355
 msgid "Error Handling Pattern"
-msgstr ""
+msgstr "错误处理模式"
 
 #: ../../source/workflow-patterns.rst:357
 msgid "Graceful error handling with fallback actions."
-msgstr ""
+msgstr "通过回退动作实现优雅的错误处理。"
 
 #: ../../source/workflow-patterns.rst:423
 msgid "RAG Workflow Pattern"
-msgstr ""
+msgstr "RAG 工作流模式"
 
 #: ../../source/workflow-patterns.rst:425
 msgid "Retrieval-augmented generation with document ingestion and query."
-msgstr ""
+msgstr "通过文档摄入和查询实现检索增强生成。"
 
 #: ../../source/workflow-patterns.rst:499
 msgid "Structured Output Pattern"
-msgstr ""
+msgstr "结构化输出模式"
 
 #: ../../source/workflow-patterns.rst:501
 msgid "Use Pydantic models for reliable structured responses."
-msgstr ""
+msgstr "使用 Pydantic 模型实现可靠的结构化响应。"
 
 #: ../../source/workflow-patterns.rst:567
 msgid "Review-Improvement Loop"
-msgstr ""
+msgstr "审查改进循环"
 
 #: ../../source/workflow-patterns.rst:569
 msgid "Iterative refinement through review cycles."
-msgstr ""
+msgstr "通过审查循环进行迭代优化。"
 
 #: ../../source/workflow-patterns.rst:647
 msgid "Checkpoint Pattern"
-msgstr ""
+msgstr "检查点模式"
 
 #: ../../source/workflow-patterns.rst:649
 msgid "Save workflow state for recovery."
-msgstr ""
+msgstr "保存工作流状态以便恢复。"
 
 #: ../../source/workflow-patterns.rst:715
 msgid "Team Collaboration Pattern"
-msgstr ""
+msgstr "团队协作模式"
 
 #: ../../source/workflow-patterns.rst:717
 msgid "Multiple agents working together."
-msgstr ""
+msgstr "多个智能体协同工作。"
 
 #: ../../source/workflow-patterns.rst:792
 msgid "EventEmitter Wildcard Pattern"
-msgstr ""
+msgstr "EventEmitter 通配符模式"
 
 #: ../../source/workflow-patterns.rst:794
 msgid "Using wildcards for flexible event routing."
-msgstr ""
+msgstr "使用通配符实现灵活的事件路由。"
 
 #: ../../source/workflow-patterns.rst:879
 msgid "Task Lifecycle Pattern"
-msgstr ""
+msgstr "任务生命周期模式"
 
 #: ../../source/workflow-patterns.rst:881
 msgid "Task states and transitions."
-msgstr ""
+msgstr "任务的状态与转换。"
 
 #: ../../source/workflow-patterns.rst:943
 msgid "Role and Skill Registration Pattern"
-msgstr ""
+msgstr "角色与技能注册模式"
 
 #: ../../source/workflow-patterns.rst:945
 msgid "How roles register and handle skills."
-msgstr ""
+msgstr "角色如何注册和处理技能。"
 
 #: ../../source/workflow-patterns.rst:1014
 msgid "Capability Mixin Pattern"
-msgstr ""
+msgstr "能力混入模式"
 
 #: ../../source/workflow-patterns.rst:1016
 msgid "Combining capabilities with actions."
-msgstr ""
+msgstr "将能力与动作组合。"
 
 #: ../../source/workflow-patterns.rst:1078
 msgid "Role Inheritance Pattern"
-msgstr ""
+msgstr "角色继承模式"
 
 #: ../../source/workflow-patterns.rst:1080
 msgid "Creating specialized roles through inheritance."
-msgstr ""
+msgstr "通过继承创建专门化的角色。"
 
 #: ../../source/workflow-patterns.rst:1169
 msgid "Best Practices Summary"
-msgstr ""
+msgstr "最佳实践总结"
 
 #: ../../source/workflow-patterns.rst:1171
 msgid ""
 "**Keep Actions Single-Purpose** Small, focused actions are easier to test"
 " and reuse."
 msgstr ""
+"**保持动作单一职责** 小而专注的动作更易于测试和复用。"
 
 #: ../../source/workflow-patterns.rst:1174
 msgid ""
 "**Use Structured Output** ``aask_structured()`` provides reliable, typed "
 "responses."
 msgstr ""
+"**使用结构化输出** ``aask_structured()`` 提供可靠、类型化的响应。"
 
 #: ../../source/workflow-patterns.rst:1177
 msgid "**Handle Errors Explicitly** Use try/except and fallback workflows."
-msgstr ""
+msgstr "**显式处理错误** 使用 try/except 和回退工作流。"
 
 #: ../../source/workflow-patterns.rst:1180
 msgid "**Log Appropriately** Use ``logger`` for debugging and monitoring."
-msgstr ""
+msgstr "**合理记录日志** 使用 ``logger`` 进行调试和监控。"
 
 #: ../../source/workflow-patterns.rst:1183
 msgid "**Profile in Development** Use ``viztracer`` to identify bottlenecks."
-msgstr ""
+msgstr "**在开发中进行性能分析** 使用 ``viztracer`` 识别性能瓶颈。"
 
 #: ../../source/workflow-patterns.rst:1186
 msgid "**Configure Timeouts** Set reasonable timeouts for LLM calls."
-msgstr ""
+msgstr "**配置超时** 为 LLM 调用设置合理的超时时间。"
 
 #: ../../source/workflow-patterns.rst:1189
 msgid ""
 "**Test Workflows Independently** Unit test actions, integration test "
 "workflows."
 msgstr ""
+"**独立测试工作流** 对动作进行单元测试，对工作流进行集成测试。"
 
 #: ../../source/workflow-patterns.rst:1192
 msgid ""
@@ -209,16 +212,18 @@ msgid ""
 "enable flexible routing but avoid overly broad matches that could cause "
 "unexpected behavior."
 msgstr ""
+"**明智地使用 EventEmitter 通配符** 像 ``user::*`` 这样的通配符模式可以实现灵活的路由，但应避免过于宽泛的匹配，以免导致意外行为。"
 
 #: ../../source/workflow-patterns.rst:1196
 msgid ""
 "**Leverage Capability Mixins** Combine capabilities to create powerful "
 "actions without code duplication."
 msgstr ""
+"**善用能力混入** 组合能力以创建强大的动作，同时避免代码重复。"
 
 #: ../../source/workflow-patterns.rst:1199
 msgid ""
 "**Design for Concurrency** Use ``asyncio.gather()`` for parallel action "
 "execution when actions are independent."
 msgstr ""
-
+"**面向并发设计** 当动作相互独立时，使用 ``asyncio.gather()`` 进行并行动作执行。"

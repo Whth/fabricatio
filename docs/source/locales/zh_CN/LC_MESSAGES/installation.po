@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-07 16:55+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -119,7 +118,7 @@ msgstr "``capabilities``：核心能力（fabricatio-capabilities）"
 
 #: ../../source/installation.rst:66
 msgid "``actions``: Action system (fabricatio-actions)"
-msgstr "``actions``：操作系统（fabricatio-actions）"
+msgstr "``actions``：动作系统（fabricatio-actions）"
 
 #: ../../source/installation.rst:67
 msgid "``question``: Question processing (fabricatio-question)"
@@ -130,9 +129,8 @@ msgid "``tagging``: Content tagging (fabricatio-tagging)"
 msgstr "``tagging``：内容打标签（fabricatio-tagging）"
 
 #: ../../source/installation.rst:69
-#, fuzzy
 msgid "``yue``: Yue language support (fabricatio-yue)"
-msgstr "``yue``：YUE 支持（fabricatio-yue）"
+msgstr "``yue``：粤语支持（fabricatio-yue）"
 
 #: ../../source/installation.rst:70
 msgid "``tool``: Tool integration (fabricatio-tool)"
@@ -195,5 +193,5 @@ msgid "UV package manager (recommended)"
 msgstr "UV 包管理器（推荐）"
 
 #~ msgid "Using UV (Recommended)"
-#~ msgstr ""
+#~ msgstr "使用 UV（推荐）"
 

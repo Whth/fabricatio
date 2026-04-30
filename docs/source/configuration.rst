@@ -1,5 +1,5 @@
 Configuration Guide
-==================
+===================
 
 Fabricatio provides a flexible, multi-source configuration system with clear priority order. This guide covers all configuration options and their interactions.
 
@@ -8,7 +8,7 @@ Fabricatio provides a flexible, multi-source configuration system with clear pri
    :depth: 3
 
 Quick Start Tutorial
--------------------
+--------------------
 
 This section walks you through setting up Fabricatio for the first time.
 
@@ -199,7 +199,7 @@ Environment Variables / .env
 
 Prefix all config keys with ``FABRICATIO_`` and use double underscores for nesting:
 
-.. code-block:: dotenv
+.. code-block:: ini
 
     FABRICATIO_DEBUG__LOG_LEVEL=DEBUG
     FABRICATIO_LLM__SEND_TO=base
@@ -221,7 +221,7 @@ Configuration Sections
 +------------------------+---------------------------+---------+
 
 [llm]
-~~~~
+~~~~~
 
 +---------------------------+---------------------------+---------+
 | Key                       | Description               | Default |
@@ -240,10 +240,10 @@ Configuration Sections
 +---------------------------+---------------------------+---------+
 
 [routing]
-~~~~~~~~
+~~~~~~~~~
 
 Provider Configuration
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 Providers define LLM endpoints:
 
@@ -265,7 +265,7 @@ Supported provider types:
 - ``Local`` - Local model endpoints
 
 Deployment Configuration
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deployments define available models:
 
@@ -279,7 +279,7 @@ Deployments define available models:
     }
 
 Cache Configuration
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: toml
 
@@ -287,7 +287,7 @@ Cache Configuration
     cache_database_path = "path/to/.cache.db"  # SQLite cache location
 
 Router Features
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 The ``thryd`` crate provides:
 
@@ -359,7 +359,7 @@ aask() vs aask_structured()
     )
 
 Real-World Configuration Examples
---------------------------------
+---------------------------------
 
 Example 1: Single Provider with OpenAI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -434,7 +434,7 @@ Example 3: Anthropic with Claude
     ]
 
 Example 4: Azure OpenAI
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: toml
 
@@ -506,7 +506,7 @@ Environment-Specific Configs
 Development (.env.local)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: dotenv
+.. code-block:: ini
 
     FABRICATIO_DEBUG__LOG_LEVEL=DEBUG
     FABRICATIO_LLM__SEND_TO=local

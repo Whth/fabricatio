@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 01:28+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -17,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: ../../source/contributing.rst:2
 msgid "Contributing"
@@ -31,110 +30,215 @@ msgid ""
 msgstr "感谢您有兴趣为 Fabricatio 做出贡献！我们欢迎社区的贡献。请按照以下步骤开始："
 
 #: ../../source/contributing.rst:7
+msgid "Design Philosophy"
+msgstr "设计理念"
+
+#: ../../source/contributing.rst:9
+msgid "Fabricatio follows an event-driven, capability-based architecture:"
+msgstr "Fabricatio 遵循事件驱动、基于能力的架构："
+
+#: ../../source/contributing.rst:11
+msgid ""
+"**Composition over inheritance**: Mix capabilities (like ``UseLLM``, "
+"``ProposeTask``) into Roles rather than deep class hierarchies"
+msgstr "**组合优于继承**：将能力（如 ``UseLLM``、``ProposeTask``）混合到 Role 中，而非使用深层类继承体系"
+
+#: ../../source/contributing.rst:12
+msgid ""
+"**Python for ergonomics, Rust for performance**: User-facing APIs are "
+"Python; performance-critical components (token counting, JSON parsing, "
+"BibTeX management) are Rust"
+msgstr "**Python 负责易用性，Rust 负责性能**：面向用户的 API 使用 Python；性能关键组件（token 计数、JSON 解析、BibTeX 管理）使用 Rust"
+
+#: ../../source/contributing.rst:13
+msgid ""
+"**Tasks carry state**: Tasks accumulate context as they flow through "
+"workflows, enabling multi-step pipelines without global state"
+msgstr "**任务携带状态**：任务在工作流流转过程中积累上下文，无需全局状态即可实现多步骤流水线"
+
+#: ../../source/contributing.rst:14
+msgid ""
+"**Cancellation-aware**: All async operations respect cancellation "
+"signals, making Fabricatio suitable for interactive and long-running "
+"agents"
+msgstr "**支持取消**：所有异步操作都尊重取消信号，使 Fabricatio 适用于交互式和长时间运行的智能体"
+
+#: ../../source/contributing.rst:17
 msgid "Getting Started"
 msgstr "入门指南"
 
-#: ../../source/contributing.rst:9
+#: ../../source/contributing.rst:19
 msgid "**Fork** the repository on GitHub."
 msgstr "在 GitHub 上**复刻**仓库。"
 
-#: ../../source/contributing.rst:11
+#: ../../source/contributing.rst:21
 msgid "**Clone the Repository** to your local machine:"
 msgstr "将仓库**克隆**到本地机器："
 
-#: ../../source/contributing.rst:18
+#: ../../source/contributing.rst:28
 msgid "**Install Dependencies**:"
 msgstr "**安装依赖**："
 
-#: ../../source/contributing.rst:24
+#: ../../source/contributing.rst:34
 msgid "**Build the Package** in development mode:"
 msgstr "以开发模式**构建包**："
 
-#: ../../source/contributing.rst:30
+#: ../../source/contributing.rst:40
 msgid "**Create** a new feature branch:"
-msgstr "**创建**新的功能分支："
+msgstr "**创建** 新的功能分支："
 
-#: ../../source/contributing.rst:37
+#: ../../source/contributing.rst:47
 msgid "Optional: Generate Subpackages"
 msgstr "可选：生成子包"
 
-#: ../../source/contributing.rst:39
+#: ../../source/contributing.rst:49
 msgid ""
 "Generate a **Python** or **Rust** subpackage using the ``cookiecutter`` "
 "template:"
 msgstr "使用 ``cookiecutter`` 模板生成 **Python** 或 **Rust** 子包："
 
-#: ../../source/contributing.rst:41
+#: ../../source/contributing.rst:51
 msgid "For Rust:"
 msgstr "对于 Rust："
 
-#: ../../source/contributing.rst:47
+#: ../../source/contributing.rst:57
 msgid "For Python:"
 msgstr "对于 Python："
 
-#: ../../source/contributing.rst:53
+#: ../../source/contributing.rst:63
 msgid ""
 "Templates: `Rust Template <https://github.com/Whth/fabricatio-maturin-"
 "template>`_, `Python Template <https://github.com/Whth/fabricatio-"
 "purepython-template>`_"
 msgstr ""
+"模板：`Rust 模板 <https://github.com/Whth/fabricatio-maturin-"
+"template>`_，`Python 模板 <https://github.com/Whth/fabricatio-purepython-"
+"template>`_"
 
-#: ../../source/contributing.rst:56
+#: ../../source/contributing.rst:66
 msgid "Testing and Quality"
 msgstr "测试和质量"
 
-#: ../../source/contributing.rst:58
+#: ../../source/contributing.rst:68
 msgid "**Run Tests and Fix Linting Issues**:"
 msgstr "**运行测试并修复代码格式问题**："
 
-#: ../../source/contributing.rst:66
+#: ../../source/contributing.rst:76
+msgid "Python vs Rust Contributions"
+msgstr "Python 贡献与 Rust 贡献"
+
+#: ../../source/contributing.rst:78
+msgid "Fabricatio is a hybrid Python/Rust project:"
+msgstr "Fabricatio 是一个混合 Python/Rust 项目："
+
+#: ../../source/contributing.rst:80
+msgid ""
+"**Python packages** (``packages/``): User-facing APIs, workflows, "
+"actions, capabilities. Use ``pdm`` or ``uv`` for dependency management."
+msgstr "**Python 包** （``packages/``）：面向用户的 API、工作流、操作、能力。使用 ``pdm`` 或 ``uv`` 进行依赖管理。"
+
+#: ../../source/contributing.rst:81
+msgid ""
+"**Rust crates** (``crates/``): Performance-critical components, exposed "
+"to Python via PyO3. Use ``maturin`` for building."
+msgstr "**Rust crate** （``crates/``）：性能关键组件，通过 PyO3 暴露给 Python。使用 ``maturin`` 进行构建。"
+
+#: ../../source/contributing.rst:82
+msgid ""
+"**When to use Rust**: Token counting, JSON validation, BibTeX management,"
+" file I/O helpers — anything where Python overhead matters at scale."
+msgstr "**何时使用 Rust**：token 计数、JSON 校验、BibTeX 管理、文件 I/O 辅助工具——任何在规模下 Python 开销不可忽视的场景。"
+
+#: ../../source/contributing.rst:83
+msgid ""
+"**When to use Python**: Workflow definitions, LLM integrations, action "
+"implementations — anything user-facing or requiring rapid iteration."
+msgstr "**何时使用 Python**：工作流定义、LLM 集成、操作实现——任何面向用户或需要快速迭代的场景。"
+
+#: ../../source/contributing.rst:86
 msgid "Submitting Changes"
 msgstr "提交更改"
 
-#: ../../source/contributing.rst:68
+#: ../../source/contributing.rst:88
 msgid "**Commit** your changes with a clear and descriptive commit message:"
 msgstr "使用清晰且描述性的提交信息**提交**您的更改："
 
-#: ../../source/contributing.rst:74
+#: ../../source/contributing.rst:94
 msgid "**Push** your feature branch to your forked repository:"
 msgstr "将您的功能分支**推送**到您的复刻仓库："
 
-#: ../../source/contributing.rst:80
+#: ../../source/contributing.rst:100
 msgid ""
 "**Open a Pull Request (PR)** on the original repository's GitHub page. "
 "Make sure your PR follows the project's contribution guidelines and "
 "clearly explains the changes made."
-msgstr ""
+msgstr "在原始仓库的 GitHub 页面上**发起拉取请求 (PR)**。请确保您的 PR 遵循项目的贡献准则，并清楚说明所做的更改。"
 
-#: ../../source/contributing.rst:83
-msgid "Guidelines"
-msgstr "指导原则"
+#: ../../source/contributing.rst:103
+msgid "Contribution Guidelines"
+msgstr "贡献准则"
 
-#: ../../source/contributing.rst:85
-msgid "Follow the existing code style and conventions"
-msgstr "遵循现有的代码风格和约定"
+#: ../../source/contributing.rst:105
+msgid "Follow the existing code style and conventions (see :doc:`code-style`)"
+msgstr "遵循现有的代码风格和约定（参见 :doc:`code-style`）"
 
-#: ../../source/contributing.rst:86
-msgid "Write clear, descriptive commit messages"
-msgstr "编写清晰、描述性的提交信息"
+#: ../../source/contributing.rst:106
+msgid "Write clear, descriptive commit messages using Conventional Commits format"
+msgstr "使用 Conventional Commits 格式编写清晰、描述性的提交信息"
 
-#: ../../source/contributing.rst:87
-msgid "Include tests for new functionality"
-msgstr "为新功能包含测试"
+#: ../../source/contributing.rst:107
+msgid "Include tests for new functionality; test edge cases, not just happy paths"
+msgstr "为新功能编写测试；测试边界情况，而非仅测试正常路径"
 
-#: ../../source/contributing.rst:88
-msgid "Update documentation as needed"
-msgstr "根据需要更新文档"
+#: ../../source/contributing.rst:108
+msgid "Update documentation as needed — both docstrings and RST docs"
+msgstr "根据需要更新文档——包括文档字符串和 RST 文档"
 
-#: ../../source/contributing.rst:89
-msgid "Ensure all tests pass before submitting"
-msgstr "在提交之前确保所有测试通过"
+#: ../../source/contributing.rst:109
+msgid "Ensure all tests pass before submitting (run ``make tests``)"
+msgstr "提交前确保所有测试通过（运行 ``make tests``）"
 
-#: ../../source/contributing.rst:91
+#: ../../source/contributing.rst:110
+msgid ""
+"For Python contributions: type annotations required on all public "
+"functions"
+msgstr "对于 Python 贡献：所有公共函数必须添加类型注解"
+
+#: ../../source/contributing.rst:111
+msgid ""
+"For Rust contributions: all public items must be documented with ``///`` "
+"comments"
+msgstr "对于 Rust 贡献：所有公共项必须使用 ``///`` 注释编写文档"
+
+#: ../../source/contributing.rst:114
+msgid "Review Process"
+msgstr "评审流程"
+
+#: ../../source/contributing.rst:115
+msgid "Open a PR with a clear description of what changed and why"
+msgstr "提交 PR 时附上清晰的变更说明及原因"
+
+#: ../../source/contributing.rst:116
+msgid "CI must pass (lint, type check, tests)"
+msgstr "CI 必须通过（代码检查、类型检查、测试）"
+
+#: ../../source/contributing.rst:117
+msgid "At least one maintainer review is required"
+msgstr "至少需要一位维护者审核"
+
+#: ../../source/contributing.rst:118
+msgid "Address all review comments before merge"
+msgstr "合并前解决所有评审意见"
+
+#: ../../source/contributing.rst:119
+msgid "Keep PRs focused: one concern per PR"
+msgstr "保持 PR 聚焦：每个 PR 只关注一件事"
+
+#: ../../source/contributing.rst:121
 msgid "We look forward to your contributions!"
 msgstr "我们期待您的贡献！"
 
-#: ../../source/contributing.rst:93
+#: ../../source/contributing.rst:123
 msgid "Happy coding 🚀"
 msgstr "编码愉快 🚀"
 
@@ -152,3 +256,7 @@ msgstr "编码愉快 🚀"
 
 #~ msgid "Create Pull Request"
 #~ msgstr ""
+
+#~ msgid "Guidelines"
+#~ msgstr "指导原则"
+

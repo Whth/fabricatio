@@ -3,14 +3,13 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2026-04-30 20:05+0800\n"
+"Last-Translator: Whth <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -21,7 +20,7 @@ msgstr ""
 
 #: ../../source/architecture.rst:2
 msgid "Architecture Overview"
-msgstr ""
+msgstr "架构概述"
 
 #: ../../source/architecture.rst:4
 msgid ""
@@ -30,10 +29,12 @@ msgid ""
 "performance-critical components, Handlebars for templating, and async "
 "Python for workflow orchestration."
 msgstr ""
+"Fabricatio 是一个基于事件驱动、多智能体架构构建的 Python LLM 应用框架。它利用 Rust（通过 PyO3）实现性能关键组件，使用 Handlebars "
+"进行模板渲染，并采用异步 Python 进行工作流编排。"
 
 #: ../../source/architecture.rst:7
 msgid "Event-Driven Agent Architecture"
-msgstr ""
+msgstr "事件驱动的智能体架构"
 
 #: ../../source/architecture.rst:9
 msgid ""
@@ -41,24 +42,26 @@ msgid ""
 "roles respond to events through registered skills that map to workflow "
 "sequences:"
 msgstr ""
+"Fabricatio 的核心实现了事件驱动的智能体模式，其中角色通过已注册的技能响应事件，这些技能映射到工作流序列："
 
 #: ../../source/architecture.rst:31
 msgid "Core Concepts"
-msgstr ""
+msgstr "核心概念"
 
 #: ../../source/architecture.rst:33
 msgid "**Role**"
-msgstr ""
+msgstr "**Role（角色）**"
 
 #: ../../source/architecture.rst:34
 msgid ""
 "The primary agent entity. A Role wraps a set of Skills and provides the "
 "interface for task delegation and LLM interaction."
 msgstr ""
+"主要的智能体实体。Role 封装了一组 Skill，并提供任务委派和 LLM 交互的接口。"
 
 #: ../../source/architecture.rst:36
 msgid "**Event**"
-msgstr ""
+msgstr "**Event（事件）**"
 
 #: ../../source/architecture.rst:37
 msgid ""
@@ -66,166 +69,174 @@ msgid ""
 " by name and can be quickly instantiated via "
 "``Event.quick_instantiate()``."
 msgstr ""
+"一种使用 ``EventEmitter`` 模式的触发机制。事件通过名称标识，可通过 "
+"``Event.quick_instantiate()`` 快速实例化。"
 
 #: ../../source/architecture.rst:39
 msgid "**Skill**"
-msgstr ""
+msgstr "**Skill（技能）**"
 
 #: ../../source/architecture.rst:40
 msgid ""
 "A named capability that maps an Event to a WorkFlow. Skills are stored in"
 " a Role's skill registry."
 msgstr ""
+"一种将 Event 映射到 WorkFlow 的命名能力。Skill 存储在 Role 的技能注册表中。"
 
 #: ../../source/architecture.rst:42
 msgid "**WorkFlow**"
-msgstr ""
+msgstr "**WorkFlow（工作流）**"
 
 #: ../../source/architecture.rst:43
 msgid ""
 "A sequence of Actions to execute. WorkFlows can be synchronous (blocking)"
 " or asynchronous."
 msgstr ""
+"要执行的 Action 序列。WorkFlow 可以是同步（阻塞）的或异步的。"
 
 #: ../../source/architecture.rst:45
 msgid "**Task**"
-msgstr ""
+msgstr "**Task（任务）**"
 
 #: ../../source/architecture.rst:46
 msgid ""
 "A unit of work assigned to a Role. Tasks carry input data and can be "
 "delegated to registered Skills."
 msgstr ""
+"分配给 Role 的工作单元。Task 携带输入数据，可委派给已注册的 Skill。"
 
 #: ../../source/architecture.rst:48
 msgid "**Action**"
-msgstr ""
+msgstr "**Action（动作）**"
 
 #: ../../source/architecture.rst:49
 msgid ""
 "The atomic execution unit. Actions implement the actual logic and can "
 "access LLM capabilities through mixins."
 msgstr ""
+"原子执行单元。Action 实现实际逻辑，并可通过 mixin 访问 LLM 能力。"
 
 #: ../../source/architecture.rst:52
 msgid "Project Structure"
-msgstr ""
+msgstr "项目结构"
 
 #: ../../source/architecture.rst:54
 msgid "Fabricatio uses a hybrid Python/Rust monorepo structure:"
-msgstr ""
+msgstr "Fabricatio 采用混合 Python/Rust 单仓库结构："
 
 #: ../../source/architecture.rst:146
 msgid "Rust Crates Architecture"
-msgstr ""
+msgstr "Rust Crate 架构"
 
 #: ../../source/architecture.rst:148
 msgid ""
 "The Rust crates provide performance-critical functionality with Python "
 "bindings:"
 msgstr ""
+"Rust crate 提供性能关键功能，并附带 Python 绑定："
 
 #: ../../source/architecture.rst:180
 msgid "Build System"
-msgstr ""
+msgstr "构建系统"
 
 #: ../../source/architecture.rst:182
 msgid "Fabricatio uses a hybrid Python/Rust build system:"
-msgstr ""
+msgstr "Fabricatio 使用混合 Python/Rust 构建系统："
 
 #: ../../source/architecture.rst:204 ../../source/architecture.rst:402
 msgid "Key Technologies"
-msgstr ""
+msgstr "关键技术"
 
 #: ../../source/architecture.rst:206 ../../source/architecture.rst:404
 msgid "**PyO3**: Rust-Python bindings for native extension modules"
-msgstr ""
+msgstr "**PyO3**：用于原生扩展模块的 Rust-Python 绑定"
 
 #: ../../source/architecture.rst:207 ../../source/architecture.rst:409
 msgid "**maturin**: Build tool for Python extensions written in Rust"
-msgstr ""
+msgstr "**maturin**：用于 Rust 编写的 Python 扩展的构建工具"
 
 #: ../../source/architecture.rst:208 ../../source/architecture.rst:405
 msgid "**Handlebars.rs**: Rust template engine compiled to Python"
-msgstr ""
+msgstr "**Handlebars.rs**：编译为 Python 的 Rust 模板引擎"
 
 #: ../../source/architecture.rst:209 ../../source/architecture.rst:406
 msgid "**async/await**: Full async execution with ``asyncio``"
-msgstr ""
+msgstr "**async/await**：基于 ``asyncio`` 的全异步执行"
 
 #: ../../source/architecture.rst:210 ../../source/architecture.rst:407
 msgid "**Pydantic V2**: Type validation and data models"
-msgstr ""
+msgstr "**Pydantic V2**：类型验证和数据模型"
 
 #: ../../source/architecture.rst:211 ../../source/architecture.rst:408
 msgid "**uv**: Package management and workspace tooling"
-msgstr ""
+msgstr "**uv**：包管理和工作区工具"
 
 #: ../../source/architecture.rst:212
 msgid "**redb**: Embedded database for request caching"
-msgstr ""
+msgstr "**redb**：用于请求缓存的嵌入式数据库"
 
 #: ../../source/architecture.rst:215
 msgid "Rust-Python Integration"
-msgstr ""
+msgstr "Rust-Python 集成"
 
 #: ../../source/architecture.rst:217
 msgid ""
 "Fabricatio achieves tight Rust-Python integration through several "
 "mechanisms:"
 msgstr ""
+"Fabricatio 通过以下几种机制实现紧密的 Rust-Python 集成："
 
 #: ../../source/architecture.rst:256
 msgid "Dependency Resolution Flow"
-msgstr ""
+msgstr "依赖解析流程"
 
 #: ../../source/architecture.rst:258
 msgid "When Fabricatio processes an LLM request:"
-msgstr ""
+msgstr "当 Fabricatio 处理 LLM 请求时："
 
 #: ../../source/architecture.rst:300
 msgid "Data Flow: RAG Pipeline"
-msgstr ""
+msgstr "数据流：RAG 管道"
 
 #: ../../source/architecture.rst:332
 msgid "Data Flow: Multi-Agent Team Collaboration"
-msgstr ""
+msgstr "数据流：多智能体团队协作"
 
 #: ../../source/architecture.rst:362
 msgid "Component Hierarchy"
-msgstr ""
+msgstr "组件层级"
 
 #: ../../source/architecture.rst:410
 msgid "**redb**: Embedded key-value store for request caching"
-msgstr ""
+msgstr "**redb**：用于请求缓存的嵌入式键值存储"
 
 #: ../../source/architecture.rst:411
 msgid "**tiktoken**: Token counting for rate limit estimation"
-msgstr ""
+msgstr "**tiktoken**：用于速率限制估算的 Token 计数"
 
 #: ../../source/architecture.rst:414
 msgid "Configuration Priority"
-msgstr ""
+msgstr "配置优先级"
 
 #: ../../source/architecture.rst:416
 msgid ""
 "Configuration values are resolved in the following order (highest to "
 "lowest priority):"
 msgstr ""
+"配置值按以下顺序解析（从最高优先级到最低优先级）："
 
 #: ../../source/architecture.rst:440
 msgid "The ``ROAMING`` path is platform-dependent:"
-msgstr ""
+msgstr "``ROAMING`` 路径取决于操作系统平台："
 
 #: ../../source/architecture.rst:442
 msgid "**Linux**: ``$XDG_CONFIG_HOME`` or ``$HOME/.config/fabricatio``"
-msgstr ""
+msgstr "**Linux**：``$XDG_CONFIG_HOME`` 或 ``$HOME/.config/fabricatio``"
 
 #: ../../source/architecture.rst:443
 msgid "**macOS**: ``$HOME/Library/Application Support/fabricatio``"
-msgstr ""
+msgstr "**macOS**：``$HOME/Library/Application Support/fabricatio``"
 
 #: ../../source/architecture.rst:444
 msgid "**Windows**: ``%APPDATA%\\fabricatio``"
-msgstr ""
-
+msgstr "**Windows**：``%APPDATA%\\fabricatio``"

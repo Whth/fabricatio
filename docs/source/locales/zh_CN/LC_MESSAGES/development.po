@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-07 16:55+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-04-30 00:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -128,14 +127,11 @@ msgid "Run the full test suite:"
 msgstr "运行完整测试套件："
 
 #: ../../source/development.rst:99
-#, fuzzy
 msgid ""
 "For specific test configurations, check the ``pytest.ini_options`` in "
 "``pyproject.toml``."
 msgstr ""
-"有关特定测试配置，请检查 `[pyproject.toml](file://L:\r"
-"ust_proj\\fabricatio\\packages\\fabricatio-anki\\pyproject.toml)` 中的 "
-"``pytest.ini_options``。"
+"有关特定测试配置，请检查 ``pyproject.toml`` 中的 ``pytest.ini_options``。"
 
 #: ../../source/development.rst:102
 msgid "Code Quality"

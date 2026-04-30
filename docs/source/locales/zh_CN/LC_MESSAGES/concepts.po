@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -21,15 +20,15 @@ msgstr ""
 
 #: ../../source/concepts.rst:2
 msgid "Core Concepts"
-msgstr ""
+msgstr "核心概念"
 
 #: ../../source/concepts.rst:4
 msgid "This guide explains the fundamental concepts that power Fabricatio."
-msgstr ""
+msgstr "本指南介绍驱动 Fabricatio 的基本概念。"
 
 #: ../../source/concepts.rst:7
 msgid "Event-Driven Architecture"
-msgstr ""
+msgstr "事件驱动架构"
 
 #: ../../source/concepts.rst:9
 msgid ""
@@ -37,274 +36,280 @@ msgid ""
 "events rather than direct method calls. This pattern enables loose "
 "coupling and flexible composition."
 msgstr ""
+"Fabricatio 采用事件驱动架构，Agent 通过响应事件而非直接调用方法来执行任务。"
+"这种模式实现了松耦合和灵活的组合。"
 
 #: ../../source/concepts.rst:12
 msgid "Event System"
-msgstr ""
+msgstr "事件系统"
 
 #: ../../source/concepts.rst:14
 msgid "Events are the triggers that initiate workflow execution:"
-msgstr ""
+msgstr "事件是触发工作流执行的触发器："
 
 #: ../../source/concepts.rst:26
 msgid "Events support:"
-msgstr ""
+msgstr "事件支持："
 
 #: ../../source/concepts.rst:28
 msgid "**Quick instantiation**: ``Event.quick_instantiate(name)``"
-msgstr ""
+msgstr "**快速实例化**：``Event.quick_instantiate(name)``"
 
 #: ../../source/concepts.rst:29
 msgid "**String conversion**: ``.collapse()`` returns the event name"
-msgstr ""
+msgstr "**字符串转换**：``.collapse()`` 返回事件名称"
 
 #: ../../source/concepts.rst:30
 msgid "**Custom payload**: Events can carry data (see advanced usage)"
-msgstr ""
+msgstr "**自定义载荷**：事件可以携带数据（参见高级用法）"
 
 #: ../../source/concepts.rst:33
 msgid "EventEmitter Pattern"
-msgstr ""
+msgstr "EventEmitter 模式"
 
 #: ../../source/concepts.rst:35
 msgid "The ``EventEmitter`` provides publish-subscribe functionality:"
-msgstr ""
+msgstr "``EventEmitter`` 提供发布-订阅功能："
 
 #: ../../source/concepts.rst:53
 msgid "Roles"
-msgstr ""
+msgstr "角色"
 
 #: ../../source/concepts.rst:55
 msgid ""
 "A ``Role`` is the primary agent entity that orchestrates skills and LLM "
 "interactions."
 msgstr ""
+"``Role`` 是主要的 Agent 实体，负责编排技能和 LLM 交互。"
 
 #: ../../source/concepts.rst:73
 msgid "Role Lifecycle"
-msgstr ""
+msgstr "角色生命周期"
 
 #: ../../source/concepts.rst:95
 msgid "Skills"
-msgstr ""
+msgstr "技能"
 
 #: ../../source/concepts.rst:97
 msgid "A ``Skill`` maps an Event to a WorkFlow:"
-msgstr ""
+msgstr "``Skill`` 将事件映射到工作流："
 
 #: ../../source/concepts.rst:108
 msgid ""
 "Skills are stored in the Role's skill registry and retrieved by event "
 "name during delegation."
 msgstr ""
+"技能存储在角色的技能注册表中，在委托时通过事件名称进行检索。"
 
 #: ../../source/concepts.rst:111
 msgid "WorkFlows"
-msgstr ""
+msgstr "工作流"
 
 #: ../../source/concepts.rst:113
 msgid "A ``WorkFlow`` defines a sequence of Actions:"
-msgstr ""
+msgstr "``WorkFlow`` 定义了一系列动作："
 
 #: ../../source/concepts.rst:135
 msgid "WorkFlow Execution Flow"
-msgstr ""
+msgstr "工作流执行流程"
 
 #: ../../source/concepts.rst:160
 msgid "Tasks"
-msgstr ""
+msgstr "任务"
 
 #: ../../source/concepts.rst:162
 msgid "``Task`` represents a unit of work:"
-msgstr ""
+msgstr "``Task`` 代表一个工作单元："
 
 #: ../../source/concepts.rst:175
 msgid "Task Properties"
-msgstr ""
+msgstr "任务属性"
 
 #: ../../source/concepts.rst:177
 msgid "``name``: Identifier for the task"
-msgstr ""
+msgstr "``name``：任务标识符"
 
 #: ../../source/concepts.rst:178
 msgid "``briefing``: Instructions for execution"
-msgstr ""
+msgstr "``briefing``：执行指令"
 
 #: ../../source/concepts.rst:179
 msgid "``input``: Input data for actions"
-msgstr ""
+msgstr "``input``：动作的输入数据"
 
 #: ../../source/concepts.rst:180
 msgid "``output``: Result after execution"
-msgstr ""
+msgstr "``output``：执行后的结果"
 
 #: ../../source/concepts.rst:181
 msgid "``status``: Current state (pending, running, completed, failed)"
-msgstr ""
+msgstr "``status``：当前状态（pending、running、completed、failed）"
 
 #: ../../source/concepts.rst:184
 msgid "Delegation Modes"
-msgstr ""
+msgstr "委托模式"
 
 #: ../../source/concepts.rst:200
 msgid "Actions"
-msgstr ""
+msgstr "动作"
 
 #: ../../source/concepts.rst:202
 msgid "``Action`` is the atomic execution unit:"
-msgstr ""
+msgstr "``Action`` 是原子执行单元："
 
 #: ../../source/concepts.rst:223
 msgid "Action Lifecycle"
-msgstr ""
+msgstr "动作生命周期"
 
 #: ../../source/concepts.rst:248
 msgid "Capability Mixins"
-msgstr ""
+msgstr "能力混入"
 
 #: ../../source/concepts.rst:250
 msgid "Capabilities are mixins that provide reusable functionality:"
-msgstr ""
+msgstr "能力是提供可复用功能的混入类："
 
 #: ../../source/concepts.rst:253
 msgid "LLM Capability"
-msgstr ""
+msgstr "LLM 能力"
 
 #: ../../source/concepts.rst:255
 msgid "``UseLLM`` provides LLM interaction:"
-msgstr ""
+msgstr "``UseLLM`` 提供 LLM 交互功能："
 
 #: ../../source/concepts.rst:280
 msgid "Other Capabilities"
-msgstr ""
+msgstr "其他能力"
 
 #: ../../source/concepts.rst:283
 msgid "Capability"
-msgstr ""
+msgstr "能力"
 
 #: ../../source/concepts.rst:283
 msgid "Provides"
-msgstr ""
+msgstr "提供"
 
 #: ../../source/concepts.rst:285
 msgid "``UseLLM``"
-msgstr ""
+msgstr "``UseLLM``"
 
 #: ../../source/concepts.rst:285
 msgid "LLM interaction methods"
-msgstr ""
+msgstr "LLM 交互方法"
 
 #: ../../source/concepts.rst:287
 msgid "``Review``"
-msgstr ""
+msgstr "``Review``"
 
 #: ../../source/concepts.rst:287
 msgid "Code/content review methods"
-msgstr ""
+msgstr "代码/内容审查方法"
 
 #: ../../source/concepts.rst:289
 msgid "``Extract``"
-msgstr ""
+msgstr "``Extract``"
 
 #: ../../source/concepts.rst:289
 msgid "Structured extraction from text"
-msgstr ""
+msgstr "从文本中进行结构化提取"
 
 #: ../../source/concepts.rst:291
 msgid "``ProposeTask``"
-msgstr ""
+msgstr "``ProposeTask``"
 
 #: ../../source/concepts.rst:291
 msgid "Task proposal generation"
-msgstr ""
+msgstr "任务提议生成"
 
 #: ../../source/concepts.rst:293
 msgid "``Improve``"
-msgstr ""
+msgstr "``Improve``"
 
 #: ../../source/concepts.rst:293
 msgid "Content improvement"
-msgstr ""
+msgstr "内容改进"
 
 #: ../../source/concepts.rst:295
 msgid "``Rule``"
-msgstr ""
+msgstr "``Rule``"
 
 #: ../../source/concepts.rst:295
 msgid "Rule-based processing"
-msgstr ""
+msgstr "基于规则的处理"
 
 #: ../../source/concepts.rst:297
 msgid "``MilvusRAG``"
-msgstr ""
+msgstr "``MilvusRAG``"
 
 #: ../../source/concepts.rst:297
 msgid "Vector store RAG"
-msgstr ""
+msgstr "向量存储 RAG"
 
 #: ../../source/concepts.rst:301
 msgid "Logger Integration"
-msgstr ""
+msgstr "日志集成"
 
 #: ../../source/concepts.rst:303
 msgid "Fabricatio provides structured logging:"
-msgstr ""
+msgstr "Fabricatio 提供结构化日志："
 
 #: ../../source/concepts.rst:314
 msgid "Logger output includes:"
-msgstr ""
+msgstr "日志输出包括："
 
 #: ../../source/concepts.rst:316
 msgid "Timestamp"
-msgstr ""
+msgstr "时间戳"
 
 #: ../../source/concepts.rst:317
 msgid "Log level"
-msgstr ""
+msgstr "日志级别"
 
 #: ../../source/concepts.rst:318
 msgid "Module name"
-msgstr ""
+msgstr "模块名称"
 
 #: ../../source/concepts.rst:319
 msgid "Message"
-msgstr ""
+msgstr "消息"
 
 #: ../../source/concepts.rst:322
 msgid "Logger Configuration"
-msgstr ""
+msgstr "日志配置"
 
 #: ../../source/concepts.rst:330
 msgid "Async Execution"
-msgstr ""
+msgstr "异步执行"
 
 #: ../../source/concepts.rst:332
 msgid "All Fabricatio operations are async-first:"
-msgstr ""
+msgstr "所有 Fabricatio 操作都以异步为先："
 
 #: ../../source/concepts.rst:353
 msgid "Best Practices"
-msgstr ""
+msgstr "最佳实践"
 
 #: ../../source/concepts.rst:355
 msgid ""
 "**Always use async/await** Never mix sync and async code without proper "
 "handling."
 msgstr ""
+"**始终使用 async/await** 切勿在没有适当处理的情况下混合同步和异步代码。"
 
 #: ../../source/concepts.rst:358
 msgid "**Handle exceptions** Use try/except for graceful error handling:"
-msgstr ""
+msgstr "**处理异常** 使用 try/except 进行优雅的错误处理："
 
 #: ../../source/concepts.rst:368
 msgid ""
 "**Set appropriate timeouts** Configure timeouts for long-running "
 "operations:"
 msgstr ""
+"**设置适当的超时** 为长时间运行的操作配置超时："
 
 #: ../../source/concepts.rst:376
 msgid ""
 "**Use structured output for reliability** Prefer ``aask_structured()`` "
 "over ``aask()`` when possible."
 msgstr ""
-
+"**使用结构化输出以提高可靠性** 尽可能优先使用 ``aask_structured()`` 而非 ``aask()``。"

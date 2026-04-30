@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the fabricatio package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-25 00:15+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"PO-Revision-Date: 2026-04-30 20:50+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
 "Language-Team: zh_CN <LL@li.org>\n"
@@ -21,19 +20,19 @@ msgstr ""
 
 #: ../../source/use-cases.rst:2
 msgid "Use Cases & Examples"
-msgstr ""
+msgstr "用例与示例"
 
 #: ../../source/use-cases.rst:4
 msgid "This guide covers common use cases with detailed examples."
-msgstr ""
+msgstr "本指南涵盖常见用例，并提供详细示例。"
 
 #: ../../source/use-cases.rst:7
 msgid "Basic Chat Agent"
-msgstr ""
+msgstr "基本聊天代理"
 
 #: ../../source/use-cases.rst:9
 msgid "The simplest Fabricatio application - a role that responds to user input."
-msgstr ""
+msgstr "最简单的 Fabricatio 应用——一个响应用户输入的角色。"
 
 #: ../../source/use-cases.rst:67 ../../source/use-cases.rst:156
 #: ../../source/use-cases.rst:209 ../../source/use-cases.rst:262
@@ -44,381 +43,449 @@ msgstr ""
 #: ../../source/use-cases.rst:877 ../../source/use-cases.rst:972
 #: ../../source/use-cases.rst:1061
 msgid "Key patterns:"
-msgstr ""
+msgstr "关键模式："
 
 #: ../../source/use-cases.rst:69
 msgid "``Role`` wraps the agent with skills"
-msgstr ""
+msgstr "``Role`` 用技能包装代理"
 
 #: ../../source/use-cases.rst:70
 msgid "``Event.quick_instantiate()`` creates a trigger event"
-msgstr ""
+msgstr "``Event.quick_instantiate()`` 创建触发事件"
 
 #: ../../source/use-cases.rst:71
 msgid "``WorkFlow`` sequences the actions to execute"
-msgstr ""
+msgstr "``WorkFlow`` 按顺序排列要执行的动作"
 
 #: ../../source/use-cases.rst:72
 msgid "``Task`` carries input and can be proposed or created directly"
-msgstr ""
+msgstr "``Task`` 承载输入，可以直接提议或创建"
 
 #: ../../source/use-cases.rst:73
 msgid "``delegate()`` sends task to the workflow registered for that event"
-msgstr ""
+msgstr "``delegate()`` 将任务发送到为该事件注册的工作流"
 
 #: ../../source/use-cases.rst:76
 msgid "Retrieval-Augmented Generation (RAG)"
-msgstr ""
+msgstr "检索增强生成 (RAG)"
 
 #: ../../source/use-cases.rst:78
 msgid "Combine LLM with your document knowledge base using Milvus vector search."
-msgstr ""
+msgstr "使用 Milvus 向量搜索将 LLM 与您的文档知识库结合。"
 
 #: ../../source/use-cases.rst:158
 msgid "Inherit ``MilvusRAG`` capability for vector search"
-msgstr ""
+msgstr "继承 ``MilvusRAG`` 能力以进行向量搜索"
 
 #: ../../source/use-cases.rst:159
 msgid "``init_client()`` initializes the Milvus connection"
-msgstr ""
+msgstr "``init_client()`` 初始化 Milvus 连接"
 
 #: ../../source/use-cases.rst:160
 msgid "``view()`` creates or opens a collection"
-msgstr ""
+msgstr "``view()`` 创建或打开集合"
 
 #: ../../source/use-cases.rst:161
 msgid "``consume_string()`` ingests documents"
-msgstr ""
+msgstr "``consume_string()`` 导入文档"
 
 #: ../../source/use-cases.rst:162
 msgid "``aask_retrieved()`` combines retrieval with generation"
-msgstr ""
+msgstr "``aask_retrieved()`` 将检索与生成结合"
 
 #: ../../source/use-cases.rst:165
 msgid "Code Review"
-msgstr ""
+msgstr "代码审查"
 
 #: ../../source/use-cases.rst:167
 msgid "Automated code review with structured output."
-msgstr ""
+msgstr "自动化代码审查，输出结构化结果。"
 
 #: ../../source/use-cases.rst:211
 msgid "``Review`` capability provides structured review methods"
-msgstr ""
+msgstr "``Review`` 能力提供结构化的审查方法"
 
 #: ../../source/use-cases.rst:212
 msgid "``review_string()`` returns a structured review result"
-msgstr ""
+msgstr "``review_string()`` 返回结构化的审查结果"
 
 #: ../../source/use-cases.rst:213
 msgid "``supervisor_check()`` adds LLM validation layer"
-msgstr ""
+msgstr "``supervisor_check()`` 添加 LLM 验证层"
 
 #: ../../source/use-cases.rst:214
 msgid "Results have ``display()`` for formatted output"
-msgstr ""
+msgstr "结果具有 ``display()`` 方法用于格式化输出"
 
 #: ../../source/use-cases.rst:217
 msgid "Code Correction"
-msgstr ""
+msgstr "代码修正"
 
 #: ../../source/use-cases.rst:219
 msgid "Review code and automatically apply corrections based on review feedback."
-msgstr ""
+msgstr "审查代码并根据审查反馈自动应用修正。"
 
 #: ../../source/use-cases.rst:264
 msgid ""
 "Combine ``Review`` and ``Correct`` capabilities for review-correction "
 "workflow"
-msgstr ""
+msgstr "结合 ``Review`` 和 ``Correct`` 能力实现审查-修正工作流"
 
 #: ../../source/use-cases.rst:265
 msgid "``review_string()`` with topic parameter for focused reviews"
-msgstr ""
+msgstr "``review_string()`` 使用 topic 参数进行有针对性的审查"
 
 #: ../../source/use-cases.rst:266
 msgid "``correct_string()`` applies improvements identified in review"
-msgstr ""
+msgstr "``correct_string()`` 应用审查中发现的改进"
 
 #: ../../source/use-cases.rst:269
 msgid "Task Proposal"
-msgstr ""
+msgstr "任务提案"
 
 #: ../../source/use-cases.rst:271
 msgid "Let the LLM propose tasks based on objectives."
-msgstr ""
+msgstr "让 LLM 根据目标提议任务。"
 
 #: ../../source/use-cases.rst:313
 msgid "``ProposeTask`` capability lets LLM decompose objectives into tasks"
-msgstr ""
+msgstr "``ProposeTask`` 能力让 LLM 将目标分解为任务"
 
 #: ../../source/use-cases.rst:314
 msgid "``mode=\"agentic\"`` for complex autonomous decomposition"
-msgstr ""
+msgstr "``mode=\"agentic\"`` 用于复杂的自主分解"
 
 #: ../../source/use-cases.rst:315
 msgid "``mode=\"standard\"`` for simpler task proposals"
-msgstr ""
+msgstr "``mode=\"standard\"`` 用于较简单的任务提案"
 
 #: ../../source/use-cases.rst:316
 msgid "Iterate over proposed tasks and delegate each"
-msgstr ""
+msgstr "遍历提出的任务并逐一分派"
 
 #: ../../source/use-cases.rst:319
 msgid "Structured Output"
-msgstr ""
+msgstr "结构化输出"
 
 #: ../../source/use-cases.rst:321
 msgid "Get type-safe responses from LLM using Pydantic models."
-msgstr ""
+msgstr "使用 Pydantic 模型从 LLM 获取类型安全的响应。"
 
 #: ../../source/use-cases.rst:366
 msgid "Define Pydantic model with expected fields"
-msgstr ""
+msgstr "定义包含预期字段的 Pydantic 模型"
 
 #: ../../source/use-cases.rst:367
 msgid "``aask_structured()`` returns typed instance"
-msgstr ""
+msgstr "``aask_structured()`` 返回带类型的实例"
 
 #: ../../source/use-cases.rst:368
 msgid "Automatic validation of LLM response"
-msgstr ""
+msgstr "自动验证 LLM 响应"
 
 #: ../../source/use-cases.rst:371
 msgid "Extracting Structured Data"
-msgstr ""
+msgstr "提取结构化数据"
 
 #: ../../source/use-cases.rst:373
 msgid "Extract information from unstructured text."
-msgstr ""
+msgstr "从非结构化文本中提取信息。"
 
 #: ../../source/use-cases.rst:421
 msgid "``Extract`` capability for structured extraction from text"
-msgstr ""
+msgstr "``Extract`` 能力用于从文本中进行结构化提取"
 
 #: ../../source/use-cases.rst:422
 msgid "``extract_string()`` parses text into Pydantic model"
-msgstr ""
+msgstr "``extract_string()`` 将文本解析为 Pydantic 模型"
 
 #: ../../source/use-cases.rst:423
 msgid "Support for optional fields with defaults"
-msgstr ""
+msgstr "支持带有默认值的可选字段"
 
 #: ../../source/use-cases.rst:426
 msgid "Diff Editing"
-msgstr ""
+msgstr "差异编辑"
 
 #: ../../source/use-cases.rst:428
 msgid ""
 "Automatically fix spelling, wording, and other text issues with diff-"
 "based editing."
-msgstr ""
+msgstr "通过基于差异的编辑自动修复拼写、措辞和其他文本问题。"
 
 #: ../../source/use-cases.rst:470
 msgid "``DiffEdit`` capability for automatic text correction"
-msgstr ""
+msgstr "``DiffEdit`` 能力用于自动文本修正"
 
 #: ../../source/use-cases.rst:471
 msgid "``diff_edit()`` applies fixes while preserving meaning"
-msgstr ""
+msgstr "``diff_edit()`` 在保留原意的同时应用修复"
 
 #: ../../source/use-cases.rst:472
 msgid "``to_task_output()`` converts action result to task output"
-msgstr ""
+msgstr "``to_task_output()`` 将动作结果转换为任务输出"
 
 #: ../../source/use-cases.rst:473
 msgid "``delegate_blocking()`` for synchronous execution"
-msgstr ""
+msgstr "``delegate_blocking()`` 用于同步执行"
 
 #: ../../source/use-cases.rst:476
 msgid "Rule-Based Processing"
-msgstr ""
+msgstr "基于规则的处理"
 
 #: ../../source/use-cases.rst:478
 msgid "Apply structured rules to content."
-msgstr ""
+msgstr "对内容应用结构化规则。"
 
 #: ../../source/use-cases.rst:532
 msgid "Define rules with ``RuleSet`` - each rule has pattern, action, and message"
-msgstr ""
+msgstr "使用 ``RuleSet`` 定义规则——每条规则包含模式、动作和消息"
 
 #: ../../source/use-cases.rst:533
 msgid "Actions: ``reject`` blocks content, ``replace`` substitutes text"
-msgstr ""
+msgstr "动作：``reject`` 阻止内容，``replace`` 替换文本"
 
 #: ../../source/use-cases.rst:534
 msgid "``apply_rules()`` processes content through all matching rules"
-msgstr ""
+msgstr "``apply_rules()`` 通过所有匹配的规则处理内容"
 
 #: ../../source/use-cases.rst:535
 msgid "Rules are executed in order, first match determines action"
-msgstr ""
+msgstr "规则按顺序执行，第一个匹配项决定动作"
 
 #: ../../source/use-cases.rst:538
 msgid "Content Improvement"
-msgstr ""
+msgstr "内容优化"
 
 #: ../../source/use-cases.rst:540
 msgid "Improve writing quality with style and clarity enhancements."
-msgstr ""
+msgstr "通过风格和清晰度增强来提升写作质量。"
 
 #: ../../source/use-cases.rst:582
 msgid "``Improve`` capability for content enhancement"
-msgstr ""
+msgstr "``Improve`` 能力用于内容增强"
 
 #: ../../source/use-cases.rst:583
 msgid "``improve_string()`` with style and focus parameters"
-msgstr ""
+msgstr "``improve_string()`` 支持风格和焦点参数"
 
 #: ../../source/use-cases.rst:584
 msgid "Multiple improvement dimensions supported"
-msgstr ""
+msgstr "支持多个改进维度"
 
 #: ../../source/use-cases.rst:587
 msgid "Task Handling with File Operations"
-msgstr ""
+msgstr "带有文件操作的任务处理"
 
 #: ../../source/use-cases.rst:589
 msgid "Write and save generated content to files using tool execution."
-msgstr ""
+msgstr "使用工具执行将生成的内容写入并保存到文件。"
 
 #: ../../source/use-cases.rst:673
 msgid "``HandleTask`` capability enables tool execution within actions"
-msgstr ""
+msgstr "``HandleTask`` 能力支持在动作中执行工具"
 
 #: ../../source/use-cases.rst:674
 msgid "``fs_toolbox`` provides file system operations (write, read, etc.)"
-msgstr ""
+msgstr "``fs_toolbox`` 提供文件系统操作（写入、读取等）"
 
 #: ../../source/use-cases.rst:675
 msgid "``handle()`` executes skills with input/output schema"
-msgstr ""
+msgstr "``handle()`` 使用输入/输出模式执行技能"
 
 #: ../../source/use-cases.rst:676
 msgid "Chain multiple actions in a WorkFlow for pipeline execution"
-msgstr ""
+msgstr "在 WorkFlow 中链接多个动作以实现流水线执行"
 
 #: ../../source/use-cases.rst:677
 msgid "``dependencies_prompt`` passes data between workflow steps"
-msgstr ""
+msgstr "``dependencies_prompt`` 在工作流步骤之间传递数据"
 
 #: ../../source/use-cases.rst:680
 msgid "Task Cancellation and Checkpoint"
-msgstr ""
+msgstr "任务取消与检查点"
 
 #: ../../source/use-cases.rst:682
 msgid "Cancel long-running tasks and retrieve partial outputs."
-msgstr ""
+msgstr "取消长时间运行的任务并获取部分输出。"
 
 #: ../../source/use-cases.rst:758
 msgid "``publish()`` triggers a workflow without waiting"
-msgstr ""
+msgstr "``publish()`` 触发工作流但不等待完成"
 
 #: ../../source/use-cases.rst:759
 msgid "``cancel()`` stops task execution"
-msgstr ""
+msgstr "``cancel()`` 停止任务执行"
 
 #: ../../source/use-cases.rst:760
 msgid "``get_output()`` retrieves partial results after cancellation"
-msgstr ""
+msgstr "``get_output()`` 在取消后获取部分结果"
 
 #: ../../source/use-cases.rst:761
 msgid "``extra_init_context`` provides initial state for workflows"
-msgstr ""
+msgstr "``extra_init_context`` 为工作流提供初始状态"
 
 #: ../../source/use-cases.rst:764
 msgid "Diary Generation from Commit History"
-msgstr ""
+msgstr "从提交历史生成日记"
 
 #: ../../source/use-cases.rst:766
 msgid "Generate diaries from structured data like git commits."
-msgstr ""
+msgstr "从 git 提交等结构化数据生成日记。"
 
 #: ../../source/use-cases.rst:879
 msgid "``read_dependency()`` reads external files with a registered reader"
-msgstr ""
+msgstr "``read_dependency()`` 使用注册的读取器读取外部文件"
 
 #: ../../source/use-cases.rst:880
 msgid "``goals`` list guides LLM behavior for structured output"
-msgstr ""
+msgstr "``goals`` 列表引导 LLM 行为以实现结构化输出"
 
 #: ../../source/use-cases.rst:881
 msgid "``override_dependencies()`` replaces dependency source"
-msgstr ""
+msgstr "``override_dependencies()`` 替换依赖来源"
 
 #: ../../source/use-cases.rst:882
 msgid "``move_to()`` redirects task to a different event/workflow"
-msgstr ""
+msgstr "``move_to()`` 将任务重定向到不同的事件/工作流"
 
 #: ../../source/use-cases.rst:885
 msgid "Article Extraction and Storage"
-msgstr ""
+msgstr "文章提取与存储"
 
 #: ../../source/use-cases.rst:887
 msgid "Extract key essence from articles and store in vector database."
-msgstr ""
+msgstr "从文章中提取核心要点并存储到向量数据库。"
 
 #: ../../source/use-cases.rst:974
 msgid "``ExtractArticleEssence`` extracts key content from articles"
-msgstr ""
+msgstr "``ExtractArticleEssence`` 从文章中提取关键内容"
 
 #: ../../source/use-cases.rst:975
 msgid "``FixArticleEssence`` post-processes extracted content"
-msgstr ""
+msgstr "``FixArticleEssence`` 对提取的内容进行后处理"
 
 #: ../../source/use-cases.rst:976
 msgid "``PersistentAll`` saves extracted data to disk"
-msgstr ""
+msgstr "``PersistentAll`` 将提取的数据保存到磁盘"
 
 #: ../../source/use-cases.rst:977
 msgid "``InjectToDB`` stores processed data in vector database"
-msgstr ""
+msgstr "``InjectToDB`` 将处理后的数据存储到向量数据库"
 
 #: ../../source/use-cases.rst:978
 msgid "``gather_files`` collects files matching pattern"
-msgstr ""
+msgstr "``gather_files`` 收集匹配模式的文件"
 
 #: ../../source/use-cases.rst:979
 msgid "Custom ``reader`` function for domain-specific file handling"
-msgstr ""
+msgstr "自定义 ``reader`` 函数用于特定领域的文件处理"
 
 #: ../../source/use-cases.rst:982
 msgid "Anki Deck Generation"
-msgstr ""
+msgstr "Anki 牌组生成"
 
 #: ../../source/use-cases.rst:984
 msgid "Generate Anki flashcards from CSV question banks."
-msgstr ""
+msgstr "从 CSV 题库生成 Anki 闪卡。"
 
 #: ../../source/use-cases.rst:1063
 msgid "``GenerateDeck`` capability for flashcard generation"
-msgstr ""
+msgstr "``GenerateDeck`` 能力用于闪卡生成"
 
 #: ../../source/use-cases.rst:1064
 msgid "``generate_deck()`` creates deck from CSV column names and requirements"
-msgstr ""
+msgstr "``generate_deck()`` 根据 CSV 列名和需求创建牌组"
 
 #: ../../source/use-cases.rst:1065
 msgid "``add_csv_data()`` associates question bank data with deck"
-msgstr ""
+msgstr "``add_csv_data()`` 将题库数据与牌组关联"
 
 #: ../../source/use-cases.rst:1066
 msgid "``compile_deck()`` produces .apkg package for Anki import"
-msgstr ""
+msgstr "``compile_deck()`` 生成供 Anki 导入的 .apkg 包"
 
 #: ../../source/use-cases.rst:1067
 msgid "``AppendTopicAnalysis`` provides topic analysis on CSV data"
-msgstr ""
+msgstr "``AppendTopicAnalysis`` 对 CSV 数据提供主题分析"
 
 #: ../../source/use-cases.rst:1070
 msgid "Example Categories"
-msgstr ""
+msgstr "示例分类"
 
 #: ../../source/use-cases.rst:1072
 msgid "The repository includes the following example directories:"
-msgstr ""
+msgstr "仓库包含以下示例目录："
 
-#: ../../source/use-cases.rst:1119
+#: ../../source/use-cases.rst:1075
+msgid "Category"
+msgstr "分类"
+
+#: ../../source/use-cases.rst:1075
+msgid "Contents"
+msgstr "内容"
+
+#: ../../source/use-cases.rst:1077
+msgid "``basics``"
+msgstr "``basics``"
+
+#: ../../source/use-cases.rst:1077
+msgid "Hello world, basic workflow, simple interactive chat"
+msgstr "Hello world、基本工作流、简单交互式聊天"
+
+#: ../../source/use-cases.rst:1079
+msgid "``generation``"
+msgstr "``generation``"
+
+#: ../../source/use-cases.rst:1079
+msgid "Content generation: poems, articles, novels, songs, diaries, outlines"
+msgstr "内容生成：诗歌、文章、小说、歌曲、日记、大纲"
+
+#: ../../source/use-cases.rst:1082
+msgid "``rag``"
+msgstr "``rag``"
+
+#: ../../source/use-cases.rst:1082
+msgid ""
+"Retrieval-Augmented Generation: extraction, injection, chunking, Milvus "
+"Q&A"
+msgstr "检索增强生成：提取、注入、分块、Milvus 问答"
+
+#: ../../source/use-cases.rst:1085
+msgid "``review``"
+msgstr "``review``"
+
+#: ../../source/use-cases.rst:1085
+msgid "Code review, correction, diff editing, quality"
+msgstr "代码审查、修正、差异编辑、质量"
+
+#: ../../source/use-cases.rst:1087
+msgid "``task_management``"
+msgstr "``task_management``"
+
+#: ../../source/use-cases.rst:1087
+msgid ""
+"Task proposal, delegation, handling, cancellation, LLM-driven code "
+"generation"
+msgstr "任务提案、分派、处理、取消、LLM 驱动的代码生成"
+
+#: ../../source/use-cases.rst:1090
+msgid "``rating``"
+msgstr "``rating``"
+
+#: ../../source/use-cases.rst:1090
+msgid "Multi-criteria rating and composite scoring"
+msgstr "多维度评分与综合评分"
+
+#: ../../source/use-cases.rst:1092
+msgid "``integrations``"
+msgstr "``integrations``"
+
+#: ../../source/use-cases.rst:1092
+msgid "Anki deck generation, BibTeX search, ruleset drafting"
+msgstr "Anki 牌组生成、BibTeX 搜索、规则集起草"
+
+#: ../../source/use-cases.rst:1096
 msgid "Running Examples"
-msgstr ""
+msgstr "运行示例"
 

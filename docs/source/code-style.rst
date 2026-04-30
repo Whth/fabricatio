@@ -438,7 +438,7 @@ Documentation Conventions
 -------------------------
 
 Rust Documentation
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 - **Crate documentation** in ``lib.rs`` with module-level doc comments
 
@@ -452,7 +452,7 @@ Rust Documentation
   - Configuration details
 
 Python Documentation
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 - **Package README** in ``README.md`` with similar structure
 
@@ -556,7 +556,7 @@ Python
 
 - **Ruff** for linting and formatting
 
-  .. code-block:: toml
+  .. code-block:: text
 
      [tool.ruff]
      line-length = 120

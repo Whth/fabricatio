@@ -96,6 +96,10 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
+intersphinx_timeout = 5  # seconds; fail fast if remote inventory unreachable
+
+# Suppress intersphinx inventory fetch failures (network-dependent)
+suppress_warnings = ["intersphinx.inventory"]
 
 # Add favicon and logo
 html_favicon = "../../assets/logo/400.svg"

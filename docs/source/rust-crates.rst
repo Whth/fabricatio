@@ -176,7 +176,7 @@ Configuration Sources (priority order):
 
 Configuration Structure:
 
-.. code-block:: toml
+.. code-block:: text
 
     [debug]
     log_level = "DEBUG"

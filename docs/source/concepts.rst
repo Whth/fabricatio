@@ -1,15 +1,15 @@
 Core Concepts
-============
+=============
 
 This guide explains the fundamental concepts that power Fabricatio.
 
 Event-Driven Architecture
------------------------
+-------------------------
 
 Fabricatio uses an event-driven architecture where agents respond to events rather than direct method calls. This pattern enables loose coupling and flexible composition.
 
 Event System
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 Events are the triggers that initiate workflow execution:
 
