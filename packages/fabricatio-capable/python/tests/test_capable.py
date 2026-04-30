@@ -7,8 +7,8 @@ from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_core.utils import ok
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string, return_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
+from fabricatio_mock.utils import install_router_usage
 from fabricatio_tool.models.tool import ToolBox
 
 
@@ -53,8 +53,8 @@ async def test_capable_single_string(capable_role: CapableRole, toolbox_set: Set
         deny_evidence=["e2"],
         final_judgement=True,
     )
-    router = return_model_json_string(desired)
-    with install_router(router):
+    responses = return_model_json_router_usage(desired)
+    with install_router_usage(*responses):
         result = ok(
             await capable_role.capable(
                 request="test input",
@@ -85,8 +85,8 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: S
         )
         for i in range(3)
     ]
-    router = return_model_json_string(*desires)
-    with install_router(router):
+    responses = return_model_json_router_usage(*desires)
+    with install_router_usage(*responses):
         results = ok(
             await capable_role.capable(
                 request=[f"req {i}" for i in range(3)],
@@ -113,8 +113,8 @@ async def test_capable_none_response(capable_role: CapableRole, toolbox_set: Set
         toolbox_set: A set of toolboxes provided by the fixture.
     """
     # Simulate None returned by LLM
-    router = return_string("")
-    with install_router(router):
+    responses = return_router_usage("")
+    with install_router_usage(*responses):
         assert (
             await capable_role.capable(
                 request="should be none",

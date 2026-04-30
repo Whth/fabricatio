@@ -2,8 +2,8 @@
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_generic_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_generic_router_usage
+from fabricatio_mock.utils import install_router_usage
 from fabricatio_translate.capabilities.translate import Translate
 
 
@@ -35,8 +35,12 @@ async def test_translate_parametrized(
 ) -> None:
     """Test Translate.translate with various scenarios using mock router."""
     # Prepare mock router for single or list
-    router = return_generic_string(*mock_response) if isinstance(text, list) else return_generic_string(mock_response)
-    with install_router(router):
+    responses = (
+        return_generic_router_usage(*mock_response)
+        if isinstance(text, list)
+        else return_generic_router_usage(mock_response)
+    )
+    with install_router_usage(*responses):
         result = await role.translate(text, target_language)
         assert result == expected
 
@@ -71,9 +75,9 @@ async def test_translate_chunked_parametrized(
     if isinstance(text, list):
         # Flatten the list of lists for router
         flat = [item for sublist in mock_response for item in (sublist if isinstance(sublist, list) else [sublist])]
-        router = return_generic_string(*flat)
+        responses = return_generic_router_usage(*flat)
     else:
-        router = return_generic_string(*mock_response)
-    with install_router(router):
+        responses = return_generic_router_usage(*mock_response)
+    with install_router_usage(*responses):
         result = await role.translate_chunked(text, target_language, chunk_size=1)
         assert result == expected

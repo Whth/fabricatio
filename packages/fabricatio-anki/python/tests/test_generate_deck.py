@@ -9,10 +9,10 @@ from fabricatio_anki.models.deck import Deck, Model, ModelMetaData
 from fabricatio_anki.models.template import Side, Template
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
-    return_json_obj_string,
-    return_model_json_string,
+    return_json_obj_router_usage,
+    return_model_json_router_usage,
 )
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.utils import install_router_usage
 
 
 def side_factory(layout: str = "Default layout", js: str = "", css: str = "") -> Side:
@@ -684,11 +684,11 @@ async def test_generate_deck_with_router(
         requirement (str): Requirement for deck generation
         expected_result (str): Expected deck name
     """
-    metadata_router = return_model_json_string(metadata_factory(ret_value.name, ret_value.description))
-    return_json_obj_string(["model1", "model2"])
+    metadata_responses = return_model_json_router_usage(metadata_factory(ret_value.name, ret_value.description))
+    return_json_obj_router_usage(["model1", "model2"])
 
     with (
-        install_router(metadata_router),
+        install_router_usage(*metadata_responses),
         patch.object(GenerateDeck, "alist_str", new_callable=AsyncMock) as mock_alist,
         patch.object(GenerateDeck, "generate_model", new_callable=AsyncMock) as mock_model,
     ):

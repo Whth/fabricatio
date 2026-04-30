@@ -5,13 +5,12 @@ from typing import Any, Dict, List, Optional
 import pytest
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VoteJudge
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage
+from fabricatio_mock.utils import install_router_usage
 from pydantic import Field
 
 
@@ -36,16 +35,17 @@ class JudgeRole(LLMTestRole, EvidentlyJudge):
 
 
 @pytest.fixture
-def router(ret_value: SketchedAble) -> Router:
-    """Create a router fixture that returns a specific value.
+@pytest.fixture
+def responses(ret_value: SketchedAble) -> list[str]:
+    """Create mock router responses that return a specific value.
 
     Args:
         ret_value (SketchedAble): Value to be returned by the router
 
     Returns:
-        Router: Router instance
+        list[str]: List of response strings
     """
-    return return_model_json_string(ret_value)
+    return return_model_json_router_usage(ret_value)
 
 
 @pytest.fixture
@@ -72,16 +72,16 @@ def role() -> JudgeRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_judge(router: Router, role: JudgeRole, ret_value: SketchedAble, prompt: str) -> None:
+async def test_judge(responses: list[str], role: JudgeRole, ret_value: SketchedAble, prompt: str) -> None:
     """Test the judge method with positive and negative cases.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked router responses fixture
         role (JudgeRole): JudgeRole fixture
         ret_value (SketchedAble): Expected return value
         prompt (str): Input prompt for testing
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         jud = ok(await role.evidently_judge(prompt))
         assert jud.model_dump_json() == ret_value.model_dump_json()
         assert bool(jud) == bool(ret_value)
@@ -121,16 +121,16 @@ def vote_role() -> VoteJudgeRole:
 
 
 # Helper to generate a mock router returning specific judgments
-def make_vote_router(judgments: List[JudgeMent]) -> Router:
-    """Create a router that returns predefined judgments.
+def make_vote_router(judgments: List[JudgeMent]) -> list[str]:
+    """Create mock router responses that return predefined judgments.
 
     Args:
         judgments (List[JudgeMent]): List of judgments to be returned
 
     Returns:
-        Router: Router instance
+        list[str]: List of response strings
     """
-    return return_model_json_string(*judgments)
+    return return_model_json_router_usage(*judgments)
 
 
 # Test data
@@ -219,8 +219,8 @@ async def test_vote_judge(vote_role: VoteJudgeRole, case: Case) -> None:
         vote_role (VoteJudgeRole): VoteJudgeRole fixture
         case (Case): Test case containing judgments, threshold and expected result
     """
-    router = return_model_json_string(*case.judgments)
-    with install_router(router):
+    responses = return_model_json_router_usage(*case.judgments)
+    with install_router_usage(*responses):
         result = await vote_role.vote_judge("test prompt", vote_pass_threshold=case.threshold)
         assert result == case.expected_result
 
@@ -271,7 +271,7 @@ async def test_vote_judge_multiple_prompts(vote_role: VoteJudgeRole) -> None:
         jd(True),
         jd(False),
     ] * 3
-    router = return_model_json_string(*judgments)
-    with install_router(router):
+    responses = return_model_json_router_usage(*judgments)
+    with install_router_usage(*responses):
         result = await vote_role.vote_judge(["prompt1", "prompt2"])  # type: ignore
         assert result == [True, False]

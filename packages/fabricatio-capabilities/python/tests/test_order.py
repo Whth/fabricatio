@@ -5,10 +5,9 @@ from typing import List, Union
 import pytest
 from fabricatio_capabilities.capabilities.order import Ordering
 from fabricatio_core.models.generic import WithBriefing
-from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_json_obj_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_json_obj_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 def with_briefing_factory(name: str, briefing: str) -> WithBriefing:
@@ -29,7 +28,7 @@ class OrderingRole(LLMTestRole, Ordering):
 
 
 @pytest.fixture
-def router(ret_value: List[str]) -> Router:
+def router(ret_value: List[str]) -> list[str]:
     """Create a router fixture that returns a specific list of strings.
 
     Args:
@@ -38,11 +37,11 @@ def router(ret_value: List[str]) -> Router:
     Returns:
         Router: Router instance
     """
-    return return_json_obj_string(ret_value)
+    return return_json_obj_router_usage(ret_value)
 
 
 @pytest.fixture
-def scores_router(ret_value: List[float]) -> Router:
+def scores_router(ret_value: List[float]) -> list[str]:
     """Create a router fixture that returns specific scores as JSON.
 
     Args:
@@ -51,7 +50,7 @@ def scores_router(ret_value: List[float]) -> Router:
     Returns:
         Router: Router instance
     """
-    return return_json_obj_string(ret_value)
+    return return_json_obj_router_usage(ret_value)
 
 
 @pytest.fixture
@@ -99,7 +98,7 @@ def role() -> OrderingRole:
 )
 @pytest.mark.asyncio
 async def test_order_string_success(
-    router: Router,
+    router: list[str],
     role: OrderingRole,
     ret_value: List[str],
     seq: List[str],
@@ -118,7 +117,7 @@ async def test_order_string_success(
         reverse (bool): Whether to reverse the order
         expected_result (List[str]): Expected result after ordering
     """
-    with install_router(router):
+    with install_router_usage(*router):
         result = await role.order_string(seq, requirement, reverse)
         assert result == expected_result
 
@@ -145,7 +144,7 @@ async def test_order_string_success(
 )
 @pytest.mark.asyncio
 async def test_order_string_invalid_response(
-    router: Router,
+    router: list[str],
     role: OrderingRole,
     ret_value: List[str],
     seq: List[str],
@@ -160,7 +159,7 @@ async def test_order_string_invalid_response(
         seq (List[str]): Input sequence
         requirement (str): Requirement for ordering
     """
-    with install_router(router):
+    with install_router_usage(*router):
         result = await role.order_string(seq, requirement)
         assert result is None
 
@@ -196,7 +195,7 @@ async def test_order_string_invalid_response(
 )
 @pytest.mark.asyncio
 async def test_order_with_strings(
-    router: Router,
+    router: list[str],
     role: OrderingRole,
     ret_value: List[str],
     seq: List[str],
@@ -213,7 +212,7 @@ async def test_order_with_strings(
         requirement (str): Requirement for ordering
         expected_result (List[str]): Expected result
     """
-    with install_router(router):
+    with install_router_usage(*router):
         result = await role.order(seq, requirement)
         assert result == expected_result
 
@@ -245,7 +244,7 @@ async def test_order_with_strings(
 )
 @pytest.mark.asyncio
 async def test_order_briefed_success(
-    router: Router,
+    router: list[str],
     role: OrderingRole,
     ret_value: List[str],
     seq: List[WithBriefing],
@@ -262,7 +261,7 @@ async def test_order_briefed_success(
         requirement (str): Requirement for ordering
         expected_names (List[str]): Expected ordered names
     """
-    with install_router(router):
+    with install_router_usage(*router):
         result = await role.order_briefed(seq, requirement)
         assert result is not None
         assert isinstance(result, list)
@@ -298,7 +297,7 @@ async def test_order_briefed_success(
 )
 @pytest.mark.asyncio
 async def test_order_with_briefings(
-    router: Router,
+    router: list[str],
     role: OrderingRole,
     ret_value: List[str],
     seq: List[WithBriefing],
@@ -315,7 +314,7 @@ async def test_order_with_briefings(
         requirement (str): Requirement for ordering
         expected_names (List[str]): Expected ordered names
     """
-    with install_router(router):
+    with install_router_usage(*router):
         result = await role.order(seq, requirement)
         assert result is not None
         assert isinstance(result, list)

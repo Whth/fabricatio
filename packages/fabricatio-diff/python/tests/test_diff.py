@@ -1,12 +1,11 @@
 """Tests for the diff."""
 
 import pytest
-from fabricatio_core.rust import Router
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_diff.models.diff import Diff
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 def diff_factory(search: str, replace: str) -> Diff:
@@ -27,16 +26,16 @@ class DiffEditRole(LLMTestRole, DiffEdit):
 
 
 @pytest.fixture
-def router(ret_value: Diff) -> Router:
-    """Create a router fixture that returns a specific value.
+def responses(ret_value: Diff) -> list[str]:
+    """Create a responses fixture that returns a specific value.
 
     Args:
         ret_value (SketchedAble): Value to be returned by the router
 
     Returns:
-        Router: Router instance
+        list[str]: Response strings
     """
-    return return_string(ret_value.display())
+    return return_router_usage(ret_value.display())
 
 
 @pytest.fixture
@@ -69,19 +68,19 @@ def role() -> DiffEditRole:
 )
 @pytest.mark.asyncio
 async def test_diff_edit_success(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected_result: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected_result: str
 ) -> None:
     """Test the diff_edit method with successful cases.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text to edit
         requirement (str): Requirement for the edit
         expected_result (str): Expected result after applying diff
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         assert result == expected_result
 
@@ -92,27 +91,29 @@ async def test_diff_edit_success(
         (
             diff_factory("This is old text in a file", "This is new text in a file"),
             "This is old text in a file",
-            "Replace old text with new text",
+            "q_diff_method_1",
         ),
         (
             diff_factory("hello there", "world there"),
             "hello there",
-            "Change greeting",
+            "q_diff_method_2",
         ),
     ],
 )
 @pytest.mark.asyncio
-async def test_diff_method(router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str) -> None:
+async def test_diff_method(
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str
+) -> None:
     """Test the diff method returns correct Diff object.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text for diff
         requirement (str): Requirement for the diff
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         diff = await role.diff(source, requirement)
         assert diff is not None
         assert diff.search == ret_value.search
@@ -125,24 +126,24 @@ async def test_diff_method(router: Router, role: DiffEditRole, ret_value: Diff, 
         (
             diff_factory("nonexistent line", "replacement line"),
             "original text",
-            "requirement",
+            "q_diff_no_match_1",
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_diff_edit_no_match(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str
 ) -> None:
     """Test diff_edit when search string doesn't match source.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text
         requirement (str): Requirement for edit
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         # Should return None when no match is found
         assert result is None
@@ -154,7 +155,7 @@ async def test_diff_edit_no_match(
         (
             diff_factory("original text here", "original content here"),
             "original text here",
-            "requirement",
+            "q_diff_precision_1",
             0.8,
             "original content here",
         ),
@@ -162,7 +163,7 @@ async def test_diff_edit_no_match(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_with_precision(
-    router: Router,
+    responses: list[str],
     role: DiffEditRole,
     ret_value: Diff,
     source: str,
@@ -173,7 +174,7 @@ async def test_diff_edit_with_precision(
     """Test diff_edit with custom match precision.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text
@@ -181,7 +182,7 @@ async def test_diff_edit_with_precision(
         match_precision (float): Match precision value
         expected (str): Expected result
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement, match_precision=match_precision)
         assert result == expected
 
@@ -205,19 +206,19 @@ async def test_diff_edit_with_precision(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_empty_source(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
 ) -> None:
     """Test diff_edit with empty source string.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text
         requirement (str): Requirement for edit
         expected (str): Expected result
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         assert result == expected
 
@@ -228,24 +229,24 @@ async def test_diff_edit_empty_source(
         (
             Diff(search="", replace=""),
             "source text",
-            "requirement",
+            "q_diff_none_resp_1",
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_diff_method_returns_none_on_invalid_response(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str
 ) -> None:
     """Test diff method returns None when LLM response is invalid.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object (invalid)
         source (str): Source text
         requirement (str): Requirement for diff
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         diff = await role.diff(source, requirement)
         # The _validator should return None for invalid diffs
         assert diff is None
@@ -257,44 +258,44 @@ async def test_diff_method_returns_none_on_invalid_response(
         (
             diff_factory("hello world", "hi world"),
             "hello world",
-            "test requirement",
+            "q_diff_various_1",
             "hi world",
         ),
         (
             diff_factory("hello\nhello", "hi\nhi"),
             "hello\nhello",
-            "test requirement",
+            "q_diff_various_2",
             "hi\nhi",
         ),
         (
             diff_factory("exact match", "perfect fit"),
             "exact match",
-            "test requirement",
+            "q_diff_various_3",
             "perfect fit",
         ),
         (
             diff_factory("Case sensitive", "case sensitive"),
             "case sensitive",
-            "test requirement",
+            "q_diff_various_4",
             None,
         ),
     ],
 )
 @pytest.mark.asyncio
 async def test_diff_edit_various_cases(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
 ) -> None:
     """Test diff_edit with various search and replace scenarios.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text
         requirement (str): Requirement for edit
         expected (str): Expected result
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         assert result == expected
 
@@ -312,18 +313,18 @@ async def test_diff_edit_various_cases(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_multiline(
-    router: Router, role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
+    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str
 ) -> None:
     """Test diff_edit with multiline text.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked response strings
         role (DiffEditRole): DiffEditRole fixture
         ret_value (Diff): Expected diff object
         source (str): Source text
         requirement (str): Requirement for edit
         expected (str): Expected result
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         assert result == expected

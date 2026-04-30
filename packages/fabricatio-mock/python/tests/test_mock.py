@@ -446,3 +446,201 @@ class TestAsyncBehavior:
 
         # First three should be in order, rest should be the last value
         assert responses == ["first", "second", "third", "third", "third"]
+
+
+class TestInstallRouterUsage:
+    """Test cases for install_router_usage with rust.router_usage.ask."""
+
+    @pytest.mark.asyncio
+    async def test_basic_single_response(self) -> None:
+        """Test install_router_usage with a single response."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        with install_router_usage(*return_router_usage("hello")):
+            response = await rust.router_usage.ask(
+                question="test",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            assert response == "hello"
+
+    @pytest.mark.asyncio
+    async def test_sequential_responses(self) -> None:
+        """Test multiple calls return responses in FIFO order."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        with install_router_usage(*return_router_usage("first", "second", "third")):
+            r1 = await rust.router_usage.ask(
+                question="q1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            r2 = await rust.router_usage.ask(
+                question="q2",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            r3 = await rust.router_usage.ask(
+                question="q3",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+
+            assert r1 == "first"
+            assert r2 == "second"
+            assert r3 == "third"
+
+    @pytest.mark.asyncio
+    async def test_default_fallback_after_exhaustion(self) -> None:
+        """Test that the default value is returned after explicit responses are exhausted."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        with install_router_usage(*return_router_usage("a", "b", default="fallback")):
+            r1 = await rust.router_usage.ask(
+                question="q_fb_1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            r2 = await rust.router_usage.ask(
+                question="q_fb_2",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            # Third call should hit the padded default
+            r3 = await rust.router_usage.ask(
+                question="q_fb_3",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+
+            assert r1 == "a"
+            assert r2 == "b"
+            assert r3 == "fallback"
+
+    @pytest.mark.asyncio
+    async def test_json_formatted_response(self) -> None:
+        """Test install_router_usage with return_json_router_usage."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_json_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        json_str = '{"key": "value"}'
+        with install_router_usage(*return_json_router_usage(json_str)):
+            response = await rust.router_usage.ask(
+                question="q_json_1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            expected = f"```json\n{json_str}\n```"
+            assert response == expected
+
+    @pytest.mark.asyncio
+    async def test_code_formatted_response(self) -> None:
+        """Test install_router_usage with return_code_router_usage."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_code_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        with install_router_usage(*return_code_router_usage("print('hi')", lang="python")):
+            response = await rust.router_usage.ask(
+                question="q_code_1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            assert response == "```python\nprint('hi')\n```"
+
+    @pytest.mark.asyncio
+    async def test_generic_formatted_response(self) -> None:
+        """Test install_router_usage with return_generic_router_usage."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_generic_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        with install_router_usage(*return_generic_router_usage("some text")):
+            response = await rust.router_usage.ask(
+                question="q_generic_1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            expected = "--- Start of string ---\nsome text\n--- End of string ---"
+            assert response == expected
+
+    @pytest.mark.asyncio
+    async def test_model_json_formatted_response(self) -> None:
+        """Test install_router_usage with return_model_json_router_usage."""
+        from fabricatio_core import rust
+        from fabricatio_mock.models.mock_router import return_model_json_router_usage
+        from fabricatio_mock.utils import install_router_usage
+
+        model = FakeModel(name="Alice", age=25)
+        with install_router_usage(*return_model_json_router_usage(model)):
+            response = await rust.router_usage.ask(
+                question="q_model_1",
+                send_to="openai/gpt-3.5-turbo",
+                stream=False,
+                top_p=None,
+                temperature=None,
+                max_completion_tokens=None,
+                presence_penalty=None,
+                frequency_penalty=None,
+            )
+            assert response.startswith("```json\n")
+            assert response.endswith("\n```")
+            parsed = orjson.loads(response[8:-4])
+            assert parsed == {"name": "Alice", "age": 25, "active": True}

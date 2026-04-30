@@ -2,8 +2,8 @@
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage
+from fabricatio_mock.utils import install_router_usage
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_thinking.models.thinking import Thought
 from fabricatio_thinking.rust import ThoughtVCS
@@ -67,8 +67,8 @@ async def test_thinking_parametrized_router(
     expected_branches: int,
 ) -> None:
     """Test the thinking process with various scenarios using mock router."""
-    router = return_model_json_string(*thoughts)
-    with install_router(router):
+    responses = return_model_json_router_usage(*thoughts)
+    with install_router_usage(*responses):
         result_vcs = await role.thinking("Test question", vcs=vcs, max_steps=10)
         # Check number of branches and commits
         if hasattr(result_vcs, "branches"):
@@ -92,8 +92,8 @@ async def test_thinking_parametrized_router(
 @pytest.mark.asyncio
 async def test_thinking_calls_end_router(role: ThinkingRole, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
     """Test that thinking stops when end is True using mock router."""
-    router = return_model_json_string(*thoughts)
-    with install_router(router):
+    responses = return_model_json_router_usage(*thoughts)
+    with install_router_usage(*responses):
         result_vcs = await role.thinking("Test", vcs=vcs, max_steps=10)
         assert result_vcs is not None
 
@@ -110,7 +110,7 @@ async def test_thinking_calls_end_router(role: ThinkingRole, vcs: ThoughtVCS, th
 @pytest.mark.asyncio
 async def test_thinking_with_router_param(role: ThinkingRole, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
     """Integration-like test with a mock router (parametrized)."""
-    router = return_model_json_string(*thoughts)
-    with install_router(router):
+    responses = return_model_json_router_usage(*thoughts)
+    with install_router_usage(*responses):
         result_vcs = await role.thinking("Test", vcs=vcs, max_steps=10)
         assert result_vcs is not None

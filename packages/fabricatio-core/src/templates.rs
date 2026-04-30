@@ -3,7 +3,6 @@ use error_mapping::*;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
 use handlebars::{Handlebars, no_escape};
-use path_clean::PathClean;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -95,11 +94,9 @@ impl TemplateManager {
     fn render_template<'a>(
         &self,
         py: Python<'a>,
-        name: PathBuf,
+        name: String,
         data: &Bound<'_, PyAny>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let name = name.clean().to_string_lossy().to_string();
-
         if data.is_instance_of::<PyList>() {
             trace!("Rendering list of templates: {name}");
             if self.handlebars.get_template(&name).is_none() {
@@ -214,13 +211,14 @@ impl TemplateManager {
     ///
     /// Later directories in the list take precedence over earlier ones when template names conflict.
     fn gather_templates(&self) -> Vec<(String, PathBuf)> {
-        self.templates_stores
+        let res: Vec<_> = self
+            .templates_stores
             .iter()
             .rev()
             .flat_map(|dir| {
                 WalkDir::new(dir)
                     .into_iter()
-                    .filter_map(core::result::Result::ok)
+                    .filter_map(Result::ok)
                     .filter(|e| e.file_type().is_file())
                     .filter(|e| {
                         e.path().extension().and_then(|s| s.to_str()) == Some(self.suffix.as_str())
@@ -230,8 +228,8 @@ impl TemplateManager {
                             e.path()
                                 .strip_prefix(dir)
                                 .unwrap()
-                                .clean()
                                 .to_string_lossy()
+                                .replace("\\", "/")
                                 .strip_suffix(format!(".{}", self.suffix).as_str())
                                 .unwrap()
                                 .to_string(),
@@ -240,7 +238,15 @@ impl TemplateManager {
                     })
             })
             .inspect(|(name, path)| trace!("Discovered template: {}=>{}", name, path.display()))
-            .collect()
+            .collect();
+
+        debug!(
+            "Discovered {} templates from {:?}",
+            res.len(),
+            self.templates_stores
+        );
+
+        res
     }
 
     /// Renders a registered template by name with the given data.

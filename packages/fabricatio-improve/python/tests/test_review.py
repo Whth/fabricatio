@@ -2,13 +2,12 @@
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
-from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_improve.capabilities.review import Review
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 class ReviewerRole(LLMTestRole, Review):
@@ -16,9 +15,9 @@ class ReviewerRole(LLMTestRole, Review):
 
 
 @pytest.fixture
-def router(ret_value: SketchedAble) -> Router:
-    """Fixture to create a Router instance with predefined mocked responses for testing."""
-    return return_model_json_string(ret_value)
+def responses(ret_value: SketchedAble) -> list[str]:
+    """Fixture to create a responses instance with predefined mocked responses for testing."""
+    return return_model_json_router_usage(ret_value)
 
 
 @pytest.fixture
@@ -34,14 +33,14 @@ def role() -> ReviewerRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_review_string(router: Router, role: ReviewerRole, ret_value: SketchedAble, prompt: str) -> None:
+async def test_review_string(responses: list[str], role: ReviewerRole, ret_value: SketchedAble, prompt: str) -> None:
     """Verify the correctness of the review_string method with various input combinations.
 
     Tests include scenarios with and without explicit criteria provided.
     """
     topic = "generic topic"
 
-    with install_router(router):
+    with install_router_usage(*responses):
         imp = ok(
             await role.review_string(
                 prompt, topic, criteria={"some thing"}, rating_manual={"some thing": "a is bad, b is good."}

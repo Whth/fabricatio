@@ -7,22 +7,21 @@ specifically focusing on methods that interact with the UseLLM capability.
 from typing import Any, Callable, Dict, List, Optional
 
 import pytest
-from fabricatio_core.rust import Router
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_string
-from fabricatio_mock.utils import code_block, generic_block, install_router
+from fabricatio_mock.models.mock_router import return_router_usage
+from fabricatio_mock.utils import code_block, generic_block, install_router_usage
 
 
 @pytest.fixture
-def mock_router(ret_value: str) -> Router:
-    """Fixture to create a mocked router with predefined response.
+def mock_router(ret_value: str) -> list[str]:
+    """Fixture to create mock responses with DummyModel for predefined response.
 
     Args:
         ret_value: The value to be returned by the mocked completion
     Returns:
-        Configured AsyncMock router object
+        Padded response strings for install_router_usage
     """
-    return return_string(ret_value)
+    return return_router_usage(ret_value)
 
 
 @pytest.fixture(autouse=True)
@@ -39,23 +38,7 @@ def role_with_llm() -> LLMTestRole:
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
 @pytest.mark.asyncio
-async def test_router_completion(mock_router: Router, ret_value: str) -> None:
-    """Test basic router completion functionality.
-
-    Verifies that the router correctly handles completion requests
-    and returns expected responses.
-
-    Args:
-        mock_router: Preconfigured mock router fixture
-        ret_value: Expected response value
-    """
-    response = await mock_router.completion(send_to="openai/gpt-3.5-turbo", message="Hi", top_p=0.5, temperature=1.0)
-    assert response == ret_value
-
-
-@pytest.mark.parametrize("ret_value", ["Hi", "Hello"])
-@pytest.mark.asyncio
-async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMTestRole) -> None:
+async def test_aask(mock_router: list[str], ret_value: str, role_with_llm: LLMTestRole) -> None:
     """Test asynchronous ask functionality.
 
     Ensures that simple question answering works as expected
@@ -66,23 +49,23 @@ async def test_aask(mock_router: Router, ret_value: str, role_with_llm: LLMTestR
         ret_value: Expected response value
         role_with_llm: Test role with LLM capabilities
     """
-    with install_router(mock_router):
-        assert (await role_with_llm.aask(send_to="openai/gpt-3.5-turbo", question="Hi")) == ret_value
+    with install_router_usage(*mock_router):
+        assert (await role_with_llm.aask(send_to="openai/gpt-3.5-turbo", question=ret_value)) == ret_value
 
 
 @pytest.mark.parametrize(
     ("ret_value", "question_input"),
     [
-        ("Hi", "Hello?"),
-        ("Hello", ["Hi", "Hey"]),
-        ("Response2", ["Q1", "Q2"]),
-        ("Response3", ["Q1", "Q2"]),
-        ("Response4", "Single Question"),
+        ("Hello", ["q_branch_2a", "q_branch_2b"]),
+        ("Response2", ["q_branch_3a", "q_branch_3b"]),
+        ("Response3", ["q_branch_4a", "q_branch_4b"]),
+        ("Response4", "q_branch_5"),
+        ("Response5", ["q_branch_6a", "q_branch_6b"]),
     ],
 )
 @pytest.mark.asyncio
 async def test_aask_branches(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     question_input: str | list[str],
     role_with_llm: LLMTestRole,
@@ -98,7 +81,7 @@ async def test_aask_branches(
         question_input: Input question(s) to test
         role_with_llm: Test role with LLM capabilities
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.aask(question=question_input)
 
         if isinstance(question_input, list):
@@ -118,13 +101,13 @@ async def test_aask_branches(
     [
         ("123", "What is 100 + 23?", lambda x: int(x) if x.isdigit() else None, None, 3),
         ("abc", "Enter digits:", lambda x: int(x) if x.isdigit() else None, 0, 3),
-        ("Hello", ["Hi", "Hey"], lambda x: x if len(x) > 3 else None, None, 2),
+        ("Hello", ["q_validate_3a", "q_validate_3b"], lambda x: x if len(x) > 3 else None, None, 2),
         ("5", "Give me a number:", lambda x: int(x) if x.isdigit() else None, -1, 3),
     ],
 )
 @pytest.mark.asyncio
 async def test_aask_validate(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     question_input: str | list[str],
     validator: Callable[[str], Any],
@@ -149,7 +132,7 @@ async def test_aask_validate(
         max_validations: Maximum number of validation attempts
         role_with_llm: Test role with LLM capabilities
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.aask_validate(
             question=question_input,
             validator=validator,
@@ -191,7 +174,7 @@ async def test_aask_validate(
 )
 @pytest.mark.asyncio
 async def test_amapping_str(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement: str,
     k: int,
@@ -213,7 +196,7 @@ async def test_amapping_str(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.amapping_str(requirement=requirement, k=k)
 
         assert result == expected_result
@@ -236,7 +219,7 @@ async def test_amapping_str(
 )
 @pytest.mark.asyncio
 async def test_alist_str(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement: str,
     k: int,
@@ -258,7 +241,7 @@ async def test_alist_str(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.alist_str(requirement=requirement, k=k)
 
         assert result == expected_result
@@ -283,7 +266,7 @@ async def test_alist_str(
 )
 @pytest.mark.asyncio
 async def test_alist_str_with_requirement_list(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement_list: List[str],
     k: int,
@@ -304,7 +287,7 @@ async def test_alist_str_with_requirement_list(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.alist_str(requirement=requirement_list, k=k)
 
         assert result == expected_result
@@ -320,7 +303,7 @@ async def test_alist_str_with_requirement_list(
 )
 @pytest.mark.asyncio
 async def test_apathstr(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement: str,
     expected_result: Optional[List[str]],
@@ -339,7 +322,7 @@ async def test_apathstr(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.apathstr(requirement=requirement)
 
         assert result == expected_result
@@ -355,7 +338,7 @@ async def test_apathstr(
 )
 @pytest.mark.asyncio
 async def test_awhich_pathstr(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement: str,
     expected_result: Optional[str],
@@ -374,7 +357,7 @@ async def test_awhich_pathstr(
         expected_result: The expected validated result.
         role_with_llm: Test role with LLM capabilities.
     """
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.awhich_pathstr(requirement=requirement)
 
         assert result == expected_result
@@ -390,7 +373,7 @@ async def test_awhich_pathstr(
 )
 @pytest.mark.asyncio
 async def test_ageneric_string(
-    mock_router: Router,
+    mock_router: list[str],
     ret_value: str,
     requirement: str | List[str],
     expected_result: Optional[str | List[str]],
@@ -412,7 +395,7 @@ async def test_ageneric_string(
     """
     # Patch the aask_validate method since we're testing the generic string functionality,
     # not the underlying LLM interaction
-    with install_router(mock_router):
+    with install_router_usage(*mock_router):
         result = await role_with_llm.ageneric_string(requirement=requirement)
 
         assert result == expected_result

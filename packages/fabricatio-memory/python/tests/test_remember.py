@@ -6,14 +6,13 @@ from typing import List
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
-from fabricatio_core.rust import Router
 from fabricatio_core.utils import ok
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_memory.config import memory_config
 from fabricatio_memory.models.note import Note
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string, return_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 def note(content: str = "test content", importance: int = 5, tags: List[str] | None = None) -> Note:
@@ -35,16 +34,17 @@ class RememberRole(LLMTestRole, Remember):
 
 
 @pytest.fixture
-def router(ret_value: SketchedAble) -> Router:
-    """Create a router fixture that returns a specific value.
+@pytest.fixture
+def responses(ret_value: SketchedAble) -> list[str]:
+    """Create mock router responses that return a specific value.
 
     Args:
         ret_value (SketchedAble): Value to be returned by the router
 
     Returns:
-        Router: Router instance
+        list[str]: List of response strings
     """
-    return return_model_json_string(ret_value)
+    return return_model_json_router_usage(ret_value)
 
 
 @pytest.fixture(scope="session")
@@ -80,16 +80,16 @@ def role(shared_temp_dir: Path) -> RememberRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_record(router: Router, role: RememberRole, ret_value: SketchedAble, raw_input: str) -> None:
+async def test_record(responses: list[str], role: RememberRole, ret_value: SketchedAble, raw_input: str) -> None:
     """Test the record method with different inputs.
 
     Args:
-        router (Router): Mocked router fixture
+        responses (list[str]): Mocked router responses fixture
         role (RememberRole): RememberRole fixture
         ret_value (SketchedAble): Expected return value
         raw_input (str): Raw input to be recorded
     """
-    with install_router(router):
+    with install_router_usage(*responses):
         recorded_note = ok(await role.record(raw_input))
         assert recorded_note.model_dump_json() == ret_value.model_dump_json()
 
@@ -109,9 +109,9 @@ async def test_recall(role: RememberRole) -> None:
     query = "project deadlines"
     expected_response = "Based on your memories, the project deadline is next Friday."
 
-    router = return_string(expected_response)
+    responses = return_router_usage(expected_response)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         recalled_info = await role.recall(query, top_k=5)
         assert recalled_info == expected_response
 
@@ -126,9 +126,9 @@ async def test_recall_with_defaults(role: RememberRole) -> None:
     query = "shopping list"
     expected_response = "You need to buy milk and bread."
 
-    router = return_string(expected_response)
+    responses = return_router_usage(expected_response)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         recalled_info = await role.recall(query)
         assert recalled_info == expected_response
 
@@ -146,9 +146,9 @@ async def test_record_multiple_notes(role: RememberRole) -> None:
         note("Third note", 90, ["tag3"]),
     ]
 
-    router = return_model_json_string(*notes)
+    responses = return_model_json_router_usage(*notes)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         for i, expected_note in enumerate(notes):
             recorded_note = ok(await role.record(f"Raw input {i + 1}"))
             assert recorded_note.model_dump_json() == expected_note.model_dump_json()
@@ -164,9 +164,9 @@ async def test_recall_different_parameters(role: RememberRole) -> None:
     query = "work tasks"
     expected_response = "Your work tasks include reviewing code and attending meetings."
 
-    router = return_string(expected_response)
+    responses = return_router_usage(expected_response)
     role.access_memory_store().add_memory("You have a meeting at 3 PM today.", 80, ["work"])
-    with install_router(router):
+    with install_router_usage(*responses):
         # Test with custom top_k and boost_recent=False
         recalled_info = await role.recall(query, top_k=10, boost_recent=False)
         assert recalled_info == expected_response

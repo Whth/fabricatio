@@ -8,7 +8,7 @@ from typing import Generator, List, Type
 from unittest.mock import patch
 
 from fabricatio_core import Role, rust
-from fabricatio_core.rust import Router
+from fabricatio_core.rust import ProviderType, Router
 
 
 def code_block(content: str, lang: str = "json") -> str:
@@ -26,6 +26,35 @@ def install_router(router: Router) -> Generator[None, None, None]:
     """Install a router."""
     with patch.object(rust, "ROUTER", router):
         yield
+
+
+def setup_dummy_responses(*responses: str, group: str = "openai/gpt-3.5-turbo") -> None:
+    """Configure the singleton router with dummy responses for testing.
+
+    Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
+    so responses are reversed to preserve FIFO semantics.
+
+    Args:
+        *responses: Pre-formatted response strings (e.g. code_block, generic_block).
+        group: Route group name. Defaults to match LLMTestRole.llm_send_to.
+    """
+    rust.ROUTER.add_provider(ProviderType.Dummy)
+    rust.ROUTER.add_or_update_dummy_completion_model(group, "dummy/test-model", list(reversed(responses)))
+
+
+@contextmanager
+def install_router_usage(*responses: str, group: str = "openai/gpt-3.5-turbo") -> Generator[None, None, None]:
+    """Configure the singleton router with dummy responses for testing.
+
+    Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
+    so responses are reversed to preserve FIFO semantics.
+
+    Args:
+        *responses: Pre-formatted response strings (e.g. code_block, generic_block).
+        group: Route group name. Defaults to match LLMTestRole.llm_send_to.
+    """
+    setup_dummy_responses(*responses, group=group)
+    yield
 
 
 def make_roles(names: List[str], role_cls: Type[Role] = Role) -> List[Role]:

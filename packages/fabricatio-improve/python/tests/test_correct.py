@@ -1,13 +1,12 @@
 """Test module for the review_string method in the Review class."""
 
 import pytest
-from fabricatio_core.rust import Router
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_improve.models.problem import Problem, ProblemSolutions, Solution
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_generic_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_generic_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 class CorrectRole(LLMTestRole, Correct):
@@ -15,9 +14,9 @@ class CorrectRole(LLMTestRole, Correct):
 
 
 @pytest.fixture
-def router(ret_value: str) -> Router:
-    """Fixture to create a router instance with mocked response."""
-    return return_generic_string(ret_value)
+def responses(ret_value: str) -> list[str]:
+    """Fixture to create a responses instance with mocked response."""
+    return return_generic_router_usage(ret_value)
 
 
 @pytest.fixture
@@ -54,8 +53,10 @@ def role() -> CorrectRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_correct_string(router: Router, imp: Improvement, role: CorrectRole, ret_value: str, prompt: str) -> None:
+async def test_correct_string(
+    responses: list[str], imp: Improvement, role: CorrectRole, ret_value: str, prompt: str
+) -> None:
     """Test the review_string functionality with different inputs."""
-    with install_router(router):
+    with install_router_usage(*responses):
         corrected = await role.correct_string(prompt, imp)
         assert corrected == ret_value

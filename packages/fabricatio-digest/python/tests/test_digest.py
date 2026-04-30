@@ -6,12 +6,11 @@ import pytest
 from fabricatio_core import Role, Task
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.role import RoleName
-from fabricatio_core.rust import Router
 from fabricatio_digest.capabilities.digest import Digest
 from fabricatio_digest.models.tasklist import TaskList
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string, return_string
-from fabricatio_mock.utils import install_router, make_n_roles
+from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
+from fabricatio_mock.utils import install_router_usage, make_n_roles
 
 
 class MockRole(Role):
@@ -61,16 +60,16 @@ def create_test_tasklist(target: str, task_descriptions: List[str]) -> TaskList:
 
 
 @pytest.fixture
-def router(ret_value: SketchedAble) -> Router:
-    """Create a router fixture that returns a specific value.
+def responses(ret_value: SketchedAble) -> list[str]:
+    """Create a responses fixture that returns a specific value.
 
     Args:
         ret_value (SketchedAble): Value to be returned by the router
 
     Returns:
-        Router: Router instance
+        list[str]: Response strings
     """
-    return return_model_json_string(ret_value)
+    return return_model_json_router_usage(ret_value)
 
 
 @pytest.mark.parametrize(
@@ -114,9 +113,9 @@ async def test_digest_success(
     task_descriptions = [f"Task {i + 1} for {requirement}" for i in range(expected_task_count)]
     test_tasklist = create_test_tasklist(expected_target, task_descriptions)
 
-    router = return_model_json_string(test_tasklist)
+    responses = return_model_json_router_usage(test_tasklist)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest(requirement, mock_receptions)
 
         assert result is not None
@@ -135,9 +134,9 @@ async def test_digest_with_empty_receptions(digest_role: DigestRole) -> None:
     requirement = "Simple task"
     test_tasklist = create_test_tasklist(requirement, ["Single task"])
 
-    router = return_model_json_string(test_tasklist)
+    responses = return_model_json_router_usage(test_tasklist)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest(requirement, set())
 
         assert result is not None
@@ -153,9 +152,9 @@ async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: Set
         digest_role (DigestRole): DigestRole fixture
         mock_receptions (Set[MockRole]): Mock receptions
     """
-    router = return_string("null")
+    responses = return_router_usage("null")
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest("Test requirement", mock_receptions)
 
         assert result is None
@@ -172,9 +171,9 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
     single_reception = {MockRole(name="Single reception", description="Single reception role").name}
     test_tasklist = create_test_tasklist(requirement, ["Task 1", "Task 2"])
 
-    router = return_model_json_string(test_tasklist)
+    responses = return_model_json_router_usage(test_tasklist)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest(requirement, single_reception)
 
         assert result is not None
@@ -193,9 +192,9 @@ async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[
     requirement = "Task with kwargs"
     test_tasklist = create_test_tasklist(requirement, ["Task with custom settings"])
 
-    router = return_model_json_string(test_tasklist)
+    responses = return_model_json_router_usage(test_tasklist)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest(requirement, mock_receptions, temperature=0.7, send_to="gpt-4")
 
         assert result is not None
@@ -221,9 +220,9 @@ async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptio
     ]
     test_tasklist = create_test_tasklist(requirement, complex_tasks)
 
-    router = return_model_json_string(test_tasklist)
+    responses = return_model_json_router_usage(test_tasklist)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await digest_role.digest(requirement, mock_receptions)
 
         assert result is not None

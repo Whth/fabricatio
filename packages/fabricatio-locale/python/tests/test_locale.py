@@ -4,8 +4,8 @@ import pytest
 from fabricatio_locale.capabilities.localize import Localize
 from fabricatio_locale.rust import Msg
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_generic_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_generic_router_usage
+from fabricatio_mock.utils import install_router_usage
 
 
 class LocalizeRole(LLMTestRole, Localize):
@@ -69,8 +69,8 @@ async def test_localize_parametrized(
     expected_texts: list[str],
 ) -> None:
     """Test Localize.localize with various scenarios using mock router."""
-    router = return_generic_string(*mock_responses)
-    with install_router(router):
+    responses = return_generic_router_usage(*mock_responses)
+    with install_router_usage(*responses):
         result = await role.localize(messages, target_language=target_language)
 
         # Check that we get the same number of messages back
@@ -115,8 +115,8 @@ async def test_localize_with_specification_parametrized(
     expected_texts: list[str],
 ) -> None:
     """Test Localize.localize with specification parameter using mock router."""
-    router = return_generic_string(*mock_responses)
-    with install_router(router):
+    responses = return_generic_router_usage(*mock_responses)
+    with install_router_usage(*responses):
         result = await role.localize(messages, target_language=target_language, specification=specification)
 
         # Check that we get the same number of messages back
@@ -147,15 +147,15 @@ async def test_localize_edge_cases_parametrized(
     """Test Localize.localize with edge cases using mock router."""
     if not messages:
         # Empty list case
-        router = return_generic_string("dummy")  # Won't be called
-        with install_router(router):
+        responses = return_generic_router_usage("dummy")  # Won't be called
+        with install_router_usage(*responses):
             result = await role.localize(messages, target_language="fr")
             assert result == []
     else:
         # Special characters case
         mock_response = "Bonjour & bienvenue! 🎉"
-        router = return_generic_string(mock_response)
-        with install_router(router):
+        responses = return_generic_router_usage(mock_response)
+        with install_router_usage(*responses):
             result = await role.localize(messages, target_language="fr")
             assert len(result) == 1
             assert result[0].id == messages[0].id
@@ -172,9 +172,9 @@ async def test_localize_preserves_message_structure(role: LocalizeRole) -> None:
     ]
 
     mock_responses = ["Premier message", "Deuxième message", "Troisième message"]
-    router = return_generic_string(*mock_responses)
+    responses = return_generic_router_usage(*mock_responses)
 
-    with install_router(router):
+    with install_router_usage(*responses):
         result = await role.localize(original_messages, target_language="fr")
 
         # Verify structure preservation

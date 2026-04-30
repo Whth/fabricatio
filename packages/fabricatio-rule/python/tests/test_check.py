@@ -6,8 +6,8 @@ from fabricatio_improve.models.improve import Improvement
 from fabricatio_improve.models.problem import Problem, ProblemSolutions, Solution
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_string, return_string
-from fabricatio_mock.utils import install_router
+from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
+from fabricatio_mock.utils import install_router_usage
 from fabricatio_rule.capabilities.check import Check
 from fabricatio_rule.models.patch import RuleSetMetadata
 from fabricatio_rule.models.rule import Rule, RuleSet
@@ -130,9 +130,9 @@ class TestDraftRuleset:
         """
         requirement = "Create rules for code quality"
 
-        router = return_model_json_string(sample_rule, ruleset_metadata)
+        responses = return_model_json_router_usage(sample_rule, ruleset_metadata)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.draft_ruleset(requirement, rule_count=1)
 
             assert result is not None
@@ -153,9 +153,9 @@ class TestDraftRuleset:
         """
         requirement = "Simple rule"
 
-        router = return_model_json_string(sample_rule, ruleset_metadata)
+        responses = return_model_json_router_usage(sample_rule, ruleset_metadata)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.draft_ruleset(requirement, rule_count=1)
 
             assert result is not None
@@ -168,9 +168,9 @@ class TestDraftRuleset:
         Args:
             check_role (CheckRole): CheckRole fixture
         """
-        router = return_string("null")
+        responses = return_router_usage("null")
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.draft_ruleset("Test requirement")
 
             assert result is None
@@ -193,9 +193,9 @@ class TestCheckStringAgainstRule:
         """
         input_text = "This is damn bad content"
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string_against_rule(input_text, sample_rule)
 
             assert result is not None
@@ -218,9 +218,9 @@ class TestCheckStringAgainstRule:
             final_judgement=False,
         )
 
-        router = return_model_json_string(false_judgment)
+        responses = return_model_json_router_usage(false_judgment)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string_against_rule(input_text, sample_rule)
 
             assert result is None
@@ -240,9 +240,9 @@ class TestCheckStringAgainstRule:
         input_text = "Bad content"
         reference = "Good reference content"
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string_against_rule(input_text, sample_rule, reference)
 
             assert result is not None
@@ -266,9 +266,9 @@ class TestCheckObjAgainstRule:
         """
         obj = MockDisplayObject(content="This damn content is bad")
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj_against_rule(obj, sample_rule)
 
             assert result is not None
@@ -288,9 +288,9 @@ class TestCheckObjAgainstRule:
         """
         obj = MockBriefingObject(briefing="This damn briefing is inappropriate")
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj_against_rule(obj, sample_rule)
 
             assert result is not None
@@ -312,9 +312,9 @@ class TestCheckObjAgainstRule:
             final_judgement=False,
         )
 
-        router = return_model_json_string(false_judgment)
+        responses = return_model_json_router_usage(false_judgment)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj_against_rule(obj, sample_rule)
 
             assert result is None
@@ -358,9 +358,9 @@ class TestCheckString:
         """
         input_text = "This damn content has issues"
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string(input_text, sample_ruleset)
 
             assert result is not None
@@ -381,9 +381,9 @@ class TestCheckString:
             issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False
         )
 
-        router = return_model_json_string(false_judgment)
+        responses = return_model_json_router_usage(false_judgment)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string(input_text, sample_ruleset)
 
             assert result is not None
@@ -409,9 +409,9 @@ class TestCheckString:
         input_text = "Content to check"
         reference = "Reference content"
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string(input_text, sample_ruleset, reference)
 
             assert result is not None
@@ -439,9 +439,9 @@ class TestCheckObj:
         """
         obj = MockDisplayObject(content="This damn object has issues")
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj(obj, sample_ruleset)
 
             assert result is not None
@@ -462,9 +462,9 @@ class TestCheckObj:
             issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False
         )
 
-        router = return_model_json_string(false_judgment)
+        responses = return_model_json_router_usage(false_judgment)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj(obj, sample_ruleset)
 
             assert result is not None
@@ -489,9 +489,9 @@ class TestCheckObj:
         """
         obj = MockBriefingObject(briefing="Briefing with damn inappropriate language")
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj(obj, sample_ruleset)
 
             assert result is not None
@@ -517,9 +517,9 @@ class TestCheckObj:
         obj = MockDisplayObject(content="Object to check")
         reference = "Reference content"
 
-        router = return_model_json_string(sample_judgment, sample_improvement)
+        responses = return_model_json_router_usage(sample_judgment, sample_improvement)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_obj(obj, sample_ruleset, reference)
 
             assert result is not None
@@ -542,9 +542,9 @@ class TestEdgeCases:
         """
         requirement = "Simple requirement"
 
-        router = return_model_json_string(sample_rule, ruleset_metadata)
+        responses = return_model_json_router_usage(sample_rule, ruleset_metadata)
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.draft_ruleset(requirement, rule_count=0)
 
             assert result is not None
@@ -559,9 +559,9 @@ class TestEdgeCases:
         """
         empty_ruleset = RuleSet(name="Empty Ruleset", description="A ruleset with no rules", rules=[])
 
-        router = return_string("null")
+        responses = return_router_usage("null")
 
-        with install_router(router):
+        with install_router_usage(*responses):
             result = await check_role.check_string("Any content", empty_ruleset)
 
             assert result is not None
