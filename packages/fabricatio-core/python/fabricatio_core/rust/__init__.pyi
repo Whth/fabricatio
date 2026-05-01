@@ -725,20 +725,6 @@ class Router:
         Returns:
             List[List[float]]: A list of embedding vectors corresponding to the input texts.
         """
-    def embedding_batch(
-        self, send_to: builtins.str, texts: typing.Sequence[builtins.str], no_cache: builtins.bool = False
-    ) -> typing.Awaitable[typing.List[typing.List[float] | None]]:
-        r"""Sends a batch of embedding requests to the specified group and returns all embedding vectors.
-
-        Args:
-            send_to (RouteGroupName): The router group name to route the embedding requests.
-            texts (List[str]): A list of text strings to generate embeddings for.
-            no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
-
-        Returns:
-            List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
-                Failed requests return None.
-        """
     def add_provider(
         self,
         provider_type: ProviderType,

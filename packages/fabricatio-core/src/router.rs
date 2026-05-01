@@ -39,39 +39,24 @@ impl Router {
         }
     }
 
-    pub async fn embedding_batch_rs(
+    pub async fn embedding_rs(
         self,
         send_to: RouteGroupName,
-        reqs: Vec<EmbeddingRequest>,
+        req: EmbeddingRequest,
         no_cache: bool,
-    ) -> Vec<Option<Embeddings>> {
-        Self::embedding_batch_inner(send_to, reqs, self.embedding_router.clone(), no_cache).await
+    ) -> PyResult<Embeddings> {
+        Self::embedding_inner(send_to, req, self.embedding_router.clone(), no_cache).await
     }
 
-    pub async fn embedding_batch_inner(
+    pub async fn embedding_inner(
         send_to: RouteGroupName,
-        reqs: Vec<EmbeddingRequest>,
+        req: EmbeddingRequest,
         r: Arc<ThrydRouter<EmbeddingTag>>,
         no_cache: bool,
-    ) -> Vec<Option<Embeddings>> {
-        join_all(
-            reqs.into_iter()
-                .map(|req| r.invoke(send_to.clone(), req, no_cache)),
-        )
-        .map(|results| {
-            results
-                .into_iter()
-                .map(|res| {
-                    if res.is_ok() {
-                        res.ok()
-                    } else {
-                        error!("Error in embedding batch: {:?}", res);
-                        None
-                    }
-                })
-                .collect::<Vec<Option<Embeddings>>>()
-        })
-        .await
+    ) -> PyResult<Embeddings> {
+        r.invoke(send_to.clone(), req, no_cache)
+            .await
+            .into_pyresult()
     }
 
     pub async fn completion_batch_rs(
@@ -266,46 +251,10 @@ impl Router {
         texts: Vec<String>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let req = EmbeddingRequest { texts };
-
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            r.invoke(send_to, req, no_cache).await.into_pyresult()
-        })
-    }
-
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[typing.List[typing.List[float]|None]]", imports = ("typing",)
-        )
-    )]
-    /// Sends a batch of embedding requests to the specified group and returns all embedding vectors.
-    ///
-    /// Args:
-    ///     send_to (RouteGroupName): The router group name to route the embedding requests.
-    ///     texts (List[str]): A list of text strings to generate embeddings for.
-    ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
-    ///
-    /// Returns:
-    ///     List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
-    ///         Failed requests return None.
-    #[pyo3(signature = (send_to, texts, no_cache = false))]
-    pub fn embedding_batch<'a>(
-        &self,
-        python: Python<'a>,
-        send_to: RouteGroupName,
-        texts: Vec<String>,
-        no_cache: bool,
-    ) -> PyResult<Bound<'a, PyAny>> {
-        let reqs = texts
-            .into_iter()
-            .map(|text| EmbeddingRequest { texts: vec![text] })
-            .collect::<Vec<_>>();
-
-        let r = self.embedding_router.clone();
-
-        future_into_py(python, async move {
-            Ok(Self::embedding_batch_inner(send_to, reqs, r, no_cache).await)
+            Self::embedding_inner(send_to, EmbeddingRequest { texts }, r, no_cache).await
         })
     }
 

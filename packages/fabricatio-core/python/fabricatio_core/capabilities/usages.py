@@ -22,7 +22,7 @@ from pydantic import NonNegativeInt, PositiveInt
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ChooseKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import ok
 
@@ -528,19 +528,12 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
         Returns:
             List[List[float]] | List[float]: The generated embeddings.
         """
+        kw = self._resolve_embedding_params(send_to=send_to)
+        is_text = False
 
-        def _resolve_config() -> EmbeddingKwargs:
-            return EmbeddingKwargs(
-                send_to=ok(
-                    send_to or self.embedding_send_to or CONFIG.embedding.send_to,
-                    "send_to is not specified at any where",
-                ),
-            )
-
-        kw = _resolve_config()
         if isinstance(input_text, str):
-            return (await rust.ROUTER.embedding(texts=[input_text], **kw))[0]
+            input_text = [input_text]
+            is_text = True
+        res = await rust.ROUTER.embedding(texts=input_text, **kw)
 
-        if isinstance(input_text, list):
-            return await rust.ROUTER.embedding(texts=input_text, **kw)
-        raise NotImplementedError("Question must be either a string or a list of strings.")
+        return res[0] if is_text else res

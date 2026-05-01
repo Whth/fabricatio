@@ -17,7 +17,7 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
@@ -319,6 +319,14 @@ class EmbeddingScopedConfig(ScopedConfig):
 
     embedding_send_to: Optional[str] = None
     """The LLM model name."""
+
+    def _resolve_embedding_params(self, send_to: str | None) -> EmbeddingKwargs:
+        return EmbeddingKwargs(
+            send_to=ok(
+                send_to or self.embedding_send_to or CONFIG.embedding.send_to,
+                "send_to is not specified at any where",
+            ),
+        )
 
 
 class LLMScopedConfig(ScopedConfig):

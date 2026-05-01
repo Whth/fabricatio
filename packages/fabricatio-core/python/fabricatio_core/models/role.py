@@ -72,26 +72,26 @@ class Role(WithBriefing):
 
     def add_skill(self, event: Event | EventPattern, workflow: WorkFlow) -> Self:
         """Register a workflow to the role's registry."""
-        event = event.collapse() if isinstance(event, Event) else event
+        event_string = event.collapse() if isinstance(event, Event) else event
 
-        if event in self.skills:
+        if event_string in self.skills:
             logger.warn(
-                f"Event `{event}` is already registered with workflow "
-                f"`{self.skills[event].name}`. It will be overwritten by `{workflow.name}`."
+                f"Event `{event_string}` is already registered with workflow "
+                f"`{self.skills[event_string].name}`. It will be overwritten by `{workflow.name}`."
             )
-        self.skills[event] = workflow
+        self.skills[event_string] = workflow
         return self
 
     def remove_skill(self, event: Event | EventPattern) -> Self:
         """Unregister a workflow from the role's registry for the given event."""
-        event = event.collapse() if isinstance(event, Event) else event
+        event_string = event.collapse() if isinstance(event, Event) else event
 
-        if event in self.skills:
-            logger.debug(f"Unregistering workflow `{self.skills[event].name}` for event `{event}`")
-            del self.skills[event]
+        if event_string in self.skills:
+            logger.debug(f"Unregistering workflow `{self.skills[event_string].name}` for event `{event_string}`")
+            del self.skills[event_string]
 
         else:
-            logger.warn(f"No workflow registered for event `{event}` to unregister.")
+            logger.warn(f"No workflow registered for event `{event_string}` to unregister.")
         return self
 
     def dispatch(self) -> Self:

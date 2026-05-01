@@ -5,7 +5,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue, run
 from functools import cached_property
-from typing import Dict, List, Optional, Self, Union
+from typing import Any, Dict, List, Optional, Self, Union
 
 from pydantic import Field, PrivateAttr
 
@@ -352,9 +352,11 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The briefing of the task.
         """
+        data: Dict[str, Any] = self.model_dump()
+
         return TEMPLATE_MANAGER.render_template(
             CONFIG.templates.task_briefing_template,
-            self.model_dump(),
+            data,
         )
 
     def is_running(self) -> bool:
