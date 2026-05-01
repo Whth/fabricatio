@@ -113,9 +113,9 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Self-Extensible Agent
     - [ ] Capability protocol + runtime registry + dynamic method injection on Role
     - [ ] Config-based discovery + hot-reload + tests
-- [ ] Add more examples
-    - [ ] Write missing examples (Structured Output, Extract, Improve)
-    - [ ] Document undocumented examples + cross-link `use-cases.rst` + examples index
+- [x] Add more examples
+    - [x] Write missing examples (Structured Output, Extract, Improve)
+    - [x] Document undocumented examples + cross-link `use-cases.rst` + examples index
 - [ ] `ToolExecuter` exec results feedback to llm
     - [ ] Add `history` to `CompletionRequest` + update providers + Python binding
     - [ ] `ResultCollector.to_history_messages` + feedback loop in `handle_fine_grind` + tests
@@ -218,6 +218,9 @@ assert Task(name="say hello").delegate_blocking("talk") == "Hello fabricatio!"
 For various usage scenarios, refer to the following examples:
 
 - Simple Chat
+- Structured Output
+- Extraction
+- Content Improvement
 - Retrieval-Augmented Generation (RAG)
 - Article Extraction
 - Propose Task

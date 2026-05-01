@@ -367,6 +367,9 @@ Key patterns:
 - ``aask_structured()`` returns typed instance
 - Automatic validation of LLM response
 
+.. seealso::
+
+   Full runnable example: `examples/generation/structured_output.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/structured_output.py>`_
 Extracting Structured Data
 --------------------------
 
@@ -422,6 +425,9 @@ Key patterns:
 - ``extract_string()`` parses text into Pydantic model
 - Support for optional fields with defaults
 
+.. seealso::
+
+   Full runnable example: `examples/generation/extract.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/extract.py>`_
 Diff Editing
 ------------
 
@@ -583,6 +589,9 @@ Key patterns:
 - ``improve_string()`` with style and focus parameters
 - Multiple improvement dimensions supported
 
+.. seealso::
+
+   Full runnable example: `examples/generation/improve.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/improve.py>`_
 Task Handling with File Operations
 ----------------------------------
 
