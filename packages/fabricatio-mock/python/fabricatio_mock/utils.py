@@ -5,10 +5,9 @@ Provides functions to generate fenced code blocks and generic content blocks.
 
 from contextlib import contextmanager
 from typing import Generator, List, Type
-from unittest.mock import patch
 
 from fabricatio_core import Role, rust
-from fabricatio_core.rust import ProviderType, Router
+from fabricatio_core.rust import ProviderType
 
 
 def code_block(content: str, lang: str = "json") -> str:
@@ -21,14 +20,7 @@ def generic_block(content: str, lang: str = "String") -> str:
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
 
-@contextmanager
-def install_router(router: Router) -> Generator[None, None, None]:
-    """Install a router."""
-    with patch.object(rust, "ROUTER", router):
-        yield
-
-
-def setup_dummy_responses(*responses: str, group: str = "openai/gpt-3.5-turbo") -> None:
+def setup_dummy_responses(*responses: str, group: str = "llm") -> None:
     """Configure the singleton router with dummy responses for testing.
 
     Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
