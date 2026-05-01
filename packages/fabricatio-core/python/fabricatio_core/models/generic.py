@@ -364,9 +364,7 @@ class LLMScopedConfig(ScopedConfig):
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
         return LLMKwargs(
             send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"),
-            stream=first_available(
-                (stream, self.llm_stream, CONFIG.llm.stream), "`stream` is not specified at any where!"
-            ),
+            stream=first_available((stream, self.llm_stream, CONFIG.llm.stream), raise_exception=False) or False,
             top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
             temperature=first_available(
                 (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False
@@ -381,9 +379,8 @@ class LLMScopedConfig(ScopedConfig):
             frequency_penalty=first_available(
                 (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
             ),
-            no_cache=first_available(
-                (no_cache, self.llm_no_cache, CONFIG.llm.no_cache), "`no_cache` is not specified at any where!"
-            ),
+            no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
+            or False,
         )
 
     def _resolve_validation_params[T](
