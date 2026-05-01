@@ -102,9 +102,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Port deprecated mock utils to thryd impl
     - [x] Port tests to new mock utils
     - [x] Sync documentations
-    - [ ] Router cache support ttl and eviction
-        - [ ] TTL check on read + eviction on write + access_count tracking
-        - [ ] Configurable TTL parameter + LRU capacity eviction + tests
+    - [x] Router cache support ttl and eviction
 - [x] Add worktree-based isolated development subpackage
 - [ ] Add level-based context compression subpackage
     - [ ] Package skeleton + `CompressionLevel` enum + compression strategies
