@@ -13,7 +13,7 @@ use pythonize::pythonize;
 use regex::{Captures, Regex};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;

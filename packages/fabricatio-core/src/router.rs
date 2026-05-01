@@ -9,12 +9,11 @@ use pyo3_stub_gen::derive::*;
 use std::fs;
 use std::sync::Arc;
 use thryd::deployment::Deployment;
-use thryd::provider::Provider;
 use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
     create_provider, Completion, CompletionModel, CompletionRequest, CompletionTag,
-    DeploymentIdentifier, DummyModel, DummyProvider, EmbeddingRequest, EmbeddingTag, Embeddings,
+    DeploymentIdentifier, DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings,
     ModelTypeTag, ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter,
 };
 
