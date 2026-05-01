@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-mock"
-version = "0.1.10"
+version = "0.2.0"
 description = "An extension of fabricatio, which provides mocks and other test utils."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,6 +22,7 @@ dependencies = [
     "fabricatio-core",
     "orjson>=3.10.18",
     "pytest",
+	"pytest-asyncio"
 ]
 
 

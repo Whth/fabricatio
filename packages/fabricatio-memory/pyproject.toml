@@ -14,6 +14,7 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
+    "fabricatio-mock",
     "pytest",
 ]
 
@@ -28,12 +29,25 @@ selective = [
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
 [tool.maturin]
 python-source = "python"
 module-name = "fabricatio_memory.rust"
+
+[tool.uv.sources]
+fabricatio-mock = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

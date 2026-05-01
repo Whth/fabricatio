@@ -29,9 +29,25 @@ fabricatio-core = { workspace = true }
 fabricatio-improve = { workspace = true }
 fabricatio-judge = { workspace = true }
 fabricatio-capabilities = { workspace = true }
+fabricatio-mock = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+[dependency-groups]
+dev = [
+    "fabricatio-mock",
+]
 
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

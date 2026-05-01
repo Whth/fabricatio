@@ -23,6 +23,7 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
+    "fabricatio-mock",
     "pytest",
 ]
 
@@ -33,7 +34,20 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 sources = ["python"]
 
+[tool.uv.sources]
+fabricatio-mock = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[[tool.uv.index]]
+url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"

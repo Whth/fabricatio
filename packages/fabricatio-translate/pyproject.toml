@@ -25,6 +25,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
+	"fabricatio-mock",
 ]
 
 

@@ -34,7 +34,6 @@ class RememberRole(LLMTestRole, Remember):
 
 
 @pytest.fixture
-@pytest.fixture
 def responses(ret_value: SketchedAble) -> list[str]:
     """Create mock router responses that return a specific value.
 
