@@ -64,21 +64,21 @@
 //! }).await?;
 //! ```
 
+use crate::Result;
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
 use crate::{
-    Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, ThrydError,
-    TieredCache, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS,
+    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embeddings, Ranking, RerankerModel,
+    RerankerRequest, ThrydError, TieredCache,
 };
-use crate::{Result, SEPARATE};
 use async_trait::async_trait;
-use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
-use serde::de::DeserializeOwned;
+use dashmap::mapref::one::Ref;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
@@ -417,7 +417,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             self.get_provider(provider_name)?,
             model_name,
         )?)
-            .with_usage_constrain(rpm, tpm))
+        .with_usage_constrain(rpm, tpm))
     }
 
     /// Get a provider by name.
@@ -611,7 +611,7 @@ pub trait ModelTypeTag {
     /// * `Ok(Box<Self::Model>)` - The created model
     /// * `Err(ThrydError::Provider)` - If creation fails
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-                    -> Result<Box<Self::Model>>;
+    -> Result<Box<Self::Model>>;
 
     /// Extract text from a request for rate limit calculations.
     ///
