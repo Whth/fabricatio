@@ -62,7 +62,7 @@ use url::ParseError;
 /// # async fn demo() -> Result<()> {
 /// let mut router = Router::<CompletionTag>::default();
 ///
-/// match router.invoke("nonexistent".into(), /* request */).await {
+/// match router.invoke_cached("nonexistent".into(), /* request */).await {
 ///     Ok(response) => println!("Got: {response}"),
 ///     Err(ThrydError::Router(msg)) => {
 ///         eprintln!("Router error - likely no deployments: {msg}");

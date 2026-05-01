@@ -70,15 +70,15 @@ use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
 use crate::{
-    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embeddings, Ranking, RerankerModel,
-    RerankerRequest, ThrydError, TieredCache,
+    Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, ThrydError,
+    TieredCache, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS,
 };
 use crate::{Result, SEPARATE};
 use async_trait::async_trait;
-use dashmap::DashMap;
 use dashmap::mapref::one::Ref;
-use serde::Serialize;
+use dashmap::DashMap;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
@@ -417,7 +417,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             self.get_provider(provider_name)?,
             model_name,
         )?)
-        .with_usage_constrain(rpm, tpm))
+            .with_usage_constrain(rpm, tpm))
     }
 
     /// Get a provider by name.
@@ -459,7 +459,9 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ///
     /// # Example: Completion
     ///
-    /// ```ignore
+    /// ```rust
+    ///
+    ///
     /// let response = router.invoke("chat".into(), CompletionRequest {
     ///     message: "What is the meaning of life?".into(),
     ///     stream: false,
@@ -488,8 +490,21 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         &self,
         send_to: RouteGroupName,
         request: Tag::Request,
+        no_cache: bool,
     ) -> Result<Tag::Response> {
-        debug!("Invoking route: {}", send_to);
+        if no_cache {
+            self.invoke_fresh(send_to, request).await
+        } else {
+            self.invoke_cached(send_to, request).await
+        }
+    }
+
+    pub async fn invoke_cached(
+        &self,
+        send_to: RouteGroupName,
+        request: Tag::Request,
+    ) -> Result<Tag::Response> {
+        debug!("Invoking route (cached): {}", send_to);
 
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
@@ -596,7 +611,7 @@ pub trait ModelTypeTag {
     /// * `Ok(Box<Self::Model>)` - The created model
     /// * `Err(ThrydError::Provider)` - If creation fails
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-    -> Result<Box<Self::Model>>;
+                    -> Result<Box<Self::Model>>;
 
     /// Extract text from a request for rate limit calculations.
     ///
