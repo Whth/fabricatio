@@ -345,6 +345,9 @@ class LLMScopedConfig(ScopedConfig):
     llm_frequency_penalty: Optional[PositiveFloat] = None
     """The frequency penalty of the LLM model."""
 
+    llm_no_cache: Optional[bool] = None
+    """Whether to disable caching for the LLM model."""
+
     def _resolve_completion_params(
         self,
         send_to: Optional[str] = None,
@@ -354,6 +357,7 @@ class LLMScopedConfig(ScopedConfig):
         max_completion_tokens: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
+        no_cache: Optional[bool] = None,
         /,
         **_,
     ) -> LLMKwargs:
@@ -376,6 +380,9 @@ class LLMScopedConfig(ScopedConfig):
             ),
             frequency_penalty=first_available(
                 (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
+            ),
+            no_cache=first_available(
+                (no_cache, self.llm_no_cache, CONFIG.llm.no_cache), "`no_cache` is not specified at any where!"
             ),
         )
 

@@ -11,6 +11,7 @@ class EmbeddingKwargs(TypedDict, total=False):
     """
 
     send_to: str
+    no_cache: bool
 
 
 class LLMKwargs(TypedDict, total=False):
@@ -18,6 +19,9 @@ class LLMKwargs(TypedDict, total=False):
 
     These arguments control the behavior of large language model calls,
     including generation parameters and caching options.
+
+    Attributes:
+        no_cache: If True, bypass the response cache and force a fresh inference.
     """
 
     send_to: str
@@ -27,6 +31,7 @@ class LLMKwargs(TypedDict, total=False):
     max_completion_tokens: Optional[int]
     presence_penalty: Optional[float]
     frequency_penalty: Optional[float]
+    no_cache: bool
 
 
 class ValidateKwargs[T](LLMKwargs, total=False):

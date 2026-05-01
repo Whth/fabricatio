@@ -604,6 +604,8 @@ class LLMConfig:
     @property
     def send_to(self) -> typing.Optional[builtins.str]: ...
     @property
+    def no_cache(self) -> typing.Optional[builtins.bool]: ...
+    @property
     def temperature(self) -> typing.Optional[builtins.float]: ...
     @property
     def top_p(self) -> typing.Optional[builtins.float]: ...
@@ -655,6 +657,7 @@ class Router:
         max_completion_tokens: typing.Optional[builtins.int] = None,
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
+        no_cache: builtins.bool = False,
     ) -> typing.Awaitable[str]:
         r"""Sends a completion request to the specified group and returns the full response.
 
@@ -671,6 +674,7 @@ class Router:
             max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+            no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
 
         Returns:
             str: The complete aggregated response content.
@@ -685,6 +689,7 @@ class Router:
         max_completion_tokens: typing.Optional[builtins.int] = None,
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
+        no_cache: builtins.bool = False,
     ) -> typing.Awaitable[typing.List[str | None]]:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
@@ -702,30 +707,33 @@ class Router:
             max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+            no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
 
         Returns:
             List[str | None]: A list of complete aggregated response contents. Failed requests return None.
         """
     def embedding(
-        self, send_to: builtins.str, texts: typing.Sequence[builtins.str]
+        self, send_to: builtins.str, texts: typing.Sequence[builtins.str], no_cache: builtins.bool = False
     ) -> typing.Awaitable[typing.List[typing.List[float]]]:
         r"""Sends an embedding request to the specified group.
 
         Args:
             send_to (str): The router group name to route the embedding request.
             texts (List[str]): A list of text strings to generate embeddings for.
+            no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
 
         Returns:
             List[List[float]]: A list of embedding vectors corresponding to the input texts.
         """
     def embedding_batch(
-        self, send_to: builtins.str, texts: typing.Sequence[builtins.str]
+        self, send_to: builtins.str, texts: typing.Sequence[builtins.str], no_cache: builtins.bool = False
     ) -> typing.Awaitable[typing.List[typing.List[float] | None]]:
         r"""Sends a batch of embedding requests to the specified group and returns all embedding vectors.
 
         Args:
             send_to (RouteGroupName): The router group name to route the embedding requests.
             texts (List[str]): A list of text strings to generate embeddings for.
+            no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
 
         Returns:
             List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
@@ -808,6 +816,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[str]: ...
     @typing.overload
     def ask(
@@ -820,6 +829,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[str]]: ...
     @typing.overload
     def ask(
@@ -832,6 +842,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
     @typing.overload
     def mapping_strings(
@@ -847,6 +858,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
     @typing.overload
     def mapping_strings(
@@ -862,6 +874,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
     @typing.overload
     def mapping_strings(
@@ -877,6 +890,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]
     ]: ...
@@ -894,6 +908,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
     @typing.overload
     def listing_strings(
@@ -909,6 +924,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
     @typing.overload
     def listing_strings(
@@ -924,6 +940,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[str]], typing.List[typing.Optional[typing.List[str]]]]
     ]: ...
@@ -940,6 +957,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
     @typing.overload
     def generic_string(
@@ -954,6 +972,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
     @typing.overload
     def generic_string(
@@ -968,6 +987,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_string(
@@ -983,6 +1003,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
     @typing.overload
     def code_string(
@@ -998,6 +1019,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
     @typing.overload
     def code_string(
@@ -1013,6 +1035,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_snippets(
@@ -1028,6 +1051,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
     @typing.overload
     def code_snippets(
@@ -1043,6 +1067,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
     @typing.overload
     def code_snippets(
@@ -1058,6 +1083,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[CodeSnippet]], typing.List[typing.Optional[typing.List[CodeSnippet]]]]
     ]: ...
@@ -1076,6 +1102,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[bool]]: ...
     @typing.overload
     def judging(
@@ -1092,6 +1119,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
     @typing.overload
     def judging(
@@ -1108,6 +1136,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
     @typing.overload
     def choosing(
@@ -1124,6 +1153,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
     @typing.overload
     def choosing(
@@ -1140,6 +1170,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
     @typing.overload
     def choosing(
@@ -1156,6 +1187,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        no_cache: bool,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[int]], typing.List[typing.Optional[typing.List[int]]]]
     ]: ...
