@@ -8,71 +8,32 @@ Event Flow Overview
 
 Fabricatio's event-driven architecture follows a consistent flow pattern:
 
-.. code-block:: text
+.. mermaid::
 
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                         EVENT FLOW                                   │
-    └─────────────────────────────────────────────────────────────────────┘
-    
-    Task Created
-         │
-         ▼
-    ┌─────────────┐      ┌──────────────┐      ┌─────────────────────────┐
-    │   Task      │─────▶│   Event      │─────▶│   WorkFlow Registry      │
-    │  .delegate  │      │  Emitter     │      │   (Role.skills)          │
-    └─────────────┘      └──────────────┘      └─────────────────────────┘
-                                                          │
-                                                          ▼
-                                                   ┌─────────────┐
-                                                   │   Match     │
-                                                   │   Event     │
-                                                   └─────────────┘
-                                                          │
-                                                          ▼
-                                                   ┌─────────────────┐
-                                                   │  WorkFlow.serve │
-                                                   │   (executes)    │
-                                                   └─────────────────┘
-                                                          │
-                         ┌────────────────────────────────┴────────────────────────────────┐
-                         ▼                                ▼                                ▼
-                  ┌──────────────┐                  ┌──────────────┐                  ┌──────────────┐
-                  │   Action 1   │                  │   Action 2   │                  │   Action N   │
-                  │  ._execute() │                  │  ._execute() │                  │  ._execute() │
-                  └──────────────┘                  └──────────────┘                  └──────────────┘
-                         │                                │                                │
-                         └────────────────────────────────┴────────────────────────────────┘
-                                              │
-                                              ▼
-                                      ┌──────────────┐
-                                      │ Task.output  │
-                                      │  (result)   │
-                                      └──────────────┘
+   flowchart TD
+      TC["Task Created"] --> TD2["Task.delegate"]
+      TD2 --> EE["Event Emitter"]
+      EE --> WR["WorkFlow Registry\n(Role.skills)"]
+      WR --> ME["Match Event"]
+      ME --> WS["WorkFlow.serve\n(executes)"]
+      WS --> A1["Action 1\n._execute()"]
+      WS --> A2["Action 2\n._execute()"]
+      WS --> AN["Action N\n._execute()"]
+      A1 --> TO["Task.output\n(result)"]
+      A2 --> TO
+      AN --> TO
 
 Simple Action Workflow
 ----------------------
 
 The most basic pattern - a single action responding to an event.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌─────────────────────────────────────────────────────────────────┐
-    │                    SIMPLE ACTION WORKFLOW                        │
-    └─────────────────────────────────────────────────────────────────┘
-    
-    Event: "greet"
-         │
-         ▼
-    ┌─────────────────────────────────────────────────────────────────┐
-    │                      WorkFlow("greet")                          │
-    │  ┌───────────────────────────────────────────────────────────┐  │
-    │  │                      HelloAction                          │  │
-    │  │                      _execute() ──▶ "Hello, World!"       │  │
-    │  └───────────────────────────────────────────────────────────┘  │
-    └─────────────────────────────────────────────────────────────────┘
-         │
-         ▼
-      Result
+   flowchart TD
+      EV["Event: greet"] --> WF["WorkFlow('greet')"]
+      WF --> HA["HelloAction\n._execute() \u2192 'Hello, World!'"]
+      HA --> R["Result"]
 
 .. code-block:: python
 
@@ -100,43 +61,13 @@ Multi-Step Pipeline
 
 Chain multiple actions where each step's output feeds into the next.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                       MULTI-STEP PIPELINE                              │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-    workflow_results = {}
-    
-         │
-         ▼
-    ┌────────────────────────────────────────────────────────────────────┐
-    │                        Fetch Action                                │
-    │  _execute(task_input) ──▶ workflow_results["Fetch"] = "Fetched: X" │
-    └────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-    ┌────────────────────────────────────────────────────────────────────┐
-    │                        Process Action                              │
-    │  _execute(task_input, workflow_results)                            │
-    │       │                         │
-    │       │ workflow_results["Fetch"]                                 │
-    │       ▼                                                         │
-    │  workflow_results["Process"] = "Processed: Fetched: X"           │
-    └────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-    ┌────────────────────────────────────────────────────────────────────┐
-    │                        Format Action                               │
-    │  _execute(task_input, workflow_results)                           │
-    │       │                         │
-    │       │ workflow_results["Process"]                               │
-    │       ▼                                                         │
-    │  workflow_results["Format"] = "Formatted: Processed: Fetched: X"  │
-    └────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-                               Result
+   flowchart TD
+      WR["workflow_results = {}"] --> FA["Fetch Action\n._execute()\n\u2192 'Fetched: X'"]
+      FA --> PA["Process Action\n._execute()\n\u2192 'Processed: Fetched: X'"]
+      PA --> FOA["Format Action\n._execute()\n\u2192 'Formatted: Processed: Fetched: X'"]
+      FOA --> R["Result"]
 
 .. code-block:: python
 
@@ -172,32 +103,18 @@ Parallel Actions
 
 Execute multiple independent actions concurrently.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                       PARALLEL ACTIONS                                 │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-    workflow_results = {}
-    
-         │
-         ▼
-    ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
-    │   FetchUser Action │  │ FetchHistory Action│  │  Other Action       │
-    │   (async)          │  │   (async)          │  │   (async)          │
-    └────────┬───────────┘  └────────┬───────────┘  └────────┬───────────┘
-             │                        │                        │
-             ▼                        ▼                        ▼
-    workflow_results      workflow_results              workflow_results
-    ["FetchUser"] = {}    ["FetchHistory"] = {}         ["Other"] = {}
-             │                        │                        │
-             └────────────────────────┴────────────────────────┘
-                                  │
-                                  ▼
-                         ┌────────────────────┐
-                         │  Aggregate Action  │
-                         │  Combines all      │
-                         └────────────────────┘
+   flowchart TD
+      WR["workflow_results = {}"] --> FU["FetchUser Action\n(async)"]
+      WR --> FH["FetchHistory Action\n(async)"]
+      WR --> OT["Other Action\n(async)"]
+      FU --> R1["workflow_results\n'FetchUser'"]
+      FH --> R2["workflow_results\n'FetchHistory'"]
+      OT --> R3["workflow_results\n'Other'"]
+      R1 --> AG["Aggregate Action\nCombines all"]
+      R2 --> AG
+      R3 --> AG
 
 .. code-block:: python
 
@@ -234,35 +151,14 @@ Conditional Branching
 
 Use different workflows based on task characteristics.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                    CONDITIONAL BRANCHING                               │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-                          Task
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │  LLM Router   │
-                    │ (aask_struct) │
-                    └───────┬───────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-              ▼                           ▼
-         "simple"                     "complex"
-              │                           │
-              ▼                           ▼
-    ┌─────────────────┐         ┌─────────────────┐
-    │ SimpleAction    │         │ ComplexAction   │
-    │ _execute()      │         │ _execute()      │
-    └─────────────────┘         └─────────────────┘
-              │                           │
-              └─────────────┬───────────────┘
-                            │
-                            ▼
-                         Result
+   flowchart TD
+      T["Task"] --> LR["LLM Router\n(aask_struct)"]
+      LR -->|"simple"| SA["SimpleAction\n._execute()"]
+      LR -->|"complex"| CA["ComplexAction\n._execute()"]
+      SA --> R["Result"]
+      CA --> R
 
 .. code-block:: python
 
@@ -292,39 +188,16 @@ Task Proposal Pattern
 
 Let the LLM decompose a goal into multiple tasks.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                       TASK PROPOSAL PATTERN                             │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         ┌─────────────────────────────────────────────────────────────────┐
-         │                         Planner Role                            │
-         │  ┌───────────────────────────────────────────────────────────┐  │
-         │  │  Role + ProposeTask Capability                           │  │
-         │  │  propose_task("Build REST API") ──▶ [Task1, Task2, ...]  │  │
-         │  └───────────────────────────────────────────────────────────┘  │
-         └─────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-                        ┌───────────────────────┐
-                        │  Proposed Task List   │
-                        │  [Task("endpoint 1"), │
-                        │   Task("endpoint 2"), │
-                        │   Task("tests"), ...] │
-                        └───────────────────────┘
-                                    │
-                  ┌─────────────────┼─────────────────┐
-                  ▼                 ▼                 ▼
-         ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-         │  Executor    │   │  Executor    │   │  Executor    │
-         │  Task 1     │   │  Task 2     │   │  Task N     │
-         └──────────────┘   └──────────────┘   └──────────────┘
-                  │                 │                 │
-                  └─────────────────┴─────────────────┘
-                                    │
-                                    ▼
-                              All Results
+   flowchart TD
+      PR["Planner Role\npropose_task('Build REST API')\n\u2192 Task1, Task2, ..."] --> PT["Proposed Task List\nTask(endpoint 1)\nTask(endpoint 2)\nTask(tests)"]
+      PT --> E1["Executor\nTask 1"]
+      PT --> E2["Executor\nTask 2"]
+      PT --> EN["Executor\nTask N"]
+      E1 --> AR["All Results"]
+      E2 --> AR
+      EN --> AR
 
 .. code-block:: python
 
@@ -356,38 +229,13 @@ Error Handling Pattern
 
 Graceful error handling with fallback actions.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                      ERROR HANDLING PATTERN                             │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-                    ┌──────────────────────────────────────┐
-                    │           PrimaryAction               │
-                    │           _execute()                 │
-                    └──────────────────┬───────────────────┘
-                                         │
-                          ┌──────────────┴──────────────┐
-                          │                             │
-                     Success                          Exception
-                          │                             │
-                          ▼                             ▼
-              ┌─────────────────────┐       ┌──────────────────────────────────┐
-              │  Return Result     │       │  Log Warning (logger.warning)   │
-              │  to WorkFlow       │       │  Re-raise to trigger fallback   │
-              └─────────────────────┘       └──────────────────┬───────────────┘
-                                                             │
-                                                             ▼
-                                                  ┌─────────────────────┐
-                                                  │   FallbackAction    │
-                                                  │   _execute()        │
-                                                  └─────────────────────┘
-                                                             │
-                                                             ▼
-                                                  ┌─────────────────────┐
-                                                  │  Return Fallback     │
-                                                  │  Result             │
-                                                  └─────────────────────┘
+   flowchart TD
+      PA["PrimaryAction\n._execute()"] -->|Success| RR["Return Result\nto WorkFlow"]
+      PA -->|Exception| LW["Log Warning\nlogger.warning\nRe-raise"]
+      LW --> FA["FallbackAction\n._execute()"]
+      FA --> FR["Return Fallback\nResult"]
 
 .. code-block:: python
 
@@ -424,35 +272,15 @@ RAG Workflow Pattern
 
 Retrieval-augmented generation with document ingestion and query.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                         RAG WORKFLOW PATTERN                             │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-    ┌─────────────────────────────────┐    ┌─────────────────────────────────┐
-    │         INIT KNOWLEDGE BASE      │    │         QUERY KNOWLEDGE BASE     │
-    └─────────────────────────────────┘    └─────────────────────────────────┘
-    
-         │                                        │
-         ▼                                        ▼
-    ┌─────────────┐                         ┌─────────────┐
-    │InitKBAction │                         │QueryKBAction│
-    │             │                         │             │
-    │ 1. init_    │                         │ 1. query    │
-    │    client() │                         │    (similarity│
-    │ 2. view()   │                         │    search)   │
-    │ 3. consume_ │                         │             │
-    │    string() │                         │ 2. aask_    │
-    └─────────────┘                         │    retrieved│
-         │                                  │    (RAG)    │
-         ▼                                  └─────────────┘
-    ┌─────────────┐                              │
-    │ Milvus      │                              ▼
-    │ Vector DB   │                         ┌─────────────┐
-    │             │                         │ LLM Response│
-    └─────────────┘                         │ (grounded)  │
-                                           └─────────────┘
+   flowchart TD
+      subgraph Init["INIT KNOWLEDGE BASE"]
+         IK["InitKBAction\n1. init_client()\n2. view()\n3. consume_string()"] --> MV["Milvus\nVector DB"]
+      end
+      subgraph Query["QUERY KNOWLEDGE BASE"]
+         QK["QueryKBAction\n1. query (similarity search)\n2. aask_retrieved (RAG)"] --> LLM["LLM Response\n(grounded)"]
+      end
 
 .. code-block:: python
 
@@ -500,43 +328,12 @@ Structured Output Pattern
 
 Use Pydantic models for reliable structured responses.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                      STRUCTURED OUTPUT PATTERN                         │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         │
-         ▼
-    ┌────────────────────────────────────────────────────────────────────┐
-    │                     aask_structured()                               │
-    │                                                                      │
-    │  Prompt: "Analyze this code:\n<code>"                                │
-    │                   │                                                  │
-    │                   ▼                                                  │
-    │  ┌──────────────────────────────────────────────────────────────┐   │
-    │  │                    LLM Response                               │   │
-    │  │  {                                                             │   │
-    │  │    "language": "python",                                       │   │
-    │  │    "complexity": "medium",                                    │   │
-    │  │    "issues": [...],                                           │   │
-    │  │    "suggestions": [...]                                       │   │
-    │  │  }                                                             │   │
-    │  └──────────────────────────────────────────────────────────────┘   │
-    │                              │                                        │
-    │                              ▼                                        │
-    │  ┌──────────────────────────────────────────────────────────────┐   │
-    │  │              Pydantic Model Validation                       │   │
-    │  │                  CodeAnalysis instance                        │   │
-    │  └──────────────────────────────────────────────────────────────┘   │
-    └────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────────┐
-                    │ Typed result with  │
-                    │ .language, .issues, │
-                    │ .suggestions        │
-                    └─────────────────────┘
+   flowchart TD
+      IN["Prompt: Analyze this code"] --> LLM["LLM Response\nlanguage, complexity,\nissues, suggestions"]
+      LLM --> PV["Pydantic Model Validation\nCodeAnalysis instance"]
+      PV --> TR["Typed Result\n.language, .issues,\n.suggestions"]
 
 .. code-block:: python
 
@@ -568,46 +365,13 @@ Review-Improvement Loop
 
 Iterative refinement through review cycles.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                     REVIEW-IMPROVEMENT LOOP                             │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         │
-         ▼
-    ┌────────────────────────────────────────────────────────────────────┐
-    │                      Initial Content                                │
-    │                   improve_string(briefing)                          │
-    └────────────────────────────────────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-              ┌─────▼─────┐                   ┌─────▼─────┐
-              │ Iteration 1│                   │ Iteration 2│
-              │            │                   │            │
-              │ Review     │                   │ Review     │
-              │ score: 6   │                   │ score: 7  │
-              └─────┬──────┘                   └─────┬──────┘
-                    │                               │
-              score < 8                      score < 8
-                    │                               │
-                    ▼                               │
-              ┌─────────────┐                       │
-              │ Improve     │                       │
-              │ with        │                       │
-              │ feedback    │                       │
-              └─────────────┘                       │
-                    │                               │
-                    └───────────────┴───────────────┘
-                                            │
-                                      score >= 8
-                                            │
-                                            ▼
-                                    ┌─────────────┐
-                                    │ Final       │
-                                    │ Content     │
-                                    └─────────────┘
+   flowchart TD
+      IC["Initial Content\nimprove_string(briefing)"] --> REV{"Review\nscore >= 8?"}
+      REV -->|No| IMP["Improve with feedback"]
+      IMP --> REV
+      REV -->|Yes| FC["Final Content"]
 
 .. code-block:: python
 
@@ -648,45 +412,14 @@ Checkpoint Pattern
 
 Save workflow state for recovery.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                        CHECKPOINT PATTERN                               │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-                    Workflow Start
-                          │
-                          ▼
-                    ┌───────────────┐
-                    │ Load Checkpoint│
-                    │ (if exists)   │
-                    └───────┬───────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-         has state                  no state
-         "step_2_complete"               │
-              │                           │
-              ▼                           ▼
-    ┌─────────────────┐         ┌─────────────────┐
-    │ Skip to Step 2  │         │ Execute Step 1  │
-    │ Return cached   │         │ Save checkpoint │
-    │ result          │         │ "step_1_complete"│
-    └─────────────────┘         └────────┬────────┘
-                                          │
-                                          ▼
-                                 ┌─────────────────┐
-                                 │ Execute Step 2  │
-                                 │ Save checkpoint │
-                                 │ "step_2_complete"│
-                                 │ Save result     │
-                                 └─────────────────┘
-                                          │
-                                          ▼
-                                    ┌───────────┐
-                                    │ Return    │
-                                    │ result    │
-                                    └───────────┘
+   flowchart TD
+      WS["Workflow Start"] --> LC{"Load Checkpoint\n(if exists)"}
+      LC -->|"has state\nstep_2_complete"| SKIP["Skip to Step 2\nReturn cached result"]
+      LC -->|"no state"| S1["Execute Step 1\nSave checkpoint\nstep_1_complete"]
+      S1 --> S2["Execute Step 2\nSave checkpoint\nstep_2_complete\nSave result"]
+      S2 --> RET["Return result"]
 
 .. code-block:: python
 
@@ -716,41 +449,20 @@ Team Collaboration Pattern
 
 Multiple agents working together.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                      TEAM COLLABORATION PATTERN                         │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         ┌─────────────────────────────────────────────────────────────────┐
-         │                            Team                                  │
-         │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-         │  │Researcher│  │  Writer  │  │  Editor  │  │ Reviewer │        │
-         │  │  Role    │  │   Role   │  │   Role   │  │   Role   │        │
-         │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-         └───────┼─────────────┼─────────────┼─────────────┼──────────────┘
-                 │             │             │             │
-                 ▼             │             │             │
-         ┌─────────────┐      │             │             │
-         │   Research  │      │             │             │
-         │   Phase      │      │             │             │
-         └──────┬──────┘      │             │             │
-                │             │             │             │
-                └─────────────┼─────────────┼─────────────┘
-                              │             │
-                              ▼             │
-                      ┌─────────────┐      │
-                      │    Write    │      │
-                      │   Phase     │      │
-                      └──────┬──────┘      │
-                             │             │
-                             └─────────────┤
-                                           │
-                                           ▼
-                                   ┌─────────────┐
-                                   │    Edit     │
-                                   │   Phase     │
-                                   └─────────────┘
+   flowchart TD
+      subgraph Team
+         R["Researcher"]
+         W["Writer"]
+         E["Editor"]
+         RV["Reviewer"]
+      end
+      R --> RP["Research Phase"]
+      RP --> WP["Write Phase"]
+      W --> WP
+      WP --> EP["Edit Phase"]
+      E --> EP
 
 .. code-block:: python
 
@@ -793,47 +505,23 @@ EventEmitter Wildcard Pattern
 
 Using wildcards for flexible event routing.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                      EVENTEMITTER WILDCARD PATTERN                      │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                         EventEmitter                                 │
-    │                                                                      │
-    │  emitter = EventEmitter(sep="::")                                    │
-    │                                                                      │
-    │  Registered Handlers:                                                │
-    │  ┌──────────────────────────────────────────────────────────────┐    │
-    │  │ "user::*"        ──▶ user_activity_handler(data)            │    │
-    │  │ "user::login"   ──▶ login_handler(data)                     │    │
-    │  │ "user::logout"  ──▶ logout_handler(data)                     │    │
-    │  │ "system::*"     ──▶ system_handler(data)                     │    │
-    │  └──────────────────────────────────────────────────────────────┘    │
-    └─────────────────────────────────────────────────────────────────────┘
-    
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                        Event Emission                                │
-    │                                                                      │
-    │  emitter.emit("user::login", user_data)                             │
-    │                              │                                       │
-    │              ┌───────────────┼───────────────┐                      │
-    │              ▼               ▼               ▼                      │
-    │       ┌───────────┐   ┌───────────┐   ┌───────────┐                │
-    │       │ login_    │   │ user_     │   │ (no match)│                │
-    │       │ handler   │   │ activity_ │   │           │                │
-    │       │           │   │ handler   │   │           │                │
-    │       └───────────┘   └───────────┘   └───────────┘                │
-    │                                                                      │
-    │  emitter.emit("system::alert", alert_data)                          │
-    │                              │                                       │
-    │                              ▼                                       │
-    │                       ┌───────────┐                                 │
-    │                       │ system_   │                                 │
-    │                       │ handler   │                                 │
-    │                       └───────────┘                                 │
-    └─────────────────────────────────────────────────────────────────────┘
+   flowchart TD
+      subgraph EE["EventEmitter (sep='::')"]
+         H1["user::* \u2192 user_activity_handler"]
+         H2["user::login \u2192 login_handler"]
+         H3["user::logout \u2192 logout_handler"]
+         H4["system::* \u2192 system_handler"]
+      end
+      subgraph E1["Emit: user::login"]
+         direction LR
+         LH["login_handler"]
+         UAH["user_activity_handler"]
+      end
+      subgraph E2["Emit: system::alert"]
+         SH["system_handler"]
+      end
 
 .. code-block:: python
 
@@ -880,45 +568,22 @@ Task Lifecycle Pattern
 
 Task states and transitions.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                         TASK LIFECYCLE                                 │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-                              ┌─────────────────┐
-                              │     Task        │
-                              │     Created     │
-                              │   (pending)     │
-                              └────────┬────────┘
-                                       │
-                                       │ task.start()
-                                       ▼
-                              ┌─────────────────┐
-                              │     Task        │
-                              │     Running     │
-                              │   (active)     │
-                              └────────┬────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                  │
-                    │ task.fail(e)     │ task.finish()    │ task.cancel()
-                    ▼                  ▼                  ▼
-           ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-           │     Task        │ │     Task        │ │     Task        │
-           │     Failed      │ │    Finished     │ │   Cancelled     │
-           │   (error)       │ │   (success)     │ │   (aborted)     │
-           └─────────────────┘ └─────────────────┘ └─────────────────┘
-    
-    ┌─────────────────────────────────────────────────────────────────────┐
-    │                        Event Emission                               │
-    │                                                                      │
-    │  task.publish("work")     ──▶ Emits "work::{task_name}::Pending"   │
-    │  await task.start()       ──▶ Emits "work::{task_name}::Running"   │
-    │  await task.finish(r)    ──▶ Emits "work::{task_name}::Finished"  │
-    │  await task.fail(e)      ──▶ Emits "work::{task_name}::Failed"     │
-    │  await task.cancel()     ──▶ Emits "work::{task_name}::Cancelled" │
-    └─────────────────────────────────────────────────────────────────────┘
+   flowchart TD
+      TC["Task Created\n(pending)"] -->|"task.start()"| TR["Task Running\n(active)"]
+      TR -->|"task.fail(e)"| TF["Task Failed\n(error)"]
+      TR -->|"task.finish()"| TFI["Task Finished\n(success)"]
+      TR -->|"task.cancel()"| TCA["Task Cancelled\n(aborted)"]
+
+      subgraph Events["Event Emission"]
+         direction LR
+         E1["publish('work') \u2192 Pending"]
+         E2["start() \u2192 Running"]
+         E3["finish(r) \u2192 Finished"]
+         E4["fail(e) \u2192 Failed"]
+         E5["cancel() \u2192 Cancelled"]
+      end
 
 .. code-block:: python
 
@@ -944,41 +609,19 @@ Role and Skill Registration Pattern
 
 How roles register and handle skills.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                    ROLE & SKILL REGISTRATION PATTERN                    │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         ┌───────────────────────────────────────────────────────────────┐
-         │                           Role                                 │
-         │                                                                │
-         │  name: "assistant"                                            │
-         │  description: "A helpful assistant"                          │
-         │                                                                │
-         │  ┌─────────────────────────────────────────────────────────┐  │
-         │  │              Skill Registry (dict)                       │  │
-         │  │                                                          │  │
-         │  │  "greet"  ──▶ WorkFlow(name="greet", steps=(Hello,))   │  │
-         │  │  "analyze" ──▶ WorkFlow(name="analyze", steps=(Parse,  │  │
-         │  │                                        Analyze, Report))│  │
-         │  │  "help"    ──▶ WorkFlow(name="help", steps=(Help,))     │  │
-         │  └─────────────────────────────────────────────────────────┘  │
-         └───────────────────────────────────────────────────────────────┘
-                                      │
-                                      │ role.dispatch()
-                                      ▼
-                              ┌─────────────────┐
-                              │  EventEmitter   │
-                              │  Registration   │
-                              └─────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-            ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-            │ "greet"     │   │ "analyze"   │   │ "help"      │
-            │ registered  │   │ registered  │   │ registered  │
-            └─────────────┘   └─────────────┘   └─────────────┘
+   flowchart TD
+      subgraph Role["Role (name='assistant')"]
+         direction LR
+         S1["greet \u2192 WorkFlow(Hello)"]
+         S2["analyze \u2192 WorkFlow(Parse, Analyze, Report)"]
+         S3["help \u2192 WorkFlow(Help)"]
+      end
+      Role -->|"role.dispatch()"| ER["EventEmitter\nRegistration"]
+      ER --> R1["greet registered"]
+      ER --> R2["analyze registered"]
+      ER --> R3["help registered"]
 
 .. code-block:: python
 
@@ -1015,42 +658,16 @@ Capability Mixin Pattern
 
 Combining capabilities with actions.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                       CAPABILITY MIXIN PATTERN                         │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-         ┌─────────────────┐
-         │     Action      │
-         │   (base class)  │
-         └────────┬────────┘
-                  │ inherits
-                  │
-      ┌───────────┼───────────┬───────────────┬───────────────┐
-      │           │           │               │               │
-      ▼           ▼           ▼               ▼               ▼
-    ┌──────┐  ┌────────┐  ┌─────────┐    ┌──────────┐   ┌──────────┐
-    │UseLLM│  │Review  │  │Extract  │    │ProposeTask│  │Improve   │
-    │      │  │        │  │         │    │          │   │          │
-    └──────┘  └────────┘  └─────────┘    └──────────┘   └──────────┘
-      │           │           │               │               │
-      └───────────┴───────────┴───────────────┴───────────────┘
-                              │
-                              ▼
-                    ┌─────────────────────┐
-                    │  Combined Action    │
-                    │                      │
-                    │  class MyAction(    │
-                    │      Action,         │
-                    │      UseLLM,         │
-                    │      Review          │
-                    │  ):                  │
-                    │                      │
-                    │  # Has aask()        │
-                    │  # Has review_string()│
-                    │  # Has _execute()    │
-                    └─────────────────────┘
+   flowchart TD
+      A["Action\n(base class)"] --> ULLM["UseLLM"]
+      A --> RV["Review"]
+      A --> EX["Extract"]
+      A --> PT["ProposeTask"]
+      A --> IMP["Improve"]
+      ULLM --> CA["Combined Action\nclass MyAction(\n  Action, UseLLM, Review\n)"]
+      RV --> CA
 
 .. code-block:: python
 
@@ -1079,60 +696,18 @@ Role Inheritance Pattern
 
 Creating specialized roles through inheritance.
 
-.. code-block:: text
+.. mermaid::
 
-    ┌────────────────────────────────────────────────────────────────────────┐
-    │                      ROLE INHERITANCE PATTERN                           │
-    └────────────────────────────────────────────────────────────────────────┘
-    
-              ┌─────────────────┐
-              │     Role        │
-              │   (base class)  │
-              └────────┬────────┘
-                       │ inherits
-                       ▼
-              ┌─────────────────┐
-              │  SpecializedRole│
-              │  - Custom name  │
-              │  - Custom skills│
-              │  - Extended     │
-              │    capabilities │
-              └─────────────────┘
-    
-    Example Inheritance Chain:
-    
-              ┌─────────────────┐
-              │     Role        │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │  UseLLM (mixin) │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │     Role        │ (combined)
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │   ProposeTask   │
-              │    (mixin)     │
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │     Role        │ (combined)
-              └────────┬────────┘
-                       │
-                       ▼
-              ┌─────────────────┐
-              │  Planner Role   │ (concrete)
-              │                  │
-              │ can propose_task │
-              │ can aask         │
-              └─────────────────┘
+   flowchart TD
+      R1["Role\n(base class)"] --> SR["SpecializedRole\nCustom name, skills,\ncapabilities"]
+
+      subgraph Chain["Example Inheritance Chain"]
+         R2["Role"] --> ULLM2["UseLLM (mixin)"]
+         ULLM2 --> CR1["Role (combined)"]
+         CR1 --> PT2["ProposeTask (mixin)"]
+         PT2 --> CR2["Role (combined)"]
+         CR2 --> PL["Planner Role (concrete)\ncan propose_task, can aask"]
+      end
 
 .. code-block:: python
 

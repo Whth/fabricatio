@@ -112,27 +112,17 @@ Configuration Sources & Priority
 
 Fabricatio loads configuration from multiple sources in the following priority order (highest to lowest):
 
-.. code-block:: text
+.. mermaid::
 
-    1. Call Arguments (programmatic API)
-           │
-           ▼
-    2. .env file in current directory
-           │
-           ▼
-    3. Environment Variables
-           │
-           ▼
-    4. ./fabricatio.toml
-           │
-           ▼
-    5. ./pyproject.toml [tool.fabricatio]
-           │
-           ▼
-    6. <ROAMING>/fabricatio/fabricatio.toml
-           │
-           ▼
-    7. Built-in Defaults
+   flowchart TD
+       A["1. Call Arguments<br/>(programmatic API)"]
+       B["2. .env file in current directory"]
+       C["3. Environment Variables"]
+       D["4. ./fabricatio.toml"]
+       E["5. ./pyproject.toml<br/>[tool.fabricatio]"]
+       F["6. &lt;ROAMING&gt;/fabricatio/fabricatio.toml"]
+       G["7. Built-in Defaults"]
+       A --> B --> C --> D --> E --> F --> G
 
 This means you can override any configuration at runtime using environment variables or programmatically.
 
@@ -214,30 +204,33 @@ Configuration Sections
 [debug]
 ~~~~~~~
 
-+------------------------+---------------------------+---------+
-| Key                    | Description               | Default |
-+========================+===========================+=========+
-| ``log_level``          | Logging level             | ``INFO``|
-+------------------------+---------------------------+---------+
+.. note::
+
+   The ``sphinxcontrib-mermaid`` package that renders these diagrams is `seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-mermaid/issues/148>`_. Consider contributing if you're interested.
+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       "[debug]" {
+           string log_level "Logging level" "INFO"
+       }
 
 [llm]
 ~~~~~
 
-+---------------------------+---------------------------+---------+
-| Key                       | Description               | Default |
-+===========================+===========================+=========+
-| ``send_to``               | Default routing group     | ``base``|
-+---------------------------+---------------------------+---------+
-| ``max_completion_tokens`` | Max tokens in response    |``16000``|
-+---------------------------+---------------------------+---------+
-| ``stream``                | Enable streaming responses|``false``|
-+---------------------------+---------------------------+---------+
-| ``temperature``           | Sampling temperature      | ``1.0`` |
-+---------------------------+---------------------------+---------+
-| ``top_p``                | Nucleus sampling threshold | ``1.0`` |
-+---------------------------+---------------------------+---------+
-| ``timeout``              | Request timeout (seconds)  | ``120`` |
-+---------------------------+---------------------------+---------+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       "[llm]" {
+           string send_to "Default routing group" "base"
+           string max_completion_tokens "Max tokens in response" "16000"
+           string stream "Enable streaming responses" "false"
+           string temperature "Sampling temperature" "1.0"
+           string top_p "Nucleus sampling threshold" "1.0"
+           string timeout "Request timeout (seconds)" "120"
+       }
 
 [routing]
 ~~~~~~~~~
@@ -577,12 +570,13 @@ Template Discovery Configuration
 
 Fabricatio searches for templates in multiple locations:
 
-.. code-block:: text
+.. mermaid::
 
-    Priority (high to low):
-    1. ./templates/           (project working directory)
-    2. <ROAMING>/fabricatio/templates/
-    3. Built-in templates
+   flowchart TD
+       A["1. ./templates/\n(project working directory)"]
+       B["2. &lt;ROAMING&gt;/fabricatio/templates/"]
+       C["3. Built-in templates"]
+       A --> B --> C
 
 Download templates:
 

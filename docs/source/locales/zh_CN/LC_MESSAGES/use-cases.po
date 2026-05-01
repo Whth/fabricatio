@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"POT-Creation-Date: 2026-05-01 20:30+0800\n"
 "PO-Revision-Date: 2026-04-30 20:50+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -417,75 +417,66 @@ msgstr "示例分类"
 msgid "The repository includes the following example directories:"
 msgstr "仓库包含以下示例目录："
 
-#: ../../source/use-cases.rst:1075
-msgid "Category"
-msgstr "分类"
-
-#: ../../source/use-cases.rst:1075
-msgid "Contents"
-msgstr "内容"
-
-#: ../../source/use-cases.rst:1077
-msgid "``basics``"
-msgstr "``basics``"
-
-#: ../../source/use-cases.rst:1077
-msgid "Hello world, basic workflow, simple interactive chat"
-msgstr "Hello world、基本工作流、简单交互式聊天"
-
-#: ../../source/use-cases.rst:1079
-msgid "``generation``"
-msgstr "``generation``"
-
-#: ../../source/use-cases.rst:1079
-msgid "Content generation: poems, articles, novels, songs, diaries, outlines"
-msgstr "内容生成：诗歌、文章、小说、歌曲、日记、大纲"
-
-#: ../../source/use-cases.rst:1082
-msgid "``rag``"
-msgstr "``rag``"
-
-#: ../../source/use-cases.rst:1082
+#: ../../source/use-cases.rst:1076
 msgid ""
-"Retrieval-Augmented Generation: extraction, injection, chunking, Milvus "
-"Q&A"
-msgstr "检索增强生成：提取、注入、分块、Milvus 问答"
+"The ``sphinxcontrib-mermaid`` package that renders these diagrams is "
+"`seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-"
+"mermaid/issues/148>`_. Consider contributing if you're interested."
+msgstr ""
 
-#: ../../source/use-cases.rst:1085
-msgid "``review``"
-msgstr "``review``"
-
-#: ../../source/use-cases.rst:1085
-msgid "Code review, correction, diff editing, quality"
-msgstr "代码审查、修正、差异编辑、质量"
-
-#: ../../source/use-cases.rst:1087
-msgid "``task_management``"
-msgstr "``task_management``"
-
-#: ../../source/use-cases.rst:1087
-msgid ""
-"Task proposal, delegation, handling, cancellation, LLM-driven code "
-"generation"
-msgstr "任务提案、分派、处理、取消、LLM 驱动的代码生成"
-
-#: ../../source/use-cases.rst:1090
-msgid "``rating``"
-msgstr "``rating``"
-
-#: ../../source/use-cases.rst:1090
-msgid "Multi-criteria rating and composite scoring"
-msgstr "多维度评分与综合评分"
-
-#: ../../source/use-cases.rst:1092
-msgid "``integrations``"
-msgstr "``integrations``"
-
-#: ../../source/use-cases.rst:1092
-msgid "Anki deck generation, BibTeX search, ruleset drafting"
-msgstr "Anki 牌组生成、BibTeX 搜索、规则集起草"
-
-#: ../../source/use-cases.rst:1096
+#: ../../source/use-cases.rst:1094
 msgid "Running Examples"
 msgstr "运行示例"
+
+#~ msgid "Category"
+#~ msgstr "分类"
+
+#~ msgid "Contents"
+#~ msgstr "内容"
+
+#~ msgid "``basics``"
+#~ msgstr "``basics``"
+
+#~ msgid "Hello world, basic workflow, simple interactive chat"
+#~ msgstr "Hello world、基本工作流、简单交互式聊天"
+
+#~ msgid "``generation``"
+#~ msgstr "``generation``"
+
+#~ msgid "Content generation: poems, articles, novels, songs, diaries, outlines"
+#~ msgstr "内容生成：诗歌、文章、小说、歌曲、日记、大纲"
+
+#~ msgid "``rag``"
+#~ msgstr "``rag``"
+
+#~ msgid ""
+#~ "Retrieval-Augmented Generation: extraction, "
+#~ "injection, chunking, Milvus Q&A"
+#~ msgstr "检索增强生成：提取、注入、分块、Milvus 问答"
+
+#~ msgid "``review``"
+#~ msgstr "``review``"
+
+#~ msgid "Code review, correction, diff editing, quality"
+#~ msgstr "代码审查、修正、差异编辑、质量"
+
+#~ msgid "``task_management``"
+#~ msgstr "``task_management``"
+
+#~ msgid ""
+#~ "Task proposal, delegation, handling, "
+#~ "cancellation, LLM-driven code generation"
+#~ msgstr "任务提案、分派、处理、取消、LLM 驱动的代码生成"
+
+#~ msgid "``rating``"
+#~ msgstr "``rating``"
+
+#~ msgid "Multi-criteria rating and composite scoring"
+#~ msgstr "多维度评分与综合评分"
+
+#~ msgid "``integrations``"
+#~ msgstr "``integrations``"
+
+#~ msgid "Anki deck generation, BibTeX search, ruleset drafting"
+#~ msgstr "Anki 牌组生成、BibTeX 搜索、规则集起草"
 

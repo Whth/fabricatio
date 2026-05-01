@@ -21,6 +21,7 @@ extensions = [
     "autoapi.extension",
     "sphinx_autodoc_typehints",
     "myst_parser",  # Enable Markdown support
+    "sphinxcontrib.mermaid",
     "sphinx_rtd_theme",  # RTD theme integration
     "sphinx.ext.napoleon",  # Support for Google and NumPy style docstrings
     "sphinx.ext.autodoc",
@@ -34,6 +35,14 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_togglebutton",
 ]
+
+# Mermaid diagram configuration
+mermaid_output_format = "raw"
+mermaid_version = "11.12.1"
+mermaid_dark_theme = "dark"
+mermaid_light_theme = "default"
+mermaid_d3_zoom = True
+mermaid_fullscreen = True
 # Enable multi-language support
 language = "en"  # Default language
 
@@ -99,7 +108,7 @@ intersphinx_mapping = {
 intersphinx_timeout = 5  # seconds; fail fast if remote inventory unreachable
 
 # Suppress intersphinx inventory fetch failures (network-dependent)
-suppress_warnings = ["intersphinx.inventory"]
+suppress_warnings = ["intersphinx.inventory", "misc.highlighting_failure"]
 
 # Add favicon and logo
 html_favicon = "../../assets/logo/400.svg"

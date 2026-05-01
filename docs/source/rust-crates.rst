@@ -9,21 +9,24 @@ thryd
 
 **Router Engine** - High-performance LLM request routing with intelligent caching and rate limiting.
 
-.. code-block:: text
+.. mermaid::
 
-    thryd/
-    ├── src/
-    │   ├── lib.rs              # Main entry point, exports
-    │   ├── router.rs           # Core routing engine
-    │   ├── cache.rs            # redb-based persistent cache
-    │   ├── rate_limiter.rs     # TPM/RPM sliding window limiter
-    │   ├── provider.rs         # Provider trait & OpenAI-compatible impl
-    │   ├── model.rs            # Completion & embedding models
-    │   ├── deployment.rs       # Deployment with usage tracking
-    │   ├── tracker.rs          # Token usage tracking (tiktoken)
-    │   ├── error.rs            # ThrydError enum
-    │   └── constants.rs        # Rate limiting constants
-    └── README.md
+   flowchart TD
+   thryd["thryd/"]
+   src["src/"]
+   readme["README.md"]
+   thryd --> src
+   thryd --> readme
+   src --> lib["lib.rs - Main entry, exports"]
+   src --> router["router.rs - Core routing engine"]
+   src --> cache["cache.rs - redb-based persistent cache"]
+   src --> rate_limiter["rate_limiter.rs - TPM/RPM sliding window limiter"]
+   src --> provider["provider.rs - Provider trait & OpenAI-compatible impl"]
+   src --> model["model.rs - Completion & embedding models"]
+   src --> deployment["deployment.rs - Deployment with usage tracking"]
+   src --> tracker["tracker.rs - Token usage tracking (tiktoken)"]
+   src --> error["error.rs - ThrydError enum"]
+   src --> constants["constants.rs - Rate limiting constants"]
 
 Key Features:
 
@@ -46,38 +49,24 @@ Key Features:
 thryd Architecture
 ~~~~~~~~~~~~~~~~~~
 
-.. code-block:: text
+.. mermaid::
 
-     ┌─────────────────────────────────────────────────────────────────────┐
-     │                         thryd Router                                  │
-     │                                                                      │
-     │  ┌──────────────┐  ┌───────────────┐  ┌─────────────────────────┐   │
-     │  │   Provider   │  │    Cache      │  │     Rate Limiter       │   │
-     │  │   Manager    │  │   (redb)     │  │  (TPM/RPM Sliding)     │   │
-     │  └──────┬───────┘  └───────┬───────┘  └───────────┬─────────────┘   │
-     │         │                   │                      │                 │
-     │         └───────────────────┼──────────────────────┘                 │
-     │                             │                                        │
-     │                        ┌────┴────┐                                    │
-     │                        │ Router  │                                    │
-     │                        │ Engine  │                                    │
-     │                        └────┬────┘                                    │
-     │                             │                                         │
-     │         ┌───────────────────┼───────────────────┐                     │
-     │         ▼                   ▼                   ▼                     │
-     │  ┌────────────┐      ┌────────────┐     ┌────────────┐               │
-     │  │ Deployment │      │ Deployment │     │ Deployment │               │
-     │  │ (gpt-4)    │      │ (gpt-3.5)  │     │ (claude-3) │               │
-     │  │ RPM: 60    │      │ RPM: 1000  │     │ RPM: 20    │               │
-     │  │ TPM: 100k  │      │ TPM: 200k  │     │ TPM: 80k   │               │
-     │  └────────────┘      └────────────┘     └────────────┘               │
-     └─────────────────────────────┬─────────────────────────────────────────┘
-                                   │
-                                   ▼
-                        ┌──────────────────────────┐
-                        │   LLM Provider APIs      │
-                        │  OpenAI │ Anthropic │ ... │
-                        └──────────────────────────┘
+   flowchart TD
+   subgraph thryd["thryd Router"]
+      PM["Provider Manager"]
+      Cache["Cache (redb)"]
+      RL["Rate Limiter\n(TPM/RPM Sliding)"]
+      Router["Router Engine"]
+      PM --> Router
+      Cache --> Router
+      RL --> Router
+      Router --> D1["Deployment (gpt-4)\nRPM: 60 / TPM: 100k"]
+      Router --> D2["Deployment (gpt-3.5)\nRPM: 1000 / TPM: 200k"]
+      Router --> D3["Deployment (claude-3)\nRPM: 20 / TPM: 80k"]
+   end
+   D1 --> APIs["LLM Provider APIs\nOpenAI / Anthropic / ..."]
+   D2 --> APIs
+   D3 --> APIs
 
 Core Concepts
 ^^^^^^^^^^^^^
@@ -124,38 +113,34 @@ Thryd uses a **sliding window algorithm** with configurable parameters:
 - **BUCKET_COUNT**: Number of time buckets (default: 60)
 - **BUCKETS_WINDOW_S**: Window size in seconds (default: 60)
 
-.. code-block:: text
+.. mermaid::
 
-    Sliding Window Rate Limiter:
-
-    Time ──────────────────────────────────────────────────────►
-
-    ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐
-    │ 0 │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │...│59 │  ← 60 buckets
-    └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘
-      ▲                                   │
-      │                                   │
-    older                              newer
-    (exits window)                      (enters)
-
-    Each request increments bucket based on timestamp.
-    RPM/TPM = sum of all buckets within window.
+   flowchart LR
+   subgraph window["Sliding Window Rate Limiter (60 buckets x 60s)"]
+      direction LR
+      B0["Bucket 0 (oldest, exits)"] --> B1["Bucket 1"] --> Bdots["..."] --> B59["Bucket 59 (newest, enters)"]
+   end
+   Request["Incoming Request"] --> B59
+   Note["Each request increments a bucket based on timestamp.\nRPM/TPM = sum of all buckets in window."]
 
 fabricatio-config
 -----------------
 
 **Configuration Management** - Multi-source configuration loading with validation.
 
-.. code-block:: text
+.. mermaid::
 
-    fabricatio-config/
-    ├── src/
-    │   ├── lib.rs              # Config struct, Python bindings
-    │   ├── loader.rs           # Figment-based config loading
-    │   ├── env.rs              # Environment variable parsing
-    │   ├── validation.rs        # Validator trait impls
-    │   └── secret.rs           # SecretStr for API keys
-    └── README.md
+   flowchart TD
+   cfg["fabricatio-config/"]
+   src["src/"]
+   readme["README.md"]
+   cfg --> src
+   cfg --> readme
+   src --> lib["lib.rs - Config struct, Python bindings"]
+   src --> loader["loader.rs - Figment-based config loading"]
+   src --> env["env.rs - Environment variable parsing"]
+   src --> validation["validation.rs - Validator trait impls"]
+   src --> secret["secret.rs - SecretStr for API keys"]
 
 Features:
 
@@ -176,35 +161,33 @@ Configuration Sources (priority order):
 
 Configuration Structure:
 
-.. code-block:: text
+.. mermaid::
 
-    [debug]
-    log_level = "DEBUG"
-
-    [llm]
-    send_to = "base"
-    max_completion_tokens = 32000
-    stream = false
-    temperature = 1.0
-    top_p = 0.35
-
-    [routing]
-    providers = [...]
-    completion_deployments = [...]
+   flowchart TD
+   config["fabricatio.toml"]
+   debug["debug\nlog_level = DEBUG"]
+   llm["llm\nsend_to, max_completion_tokens,\nstream, temperature, top_p"]
+   routing["routing\nproviders, completion_deployments"]
+   config --> debug
+   config --> llm
+   config --> routing
 
 fabricatio-logger
 -----------------
 
 **Structured Logging** - Performance-optimized logging with loguru-style formatting.
 
-.. code-block:: text
+.. mermaid::
 
-    fabricatio-logger/
-    ├── src/
-    │   ├── lib.rs              # Main entry, init functions
-    │   ├── formatter.rs        # Custom FormatEvent impl
-    │   └── writer.rs           # Output handling, rotation
-    └── README.md
+   flowchart TD
+   logger["fabricatio-logger/"]
+   src["src/"]
+   readme["README.md"]
+   logger --> src
+   logger --> readme
+   src --> lib["lib.rs - Main entry, init functions"]
+   src --> formatter["formatter.rs - Custom FormatEvent impl"]
+   src --> writer["writer.rs - Output handling, rotation"]
 
 Features:
 
@@ -220,15 +203,18 @@ fabricatio-constants
 
 **Shared Constants** - Application-wide path and variable definitions.
 
-.. code-block:: text
+.. mermaid::
 
-    fabricatio-constants/
-    ├── src/
-    │   ├── lib.rs              # Exports all constants
-    │   ├── paths.rs            # Platform-aware path constants
-    │   ├── limits.rs           # Rate/limit constants
-    │   └── defaults.rs         # Default values
-    └── README.md
+   flowchart TD
+   constants["fabricatio-constants/"]
+   src["src/"]
+   readme["README.md"]
+   constants --> src
+   constants --> readme
+   src --> lib["lib.rs - Exports all constants"]
+   src --> paths["paths.rs - Platform-aware path constants"]
+   src --> limits["limits.rs - Rate/limit constants"]
+   src --> defaults["defaults.rs - Default values"]
 
 Platform Paths:
 
@@ -245,14 +231,17 @@ fabricatio-stubgen
 
 **Stub Generator** - Python ``.pyi`` stub file generation for PyO3 modules.
 
-.. code-block:: text
+.. mermaid::
 
-    fabricatio-stubgen/
-    ├── src/
-    │   ├── lib.rs              # Main entry
-    │   ├── generator.rs        # Stub generation logic
-    │   └── templates.rs        # Stub templates
-    └── README.md
+   flowchart TD
+   stubgen["fabricatio-stubgen/"]
+   src["src/"]
+   readme["README.md"]
+   stubgen --> src
+   stubgen --> readme
+   src --> lib["lib.rs - Main entry"]
+   src --> generator["generator.rs - Stub generation logic"]
+   src --> templates["templates.rs - Stub templates"]
 
 Features:
 
@@ -266,45 +255,57 @@ Additional Crates
 
 **tex-convertor** - LaTeX to Typst conversion
 
-.. code-block:: text
+.. mermaid::
 
-    tex-convertor/
-    └── src/lib.rs              # regex + tex2typst-rs
+   flowchart TD
+   crate["tex-convertor/"]
+   lib["src/lib.rs - regex + tex2typst-rs"]
+   crate --> lib
 
 **scanner** - Python package filesystem scanner
 
-.. code-block:: text
+.. mermaid::
 
-    scanner/
-    └── src/lib.rs              # pep508_rs, walkdir, rayon
+   flowchart TD
+   crate["scanner/"]
+   lib["src/lib.rs - pep508_rs, walkdir, rayon"]
+   crate --> lib
 
 **error-mapping** - Error type mapping between Rust/Python
 
-.. code-block:: text
+.. mermaid::
 
-    error-mapping/
-    └── src/lib.rs              # cfg-if feature gating, various deps
+   flowchart TD
+   crate["error-mapping/"]
+   lib["src/lib.rs - cfg-if feature gating, various deps"]
+   crate --> lib
 
 **mcp-manager** - Model Context Protocol server management
 
-.. code-block:: text
+.. mermaid::
 
-    mcp-manager/
-    └── src/lib.rs              # rmcp client, tokio async
+   flowchart TD
+   crate["mcp-manager/"]
+   lib["src/lib.rs - rmcp client, tokio async"]
+   crate --> lib
 
 **deck_loader** - Anki deck file loading/generation
 
-.. code-block:: text
+.. mermaid::
 
-    deck_loader/
-    └── src/lib.rs              # genanki-rs-rev, csv, yaml
+   flowchart TD
+   crate["deck_loader/"]
+   lib["src/lib.rs - genanki-rs-rev, csv, yaml"]
+   crate --> lib
 
 **signify** (v0.1.1) - JSON Schema to Python signature converter
 
-.. code-block:: text
+.. mermaid::
 
-    signify/
-    └── src/lib.rs              # heck, serde, serde_json
+   flowchart TD
+   crate["signify/"]
+   lib["src/lib.rs - heck, serde, serde_json"]
+   crate --> lib
 
 Features:
 
@@ -316,10 +317,12 @@ Features:
 
 **macro-utils** (v0.1.1) - Procedural macro utilities
 
-.. code-block:: text
+.. mermaid::
 
-    macro-utils/
-    └── src/lib.rs              # quote, syn (proc-macro crate)
+   flowchart TD
+   crate["macro-utils/"]
+   lib["src/lib.rs - quote, syn (proc-macro crate)"]
+   crate --> lib
 
 Features:
 
@@ -329,10 +332,12 @@ Features:
 
 **utils** (v0.1.2) - Shared utility functions
 
-.. code-block:: text
+.. mermaid::
 
-    utils/
-    └── src/lib.rs              # No external dependencies
+   flowchart TD
+   crate["utils/"]
+   lib["src/lib.rs - No external dependencies"]
+   crate --> lib
 
 Features:
 
@@ -343,38 +348,31 @@ Features:
 Rust Crate Dependencies
 -----------------------
 
-.. code-block:: text
+.. mermaid::
 
-    fabricatio (Python package)
-         │
-         ▼
-    ┌─────────────────────────────────────────────────────┐
-    │          PyO3 Bindings Layer (pyo3-stub-gen)        │
-    └──────────────────────┬──────────────────────────────┘
-                           │
-         ┌─────────────────┼─────────────────┬────────────┐
-         │                 │                 │            │
-         ▼                 ▼                 ▼            ▼
-    ┌─────────┐      ┌──────────┐     ┌──────────┐ ┌──────────┐
-    │  thryd  │      │   cfg    │     │  logger  │ │constants │
-    │(router) │      │ (config) │     │ (logging)│ │ (shared) │
-    └────┬────┘      └────┬─────┘     └────┬─────┘ └──────────┘
-         │                │                │
-         ▼                ▼                ▼
-    ┌─────────┐      ┌──────────┐     ┌──────────┐
-    │  redb   │      │ figment  │     │  tracing │
-    │ (cache) │      │ validator│     │  chrono  │
-    └─────────┘      └──────────┘     └──────────┘
-
-    thryd Dependencies:
-    ├── async-openai      # OpenAI API client
-    ├── reqwest           # HTTP client
-    ├── tokio             # Async runtime
-    ├── moka               # In-memory cache
-    ├── redb              # Embedded DB for persistence
-    ├── tiktoken-rs       # Token counting
-    ├── dashmap           # Concurrent hashmap
-    └── pyo3 (optional)   # Python bindings
+   flowchart TD
+   py["fabricatio (Python package)"]
+   subgraph pyo3["PyO3 Bindings Layer (pyo3-stub-gen)"]
+      thryd["thryd (router)"]
+      cfg["cfg (config)"]
+      logger["logger (logging)"]
+      constants["constants (shared)"]
+   end
+   py --> pyo3
+   thryd --> redb["redb (cache)"]
+   cfg --> figment["figment + validator"]
+   logger --> tracing["tracing + chrono"]
+   subgraph thryd_deps["thryd Dependencies"]
+      async_openai["async-openai - OpenAI API client"]
+      reqwest_lib["reqwest - HTTP client"]
+      tokio_lib["tokio - Async runtime"]
+      moka_lib["moka - In-memory cache"]
+      redb_lib["redb - Embedded DB for persistence"]
+      tiktoken["tiktoken-rs - Token counting"]
+      dashmap["dashmap - Concurrent hashmap"]
+      pyo3_opt["pyo3 - Python bindings (optional)"]
+   end
+   thryd --> thryd_deps
 
 Building Rust Crates
 --------------------

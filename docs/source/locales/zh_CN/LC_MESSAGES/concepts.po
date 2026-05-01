@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-25 00:15+0800\n"
+"POT-Creation-Date: 2026-05-01 20:30+0800\n"
 "PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -35,9 +35,7 @@ msgid ""
 "Fabricatio uses an event-driven architecture where agents respond to "
 "events rather than direct method calls. This pattern enables loose "
 "coupling and flexible composition."
-msgstr ""
-"Fabricatio 采用事件驱动架构，Agent 通过响应事件而非直接调用方法来执行任务。"
-"这种模式实现了松耦合和灵活的组合。"
+msgstr "Fabricatio 采用事件驱动架构，Agent 通过响应事件而非直接调用方法来执行任务。这种模式实现了松耦合和灵活的组合。"
 
 #: ../../source/concepts.rst:12
 msgid "Event System"
@@ -79,237 +77,224 @@ msgstr "角色"
 msgid ""
 "A ``Role`` is the primary agent entity that orchestrates skills and LLM "
 "interactions."
-msgstr ""
-"``Role`` 是主要的 Agent 实体，负责编排技能和 LLM 交互。"
+msgstr "``Role`` 是主要的 Agent 实体，负责编排技能和 LLM 交互。"
 
 #: ../../source/concepts.rst:73
 msgid "Role Lifecycle"
 msgstr "角色生命周期"
 
-#: ../../source/concepts.rst:95
+#: ../../source/concepts.rst:87
 msgid "Skills"
 msgstr "技能"
 
-#: ../../source/concepts.rst:97
+#: ../../source/concepts.rst:89
 msgid "A ``Skill`` maps an Event to a WorkFlow:"
 msgstr "``Skill`` 将事件映射到工作流："
 
-#: ../../source/concepts.rst:108
+#: ../../source/concepts.rst:100
 msgid ""
 "Skills are stored in the Role's skill registry and retrieved by event "
 "name during delegation."
-msgstr ""
-"技能存储在角色的技能注册表中，在委托时通过事件名称进行检索。"
+msgstr "技能存储在角色的技能注册表中，在委托时通过事件名称进行检索。"
 
-#: ../../source/concepts.rst:111
+#: ../../source/concepts.rst:103
 msgid "WorkFlows"
 msgstr "工作流"
 
-#: ../../source/concepts.rst:113
+#: ../../source/concepts.rst:105
 msgid "A ``WorkFlow`` defines a sequence of Actions:"
 msgstr "``WorkFlow`` 定义了一系列动作："
 
-#: ../../source/concepts.rst:135
+#: ../../source/concepts.rst:127
 msgid "WorkFlow Execution Flow"
 msgstr "工作流执行流程"
 
-#: ../../source/concepts.rst:160
+#: ../../source/concepts.rst:143
 msgid "Tasks"
 msgstr "任务"
 
-#: ../../source/concepts.rst:162
+#: ../../source/concepts.rst:145
 msgid "``Task`` represents a unit of work:"
 msgstr "``Task`` 代表一个工作单元："
 
-#: ../../source/concepts.rst:175
+#: ../../source/concepts.rst:158
 msgid "Task Properties"
 msgstr "任务属性"
 
-#: ../../source/concepts.rst:177
+#: ../../source/concepts.rst:160
 msgid "``name``: Identifier for the task"
 msgstr "``name``：任务标识符"
 
-#: ../../source/concepts.rst:178
+#: ../../source/concepts.rst:161
 msgid "``briefing``: Instructions for execution"
 msgstr "``briefing``：执行指令"
 
-#: ../../source/concepts.rst:179
+#: ../../source/concepts.rst:162
 msgid "``input``: Input data for actions"
 msgstr "``input``：动作的输入数据"
 
-#: ../../source/concepts.rst:180
+#: ../../source/concepts.rst:163
 msgid "``output``: Result after execution"
 msgstr "``output``：执行后的结果"
 
-#: ../../source/concepts.rst:181
+#: ../../source/concepts.rst:164
 msgid "``status``: Current state (pending, running, completed, failed)"
 msgstr "``status``：当前状态（pending、running、completed、failed）"
 
-#: ../../source/concepts.rst:184
+#: ../../source/concepts.rst:167
 msgid "Delegation Modes"
 msgstr "委托模式"
 
-#: ../../source/concepts.rst:200
+#: ../../source/concepts.rst:183
 msgid "Actions"
 msgstr "动作"
 
-#: ../../source/concepts.rst:202
+#: ../../source/concepts.rst:185
 msgid "``Action`` is the atomic execution unit:"
 msgstr "``Action`` 是原子执行单元："
 
-#: ../../source/concepts.rst:223
+#: ../../source/concepts.rst:206
 msgid "Action Lifecycle"
 msgstr "动作生命周期"
 
-#: ../../source/concepts.rst:248
+#: ../../source/concepts.rst:219
 msgid "Capability Mixins"
 msgstr "能力混入"
 
-#: ../../source/concepts.rst:250
+#: ../../source/concepts.rst:221
 msgid "Capabilities are mixins that provide reusable functionality:"
 msgstr "能力是提供可复用功能的混入类："
 
-#: ../../source/concepts.rst:253
+#: ../../source/concepts.rst:224
 msgid "LLM Capability"
 msgstr "LLM 能力"
 
-#: ../../source/concepts.rst:255
+#: ../../source/concepts.rst:226
 msgid "``UseLLM`` provides LLM interaction:"
 msgstr "``UseLLM`` 提供 LLM 交互功能："
 
-#: ../../source/concepts.rst:280
+#: ../../source/concepts.rst:251
 msgid "Other Capabilities"
 msgstr "其他能力"
 
-#: ../../source/concepts.rst:283
-msgid "Capability"
-msgstr "能力"
+#: ../../source/concepts.rst:255
+msgid ""
+"The ``sphinxcontrib-mermaid`` package that renders these diagrams is "
+"`seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-"
+"mermaid/issues/148>`_. Consider contributing if you're interested."
+msgstr ""
 
-#: ../../source/concepts.rst:283
-msgid "Provides"
-msgstr "提供"
-
-#: ../../source/concepts.rst:285
-msgid "``UseLLM``"
-msgstr "``UseLLM``"
-
-#: ../../source/concepts.rst:285
-msgid "LLM interaction methods"
-msgstr "LLM 交互方法"
-
-#: ../../source/concepts.rst:287
-msgid "``Review``"
-msgstr "``Review``"
-
-#: ../../source/concepts.rst:287
-msgid "Code/content review methods"
-msgstr "代码/内容审查方法"
-
-#: ../../source/concepts.rst:289
-msgid "``Extract``"
-msgstr "``Extract``"
-
-#: ../../source/concepts.rst:289
-msgid "Structured extraction from text"
-msgstr "从文本中进行结构化提取"
-
-#: ../../source/concepts.rst:291
-msgid "``ProposeTask``"
-msgstr "``ProposeTask``"
-
-#: ../../source/concepts.rst:291
-msgid "Task proposal generation"
-msgstr "任务提议生成"
-
-#: ../../source/concepts.rst:293
-msgid "``Improve``"
-msgstr "``Improve``"
-
-#: ../../source/concepts.rst:293
-msgid "Content improvement"
-msgstr "内容改进"
-
-#: ../../source/concepts.rst:295
-msgid "``Rule``"
-msgstr "``Rule``"
-
-#: ../../source/concepts.rst:295
-msgid "Rule-based processing"
-msgstr "基于规则的处理"
-
-#: ../../source/concepts.rst:297
-msgid "``MilvusRAG``"
-msgstr "``MilvusRAG``"
-
-#: ../../source/concepts.rst:297
-msgid "Vector store RAG"
-msgstr "向量存储 RAG"
-
-#: ../../source/concepts.rst:301
+#: ../../source/concepts.rst:272
 msgid "Logger Integration"
 msgstr "日志集成"
 
-#: ../../source/concepts.rst:303
+#: ../../source/concepts.rst:274
 msgid "Fabricatio provides structured logging:"
 msgstr "Fabricatio 提供结构化日志："
 
-#: ../../source/concepts.rst:314
+#: ../../source/concepts.rst:285
 msgid "Logger output includes:"
 msgstr "日志输出包括："
 
-#: ../../source/concepts.rst:316
+#: ../../source/concepts.rst:287
 msgid "Timestamp"
 msgstr "时间戳"
 
-#: ../../source/concepts.rst:317
+#: ../../source/concepts.rst:288
 msgid "Log level"
 msgstr "日志级别"
 
-#: ../../source/concepts.rst:318
+#: ../../source/concepts.rst:289
 msgid "Module name"
 msgstr "模块名称"
 
-#: ../../source/concepts.rst:319
+#: ../../source/concepts.rst:290
 msgid "Message"
 msgstr "消息"
 
-#: ../../source/concepts.rst:322
+#: ../../source/concepts.rst:293
 msgid "Logger Configuration"
 msgstr "日志配置"
 
-#: ../../source/concepts.rst:330
+#: ../../source/concepts.rst:301
 msgid "Async Execution"
 msgstr "异步执行"
 
-#: ../../source/concepts.rst:332
+#: ../../source/concepts.rst:303
 msgid "All Fabricatio operations are async-first:"
 msgstr "所有 Fabricatio 操作都以异步为先："
 
-#: ../../source/concepts.rst:353
+#: ../../source/concepts.rst:324
 msgid "Best Practices"
 msgstr "最佳实践"
 
-#: ../../source/concepts.rst:355
+#: ../../source/concepts.rst:326
 msgid ""
 "**Always use async/await** Never mix sync and async code without proper "
 "handling."
-msgstr ""
-"**始终使用 async/await** 切勿在没有适当处理的情况下混合同步和异步代码。"
+msgstr "**始终使用 async/await** 切勿在没有适当处理的情况下混合同步和异步代码。"
 
-#: ../../source/concepts.rst:358
+#: ../../source/concepts.rst:329
 msgid "**Handle exceptions** Use try/except for graceful error handling:"
 msgstr "**处理异常** 使用 try/except 进行优雅的错误处理："
 
-#: ../../source/concepts.rst:368
+#: ../../source/concepts.rst:339
 msgid ""
 "**Set appropriate timeouts** Configure timeouts for long-running "
 "operations:"
-msgstr ""
-"**设置适当的超时** 为长时间运行的操作配置超时："
+msgstr "**设置适当的超时** 为长时间运行的操作配置超时："
 
-#: ../../source/concepts.rst:376
+#: ../../source/concepts.rst:347
 msgid ""
 "**Use structured output for reliability** Prefer ``aask_structured()`` "
 "over ``aask()`` when possible."
-msgstr ""
-"**使用结构化输出以提高可靠性** 尽可能优先使用 ``aask_structured()`` 而非 ``aask()``。"
+msgstr "**使用结构化输出以提高可靠性** 尽可能优先使用 ``aask_structured()`` 而非 ``aask()``。"
+
+#~ msgid "Capability"
+#~ msgstr "能力"
+
+#~ msgid "Provides"
+#~ msgstr "提供"
+
+#~ msgid "``UseLLM``"
+#~ msgstr "``UseLLM``"
+
+#~ msgid "LLM interaction methods"
+#~ msgstr "LLM 交互方法"
+
+#~ msgid "``Review``"
+#~ msgstr "``Review``"
+
+#~ msgid "Code/content review methods"
+#~ msgstr "代码/内容审查方法"
+
+#~ msgid "``Extract``"
+#~ msgstr "``Extract``"
+
+#~ msgid "Structured extraction from text"
+#~ msgstr "从文本中进行结构化提取"
+
+#~ msgid "``ProposeTask``"
+#~ msgstr "``ProposeTask``"
+
+#~ msgid "Task proposal generation"
+#~ msgstr "任务提议生成"
+
+#~ msgid "``Improve``"
+#~ msgstr "``Improve``"
+
+#~ msgid "Content improvement"
+#~ msgstr "内容改进"
+
+#~ msgid "``Rule``"
+#~ msgstr "``Rule``"
+
+#~ msgid "Rule-based processing"
+#~ msgstr "基于规则的处理"
+
+#~ msgid "``MilvusRAG``"
+#~ msgstr "``MilvusRAG``"
+
+#~ msgid "Vector store RAG"
+#~ msgstr "向量存储 RAG"
+

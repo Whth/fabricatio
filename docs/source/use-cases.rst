@@ -1071,26 +1071,24 @@ Example Categories
 
 The repository includes the following example directories:
 
-+-----------------------+-------------------------------------------------------+
-| Category              | Contents                                              |
-+=======================+=======================================================+
-| ``basics``            | Hello world, basic workflow, simple interactive chat  |
-+-----------------------+-------------------------------------------------------+
-| ``generation``        | Content generation: poems, articles, novels, songs,   |
-|                       | diaries, outlines                                     |
-+-----------------------+-------------------------------------------------------+
-| ``rag``               | Retrieval-Augmented Generation: extraction, injection,|
-|                       | chunking, Milvus Q&A                                  |
-+-----------------------+-------------------------------------------------------+
-| ``review``            | Code review, correction, diff editing, quality        |
-+-----------------------+-------------------------------------------------------+
-| ``task_management``   | Task proposal, delegation, handling, cancellation,    |
-|                       | LLM-driven code generation                            |
-+-----------------------+-------------------------------------------------------+
-| ``rating``            | Multi-criteria rating and composite scoring           |
-+-----------------------+-------------------------------------------------------+
-| ``integrations``      | Anki deck generation, BibTeX search, ruleset drafting |
-+-----------------------+-------------------------------------------------------+
+.. note::
+
+   The ``sphinxcontrib-mermaid`` package that renders these diagrams is `seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-mermaid/issues/148>`_. Consider contributing if you're interested.
+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       Category {
+           string basics "Hello world, basic workflow, simple interactive chat"
+           string generation "Content generation: poems, articles, novels, songs, diaries, outlines"
+           string rag "Retrieval-Augmented Generation: extraction, injection, chunking, Milvus Q&A"
+           string review "Code review, correction, diff editing, quality"
+           string task_management "Task proposal, delegation, handling, cancellation, LLM-driven code generation"
+           string rating "Multi-criteria rating and composite scoring"
+           string integrations "Anki deck generation, BibTeX search, ruleset drafting"
+       }
+
 
 Running Examples
 ----------------

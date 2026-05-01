@@ -72,24 +72,16 @@ A ``Role`` is the primary agent entity that orchestrates skills and LLM interact
 Role Lifecycle
 ~~~~~~~~~~~~~~
 
-.. code-block:: text
+.. mermaid::
 
-    1. Create Role with skills registered
-           │
-           ▼
-    2. Propose task or create directly
-           │
-           ▼
-    3. Delegate task to event name
-           │
-           ▼
-    4. Event triggers WorkFlow
-           │
-           ▼
-    5. Actions execute in sequence
-           │
-           ▼
-    6. Result returned to task
+   flowchart TD
+       A["1. Create Role with skills registered"]
+       B["2. Propose task or create directly"]
+       C["3. Delegate task to event name"]
+       D["4. Event triggers WorkFlow"]
+       E["5. Actions execute in sequence"]
+       F["6. Result returned to task"]
+       A --> B --> C --> D --> E --> F
 
 Skills
 ------
@@ -134,27 +126,18 @@ A ``WorkFlow`` defines a sequence of Actions:
 WorkFlow Execution Flow
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: text
+.. mermaid::
 
-    WorkFlow.start()
-           │
-           ▼
-    ┌──────────────────┐
-    │ Execute Step 1   │──▶ _execute() returns result
-    └────────┬─────────┘
-             │
-             ▼ (if more steps)
-    ┌──────────────────┐
-    │ Execute Step 2   │──▶ _execute() returns result
-    └────────┬─────────┘
-             │
-             ▼ (if more steps)
-    ┌──────────────────┐
-    │ Execute Step N   │──▶ _execute() returns result
-    └────────┬─────────┘
-             │
-             ▼
-    WorkFlow.complete() → returns final result
+   flowchart TD
+       A["WorkFlow.start()"]
+       B["Execute Step 1"]
+       C["Execute Step 2"]
+       D["Execute Step N"]
+       E["WorkFlow.complete()"]
+       A --> B
+       B -->|"_execute() returns result"| C
+       C -->|"_execute() returns result"| D
+       D -->|"_execute() returns result"| E
 
 Tasks
 -----
@@ -222,27 +205,15 @@ Actions
 Action Lifecycle
 ~~~~~~~~~~~~~~~~
 
-.. code-block:: text
+.. mermaid::
 
-    Action._execute() called
-           │
-           ▼
-    ┌──────────────────┐
-    │ Pre-execution    │  (setup, validation)
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Execute logic    │  (_execute override point)
-    └────────┬─────────┘
-             │
-             ▼
-    ┌──────────────────┐
-    │ Post-execution   │  (result storage, cleanup)
-    └────────┬─────────┘
-             │
-             ▼
-    Return result
+   flowchart TD
+       A["Action._execute() called"]
+       B["Pre-execution\n(setup, validation)"]
+       C["Execute logic\n(_execute override point)"]
+       D["Post-execution\n(result storage, cleanup)"]
+       E["Return result"]
+       A --> B --> C --> D --> E
 
 Capability Mixins
 -----------------
@@ -279,23 +250,23 @@ LLM Capability
 Other Capabilities
 ~~~~~~~~~~~~~~~~~~
 
-+---------------------------+---------------------------------------------------+
-| Capability                | Provides                                          |
-+===========================+===================================================+
-| ``UseLLM``                | LLM interaction methods                           |
-+---------------------------+---------------------------------------------------+
-| ``Review``                | Code/content review methods                       |
-+---------------------------+---------------------------------------------------+
-| ``Extract``               | Structured extraction from text                   |
-+---------------------------+---------------------------------------------------+
-| ``ProposeTask``           | Task proposal generation                          |
-+---------------------------+---------------------------------------------------+
-| ``Improve``               | Content improvement                               |
-+---------------------------+---------------------------------------------------+
-| ``Rule``                  | Rule-based processing                             |
-+---------------------------+---------------------------------------------------+
-| ``MilvusRAG``             | Vector store RAG                                  |
-+---------------------------+---------------------------------------------------+
+.. note::
+
+   The ``sphinxcontrib-mermaid`` package that renders these diagrams is `seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-mermaid/issues/148>`_. Consider contributing if you're interested.
+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       Capability {
+           string UseLLM "LLM interaction methods"
+           string Review "Code/content review methods"
+           string Extract "Structured extraction from text"
+           string ProposeTask "Task proposal generation"
+           string Improve "Content improvement"
+           string Rule "Rule-based processing"
+           string MilvusRAG "Vector store RAG"
+       }
 
 Logger Integration
 ------------------

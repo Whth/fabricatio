@@ -556,7 +556,7 @@ Python
 
 - **Ruff** for linting and formatting
 
-  .. code-block:: text
+  .. code-block:: toml
 
      [tool.ruff]
      line-length = 120

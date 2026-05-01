@@ -3,35 +3,38 @@
 from typing import List, Optional, TypedDict
 
 
-class EmbeddingKwargs(TypedDict, total=False):
+class RouteKwargs(TypedDict, total=False):
+    """Configuration parameters for routing operations.
+
+    These arguments control the behavior of routing models,
+    such as the number of attempts to make before giving up.
+    """
+
+    send_to: str
+    no_cache: bool
+
+
+class EmbeddingKwargs(RouteKwargs, total=False):
     """Configuration parameters for text embedding operations.
 
     These settings control the behavior of embedding models that convert text
     to vector representations.
     """
 
-    send_to: str
-    no_cache: bool
 
-
-class LLMKwargs(TypedDict, total=False):
+class LLMKwargs(RouteKwargs, total=False):
     """Configuration parameters for language model inference.
 
     These arguments control the behavior of large language model calls,
     including generation parameters and caching options.
-
-    Attributes:
-        no_cache: If True, bypass the response cache and force a fresh inference.
     """
 
-    send_to: str
     stream: bool
     temperature: Optional[float]
     top_p: Optional[float]
     max_completion_tokens: Optional[int]
     presence_penalty: Optional[float]
     frequency_penalty: Optional[float]
-    no_cache: bool
 
 
 class ValidateKwargs[T](LLMKwargs, total=False):

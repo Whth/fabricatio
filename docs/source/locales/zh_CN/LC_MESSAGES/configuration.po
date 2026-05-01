@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"POT-Creation-Date: 2026-05-01 20:30+0800\n"
 "PO-Revision-Date: 2026-04-30 20:00+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -75,356 +75,279 @@ msgid ""
 "priority order (highest to lowest):"
 msgstr "Fabricatio 从多个来源加载配置，按以下优先级顺序（从高到低）："
 
-#: ../../source/configuration.rst:137
+#: ../../source/configuration.rst:127
 msgid ""
 "This means you can override any configuration at runtime using "
 "environment variables or programmatically."
 msgstr "这意味着你可以在运行时通过环境变量或编程方式覆盖任何配置。"
 
-#: ../../source/configuration.rst:140
+#: ../../source/configuration.rst:130
 msgid "Configuration File Formats"
 msgstr "配置文件格式"
 
-#: ../../source/configuration.rst:143
+#: ../../source/configuration.rst:133
 msgid "fabricatio.toml"
 msgstr "fabricatio.toml"
 
-#: ../../source/configuration.rst:145
+#: ../../source/configuration.rst:135
 msgid "The primary configuration file format:"
 msgstr "主要的配置文件格式："
 
-#: ../../source/configuration.rst:172
+#: ../../source/configuration.rst:162
 msgid "pyproject.toml"
 msgstr "pyproject.toml"
 
-#: ../../source/configuration.rst:174
+#: ../../source/configuration.rst:164
 msgid "Configuration via ``[tool.fabricatio]`` table:"
 msgstr "通过 ``[tool.fabricatio]`` 表进行配置："
 
-#: ../../source/configuration.rst:198
+#: ../../source/configuration.rst:188
 msgid "Environment Variables / .env"
 msgstr "环境变量 / .env 文件"
 
-#: ../../source/configuration.rst:200
+#: ../../source/configuration.rst:190
 msgid ""
 "Prefix all config keys with ``FABRICATIO_`` and use double underscores "
 "for nesting:"
 msgstr "所有配置键使用 ``FABRICATIO_`` 前缀，嵌套键使用双下划线分隔："
 
-#: ../../source/configuration.rst:212
+#: ../../source/configuration.rst:202
 msgid "Configuration Sections"
 msgstr "配置章节"
 
-#: ../../source/configuration.rst:215
+#: ../../source/configuration.rst:205
 msgid "[debug]"
 msgstr "[debug]"
 
-#: ../../source/configuration.rst:218 ../../source/configuration.rst:227
-msgid "Key"
-msgstr "键"
-
-#: ../../source/configuration.rst:218 ../../source/configuration.rst:227
-msgid "Description"
-msgstr "描述"
-
-#: ../../source/configuration.rst:218 ../../source/configuration.rst:227
-msgid "Default"
-msgstr "默认值"
+#: ../../source/configuration.rst:209
+msgid ""
+"The ``sphinxcontrib-mermaid`` package that renders these diagrams is "
+"`seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-"
+"mermaid/issues/148>`_. Consider contributing if you're interested."
+msgstr ""
 
 #: ../../source/configuration.rst:220
-msgid "``log_level``"
-msgstr "``log_level``"
-
-#: ../../source/configuration.rst:220
-msgid "Logging level"
-msgstr "日志级别"
-
-#: ../../source/configuration.rst:220
-msgid "``INFO``"
-msgstr "``INFO``"
-
-#: ../../source/configuration.rst:224
 msgid "[llm]"
 msgstr "[llm]"
 
-#: ../../source/configuration.rst:229
-msgid "``send_to``"
-msgstr "``send_to``"
-
-#: ../../source/configuration.rst:229
-msgid "Default routing group"
-msgstr "默认路由分组"
-
-#: ../../source/configuration.rst:229
-msgid "``base``"
-msgstr "``base``"
-
-#: ../../source/configuration.rst:231
-msgid "``max_completion_tokens``"
-msgstr "``max_completion_tokens``"
-
-#: ../../source/configuration.rst:231
-msgid "Max tokens in response"
-msgstr "响应中的最大 token 数"
-
-#: ../../source/configuration.rst:231
-msgid "``16000``"
-msgstr "``16000``"
-
-#: ../../source/configuration.rst:233
-msgid "``stream``"
-msgstr "``stream``"
-
-#: ../../source/configuration.rst:233
-msgid "Enable streaming responses"
-msgstr "启用流式响应"
-
-#: ../../source/configuration.rst:233
-msgid "``false``"
-msgstr "``false``"
-
-#: ../../source/configuration.rst:235
-msgid "``temperature``"
-msgstr "``temperature``"
-
-#: ../../source/configuration.rst:235
-msgid "Sampling temperature"
-msgstr "采样温度"
-
-#: ../../source/configuration.rst:235 ../../source/configuration.rst:237
-msgid "``1.0``"
-msgstr "``1.0``"
-
-#: ../../source/configuration.rst:237
-msgid "``top_p``                | Nucleus sampling threshold"
-msgstr "``top_p``                | 核采样阈值"
-
-#: ../../source/configuration.rst:239
-msgid "``timeout``              | Request timeout (seconds)"
-msgstr "``timeout``              | 请求超时时间（秒）"
-
-#: ../../source/configuration.rst:239
-msgid "``120``"
-msgstr "``120``"
-
-#: ../../source/configuration.rst:243
+#: ../../source/configuration.rst:236
 msgid "[routing]"
 msgstr "[routing]"
 
-#: ../../source/configuration.rst:246
+#: ../../source/configuration.rst:239
 msgid "Provider Configuration"
 msgstr "提供商配置"
 
-#: ../../source/configuration.rst:248
+#: ../../source/configuration.rst:241
 msgid "Providers define LLM endpoints:"
 msgstr "提供商定义 LLM 端点："
 
-#: ../../source/configuration.rst:259
+#: ../../source/configuration.rst:252
 msgid "Supported provider types:"
 msgstr "支持的提供商类型："
 
-#: ../../source/configuration.rst:261
+#: ../../source/configuration.rst:254
 msgid "``OpenAICompatible`` - OpenAI API compatible endpoints"
 msgstr "``OpenAICompatible`` - OpenAI API 兼容端点"
 
-#: ../../source/configuration.rst:262
+#: ../../source/configuration.rst:255
 msgid "``Anthropic`` - Anthropic API"
 msgstr "``Anthropic`` - Anthropic API"
 
-#: ../../source/configuration.rst:263
+#: ../../source/configuration.rst:256
 msgid "``AzureOpenAI`` - Microsoft Azure OpenAI"
 msgstr "``AzureOpenAI`` - Microsoft Azure OpenAI"
 
-#: ../../source/configuration.rst:264
+#: ../../source/configuration.rst:257
 msgid "``GoogleAI`` - Google AI (Gemini)"
 msgstr "``GoogleAI`` - Google AI (Gemini)"
 
-#: ../../source/configuration.rst:265
+#: ../../source/configuration.rst:258
 msgid "``Local`` - Local model endpoints"
 msgstr "``Local`` - 本地模型端点"
 
-#: ../../source/configuration.rst:268
+#: ../../source/configuration.rst:261
 msgid "Deployment Configuration"
 msgstr "部署配置"
 
-#: ../../source/configuration.rst:270
+#: ../../source/configuration.rst:263
 msgid "Deployments define available models:"
 msgstr "部署定义可用的模型："
 
-#: ../../source/configuration.rst:282
+#: ../../source/configuration.rst:275
 msgid "Cache Configuration"
 msgstr "缓存配置"
 
-#: ../../source/configuration.rst:290
+#: ../../source/configuration.rst:283
 msgid "Router Features"
 msgstr "路由器功能"
 
-#: ../../source/configuration.rst:292
+#: ../../source/configuration.rst:285
 msgid "The ``thryd`` crate provides:"
 msgstr "``thryd`` crate 提供以下功能："
 
-#: ../../source/configuration.rst:294
+#: ../../source/configuration.rst:287
 msgid "**TPM/RPM limiting**: Per-deployment rate limiting"
 msgstr "**TPM/RPM 限制**：基于部署的速率限制"
 
-#: ../../source/configuration.rst:295
+#: ../../source/configuration.rst:288
 msgid "**Response caching**: SQLite-based request caching"
 msgstr "**响应缓存**：基于 SQLite 的请求缓存"
 
-#: ../../source/configuration.rst:296
+#: ../../source/configuration.rst:289
 msgid "**Concurrent routing**: Thread-safe provider selection"
 msgstr "**并发路由**：线程安全的提供商选择"
 
-#: ../../source/configuration.rst:299
+#: ../../source/configuration.rst:292
 msgid "Programmatic Configuration"
 msgstr "编程式配置"
 
-#: ../../source/configuration.rst:302
+#: ../../source/configuration.rst:295
 msgid "Role-level Configuration"
 msgstr "角色级配置"
 
-#: ../../source/configuration.rst:304
+#: ../../source/configuration.rst:297
 msgid "Pass configuration directly to Roles:"
 msgstr "直接向角色传递配置："
 
-#: ../../source/configuration.rst:319
+#: ../../source/configuration.rst:312
 msgid "Action-level Configuration"
 msgstr "操作级配置"
 
-#: ../../source/configuration.rst:321
+#: ../../source/configuration.rst:314
 msgid "Override configuration per action call:"
 msgstr "在每次操作调用时覆盖配置："
 
-#: ../../source/configuration.rst:337
+#: ../../source/configuration.rst:330
 msgid "aask() vs aask_structured()"
 msgstr "aask() 与 aask_structured()"
 
-#: ../../source/configuration.rst:339
+#: ../../source/configuration.rst:332
 msgid "``aask()`` - Simple text responses:"
 msgstr "``aask()`` - 简单文本响应："
 
-#: ../../source/configuration.rst:345
+#: ../../source/configuration.rst:338
 msgid "``aask_structured()`` - Typed responses with Pydantic:"
 msgstr "``aask_structured()`` - 使用 Pydantic 的类型化响应："
 
-#: ../../source/configuration.rst:362
+#: ../../source/configuration.rst:355
 msgid "Real-World Configuration Examples"
 msgstr "实际配置示例"
 
-#: ../../source/configuration.rst:365
+#: ../../source/configuration.rst:358
 msgid "Example 1: Single Provider with OpenAI"
 msgstr "示例 1：使用 OpenAI 的单提供商配置"
 
-#: ../../source/configuration.rst:388
+#: ../../source/configuration.rst:381
 msgid "Example 2: Multi-Provider with Fallback"
 msgstr "示例 2：带故障转移的多提供商配置"
 
-#: ../../source/configuration.rst:407
+#: ../../source/configuration.rst:400
 msgid "Usage:"
 msgstr "用法："
 
-#: ../../source/configuration.rst:418
+#: ../../source/configuration.rst:411
 msgid "Example 3: Anthropic with Claude"
 msgstr "示例 3：使用 Claude 的 Anthropic 配置"
 
-#: ../../source/configuration.rst:437
+#: ../../source/configuration.rst:430
 msgid "Example 4: Azure OpenAI"
 msgstr "示例 4：Azure OpenAI"
 
-#: ../../source/configuration.rst:457
+#: ../../source/configuration.rst:450
 msgid "Example 5: Local Model Setup"
 msgstr "示例 5：本地模型设置"
 
-#: ../../source/configuration.rst:475
+#: ../../source/configuration.rst:468
 msgid "Advanced: Multiple Provider Setup"
 msgstr "进阶：多提供商设置"
 
-#: ../../source/configuration.rst:478
+#: ../../source/configuration.rst:471
 msgid "Load Balancing Across Providers"
 msgstr "跨提供商负载均衡"
 
-#: ../../source/configuration.rst:493
+#: ../../source/configuration.rst:486
 msgid "Using Different Groups:"
 msgstr "使用不同的分组："
 
-#: ../../source/configuration.rst:504
+#: ../../source/configuration.rst:497
 msgid "Environment-Specific Configs"
 msgstr "环境特定配置"
 
-#: ../../source/configuration.rst:507
+#: ../../source/configuration.rst:500
 msgid "Development (.env.local)"
 msgstr "开发环境（.env.local）"
 
-#: ../../source/configuration.rst:516
+#: ../../source/configuration.rst:509
 msgid "Staging (fabricatio.staging.toml)"
 msgstr "预发布环境（fabricatio.staging.toml）"
 
-#: ../../source/configuration.rst:518
+#: ../../source/configuration.rst:511
 msgid "Create ``fabricatio.staging.toml``:"
 msgstr "创建 ``fabricatio.staging.toml``："
 
-#: ../../source/configuration.rst:541
+#: ../../source/configuration.rst:534
 msgid "Production (fabricatio.toml)"
 msgstr "生产环境（fabricatio.toml）"
 
-#: ../../source/configuration.rst:556
+#: ../../source/configuration.rst:549
 msgid "Loading Environment-Specific Config"
 msgstr "加载环境特定配置"
 
-#: ../../source/configuration.rst:558
+#: ../../source/configuration.rst:551
 msgid ""
 "Fabricatio automatically loads ``fabricatio.toml`` from the current "
 "directory. To use environment-specific configurations:"
 msgstr "Fabricatio 会自动从当前目录加载 ``fabricatio.toml``。要使用环境特定配置："
 
-#: ../../source/configuration.rst:568
+#: ../../source/configuration.rst:561
 msgid "Or use environment variables:"
 msgstr "或使用环境变量："
 
-#: ../../source/configuration.rst:576
+#: ../../source/configuration.rst:569
 msgid "Template Discovery Configuration"
 msgstr "模板发现配置"
 
-#: ../../source/configuration.rst:578
+#: ../../source/configuration.rst:571
 msgid "Fabricatio searches for templates in multiple locations:"
 msgstr "Fabricatio 在多个位置搜索模板："
 
-#: ../../source/configuration.rst:587
+#: ../../source/configuration.rst:581
 msgid "Download templates:"
 msgstr "下载模板："
 
-#: ../../source/configuration.rst:598
+#: ../../source/configuration.rst:592
 msgid "Caching Configuration"
 msgstr "缓存配置"
 
-#: ../../source/configuration.rst:600
+#: ../../source/configuration.rst:594
 msgid "Fabricatio uses SQLite for request caching. Configure cache behavior:"
 msgstr "Fabricatio 使用 SQLite 进行请求缓存。配置缓存行为："
 
-#: ../../source/configuration.rst:607
+#: ../../source/configuration.rst:601
 msgid "Cache Environment Variables:"
 msgstr "缓存环境变量："
 
-#: ../../source/configuration.rst:613
+#: ../../source/configuration.rst:607
 msgid ""
 "Cache is automatically enabled when ``cache_database_path`` is "
 "configured. To disable caching, simply omit this configuration or set it "
 "to an empty path."
 msgstr "当配置了 ``cache_database_path`` 时，缓存会自动启用。要禁用缓存，只需省略此配置或将其设置为空路径即可。"
 
-#: ../../source/configuration.rst:616
+#: ../../source/configuration.rst:610
 msgid "Troubleshooting"
 msgstr "故障排除"
 
-#: ../../source/configuration.rst:618
+#: ../../source/configuration.rst:612
 msgid "**Config not being loaded?**"
 msgstr "**配置未被加载？**"
 
-#: ../../source/configuration.rst:620
+#: ../../source/configuration.rst:614
 msgid "Check file location matches expected paths"
 msgstr "检查文件位置是否与预期路径匹配"
 
-#: ../../source/configuration.rst:621
+#: ../../source/configuration.rst:615
 msgid ""
 "Verify ``[tool.fabricatio]`` section in pyproject.toml (not "
 "``[tool.fabricatio.routing]``)"
@@ -432,209 +355,209 @@ msgstr ""
 "验证 pyproject.toml 中的 ``[tool.fabricatio]`` 部分（而非 "
 "``[tool.fabricatio.routing]``）"
 
-#: ../../source/configuration.rst:622
+#: ../../source/configuration.rst:616
 msgid "Enable debug logging: ``FABRICATIO_DEBUG__LOG_LEVEL=DEBUG``"
 msgstr "启用调试日志：``FABRICATIO_DEBUG__LOG_LEVEL=DEBUG``"
 
-#: ../../source/configuration.rst:623
+#: ../../source/configuration.rst:617
 msgid "Confirm the file is valid TOML syntax"
 msgstr "确认文件的 TOML 语法正确"
 
-#: ../../source/configuration.rst:625
+#: ../../source/configuration.rst:619
 msgid "**Environment variables not working?**"
 msgstr "**环境变量不生效？**"
 
-#: ../../source/configuration.rst:627
+#: ../../source/configuration.rst:621
 msgid "Use double underscores: ``FABRICATIO_LLM__TEMPERATURE`` (not single)"
 msgstr "使用双下划线：``FABRICATIO_LLM__TEMPERATURE`` （而非单下划线）"
 
-#: ../../source/configuration.rst:628
+#: ../../source/configuration.rst:622
 msgid "Verify .env file is in the current working directory"
 msgstr "确认 .env 文件位于当前工作目录中"
 
-#: ../../source/configuration.rst:629
+#: ../../source/configuration.rst:623
 msgid "Check for trailing whitespace in .env file"
 msgstr "检查 .env 文件中是否存在尾随空格"
 
-#: ../../source/configuration.rst:630
+#: ../../source/configuration.rst:624
 msgid "Ensure no quotes around values (unless required)"
 msgstr "确保值周围没有引号（除非必须使用引号）"
 
-#: ../../source/configuration.rst:632
+#: ../../source/configuration.rst:626
 msgid "**Provider authentication failures?**"
 msgstr "**提供商认证失败？**"
 
-#: ../../source/configuration.rst:634
+#: ../../source/configuration.rst:628
 msgid "Verify API key is correct and has no leading/trailing spaces"
 msgstr "验证 API 密钥正确且没有前导/尾随空格"
 
-#: ../../source/configuration.rst:635
+#: ../../source/configuration.rst:629
 msgid "Check base_url includes trailing slash (/v1/)"
 msgstr "检查 base_url 是否包含尾部斜杠（/v1/）"
 
-#: ../../source/configuration.rst:636
+#: ../../source/configuration.rst:630
 msgid "Ensure rate limits (TPM/RPM) are set appropriately"
 msgstr "确保速率限制（TPM/RPM）设置适当"
 
-#: ../../source/configuration.rst:637
+#: ../../source/configuration.rst:631
 msgid "For Azure, verify api_version is correct"
 msgstr "对于 Azure，请验证 api_version 是否正确"
 
-#: ../../source/configuration.rst:639
+#: ../../source/configuration.rst:633
 msgid "**Rate limit errors (429)?**"
 msgstr "**速率限制错误（429）？**"
 
-#: ../../source/configuration.rst:641
+#: ../../source/configuration.rst:635
 msgid "Check TPM/RPM limits in your deployment configuration"
 msgstr "检查部署配置中的 TPM/RPM 限制"
 
-#: ../../source/configuration.rst:642
+#: ../../source/configuration.rst:636
 msgid "Reduce request frequency or increase limits"
 msgstr "降低请求频率或提高限制"
 
-#: ../../source/configuration.rst:643
+#: ../../source/configuration.rst:637
 msgid "Enable caching to reduce API calls"
 msgstr "启用缓存以减少 API 调用"
 
-#: ../../source/configuration.rst:644
+#: ../../source/configuration.rst:638
 msgid "Consider adding fallback providers"
 msgstr "考虑添加备选提供商"
 
-#: ../../source/configuration.rst:646
+#: ../../source/configuration.rst:640
 msgid "**Request timeout errors?**"
 msgstr "**请求超时错误？**"
 
-#: ../../source/configuration.rst:648
+#: ../../source/configuration.rst:642
 msgid "Increase ``timeout`` value in [llm] section"
 msgstr "增大 [llm] 部分的 ``timeout`` 值"
 
-#: ../../source/configuration.rst:649
+#: ../../source/configuration.rst:643
 msgid "Check network connectivity to API endpoint"
 msgstr "检查到 API 端点的网络连通性"
 
-#: ../../source/configuration.rst:650
+#: ../../source/configuration.rst:644
 msgid "For local models, increase timeout to 300+ seconds"
 msgstr "对于本地模型，将超时时间增加到 300 秒以上"
 
-#: ../../source/configuration.rst:652
+#: ../../source/configuration.rst:646
 msgid "**Structured output parsing errors?**"
 msgstr "**结构化输出解析错误？**"
 
-#: ../../source/configuration.rst:654
+#: ../../source/configuration.rst:648
 msgid "Ensure response_format is a Pydantic BaseModel"
 msgstr "确保 response_format 是一个 Pydantic BaseModel"
 
-#: ../../source/configuration.rst:655
+#: ../../source/configuration.rst:649
 msgid "Check that your model supports structured output"
 msgstr "检查你的模型是否支持结构化输出"
 
-#: ../../source/configuration.rst:656
+#: ../../source/configuration.rst:650
 msgid "Verify temperature is set appropriately (lower values help)"
 msgstr "验证 temperature 设置是否适当（较低的值有助于稳定输出）"
 
-#: ../../source/configuration.rst:658
+#: ../../source/configuration.rst:652
 msgid "**Cache database errors?**"
 msgstr "**缓存数据库错误？**"
 
-#: ../../source/configuration.rst:660
+#: ../../source/configuration.rst:654
 msgid "Ensure the cache directory exists and is writable"
 msgstr "确保缓存目录存在且可写"
 
-#: ../../source/configuration.rst:661
+#: ../../source/configuration.rst:655
 msgid "Check disk space availability"
 msgstr "检查磁盘空间可用性"
 
-#: ../../source/configuration.rst:662
+#: ../../source/configuration.rst:656
 msgid "Delete the cache file to reset if corrupted"
 msgstr "如果缓存文件损坏，删除该文件以重置"
 
-#: ../../source/configuration.rst:664
+#: ../../source/configuration.rst:658
 msgid "**Debug logging not showing?**"
 msgstr "**调试日志未显示？**"
 
-#: ../../source/configuration.rst:666
+#: ../../source/configuration.rst:660
 msgid "Set ``log_level = \"TRACE\"`` for most verbose output"
 msgstr "设置 ``log_level = \"TRACE\"`` 以获取最详细的输出"
 
-#: ../../source/configuration.rst:667
+#: ../../source/configuration.rst:661
 msgid "Check that debug config is in the correct section"
 msgstr "检查调试配置是否在正确的章节中"
 
-#: ../../source/configuration.rst:668
+#: ../../source/configuration.rst:662
 msgid "Verify no other configuration is overriding it"
 msgstr "确认没有其他配置覆盖了该设置"
 
-#: ../../source/configuration.rst:670
+#: ../../source/configuration.rst:664
 msgid "**Model not found errors?**"
 msgstr "**模型未找到错误？**"
 
-#: ../../source/configuration.rst:672
+#: ../../source/configuration.rst:666
 msgid "Verify deployment ID matches provider naming (provider/model-name)"
 msgstr "验证部署 ID 与提供商命名格式匹配（provider/model-name）"
 
-#: ../../source/configuration.rst:673
+#: ../../source/configuration.rst:667
 msgid "Check that the model is available in your account/region"
 msgstr "检查该模型在你的账户/区域中是否可用"
 
-#: ../../source/configuration.rst:674
+#: ../../source/configuration.rst:668
 msgid "For local models, ensure the server is running"
 msgstr "对于本地模型，确保服务器正在运行"
 
-#: ../../source/configuration.rst:677
+#: ../../source/configuration.rst:671
 msgid "Common Configuration Patterns"
 msgstr "常见配置模式"
 
-#: ../../source/configuration.rst:680
+#: ../../source/configuration.rst:674
 msgid "Pattern 1: Development with Local Caching"
 msgstr "模式 1：使用本地缓存的开发环境"
 
-#: ../../source/configuration.rst:703
+#: ../../source/configuration.rst:697
 msgid "Pattern 2: Production with Multiple Tiers"
 msgstr "模式 2：多层级生产环境"
 
-#: ../../source/configuration.rst:729
+#: ../../source/configuration.rst:723
 msgid "Pattern 3: Cost-Optimized Setup"
 msgstr "模式 3：成本优化配置"
 
-#: ../../source/configuration.rst:749
+#: ../../source/configuration.rst:743
 msgid "Migration Guide"
 msgstr "迁移指南"
 
-#: ../../source/configuration.rst:752
+#: ../../source/configuration.rst:746
 msgid "Migrating from v0.x to v1.x"
 msgstr "从 v0.x 迁移到 v1.x"
 
-#: ../../source/configuration.rst:754
+#: ../../source/configuration.rst:748
 msgid "The configuration format has been updated:"
 msgstr "配置格式已更新："
 
-#: ../../source/configuration.rst:756
+#: ../../source/configuration.rst:750
 msgid "**Old format:**"
 msgstr "**旧格式：**"
 
-#: ../../source/configuration.rst:763
+#: ../../source/configuration.rst:757
 msgid "**New format:**"
 msgstr "**新格式：**"
 
-#: ../../source/configuration.rst:770
+#: ../../source/configuration.rst:764
 msgid "Key changes:"
 msgstr "主要变更："
 
-#: ../../source/configuration.rst:772
+#: ../../source/configuration.rst:766
 msgid ""
 "``[fabricatio]`` section renamed to specific sections (``[debug]``, "
 "``[llm]``, ``[routing]``)"
 msgstr "``[fabricatio]`` 部分已重命名为具体章节（ ``[debug]`` 、 ``[llm]`` 、 ``[routing]`` ）"
 
-#: ../../source/configuration.rst:773
+#: ../../source/configuration.rst:767
 msgid "Provider configuration uses inline TOML tables"
 msgstr "提供商配置使用内联 TOML 表"
 
-#: ../../source/configuration.rst:774
+#: ../../source/configuration.rst:768
 msgid "Environment variables now use double underscores for nesting"
 msgstr "环境变量现在使用双下划线进行嵌套"
 
-#: ../../source/configuration.rst:776
+#: ../../source/configuration.rst:770
 msgid ""
 "For more information, see the `full migration guide "
 "<https://fabricatio.readthedocs.io/en/latest/migration.html>`_."
@@ -741,4 +664,67 @@ msgstr ""
 
 #~ msgid "**Builtin Defaults** - Default values provided by the library"
 #~ msgstr "**内置默认值** - 库提供的默认值"
+
+#~ msgid "Key"
+#~ msgstr "键"
+
+#~ msgid "Description"
+#~ msgstr "描述"
+
+#~ msgid "Default"
+#~ msgstr "默认值"
+
+#~ msgid "``log_level``"
+#~ msgstr "``log_level``"
+
+#~ msgid "Logging level"
+#~ msgstr "日志级别"
+
+#~ msgid "``INFO``"
+#~ msgstr "``INFO``"
+
+#~ msgid "``send_to``"
+#~ msgstr "``send_to``"
+
+#~ msgid "Default routing group"
+#~ msgstr "默认路由分组"
+
+#~ msgid "``base``"
+#~ msgstr "``base``"
+
+#~ msgid "``max_completion_tokens``"
+#~ msgstr "``max_completion_tokens``"
+
+#~ msgid "Max tokens in response"
+#~ msgstr "响应中的最大 token 数"
+
+#~ msgid "``16000``"
+#~ msgstr "``16000``"
+
+#~ msgid "``stream``"
+#~ msgstr "``stream``"
+
+#~ msgid "Enable streaming responses"
+#~ msgstr "启用流式响应"
+
+#~ msgid "``false``"
+#~ msgstr "``false``"
+
+#~ msgid "``temperature``"
+#~ msgstr "``temperature``"
+
+#~ msgid "Sampling temperature"
+#~ msgstr "采样温度"
+
+#~ msgid "``1.0``"
+#~ msgstr "``1.0``"
+
+#~ msgid "``top_p``                | Nucleus sampling threshold"
+#~ msgstr "``top_p``                | 核采样阈值"
+
+#~ msgid "``timeout``              | Request timeout (seconds)"
+#~ msgstr "``timeout``              | 请求超时时间（秒）"
+
+#~ msgid "``120``"
+#~ msgstr "``120``"
 

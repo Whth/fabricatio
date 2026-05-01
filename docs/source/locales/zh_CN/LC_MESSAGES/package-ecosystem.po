@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fabricatio \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-30 20:44+0800\n"
+"POT-Creation-Date: 2026-05-01 20:30+0800\n"
 "PO-Revision-Date: 2026-04-30 20:44+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_CN\n"
@@ -41,486 +41,120 @@ msgid ""
 "dependencies between packages:"
 msgstr "下图展示了各包之间的高层架构和依赖关系："
 
-#: ../../source/package-ecosystem.rst:56
+#: ../../source/package-ecosystem.rst:58
 msgid "Package Categories"
 msgstr "包分类"
 
-#: ../../source/package-ecosystem.rst:59
+#: ../../source/package-ecosystem.rst:61
 msgid "Capability Packages"
 msgstr "能力包"
 
-#: ../../source/package-ecosystem.rst:61
+#: ../../source/package-ecosystem.rst:63
 msgid ""
 "These packages provide domain-specific capabilities that can be mixed "
 "into your Roles:"
 msgstr "这些包提供领域特定的能力，可以混入你的角色中："
 
-#: ../../source/package-ecosystem.rst:64 ../../source/package-ecosystem.rst:123
-#: ../../source/package-ecosystem.rst:136
-msgid "Package"
-msgstr "包"
+#: ../../source/package-ecosystem.rst:67
+msgid ""
+"The ``sphinxcontrib-mermaid`` package that renders these diagrams is "
+"`seeking new maintainers <https://github.com/mgaitan/sphinxcontrib-"
+"mermaid/issues/148>`_. Consider contributing if you're interested."
+msgstr ""
 
-#: ../../source/package-ecosystem.rst:64 ../../source/package-ecosystem.rst:123
-#: ../../source/package-ecosystem.rst:136
-#: ../../source/package-ecosystem.rst:148
-msgid "Purpose"
-msgstr "用途"
-
-#: ../../source/package-ecosystem.rst:66
-msgid "``fabricatio-capabilities``"
-msgstr "``fabricatio-capabilities``"
-
-#: ../../source/package-ecosystem.rst:66
-msgid "Core capabilities: Extract, Propose, Rating, Task"
-msgstr "核心能力：Extract、Propose、Rating、Task"
-
-#: ../../source/package-ecosystem.rst:68
-msgid "``fabricatio-rag``"
-msgstr "``fabricatio-rag``"
-
-#: ../../source/package-ecosystem.rst:68
-msgid "Retrieval-Augmented Generation with Milvus integration"
-msgstr "检索增强生成，集成 Milvus"
-
-#: ../../source/package-ecosystem.rst:70
-msgid "``fabricatio-rule``"
-msgstr "``fabricatio-rule``"
-
-#: ../../source/package-ecosystem.rst:70
-msgid "Rule-based content validation, correction, and enforcement"
-msgstr "基于规则的内容验证、纠正和执行"
-
-#: ../../source/package-ecosystem.rst:72
-msgid "``fabricatio-judge``"
-msgstr "``fabricatio-judge``"
-
-#: ../../source/package-ecosystem.rst:72
-msgid "Evidence-based decision making and content evaluation"
-msgstr "基于证据的决策和内容评估"
-
-#: ../../source/package-ecosystem.rst:74
-msgid "``fabricatio-agent``"
-msgstr "``fabricatio-agent``"
-
-#: ../../source/package-ecosystem.rst:74
-msgid "Full AI agent framework with autonomous task fulfillment"
-msgstr "完整的 AI 代理框架，支持自主任务完成"
-
-#: ../../source/package-ecosystem.rst:76
-msgid "``fabricatio-memory``"
-msgstr "``fabricatio-memory``"
-
-#: ../../source/package-ecosystem.rst:76
-msgid "Long-term and short-term memory management for agents"
-msgstr "代理的长期和短期记忆管理"
-
-#: ../../source/package-ecosystem.rst:78
-msgid "``fabricatio-actions``"
-msgstr "``fabricatio-actions``"
-
-#: ../../source/package-ecosystem.rst:78
-msgid "File system operations and output management actions"
-msgstr "文件系统操作和输出管理动作"
-
-#: ../../source/package-ecosystem.rst:80
-msgid "``fabricatio-improve``"
-msgstr "``fabricatio-improve``"
-
-#: ../../source/package-ecosystem.rst:80
-msgid "Content review, correction, and refinement"
-msgstr "内容审查、纠正和优化"
-
-#: ../../source/package-ecosystem.rst:82
-msgid "``fabricatio-digest``"
-msgstr "``fabricatio-digest``"
-
-#: ../../source/package-ecosystem.rst:82
-msgid "Raw requirement parsing and task list generation"
-msgstr "原始需求解析和任务列表生成"
-
-#: ../../source/package-ecosystem.rst:84
-msgid "``fabricatio-tagging``"
-msgstr "``fabricatio-tagging``"
-
-#: ../../source/package-ecosystem.rst:84
-msgid "Intelligent data classification and tag management"
-msgstr "智能数据分类和标签管理"
-
-#: ../../source/package-ecosystem.rst:86
-msgid "``fabricatio-translate``"
-msgstr "``fabricatio-translate``"
-
-#: ../../source/package-ecosystem.rst:86
-msgid "Multi-language translation with batch processing"
-msgstr "多语言翻译，支持批量处理"
-
-#: ../../source/package-ecosystem.rst:88
-msgid "``fabricatio-typst``"
-msgstr "``fabricatio-typst``"
-
-#: ../../source/package-ecosystem.rst:88
-msgid "Academic content generation in Typst format"
-msgstr "Typst 格式的学术内容生成"
-
-#: ../../source/package-ecosystem.rst:90
-msgid "``fabricatio-tool``"
-msgstr "``fabricatio-tool``"
-
-#: ../../source/package-ecosystem.rst:90
-msgid "Dynamic tool discovery and native Python execution"
-msgstr "动态工具发现和原生 Python 执行"
-
-#: ../../source/package-ecosystem.rst:92
-msgid "``fabricatio-plot``"
-msgstr "``fabricatio-plot``"
-
-#: ../../source/package-ecosystem.rst:92
-msgid "Publication-quality matplotlib charts from dataframes"
-msgstr "从 DataFrame 生成出版级 matplotlib 图表"
-
-#: ../../source/package-ecosystem.rst:94
-msgid "``fabricatio-locale``"
-msgstr "``fabricatio-locale``"
-
-#: ../../source/package-ecosystem.rst:94
-msgid "PO file-based internationalization support"
-msgstr "基于 PO 文件的国际化支持"
-
-#: ../../source/package-ecosystem.rst:96
-msgid "``fabricatio-thinking``"
-msgstr "``fabricatio-thinking``"
-
-#: ../../source/package-ecosystem.rst:96
-msgid "Version-controlled sequential reasoning process"
-msgstr "版本控制的顺序推理过程"
-
-#: ../../source/package-ecosystem.rst:98
-msgid "``fabricatio-team``"
-msgstr "``fabricatio-team``"
-
-#: ../../source/package-ecosystem.rst:98
-msgid "Multi-agent collaboration and role-based coordination"
-msgstr "多代理协作和基于角色的协调"
-
-#: ../../source/package-ecosystem.rst:100
-msgid "``fabricatio-character``"
-msgstr "``fabricatio-character``"
-
-#: ../../source/package-ecosystem.rst:100
-msgid "Character profile generation for narrative content"
-msgstr "叙事内容的角色档案生成"
-
-#: ../../source/package-ecosystem.rst:102
-msgid "``fabricatio-novel``"
-msgstr "``fabricatio-novel``"
-
-#: ../../source/package-ecosystem.rst:102
-msgid "End-to-end novel generation with character integration"
-msgstr "端到端小说生成，集成角色系统"
-
-#: ../../source/package-ecosystem.rst:104
-msgid "``fabricatio-checkpoint``"
-msgstr "``fabricatio-checkpoint``"
-
-#: ../../source/package-ecosystem.rst:104
-msgid "Git-like workflow state versioning and rollback"
-msgstr "类似 Git 的工作流状态版本控制和回滚"
-
-#: ../../source/package-ecosystem.rst:106
-msgid "``fabricatio-milvus``"
-msgstr "``fabricatio-milvus``"
-
-#: ../../source/package-ecosystem.rst:106
-msgid "Milvus vector database integration for RAG"
-msgstr "Milvus 向量数据库集成，用于 RAG"
-
-#: ../../source/package-ecosystem.rst:108
-msgid "``fabricatio-anki``"
-msgstr "``fabricatio-anki``"
-
-#: ../../source/package-ecosystem.rst:108
-msgid "AI-powered Anki flashcard deck generation"
-msgstr "AI 驱动的 Anki 闪卡牌组生成"
-
-#: ../../source/package-ecosystem.rst:110
-msgid "``fabricatio-question``"
-msgstr "``fabricatio-question``"
-
-#: ../../source/package-ecosystem.rst:110
-msgid "Strategic questioning for planning and info gathering"
-msgstr "用于规划和信息收集的策略性提问"
-
-#: ../../source/package-ecosystem.rst:112
-msgid "``fabricatio-yue``"
-msgstr "``fabricatio-yue``"
-
-#: ../../source/package-ecosystem.rst:112
-msgid "YuE music generation lyrics composition"
-msgstr "YuE 音乐生成歌词创作"
-
-#: ../../source/package-ecosystem.rst:114
-msgid "``fabricatio-diff``"
-msgstr "``fabricatio-diff``"
-
-#: ../../source/package-ecosystem.rst:114
-msgid "Intelligent diff-based code/text editing"
-msgstr "基于 diff 的智能代码/文本编辑"
-
-#: ../../source/package-ecosystem.rst:116
-msgid "``fabricatio-capable``"
-msgstr "``fabricatio-capable``"
-
-#: ../../source/package-ecosystem.rst:116
-msgid "Dynamic capability assessment and validation"
-msgstr "动态能力评估和验证"
-
-#: ../../source/package-ecosystem.rst:120
+#: ../../source/package-ecosystem.rst:103
 msgid "Integration Packages"
 msgstr "集成包"
 
-#: ../../source/package-ecosystem.rst:125
-msgid "``fabricatio-webui``"
-msgstr "``fabricatio-webui``"
-
-#: ../../source/package-ecosystem.rst:125
-msgid "Web-based user interface"
-msgstr "基于 Web 的用户界面"
-
-#: ../../source/package-ecosystem.rst:127
-msgid ""
-"``fabricatio-workspace``   | Isolated development workspace management "
-"with git"
-msgstr ""
-"``fabricatio-workspace``   | 使用 Git 的隔离开发工作区管理"
-
-#: ../../source/package-ecosystem.rst:129
-msgid "``fabricatio-lod``"
-msgstr "``fabricatio-lod``"
-
-#: ../../source/package-ecosystem.rst:129
-msgid "Level-based context compression *(in development)*"
-msgstr "基于层级的上下文压缩 *（开发中）*"
-
-#: ../../source/package-ecosystem.rst:133
+#: ../../source/package-ecosystem.rst:116
 msgid "Core Packages"
 msgstr "核心包"
 
-#: ../../source/package-ecosystem.rst:138
-msgid "``fabricatio-core``"
-msgstr "``fabricatio-core``"
-
-#: ../../source/package-ecosystem.rst:138
-msgid ""
-"Event system, Role framework, Task engine, Toolbox, File utilities, "
-"Handlebars templating, Type models"
-msgstr ""
-"事件系统、角色框架、任务引擎、工具箱、文件工具、Handlebars 模板、类型模型"
-
-#: ../../source/package-ecosystem.rst:141
-msgid "``fabricatio-mock``"
-msgstr "``fabricatio-mock``"
-
-#: ../../source/package-ecosystem.rst:141
-msgid "Testing utilities with mock LLM roles and fixtures"
-msgstr "使用 mock LLM 角色和 fixture 的测试工具"
-
-#: ../../source/package-ecosystem.rst:145
+#: ../../source/package-ecosystem.rst:128
 msgid "Rust Crates"
 msgstr "Rust Crate"
 
-#: ../../source/package-ecosystem.rst:148
-msgid "Crate"
-msgstr "Crate"
-
-#: ../../source/package-ecosystem.rst:150
-msgid "``fabricatio-config``"
-msgstr "``fabricatio-config``"
-
-#: ../../source/package-ecosystem.rst:150
-msgid "Configuration loading and management"
-msgstr "配置加载和管理"
-
-#: ../../source/package-ecosystem.rst:152
-msgid "``fabricatio-logger``"
-msgstr "``fabricatio-logger``"
-
-#: ../../source/package-ecosystem.rst:152
-msgid "Structured logging utilities"
-msgstr "结构化日志工具"
-
-#: ../../source/package-ecosystem.rst:154
-msgid "``fabricatio-constants``"
-msgstr "``fabricatio-constants``"
-
-#: ../../source/package-ecosystem.rst:154
-msgid "Constants and shared values"
-msgstr "常量和共享值"
-
-#: ../../source/package-ecosystem.rst:156
-msgid "``fabricatio-stubgen``"
-msgstr "``fabricatio-stubgen``"
-
-#: ../../source/package-ecosystem.rst:156
-msgid "Python stub file generation"
-msgstr "Python 存根文件生成"
-
-#: ../../source/package-ecosystem.rst:158
-msgid "``thryd``"
-msgstr "``thryd``"
-
-#: ../../source/package-ecosystem.rst:158
-msgid "Router engine: routing, caching, rate limiting"
-msgstr "路由引擎：路由、缓存、速率限制"
-
-#: ../../source/package-ecosystem.rst:160
-msgid "``utils``"
-msgstr "``utils``"
-
-#: ../../source/package-ecosystem.rst:160
-msgid "Shared utility functions (Arc/Mutex wrapper)"
-msgstr "共享工具函数（Arc/Mutex 封装）"
-
-#: ../../source/package-ecosystem.rst:162
-msgid "``macro-utils``"
-msgstr "``macro-utils``"
-
-#: ../../source/package-ecosystem.rst:162
-msgid "Procedural macro utilities (TemplateDefault derive)"
-msgstr "过程宏工具（TemplateDefault derive）"
-
-#: ../../source/package-ecosystem.rst:164
-msgid "``signify``"
-msgstr "``signify``"
-
-#: ../../source/package-ecosystem.rst:164
-msgid "JSON Schema to Python signature converter"
-msgstr "JSON Schema 到 Python 签名的转换器"
-
-#: ../../source/package-ecosystem.rst:166
-msgid "``error-mapping``"
-msgstr "``error-mapping``"
-
-#: ../../source/package-ecosystem.rst:166
-msgid "Rust error to Python exception mapping"
-msgstr "Rust 错误到 Python 异常的映射"
-
-#: ../../source/package-ecosystem.rst:168
-msgid "``tex-convertor``"
-msgstr "``tex-convertor``"
-
-#: ../../source/package-ecosystem.rst:168
-msgid "LaTeX to Typst conversion"
-msgstr "LaTeX 到 Typst 的转换"
-
-#: ../../source/package-ecosystem.rst:170
-msgid "``scanner``"
-msgstr "``scanner``"
-
-#: ../../source/package-ecosystem.rst:170
-msgid "Python package filesystem scanner"
-msgstr "Python 包文件系统扫描器"
-
-#: ../../source/package-ecosystem.rst:172
-msgid "``mcp-manager``"
-msgstr "``mcp-manager``"
-
-#: ../../source/package-ecosystem.rst:172
-msgid "Model Context Protocol client manager"
-msgstr "Model Context Protocol 客户端管理器"
-
-#: ../../source/package-ecosystem.rst:174
-msgid "``deck_loader``"
-msgstr "``deck_loader``"
-
-#: ../../source/package-ecosystem.rst:174
-msgid "Anki deck file loading/generation"
-msgstr "Anki 牌组文件加载/生成"
-
-#: ../../source/package-ecosystem.rst:178
-msgid "Quick Reference by Use Case"
-msgstr "按用例快速参考"
-
-#: ../../source/package-ecosystem.rst:180
+#: ../../source/package-ecosystem.rst:144
 msgid "**Simple Chat Agent**"
 msgstr "**简单对话代理**"
 
-#: ../../source/package-ecosystem.rst:181
+#: ../../source/package-ecosystem.rst:145
 msgid "``fabricatio-core`` + ``fabricatio-capabilities``"
 msgstr "``fabricatio-core`` + ``fabricatio-capabilities``"
 
-#: ../../source/package-ecosystem.rst:183
+#: ../../source/package-ecosystem.rst:147
 msgid "**RAG Application**"
 msgstr "**RAG 应用**"
 
-#: ../../source/package-ecosystem.rst:184
+#: ../../source/package-ecosystem.rst:148
 msgid "``fabricatio-rag`` or ``fabricatio-milvus``"
 msgstr "``fabricatio-rag`` 或 ``fabricatio-milvus``"
 
-#: ../../source/package-ecosystem.rst:186
+#: ../../source/package-ecosystem.rst:150
 msgid "**Code Review**"
 msgstr "**代码审查**"
 
-#: ../../source/package-ecosystem.rst:187
+#: ../../source/package-ecosystem.rst:151
 msgid "``fabricatio-core`` + ``fabricatio-capabilities`` + ``fabricatio-diff``"
 msgstr "``fabricatio-core`` + ``fabricatio-capabilities`` + ``fabricatio-diff``"
 
-#: ../../source/package-ecosystem.rst:189
+#: ../../source/package-ecosystem.rst:153
 msgid "**Content Generation**"
 msgstr "**内容生成**"
 
-#: ../../source/package-ecosystem.rst:190
+#: ../../source/package-ecosystem.rst:154
 msgid "``fabricatio-core`` + ``fabricatio-improve`` + ``fabricatio-digest``"
 msgstr "``fabricatio-core`` + ``fabricatio-improve`` + ``fabricatio-digest``"
 
-#: ../../source/package-ecosystem.rst:192
+#: ../../source/package-ecosystem.rst:156
 msgid "**Multi-Agent System**"
 msgstr "**多代理系统**"
 
-#: ../../source/package-ecosystem.rst:193
+#: ../../source/package-ecosystem.rst:157
 msgid "``fabricatio-agent`` + ``fabricatio-team``"
 msgstr "``fabricatio-agent`` + ``fabricatio-team``"
 
-#: ../../source/package-ecosystem.rst:195
+#: ../../source/package-ecosystem.rst:159
 msgid "**Document Processing**"
 msgstr "**文档处理**"
 
-#: ../../source/package-ecosystem.rst:196
+#: ../../source/package-ecosystem.rst:160
 msgid "``fabricatio-core`` + ``fabricatio-rule`` + ``fabricatio-typst``"
 msgstr "``fabricatio-core`` + ``fabricatio-rule`` + ``fabricatio-typst``"
 
-#: ../../source/package-ecosystem.rst:198
+#: ../../source/package-ecosystem.rst:162
 msgid "**Translation**"
 msgstr "**翻译**"
 
-#: ../../source/package-ecosystem.rst:199
+#: ../../source/package-ecosystem.rst:163
 msgid "``fabricatio-translate`` + ``fabricatio-locale``"
 msgstr "``fabricatio-translate`` + ``fabricatio-locale``"
 
-#: ../../source/package-ecosystem.rst:201
+#: ../../source/package-ecosystem.rst:165
 msgid "**Academic Writing**"
 msgstr "**学术写作**"
 
-#: ../../source/package-ecosystem.rst:202
+#: ../../source/package-ecosystem.rst:166
 msgid "``fabricatio-typst`` + ``fabricatio-rag``"
 msgstr "``fabricatio-typst`` + ``fabricatio-rag``"
 
-#: ../../source/package-ecosystem.rst:204
+#: ../../source/package-ecosystem.rst:168
 msgid "**Novel Writing**"
 msgstr "**小说写作**"
 
-#: ../../source/package-ecosystem.rst:205
+#: ../../source/package-ecosystem.rst:169
 msgid "``fabricatio-novel`` + ``fabricatio-character``"
 msgstr "``fabricatio-novel`` + ``fabricatio-character``"
 
-#: ../../source/package-ecosystem.rst:207
+#: ../../source/package-ecosystem.rst:171
 msgid "**Flashcard Learning**"
 msgstr "**闪卡学习**"
 
-#: ../../source/package-ecosystem.rst:208
+#: ../../source/package-ecosystem.rst:172
 msgid "``fabricatio-anki`` + ``fabricatio-capabilities``"
 msgstr "``fabricatio-anki`` + ``fabricatio-capabilities``"
 
-#: ../../source/package-ecosystem.rst:211
+#: ../../source/package-ecosystem.rst:175
 msgid "Package Dependencies Graph"
 msgstr "包依赖关系图"
 
@@ -580,3 +214,282 @@ msgstr "包依赖关系图"
 
 #~ msgid "External Dependencies Summary"
 #~ msgstr "外部依赖概览"
+
+#~ msgid "Package"
+#~ msgstr "包"
+
+#~ msgid "Purpose"
+#~ msgstr "用途"
+
+#~ msgid "``fabricatio-capabilities``"
+#~ msgstr "``fabricatio-capabilities``"
+
+#~ msgid "Core capabilities: Extract, Propose, Rating, Task"
+#~ msgstr "核心能力：Extract、Propose、Rating、Task"
+
+#~ msgid "``fabricatio-rag``"
+#~ msgstr "``fabricatio-rag``"
+
+#~ msgid "Retrieval-Augmented Generation with Milvus integration"
+#~ msgstr "检索增强生成，集成 Milvus"
+
+#~ msgid "``fabricatio-rule``"
+#~ msgstr "``fabricatio-rule``"
+
+#~ msgid "Rule-based content validation, correction, and enforcement"
+#~ msgstr "基于规则的内容验证、纠正和执行"
+
+#~ msgid "``fabricatio-judge``"
+#~ msgstr "``fabricatio-judge``"
+
+#~ msgid "Evidence-based decision making and content evaluation"
+#~ msgstr "基于证据的决策和内容评估"
+
+#~ msgid "``fabricatio-agent``"
+#~ msgstr "``fabricatio-agent``"
+
+#~ msgid "Full AI agent framework with autonomous task fulfillment"
+#~ msgstr "完整的 AI 代理框架，支持自主任务完成"
+
+#~ msgid "``fabricatio-memory``"
+#~ msgstr "``fabricatio-memory``"
+
+#~ msgid "Long-term and short-term memory management for agents"
+#~ msgstr "代理的长期和短期记忆管理"
+
+#~ msgid "``fabricatio-actions``"
+#~ msgstr "``fabricatio-actions``"
+
+#~ msgid "File system operations and output management actions"
+#~ msgstr "文件系统操作和输出管理动作"
+
+#~ msgid "``fabricatio-improve``"
+#~ msgstr "``fabricatio-improve``"
+
+#~ msgid "Content review, correction, and refinement"
+#~ msgstr "内容审查、纠正和优化"
+
+#~ msgid "``fabricatio-digest``"
+#~ msgstr "``fabricatio-digest``"
+
+#~ msgid "Raw requirement parsing and task list generation"
+#~ msgstr "原始需求解析和任务列表生成"
+
+#~ msgid "``fabricatio-tagging``"
+#~ msgstr "``fabricatio-tagging``"
+
+#~ msgid "Intelligent data classification and tag management"
+#~ msgstr "智能数据分类和标签管理"
+
+#~ msgid "``fabricatio-translate``"
+#~ msgstr "``fabricatio-translate``"
+
+#~ msgid "Multi-language translation with batch processing"
+#~ msgstr "多语言翻译，支持批量处理"
+
+#~ msgid "``fabricatio-typst``"
+#~ msgstr "``fabricatio-typst``"
+
+#~ msgid "Academic content generation in Typst format"
+#~ msgstr "Typst 格式的学术内容生成"
+
+#~ msgid "``fabricatio-tool``"
+#~ msgstr "``fabricatio-tool``"
+
+#~ msgid "Dynamic tool discovery and native Python execution"
+#~ msgstr "动态工具发现和原生 Python 执行"
+
+#~ msgid "``fabricatio-plot``"
+#~ msgstr "``fabricatio-plot``"
+
+#~ msgid "Publication-quality matplotlib charts from dataframes"
+#~ msgstr "从 DataFrame 生成出版级 matplotlib 图表"
+
+#~ msgid "``fabricatio-locale``"
+#~ msgstr "``fabricatio-locale``"
+
+#~ msgid "PO file-based internationalization support"
+#~ msgstr "基于 PO 文件的国际化支持"
+
+#~ msgid "``fabricatio-thinking``"
+#~ msgstr "``fabricatio-thinking``"
+
+#~ msgid "Version-controlled sequential reasoning process"
+#~ msgstr "版本控制的顺序推理过程"
+
+#~ msgid "``fabricatio-team``"
+#~ msgstr "``fabricatio-team``"
+
+#~ msgid "Multi-agent collaboration and role-based coordination"
+#~ msgstr "多代理协作和基于角色的协调"
+
+#~ msgid "``fabricatio-character``"
+#~ msgstr "``fabricatio-character``"
+
+#~ msgid "Character profile generation for narrative content"
+#~ msgstr "叙事内容的角色档案生成"
+
+#~ msgid "``fabricatio-novel``"
+#~ msgstr "``fabricatio-novel``"
+
+#~ msgid "End-to-end novel generation with character integration"
+#~ msgstr "端到端小说生成，集成角色系统"
+
+#~ msgid "``fabricatio-checkpoint``"
+#~ msgstr "``fabricatio-checkpoint``"
+
+#~ msgid "Git-like workflow state versioning and rollback"
+#~ msgstr "类似 Git 的工作流状态版本控制和回滚"
+
+#~ msgid "``fabricatio-milvus``"
+#~ msgstr "``fabricatio-milvus``"
+
+#~ msgid "Milvus vector database integration for RAG"
+#~ msgstr "Milvus 向量数据库集成，用于 RAG"
+
+#~ msgid "``fabricatio-anki``"
+#~ msgstr "``fabricatio-anki``"
+
+#~ msgid "AI-powered Anki flashcard deck generation"
+#~ msgstr "AI 驱动的 Anki 闪卡牌组生成"
+
+#~ msgid "``fabricatio-question``"
+#~ msgstr "``fabricatio-question``"
+
+#~ msgid "Strategic questioning for planning and info gathering"
+#~ msgstr "用于规划和信息收集的策略性提问"
+
+#~ msgid "``fabricatio-yue``"
+#~ msgstr "``fabricatio-yue``"
+
+#~ msgid "YuE music generation lyrics composition"
+#~ msgstr "YuE 音乐生成歌词创作"
+
+#~ msgid "``fabricatio-diff``"
+#~ msgstr "``fabricatio-diff``"
+
+#~ msgid "Intelligent diff-based code/text editing"
+#~ msgstr "基于 diff 的智能代码/文本编辑"
+
+#~ msgid "``fabricatio-capable``"
+#~ msgstr "``fabricatio-capable``"
+
+#~ msgid "Dynamic capability assessment and validation"
+#~ msgstr "动态能力评估和验证"
+
+#~ msgid "``fabricatio-webui``"
+#~ msgstr "``fabricatio-webui``"
+
+#~ msgid "Web-based user interface"
+#~ msgstr "基于 Web 的用户界面"
+
+#~ msgid ""
+#~ "``fabricatio-workspace``   | Isolated "
+#~ "development workspace management with git"
+#~ msgstr "``fabricatio-workspace``   | 使用 Git 的隔离开发工作区管理"
+
+#~ msgid "``fabricatio-lod``"
+#~ msgstr "``fabricatio-lod``"
+
+#~ msgid "Level-based context compression *(in development)*"
+#~ msgstr "基于层级的上下文压缩 *（开发中）*"
+
+#~ msgid "``fabricatio-core``"
+#~ msgstr "``fabricatio-core``"
+
+#~ msgid ""
+#~ "Event system, Role framework, Task "
+#~ "engine, Toolbox, File utilities, Handlebars"
+#~ " templating, Type models"
+#~ msgstr "事件系统、角色框架、任务引擎、工具箱、文件工具、Handlebars 模板、类型模型"
+
+#~ msgid "``fabricatio-mock``"
+#~ msgstr "``fabricatio-mock``"
+
+#~ msgid "Testing utilities with mock LLM roles and fixtures"
+#~ msgstr "使用 mock LLM 角色和 fixture 的测试工具"
+
+#~ msgid "Crate"
+#~ msgstr "Crate"
+
+#~ msgid "``fabricatio-config``"
+#~ msgstr "``fabricatio-config``"
+
+#~ msgid "Configuration loading and management"
+#~ msgstr "配置加载和管理"
+
+#~ msgid "``fabricatio-logger``"
+#~ msgstr "``fabricatio-logger``"
+
+#~ msgid "Structured logging utilities"
+#~ msgstr "结构化日志工具"
+
+#~ msgid "``fabricatio-constants``"
+#~ msgstr "``fabricatio-constants``"
+
+#~ msgid "Constants and shared values"
+#~ msgstr "常量和共享值"
+
+#~ msgid "``fabricatio-stubgen``"
+#~ msgstr "``fabricatio-stubgen``"
+
+#~ msgid "Python stub file generation"
+#~ msgstr "Python 存根文件生成"
+
+#~ msgid "``thryd``"
+#~ msgstr "``thryd``"
+
+#~ msgid "Router engine: routing, caching, rate limiting"
+#~ msgstr "路由引擎：路由、缓存、速率限制"
+
+#~ msgid "``utils``"
+#~ msgstr "``utils``"
+
+#~ msgid "Shared utility functions (Arc/Mutex wrapper)"
+#~ msgstr "共享工具函数（Arc/Mutex 封装）"
+
+#~ msgid "``macro-utils``"
+#~ msgstr "``macro-utils``"
+
+#~ msgid "Procedural macro utilities (TemplateDefault derive)"
+#~ msgstr "过程宏工具（TemplateDefault derive）"
+
+#~ msgid "``signify``"
+#~ msgstr "``signify``"
+
+#~ msgid "JSON Schema to Python signature converter"
+#~ msgstr "JSON Schema 到 Python 签名的转换器"
+
+#~ msgid "``error-mapping``"
+#~ msgstr "``error-mapping``"
+
+#~ msgid "Rust error to Python exception mapping"
+#~ msgstr "Rust 错误到 Python 异常的映射"
+
+#~ msgid "``tex-convertor``"
+#~ msgstr "``tex-convertor``"
+
+#~ msgid "LaTeX to Typst conversion"
+#~ msgstr "LaTeX 到 Typst 的转换"
+
+#~ msgid "``scanner``"
+#~ msgstr "``scanner``"
+
+#~ msgid "Python package filesystem scanner"
+#~ msgstr "Python 包文件系统扫描器"
+
+#~ msgid "``mcp-manager``"
+#~ msgstr "``mcp-manager``"
+
+#~ msgid "Model Context Protocol client manager"
+#~ msgstr "Model Context Protocol 客户端管理器"
+
+#~ msgid "``deck_loader``"
+#~ msgstr "``deck_loader``"
+
+#~ msgid "Anki deck file loading/generation"
+#~ msgstr "Anki 牌组文件加载/生成"
+
+#~ msgid "Quick Reference by Use Case"
+#~ msgstr "按用例快速参考"
+
