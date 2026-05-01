@@ -1,8 +1,8 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::{debug, error, trace};
-use futures::future::join_all;
 use futures::FutureExt;
+use futures::future::join_all;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
@@ -12,9 +12,9 @@ use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
-    create_provider, Completion, CompletionModel, CompletionRequest, CompletionTag,
-    DeploymentIdentifier, DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings,
-    ModelTypeTag, ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter,
+    Completion, CompletionModel, CompletionRequest, CompletionTag, DeploymentIdentifier,
+    DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType,
+    RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -58,20 +58,20 @@ impl Router {
             reqs.into_iter()
                 .map(|req| r.invoke(send_to.clone(), req, no_cache)),
         )
-            .map(|results| {
-                results
-                    .into_iter()
-                    .map(|res| {
-                        if res.is_ok() {
-                            res.ok()
-                        } else {
-                            error!("Error in embedding batch: {:?}", res);
-                            None
-                        }
-                    })
-                    .collect::<Vec<Option<Embeddings>>>()
-            })
-            .await
+        .map(|results| {
+            results
+                .into_iter()
+                .map(|res| {
+                    if res.is_ok() {
+                        res.ok()
+                    } else {
+                        error!("Error in embedding batch: {:?}", res);
+                        None
+                    }
+                })
+                .collect::<Vec<Option<Embeddings>>>()
+        })
+        .await
     }
 
     pub async fn completion_batch_rs(
@@ -93,20 +93,20 @@ impl Router {
             reqs.into_iter()
                 .map(|req| r.invoke(send_to.clone(), req, no_cache)),
         )
-            .map(|results| {
-                results
-                    .into_iter()
-                    .map(|res| {
-                        if res.is_ok() {
-                            res.ok()
-                        } else {
-                            error!("Error in completion batch: {:?}", res);
-                            None
-                        }
-                    })
-                    .collect::<Vec<Option<Completion>>>()
-            })
-            .await
+        .map(|results| {
+            results
+                .into_iter()
+                .map(|res| {
+                    if res.is_ok() {
+                        res.ok()
+                    } else {
+                        error!("Error in completion batch: {:?}", res);
+                        None
+                    }
+                })
+                .collect::<Vec<Option<Completion>>>()
+        })
+        .await
     }
 
     pub async fn completion_rs(
@@ -122,9 +122,7 @@ impl Router {
         r: Arc<ThrydRouter<CompletionTag>>,
         no_cache: bool,
     ) -> PyResult<Completion> {
-        r.invoke(send_to, req, no_cache)
-            .await
-            .into_pyresult()
+        r.invoke(send_to, req, no_cache).await.into_pyresult()
     }
 }
 
@@ -273,9 +271,7 @@ impl Router {
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            r.invoke(send_to, req, no_cache)
-                .await
-                .into_pyresult()
+            r.invoke(send_to, req, no_cache).await.into_pyresult()
         })
     }
 
@@ -339,7 +335,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -452,7 +448,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-            .into_pyresult()?;
+        .into_pyresult()?;
 
         router.add_or_update_provider(p);
     }

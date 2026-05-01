@@ -9,6 +9,8 @@ from typing import Generator, List, Type
 from fabricatio_core import Role, rust
 from fabricatio_core.rust import ProviderType
 
+from fabricatio_mock import DUMMY_LLM_GROUP
+
 
 def code_block(content: str, lang: str = "json") -> str:
     """Generate a code block."""
@@ -20,7 +22,7 @@ def generic_block(content: str, lang: str = "String") -> str:
     return f"--- Start of {lang} ---\n{content}\n--- End of {lang} ---"
 
 
-def setup_dummy_responses(*responses: str, group: str = "llm") -> None:
+def setup_dummy_responses(*responses: str, group: str = DUMMY_LLM_GROUP) -> None:
     """Configure the singleton router with dummy responses for testing.
 
     Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
@@ -35,7 +37,7 @@ def setup_dummy_responses(*responses: str, group: str = "llm") -> None:
 
 
 @contextmanager
-def install_router_usage(*responses: str, group: str = "openai/gpt-3.5-turbo") -> Generator[None, None, None]:
+def install_router_usage(*responses: str, group: str = DUMMY_LLM_GROUP) -> Generator[None, None, None]:
     """Configure the singleton router with dummy responses for testing.
 
     Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),

@@ -4,7 +4,7 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -82,15 +82,15 @@ async def test_aask_branches(
         role_with_llm: Test role with LLM capabilities
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.aask(question=question_input)
-
         if isinstance(question_input, list):
+            result = await role_with_llm.aask(question=question_input)
             # Multiple questions should return a list of responses
             assert isinstance(result, list)
             assert all(isinstance(item, str) for item in result)
             assert len(result) == len(question_input)
             assert all(ret_value == r for r in result)
         else:
+            result = await role_with_llm.aask(question=question_input)
             # Single question should return a single string response
             assert isinstance(result, str)
             assert result == ret_value
@@ -106,12 +106,12 @@ async def test_aask_branches(
     ],
 )
 @pytest.mark.asyncio
-async def test_aask_validate(
+async def test_aask_validate[T](
     mock_router: list[str],
     ret_value: str,
     question_input: str | list[str],
-    validator: Callable[[str], Any],
-    default: Optional[Any],
+    validator: Callable[[str], T | None],
+    default: Optional[T],
     max_validations: int,
     role_with_llm: LLMTestRole,
 ) -> None:
@@ -133,17 +133,22 @@ async def test_aask_validate(
         role_with_llm: Test role with LLM capabilities
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.aask_validate(
-            question=question_input,
-            validator=validator,
-            default=default,
-            max_validations=max_validations,
-        )
-
         if isinstance(question_input, list):
+            result = await role_with_llm.aask_validate(
+                question=question_input,
+                validator=validator,
+                default=default,
+                max_validations=max_validations,
+            )
             assert isinstance(result, list)
             assert all(str(r) == ret_value for r in result)
         else:
+            result = await role_with_llm.aask_validate(
+                question=question_input,
+                validator=validator,
+                default=default,
+                max_validations=max_validations,
+            )
             assert str(result) == ret_value or result == default
 
 

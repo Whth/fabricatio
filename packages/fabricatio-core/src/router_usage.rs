@@ -1,19 +1,19 @@
 use crate::templates::TEMPLATE_MANAGER;
 use crate::{
-    parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER},
     Router,
+    parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER},
 };
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
-use futures::future::join_all;
 use futures::StreamExt;
+use futures::future::join_all;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use thryd::{CompletionRequest, RouteGroupName};
 
@@ -83,9 +83,9 @@ impl RouterUsage {
                 params,
             )
         }))
-            .await
-            .into_iter()
-            .try_collect::<Vec<Option<T>>>()
+        .await
+        .into_iter()
+        .try_collect::<Vec<Option<T>>>()
     }
 
     pub async fn ask_validate_inner<F, T>(
@@ -151,7 +151,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn mapping_str_batch_inner(
@@ -169,7 +169,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn list_str_inner(
         &self,
@@ -186,7 +186,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn list_str_batch_inner(
@@ -204,7 +204,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn generic_str_inner(
         &self,
@@ -220,7 +220,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn generic_str_batch_inner(
@@ -237,7 +237,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn code_str_inner(
         &self,
@@ -253,7 +253,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn code_str_batch_inner(
@@ -270,7 +270,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn code_snippets_inner(
         &self,
@@ -289,7 +289,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn code_snippets_batch_inner(
@@ -309,7 +309,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn judge_inner(
         &self,
@@ -329,7 +329,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn judge_batch_inner(
@@ -350,7 +350,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
     pub async fn choose_inner(
         &self,
@@ -379,7 +379,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 
     pub async fn choose_batch_inner(
@@ -409,7 +409,7 @@ impl RouterUsage {
             max_validations,
             params,
         )
-            .await
+        .await
     }
 }
 

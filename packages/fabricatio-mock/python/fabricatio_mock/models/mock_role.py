@@ -9,7 +9,8 @@ from typing import Optional
 from fabricatio_core import Role
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
-from pydantic import SecretStr
+
+from fabricatio_mock import DUMMY_LLM_GROUP
 
 
 class LLMTestRole(Role, UseLLM):
@@ -19,9 +20,8 @@ class LLMTestRole(Role, UseLLM):
     for testing purposes.
     """
 
-    llm_api_key: Optional[SecretStr] = SecretStr("sk-123456789")
-    llm_send_to: Optional[str] = "openai/gpt-3.5-turbo"
-    llm_api_endpoint: Optional[str] = "https://api.openai.com/v1"
+    llm_send_to: Optional[str] = DUMMY_LLM_GROUP
+    llm_no_cache: Optional[bool] = True
 
 
 class ProposeTestRole(LLMTestRole, Propose):

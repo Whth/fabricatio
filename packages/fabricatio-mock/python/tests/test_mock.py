@@ -1,646 +1,340 @@
-"""Tests for the mock router module.
+"""Tests for the fabricatio-mock package.
 
-This module contains comprehensive tests for all mock router functions,
-including testing async behavior, error handling, and edge cases.
+This module contains comprehensive tests for all mock utilities,
+including Value serialization, router response helpers, role defaults,
+and integration with the dummy router.
 """
-
-from unittest.mock import AsyncMock
 
 import orjson
 import pytest
+from fabricatio_core import Role
+from fabricatio_mock import DUMMY_LLM_GROUP
+from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
-    return_code_string,
-    return_generic_string,
-    return_json_obj_string,
-    return_json_string,
-    return_mixed_string,
-    return_model_json_string,
-    return_python_string,
-    return_string,
+    pad_responses,
+    return_code_router_usage,
+    return_generic_router_usage,
+    return_json_obj_router_usage,
+    return_json_router_usage,
+    return_mixed_router_usage,
+    return_model_json_router_usage,
+    return_python_router_usage,
+    return_router_usage,
+)
+from fabricatio_mock.utils import (
+    code_block,
+    generic_block,
+    make_n_roles,
+    make_roles,
 )
 from pydantic import BaseModel
 
+# =============================================================================
+# Utils: code_block / generic_block
+# =============================================================================
 
-class FakeModel(BaseModel):
-    """Test model for testing purposes."""
 
+class TestCodeBlock:
+    """Tests for the code_block utility."""
+
+    def test_default_lang_json(self) -> None:
+        """Default lang is json and wraps content in fenced block."""
+        result = code_block('{"key": "value"}')
+        assert result == '```json\n{"key": "value"}\n```'
+
+    def test_custom_lang(self) -> None:
+        """Custom lang parameter is reflected in the fence."""
+        result = code_block("print('hi')", lang="python")
+        assert result == "```python\nprint('hi')\n```"
+
+    def test_empty_content(self) -> None:
+        """Empty string still produces a valid fenced block."""
+        result = code_block("")
+        assert result == "```json\n\n```"
+
+
+class TestGenericBlock:
+    """Tests for the generic_block utility."""
+
+    def test_default_lang(self) -> None:
+        """Default lang is String with Start/End markers."""
+        result = generic_block("hello")
+        assert result == "--- Start of String ---\nhello\n--- End of String ---"
+
+    def test_custom_lang(self) -> None:
+        """Custom lang is reflected in the Start/End markers."""
+        result = generic_block("data", lang="Output")
+        assert result == "--- Start of Output ---\ndata\n--- End of Output ---"
+
+    def test_multiline_content(self) -> None:
+        """Multiline content is preserved between markers."""
+        result = generic_block("line1\nline2")
+        expected = "--- Start of String ---\nline1\nline2\n--- End of String ---"
+        assert result == expected
+
+
+# =============================================================================
+# Utils: make_roles / make_n_roles
+# =============================================================================
+
+
+class TestMakeRoles:
+    """Tests for make_roles and make_n_roles."""
+
+    def test_make_roles_returns_correct_count(self) -> None:
+        """Role count matches input name list length."""
+        roles = make_roles(["a", "b", "c"])
+        assert len(roles) == 3
+
+    def test_make_roles_names(self) -> None:
+        """Each role receives the corresponding name."""
+        roles = make_roles(["alpha", "beta"])
+        assert [r.name for r in roles] == ["alpha", "beta"]
+
+    def test_make_roles_all_have_description(self) -> None:
+        """All roles get the default description."""
+        roles = make_roles(["x"])
+        assert all(r.description == "test" for r in roles)
+
+    def test_make_roles_custom_cls(self) -> None:
+        """Custom role_cls is used instead of base Role."""
+        roles = make_roles(["r1"], role_cls=LLMTestRole)
+        assert all(isinstance(r, LLMTestRole) for r in roles)
+
+    def test_make_n_roles_count(self) -> None:
+        """Requested count is honoured."""
+        roles = make_n_roles(5)
+        assert len(roles) == 5
+
+    def test_make_n_roles_naming(self) -> None:
+        """Roles are named 'Role 1', 'Role 2', etc."""
+        roles = make_n_roles(3)
+        assert [r.name for r in roles] == ["Role 1", "Role 2", "Role 3"]
+
+    def test_make_n_roles_zero(self) -> None:
+        """Zero count yields an empty list."""
+        roles = make_n_roles(0)
+        assert roles == []
+
+    def test_make_roles_empty(self) -> None:
+        """Empty name list yields an empty list."""
+        roles = make_roles([])
+        assert roles == []
+
+
+# =============================================================================
+# Mock Router: _pad_responses
+# =============================================================================
+
+
+class TestPadResponses:
+    """Tests for _pad_responses helper."""
+
+    def test_single_value(self) -> None:
+        """Single value is padded to 11 entries with copies of itself."""
+        result = pad_responses("hello")
+        assert result[0] == "hello"
+        assert len(result) == 11  # 1 + 10 padding
+
+    def test_multiple_values(self) -> None:
+        """Last value is used as padding default."""
+        result = pad_responses("a", "b", "c")
+        assert result[:3] == ["a", "b", "c"]
+        assert all(r == "c" for r in result[3:])
+
+    def test_custom_default(self) -> None:
+        """Explicit default overrides the last value for padding."""
+        result = pad_responses("a", "b", default="fallback")
+        assert result[:2] == ["a", "b"]
+        assert all(r == "fallback" for r in result[2:])
+
+    def test_empty_raises(self) -> None:
+        """No arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one value"):
+            pad_responses()
+
+
+# =============================================================================
+# Mock Router: return_router_usage
+# =============================================================================
+
+
+class TestReturnRouterUsage:
+    """Tests for return_router_usage and typed variants."""
+
+    def test_basic_return(self) -> None:
+        """Single response is first element, padded to 11."""
+        result = return_router_usage("hi")
+        assert result[0] == "hi"
+        assert len(result) == 11
+
+    def test_multiple_responses(self) -> None:
+        """Multiple responses appear in order."""
+        result = return_router_usage("a", "b")
+        assert result[0] == "a"
+        assert result[1] == "b"
+
+    def test_return_python_router_usage(self) -> None:
+        """Response is wrapped in a python fenced code block."""
+        result = return_python_router_usage("print(1)")
+        assert result[0] == "```python\nprint(1)\n```"
+
+    def test_return_json_router_usage(self) -> None:
+        """Response is wrapped in a json fenced code block."""
+        result = return_json_router_usage('{"k": "v"}')
+        assert result[0] == '```json\n{"k": "v"}\n```'
+
+    def test_return_json_obj_router_usage(self) -> None:
+        """Python dict is serialized and wrapped in a json code block."""
+        result = return_json_obj_router_usage({"key": "val"})
+        # Output is wrapped in ```json ... ``` code blocks
+        inner = result[0].removeprefix("```json\n").removesuffix("\n```")
+        parsed = orjson.loads(inner)
+        assert parsed == {"key": "val"}
+
+    def test_return_json_obj_empty_raises(self) -> None:
+        """No arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one array"):
+            return_json_obj_router_usage()
+
+    def test_return_generic_router_usage(self) -> None:
+        """Response is wrapped in a generic Start/End block."""
+        result = return_generic_router_usage("content")
+        assert result[0] == "--- Start of string ---\ncontent\n--- End of string ---"
+
+    def test_return_generic_router_usage_custom_lang(self) -> None:
+        """Custom lang appears in the Start/End markers."""
+        result = return_generic_router_usage("data", lang="Output")
+        assert "Start of Output" in result[0]
+
+    def test_return_generic_router_usage_empty_raises(self) -> None:
+        """No arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one string"):
+            return_generic_router_usage()
+
+    def test_return_code_router_usage_empty_raises(self) -> None:
+        """No code arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one code"):
+            return_code_router_usage(lang="python")
+
+
+# =============================================================================
+# Mock Router: Value
+# =============================================================================
+
+
+class _SampleModel(BaseModel):
     name: str
-    age: int
-    active: bool = True
-
-
-kw = {"model": "openai/gpt-3.5", "messages": [{"role": "user", "content": "test"}]}
-
-
-class TestReturnString:
-    """Test cases for return_string function."""
-
-    @pytest.mark.asyncio
-    async def test_single_value(self) -> None:
-        """Test return_string with a single value."""
-        mock_router = return_string("test response")
-        response = await mock_router.completion(**kw)
-
-        assert isinstance(response, str)
-        assert response == "test response"
-
-    @pytest.mark.asyncio
-    async def test_multiple_values_sequential(self) -> None:
-        """Test return_string with multiple values returned sequentially."""
-        mock_router = return_string("first", "second", "third")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-        response3 = await mock_router.completion(**kw)
-        response4 = await mock_router.completion(**kw)  # Should use last value
-
-        assert response1 == "first"
-        assert response2 == "second"
-        assert response3 == "third"
-        assert response4 == "third"  # Default to last
-
-    @pytest.mark.asyncio
-    async def test_with_default(self) -> None:
-        """Test return_string with custom default value."""
-        mock_router = return_string("first", "second", default="default_value")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-        response3 = await mock_router.completion(**kw)  # Should use default
-
-        assert response1 == "first"
-        assert response2 == "second"
-        assert response3 == "default_value"
-
-    def test_empty_values_raises_error(self) -> None:
-        """Test that return_string raises ValueError with no values."""
-        with pytest.raises(ValueError, match="At least one value must be provided"):
-            return_string()
-
-    def test_returns_async_mock(self) -> None:
-        """Test that return_string returns an AsyncMock instance."""
-        mock_router = return_string("test")
-        assert isinstance(mock_router, AsyncMock)
-        assert hasattr(mock_router, "completion")
-
-
-class TestReturnGenericString:
-    """Test cases for return_generic_string function."""
-
-    @pytest.mark.asyncio
-    async def test_default_language(self) -> None:
-        """Test return_generic_string with default language."""
-        mock_router = return_generic_string("test content")
-        response = await mock_router.completion(**kw)
-
-        expected = "--- Start of string ---\ntest content\n--- End of string ---"
-        assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_custom_language(self) -> None:
-        """Test return_generic_string with custom language."""
-        mock_router = return_generic_string("test content", lang="python")
-        response = await mock_router.completion(**kw)
-
-        expected = "--- Start of python ---\ntest content\n--- End of python ---"
-        assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_multiple_strings(self) -> None:
-        """Test return_generic_string with multiple strings."""
-        mock_router = return_generic_string("first", "second", lang="test")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        expected1 = "--- Start of test ---\nfirst\n--- End of test ---"
-        expected2 = "--- Start of test ---\nsecond\n--- End of test ---"
-
-        assert response1 == expected1
-        assert response2 == expected2
-
-    def test_empty_strings_raises_error(self) -> None:
-        """Test that return_generic_string raises ValueError with no strings."""
-        with pytest.raises(ValueError, match="At least one string must be provided"):
-            return_generic_string()
-
-
-class TestReturnCodeString:
-    """Test cases for return_code_string function."""
-
-    @pytest.mark.asyncio
-    async def test_basic_code_block(self) -> None:
-        """Test return_code_string with basic code."""
-        mock_router = return_code_string("print('hello')", lang="python")
-        response = await mock_router.completion(**kw)
-
-        expected = "```python\nprint('hello')\n```"
-        assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_multiple_code_blocks(self) -> None:
-        """Test return_code_string with multiple code blocks."""
-        mock_router = return_code_string("code1", "code2", lang="javascript")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        expected1 = "```javascript\ncode1\n```"
-        expected2 = "```javascript\ncode2\n```"
-
-        assert response1 == expected1
-        assert response2 == expected2
-
-    def test_empty_codes_raises_error(self) -> None:
-        """Test that return_code_string raises ValueError with no codes."""
-        with pytest.raises(ValueError, match="At least one code must be provided"):
-            return_code_string(lang="python")
-
-
-class TestReturnPythonString:
-    """Test cases for return_python_string function."""
-
-    @pytest.mark.asyncio
-    async def test_python_code_block(self) -> None:
-        """Test return_python_string generates correct Python code blocks."""
-        mock_router = return_python_string("def hello(): pass")
-        response = await mock_router.completion(**kw)
-
-        expected = "```python\ndef hello(): pass\n```"
-        assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_multiple_python_blocks(self) -> None:
-        """Test return_python_string with multiple Python code blocks."""
-        mock_router = return_python_string("x = 1", "y = 2")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        assert response1 == "```python\nx = 1\n```"
-        assert response2 == "```python\ny = 2\n```"
-
-
-class TestReturnJsonString:
-    """Test cases for return_json_string function."""
-
-    @pytest.mark.asyncio
-    async def test_json_code_block(self) -> None:
-        """Test return_json_string generates correct JSON code blocks."""
-        json_content = '{"key": "value"}'
-        mock_router = return_json_string(json_content)
-        response = await mock_router.completion(**kw)
-
-        expected = f"```json\n{json_content}\n```"
-        assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_multiple_json_blocks(self) -> None:
-        """Test return_json_string with multiple JSON blocks."""
-        mock_router = return_json_string('{"a": 1}', '{"b": 2}')
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        assert response1 == '```json\n{"a": 1}\n```'
-        assert response2 == '```json\n{"b": 2}\n```'
-
-
-class TestReturnJsonObjString:
-    """Test cases for return_json_obj_string function."""
-
-    @pytest.mark.asyncio
-    async def test_json_object_serialization(self) -> None:
-        """Test return_json_obj_string properly serializes objects."""
-        test_obj = {"name": "John", "age": 30, "active": True}
-        mock_router = return_json_obj_string(test_obj)
-        response = await mock_router.completion(**kw)
-
-        # Check that the response contains properly formatted JSON
-        content = response
-        assert content.startswith("```json\n")
-        assert content.endswith("\n```")
-
-        # Extract and verify JSON content
-        json_part = content[8:-4]  # Remove ```json\n and \n```
-        parsed = orjson.loads(json_part)
-        assert parsed == test_obj
-
-    @pytest.mark.asyncio
-    async def test_multiple_json_objects(self) -> None:
-        """Test return_json_obj_string with multiple objects."""
-        obj1 = {"id": 1}
-        obj2 = {"id": 2}
-        mock_router = return_json_obj_string(obj1, obj2)
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        # Verify both responses contain valid JSON
-        for response, expected_obj in [(response1, obj1), (response2, obj2)]:
-            content = response
-            json_part = content[8:-4]  # Remove ```json\n and \n```
-            parsed = orjson.loads(json_part)
-            assert parsed == expected_obj
-
-    def test_empty_objects_raises_error(self) -> None:
-        """Test that return_json_obj_string raises ValueError with no objects."""
-        with pytest.raises(ValueError, match="At least one array must be provided"):
-            return_json_obj_string()
-
-
-class TestReturnModelJsonString:
-    """Test cases for return_model_json_string function."""
-
-    @pytest.mark.asyncio
-    async def test_model_serialization(self) -> None:
-        """Test return_model_json_string properly serializes Pydantic models."""
-        model = FakeModel(name="Alice", age=25)
-        mock_router = return_model_json_string(model)
-        response = await mock_router.completion(**kw)
-
-        content = response
-        assert content.startswith("```json\n")
-        assert content.endswith("\n```")
-
-        # Extract and verify JSON content
-        json_part = content[8:-4]
-        parsed = orjson.loads(json_part)
-        expected = {"name": "Alice", "age": 25, "active": True}
-        assert parsed == expected
-
-    @pytest.mark.asyncio
-    async def test_multiple_models(self) -> None:
-        """Test return_model_json_string with multiple models."""
-        model1 = FakeModel(name="Alice", age=25)
-        model2 = FakeModel(name="Bob", age=30, active=False)
-        mock_router = return_model_json_string(model1, model2)
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)
-
-        # Verify first model
-        content1 = response1
-        json_part1 = content1[8:-4]
-        parsed1 = orjson.loads(json_part1)
-        assert parsed1 == {"name": "Alice", "age": 25, "active": True}
-
-        # Verify second model
-        content2 = response2
-        json_part2 = content2[8:-4]
-        parsed2 = orjson.loads(json_part2)
-        assert parsed2 == {"name": "Bob", "age": 30, "active": False}
-
-    def test_empty_models_raises_error(self) -> None:
-        """Test that return_model_json_string raises ValueError with no models."""
-        with pytest.raises(ValueError, match="At least one model must be provided"):
-            return_model_json_string()
+    value: int
 
 
 class TestValue:
-    """Test cases for Value dataclass."""
+    """Tests for the Value dataclass."""
 
-    def test_model_type_conversion(self) -> None:
-        """Test Value with model type."""
-        model = FakeModel(name="Test", age=20)
-        value = Value(source=model, type="model")
-        result = value.to_string()
-
+    def test_model_type(self) -> None:
+        """Pydantic model is serialized to pretty-printed JSON."""
+        m = _SampleModel(name="test", value=42)
+        v = Value(source=m, type="model")
+        result = v.to_string()
         parsed = orjson.loads(result)
-        expected = {"name": "Test", "age": 20, "active": True}
-        assert parsed == expected
+        assert parsed == {"name": "test", "value": 42}
 
-    def test_json_type_conversion(self) -> None:
-        """Test Value with json type."""
-        data = {"key": "value", "number": 42}
-        value = Value(source=data, type="json")
-        result = value.to_string()
+    def test_json_type(self) -> None:
+        """Dict source is serialized as JSON."""
+        v = Value(source={"key": "val"}, type="json")
+        result = v.to_string()
+        assert orjson.loads(result) == {"key": "val"}
 
-        parsed = orjson.loads(result)
-        assert parsed == data
+    def test_python_type(self) -> None:
+        """Python source is wrapped in a fenced code block."""
+        v = Value(source="x = 1", type="python")
+        result = v.to_string()
+        assert result == "```python\nx = 1\n```"
 
-    def test_python_type_conversion(self) -> None:
-        """Test Value with python type."""
-        code = "print('hello world')"
-        value = Value(source=code, type="python")
-        result = value.to_string()
+    def test_generic_type(self) -> None:
+        """Generic source is wrapped with Start/End markers."""
+        v = Value(source="hello", type="generic")
+        result = v.to_string()
+        assert "Start of string" in result
+        assert "hello" in result
 
-        expected = "```python\nprint('hello world')\n```"
-        assert result == expected
+    def test_raw_type_with_convertor(self) -> None:
+        """Raw source is processed through the convertor."""
+        v = Value(source="anything", type="raw", convertor=lambda s: f"RAW:{s}")
+        assert v.to_string() == "RAW:anything"
 
-    def test_generic_type_conversion(self) -> None:
-        """Test Value with generic type."""
-        content = "some content"
-        value = Value(source=content, type="generic")
-        result = value.to_string()
+    def test_raw_type_without_convertor_raises(self) -> None:
+        """Raw type without convertor raises ValueError."""
+        v = Value(source="anything", type="raw")
+        with pytest.raises(ValueError, match="Invalid type"):
+            v.to_string()
 
-        expected = "--- Start of string ---\nsome content\n--- End of string ---"
-        assert result == expected
-
-    def test_custom_convertor(self) -> None:
-        """Test Value with custom convertor function."""
-
-        def _custom_convertor(source: str) -> str:
-            return f"Custom: {source}"
-
-        value = Value(source="test", type="custom", convertor=_custom_convertor)
-        result = value.to_string()
-
-        assert result == "Custom: test"
-
-    def test_invalid_type_raises_error(self) -> None:
-        """Test Value raises ValueError for invalid type without convertor."""
-        value = Value(source="test", type="invalid")
-
-        with pytest.raises(ValueError, match="Invalid type: invalid"):
-            value.to_string()
+    def test_model_type_with_non_model_raises(self) -> None:
+        """Non-model source with model type raises ValueError."""
+        v = Value(source="not a model", type="model")
+        with pytest.raises(ValueError, match="Invalid type"):
+            v.to_string()
 
 
-class TestReturnMixedString:
-    """Test cases for return_mixed_string function."""
+# =============================================================================
+# Mock Router: return_mixed_router_usage / return_model_json_router_usage
+# =============================================================================
 
-    @pytest.mark.asyncio
-    async def test_mixed_value_types(self) -> None:
-        """Test return_mixed_string with different value types."""
-        model = FakeModel(name="Alice", age=25)
-        json_data = {"type": "json"}
-        code = "x = 1"
 
+class TestMixedAndModelRouterUsage:
+    """Tests for mixed and model-specific router usage helpers."""
+
+    def test_return_model_json_router_usage(self) -> None:
+        """Test that a model is correctly serialized and returned via JSON router."""
+        m = _SampleModel(name="x", value=1)
+        result = return_model_json_router_usage(m)
+        inner = result[0].removeprefix("```json\n").removesuffix("\n```")
+        parsed = orjson.loads(inner)
+        assert parsed == {"name": "x", "value": 1}
+
+    def test_return_model_json_router_usage_empty_raises(self) -> None:
+        """Test that calling without arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one model"):
+            return_model_json_router_usage()
+
+    def test_return_mixed_router_usage(self) -> None:
+        """Test that mixed model and generic values are correctly returned."""
+        m = _SampleModel(name="a", value=2)
         values = [
-            Value(source=model, type="model"),
-            Value(source=json_data, type="json"),
-            Value(source=code, type="python"),
+            Value(source=m, type="model"),
+            Value(source="hi", type="generic"),
         ]
-
-        mock_router = return_mixed_string(*values)
-
-        # Test model response
-        response1 = await mock_router.completion(**kw)
-        content1 = response1
-        parsed1 = orjson.loads(content1)
-        assert parsed1 == {"name": "Alice", "age": 25, "active": True}
-
-        # Test JSON response
-        response2 = await mock_router.completion(**kw)
-        content2 = response2
-        parsed2 = orjson.loads(content2)
-        assert parsed2 == {"type": "json"}
-
-        # Test Python code response
-        response3 = await mock_router.completion(**kw)
-        content3 = response3
-        assert content3 == "```python\nx = 1\n```"
-
-    @pytest.mark.asyncio
-    async def test_mixed_with_default(self) -> None:
-        """Test return_mixed_string with default value."""
-        value = Value(source="test", type="generic")
-        mock_router = return_mixed_string(value, default="default_response")
-
-        response1 = await mock_router.completion(**kw)
-        response2 = await mock_router.completion(**kw)  # Should use default
-
-        expected1 = "--- Start of string ---\ntest\n--- End of string ---"
-        assert response1 == expected1
-        assert response2 == "default_response"
-
-    def test_returns_router_type(self) -> None:
-        """Test that return_mixed_string returns correct type."""
-        value = Value(source="test", type="generic")
-        result = return_mixed_string(value)
-
-        # Should return AsyncMock (from return_string)
-        assert isinstance(result, AsyncMock)
+        result = return_mixed_router_usage(*values)
+        assert orjson.loads(result[0]) == {"name": "a", "value": 2}
+        assert "hi" in result[1]
 
 
-class TestAsyncBehavior:
-    """Test async behavior and concurrency aspects."""
-
-    @pytest.mark.asyncio
-    async def test_concurrent_calls(self) -> None:
-        """Test that concurrent calls to the same mock work correctly."""
-        import asyncio
-
-        mock_router = return_string("response1", "response2", "response3")
-
-        # Make concurrent calls
-        tasks = [mock_router.completion(**kw) for _ in range(3)]
-        responses = await asyncio.gather(*tasks)
-
-        # All responses should be valid ModelResponse objects
-        for response in responses:
-            assert isinstance(response, str)
-            assert response in ["response1", "response2", "response3"]
-
-    @pytest.mark.asyncio
-    async def test_mock_maintains_state(self) -> None:
-        """Test that mock maintains state across multiple calls."""
-        mock_router = return_string("first", "second", "third")
-
-        # Sequential calls should return values in order
-        responses = []
-        for _ in range(5):  # More calls than values
-            response = await mock_router.completion(**kw)
-            responses.append(response)
-
-        # First three should be in order, rest should be the last value
-        assert responses == ["first", "second", "third", "third", "third"]
+# =============================================================================
+# Mock Role: defaults
+# =============================================================================
 
 
-class TestInstallRouterUsage:
-    """Test cases for install_router_usage with rust.router_usage.ask."""
+class TestMockRoleDefaults:
+    """Tests for LLMTestRole and ProposeTestRole default values."""
 
-    @pytest.mark.asyncio
-    async def test_basic_single_response(self) -> None:
-        """Test install_router_usage with a single response."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_router_usage
-        from fabricatio_mock.utils import install_router_usage
+    def test_llm_test_role_send_to(self) -> None:
+        """Verify LLMTestRole defaults to DUMMY_LLM_GROUP for send_to."""
+        role = LLMTestRole()
+        assert role.llm_send_to == DUMMY_LLM_GROUP
 
-        with install_router_usage(*return_router_usage("hello")):
-            response = await rust.router_usage.ask(
-                question="test",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            assert response == "hello"
+    def test_llm_test_role_no_cache(self) -> None:
+        """Verify LLMTestRole defaults llm_no_cache to True."""
+        role = LLMTestRole()
+        assert role.llm_no_cache is True
 
-    @pytest.mark.asyncio
-    async def test_sequential_responses(self) -> None:
-        """Test multiple calls return responses in FIFO order."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_router_usage
-        from fabricatio_mock.utils import install_router_usage
+    def test_propose_test_role_inherits_defaults(self) -> None:
+        """Verify ProposeTestRole inherits llm_send_to and llm_no_cache defaults."""
+        role = ProposeTestRole()
+        assert role.llm_send_to == DUMMY_LLM_GROUP
+        assert role.llm_no_cache is True
 
-        with install_router_usage(*return_router_usage("first", "second", "third")):
-            r1 = await rust.router_usage.ask(
-                question="q1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            r2 = await rust.router_usage.ask(
-                question="q2",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            r3 = await rust.router_usage.ask(
-                question="q3",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-
-            assert r1 == "first"
-            assert r2 == "second"
-            assert r3 == "third"
-
-    @pytest.mark.asyncio
-    async def test_default_fallback_after_exhaustion(self) -> None:
-        """Test that the default value is returned after explicit responses are exhausted."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_router_usage
-        from fabricatio_mock.utils import install_router_usage
-
-        with install_router_usage(*return_router_usage("a", "b", default="fallback")):
-            r1 = await rust.router_usage.ask(
-                question="q_fb_1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            r2 = await rust.router_usage.ask(
-                question="q_fb_2",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            # Third call should hit the padded default
-            r3 = await rust.router_usage.ask(
-                question="q_fb_3",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-
-            assert r1 == "a"
-            assert r2 == "b"
-            assert r3 == "fallback"
-
-    @pytest.mark.asyncio
-    async def test_json_formatted_response(self) -> None:
-        """Test install_router_usage with return_json_router_usage."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_json_router_usage
-        from fabricatio_mock.utils import install_router_usage
-
-        json_str = '{"key": "value"}'
-        with install_router_usage(*return_json_router_usage(json_str)):
-            response = await rust.router_usage.ask(
-                question="q_json_1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            expected = f"```json\n{json_str}\n```"
-            assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_code_formatted_response(self) -> None:
-        """Test install_router_usage with return_code_router_usage."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_code_router_usage
-        from fabricatio_mock.utils import install_router_usage
-
-        with install_router_usage(*return_code_router_usage("print('hi')", lang="python")):
-            response = await rust.router_usage.ask(
-                question="q_code_1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            assert response == "```python\nprint('hi')\n```"
-
-    @pytest.mark.asyncio
-    async def test_generic_formatted_response(self) -> None:
-        """Test install_router_usage with return_generic_router_usage."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_generic_router_usage
-        from fabricatio_mock.utils import install_router_usage
-
-        with install_router_usage(*return_generic_router_usage("some text")):
-            response = await rust.router_usage.ask(
-                question="q_generic_1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            expected = "--- Start of string ---\nsome text\n--- End of string ---"
-            assert response == expected
-
-    @pytest.mark.asyncio
-    async def test_model_json_formatted_response(self) -> None:
-        """Test install_router_usage with return_model_json_router_usage."""
-        from fabricatio_core import rust
-        from fabricatio_mock.models.mock_router import return_model_json_router_usage
-        from fabricatio_mock.utils import install_router_usage
-
-        model = FakeModel(name="Alice", age=25)
-        with install_router_usage(*return_model_json_router_usage(model)):
-            response = await rust.router_usage.ask(
-                question="q_model_1",
-                send_to="openai/gpt-3.5-turbo",
-                stream=False,
-                top_p=None,
-                temperature=None,
-                max_completion_tokens=None,
-                presence_penalty=None,
-                frequency_penalty=None,
-            )
-            assert response.startswith("```json\n")
-            assert response.endswith("\n```")
-            parsed = orjson.loads(response[8:-4])
-            assert parsed == {"name": "Alice", "age": 25, "active": True}
+    def test_propose_test_role_is_role(self) -> None:
+        """Verify ProposeTestRole is an instance of Role."""
+        role = ProposeTestRole()
+        assert isinstance(role, Role)
