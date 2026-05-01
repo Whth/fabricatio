@@ -25,6 +25,8 @@ use validator::Validate;
 pub struct LLMConfig {
     pub send_to: Option<String>,
 
+    pub no_cache: Option<bool>,
+
     #[validate(range(
         min = 0.0,
         max = 2.0,
