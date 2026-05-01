@@ -1,8 +1,8 @@
 use error_mapping::AsPyErr;
 use fabricatio_config::{DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::{debug, error, trace};
-use futures::FutureExt;
 use futures::future::join_all;
+use futures::FutureExt;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
@@ -13,9 +13,9 @@ use thryd::provider::Provider;
 use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
-    Completion, CompletionModel, CompletionRequest, CompletionTag, DeploymentIdentifier,
-    DummyModel, DummyProvider, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag,
-    ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
+    create_provider, Completion, CompletionModel, CompletionRequest, CompletionTag,
+    DeploymentIdentifier, DummyModel, DummyProvider, EmbeddingRequest, EmbeddingTag, Embeddings,
+    ModelTypeTag, ProviderType, RerankerTag, RouteGroupName, Router as ThrydRouter,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -44,16 +44,21 @@ impl Router {
         self,
         send_to: RouteGroupName,
         reqs: Vec<EmbeddingRequest>,
+        no_cache: bool,
     ) -> Vec<Option<Embeddings>> {
-        Self::embedding_batch_inner(send_to, reqs, self.embedding_router.clone()).await
+        Self::embedding_batch_inner(send_to, reqs, self.embedding_router.clone(), no_cache).await
     }
 
     pub async fn embedding_batch_inner(
         send_to: RouteGroupName,
         reqs: Vec<EmbeddingRequest>,
         r: Arc<ThrydRouter<EmbeddingTag>>,
+        no_cache: bool,
     ) -> Vec<Option<Embeddings>> {
-        join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+        join_all(
+            reqs.into_iter()
+                .map(|req| r.invoke(send_to.clone(), req, no_cache)),
+        )
             .map(|results| {
                 results
                     .into_iter()
@@ -74,16 +79,21 @@ impl Router {
         &self,
         send_to: RouteGroupName,
         reqs: Vec<CompletionRequest>,
+        no_cache: bool,
     ) -> Vec<Option<Completion>> {
-        Self::completion_batch_inner(send_to, reqs, self.completion_router.clone()).await
+        Self::completion_batch_inner(send_to, reqs, self.completion_router.clone(), no_cache).await
     }
 
     pub async fn completion_batch_inner(
         send_to: RouteGroupName,
         reqs: Vec<CompletionRequest>,
         r: Arc<ThrydRouter<CompletionTag>>,
+        no_cache: bool,
     ) -> Vec<Option<Completion>> {
-        join_all(reqs.into_iter().map(|req| r.invoke(send_to.clone(), req)))
+        join_all(
+            reqs.into_iter()
+                .map(|req| r.invoke(send_to.clone(), req, no_cache)),
+        )
             .map(|results| {
                 results
                     .into_iter()
@@ -105,14 +115,17 @@ impl Router {
         send_to: RouteGroupName,
         req: CompletionRequest,
     ) -> PyResult<Completion> {
-        Self::completion_inner(send_to, req, self.completion_router.clone()).await
+        Self::completion_inner(send_to, req, self.completion_router.clone(), false).await
     }
     pub async fn completion_inner(
         send_to: RouteGroupName,
         req: CompletionRequest,
         r: Arc<ThrydRouter<CompletionTag>>,
+        no_cache: bool,
     ) -> PyResult<Completion> {
-        r.invoke(send_to, req).await.into_pyresult()
+        r.invoke(send_to, req, no_cache)
+            .await
+            .into_pyresult()
     }
 }
 
@@ -124,7 +137,7 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
+    #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false)
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
@@ -141,6 +154,7 @@ impl Router {
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
     ///
     /// Returns:
     ///     str: The complete aggregated response content.
@@ -155,6 +169,7 @@ impl Router {
         max_completion_tokens: Option<u32>,
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
+        no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
             message,
@@ -169,7 +184,7 @@ impl Router {
         let r = self.completion_router.clone();
 
         future_into_py(python, async move {
-            Self::completion_inner(send_to, req, r).await
+            Self::completion_inner(send_to, req, r, no_cache).await
         })
     }
 
@@ -178,7 +193,7 @@ impl Router {
         override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
         )
     )]
-    #[pyo3(signature = (send_to, messages,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None)
+    #[pyo3(signature = (send_to, messages,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false)
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
@@ -196,6 +211,7 @@ impl Router {
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+    ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
     ///
     /// Returns:
     ///     List[str | None]: A list of complete aggregated response contents. Failed requests return None.
@@ -210,6 +226,7 @@ impl Router {
         max_completion_tokens: Option<u32>,
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
+        no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let reqs = messages
             .into_iter()
@@ -227,7 +244,7 @@ impl Router {
         let r = self.completion_router.clone();
 
         future_into_py(python, async move {
-            Ok(Self::completion_batch_inner(send_to, reqs, r).await)
+            Ok(Self::completion_batch_inner(send_to, reqs, r, no_cache).await)
         })
     }
 
@@ -240,21 +257,26 @@ impl Router {
     /// Args:
     ///     send_to (str): The router group name to route the embedding request.
     ///     texts (List[str]): A list of text strings to generate embeddings for.
+    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
     ///
     /// Returns:
     ///     List[List[float]]: A list of embedding vectors corresponding to the input texts.
+    #[pyo3(signature = (send_to, texts, no_cache = false))]
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
         send_to: RouteGroupName,
         texts: Vec<String>,
+        no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = EmbeddingRequest { texts };
 
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            r.invoke(send_to, req).await.into_pyresult()
+            r.invoke(send_to, req, no_cache)
+                .await
+                .into_pyresult()
         })
     }
 
@@ -267,15 +289,18 @@ impl Router {
     /// Args:
     ///     send_to (RouteGroupName): The router group name to route the embedding requests.
     ///     texts (List[str]): A list of text strings to generate embeddings for.
+    ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
     ///
     /// Returns:
     ///     List[List[float] | None]: A list of embedding vectors corresponding to the input texts.
     ///         Failed requests return None.
+    #[pyo3(signature = (send_to, texts, no_cache = false))]
     pub fn embedding_batch<'a>(
         &self,
         python: Python<'a>,
         send_to: RouteGroupName,
         texts: Vec<String>,
+        no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let reqs = texts
             .into_iter()
@@ -285,7 +310,7 @@ impl Router {
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            Ok(Self::embedding_batch_inner(send_to, reqs, r).await)
+            Ok(Self::embedding_batch_inner(send_to, reqs, r, no_cache).await)
         })
     }
 
@@ -315,7 +340,7 @@ impl Router {
             api_key.map(|k| k.get_secret_value().into()),
             endpoint,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
@@ -428,7 +453,7 @@ pub fn add_providers_from_configs<T: ModelTypeTag>(
             config.key.map(|k| k.get_secret_value().into()),
             config.base_url,
         )
-        .into_pyresult()?;
+            .into_pyresult()?;
 
         router.add_or_update_provider(p);
     }
