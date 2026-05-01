@@ -25,7 +25,7 @@ def mock_router(ret_value: List[JsonValue]) -> list[str]:
     Returns:
         A list of mock response strings.
     """
-    return return_json_obj_router_usage(ret_value)
+    return return_json_obj_router_usage(ret_value, padding=50)
 
 
 @pytest.fixture(autouse=True)

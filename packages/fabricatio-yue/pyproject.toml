@@ -27,6 +27,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fabricatio-mock",
     "pytest",
 ]
 
@@ -46,6 +47,7 @@ sources = ["python"]
 
 [tool.uv.sources]
 fabricatio = { workspace = true }
+fabricatio-mock = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
@@ -59,9 +61,9 @@ default = true
 [[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
-[[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
 
 [project.scripts]
 yuek = "fabricatio_yue.cli:main"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
