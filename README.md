@@ -141,8 +141,6 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] `HashLine` struct + hash-based line matching in Rust
     - [ ] Replace `match_lines` + `Diff.apply` + benchmarks + edge-case tests
 - [ ] Placeholder based multiple-agents edits
-    - [ ] `DiffConflict` type + three-way merge algorithm
-    - [ ] Conflict detection + resolution strategies (ours/theirs/llm_decide) + Python bindings + tests
 
 ## Installation
 
