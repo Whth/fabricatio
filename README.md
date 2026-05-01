@@ -137,8 +137,8 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] TEI as `Provider` in thryd + `RerankerModel` for OpenAI-compat
     - [ ] Replace RAG's TEI client with thryd router + remove gRPC deps + tests
 - [x] Replace `UseLLM` with native rust impl
-    - [ ] Fix the mock utils that is break by the replacement.
-    - [ ] router support `no_cache`
+    - [x] Fix the mock utils that is break by the replacement.
+    - [x] router support `no_cache`
 - [ ] Diff use `Hashline` impl instead of `StringGrep`
     - [ ] `HashLine` struct + hash-based line matching in Rust
     - [ ] Replace `match_lines` + `Diff.apply` + benchmarks + edge-case tests
