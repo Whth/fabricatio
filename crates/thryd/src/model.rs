@@ -50,7 +50,7 @@
 
 use crate::SEPARATE;
 use crate::provider::Provider;
-use async_trait::async_trait;
+pub use async_trait::async_trait;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -160,10 +160,11 @@ pub struct RerankerRequest {
 /// Higher scores indicate greater relevance to the query.
 pub type Ranking = Vec<(usize, f32)>;
 
+pub type Embedding = Vec<f32>;
 /// Type alias for a batch of embedding vectors.
 ///
 /// Each inner vector contains the embedding floats for one input text.
-pub type Embeddings = Vec<Vec<f32>>;
+pub type Embeddings = Vec<Embedding>;
 
 /// Type alias for completion text output.
 pub type Completion = String;

@@ -9,14 +9,14 @@ use crate::connections::{CONNECTIONS_POOL, ClientEntry};
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{ModelName, ProviderName, RerankerModel, Result, ThrydError};
 use async_trait::async_trait;
-use reqwest::header::HeaderMap;
+pub use reqwest::header::HeaderMap;
 use reqwest::{Client, Response};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 use strum_macros::EnumString;
-use url::Url;
+pub use url::Url;
 
 /// Trait for LLM API providers.
 ///
