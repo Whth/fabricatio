@@ -47,6 +47,7 @@ members = [
     "packages/fabricatio-checkpoint",
     "packages/fabricatio-webui",
     "packages/fabricatio-workspace",
+    "packages/fabricatio-tei",
 ]
 
 [workspace.dependencies]

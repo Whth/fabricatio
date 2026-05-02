@@ -1,0 +1,20 @@
+[package]
+name = "fabricatio-tei"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib","rlib"]
+
+[dependencies]
+pyo3 = { version = "0.28.3" }
+pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
+pyo3-stub-gen = { version = "0.22.1", optional = true }
+thryd = { path = "../../crates/thryd" }
+serde = { version = "1.0.228", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
+futures-util = { version = "0.3.32", default-features = false }
+serde_json = "1.0.149"
+
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]
