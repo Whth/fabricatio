@@ -346,6 +346,32 @@ impl Router {
         Ok(())
     }
 
+    #[pyo3(signature = (group, model_identifier, rpm = None, tpm = None))]
+    /// Adds a reranker model to the specified group.
+    ///
+    /// Registers a new model identifier within a specific routing group for reranking tasks.
+    ///
+    /// Args:
+    ///     group (str): The target router group name.
+    ///     model_identifier (str): The unique identifier of the model to be added.
+    ///     rpm (Optional[Quota]): Optional requests per minute limit.
+    ///     tpm (Optional[Quota]): Optional tokens per minute limit.
+    ///
+    /// Returns:
+    ///     None: This is an asynchronous operation that modifies the router state.
+    pub fn add_reranker_model(
+        &self,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
+        rpm: Option<Quota>,
+        tpm: Option<Quota>,
+    ) -> PyResult<()> {
+        let rr = self.reranker_router.clone();
+        rr.deploy(group, model_identifier, rpm, tpm)
+            .into_pyresult()?;
+        Ok(())
+    }
+
     pub fn add_or_update_dummy_completion_model(
         &self,
         group: RouteGroupName,
