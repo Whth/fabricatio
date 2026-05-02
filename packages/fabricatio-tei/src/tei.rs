@@ -1,4 +1,6 @@
+use fabricatio_constants::ROUTER_VARNAME;
 use futures_util::future::try_join_all;
+use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
@@ -144,20 +146,38 @@ impl Provider for TEI {
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 
-#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass]
-pub struct Tei {}
-
-#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
-#[pymethods]
-impl Tei {}
+/// Cached Router reference. Extracted once via Python module lookup.
+static ROUTER: Lazy<fabricatio_core::Router> = Lazy::new(|| {
+    Python::with_gil(|py| {
+        let module = py.import_bound("fabricatio_core.rust").unwrap();
+        module
+            .getattr(ROUTER_VARNAME)
+            .unwrap()
+            .extract()
+            .map_err(|e: pyo3::PyErr| format!("Failed to extract Router: {e}"))
+            .unwrap()
+    })
+});
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
-fn foo() {}
+fn add_tei(name: String, url: String) -> PyResult<()> {
+    use pyo3::exceptions::PyValueError;
 
-pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(foo, m)?)?;
-    m.add_class::<Tei>()?;
+    let router = &*ROUTER;
+
+    let url: Url = url
+        .parse()
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    let tei = Arc::new(TEI { name, url });
+    router.embedding_router.add_or_update_provider(tei.clone());
+    router.reranker_router.add_or_update_provider(tei);
+
+    Ok(())
+}
+
+pub(crate) fn register(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(add_tei, m)?)?;
     Ok(())
 }
