@@ -726,7 +726,9 @@ impl ModelTypeTag for RerankerTag {
     }
 
     fn prepare_input_text(request: &Self::Request) -> String {
-        request.documents.iter().cloned().collect()
+        let mut t_seq = request.documents.clone();
+        t_seq.sort();
+        t_seq.concat()
     }
 
     async fn execute_request(
@@ -776,7 +778,9 @@ impl ModelTypeTag for EmbeddingTag {
     }
 
     fn prepare_input_text(request: &Self::Request) -> String {
-        request.texts.concat()
+        let mut t_seq = request.texts.clone();
+        t_seq.sort();
+        t_seq.concat()
     }
 
     async fn execute_request(
