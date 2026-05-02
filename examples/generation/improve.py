@@ -15,6 +15,7 @@ from fabricatio_core.utils import ok
 
 # --- Role with the Review capability ---
 
+
 class Reviewer(BaseRole, Review):
     """A role that reviews text content for problems and solutions."""
 

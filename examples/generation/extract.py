@@ -15,6 +15,7 @@ from pydantic import Field
 
 # --- Target schema ---
 
+
 class PersonInfo(ProposedAble):
     """Information about a person extracted from free-form text."""
 
@@ -32,6 +33,7 @@ class PersonInfo(ProposedAble):
 
 
 # --- Role with Extract capability ---
+
 
 class Extractor(BaseRole, Extract):
     """A role that extracts structured data from text."""

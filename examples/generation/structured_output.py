@@ -14,6 +14,7 @@ from fabricatio_core.models.generic import ProposedAble
 
 # --- Schema (must extend ProposedAble, not plain BaseModel) ---
 
+
 class Translation(ProposedAble):
     """Structured translation result."""
 
@@ -28,6 +29,7 @@ class Translation(ProposedAble):
 
 
 # --- Role that mixes in the Propose capability ---
+
 
 class Translator(BaseRole, Propose):
     """A role that produces structured translations."""
