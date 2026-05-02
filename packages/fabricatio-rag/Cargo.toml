@@ -10,13 +10,10 @@ pyo3 = { version = "0.28.3" }
 serde = { version = "1.0.228", features = ["derive"] }
 
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
-tonic-prost = "0.14.5"
-tonic = "0.14.5"
-prost = "0.14.3"
 fabricatio-logger = { workspace = true }
 error-mapping = { workspace = true, features = [
-    "tonic", "http", "strum", "lancedb", "serde_json", "pythonize",
-    "pyo3_cast", "arrow-schema"
+    "strum", "lancedb", "serde_json", "pythonize",
+    "pyo3_cast", "arrow-schema", "thryd"
 ] }
 pyo3-stub-gen = "0.22.1"
 strum = { version = "0.28.0", features = ["derive"] }
@@ -29,10 +26,8 @@ arrow-array = { version = "<=57.3.0", default-features = false }
 tokio = { version = "1.52.1", default-features = false }
 rayon = { version = "1.12.0", default-features = false }
 futures-util = { version = "0.3.32", default-features = false }
+thryd = { path = "../../crates/thryd" }
 
-
-[build-dependencies]
-tonic-prost-build = "0.14.5"
 
 
 
