@@ -7,8 +7,7 @@ use serde_json::to_value;
 use std::error::Error;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
-use thryd::provider::{HeaderMap, Provider};
-use url::Url;
+use thryd::provider::{HeaderMap, Provider, Url};
 use thryd::{
     Embedding, EmbeddingModel, EmbeddingRequest, Embeddings, Model, ModelName, Ranking,
     RerankerModel, RerankerRequest, ThrydError, async_trait,
@@ -149,15 +148,16 @@ use pyo3_stub_gen::derive::*;
 
 /// Cached Router reference. Extracted once via Python module lookup.
 static ROUTER: Lazy<fabricatio_core::Router> = Lazy::new(|| {
-    // SAFETY: GIL is held during module initialization
-    let py = unsafe { Python::assume_attached() };
-    let module = py.import("fabricatio_core.rust").unwrap();
-    module
-        .getattr(ROUTER_VARNAME)
-        .unwrap()
-        .extract()
-        .map_err(|e| format!("Failed to extract Router: {}", e))
-        .unwrap()
+    Python::try_attach(|py| {
+        let module = py.import("fabricatio_core.rust").unwrap();
+        module
+            .getattr(ROUTER_VARNAME)
+            .unwrap()
+            .extract()
+            .map_err(|e| format!("Failed to extract Router: {}", e))
+            .unwrap()
+    })
+    .expect("Python interpreter not attached")
 });
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
