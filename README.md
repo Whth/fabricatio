@@ -132,7 +132,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
     - [x] TEI as `Provider` in thryd (RerankerModel for OpenAI-compat: wontfix — OpenAI doesn't support rerankers)
-    - [ ] Wire `rerank()` into Router Python class + add `UseReranker` capability + Python tests
+    - [x] Wire `rerank()` into Router Python class + add `UseReranker` capability
 - [x] Replace `UseLLM` with native rust impl
     - [x] Fix the mock utils that is break by the replacement.
     - [x] router support `no_cache`
