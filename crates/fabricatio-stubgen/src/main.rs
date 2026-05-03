@@ -68,5 +68,8 @@ fn main() -> Result<()> {
     #[cfg(feature = "webui")]
     fabricatio_webui::stub_info()?.generate()?;
 
+    #[cfg(feature = "tei")]
+    fabricatio_tei::stub_info()?.generate()?;
+
     Ok(())
 }

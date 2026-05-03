@@ -7,7 +7,8 @@ use serde_json::to_value;
 use std::error::Error;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
-use thryd::provider::{HeaderMap, Provider, Url};
+use thryd::provider::{HeaderMap, Provider};
+use url::Url;
 use thryd::{
     Embedding, EmbeddingModel, EmbeddingRequest, Embeddings, Model, ModelName, Ranking,
     RerankerModel, RerankerRequest, ThrydError, async_trait,
@@ -148,15 +149,15 @@ use pyo3_stub_gen::derive::*;
 
 /// Cached Router reference. Extracted once via Python module lookup.
 static ROUTER: Lazy<fabricatio_core::Router> = Lazy::new(|| {
-    Python::with_gil(|py| {
-        let module = py.import_bound("fabricatio_core.rust").unwrap();
-        module
-            .getattr(ROUTER_VARNAME)
-            .unwrap()
-            .extract()
-            .map_err(|e: pyo3::PyErr| format!("Failed to extract Router: {e}"))
-            .unwrap()
-    })
+    // SAFETY: GIL is held during module initialization
+    let py = unsafe { Python::assume_attached() };
+    let module = py.import("fabricatio_core.rust").unwrap();
+    module
+        .getattr(ROUTER_VARNAME)
+        .unwrap()
+        .extract()
+        .map_err(|e| format!("Failed to extract Router: {}", e))
+        .unwrap()
 });
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
@@ -168,7 +169,7 @@ fn add_tei(name: String, url: String) -> PyResult<()> {
 
     let url: Url = url
         .parse()
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        .map_err(|e: url::ParseError| PyValueError::new_err(e.to_string()))?;
 
     let tei = Arc::new(TEI { name, url });
     router.embedding_router.add_or_update_provider(tei.clone());
