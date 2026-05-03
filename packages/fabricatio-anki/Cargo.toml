@@ -3,7 +3,7 @@ name = "fabricatio-anki"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
