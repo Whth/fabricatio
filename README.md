@@ -120,9 +120,8 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Add `history` to `CompletionRequest` + update providers + Python binding
     - [ ] `ResultCollector.to_history_messages` + feedback loop in `handle_fine_grind` + tests
 - [x] Use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
-- [ ] Use `Thryd` impl to move some requests to rust side
+- [x] Use `Thryd` impl to move some requests to rust side
     - [x] All core LLM operations already routed through `rust.router_usage`
-    - [ ] Move param resolution to Rust + expose `DummyModel` via PyO3
 - [ ] Add Texts-based skill system, as a subpackage
     - [ ] Skill YAML/JSON schema + loader + directory scanner
     - [ ] Wire into Role + validation + example skill file + tests
@@ -132,8 +131,8 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Better memory impl
 - [ ] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
-    - [ ] TEI as `Provider` in thryd + `RerankerModel` for OpenAI-compat
-    - [ ] Replace RAG's TEI client with thryd router + remove gRPC deps + tests
+    - [x] TEI as `Provider` in thryd (RerankerModel for OpenAI-compat: wontfix — OpenAI doesn't support rerankers)
+    - [ ] Replace RAG's LanceDB storage with thryd router for embedding/reranking + Python tests
 - [x] Replace `UseLLM` with native rust impl
     - [x] Fix the mock utils that is break by the replacement.
     - [x] router support `no_cache`
