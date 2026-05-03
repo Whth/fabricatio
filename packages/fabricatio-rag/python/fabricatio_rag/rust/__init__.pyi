@@ -3,16 +3,12 @@
 import builtins
 import typing
 
-@typing.final
-class StoreDocument:
-    def __init__(self, content: str, vector: typing.List[float], metadata: typing.Optional[str]) -> None: ...
-    @staticmethod
-    def with_metadata(
-        content: str,
-        vector: typing.List[float],
-        metadata: typing.Optional[typing.Dict[str, typing.Any]] = None,
-    ) -> StoreDocument:
-        """Create a new Document instance with metadata dict."""
+__all__ = [
+    "SearchedDocument",
+    "StoreDocument",
+    "VectorStoreService",
+    "VectorStoreTable",
+]
 
 @typing.final
 class SearchedDocument:
@@ -22,32 +18,50 @@ class SearchedDocument:
     its unique identifier, content, timestamp of creation/modification, and any
     associated metadata stored as JSON string.
     """
-
     @property
     def id(self) -> builtins.str:
         r"""Unique identifier for the document, typically generated as a UUID string."""
-
     @property
     def content(self) -> builtins.str:
         r"""The textual content of the document that was searched and matched."""
-
     @property
     def timestamp(self) -> builtins.int:
         r"""Timestamp indicating when the document was created or last updated."""
-
     @property
     def metadata(self) -> typing.Optional[builtins.str]:
         r"""Optional metadata associated with the document, stored as a JSON string.
-
         This can include additional contextual information about the document.
         """
-
     def access_metadata(self) -> dict:
         r"""Access the metadata of the document.
 
         Returns a Python dictionary representation of the document's metadata.
         If no metadata exists, returns an empty dictionary.
         """
+
+@typing.final
+class StoreDocument:
+    @property
+    def content(self) -> builtins.str: ...
+    @content.setter
+    def content(self, value: builtins.str) -> None: ...
+    @property
+    def vector(self) -> builtins.list[builtins.float]: ...
+    @vector.setter
+    def vector(self, value: typing.Sequence[builtins.float]) -> None: ...
+    @property
+    def metadata(self) -> typing.Optional[builtins.str]: ...
+    @metadata.setter
+    def metadata(self, value: typing.Optional[builtins.str]) -> None: ...
+    def __new__(
+        cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[builtins.str]
+    ) -> StoreDocument:
+        r"""Create a new Document instance."""
+    @staticmethod
+    def with_metadata(
+        content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[dict]
+    ) -> StoreDocument:
+        r"""Create a new Document instance with metadata dict."""
 
 @typing.final
 class VectorStoreService:
@@ -57,49 +71,34 @@ class VectorStoreService:
     creating tables, opening existing tables, and creating or opening tables.
     It acts as a high-level interface for vector store operations.
     """
-
     @staticmethod
-    def connect(uri: builtins.str) -> typing.Awaitable[VectorStoreService]:
+    def connect(uri: builtins.str) -> typing.Awaitable[typing.Self]:
         r"""Connect to a lancedb instance."""
-
     def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Any:
         r"""Create a table."""
-
     def open_table(self, table_name: builtins.str) -> typing.Any:
         r"""Open a table."""
-
     def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Any:
         r"""Create or open a table."""
 
 @typing.final
 class VectorStoreTable:
     def add_documents(self, documents: list) -> typing.Any:
-        r"""Add multiple documents to the vector store.
+        r"""Adds multiple documents to the vector store.
 
-        This method takes a list of documents and asynchronously adds them to the table.
-        Each document will be assigned a unique ID and timestamp upon insertion.
+        Args:
+            documents: A list of StoreDocument objects to be added to the store.
 
-        # Arguments
-        * `documents` - A list of `Document` objects to be added to the store
-
-        # Returns
-        A Python Future that resolves to a list of strings representing the IDs
-        of the documents that were successfully added to the store.
+        Returns:
+            An awaitable that resolves to a list of document IDs.
         """
-
     def search_document(self, embedding: typing.Sequence[builtins.float], limit: builtins.int) -> typing.Any:
-        r"""Search for documents similar to the given embedding vector.
+        r"""Searches for documents similar to the given embedding vector.
 
-        This method performs a nearest neighbor search in the vector store to find
-        documents whose embeddings are closest to the provided query embedding.
+        Args:
+            embedding: A vector representing the query embedding for similarity search.
+            limit: The maximum number of similar documents to return.
 
-        # Arguments
-        * `embedding` - A vector representing the query embedding for similarity search
-        * `limit` - The maximum number of similar documents to return
-
-        # Returns
-        A Python Future that resolves to a list of `SearchedDocument` objects
-        representing the most similar documents found in the store.
+        Returns:
+            An awaitable that resolves to a list of SearchedDocument objects.
         """
-
-
