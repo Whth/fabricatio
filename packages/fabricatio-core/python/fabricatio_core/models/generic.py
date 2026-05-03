@@ -320,12 +320,13 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_send_to: Optional[str] = None
     """The LLM model name."""
 
-    def _resolve_embedding_params(self, send_to: str | None) -> EmbeddingKwargs:
+    def _resolve_embedding_params(self, send_to: str | None, no_cache: bool = False) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
                 send_to or self.embedding_send_to or CONFIG.embedding.send_to,
                 "send_to is not specified at any where",
             ),
+            no_cache=no_cache,
         )
 
 

@@ -178,3 +178,6 @@ www
 *.db
 uv.lock
 Cargo.lock
+
+*~
+

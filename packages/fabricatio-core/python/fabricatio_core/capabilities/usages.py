@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Set, Unpack, overload
+from typing import Callable, Dict, List, Optional, Set, Tuple, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt
@@ -537,3 +537,28 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
         res = await rust.ROUTER.embedding(texts=input_text, **kw)
 
         return res[0] if is_text else res
+
+
+class UseReranker(UseLLM, ABC):
+    """A class for reranking documents using a reranker model."""
+
+    async def arank(
+        self,
+        query: str,
+        documents: List[str],
+        send_to: str | None = None,
+        no_cache: bool = False,
+    ) -> List[Tuple[int, float]]:
+        """Reranks a list of documents based on their relevance to the query.
+
+        Args:
+            query: The query text to rank documents against.
+            documents: A list of document texts to rerank.
+            send_to: The namespace to send the request to. Defaults to None.
+            no_cache: Whether to bypass the cache. Defaults to False.
+
+        Returns:
+            List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
+        """
+        kw = self._resolve_embedding_params(send_to=send_to, no_cache=no_cache)
+        return await rust.ROUTER.rerank(query=query, documents=documents, **kw)

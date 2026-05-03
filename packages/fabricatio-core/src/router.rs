@@ -13,8 +13,8 @@ use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
     Completion, CompletionModel, CompletionRequest, CompletionTag, DeploymentIdentifier,
-    DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType,
-    RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
+    DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType, Ranking,
+    RerankerRequest, RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
 };
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -54,6 +54,17 @@ impl Router {
         r: Arc<ThrydRouter<EmbeddingTag>>,
         no_cache: bool,
     ) -> PyResult<Embeddings> {
+        r.invoke(send_to.clone(), req, no_cache)
+            .await
+            .into_pyresult()
+    }
+
+    pub async fn rerank_inner(
+        send_to: RouteGroupName,
+        req: RerankerRequest,
+        r: Arc<ThrydRouter<RerankerTag>>,
+        no_cache: bool,
+    ) -> PyResult<Ranking> {
         r.invoke(send_to.clone(), req, no_cache)
             .await
             .into_pyresult()
@@ -255,6 +266,35 @@ impl Router {
 
         future_into_py(python, async move {
             Self::embedding_inner(send_to, EmbeddingRequest { texts }, r, no_cache).await
+        })
+    }
+
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[typing.List[typing.Tuple[int, float]]]", imports = ("typing",))
+    )]
+    /// Sends a reranking request to the specified group.
+    ///
+    /// Args:
+    ///     send_to (str): The router group name to route the reranking request.
+    ///     query (str): The query text to rank documents against.
+    ///     documents (List[str]): A list of document texts to rerank.
+    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+    ///
+    /// Returns:
+    ///     List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
+    #[pyo3(signature = (send_to, query, documents, no_cache = false))]
+    pub fn rerank<'a>(
+        &self,
+        python: Python<'a>,
+        send_to: RouteGroupName,
+        query: String,
+        documents: Vec<String>,
+        no_cache: bool,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let r = self.reranker_router.clone();
+        let req = RerankerRequest { query, documents };
+        future_into_py(python, async move {
+            Self::rerank_inner(send_to, req, r, no_cache).await
         })
     }
 
