@@ -3,7 +3,7 @@ name = "fabricatio-novel"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 regex = "1.12.3"
