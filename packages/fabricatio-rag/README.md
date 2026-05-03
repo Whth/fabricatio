@@ -2,7 +2,7 @@
 
 [MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-rag)
-[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-rag)](https://pypi.org/project/fabricatio-rag/)
+[![PyPI Version](https://pypi.org/project/fabricatio-rag/)](https://pypi.org/project/fabricatio-rag/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-rag/week)](https://pepy.tech/projects/fabricatio-rag)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-rag)](https://pepy.tech/projects/fabricatio-rag)
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
@@ -32,63 +32,52 @@ uv pip install fabricatio[full]
 
 Provides tools for:
 
-- Document embedding and vector storage using Milvus
-  This feature uses the Milvus vector database to store document embeddings. Document embeddings are numerical
-  representations of text documents that capture their semantic meaning. The library first converts text documents into
-  embeddings using appropriate embedding models. These embeddings are then stored in Milvus, which provides efficient
-  storage and retrieval capabilities. For example, it can handle large - scale document collections and perform fast
-  similarity searches.
+- Document embedding and vector storage using LanceDB
+  This feature uses the LanceDB vector database to store document embeddings. Document embeddings are numerical
+  representations of text documents that capture their semantic meaning. The library stores embeddings in LanceDB,
+  which provides efficient storage and retrieval with automatic indexing.
 - Semantic search and context retrieval
   The semantic search and context retrieval feature allows users to search for relevant documents based on the meaning
-  of their queries. It uses the stored document embeddings in Milvus to find documents that are semantically similar to
-  the query. This is more powerful than traditional keyword - based search as it can understand the intent behind the
-  query. For example, if a user searches for "effects of pollution on wildlife", it can retrieve documents that discuss
-  related concepts even if the exact keywords are not present.
-- Integration with TEI (Text Embeddings Inference) services
-  The integration with TEI services enables the generation of text embeddings. TEI services provide pre - trained models
-  that can convert text into embeddings. The library can send text data to the TEI service and receive the corresponding
-  embeddings. This allows for the use of state - of - the - art embedding models without having to manage the model
-  training and inference process locally.
+  of their queries. It uses nearest-neighbor search on stored embeddings to find documents that are semantically similar
+  to the query.
+- Reranking with TEI (Text Embeddings Inference) services
+  The TEI integration enables document reranking. TEI services provide pre-trained models that can rerank texts
+  based on relevance to a query. This allows for state-of-the-art reranking without managing model training locally.
 - Database injection workflows
-  The database injection workflows are responsible for inserting new documents into the Milvus database. It takes care
-  of the process of converting the documents into embeddings, and then inserting them into the appropriate collections
-  in Milvus. This includes handling tasks such as collection creation, data indexing, and error handling.
+  The database injection workflows handle inserting documents into LanceDB, including vector conversion,
+  collection/table creation, data indexing, and error handling.
 - Asynchronous RAG execution patterns
   The asynchronous RAG execution patterns allow the library to perform multiple RAG tasks concurrently without blocking
-  the main thread. This is useful for improving the performance and responsiveness of the application. For example, it
-  can handle multiple user queries simultaneously, reducing the overall response time.
+  the main thread.
 
 Built on top of Fabricatio's agent framework with support for asynchronous execution and Rust extensions.
 
 ## 🧩 Usage Example
 
 ```python
-from fabricatio_rag.capabilities.rag import MilvusRAG
-# The `RAG` class is the core component of the library. It provides methods for performing retrieval - augmented generation tasks. It interacts with the Milvus database for document retrieval and uses the generated embeddings to augment the generation process.
-from fabricatio_rag.models.milvus import MilvusDataBase
-
-
-# The `MilvusDataBase` class represents the connection to the Milvus vector database. It provides methods for creating collections, inserting documents, and performing searches. It abstracts the low - level details of working with Milvus, making it easier to use in the application.
+from fabricatio_rag import VectorStoreService, VectorStoreTable, StoreDocument
 
 
 async def search_knowledge():
-    # Initialize database connection
-    db = MilvusDataBase(collection_name="science_papers")
-    # This line initializes a connection to the Milvus database with a specific collection named "science_papers". The collection is where the document embeddings will be stored and retrieved from.
+    # Initialize database connection (LanceDB URI, e.g. /tmp/lancedb or s3://bucket/path)
+    service = await VectorStoreService.connect("data/lancedb")
 
-    # Initialize RAG capability
-    rag = MilvusRAG(db)
-    # This line creates an instance of the `RAG` class, passing in the `MilvusDataBase` object. This allows the `RAG` class to interact with the Milvus database for document retrieval.
+    # Create a table with embedding dimension 1536 (OpenAI text-embedding-3-small)
+    table = await service.create_table("science_papers", ndim=1536)
 
-    # Search for relevant information
-    results = await rag.retrieve("climate change impact on coral reefs", limit=3)
-    # The `retrieve` method of the `RAG` class is used to perform a semantic search in the Milvus database. It takes a query string and a limit as parameters. In this example, it searches for documents related to "climate change impact on coral reefs" and returns the top 3 relevant documents.
+    # Add documents
+    docs = [
+        StoreDocument(content="Climate change severely impacts coral reef ecosystems...", vector=[...]),
+        StoreDocument(content="Ocean acidification reduces shell thickness in mollusks...", vector=[...]),
+    ]
+    await table.add_documents(docs)
+
+    # Search for relevant documents
+    results = await table.search_document(embedding=[...], limit=3)
 
     print("Top 3 relevant documents:")
     for result in results:
-        print(f"- {result['title']}")
-        print(f"  Relevance: {result['score']:.2f}")
-        print(f"  Snippet: {result['text'][:150]}...")
+        print(f"- {result.content[:80]}...")
 ```
 
 ## 📁 Structure
@@ -96,9 +85,8 @@ async def search_knowledge():
 ```
 fabricatio-rag/
 ├── actions/          - Data injection workflows
-├── capabilities/     - Core RAG functionality
-├── models/           - Database and query models
-├── proto/            - TEI service definitions
+├── capabilities/    - Core RAG functionality
+├── models/           - Document models
 └── rust.pyi          - Rust extension interfaces
 ```
 
@@ -106,15 +94,14 @@ fabricatio-rag/
 
 Core dependencies:
 
-- `pymilvus>=2.5.4` - Vector database integration
+- `lancedb` - Vector database integration
 - `fabricatio-core` - Core interfaces and utilities
 
 Rust extensions:
 
-- TEI client bindings
-- Protobuf definitions for gRPC communication
+- LanceDB table management via PyO3 bindings
+- TEI reranking via thryd router
 
 ## 📄 License
 
 MIT – see [LICENSE](../../LICENSE)
-
