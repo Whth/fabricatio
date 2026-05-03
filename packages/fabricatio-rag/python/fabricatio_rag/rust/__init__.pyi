@@ -30,6 +30,7 @@ class SearchedDocument:
     @property
     def metadata(self) -> typing.Optional[builtins.str]:
         r"""Optional metadata associated with the document, stored as a JSON string.
+
         This can include additional contextual information about the document.
         """
     def access_metadata(self) -> dict:

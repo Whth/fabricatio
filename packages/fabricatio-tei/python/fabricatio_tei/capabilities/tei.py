@@ -8,4 +8,5 @@ from fabricatio_core.capabilities.usages import UseLLM
 class Tei(UseLLM, ABC):
     """This class contains the capabilities for the tei."""
 
-    async def tei(self, **kwargs) -> None: ...
+    async def tei(self, **kwargs) -> None:
+        """Placeholder method for TEI capabilities."""
