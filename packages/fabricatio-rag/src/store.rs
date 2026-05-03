@@ -74,6 +74,7 @@ pub struct SearchedDocument {
     /// Timestamp indicating when the document was created or last updated.
     timestamp: TimeStamp,
     /// Optional metadata associated with the document, stored as a JSON string.
+    ///
     /// This can include additional contextual information about the document.
     metadata: Option<JsonString>,
 }
