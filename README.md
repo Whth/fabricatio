@@ -141,9 +141,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Replace `UseLLM` with native rust impl
     - [x] Fix the mock utils that is break by the replacement.
     - [x] router support `no_cache`
-- [ ] Diff use `Hashline` impl instead of `StringGrep`
-    - [ ] `HashLine` struct + hash-based line matching in Rust
-    - [ ] Replace `match_lines` + `Diff.apply` + benchmarks + edge-case tests
+- [x] Diff use `Hashline` impl instead of `StringGrep`
+    - [x] Integrate `rho-hashline` crate + hash-based line anchoring in Rust
+    - [x] Add `compute_hash`, `format_hashes`, `parse_hashline_anchor`, `apply_*` functions
+    - [x] Add `Diff.format_with_hashes()` method + Python exports + 22 tests
 - [ ] Placeholder based multiple-agents edits
 
 ## Installation
