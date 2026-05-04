@@ -11,7 +11,7 @@ thryd = { path = "../thryd", features = ["pyo3"] }
 fabricatio-config = { path = "../fabricatio-config" }
 fabricatio-logger = { path = "../fabricatio-logger" }
 fabricatio-constants = { path = "../fabricatio-constants" }
-error-mapping = { path = "../error-mapping", features = ["thryd", "std"] }
+error-mapping = { workspace = true, features = ["thryd", "std"] }
 pyo3 = { version = "0.28.3" }
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 pyo3-stub-gen = "0.22.1"
