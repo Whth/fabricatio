@@ -159,7 +159,7 @@ pub use error::{Result, ThrydError};
 /// - From `models`: `CompletionModel`, `EmbeddingModel`, `RerankerModel` traits
 /// - From `models::dummy`: `DummyModel`
 /// - From `models::openai`: `OpenaiModel`
-pub use model::*;
+pub use model::{CompletionRequestMessage, *};
 
 /// Model definitions for different LLM providers.
 ///

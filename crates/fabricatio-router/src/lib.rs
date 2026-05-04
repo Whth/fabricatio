@@ -17,7 +17,7 @@ use thryd::{
     RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
 };
 
-pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
+pub use thryd::{CompletionRequest, CompletionRequestMessage, ProviderType, RouteGroupName};
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]

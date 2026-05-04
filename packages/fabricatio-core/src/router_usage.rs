@@ -5,7 +5,7 @@ use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
 use fabricatio_router::Router;
-use fabricatio_router::{CompletionRequest, RouteGroupName};
+use fabricatio_router::{CompletionRequest, CompletionRequestMessage, RouteGroupName};
 use futures::StreamExt;
 use futures::future::join_all;
 use pyo3::exceptions::*;
@@ -19,6 +19,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 struct CompletionParams {
     send_to: RouteGroupName,
+    history: Vec<CompletionRequestMessage>,
     stream: bool,
     top_p: Option<f32>,
     temperature: Option<f32>,
@@ -32,6 +33,7 @@ impl CompletionParams {
     fn to_request(&self, message: String) -> CompletionRequest {
         CompletionRequest {
             message,
+            history: self.history.clone(),
             stream: self.stream,
             top_p: self.top_p,
             temperature: self.temperature,
