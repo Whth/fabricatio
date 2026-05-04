@@ -13,8 +13,8 @@ use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
     Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel,
-    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking,
-    RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
+    EmbeddingModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking,
+    RerankerModel, RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
 };
 
 pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
@@ -442,6 +442,68 @@ impl Router {
         let deployment = Deployment::new(Box::new(dummy_model) as Box<dyn CompletionModel>);
 
         self.completion_router
+            .add_deployment(group, deployment)
+            .into_pyresult()?;
+        Ok(())
+    }
+
+    pub fn add_or_update_dummy_embedding_model(
+        &self,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
+        embeddings: Vec<Embeddings>,
+    ) -> PyResult<()> {
+        if self
+            .embedding_router
+            .remove_deployment(group.as_str(), model_identifier.clone())
+            .is_ok()
+        {
+            debug!("Removed existing deployment for {:?}", model_identifier)
+        }
+
+        let (provider_name, model_name) = analyze_identifier(model_identifier).into_pyresult()?;
+        let provider = self
+            .embedding_router
+            .get_provider(provider_name)
+            .into_pyresult()?;
+
+        let dummy_model =
+            DummyModel::new(model_name, provider).with_embedding_responses(embeddings);
+
+        let deployment = Deployment::new(Box::new(dummy_model) as Box<dyn EmbeddingModel>);
+
+        self.embedding_router
+            .add_deployment(group, deployment)
+            .into_pyresult()?;
+        Ok(())
+    }
+
+    pub fn add_or_update_dummy_reranker_model(
+        &self,
+        group: RouteGroupName,
+        model_identifier: DeploymentIdentifier,
+        rankings: Vec<Ranking>,
+    ) -> PyResult<()> {
+        if self
+            .reranker_router
+            .remove_deployment(group.as_str(), model_identifier.clone())
+            .is_ok()
+        {
+            debug!("Removed existing deployment for {:?}", model_identifier)
+        }
+
+        let (provider_name, model_name) = analyze_identifier(model_identifier).into_pyresult()?;
+        let provider = self
+            .reranker_router
+            .get_provider(provider_name)
+            .into_pyresult()?;
+
+        let dummy_model =
+            DummyModel::new(model_name, provider).with_reranker_responses(rankings);
+
+        let deployment = Deployment::new(Box::new(dummy_model) as Box<dyn RerankerModel>);
+
+        self.reranker_router
             .add_deployment(group, deployment)
             .into_pyresult()?;
         Ok(())
