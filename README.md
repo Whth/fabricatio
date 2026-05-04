@@ -127,6 +127,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Wire into Role + validation + example skill file + tests
 - [x] Port build workflow to `Justfile`
 - [x] `thryd::Router` use concurrent safe impl
+- [x] Extract `Router` from `fabricatio-core` into standalone `fabricatio-router` crate
 - [x] Replace parser with native rust impl
 - [ ] Better memory impl
 - [x] RAG package refactor, move rerank and embedding to `thryd`
