@@ -12,6 +12,8 @@ from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
+    pad_embeddings,
+    pad_rankings,
     pad_responses,
     return_code_router_usage,
     return_generic_router_usage,
@@ -338,3 +340,116 @@ class TestMockRoleDefaults:
         """Verify ProposeTestRole is an instance of Role."""
         role = ProposeTestRole()
         assert isinstance(role, Role)
+
+
+# =============================================================================
+# Mock Router: pad_embeddings / pad_rankings
+# =============================================================================
+
+
+class TestPadEmbeddings:
+    """Tests for pad_embeddings helper."""
+
+    def test_single_embedding(self) -> None:
+        """Single embedding is padded to 11 entries."""
+        result = pad_embeddings([1.0, 2.0, 3.0])
+        assert result[0] == [1.0, 2.0, 3.0]
+        assert len(result) == 11
+
+    def test_multiple_embeddings(self) -> None:
+        """Last embedding is used as padding default."""
+        e1 = [1.0, 0.0]
+        e2 = [0.0, 1.0]
+        result = pad_embeddings(e1, e2)
+        assert result[:2] == [e1, e2]
+        assert all(r == e2 for r in result[2:])
+
+    def test_custom_default(self) -> None:
+        """Explicit default overrides the last embedding for padding."""
+        fallback = [0.5, 0.5]
+        result = pad_embeddings([1.0, 2.0], default=fallback)
+        assert result[0] == [1.0, 2.0]
+        assert all(r == fallback for r in result[1:])
+
+    def test_empty_raises(self) -> None:
+        """No arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one embedding"):
+            pad_embeddings()
+
+    def test_custom_padding(self) -> None:
+        """Custom padding count is honoured."""
+        result = pad_embeddings([1.0], padding=3)
+        assert len(result) == 4  # 1 + 3
+
+
+class TestPadRankings:
+    """Tests for pad_rankings helper."""
+
+    def test_single_ranking(self) -> None:
+        """Single ranking is padded to 11 entries."""
+        result = pad_rankings((0, 0.9))
+        assert result[0] == (0, 0.9)
+        assert len(result) == 11
+
+    def test_multiple_rankings(self) -> None:
+        """Last ranking is used as padding default."""
+        r1 = (0, 0.9)
+        r2 = (1, 0.5)
+        result = pad_rankings(r1, r2)
+        assert result[:2] == [r1, r2]
+        assert all(r == r2 for r in result[2:])
+
+    def test_custom_default(self) -> None:
+        """Explicit default overrides the last ranking for padding."""
+        fallback = (99, 0.0)
+        result = pad_rankings((0, 0.8), default=fallback)
+        assert result[0] == (0, 0.8)
+        assert all(r == fallback for r in result[1:])
+
+    def test_empty_raises(self) -> None:
+        """No arguments raises ValueError."""
+        with pytest.raises(ValueError, match="At least one ranking"):
+            pad_rankings()
+
+    def test_custom_padding(self) -> None:
+        """Custom padding count is honoured."""
+        result = pad_rankings((0, 1.0), padding=5)
+        assert len(result) == 6  # 1 + 5
+
+
+class TestSetupDummyEmbeddings:
+    """Tests for setup_dummy_embeddings integration."""
+
+    def test_imports_available(self) -> None:
+        """Verify new constants are importable."""
+        from fabricatio_mock import DUMMY_EMBEDDING_GROUP, DUMMY_RERANKER_GROUP
+        assert DUMMY_EMBEDDING_GROUP == "embedding"
+        assert DUMMY_RERANKER_GROUP == "reranker"
+
+    def test_setup_dummy_embeddings_callable(self) -> None:
+        """setup_dummy_embeddings is callable without error."""
+        from fabricatio_mock.utils import setup_dummy_embeddings
+
+        # Should not raise
+        setup_dummy_embeddings([1.0, 0.0, 0.0], [0.0, 1.0, 0.0])
+
+    def test_setup_dummy_reranks_callable(self) -> None:
+        """setup_dummy_reranks is callable without error."""
+        from fabricatio_mock.utils import setup_dummy_reranks
+
+        # Should not raise
+        setup_dummy_reranks((0, 0.9), (1, 0.5))
+
+    def test_install_dummy_embeddings_context_manager(self) -> None:
+        """install_dummy_embeddings context manager yields without error."""
+        from fabricatio_mock.utils import install_dummy_embeddings
+
+        with install_dummy_embeddings([0.1, 0.2, 0.3]):
+            pass
+
+    def test_install_dummy_reranks_context_manager(self) -> None:
+        """install_dummy_reranks context manager yields without error."""
+        from fabricatio_mock.utils import install_dummy_reranks
+
+        with install_dummy_reranks((0, 0.95)):
+            pass
