@@ -25,9 +25,7 @@
 //! }).await?;
 //! ```
 
-use crate::model::{
-    CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model,
-};
+use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use async_openai::types::chat::{
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequest,
@@ -246,56 +244,7 @@ impl Model for OpenaiModel {
 #[async_trait]
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion> {
-        use async_openai::types::chat::ChatCompletionRequestSystemMessageArgs;
-
         let stream = request.stream;
-
-        // Build messages list: history + current message
-        let mut messages = Vec::with_capacity(request.history.len() + 1);
-
-        // Add history messages
-        for msg in &request.history {
-            match msg.role.as_str() {
-                "system" => {
-                    messages.push(
-                        ChatCompletionRequestSystemMessageArgs::default()
-                            .content(msg.content.as_str())
-                            .build()
-                            .unwrap()
-                            .into(),
-                    );
-                }
-                "user" => {
-                    messages.push(
-                        ChatCompletionRequestUserMessageArgs::default()
-                            .content(msg.content.as_str())
-                            .build()
-                            .unwrap()
-                            .into(),
-                    );
-                }
-                _ => {
-                    // Treat unknown roles as user messages for compatibility
-                    messages.push(
-                        ChatCompletionRequestUserMessageArgs::default()
-                            .content(msg.content.as_str())
-                            .build()
-                            .unwrap()
-                            .into(),
-                    );
-                }
-            }
-        }
-
-        // Add current message
-        messages.push(
-            ChatCompletionRequestUserMessageArgs::default()
-                .content(request.message.as_str())
-                .build()
-                .unwrap()
-                .into(),
-        );
-
         let request = CreateChatCompletionRequest {
             top_p: request.top_p,
             temperature: request.temperature,
@@ -304,8 +253,11 @@ impl CompletionModel for OpenaiModel {
             frequency_penalty: request.frequency_penalty,
             ..CreateChatCompletionRequestArgs::default()
                 .model(self.model_name())
-                .stream(stream)
-                .messages(messages)
+                .stream(request.stream)
+                .messages([ChatCompletionRequestUserMessageArgs::default()
+                    .content(request.message)
+                    .build()?
+                    .into()])
                 .build()?
         };
 

@@ -86,14 +86,10 @@ pub struct EmbeddingRequest {
 /// # Example
 ///
 /// ```rust
-/// use thryd::model::{CompletionRequest, CompletionRequestMessage};
+/// use thryd::model::CompletionRequest;
 ///
 /// let request = CompletionRequest {
 ///     message: "Explain recursion in programming".to_string(),
-///     history: vec![CompletionRequestMessage {
-///         role: "user".to_string(),
-///         content: "What is a function?".to_string(),
-///     }],
 ///     stream: false,
 ///     top_p: Some(0.9),
 ///     temperature: Some(0.7),
@@ -106,10 +102,6 @@ pub struct EmbeddingRequest {
 pub struct CompletionRequest {
     /// The input message/prompt to generate a completion for.
     pub message: String,
-
-    /// Conversation history for multi-turn contexts.
-    /// Each message contains a role and content.
-    pub history: Vec<CompletionRequestMessage>,
 
     /// Whether to stream the response. When `true`, returns a stream of chunks.
     pub stream: bool,
@@ -132,19 +124,6 @@ pub struct CompletionRequest {
     /// Penalty for tokens proportional to their frequency in the prompt. Range: [-2, 2].
     /// Positive values reduce word repetition.
     pub frequency_penalty: Option<f32>,
-}
-
-/// A single message in a completion request's conversation history.
-///
-/// Used to provide multi-turn context to language models that support
-/// chat-based APIs.
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct CompletionRequestMessage {
-    /// The role of the message sender (e.g., "system", "user", "assistant").
-    pub role: String,
-
-    /// The content of the message.
-    pub content: String,
 }
 
 /// Request payload for reranking documents against a query.
