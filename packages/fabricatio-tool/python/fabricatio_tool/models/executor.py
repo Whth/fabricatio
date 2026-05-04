@@ -1,12 +1,14 @@
 """Module containing the ToolExecutor class for managing and executing a sequence of tools."""
 
+import asyncio
+import traceback
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, List, Optional, Self
 
 from fabricatio_core import logger
 
 from fabricatio_tool.config import CheckConfigModel, tool_config
-from fabricatio_tool.models.collector import ResultCollector
+from fabricatio_tool.models.collector import ApplicationError, ResultCollector
 from fabricatio_tool.models.tool import Tool, ToolBox
 from fabricatio_tool.rust import CheckConfig, gather_violations
 
@@ -134,9 +136,21 @@ class ToolExecutor:
         ):
             raise ValueError(f"Violations found in code: \n{source}\n\n{'\n'.join(vio)}")
         logger.debug(f"Starting compile and execution of function: \n{source}")
-        exec(source, cxt)  # noqa: S102
-        compiled_fn = cxt[self.fn_name]
-        await compiled_fn()
+        try:
+            exec(source, cxt)  # noqa: S102
+            compiled_fn = cxt[self.fn_name]
+            await compiled_fn()
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception as e:  # noqa: BLE001
+            app_error = ApplicationError(
+                exc_type=type(e).__name__,
+                message=str(e),
+                traceback=traceback.format_exc(),
+                source=source,
+            )
+            self.collector.submit("__error__", app_error)
+            return self.collector
         return self.collector
 
     def validate_callcheck_config(self, check_calls: CheckConfigModel) -> CheckConfigModel:

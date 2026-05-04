@@ -15,6 +15,16 @@
 
 I have set up a global variable called `{{collector_varname}}` which is an instance of the ResultCollector class. You can use it to submit the result if required.
 
+{{#if last_error}}
+## Previous Execution Failed
+
+```
+{{last_error}}
+```
+
+**Please fix the code above, taking the error into account.**
+{{/if}}
+
 ## Constrain
 
 {{block request "Vital Requirements"}}

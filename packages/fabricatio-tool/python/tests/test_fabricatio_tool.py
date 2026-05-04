@@ -263,3 +263,60 @@ def test_from_recipe(toolbox: ToolBox, sample_func: Callable[[int, str], str]) -
     executor = ToolExecutor.from_recipe(["func"], [toolbox])
     assert len(executor.candidates) == 1
     assert executor.candidates[0].name == "func"
+
+
+class TestApplicationError:
+    """Test cases for ApplicationError and error handling."""
+
+    def test_application_error_str(self) -> None:
+        """Test ApplicationError string representation."""
+        from fabricatio_tool.models.collector import ApplicationError
+
+        error = ApplicationError(
+            exc_type="ValueError",
+            message="test message",
+            traceback="Traceback (most recent call last):\n  ...",
+            source="async def execute()->None:\n    raise ValueError('test')",
+        )
+        assert "[ValueError] test message" in str(error)
+        assert "Traceback:" in str(error)
+
+    @pytest.mark.asyncio
+    async def test_execute_stores_error_on_exception(self, tool_executor: ToolExecutor) -> None:
+        """Test that exceptions during execution are stored as ApplicationError."""
+        from fabricatio_tool.models.collector import ApplicationError
+
+        # Code that raises a TypeError during execution (passes linter but fails at runtime)
+        source = f"x=str.upper(42)\n{tool_executor.collector_varname}.submit('result', x)\n"
+
+        col = await tool_executor.execute(source)
+
+        # Verify collector returns properly
+        assert col is not None
+
+        # Verify error is stored
+        error = col.error()
+        assert error is not None
+        assert isinstance(error, ApplicationError)
+        assert error.exc_type == "TypeError"  # upper() doesn't accept arguments
+        assert error.source is not None
+        assert "str.upper(42)" in error.source
+        assert error.traceback is not None
+        assert len(error.traceback) > 0
+
+    @pytest.mark.asyncio
+    async def test_execute_no_error_on_success(self, tool_executor: ToolExecutor) -> None:
+        """Test that successful execution doesn't set an error."""
+        source = f"x=42\n{tool_executor.collector_varname}.submit('num', x)\n"
+        col = await tool_executor.execute(source)
+        assert col.error() is None
+        assert col.take("num", int) == 42
+
+    @pytest.mark.asyncio
+    async def test_execute_error_key_in_container(self, tool_executor: ToolExecutor) -> None:
+        """Test that __error__ key is set in container on exception."""
+        # Code that raises an exception at runtime (undefined variable)
+        source = f"x=undefined_var\n{tool_executor.collector_varname}.submit('result', x)\n"
+        col = await tool_executor.execute(source)
+        assert "__error__" in col.container
+        assert col.container["__error__"] is col.error()

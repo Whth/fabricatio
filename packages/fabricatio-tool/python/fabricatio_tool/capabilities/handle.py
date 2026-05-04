@@ -14,7 +14,7 @@ from fabricatio_core.utils import override_kwargs
 
 from fabricatio_tool.capabilities.use_tool import UseTool
 from fabricatio_tool.config import tool_config
-from fabricatio_tool.models.collector import ResultCollector
+from fabricatio_tool.models.collector import ApplicationError, ResultCollector
 from fabricatio_tool.models.executor import ToolExecutor
 from fabricatio_tool.models.tool import Tool, ToolBox
 
@@ -28,6 +28,7 @@ class Handle(UseTool, ABC):
         tools: List[Tool],
         data: Dict[str, Any],
         output_spec: Optional[Dict[str, str]] = None,
+        last_error: Optional[ApplicationError] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
@@ -48,6 +49,7 @@ class Handle(UseTool, ABC):
                 "tools": [{"name": t.name, "briefing": t.briefing} for t in tools],
                 "data": data,
                 "output_spec": output_spec or {},
+                "last_error": str(last_error) if last_error else None,
             },
         )
         logger.debug(f"Code Drafting Question: \n{q}")

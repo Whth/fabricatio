@@ -7,6 +7,27 @@ from fabricatio_core import logger
 
 
 @dataclass
+class ApplicationError:
+    """Error raised during tool code execution, surfaced via ResultCollector."""
+
+    exc_type: str
+    """e.g. 'TypeError'"""
+
+    message: str
+    """Exception message."""
+
+    traceback: str
+    """Formatted traceback (for LLM context)."""
+
+    source: str
+    """The generated source code that failed (for LLM regeneration)."""
+
+    def __str__(self) -> str:
+        """Return a human-readable representation of the error."""
+        return f"[{self.exc_type}] {self.message}\n\nTraceback:\n{self.traceback}"
+
+
+@dataclass
 class ResultCollector:
     """Used for collecting results as the task requests.
 
@@ -84,3 +105,7 @@ class ResultCollector:
             else:
                 results.append(result)
         return results
+
+    def error(self) -> Optional["ApplicationError"]:
+        """Return the ApplicationError if one was stored during execution."""
+        return self.container.get("__error__")
