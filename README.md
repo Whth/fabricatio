@@ -114,11 +114,11 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Capability protocol + runtime registry + dynamic method injection on Role
     - [ ] Config-based discovery + hot-reload + tests
 - [x] Add more examples
-    - [x] Write missing examples (Structured Output, Extract, Improve)
-    - [x] Document undocumented examples + cross-link `use-cases.rst` + examples index
+- [x] Write missing examples (Structured Output, Extract, Improve)
+- [x] Document undocumented examples + cross-link `use-cases.rst` + examples index
 - [ ] `ToolExecuter` exec results feedback to llm
     - [ ] Add `history` to `CompletionRequest` + update providers + Python binding
-    - [ ] `ResultCollector.to_history_messages` + feedback loop in `handle_fine_grind` + tests
+    - [x] Surface errors via `ApplicationError` + `ResultCollector.error()` + `last_error` template param
 - [x] Use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
 - [x] Use `Thryd` impl to move some requests to rust side
     - [x] All core LLM operations already routed through `rust.router_usage`
