@@ -207,8 +207,8 @@ pub trait Provider: Send + Sync {
 /// * `Dummy` - A provider that doesn't make real HTTP calls. Useful for
 ///   testing and development.
 #[derive(EnumString, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "stubgen", pyo3_stub_gen::derive::gen_stub_pyclass_enum)]
 #[cfg_attr(feature = "pyo3", pyo3::pyclass(from_py_object), derive(Clone))]
-#[cfg_attr(feature = "pystub", pyo3_stub_gen::derive::gen_stub_pyclass_enum)]
 pub enum ProviderType {
     /// Official OpenAI API provider.
     OpenAI,

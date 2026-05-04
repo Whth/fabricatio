@@ -114,7 +114,7 @@
 //! # Feature Flags
 //!
 //! - `pyo3`: Enables Python bindings via PyO3
-//! - `pystub`: Generates Python type stubs for better IDE support
+//! - `stubgen`: Generates Python type stubs for better IDE support
 //!
 //! # Rate Limiting
 //!

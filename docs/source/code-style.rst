@@ -216,7 +216,7 @@ Feature Flags
 
      [features]
      pyo3 = ["dep:pyo3"]
-     pystub = ["dep:pyo3-stub-gen"]
+     stubgen = ["dep:pyo3-stub-gen"]
 
 -----
 

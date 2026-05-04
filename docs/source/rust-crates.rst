@@ -419,7 +419,7 @@ Feature Flags Summary
 ===========  ============================================================
 Crate        Features                                                     
 ===========  ============================================================
-thryd        ``pyo3`` (Python bindings), ``pystub`` (stub generation)     
+thryd        ``pyo3`` (Python bindings), ``stubgen`` (stub generation)
 config       ``stubgen`` (Python stub generation)                        
 logger       ``stubgen`` (Python stub generation)                        
 stubgen      ``all``, ``core``, ``memory``, ``diff``, ...                

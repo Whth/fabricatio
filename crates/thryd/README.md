@@ -8,7 +8,9 @@ A lightweight, embedded LLM request router with intelligent caching, token usage
 
 ## Overview
 
-Thryd is a Rust library designed to manage and route requests to multiple LLM providers with built-in caching, quota management, and load balancing. It provides a unified interface for working with different LLM APIs while handling rate limits, token counting, and request optimization automatically.
+Thryd is a Rust library designed to manage and route requests to multiple LLM providers with built-in caching, quota
+management, and load balancing. It provides a unified interface for working with different LLM APIs while handling rate
+limits, token counting, and request optimization automatically.
 
 ### Key Features
 
@@ -39,7 +41,7 @@ thryd = { version = "0.2", features = ["pyo3"] }
 ### Feature Flags
 
 - `pyo3`: Enables Python bindings via PyO3
-- `pystub`: Generates Python type stubs for better IDE support
+- `stubgen`: Generates Python type stubs for better IDE support
 
 ## Quick Start
 

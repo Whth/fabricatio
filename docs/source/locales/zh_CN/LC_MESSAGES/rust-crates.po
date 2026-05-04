@@ -429,8 +429,8 @@ msgid "Features"
 msgstr "特性"
 
 #: ../../source/rust-crates.rst:424
-msgid "``pyo3`` (Python bindings), ``pystub`` (stub generation)"
-msgstr "``pyo3`` （Python 绑定）、``pystub`` （存根生成）"
+msgid "``pyo3`` (Python bindings), ``stubgen`` (stub generation)"
+msgstr "``pyo3`` （Python 绑定）、``stubgen`` （存根生成）"
 
 #: ../../source/rust-crates.rst:425
 msgid "config"

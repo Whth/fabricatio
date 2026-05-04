@@ -22,11 +22,10 @@ dotenvy = "0.15.7"
 figment = { version = "0.10.19", features = ["env", "toml"] }
 validator = { version = "0.20.0", features = ["derive"] }
 
-thryd = { path = "../thryd", features = ["pyo3", "pystub"] }
+thryd = { path = "../thryd", features = ["pyo3"] }
 
 
 
 
 [features]
-
-stubgen = []
+stubgen = ["thryd/stubgen"]
