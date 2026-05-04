@@ -26,8 +26,7 @@ postcard = { version = "1.1.3", default-features = false, optional = true }
 arrow-schema = { version = "<=57.3.0", default-features = false, optional = true }
 llm_json = { version = "1.0.3", default-features = true, optional = true }
 regex = { version = "1.12.3", default-features = false, optional = true }
-
-
+rho-hashline = { version = "0.5", default-features = false, optional = true }
 
 [features]
 default = ["std"]
@@ -49,6 +48,7 @@ tantivy = ["dep:tantivy"]
 mcp-manager = ["dep:mcp-manager"]
 thryd = ["dep:thryd"]
 postcard = ["dep:postcard"]
+rho-hashline = ["dep:rho-hashline"]
 pyo3_cast = []
 
 std = []

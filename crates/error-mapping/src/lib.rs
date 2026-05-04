@@ -119,6 +119,9 @@ impl_as_pyerr!(lancedb::Error, PyOSError);
 #[cfg(feature = "strum")]
 impl_as_pyerr!(strum::ParseError, PyValueError);
 
+#[cfg(feature = "rho-hashline")]
+impl_as_pyerr!(rho_hashline::HashlineError, PyRuntimeError);
+
 cfg_if!(
 if #[cfg(feature = "pyo3_cast")]
 {
