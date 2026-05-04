@@ -198,3 +198,43 @@ def return_mixed_router_usage(*values: Value, default: Optional[str] = None, pad
         list[str]: Formatted and padded response strings.
     """
     return pad_responses(*[value.to_string() for value in values], default=default, padding=padding)
+
+
+def pad_embeddings(*embeddings: list[float], default: Optional[list[float]] = None, padding: int = 10) -> list[list[float]]:
+    """Build a padded embeddings list for DummyModel.
+
+    DummyModel errors when its queue is exhausted. Pad with extra copies of the
+    default value to cover retries and batch calls.
+
+    Args:
+        *embeddings: Embedding vectors.
+        default: Value used for padding. Defaults to the last embedding.
+        padding: Number of extra copies appended. Defaults to 10.
+
+    Returns:
+        list[list[float]]: embeddings followed by padding copies of default.
+    """
+    if not embeddings:
+        raise ValueError("At least one embedding must be provided.")
+    default_val = ok(default or embeddings[-1])
+    return list(embeddings) + [default_val] * padding
+
+
+def pad_rankings(*rankings: tuple[int, float], default: Optional[tuple[int, float]] = None, padding: int = 10) -> list[tuple[int, float]]:
+    """Build a padded rankings list for DummyModel.
+
+    DummyModel errors when its queue is exhausted. Pad with extra copies of the
+    default value to cover retries and batch calls.
+
+    Args:
+        *rankings: Ranking tuples of (index, score).
+        default: Value used for padding. Defaults to the last ranking.
+        padding: Number of extra copies appended. Defaults to 10.
+
+    Returns:
+        list[tuple[int, float]]: rankings followed by padding copies of default.
+    """
+    if not rankings:
+        raise ValueError("At least one ranking must be provided.")
+    default_val = ok(default or rankings[-1])
+    return list(rankings) + [default_val] * padding
