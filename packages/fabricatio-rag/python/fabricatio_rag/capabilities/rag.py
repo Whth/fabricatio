@@ -4,14 +4,14 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Self, Type, Union, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.capabilities.usages import UseEmbedding
+from fabricatio_core.capabilities.usages import UseEmbedding, UseReranker
 from fabricatio_core.models.kwargs_types import ListStringKwargs
 
 from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.document import DocumentModel
 
 
-class RAG[D: DocumentModel](UseEmbedding, ABC):
+class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
     @abstractmethod
