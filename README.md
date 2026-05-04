@@ -134,10 +134,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Add Reranker support in `thryd`
     - [x] TEI as `Provider` in thryd (RerankerModel for OpenAI-compat: wontfix — OpenAI doesn't support rerankers)
     - [x] Wire `rerank()` into Router Python class + add `UseReranker` capability
-- [ ] Add embedding and rerank mock support to `fabricatio-mock`
-    - [ ] Add `add_or_update_dummy_embedding_model` and `add_or_update_dummy_reranker_model` to Router
-    - [ ] Add `setup_dummy_embeddings` / `setup_dummy_reranks` + response builders in `fabricatio-mock`
-    - [ ] Tests for embedding and rerank mock paths
+- [x] Add embedding and rerank mock support to `fabricatio-mock`
+    - [x] Add `add_or_update_dummy_embedding_model` and `add_or_update_dummy_reranker_model` to Router
+    - [x] Add `setup_dummy_embeddings` / `setup_dummy_reranks` + response builders in `fabricatio-mock`
+    - [x] Tests for embedding and rerank mock paths
 - [x] Replace `UseLLM` with native rust impl
     - [x] Fix the mock utils that is break by the replacement.
     - [x] router support `no_cache`

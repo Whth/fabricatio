@@ -142,6 +142,10 @@ role = LLMTestRole(name="tester")
 | `generic_block(content, lang)` | Wraps content in `--- Start/End of ... ---` delimiters |
 | `make_roles(names, role_cls)` | Creates a list of Role instances from names |
 | `make_n_roles(n, role_cls)` | Creates n Role instances with auto-generated names |
+| `setup_dummy_embeddings(*embeddings, group=, model_id=)` | Configures router with dummy embedding vectors |
+| `install_dummy_embeddings(*embeddings, group=, model_id=)` | Context manager version of the above |
+| `setup_dummy_reranks(*rankings, group=, model_id=)` | Configures router with dummy reranker ranking tuples |
+| `install_dummy_reranks(*rankings, group=, model_id=)` | Context manager version of the above |
 
 ---
 
@@ -177,3 +181,51 @@ These functions are kept for backward compatibility but should not be used for n
 ## License
 
 MIT - see [LICENSE](../../LICENSE)
+
+---
+
+## Embedding & Rerank Mocking
+
+In addition to completion mocking, `fabricatio-mock` supports embedding and reranker mocking.
+
+### Constants
+
+| Constant | Default Value | Description |
+|---|---|---|
+| `DUMMY_EMBEDDING_GROUP` | `"embedding"` | Default router group for mock embedding models |
+| `DUMMY_RERANKER_GROUP` | `"reranker"` | Default router group for mock reranker models |
+
+### Embedding Mock Example
+
+```python
+from fabricatio_mock.utils import install_dummy_embeddings
+from fabricatio_mock.models.mock_router import pad_embeddings
+
+# Create padded embedding responses (handles retries/batches)
+embeddings = pad_embeddings([1.0, 0.0, 0.0], [0.0, 1.0, 0.0])
+
+with install_dummy_embeddings(*embeddings):
+    result = await router.embedding("embedding/dummy/test-embedding-model", ["hello world"])
+    assert result[0] == [1.0, 0.0, 0.0]
+```
+
+### Rerank Mock Example
+
+```python
+from fabricatio_mock.utils import install_dummy_reranks
+from fabricatio_mock.models.mock_router import pad_rankings
+
+# Create padded ranking responses
+rankings = pad_rankings((0, 0.95), (1, 0.5))
+
+with install_dummy_reranks(*rankings):
+    result = await router.rerank("reranker/dummy/test-reranker-model", "query", ["doc1", "doc2"])
+    assert result == [(0, 0.95)]
+```
+
+### Pad Functions
+
+| Function | Description |
+|---|---|
+| `pad_embeddings(*embeddings, default=, padding=)` | Pads embedding vectors with copies of the default for DummyModel safety |
+| `pad_rankings(*rankings, default=, padding=)` | Pads ranking tuples with copies of the default for DummyModel safety |
