@@ -68,6 +68,9 @@ class ToolConfig(BaseModel):
     logging_on_ops: bool = True
     """Whether to log operations before executing them."""
 
+    error_key: str = "__error__"
+    """The key to use for error reporting."""
+
 
 tool_config = CONFIG.load("tool", ToolConfig)
 

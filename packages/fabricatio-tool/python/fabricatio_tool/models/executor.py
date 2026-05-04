@@ -108,6 +108,7 @@ class ToolExecutor:
         check_modules: Optional[CheckConfigModel] = None,
         check_imports: Optional[CheckConfigModel] = None,
         check_calls: Optional[CheckConfigModel] = None,
+        err_key: str = tool_config.error_key,
     ) -> ResultCollector:
         """Execute the sequence of tools with the provided context.
 
@@ -120,6 +121,7 @@ class ToolExecutor:
             check_modules (Optional[CheckConfigModel]): Configuration for module-related checks.
             check_imports (Optional[CheckConfigModel]): Configuration for import-related checks.
             check_calls (Optional[CheckConfigModel]): Configuration for call-related checks.
+            err_key (str): The key to use for error handling.
 
         Returns:
             ResultCollector: The collector containing results from the executed tools.
@@ -149,7 +151,7 @@ class ToolExecutor:
                 traceback=traceback.format_exc(),
                 source=source,
             )
-            self.collector.submit("__error__", app_error)
+            self.collector.submit(err_key, app_error)
             return self.collector
         return self.collector
 

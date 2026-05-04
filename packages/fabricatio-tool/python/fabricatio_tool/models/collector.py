@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Self, Type, overload
 
 from fabricatio_core import logger
 
+from fabricatio_tool.config import tool_config
+
 
 @dataclass
 class ApplicationError:
@@ -108,4 +110,4 @@ class ResultCollector:
 
     def error(self) -> Optional["ApplicationError"]:
         """Return the ApplicationError if one was stored during execution."""
-        return self.container.get("__error__")
+        return self.container.get(tool_config.error_key)
