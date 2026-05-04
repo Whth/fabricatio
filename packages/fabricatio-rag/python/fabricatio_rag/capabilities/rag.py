@@ -54,3 +54,34 @@ class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
             ),
             **kwargs,
         )
+
+    async def arank_documents(
+        self,
+        query: str,
+        documents: List[D],
+        send_to: str | None = None,
+        no_cache: bool = False,
+    ) -> List[D]:
+        """Rerank documents by relevance to query, preserving document objects.
+
+        Delegates to UseReranker.arank() for scoring, then reorders the
+        original document list by descending score.
+
+        Args:
+            query: The query text to rank against.
+            documents: Previously retrieved documents to rerank.
+            send_to: Router group for the reranker model.
+            no_cache: Whether to bypass the reranker cache.
+
+        Returns:
+            Documents reordered by relevance (descending score).
+        """
+        if not documents:
+            return []
+        rankings = await self.arank(
+            query=query,
+            documents=[doc.prepare_vectorization() for doc in documents],
+            send_to=send_to,
+            no_cache=no_cache,
+        )
+        return [documents[idx] for idx, _ in rankings]
