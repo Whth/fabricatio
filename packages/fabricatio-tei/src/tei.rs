@@ -147,7 +147,7 @@ impl Provider for TEI {
 use pyo3_stub_gen::derive::*;
 
 /// Cached Router reference. Extracted once via Python module lookup.
-static ROUTER: Lazy<fabricatio_core::Router> = Lazy::new(|| {
+static ROUTER: Lazy<fabricatio_router::Router> = Lazy::new(|| {
     Python::try_attach(|py| {
         let module = py.import("fabricatio_core.rust").unwrap();
         module

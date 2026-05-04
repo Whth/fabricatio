@@ -1,8 +1,6 @@
 use crate::templates::TEMPLATE_MANAGER;
-use crate::{
-    Router,
-    parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER},
-};
+use fabricatio_router::Router;
+use crate::parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER};
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
@@ -15,7 +13,7 @@ use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use thryd::{CompletionRequest, RouteGroupName};
+use fabricatio_router::{CompletionRequest, RouteGroupName};
 
 /// Bundled completion parameters shared across all inner ask/mapping functions.
 #[derive(Clone)]

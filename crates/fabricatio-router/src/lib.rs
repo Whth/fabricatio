@@ -12,10 +12,12 @@ use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
-    Completion, CompletionModel, CompletionRequest, CompletionTag, DeploymentIdentifier,
-    DummyModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, ProviderType, Ranking,
-    RerankerRequest, RerankerTag, RouteGroupName, Router as ThrydRouter, create_provider,
+    Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel,
+    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking,
+    RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
 };
+
+pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
@@ -556,19 +558,4 @@ pub fn init_router_from_config() -> PyResult<Router> {
 #[pyfunction]
 pub fn tokens_of(text: String) -> u64 {
     thryd::count_token(text)
-}
-
-/// Registers the router functions and classes with the Python module.
-///
-/// Args:
-///     _: The Python interpreter instance.
-///     m: The Python module to register with.
-///
-/// Returns:
-///     PyResult<()> indicating success.
-pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(tokens_of, m)?)?;
-    m.add_class::<ProviderType>()?;
-    m.add_class::<Router>()?;
-    Ok(())
 }

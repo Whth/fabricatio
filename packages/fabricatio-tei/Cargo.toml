@@ -3,10 +3,10 @@ name = "fabricatio-tei"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib","rlib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fabricatio-core = { path = "../fabricatio-core" }
+fabricatio-router = { path = "../../crates/fabricatio-router" }
 fabricatio-constants = { path = "../../crates/fabricatio-constants" }
 once_cell = "1.21.4"
 pyo3 = { version = "0.28.3" }

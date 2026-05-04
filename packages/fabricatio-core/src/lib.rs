@@ -13,15 +13,14 @@ mod hash;
 mod hbs_helpers;
 mod language;
 mod parser;
-mod router;
 pub mod router_usage;
 mod scan;
 pub mod templates;
 mod text_file;
 mod word_split;
 
-pub use crate::router::Router;
-use crate::router::init_router_from_config;
+pub use fabricatio_router::Router;
+use fabricatio_router::init_router_from_config;
 use fabricatio_config::SecretStr;
 use pyo3::prelude::*;
 
@@ -30,7 +29,7 @@ cfg_if!(
         use pyo3_stub_gen::{define_stub_info_gatherer, module_variable};
         module_variable!("fabricatio_core.rust", LOGGER_VARNAME, Logger);
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
-        module_variable!("fabricatio_core.rust", ROUTER_VARNAME, crate::router::Router);
+        module_variable!("fabricatio_core.rust", ROUTER_VARNAME, fabricatio_router::Router);
         define_stub_info_gatherer!(stub_info);
 
 
@@ -68,7 +67,9 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     event::register(python, m)?;
     scan::register(python, m)?;
     text_file::register(python, m)?;
-    router::register(python, m)?;
+    m.add_function(wrap_pyfunction!(fabricatio_router::tokens_of, m)?)?;
+    m.add_class::<fabricatio_router::ProviderType>()?;
+    m.add_class::<fabricatio_router::Router>()?;
     parser::register(python, m)?;
     Ok(())
 }
