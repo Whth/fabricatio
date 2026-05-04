@@ -4,10 +4,92 @@ import builtins
 import typing
 
 __all__ = [
+    "apply_insert_after",
+    "apply_replace",
+    "apply_replace_lines",
+    "apply_set_line",
+    "compute_hash",
+    "format_hashes",
     "match_lines",
+    "parse_hashline_anchor",
     "rate",
     "show_diff",
 ]
+
+def apply_insert_after(content: builtins.str, anchor: builtins.str, text: builtins.str) -> builtins.str:
+    r"""Applies an insert_after edit to content based on a hashline anchor.
+
+    Args:
+        content: The original content to modify.
+        anchor: The anchor string in "LINE:HASH" format.
+        text: The text to insert after the anchored line.
+
+    Returns:
+        The modified content after applying the edit.
+    """
+
+def apply_replace(
+    content: builtins.str, old_text: builtins.str, new_text: builtins.str, all: builtins.bool
+) -> builtins.str:
+    r"""Applies a replace edit (text substitution) to content.
+
+    Args:
+        content: The original content to modify.
+        old_text: The text to search for.
+        new_text: The replacement text.
+        all: Whether to replace all occurrences (default: false).
+
+    Returns:
+        The modified content after applying the edit.
+    """
+
+def apply_replace_lines(
+    content: builtins.str, start_anchor: builtins.str, end_anchor: builtins.str, new_text: builtins.str
+) -> builtins.str:
+    r"""Applies a replace_lines edit to content between two anchors.
+
+    Args:
+        content: The original content to modify.
+        start_anchor: The start anchor in "LINE:HASH" format.
+        end_anchor: The end anchor in "LINE:HASH" format.
+        new_text: The replacement text for the lines range.
+
+    Returns:
+        The modified content after applying the edit.
+    """
+
+def apply_set_line(content: builtins.str, anchor: builtins.str, new_text: builtins.str) -> builtins.str:
+    r"""Applies a set_line edit to content based on a hashline anchor.
+
+    Args:
+        content: The original content to modify.
+        anchor: The anchor string in "LINE:HASH" format.
+        new_text: The replacement text.
+
+    Returns:
+        The modified content after applying the edit.
+    """
+
+def compute_hash(line: builtins.str) -> builtins.str:
+    r"""Computes a hash for a single line using xxHash-based hashing.
+
+    Args:
+        line: The line content to hash.
+
+    Returns:
+        A hex string representing the line's hash.
+    """
+
+def format_hashes(content: builtins.str, start_line: builtins.int = 1) -> builtins.str:
+    r"""Formats content with LINE:HASH anchors for each line.
+
+    Args:
+        content: The text content to format.
+        start_line: The starting line number (default: 1).
+
+    Returns:
+        A string where each line is prefixed with its line number and hash.
+    """
 
 def match_lines(
     haystack: builtins.str, needle: builtins.str, match_precision: builtins.float = 0.9
@@ -25,6 +107,16 @@ def match_lines(
     Returns:
         An Option containing the first matching block of lines if found,
         or None if no match meets the precision threshold.
+    """
+
+def parse_hashline_anchor(anchor: builtins.str) -> tuple[builtins.int, builtins.str]:
+    r"""Parses a hashline anchor in the format "LINE:HASH".
+
+    Args:
+        anchor: The anchor string to parse (e.g., "42:ab123def").
+
+    Returns:
+        A tuple of (line_number, hash_string) if valid.
     """
 
 def rate(a: builtins.str, b: builtins.str) -> builtins.float:

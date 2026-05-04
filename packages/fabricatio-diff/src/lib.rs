@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
 
 mod diff;
+mod hashline;
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -11,6 +12,7 @@ mod diff;
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     diff::register(python, m)?;
+    hashline::register(python, m)?;
     Ok(())
 }
 

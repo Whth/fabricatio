@@ -2,7 +2,11 @@
 
 from fabricatio_core.models.generic import Display
 
-from fabricatio_diff.rust import match_lines, show_diff
+from fabricatio_diff.rust import (
+    format_hashes,
+    match_lines,
+    show_diff,
+)
 from fabricatio_diff.utils import Delimiters
 
 
@@ -41,6 +45,17 @@ class Diff(Display):
             Diff: A new Diff object with the reversed search and replace patterns.
         """
         return Diff(search=self.replace, replace=self.search)
+
+    def format_with_hashes(self, content: str) -> str:
+        """Formats content with LINE:HASH anchors for LLM context.
+
+        Args:
+            content (str): The text content to format.
+
+        Returns:
+            str: A string where each line is prefixed with its line number and hash.
+        """
+        return format_hashes(content)
 
     def display(self) -> str:
         """Returns a string representation of the Diff object.

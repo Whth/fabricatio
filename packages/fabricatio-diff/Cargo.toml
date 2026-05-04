@@ -12,6 +12,8 @@ rayon = "1.12.0"
 similar = "3.1.0"
 strsim = "0.11.1"
 pyo3-stub-gen = "0.22.1"
+rho-hashline = "0.5"
+error-mapping = { path = "../../crates/error-mapping", features = ["rho-hashline"] }
 
 [features]
 default = ["pyo3/extension-module"]
