@@ -129,7 +129,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] `thryd::Router` use concurrent safe impl
 - [x] Replace parser with native rust impl
 - [ ] Better memory impl
-- [ ] RAG package refactor, move rerank and embedding to `thryd`
+- [x] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
     - [x] TEI as `Provider` in thryd (RerankerModel for OpenAI-compat: wontfix — OpenAI doesn't support rerankers)
     - [x] Wire `rerank()` into Router Python class + add `UseReranker` capability
