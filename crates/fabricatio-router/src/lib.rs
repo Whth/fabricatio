@@ -303,7 +303,7 @@ impl Router {
     #[pyo3(signature = (provider_type, name = None, api_key = None, endpoint = None))]
     /// Adds a provider to the router.
     ///
-    /// This method registers a new provider with both the completion and embedding routers.
+    /// This method registers a new provider with the completion, embedding, and reranker routers.
     ///
     /// Args:
     ///     provider_type (ProviderType): The type of the provider (e.g., OpenAI, Anthropic).
@@ -330,9 +330,11 @@ impl Router {
 
         let er = self.embedding_router.clone();
         let cr = self.completion_router.clone();
+        let rr = self.reranker_router.clone();
 
         cr.add_or_update_provider(p.clone());
-        er.add_or_update_provider(p);
+        er.add_or_update_provider(p.clone());
+        rr.add_or_update_provider(p);
         Ok(())
     }
 
