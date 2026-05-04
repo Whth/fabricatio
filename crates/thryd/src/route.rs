@@ -790,3 +790,95 @@ impl ModelTypeTag for EmbeddingTag {
         deployment.embedding(request).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::deployment::Deployment;
+    use crate::provider::dummy::DummyProvider;
+    use crate::models::dummy::DummyModel;
+
+    #[tokio::test]
+    async fn test_router_reranker_with_dummy() {
+        let router = Router::<RerankerTag>::default();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        let model = DummyModel::new("reranker".to_string(), provider)
+            .with_reranker_responses(vec![
+                vec![(0, 0.95), (2, 0.87), (1, 0.72)],
+            ]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn RerankerModel>);
+        router
+            .add_deployment("rank".into(), deployment)
+            .unwrap();
+
+        let request = RerankerRequest {
+            query: "What is Rust?".to_string(),
+            documents: vec![
+                "Rust is a systems language".to_string(),
+                "Python is scripting".to_string(),
+                "Rust memory safety".to_string(),
+            ],
+        };
+
+        let result = router
+            .invoke_cached("rank".into(), request)
+            .await
+            .unwrap();
+
+        assert_eq!(result, vec![(0, 0.95), (2, 0.87), (1, 0.72)]);
+    }
+
+    #[tokio::test]
+    async fn test_router_reranker_cache_hit() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("reranker-cache.db");
+
+        let router = Router::<RerankerTag>::with_cache(&db_path).unwrap();
+
+        // Verify TieredCache can store and retrieve a Ranking
+        {
+            let cache = router.cache.as_ref().unwrap();
+            let test_ranking: Ranking = vec![(0, 0.95), (1, 0.8)];
+            cache.set_ser("test_key", &test_ranking).unwrap();
+            let retrieved = cache.get_de::<Ranking>("test_key");
+            assert_eq!(retrieved, Some(test_ranking), "TieredCache roundtrip failed");
+        }
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Configure only one response — cache must serve it on the second call
+        let model = DummyModel::new("reranker".to_string(), provider)
+            .with_reranker_responses(vec![
+                vec![(0, 0.9)],
+            ]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn RerankerModel>);
+        router
+            .add_deployment("rank".into(), deployment)
+            .unwrap();
+
+        let request = RerankerRequest {
+            query: "q".to_string(),
+            documents: vec!["doc_a".to_string(), "doc_b".to_string()],
+        };
+
+        // First call hits the model and caches the result
+        let first = router
+            .invoke_cached("rank".into(), request.clone())
+            .await
+            .unwrap();
+        assert_eq!(first, vec![(0, 0.9)]);
+
+        // Second call must return cached result (only 1 response was configured)
+        let second = router
+            .invoke_cached("rank".into(), request)
+            .await
+            .unwrap();
+        assert_eq!(first, second);
+    }
+}

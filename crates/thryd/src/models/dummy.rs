@@ -324,3 +324,79 @@ impl RerankerModel for DummyModel {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::RerankerModel;
+    use crate::ThrydError;
+
+    #[tokio::test]
+    async fn test_reranker_returns_configured_response() {
+        let expected: Ranking = vec![(0, 0.95), (2, 0.87), (1, 0.72)];
+        let model = DummyModel::default()
+            .with_reranker_responses(vec![expected.clone()]);
+
+        let request = RerankerRequest {
+            query: "test query".to_string(),
+            documents: vec!["doc1".to_string(), "doc2".to_string(), "doc3".to_string()],
+        };
+        let result = model.rerank(request).await.unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn test_reranker_lifo_order() {
+        let first: Ranking = vec![(0, 0.95)];
+        let second: Ranking = vec![(1, 0.88)];
+        let model = DummyModel::default()
+            .with_reranker_responses(vec![first.clone(), second.clone()]);
+
+        let req = || RerankerRequest {
+            query: "q".to_string(),
+            documents: vec!["d1".to_string()],
+        };
+
+        // LIFO: second added is returned first
+        assert_eq!(model.rerank(req()).await.unwrap(), second);
+        assert_eq!(model.rerank(req()).await.unwrap(), first);
+    }
+
+    #[tokio::test]
+    async fn test_reranker_exhausted_error() {
+        let model = DummyModel::default();
+
+        let request = RerankerRequest {
+            query: "q".to_string(),
+            documents: vec!["d".to_string()],
+        };
+        let err = model.rerank(request).await.unwrap_err();
+        match err {
+            ThrydError::Internal(msg) => {
+                assert_eq!(
+                    msg,
+                    "DummyModel exhausted: no more reranker responses configured."
+                );
+            }
+            other => panic!("Expected ThrydError::Internal, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_reranker_builder_pattern() {
+        let model = DummyModel::new("my-reranker".to_string(), Arc::new(DummyProvider::default()))
+            .with_reranker_responses(vec![
+                vec![(0, 0.9)],
+                vec![(1, 0.8)],
+            ]);
+
+        assert_eq!(model.model_name(), "my-reranker");
+
+        let req = RerankerRequest {
+            query: "q".to_string(),
+            documents: vec!["d".to_string()],
+        };
+        assert_eq!(model.rerank(req.clone()).await.unwrap(), vec![(1, 0.8)]);
+        assert_eq!(model.rerank(req).await.unwrap(), vec![(0, 0.9)]);
+    }
+}
