@@ -795,8 +795,8 @@ impl ModelTypeTag for EmbeddingTag {
 mod tests {
     use super::*;
     use crate::deployment::Deployment;
-    use crate::provider::dummy::DummyProvider;
     use crate::models::dummy::DummyModel;
+    use crate::provider::dummy::DummyProvider;
 
     #[tokio::test]
     async fn test_router_reranker_with_dummy() {
@@ -806,14 +806,10 @@ mod tests {
         router.add_or_update_provider(provider.clone());
 
         let model = DummyModel::new("reranker".to_string(), provider)
-            .with_reranker_responses(vec![
-                vec![(0, 0.95), (2, 0.87), (1, 0.72)],
-            ]);
+            .with_reranker_responses(vec![vec![(0, 0.95), (2, 0.87), (1, 0.72)]]);
 
         let deployment = Deployment::new(Box::new(model) as Box<dyn RerankerModel>);
-        router
-            .add_deployment("rank".into(), deployment)
-            .unwrap();
+        router.add_deployment("rank".into(), deployment).unwrap();
 
         let request = RerankerRequest {
             query: "What is Rust?".to_string(),
@@ -824,10 +820,7 @@ mod tests {
             ],
         };
 
-        let result = router
-            .invoke_cached("rank".into(), request)
-            .await
-            .unwrap();
+        let result = router.invoke_cached("rank".into(), request).await.unwrap();
 
         assert_eq!(result, vec![(0, 0.95), (2, 0.87), (1, 0.72)]);
     }
@@ -845,7 +838,11 @@ mod tests {
             let test_ranking: Ranking = vec![(0, 0.95), (1, 0.8)];
             cache.set_ser("test_key", &test_ranking).unwrap();
             let retrieved = cache.get_de::<Ranking>("test_key");
-            assert_eq!(retrieved, Some(test_ranking), "TieredCache roundtrip failed");
+            assert_eq!(
+                retrieved,
+                Some(test_ranking),
+                "TieredCache roundtrip failed"
+            );
         }
 
         let provider = Arc::new(DummyProvider::default());
@@ -853,14 +850,10 @@ mod tests {
 
         // Configure only one response — cache must serve it on the second call
         let model = DummyModel::new("reranker".to_string(), provider)
-            .with_reranker_responses(vec![
-                vec![(0, 0.9)],
-            ]);
+            .with_reranker_responses(vec![vec![(0, 0.9)]]);
 
         let deployment = Deployment::new(Box::new(model) as Box<dyn RerankerModel>);
-        router
-            .add_deployment("rank".into(), deployment)
-            .unwrap();
+        router.add_deployment("rank".into(), deployment).unwrap();
 
         let request = RerankerRequest {
             query: "q".to_string(),
@@ -875,10 +868,7 @@ mod tests {
         assert_eq!(first, vec![(0, 0.9)]);
 
         // Second call must return cached result (only 1 response was configured)
-        let second = router
-            .invoke_cached("rank".into(), request)
-            .await
-            .unwrap();
+        let second = router.invoke_cached("rank".into(), request).await.unwrap();
         assert_eq!(first, second);
     }
 }

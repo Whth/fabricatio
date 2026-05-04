@@ -200,7 +200,9 @@ def return_mixed_router_usage(*values: Value, default: Optional[str] = None, pad
     return pad_responses(*[value.to_string() for value in values], default=default, padding=padding)
 
 
-def pad_embeddings(*embeddings: list[float], default: Optional[list[float]] = None, padding: int = 10) -> list[list[float]]:
+def pad_embeddings(
+    *embeddings: list[float], default: Optional[list[float]] = None, padding: int = 10
+) -> list[list[float]]:
     """Build a padded embeddings list for DummyModel.
 
     DummyModel errors when its queue is exhausted. Pad with extra copies of the
@@ -220,7 +222,9 @@ def pad_embeddings(*embeddings: list[float], default: Optional[list[float]] = No
     return list(embeddings) + [default_val] * padding
 
 
-def pad_rankings(*rankings: tuple[int, float], default: Optional[tuple[int, float]] = None, padding: int = 10) -> list[tuple[int, float]]:
+def pad_rankings(
+    *rankings: tuple[int, float], default: Optional[tuple[int, float]] = None, padding: int = 10
+) -> list[tuple[int, float]]:
     """Build a padded rankings list for DummyModel.
 
     DummyModel errors when its queue is exhausted. Pad with extra copies of the

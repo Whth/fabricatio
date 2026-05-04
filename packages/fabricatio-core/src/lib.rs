@@ -19,9 +19,9 @@ pub mod templates;
 mod text_file;
 mod word_split;
 
+use fabricatio_config::SecretStr;
 pub use fabricatio_router::Router;
 use fabricatio_router::init_router_from_config;
-use fabricatio_config::SecretStr;
 use pyo3::prelude::*;
 
 cfg_if!(

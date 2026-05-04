@@ -328,14 +328,13 @@ impl RerankerModel for DummyModel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::RerankerModel;
     use crate::ThrydError;
+    use crate::model::RerankerModel;
 
     #[tokio::test]
     async fn test_reranker_returns_configured_response() {
         let expected: Ranking = vec![(0, 0.95), (2, 0.87), (1, 0.72)];
-        let model = DummyModel::default()
-            .with_reranker_responses(vec![expected.clone()]);
+        let model = DummyModel::default().with_reranker_responses(vec![expected.clone()]);
 
         let request = RerankerRequest {
             query: "test query".to_string(),
@@ -349,8 +348,8 @@ mod tests {
     async fn test_reranker_lifo_order() {
         let first: Ranking = vec![(0, 0.95)];
         let second: Ranking = vec![(1, 0.88)];
-        let model = DummyModel::default()
-            .with_reranker_responses(vec![first.clone(), second.clone()]);
+        let model =
+            DummyModel::default().with_reranker_responses(vec![first.clone(), second.clone()]);
 
         let req = || RerankerRequest {
             query: "q".to_string(),
@@ -384,11 +383,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_reranker_builder_pattern() {
-        let model = DummyModel::new("my-reranker".to_string(), Arc::new(DummyProvider::default()))
-            .with_reranker_responses(vec![
-                vec![(0, 0.9)],
-                vec![(1, 0.8)],
-            ]);
+        let model = DummyModel::new(
+            "my-reranker".to_string(),
+            Arc::new(DummyProvider::default()),
+        )
+        .with_reranker_responses(vec![vec![(0, 0.9)], vec![(1, 0.8)]]);
 
         assert_eq!(model.model_name(), "my-reranker");
 

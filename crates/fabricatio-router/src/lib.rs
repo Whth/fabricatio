@@ -12,9 +12,9 @@ use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
-    Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel,
-    EmbeddingModel, EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking,
-    RerankerModel, RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
+    Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel, EmbeddingModel,
+    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RerankerModel,
+    RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
 };
 
 pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
@@ -498,8 +498,7 @@ impl Router {
             .get_provider(provider_name)
             .into_pyresult()?;
 
-        let dummy_model =
-            DummyModel::new(model_name, provider).with_reranker_responses(rankings);
+        let dummy_model = DummyModel::new(model_name, provider).with_reranker_responses(rankings);
 
         let deployment = Deployment::new(Box::new(dummy_model) as Box<dyn RerankerModel>);
 

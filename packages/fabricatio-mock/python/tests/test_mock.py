@@ -423,6 +423,7 @@ class TestSetupDummyEmbeddings:
     def test_imports_available(self) -> None:
         """Verify new constants are importable."""
         from fabricatio_mock import DUMMY_EMBEDDING_GROUP, DUMMY_RERANKER_GROUP
+
         assert DUMMY_EMBEDDING_GROUP == "embedding"
         assert DUMMY_RERANKER_GROUP == "reranker"
 
