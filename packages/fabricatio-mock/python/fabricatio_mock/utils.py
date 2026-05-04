@@ -9,7 +9,7 @@ from typing import Generator, List, Type
 from fabricatio_core import Role, rust
 from fabricatio_core.rust import ProviderType
 
-from fabricatio_mock import DUMMY_LLM_GROUP
+from fabricatio_mock import DUMMY_EMBEDDING_GROUP, DUMMY_LLM_GROUP, DUMMY_RERANKER_GROUP
 
 
 def code_block(content: str, lang: str = "json") -> str:
@@ -75,3 +75,69 @@ def make_n_roles(n: int, role_cls: Type[Role] = Role) -> List[Role]:
         List[Role]: A list of Role objects with the given number of names.
     """
     return [role_cls(name=f"Role {i}", description="test") for i in range(1, n + 1)]
+
+
+def setup_dummy_embeddings(
+    *embeddings: list[float], group: str = DUMMY_EMBEDDING_GROUP, model_id: str = "dummy/test-embedding-model"
+) -> None:
+    """Configure the singleton router with dummy embeddings for testing.
+
+    Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
+    so embeddings are reversed to preserve FIFO semantics.
+
+    Args:
+        *embeddings: Embedding vectors (each a list of floats).
+        group: Route group name. Defaults to DUMMY_EMBEDDING_GROUP.
+        model_id: Model identifier string.
+    """
+    rust.ROUTER.add_provider(ProviderType.Dummy)
+    # Each embedding is a list[float]; wrap in a list to form the batch type (Vec<Embeddings>)
+    rust.ROUTER.add_or_update_dummy_embedding_model(group, model_id, [[e] for e in reversed(embeddings)])
+
+
+@contextmanager
+def install_dummy_embeddings(
+    *embeddings: list[float], group: str = DUMMY_EMBEDDING_GROUP, model_id: str = "dummy/test-embedding-model"
+) -> Generator[None, None, None]:
+    """Context manager that configures dummy embeddings for testing.
+
+    Args:
+        *embeddings: Embedding vectors (each a list of floats).
+        group: Route group name. Defaults to DUMMY_EMBEDDING_GROUP.
+        model_id: Model identifier string.
+    """
+    setup_dummy_embeddings(*embeddings, group=group, model_id=model_id)
+    yield
+
+
+def setup_dummy_reranks(
+    *rankings: tuple[int, float], group: str = DUMMY_RERANKER_GROUP, model_id: str = "dummy/test-reranker-model"
+) -> None:
+    """Configure the singleton router with dummy reranker rankings for testing.
+
+    Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
+    so rankings are reversed to preserve FIFO semantics.
+
+    Args:
+        *rankings: Ranking tuples of (index, score).
+        group: Route group name. Defaults to DUMMY_RERANKER_GROUP.
+        model_id: Model identifier string.
+    """
+    rust.ROUTER.add_provider(ProviderType.Dummy)
+    # Each ranking tuple is wrapped in a list to form the batch type (Vec<Ranking>)
+    rust.ROUTER.add_or_update_dummy_reranker_model(group, model_id, [[r] for r in reversed(rankings)])
+
+
+@contextmanager
+def install_dummy_reranks(
+    *rankings: tuple[int, float], group: str = DUMMY_RERANKER_GROUP, model_id: str = "dummy/test-reranker-model"
+) -> Generator[None, None, None]:
+    """Context manager that configures dummy reranker rankings for testing.
+
+    Args:
+        *rankings: Ranking tuples of (index, score).
+        group: Route group name. Defaults to DUMMY_RERANKER_GROUP.
+        model_id: Model identifier string.
+    """
+    setup_dummy_reranks(*rankings, group=group, model_id=model_id)
+    yield
