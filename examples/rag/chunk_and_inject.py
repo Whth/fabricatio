@@ -11,11 +11,9 @@ from fabricatio_typst.rust import BibManager
 
 async def main() -> None:
     """Main function."""
-    Role(
-        name="Researcher",
-        description="chunk the article",
-        skills={
-            Event.quick_instantiate(e := "Chunk").collapse(): WorkFlow(
+    Role.with_bio(name="Researcher", description="chunk the article") \
+        .subscribe(
+            Event.quick_instantiate(e := "Chunk"), WorkFlow(
                 name="Chunk",
                 steps=(
                     ChunkArticle(output_key="to_inject"),
@@ -28,8 +26,7 @@ async def main() -> None:
                 max_overlapping_rate=0.3,
                 override_inject=True,
             ),
-        },
-    )
+        )
 
     task: Task[str] = Task(name="Chunk Article")
     res = ok(await task.delegate(e))

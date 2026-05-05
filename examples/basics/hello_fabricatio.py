@@ -18,8 +18,8 @@ class Hello(Action):
 
 
 (
-    Role(name="talker", description="talker role")
-    .add_skill(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
+    Role.with_bio(name="talker", description="talker role")
+    .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
     .dispatch()
 )
 

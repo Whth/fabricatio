@@ -46,8 +46,8 @@ work = WorkFlow(
 )
 
 (
-    Role(name="ai", description="description")  # Character Names and Descriptions
-    .add_skill(Event.quick_instantiate("123"), work)
+    Role.with_bio(name="ai", description="description")  # Character Names and Descriptions
+    .subscribe(Event.quick_instantiate("123"), work)
     # Event("123") (the author calls it a skill, hehe)
     # can trigger the character and execute the workflow
     .dispatch()

@@ -19,7 +19,8 @@ from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
 
 # Register the writer role and workflow
-writer_role = Role(name="writer").add_skill(Event.quick_instantiate(ns := "write"), DebugNovelWorkflow).dispatch()
+ns = "write"
+writer_role = Role.with_bio(name="writer").subscribe(Event.quick_instantiate(ns), DebugNovelWorkflow).dispatch()
 
 
 def _exit_on_error(message: str) -> NoReturn:

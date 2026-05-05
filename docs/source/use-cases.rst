@@ -45,13 +45,8 @@ The simplest Fabricatio application - a role that responds to user input.
     async def main() -> None:
         """Main function."""
         # Create a role with a name, description, and registered skills
-        role = Role(
-            name="talker",
-            description="talker role",
-            # Skills map events to workflows - Event.quick_instantiate creates a trigger,
-            # WorkFlow sequences the actions to execute
-            skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Talk,))},
-        )
+        role = Role.with_bio(name="talker", description="talker role") \
+            .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
 
         # Propose a task - the LLM generates a briefing from this objective
         task = await role.propose_task(
@@ -138,11 +133,8 @@ Combine LLM with your document knowledge base using Milvus vector search.
 
     async def main() -> None:
         """Main function."""
-        role = Role(
-            name="talker",
-            description="talker role but with rag",
-            skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Talk,))},
-        )
+        role = Role.with_bio(name="talker", description="talker role but with rag") \
+            .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
 
         task = await role.propose_task(
             "you have to act as a helpful assistant, answer to all user questions properly and patiently"
@@ -236,7 +228,7 @@ Review code and automatically apply corrections based on review feedback.
 
     async def main() -> None:
         """Main function."""
-        role = Role(
+        role = Role.with_bio(
             name="Correction Officer",
             description="A role that reviews and corrects code.",
         )
@@ -461,7 +453,7 @@ Automatically fix spelling, wording, and other text issues with diff-based editi
 
 
     # Configure role workflow for essay tweaking
-    Role(name="writer").add_skill(
+    Role.with_bio(name="writer").subscribe(
         Event.quick_instantiate("tweak"),
         WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),))
     ).dispatch()
@@ -653,16 +645,12 @@ Write and save generated content to files using tool execution.
 
     async def main() -> None:
         """Main function."""
-        role = Role(
-            name="Coder",
-            description="A python coder who writes and saves code",
-            skills={
-                # Workflow: generate code, then dump to file
-                Event.quick_instantiate("coding").collapse(): WorkFlow(
-                    name="write code", steps=(WriteCode, DumpText)
-                ),
-            },
-        ).dispatch()
+        role = Role.with_bio(name="Coder", description="A python coder who writes and saves code") \
+            .subscribe(
+                Event.quick_instantiate("coding"),
+                WorkFlow(name="write code", steps=(WriteCode, DumpText)),
+            ) \
+            .dispatch()
 
         # Propose a task and delegate to "coding" workflow
         proposed_task: Task[str] = ok(
@@ -732,19 +720,18 @@ Cancel long-running tasks and retrieve partial outputs.
 
     async def main() -> None:
         """Main function."""
-        role = Role(
-            name="Coder",
-            description="Test cancellation",
-            skills={
-                Event.quick_instantiate("cancel_test").collapse(): WorkFlow(
+        role = Role.with_bio(name="Coder", description="Test cancellation") \
+            .subscribe(
+                Event.quick_instantiate("cancel_test"),
+                WorkFlow(
                     name="cancel_test",
                     # Multiple steps - some will be skipped on cancel
                     steps=(TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, WriteToOutput),
                     # Initialize counter to 0 for this workflow
                     extra_init_context={"counter": 0},
                 ),
-            },
-        ).dispatch()
+            ) \
+            .dispatch()
 
         proposed_task = ok(
             await role.propose_task("test cancellation workflow")
@@ -855,7 +842,7 @@ Generate diaries from structured data like git commits.
     class Coder(RoleBase, ProposeTask):
         """A role that generates diaries from commit history."""
 
-        skills: Dict[EventPattern, WorkFlow] = Field(
+        subscriptions: Dict[EventPattern, WorkFlow] = Field(
             default={
                 Event.quick_instantiate("doc").collapse(): WorkFlow(
                     name="write documentation", steps=(WriteDiary, DumpText)
@@ -935,12 +922,9 @@ Extract key essence from articles and store in vector database.
 
     async def main() -> None:
         """Main function."""
-        Role(
-            name="Researcher",
-            description="Extract article essence",
-            llm_send_to="openai/deepseek-v3-250324",
-            skills={
-                Event.quick_instantiate("article").collapse(): WorkFlow(
+        Role.new(
+            {
+                Event.quick_instantiate("article"): WorkFlow(
                     name="extract",
                     # Multi-step pipeline: extract -> fix -> persist -> inject
                     steps=(
@@ -957,6 +941,9 @@ Extract key essence from articles and store in vector database.
                     reader=_reader,  # Custom file reader
                 )
             },
+            name="Researcher",
+            description="Extract article essence",
+            llm_send_to="openai/deepseek-v3-250324",
         )
 
         # Create task with dependencies (gather all markdown files)
@@ -1037,11 +1024,13 @@ Generate Anki flashcards from CSV question banks.
 
 
     # Configure role with deck generation and topic analysis skills
+    ns = "generate_deck"
+    ns2 = "topic_analyze"
     (
-        Role()
-        .add_skill(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(DeckGen().to_task_output(),)))
-        .add_skill(
-            Event.quick_instantiate(ns2 := "topic_analyze"),
+        Role.with_bio()
+        .subscribe(Event.quick_instantiate(ns), WorkFlow(steps=(DeckGen().to_task_output(),)))
+        .subscribe(
+            Event.quick_instantiate(ns2),
             WorkFlow(steps=(AppendTopicAnalysis(csv_file="topics.csv").to_task_output(),)),
         )
         .dispatch()

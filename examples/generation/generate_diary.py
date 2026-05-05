@@ -75,7 +75,7 @@ class DumpText(Action, Handle):
 class Coder(RoleBase, ProposeTask):
     """A role that can write a diary according to the given commit messages in json format."""
 
-    skills: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: Dict[EventPattern, WorkFlow] = Field(
         default={
             Event.quick_instantiate("doc").collapse(): WorkFlow(
                 name="write documentation", steps=(WriteDiary, DumpText)

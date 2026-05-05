@@ -6,8 +6,8 @@ from fabricatio.models import Song
 from fabricatio_core.utils import ok
 
 (
-    Role()
-    .add_skill(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(Compose().to_task_output(),)))
+    Role.with_bio()
+    .subscribe(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(Compose().to_task_output(),)))
     .dispatch()
 )
 

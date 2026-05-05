@@ -58,16 +58,11 @@ A ``Role`` is the primary agent entity that orchestrates skills and LLM interact
 
     from fabricatio import Role, Event, WorkFlow
 
-    role = Role(
-        name="assistant",
-        description="A helpful assistant",
-        skills={
-            Event.quick_instantiate("help").collapse(): WorkFlow(
-                name="help",
-                steps=(HelpAction,)
-            )
-        }
-    )
+    role = Role.with_bio(name="assistant", description="A helpful assistant") \
+        .subscribe(Event.quick_instantiate("help"), WorkFlow(
+            name="help",
+            steps=(HelpAction,)
+        ))
 
 Role Lifecycle
 ~~~~~~~~~~~~~~

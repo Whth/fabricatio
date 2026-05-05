@@ -31,13 +31,8 @@ class Role(RoleBase, UseLLM):
     """Role class for article writing."""
 
 
-Role(
-    name="Undergraduate Researcher",
-    description="Write an outline for an article in typst format.",
-    llm_send_to="openai/qwen-plus",
-    llm_stream=True,
-    llm_max_completion_tokens=8191,
-    skills={
+Role.new(
+    {
         Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
             name="Generate Article",
             description="Generate an article. dump the outline to the given path. in typst format.",
@@ -98,6 +93,11 @@ Role(
             steps=(WriteResearchContentSummary().to_task_output(),),
         ),
     },
+    name="Undergraduate Researcher",
+    description="Write an outline for an article in typst format.",
+    llm_send_to="openai/qwen-plus",
+    llm_stream=True,
+    llm_max_completion_tokens=8191,
 )
 
 app = Typer()

@@ -124,7 +124,7 @@ Pre-configured roles for testing LLM and Propose capabilities:
 ```python
 from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 
-role = LLMTestRole(name="tester")
+role = LLMTestRole.with_bio(name="tester")
     # llm_send_to="openai/gpt-3.5-turbo"
     # llm_api_endpoint="https://api.openai.com/v1"
     # llm_api_key=SecretStr("sk-123456789")

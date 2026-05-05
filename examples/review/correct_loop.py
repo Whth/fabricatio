@@ -15,7 +15,7 @@ class Role(RoleBase, Correct, Review):
 
 async def main() -> None:
     """Main function."""
-    role = Role(
+    role = Role.with_bio(
         name="Reviewer",
         description="A role that reviews the code.",
     )

@@ -75,12 +75,10 @@ Roles in Fabricatio register workflows to handle specific events, creating a fle
 
 .. code-block:: python
 
-   role = Role()
-   role.register_workflow(
+   role = Role.with_bio().subscribe(
        Event.quick_instantiate("process"),  # Matches "process::*::pending"
        WorkFlow(name="data_processor", steps=(Validate, Process, Store))
-   )
-   role.dispatch()  # Register workflows with the event emitter
+   ).dispatch()
 
 Benefits of Event-Driven Design
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -368,7 +366,7 @@ Fabricatio supports a plugin architecture through its modular design:
            )
            
            # Register domain-specific workflows
-           self.register_workflow(
+           self.subscribe(
                Event.quick_instantiate("domain_process"),
                DomainWorkflow(steps=(Validate, Process, DomainSpecificAction))
            )

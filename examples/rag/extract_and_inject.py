@@ -33,12 +33,9 @@ class Role(BaseRole, UseLLM):
 
 async def main() -> None:
     """Run the article extraction and injection pipeline: create a Role with ExtractArticleEssence → FixArticleEssence → PersistentAll → InjectToDB workflow, gather all markdown files from bpdf_out/, and inject extracted essences into a Milvus collection."""
-    Role(
-        name="Researcher",
-        description="Extract article essence",
-        llm_send_to="openai/deepseek-v3-250324",
-        skills={
-            Event.quick_instantiate("article").collapse(): WorkFlow(
+    Role.new(
+        {
+            Event.quick_instantiate("article"): WorkFlow(
                 name="extract",
                 steps=(
                     ExtractArticleEssence(output_key="article_essence"),
@@ -54,6 +51,9 @@ async def main() -> None:
                 reader=_reader,
             )
         },
+        name="Researcher",
+        description="Extract article essence",
+        llm_send_to="openai/deepseek-v3-250324",
     )
 
     task: Task[str] = Task(

@@ -322,23 +322,23 @@ class TestMockRoleDefaults:
 
     def test_llm_test_role_send_to(self) -> None:
         """Verify LLMTestRole defaults to DUMMY_LLM_GROUP for send_to."""
-        role = LLMTestRole()
+        role = LLMTestRole.with_bio()
         assert role.llm_send_to == DUMMY_LLM_GROUP
 
     def test_llm_test_role_no_cache(self) -> None:
         """Verify LLMTestRole defaults llm_no_cache to True."""
-        role = LLMTestRole()
+        role = LLMTestRole.with_bio()
         assert role.llm_no_cache is True
 
     def test_propose_test_role_inherits_defaults(self) -> None:
         """Verify ProposeTestRole inherits llm_send_to and llm_no_cache defaults."""
-        role = ProposeTestRole()
+        role = ProposeTestRole.with_bio()
         assert role.llm_send_to == DUMMY_LLM_GROUP
         assert role.llm_no_cache is True
 
     def test_propose_test_role_is_role(self) -> None:
         """Verify ProposeTestRole is an instance of Role."""
-        role = ProposeTestRole()
+        role = ProposeTestRole.with_bio()
         assert isinstance(role, Role)
 
 

@@ -30,16 +30,23 @@ class Connect(Action):
 
 async def main() -> None:
     """Run the full article generation pipeline with Milvus RAG: retrieve persisted proposal/outline/article, connect their references, tweak content with RAG-retrieved sources, persist and dump the result."""
-    Role(
-        name="Undergraduate Researcher",
-        description="Write an outline for an article in typst format.",
-        llm_top_p=0.4,
-        llm_temperature=1.15,
-        llm_send_to="openai/qwen-turbo",
-        llm_stream=True,
-        llm_max_completion_tokens=8190,
-        skills={
-            Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
+
+    def _conf(self: Role) -> None:
+
+        self.llm_top_p = 0.4
+        self.llm_temperature = 1.15
+        self.llm_send_to = "openai/qwen-turbo"
+        self.llm_stream = True
+        self.llm_max_completion_tokens = 8190
+
+    (
+        Role.with_bio(
+            name="Undergraduate Researcher",
+            description="Write an outline for an article in typst format.",
+        )
+        .subscribe(
+            Event.quick_instantiate(ns := "article"),
+            WorkFlow(
                 name="Generate Article Outline",
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
@@ -69,8 +76,9 @@ async def main() -> None:
                 persist_dir="persistent",
                 collection_name="article_essence_max",
                 parallel=False,
-            )
-        },
+            ),
+        )
+        .configure(_conf)
     )
 
     proposed_task = Task(name="write an article")

@@ -43,15 +43,11 @@ The most basic pattern - a single action responding to an event.
         async def _execute(self, **kwargs) -> str:
             return "Hello, World!"
 
-    role = Role(
-        name="greeter",
-        skills={
-            Event.quick_instantiate("greet").collapse(): WorkFlow(
-                name="greet",
-                steps=(HelloAction,)
-            )
-        }
-    )
+    role = Role.with_bio(name="greeter") \
+        .subscribe(Event.quick_instantiate("greet"), WorkFlow(
+            name="greet",
+            steps=(HelloAction,)
+        ))
 
     task = Task(name="say_hello", briefing="Greet the user")
     result = await task.delegate_blocking("greet")
@@ -88,15 +84,11 @@ Chain multiple actions where each step's output feeds into the next.
             processed = prev.get("Process", "")
             return f"Formatted: {processed}"
 
-    role = Role(
-        name="pipeline",
-        skills={
-            Event.quick_instantiate("run").collapse(): WorkFlow(
-                name="run",
-                steps=(Fetch, Process, Format)
-            )
-        }
-    )
+    role = Role.with_bio(name="pipeline") \
+        .subscribe(Event.quick_instantiate("run"), WorkFlow(
+            name="run",
+            steps=(Fetch, Process, Format)
+        ))
 
 Parallel Actions
 ----------------
@@ -256,16 +248,12 @@ Graceful error handling with fallback actions.
             # Attempt recovery or use cached data
             return "Recovered response"
 
-    role = Role(
-        name="resilient",
-        skills={
-            Event.quick_instantiate("process").collapse(): WorkFlow(
-                name="process",
-                steps=(PrimaryAction,),
-                fallback=FallbackAction,
-            )
-        }
-    )
+    role = Role.with_bio(name="resilient") \
+        .subscribe(Event.quick_instantiate("process"), WorkFlow(
+            name="process",
+            steps=(PrimaryAction,),
+            fallback=FallbackAction,
+        ))
 
 RAG Workflow Pattern
 --------------------
@@ -301,19 +289,15 @@ Retrieval-augmented generation with document ingestion and query.
                 extra_system_message="Answer based on the knowledge base.",
             )
 
-    role = Role(
-        name="knowledge_assistant",
-        skills={
-            Event.quick_instantiate("init_kb").collapse(): WorkFlow(
-                name="init_kb",
-                steps=(InitKnowledgeBase,)
-            ),
-            Event.quick_instantiate("query").collapse(): WorkFlow(
-                name="query",
-                steps=(QueryKnowledge,)
-            ),
-        }
-    )
+    role = Role.with_bio(name="knowledge_assistant") \
+        .subscribe(Event.quick_instantiate("init_kb"), WorkFlow(
+            name="init_kb",
+            steps=(InitKnowledgeBase,)
+        )) \
+        .subscribe(Event.quick_instantiate("query"), WorkFlow(
+            name="query",
+            steps=(QueryKnowledge,)
+        ))
 
     # Initialize knowledge base
     init_task = Task(name="init", briefing=documents)
@@ -627,24 +611,19 @@ How roles register and handle skills.
 
     from fabricatio import Role, Event, WorkFlow
 
-    role = Role(
-        name="assistant",
-        description="A helpful assistant",
-        skills={
-            Event.quick_instantiate("greet").collapse(): WorkFlow(
-                name="greet",
-                steps=(HelloAction,)
-            ),
-            Event.quick_instantiate("analyze").collapse(): WorkFlow(
-                name="analyze",
-                steps=(ParseAction, AnalyzeAction, ReportAction)
-            ),
-            Event.quick_instantiate("help").collapse(): WorkFlow(
-                name="help",
-                steps=(HelpAction,)
-            )
-        }
-    )
+    role = Role.with_bio() \
+        .subscribe(Event.quick_instantiate("greet"), WorkFlow(
+            name="greet",
+            steps=(HelloAction,)
+        )) \
+        .subscribe(Event.quick_instantiate("analyze"), WorkFlow(
+            name="analyze",
+            steps=(ParseAction, AnalyzeAction, ReportAction)
+        )) \
+        .subscribe(Event.quick_instantiate("help"), WorkFlow(
+            name="help",
+            steps=(HelpAction,)
+        ))
 
     # Register all skills with the event emitter
     role.dispatch()
@@ -731,8 +710,8 @@ Creating specialized roles through inheritance.
             )
             
             # Add specialized planning workflow
-            self.register_workflow(
-                Event.quick_instantiate("plan").collapse(),
+            self.subscribe(
+                Event.quick_instantiate("plan"),
                 WorkFlow(name="plan", steps=(PlanningAction,))
             )
 

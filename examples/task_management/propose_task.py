@@ -28,14 +28,12 @@ class ProposeObj(Action, Propose):
         )
 
 
-Role(
-    name="talker",
-    skills={
-        Event.quick_instantiate("talk").collapse(): WorkFlow(
+Role.with_bio(name="talker") \
+    .subscribe(
+        Event.quick_instantiate("talk"), WorkFlow(
             name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))
         ).update_init_context(briefing=Path("briefing.txt").read_text(encoding="utf-8"))
-    },
-)
+    )
 
 if __name__ == "__main__":
     task: Task[ArticleOutline] = Task(name="write outline")

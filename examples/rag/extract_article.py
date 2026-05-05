@@ -18,15 +18,16 @@ class Role(BaseRole, ProposeTask):
 
 async def main() -> None:
     """Set up an extraction Role with an ExtractArticleEssence workflow, propose a task from a natural-language instruction to extract from './7.md', and display the extracted essence."""
-    role = Role(
-        name="Researcher",
-        description="Extract article essence",
-        skills={
-            Event.quick_instantiate("article").collapse(): WorkFlow(
+    role = (
+        Role.with_bio(name="Researcher", description="Extract article essence")
+        .subscribe(
+            Event.quick_instantiate("article"),
+            WorkFlow(
                 name="extract",
                 steps=(ExtractArticleEssence(output_key="task_output"),),
-            )
-        },
+            ),
+        )
+        .dispatch()
     )
     task: Task[List[ArticleEssence]] = await role.propose_task(
         "Extract the essence of the article from the file at './7.md'"

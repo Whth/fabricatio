@@ -14,13 +14,9 @@ class Role(RoleBase, ProposeTask):
 
 async def main() -> None:
     """Run the corrected outline pipeline with tuned LLM parameters: high temperature (1.15) for creative proposals, top_p filtering (0.8) for diverse output."""
-    role = Role(
-        name="Undergraduate Researcher",
-        description="Write an outline for an article in typst format.",
-        llm_top_p=0.8,
-        llm_temperature=1.15,
-        skills={
-            Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
+    role = Role.new(
+        {
+            Event.quick_instantiate(ns := "article"): WorkFlow(
                 name="Generate Article Outline",
                 description="Generate an outline for an article. dump the outline to the given path. in typst format.",
                 steps=(
@@ -30,6 +26,10 @@ async def main() -> None:
                 ),
             )
         },
+        name="Undergraduate Researcher",
+        description="Write an outline for an article in typst format.",
+        llm_top_p=0.8,
+        llm_temperature=1.15,
     )
 
     proposed_task = await role.propose_task(

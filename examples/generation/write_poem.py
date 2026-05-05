@@ -19,11 +19,9 @@ class WritePoem(Action, UseLLM):
         )
 
 
-Role(
-    name="poet",
-    description="A role that creates poetic content",
-    skills={Event.quick_instantiate(ns := "poem").collapse(): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
-).dispatch()
+Role.with_bio(name="poet", description="A role that creates poetic content") \
+    .subscribe(Event.quick_instantiate(ns := "poem"), WorkFlow(name="poetry_creation", steps=(WritePoem,))) \
+    .dispatch()
 
 if __name__ == "__main__":
     task = Task(

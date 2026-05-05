@@ -37,16 +37,15 @@ class WriteDocumentation(UseLLM, Action):
 
 async def main() -> None:
     """Demonstrate a two-step code generation pipeline: first generate Python code, then generate README documentation for that code using task dependency chaining."""
-    role = Role(
-        name="Coder",
-        description="A python coder who can write code and documentation",
-        skills={
-            Event.quick_instantiate("coding").collapse(): WorkFlow(name="write code", steps=(WriteCode,)),
-            Event.quick_instantiate("doc").collapse(): WorkFlow(
+    role = Role.with_bio(name="Coder", description="A python coder who can write code and documentation") \
+        .subscribe(
+            Event.quick_instantiate("coding"), WorkFlow(name="write code", steps=(WriteCode,)),
+        ) \
+        .subscribe(
+            Event.quick_instantiate("doc"), WorkFlow(
                 name="write documentation", steps=(WriteDocumentation,)
             ),
-        },
-    )
+        )
 
     prompt = "write a python cli app which can add a list of numbers writen in a file together,with detailed google style documentation."
 

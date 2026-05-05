@@ -1,14 +1,15 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from typing import Any, Dict, List, Self, Set, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Self, Set, TypedDict, Union, Unpack, overload
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, PrivateAttr
 
 from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.generic import ScopedConfig, WithBriefing
 from fabricatio_core.rust import Event
+from fabricatio_core.utils import first_available
 
 type RoleName = str
 type EventPattern = str
@@ -29,11 +30,42 @@ class Role(WithBriefing):
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
-    skills: Dict[EventPattern, WorkFlow] = Field(default_factory=dict, frozen=True)
+    subscriptions: Dict[EventPattern, WorkFlow] = Field(default_factory=dict, frozen=True)
     """A dictionary of event-workflow pairs."""
 
-    dispatch_on_init: bool = Field(default=False, frozen=True)
-    """Whether to dispatch registered workflows on initialization."""
+    _dispatched: bool = PrivateAttr(default=False)
+    """A flag indicating whether the role has been dispatched."""
+
+    @classmethod
+    def new(
+        cls,
+        subscriptions: Dict[EventPattern, WorkFlow],
+        /,
+        name: Optional[RoleName] = None,
+        description: str = "",
+        dispatch_on_init: bool = False,
+        **kwargs: Unpack[TypedDict],
+    ) -> Self:
+        """Create a new Role."""
+        real_name = first_available((name, cls.__name__))
+
+        self = cls(name=real_name, description=description, subscriptions=subscriptions, **kwargs)
+
+        return self.dispatch() if dispatch_on_init else self
+
+    @classmethod
+    def with_bio(
+        cls,
+        name: Optional[RoleName] = None,
+        description: str = "",
+    ) -> Self:
+        """Create a new Role with a bio."""
+        return cls.new({}, name=name, description=description)
+
+    @classmethod
+    def with_subscriptions(cls, subscriptions: Dict[EventPattern, WorkFlow]) -> Self:
+        """Create a new Role with subscription specified only."""
+        return cls.new(subscriptions)
 
     @property
     def briefing(self) -> str:
@@ -44,7 +76,7 @@ class Role(WithBriefing):
         """
         base = super().briefing
 
-        abilities = "\n".join(f"  - `{k}` ==> {w.briefing}" for (k, w) in self.skills.items())
+        abilities = "\n".join(f"  - `{k}` ==> {w.briefing}" for (k, w) in self.subscriptions.items())
 
         return f"{base}\nEvent Mapping:\n{abilities}"
 
@@ -55,54 +87,68 @@ class Role(WithBriefing):
         Returns:
             Set[Event]: The set of events that the role accepts.
         """
-        return list(self.skills.keys())
+        return list(self.subscriptions.keys())
 
     def model_post_init(self, __context: Any) -> None:
-        """Initialize the role by resolving configurations and registering workflows.
-
-        Args:
-            __context: The context used for initialization
-        """
-        self.name = self.name or self.__class__.__name__
-
-        if self.dispatch_on_init:
-            self.resolve_configuration().dispatch()
-
+        """Register the role."""
         register_role(self)
 
-    def add_skill(self, event: Event | EventPattern, workflow: WorkFlow) -> Self:
+    @overload
+    def configure(self, /, **kwargs) -> Self: ...
+    @overload
+    def configure(self, fn: Callable[[Self], None]) -> Self: ...
+    def configure(self, fn: Optional[Callable[[Self], None]] = None, /, **kwargs) -> Self:
+        """Configure the role."""
+        if fn:
+            fn(self)
+            return self
+        for k, v in kwargs.items():
+            if not hasattr(self, k):
+                raise KeyError(f"{self.__class__.__name__} has no attribute {k}")
+            setattr(self, k, v)
+        return self
+
+    def subscribe(self, event: Event | EventPattern, workflow: WorkFlow) -> Self:
         """Register a workflow to the role's registry."""
         event_string = event.collapse() if isinstance(event, Event) else event
 
-        if event_string in self.skills:
+        if event_string in self.subscriptions:
             logger.warn(
                 f"Event `{event_string}` is already registered with workflow "
-                f"`{self.skills[event_string].name}`. It will be overwritten by `{workflow.name}`."
+                f"`{self.subscriptions[event_string].name}`. It will be overwritten by `{workflow.name}`."
             )
-        self.skills[event_string] = workflow
+        self.subscriptions[event_string] = workflow
         return self
 
-    def remove_skill(self, event: Event | EventPattern) -> Self:
+    def unsubscribe(self, event: Event | EventPattern) -> Self:
         """Unregister a workflow from the role's registry for the given event."""
         event_string = event.collapse() if isinstance(event, Event) else event
 
-        if event_string in self.skills:
-            logger.debug(f"Unregistering workflow `{self.skills[event_string].name}` for event `{event_string}`")
-            del self.skills[event_string]
+        if event_string in self.subscriptions:
+            logger.debug(f"Unregistering workflow `{self.subscriptions[event_string].name}` for event `{event_string}`")
+            del self.subscriptions[event_string]
 
         else:
             logger.warn(f"No workflow registered for event `{event_string}` to unregister.")
         return self
 
-    def dispatch(self) -> Self:
+    def dispatch(self, resolve_config: bool = True) -> Self:
         """Register each workflow in the registry to its corresponding event in the event bus.
 
         Returns:
             Self: The role instance for method chaining
         """
-        for event, workflow in self.skills.items():
+        if self._dispatched:
+            logger.warn("Role already dispatched. Skipping dispatch.")
+            return self
+
+        if resolve_config:
+            self.resolve_configuration()
+
+        for event, workflow in self.subscriptions.items():
             logger.debug(f"Registering workflow: `{workflow.name}` for event: `{event}`")
             EMITTER.on(event, workflow.serve)
+        self._dispatched = True
         return self
 
     def undo_dispatch(self) -> Self:
@@ -111,9 +157,14 @@ class Role(WithBriefing):
         Returns:
             Self: The role instance for method chaining
         """
-        for event, workflow in self.skills.items():
+        if not self._dispatched:
+            logger.debug("Not dispatched, nothing to undo.")
+            return self
+
+        for event, workflow in self.subscriptions.items():
             logger.debug(f"Unregistering workflow: `{workflow.name}` for event: `{event}`")
             EMITTER.off(event)
+        self._dispatched = False
         return self
 
     def resolve_configuration(self) -> Self:
@@ -129,8 +180,8 @@ class Role(WithBriefing):
         """
         if issubclass(self.__class__, ScopedConfig):
             logger.debug(f"Role `{self.name}` is a ScopedConfig. Applying configuration to all workflows.")
-            self.hold_to(self.skills.values(), EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
-        for workflow in self.skills.values():
+            self.hold_to(self.subscriptions.values(), EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
+        for workflow in self.subscriptions.values():
             if issubclass(workflow.__class__, ScopedConfig):
                 logger.debug(f"Workflow `{workflow.name}` is a ScopedConfig. Applying configuration to its steps.")
                 workflow.hold_to(workflow.steps, EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]

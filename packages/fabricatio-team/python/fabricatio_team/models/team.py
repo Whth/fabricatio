@@ -20,8 +20,8 @@ class Team:
             from fabricatio_team.models import Team
 
             # Create roles
-            role1 = Role(name="Role1", capabilities=["cap1"])
-            role2 = Role(name="Role2", capabilities=["cap2"])
+            role1 = Role.with_bio(name="Role1")
+            role2 = Role.with_bio(name="Role2")
 
             # define the role that needs the member info
             class MyRole(Cooperate):
@@ -97,7 +97,5 @@ class Team:
             The updated team instance.
         """
         for m in get_registered_role(self.members):
-            if resolve_config:
-                m.resolve_configuration()
-            m.dispatch()
+            m.dispatch(resolve_config=resolve_config)
         return self

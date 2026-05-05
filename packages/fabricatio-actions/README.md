@@ -51,9 +51,9 @@ from fabricatio.actions import ReadText
 from fabricatio import Role, Event, Task, WorkFlow
 import asyncio
 
-(Role(name="file_reader", description="file reader role")
- .add_skill(Event.quick_instantiate("read_text"), WorkFlow(steps=(ReadText().to_task_output(),))
-            ))
+Role.with_bio(name="file_reader", description="file reader role") \
+    .subscribe(Event.quick_instantiate("read_text"), WorkFlow(steps=(ReadText().to_task_output(),))) \
+    .dispatch()
 
 
 async def main():

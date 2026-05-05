@@ -41,15 +41,9 @@ class Talk(Action, MilvusRAG):
 
 async def main() -> None:
     """Set up a RAG-enabled Role targeting the 'article_chunks' collection, then enter an interactive Q&A loop with query refinement."""
-    Role(
-        name="talker",
-        description="talker role but with rag",
-        skills={
-            Event.quick_instantiate("talk").collapse(): WorkFlow(
-                name="talk", steps=(Talk(target_collection="article_chunks"),)
-            )
-        },
-    )
+    Role.with_bio(name="talker", description="talker role but with rag").subscribe(
+        Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk(target_collection="article_chunks"),))
+    ).dispatch()
 
     task = Task(name="answer user's questions")
     _ = await task.delegate("talk")

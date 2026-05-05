@@ -168,7 +168,7 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
         digest_role (DigestRole): DigestRole fixture
     """
     requirement = "Single reception task"
-    single_reception = {MockRole(name="Single reception", description="Single reception role").name}
+    single_reception = {MockRole.with_bio(name="Single reception", description="Single reception role").name}
     test_tasklist = create_test_tasklist(requirement, ["Task 1", "Task 2"])
 
     responses = return_model_json_router_usage(test_tasklist)

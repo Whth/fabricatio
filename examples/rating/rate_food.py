@@ -81,11 +81,9 @@ class Best(Action, Rating):
 
 async def main() -> None:
     """Demonstrate a full rating pipeline: propose a task from natural language, rate with default criteria, generate custom criteria, compute composite scores, and pick the best."""
-    role = Role(
-        name="TaskRater",
-        description="A role that can rate tasks.",
-        skills={
-            Event.quick_instantiate("rate_food").collapse(): WorkFlow(
+    role = Role.with_bio(name="TaskRater", description="A role that can rate tasks.") \
+        .subscribe(
+            Event.quick_instantiate("rate_food"), WorkFlow(
                 name="Rate food",
                 steps=(WhatToRate, Rate),
                 extra_init_context={
@@ -93,27 +91,32 @@ async def main() -> None:
                     "criteria": {"taste", "price", "quality", "safety", "healthiness"},
                 },
             ),
-            Event.quick_instantiate("make_criteria_for_food").collapse(): WorkFlow(
+        ) \
+        .subscribe(
+            Event.quick_instantiate("make_criteria_for_food"), WorkFlow(
                 name="Make criteria for food",
                 steps=(WhatToRate, MakeCriteria, Rate),
                 extra_init_context={
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.quick_instantiate("make_composite_score").collapse(): WorkFlow(
+        ) \
+        .subscribe(
+            Event.quick_instantiate("make_composite_score"), WorkFlow(
                 name="Make composite score",
                 steps=(WhatToRate, MakeCompositeScore),
                 extra_init_context={
                     "rate_topic": "if the food is 'good'",
                 },
             ),
-            Event.quick_instantiate("best").collapse(): WorkFlow(
+        ) \
+        .subscribe(
+            Event.quick_instantiate("best"), WorkFlow(
                 name="choose the best",
                 steps=(WhatToRate, Best),
                 extra_init_context={"rate_topic": "if the food is 'good'"},
             ),
-        },
-    )
+        )
     task = ok(
         await role.propose_task(
             "rate these food, so that i can decide what to eat today. choco cake, strawberry icecream, giga burger, cup of coffee, rotten bread from the trash bin, and a salty of fruit salad",

@@ -55,10 +55,10 @@ class Talk(Action, MilvusRAG):
 
 async def main() -> None:
     """Demonstrate a RAG chat: propose a task describing the assistant's role, then enter an interactive loop where each user question triggers document retrieval + LLM response."""
-    role = Role(
-        name="talker",
-        description="talker role but with rag",
-        skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Talk,))},
+    role = (
+        Role.with_bio(name="talker", description="talker role but with rag")
+        .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
+        .dispatch()
     )
 
     task = await role.propose_task(

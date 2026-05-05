@@ -15,16 +15,19 @@ class Role(BaseRole, ProposeTask):
 
 async def main() -> None:
     """Main function."""
-    role = Role(
-        name="Researcher",
-        description="Extract article essence",
-        llm_send_to="openai/deepseek-r1-distill-llama-70b",
-        skills={
-            Event.quick_instantiate(e := "answer").collapse(): WorkFlow(
+    role = (
+        Role.with_bio(
+            name="Researcher",
+            description="Extract article essence",
+        )
+        .subscribe(
+            Event.quick_instantiate(e := "answer"),
+            WorkFlow(
                 name="answer",
                 steps=(MilvusRAGTalk,),
             ).update_init_context(collection_name="article_essence"),
-        },
+        )
+        .dispatch()
     )
 
     task: Task[int] = ok(

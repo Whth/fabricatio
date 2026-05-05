@@ -67,7 +67,7 @@ Create a simple test script:
         async def _execute(self, **_) -> str:
             return "Fabricatio is working!"
 
-    role = Role().add_skill(
+    role = Role.with_bio().subscribe(
         Event.quick_instantiate("test"),
         WorkFlow(name="test", steps=(TestAction,))
     ).dispatch()
@@ -93,12 +93,13 @@ Here's a complete example using configuration:
             return response
 
     # Create role with custom LLM configuration
-    role = Role(
+    role = Role.new(
+        {},
         config={
             "llm": {"temperature": 0.7},
             "debug": {"log_level": "DEBUG"}
         }
-    ).add_skill(
+    ).subscribe(
         Event.quick_instantiate("greet"),
         WorkFlow(name="greet", steps=(LLMGreetAction,))
     ).dispatch()
@@ -300,7 +301,8 @@ Pass configuration directly to Roles:
 
     from fabricatio import Role
 
-    role = Role(
+    role = Role.new(
+        {},
         name="my_agent",
         config={
             "llm": {"temperature": 0.7},

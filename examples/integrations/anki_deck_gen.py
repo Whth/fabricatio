@@ -43,9 +43,9 @@ class DeckGen(Action, GenerateDeck):
 
 
 (
-    Role()
-    .add_skill(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(DeckGen().to_task_output(),)))
-    .add_skill(
+    Role.with_bio()
+    .subscribe(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(DeckGen().to_task_output(),)))
+    .subscribe(
         Event.quick_instantiate(ns2 := "topic_analyze"),
         WorkFlow(steps=(AppendTopicAnalysis(csv_file="topics.csv").to_task_output(),)),
     )

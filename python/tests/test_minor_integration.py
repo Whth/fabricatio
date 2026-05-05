@@ -1,7 +1,6 @@
 """Example of a simple hello world program using fabricatio as a pytest integration test."""
 
 import pytest
-
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 
 # Define the Task and Action outside the test function if they are to be reused
@@ -23,8 +22,7 @@ class Hello(Action):
 
 @pytest.mark.asyncio
 async def test_hello_fabricatio_workflow(caplog):
-    """
-    Tests the basic 'say hello' workflow in fabricatio.
+    """Tests the basic 'say hello' workflow in fabricatio.
     It defines a 'talker' role with a simple workflow that returns 'Hello fabricatio!',
     delegates a task to this role, and asserts the output.
     """
@@ -32,9 +30,12 @@ async def test_hello_fabricatio_workflow(caplog):
     # or manage this globally if appropriate for your test setup.
     # For this example, we assume a fresh environment or that Role re-registration is idempotent/handled.
 
-    Role(name="talker", description="talker role",
-         skills={Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Hello,))},
-         dispatch_on_init=True)
+    Role.new(
+        {Event.quick_instantiate("talk").collapse(): WorkFlow(name="talk", steps=(Hello,))},
+        name="talker",
+        description="talker role",
+        dispatch_on_init=True,
+    )
     # Delegate the task and get the result
     result = await task_fixture.delegate("talk")
 

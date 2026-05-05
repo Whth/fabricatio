@@ -47,15 +47,11 @@ class WritePoem2(Action, UseLLM):
     # with the parameter being a prompt
 
 
-role = Role(
-    name="poet",
-    description="A role that creates poetic content",
-    skills={Event.quick_instantiate(ns := "poem").collapse(): WorkFlow(name="poetry_creation", steps=(WritePoem,))},
-    # Skills and their corresponding workflows initialized directly
-    # through the parameter skills can be added later via add._skillt
-).dispatch()
-# add_skill is a method of the class instance
-role.add_skill(
+role = Role.with_bio(name="poet", description="A role that creates poetic content") \
+    .subscribe(Event.quick_instantiate(ns := "poem"), WorkFlow(name="poetry_creation", steps=(WritePoem,))) \
+    .dispatch()
+# subscribe can also be chained after the role is created
+role.subscribe(
     event=Event.quick_instantiate("unlike"), workflow=WorkFlow(name="poetry_creation", steps=(WritePoem2,))
 ).dispatch()  # Needs to be reactivated
 
