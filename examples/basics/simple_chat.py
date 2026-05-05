@@ -29,8 +29,9 @@ class Talk(Action, UseLLM):
 
 async def main() -> None:
     """Set up a chat Role with a single Talk workflow, propose a task describing the assistant persona, then enter the interactive loop."""
-    role = Role.with_bio(name="talker", description="talker role") \
-        .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
+    role = Role.with_bio(name="talker", description="talker role").subscribe(
+        Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,))
+    )
 
     task = await role.propose_task(
         "you have to act as a helpful assistant, answer to all user questions properly and patiently"

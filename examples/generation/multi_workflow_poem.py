@@ -47,9 +47,11 @@ class WritePoem2(Action, UseLLM):
     # with the parameter being a prompt
 
 
-role = Role.with_bio(name="poet", description="A role that creates poetic content") \
-    .subscribe(Event.quick_instantiate(ns := "poem"), WorkFlow(name="poetry_creation", steps=(WritePoem,))) \
+role = (
+    Role.with_bio(name="poet", description="A role that creates poetic content")
+    .subscribe(Event.quick_instantiate(ns := "poem"), WorkFlow(name="poetry_creation", steps=(WritePoem,)))
     .dispatch()
+)
 # subscribe can also be chained after the role is created
 role.subscribe(
     event=Event.quick_instantiate("unlike"), workflow=WorkFlow(name="poetry_creation", steps=(WritePoem2,))

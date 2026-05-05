@@ -23,13 +23,12 @@ def compose(
     """Compose a song based on your requirements."""
     from fabricatio_core import Event, Role, Task, WorkFlow
     from fabricatio_core.utils import ok
-    from fabricatio_yue.actions.compose import Compose
     from questionary import text
 
+    from fabricatio_yue.actions.compose import Compose
+
     ns = "compose"
-    Role.with_bio() \
-        .subscribe(Event.quick_instantiate(ns), WorkFlow(steps=(Compose().to_task_output(),))) \
-        .dispatch()
+    Role.with_bio().subscribe(Event.quick_instantiate(ns), WorkFlow(steps=(Compose().to_task_output(),))).dispatch()
 
     ok(
         Task(name="compose song")

@@ -11,22 +11,22 @@ from fabricatio_typst.rust import BibManager
 
 async def main() -> None:
     """Main function."""
-    Role.with_bio(name="Researcher", description="chunk the article") \
-        .subscribe(
-            Event.quick_instantiate(e := "Chunk"), WorkFlow(
-                name="Chunk",
-                steps=(
-                    ChunkArticle(output_key="to_inject"),
-                    InjectToDB(collection_name="article_chunks").to_task_output(),
-                ),
-            ).update_init_context(
-                article_path=gather_files("bare_md", "md"),
-                bib_manager=BibManager(path="ref.bib"),
-                max_chunk_size=600,
-                max_overlapping_rate=0.3,
-                override_inject=True,
+    Role.with_bio(name="Researcher", description="chunk the article").subscribe(
+        Event.quick_instantiate(e := "Chunk"),
+        WorkFlow(
+            name="Chunk",
+            steps=(
+                ChunkArticle(output_key="to_inject"),
+                InjectToDB(collection_name="article_chunks").to_task_output(),
             ),
-        )
+        ).update_init_context(
+            article_path=gather_files("bare_md", "md"),
+            bib_manager=BibManager(path="ref.bib"),
+            max_chunk_size=600,
+            max_overlapping_rate=0.3,
+            override_inject=True,
+        ),
+    )
 
     task: Task[str] = Task(name="Chunk Article")
     res = ok(await task.delegate(e))

@@ -15,8 +15,9 @@ class Role(RoleBase, ProposeTask):
 
 async def main() -> None:
     """Run the outline generation pipeline: create a Role with the corrected-outline workflow, propose a task to read article_briefing.txt and write the outline to out.typ, then execute."""
-    role = Role.with_bio(name="Undergraduate Researcher", description="Write an outline for an article in typst format.") \
-        .subscribe(Event.quick_instantiate(ns := "article"), WriteOutlineCorrectedWorkFlow)
+    role = Role.with_bio(
+        name="Undergraduate Researcher", description="Write an outline for an article in typst format."
+    ).subscribe(Event.quick_instantiate(ns := "article"), WriteOutlineCorrectedWorkFlow)
 
     proposed_task = await role.propose(
         Task,

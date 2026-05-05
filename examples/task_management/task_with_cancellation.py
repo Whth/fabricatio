@@ -76,23 +76,26 @@ class WriteToOutput(Action):
 
 async def main() -> None:
     """Demonstrate a complete code-gen pipeline with cancellation: generate code → dump to file → generate docs → dump to file, then test that cancelling a long-running task preserves partial output."""
-    role = Role.with_bio(name="Coder", description="A python coder who can ") \
+    role = (
+        Role.with_bio(name="Coder", description="A python coder who can ")
         .subscribe(
-            Event.quick_instantiate("coding"), WorkFlow(name="write code", steps=(WriteCode, DumpText)),
-        ) \
+            Event.quick_instantiate("coding"),
+            WorkFlow(name="write code", steps=(WriteCode, DumpText)),
+        )
         .subscribe(
-            Event.quick_instantiate("doc"), WorkFlow(
-                name="write documentation", steps=(WriteDocumentation, DumpText)
-            ),
-        ) \
+            Event.quick_instantiate("doc"),
+            WorkFlow(name="write documentation", steps=(WriteDocumentation, DumpText)),
+        )
         .subscribe(
-            Event.quick_instantiate("cancel_test"), WorkFlow(
+            Event.quick_instantiate("cancel_test"),
+            WorkFlow(
                 name="cancel_test",
                 steps=(TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, TestCancel, WriteToOutput),
                 extra_init_context={"counter": 0},
             ),
-        ) \
+        )
         .dispatch()
+    )
 
     proposed_task: Task[str] = ok(
         await role.propose_task(
