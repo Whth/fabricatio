@@ -144,10 +144,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Integrate `rho-hashline` crate + hash-based line anchoring in Rust
     - [x] Add `compute_hash`, `format_hashes`, `parse_hashline_anchor`, `apply_*` functions
 - [x] Add `Diff.format_with_hashes()` method + Python exports + 22 tests
-- [ ] Add high-level `HashlineDiff` wrapper for hashline API
-    - [ ] `HashlineDiff` dataclass with auto anchor resolution
-    - [ ] `apply()` method with line_range and fuzzy matching support
-    - [ ] Python binding + tests
+- [x] Add high-level `HashlineDiff` wrapper for hashline API
+    - [x] `Diff` dataclass with anchor and line-number fields
+    - [x] `from_anchors()` and `from_line_range()` factory methods
+    - [x] `apply()` with line_range and pattern matching modes + tests
 - [ ] Placeholder based multiple-agents edits
 
 ## Installation
