@@ -328,3 +328,120 @@ async def test_diff_edit_multiline(
     with install_router_usage(*responses):
         result = await role.diff_edit(source, requirement)
         assert result == expected
+
+
+class TestDiffHashlineSupport:
+    """Test suite for Diff hashline support methods."""
+
+    def test_from_anchors_creation(self) -> None:
+        """Test creating a Diff from hashline anchors."""
+        diff = Diff.from_anchors(
+            start_anchor="1:abc123",
+            end_anchor="3:def456",
+            replace="replacement content",
+        )
+        assert diff.start_anchor == "1:abc123"
+        assert diff.end_anchor == "3:def456"
+        assert diff.replace == "replacement content"
+        assert diff.search == ""
+        assert diff.start_line is None
+        assert diff.end_line is None
+
+    def test_from_line_range_creation(self) -> None:
+        """Test creating a Diff from line numbers."""
+        diff = Diff.from_line_range(
+            start=5,
+            end=10,
+            replace="new lines here",
+        )
+        assert diff.start_line == 5
+        assert diff.end_line == 10
+        assert diff.replace == "new lines here"
+        assert diff.search == ""
+        assert diff.start_anchor is None
+        assert diff.end_anchor is None
+
+    def test_reverse_preserves_anchors(self) -> None:
+        """Test that reverse() swaps anchor fields correctly."""
+        original = Diff.from_anchors(
+            start_anchor="1:abc",
+            end_anchor="5:def",
+            replace="replacement",
+        )
+        reversed_diff = original.reverse()
+
+        assert reversed_diff.start_anchor == "5:def"
+        assert reversed_diff.end_anchor == "1:abc"
+        assert reversed_diff.search == "replacement"
+        assert reversed_diff.replace == ""
+
+    def test_reverse_preserves_line_numbers(self) -> None:
+        """Test that reverse() swaps line number fields correctly."""
+        original = Diff.from_line_range(
+            start=10,
+            end=20,
+            replace="new content",
+        )
+        reversed_diff = original.reverse()
+
+        assert reversed_diff.start_line == 20
+        assert reversed_diff.end_line == 10
+        assert reversed_diff.search == "new content"
+        assert reversed_diff.replace == ""
+
+    def test_from_anchors_and_reverse_roundtrip(self) -> None:
+        """Test that from_anchors + reverse + reverse gives back original anchors."""
+        original = Diff.from_anchors(
+            start_anchor="2:mno",
+            end_anchor="4:pqr",
+            replace="text",
+        )
+        # Double reverse should restore original
+        restored = original.reverse().reverse()
+
+        assert restored.start_anchor == original.start_anchor
+        assert restored.end_anchor == original.end_anchor
+        assert restored.search == original.search
+        assert restored.replace == original.replace
+
+    def test_backward_compatibility_search_replace(self) -> None:
+        """Test that old search/replace usage still works."""
+        diff = Diff(search="old text", replace="new text")
+        result = diff.apply("old text")
+        assert result == "new text"
+
+    def test_apply_with_anchor_based_diff(self) -> None:
+        """Test apply() with anchor-based Diff."""
+        from fabricatio_diff.rust import format_hashes
+
+        content = "line1\nline2\nline3\nline4"
+        formatted = format_hashes(content)
+        lines = formatted.split("\n")
+
+        # Get anchors for lines 2-3
+        start_anchor = lines[1].split("|")[0]  # line2
+        end_anchor = lines[2].split("|")[0]  # line3
+
+        diff = Diff.from_anchors(
+            start_anchor=start_anchor,
+            end_anchor=end_anchor,
+            replace="middle replaced",
+        )
+
+        result = diff.apply(content)
+        assert result is not None
+        assert result == "line1\nmiddle replaced\nline4"
+
+    def test_apply_with_line_range_diff(self) -> None:
+        """Test apply() with line-number-based Diff."""
+        content = "line1\nline2\nline3\nline4"
+
+        diff = Diff.from_line_range(
+            start=2,
+            end=3,
+            replace="replaced lines",
+        )
+
+        result = diff.apply(content)
+        assert result is not None
+        assert result == "line1\nreplaced lines\nline4"
