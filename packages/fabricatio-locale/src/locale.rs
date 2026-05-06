@@ -12,7 +12,7 @@ use error_mapping::*;
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(get_all)]
+#[pyclass(get_all, from_py_object)]
 struct Msg {
     id: String,
     txt: String,
