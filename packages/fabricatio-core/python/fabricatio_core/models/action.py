@@ -121,6 +121,18 @@ class WorkFlow(WithBriefing):
     extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)
     """Additional initial context values to be included at workflow start."""
 
+    @classmethod
+    def set_task_input_key(cls, input_key: str) -> Type[Self]:
+        """Set the task input key for the workflow."""
+        cls.task_input_key = input_key
+        return cls
+
+    @classmethod
+    def set_task_output_key(cls, output_key: str) -> Type[Self]:
+        """Set the task output key for the workflow."""
+        cls.task_output_key = output_key
+        return cls
+
     def model_post_init(self, __context: Any) -> None:
         """Initialize the workflow by instantiating any action classes.
 

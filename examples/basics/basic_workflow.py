@@ -32,17 +32,12 @@ class Say(Action):
 
 # When creating a workflow, explicitly specify the
 # name, steps, and task_output_key parameters
-work = WorkFlow(
+work = WorkFlow.set_task_output_key("take1")(
     name="Thing 1",  # name
     steps=(
         Hello,
         Say,
     ),  # Actions to be performed, multiple actions possible
-    task_output_key="take1",
-    # Customization is currently not supported.
-    # Even if set to "take1", it will only query "task_output",
-    # and if there are multiple "task_output" entries,
-    # it will take the result of the last operation.
 )
 
 (

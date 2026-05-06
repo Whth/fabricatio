@@ -46,8 +46,8 @@ Role.new(
                         ref_limit=18,
                         threshold=0.58,
                         result_per_query=2,
-                        extractor_model={"model": "openai/qwen-max"},
-                        query_model={"model": "openai/qwen-turbo"},
+                        extractor_model={"send_to": "qwen-max"},
+                        query_model={"send_to": "qwen-turbo"},
                     )
                 ),
                 PersistentAll,
@@ -80,7 +80,7 @@ Role.new(
         Event.quick_instantiate(ns4 := "consult").collapse(): WorkFlow(
             name="Consult Article",
             description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG(ref_q_model={"model": "openai/qwen-turbo"}).to_task_output(),),
+            steps=(ArticleConsultRAG(ref_q_model={"send_to": "qwen-turbo"}).to_task_output(),),
         ),
         Event.quick_instantiate(ns5 := "chap-suma").collapse(): WorkFlow(
             name="Chapter Summary",

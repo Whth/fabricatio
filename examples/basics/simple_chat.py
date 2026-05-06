@@ -2,9 +2,15 @@
 
 import asyncio
 
-from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio.capabilities import UseLLM
+from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Role as RoleBase
+from fabricatio.capabilities import ProposeTask, UseLLM
+from fabricatio_core.utils import ok
 from questionary import text
+
+
+class Role(RoleBase, ProposeTask):
+    """Basic role."""
 
 
 class Talk(Action, UseLLM):
@@ -29,14 +35,16 @@ class Talk(Action, UseLLM):
 
 async def main() -> None:
     """Set up a chat Role with a single Talk workflow, propose a task describing the assistant persona, then enter the interactive loop."""
-    role = Role.with_bio(name="talker", description="talker role").subscribe(
-        Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,))
+    role = (
+        Role.with_bio(name="talker", description="talker role")
+        .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
+        .dispatch()
     )
 
     task = await role.propose_task(
         "you have to act as a helpful assistant, answer to all user questions properly and patiently"
     )
-    _ = await task.delegate("talk")
+    _ = await ok(task).delegate("talk")
 
 
 if __name__ == "__main__":
