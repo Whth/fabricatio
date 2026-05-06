@@ -158,7 +158,7 @@ class Role(WithBriefing):
             Self: The role instance for method chaining
         """
         if not self._dispatched:
-            logger.debug("Not dispatched, nothing to undo.")
+            logger.warn("Not dispatched, nothing to undo.")
             return self
 
         for event, workflow in self.subscriptions.items():
