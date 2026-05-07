@@ -122,15 +122,13 @@ class GenerateDeck(Propose):
         """
         if isinstance(requirement, str):
             name = ok(
-                fname_santitize(
-                    ok(
-                        await self.ageneric_string(
-                            TEMPLATE_MANAGER.render_template(
-                                anki_config.generate_anki_model_name_template,
-                                {"fields": fields, "requirement": requirement},
-                            ),
-                            **override_kwargs(kwargs, defualt=None),
-                        )
+                ok(
+                    await self.ageneric_string(
+                        TEMPLATE_MANAGER.render_template(
+                            anki_config.generate_anki_model_name_template,
+                            {"fields": fields, "requirement": requirement},
+                        ),
+                        **override_kwargs(kwargs, defualt=None),
                     )
                 )
             )
@@ -164,7 +162,6 @@ class GenerateDeck(Propose):
                 )
             )
 
-            names = [fname_santitize(ok(name)) for name in names]
             template_generation_requirements_seq = ok(
                 await self.alist_str(
                     TEMPLATE_MANAGER.render_template(

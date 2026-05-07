@@ -71,5 +71,6 @@ fn main() -> Result<()> {
     #[cfg(feature = "tei")]
     fabricatio_tei::stub_info()?.generate()?;
 
+    println!("Stubgen Done!");
     Ok(())
 }
