@@ -25,6 +25,7 @@ class Scene(PersistentAble, SketchedAble, Described):
     """dialogue, description, log, poem, monologue, etc."""
 
     weight: float
+    """Relative importance for word-count allocation within the script."""
 
     def append_prompt(self, prompt: str) -> Self:
         """Add a prompt to the scene.
@@ -37,6 +38,7 @@ class Scene(PersistentAble, SketchedAble, Described):
 
     @classmethod
     def with_raw_description(cls, description: str) -> Self:
+        """Create a scene with only a narrative description, defaulting weight to 1.0."""
         return cls(tags=[], prompt="", narrative=description, weight=1.0)
 
 
@@ -58,11 +60,12 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
         """Add a global prompt to the script.
 
         Args:
-            prompt (str): The global prompt to add.
+            prompt (str): The prompt to add.
         """
         self.global_prompt += f"\n{prompt}"
         return self
 
     @classmethod
     def with_raw_synosis(cls, synosis: str) -> Self:
+        """Create a script with a single scene containing the synopsis as narrative."""
         return cls(global_prompt="", scenes=[Scene.with_raw_description(synosis)])

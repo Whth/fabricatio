@@ -51,16 +51,19 @@ class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
     """
 
     chapters: List[ChapterDraft]
+    """Ordered chapter drafts with per-chapter synopsis and weight."""
 
     expected_word_count: int
     """The expected word count of the novel."""
 
     @property
     def total_chapters(self) -> int:
+        """Return the number of chapters in the draft."""
         return len(self.chapters)
 
     @property
     def all_chapters_titles(self) -> List[str]:
+        """Return formatted titles for all chapters as 'Ch-{idx}: {title}'."""
         return [formated_title(i, chapter.title) for i, chapter in enumerate(self.chapters)]
 
     def iter_chap(self) -> Generator[Tuple[int, int, ChapterDraft], None, None]:
@@ -72,6 +75,7 @@ class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
             yield i, expected_word_count, chapter
 
     def iter_ft_chap(self) -> Generator[Tuple[str, int, ChapterDraft], None, None]:
+        """Iterate chapters yielding formatted title, word count, and draft."""
         for idx, wc, chap in self.iter_chap():
             yield formated_title(idx, chap.title), wc, chap
 
@@ -88,6 +92,7 @@ class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
     """A chapter in a novel."""
 
     chapter_index: int
+    """Zero-based index of this chapter within the novel."""
 
     content: str
     """The content of the chapter."""
@@ -104,6 +109,7 @@ class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
 
     @classmethod
     def with_raw_content(cls, raw: str, title: str, expected_word_count: int, chapter_index: int) -> Self:
+        """Create a chapter from raw text, converting to XHTML paragraphs."""
         cleaned_content = text_to_xhtml_paragraphs(raw)
         return cls(
             content=cleaned_content,
@@ -114,6 +120,7 @@ class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
 
     @classmethod
     def from_plan_and_raw_content(cls, chapter_plan: "ChapterPlan", raw: str) -> Self:
+        """Create a chapter from a chapter plan and raw generated text."""
         return cls.with_raw_content(
             raw=raw,
             title=chapter_plan.draft.title,
