@@ -14,8 +14,8 @@ from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.novel import Novel, NovelDraft
+from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
 from fabricatio_novel.rust import NovelBuilder
 
