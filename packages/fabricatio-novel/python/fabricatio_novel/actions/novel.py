@@ -114,10 +114,7 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
         scripts = ok(self.novel_scripts)
         characters = ok(self.novel_characters)
 
-        chapter_plans = [
-            ChapterPlan.with_try_script(d, s, wc, i)
-            for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
-        ]
+        chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
         logger.info(f"Generating {len(chapter_plans)} chapter contents for '{draft.title}'.")
         chapter_contents = await self.create_chapters(draft, chapter_plans, characters, self.chapter_guidance)
@@ -158,10 +155,7 @@ class AssembleNovelFromComponents(NovelCompose, Action):
         scripts = ok(self.novel_scripts)
         chapter_contents = ok(self.novel_chapter_contents)
 
-        chapter_plans = [
-            ChapterPlan.with_try_script(d, s, wc, i)
-            for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
-        ]
+        chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
         logger.info("Assembling final novel from components...")
         novel = self.assemble_novel(draft, chapter_plans, chapter_contents)

@@ -51,9 +51,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         # Step 3: Generate scripts
         logger.debug("Step 3: Generating chapter scripts using draft and characters")
         scripts = ok(await self.create_scripts(draft, characters, **okwargs))
-        chapter_plans = [
-            ChapterPlan.with_try_script(d, s, wc, i) for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
-        ]
+        chapter_plans = ChapterPlan.from_draft(draft, scripts)
         if not chapter_plans:
             logger.warn("No valid scripts were generated from the draft and characters.")
             return None
