@@ -1,8 +1,9 @@
 {{block characters "Characters Info Board"}}
 {{block script "Chapter Script"}}
+Writing {{chapter_title}} of novel "{{novel_title}}".
 {{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
 You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
 You MUST use "{{ language }}" as the writen language.
 output Body paragraphs only, joined with a blank line. Do not include any other text. (like explanation or paragraph title, etc.)
 You MUST output content meet the expected word cont constrain, that is, output at least {{ expected_word_count }} words.
-you don't need to explain how you allocate the words to the paragraphs. output only the final paragraphs. No titles before the paragraphs. Do not output any titles in any form, since that's my job to add titles!
+you don't need to explain how you allocate the words to the paragraphs. output only the final paragraphs. No titles before the paragraphs. Do not output any titles in any form, go into the paragraphs directly!
