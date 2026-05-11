@@ -15,8 +15,8 @@ from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.novel import Chapter, Novel, NovelDraft
+from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
-from fabricatio_novel.rust import text_to_xhtml_paragraphs
 
 
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
@@ -51,15 +51,17 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         # Step 3: Generate scripts
         logger.debug("Step 3: Generating chapter scripts using draft and characters")
         scripts = ok(await self.create_scripts(draft, characters, **okwargs))
-        clean_scripts = [s for s in scripts if s is not None]
-        if not clean_scripts:
+        chapter_plans = [
+            ChapterPlan.with_try_script(d, s, wc, i) for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
+        ]
+        if not chapter_plans:
             logger.warn("No valid scripts were generated from the draft and characters.")
             return None
-        logger.info(f"Successfully generated {len(clean_scripts)} script(s) for chapters")
+        logger.info(f"Successfully generated {len(chapter_plans)} script(s) for chapters")
 
         # Step 4: Generate chapter contents
         logger.debug("Step 4: Generating full chapter contents from scripts")
-        chapter_contents = await self.create_chapters(draft, clean_scripts, characters, chapter_guidance, **okwargs)
+        chapter_contents = await self.create_chapters(draft, chapter_plans, characters, chapter_guidance, **okwargs)
         if not chapter_contents:
             logger.warn("Chapter content generation returned no results.")
             return None
@@ -67,7 +69,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
         # Step 5: Assemble final novel
         logger.debug("Step 5: Assembling final novel from components")
-        novel = self.assemble_novel(draft, clean_scripts, chapter_contents)
+        novel = self.assemble_novel(draft, chapter_plans, chapter_contents)
         logger.info(f"Novel assembly complete: '{novel.title}', {len(novel.chapters)} chapters")
         return novel
 
@@ -126,11 +128,11 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         self, draft: NovelDraft, characters: List[CharacterCard], **kwargs: Unpack[ValidateKwargs[Script]]
     ) -> List[Script] | List[Script | None] | None:
         """Generate chapter scripts based on draft and characters."""
-        logger.debug(f"Generating {len(draft.chapter_synopses)} chapter scripts for '{draft.title}'")
+        logger.debug(f"Generating {len(draft.chapters)} chapter scripts for '{draft.title}'")
         if not characters:
             logger.warn("No characters provided for script generation.")
             return []
-        if not draft.chapter_synopses:
+        if not draft.chapters:
             logger.warn("No chapter synopses in draft.")
             return []
 
@@ -141,36 +143,32 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             {
                 "novel_title": draft.title,
                 "characters": character_prompt,
-                "synopsis": s,
+                "synopsis": c.synopsis,
                 "language": draft.language,
-                "expected_word_count": c,
+                "expected_word_count": wc,
+                "chapter_title": ct,
+                "all_chapters_titles": draft.all_chapters_titles,
             }
-            for (s, c) in zip(draft.chapter_synopses, draft.chapter_expected_word_counts, strict=False)
+            for ct, wc, c in draft.iter_ft_chap()
         ]
         logger.debug(f"Created {len(script_prompts)} script input prompts")
 
         script_requirement = TEMPLATE_MANAGER.render_template(novel_config.script_requirement_template, script_prompts)
         logger.debug(f"Script requirement template rendered (length: {len(script_requirement)})")
 
-        result = await self.propose(Script, script_requirement, **kwargs)
-        if result is None:
-            logger.warn("Script proposal returned None.")
-        else:
-            valid_scripts = [s for s in result if s is not None]
-            logger.info(f"Generated {len(valid_scripts)} valid script(s) out of {len(result)}")
-        return result
+        return await self.propose(Script, script_requirement, **kwargs)
 
     async def create_chapters(
         self,
         draft: NovelDraft,
-        scripts: List[Script],
+        chapter_plans: List[ChapterPlan],
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[str] | List[str | None]:
+    ) -> List[str]:
         """Generate actual chapter contents from scripts."""
-        logger.debug(f"Generating chapter contents for {len(scripts)} script(s)")
-        if not scripts:
+        logger.debug(f"Generating chapter contents for {len(chapter_plans)} script(s)")
+        if not chapter_plans:
             logger.warn("No scripts provided for chapter generation.")
             return []
 
@@ -179,13 +177,15 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
         chapter_prompts = [
             {
-                "script": s.as_prompt(),
+                "script": cp.script.as_prompt(),
                 "characters": character_prompt,
                 "language": draft.language,
                 "guidance": guidance,
-                "expected_word_count": s.expected_word_count,
+                "expected_word_count": cp.expected_word_count,
+                "chapter_title": cp.formatted_chapter_title,
+                "novel_title": draft.title,
             }
-            for s in scripts
+            for cp in chapter_plans
         ]
         logger.debug(f"Prepared {len(chapter_prompts)} chapter generation prompts")
 
@@ -200,19 +200,18 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         return response
 
     @staticmethod
-    def assemble_novel(draft: NovelDraft, scripts: List[Script], chapter_contents: List[str]) -> Novel:
+    def assemble_novel(draft: NovelDraft, chapter_plans: List[ChapterPlan], chapter_contents: List[str]) -> Novel:
         """Assemble the final novel from components."""
         logger.debug("Assembling final novel from draft, scripts, and chapter contents")
-        if len(chapter_contents) != len(scripts):
+        if len(chapter_contents) != len(chapter_plans):
             logger.warn(
-                f"Mismatch between number of scripts ({len(scripts)}) and chapter contents ({len(chapter_contents)})"
+                f"Mismatch between number of scripts ({len(chapter_plans)}) and chapter contents ({len(chapter_contents)})"
             )
 
-        chapters = []
-        for i, (content, script) in enumerate(zip(chapter_contents, scripts, strict=False)):
-            title = script.title or f"Chapter {i + 1}"
-            cleaned_content = text_to_xhtml_paragraphs(content)
-            chapters.append(Chapter(title=title, content=cleaned_content, expected_word_count=0))
+        chapters = [
+            Chapter.from_plan_and_raw_content(cp, content)
+            for content, cp in zip(chapter_contents, chapter_plans, strict=True)
+        ]
         logger.info(f"Assembled {len(chapters)} chapter(s) into the final novel structure")
 
         novel = Novel(
