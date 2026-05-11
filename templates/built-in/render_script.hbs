@@ -1,12 +1,9 @@
 {{#if scenes}}
 {{#each scenes as |scene index|}}{{#if scene.narrative}}{{scene.narrative}}{{/if}}({{#if
-        scene.expected_word_count}}about {{scene.expected_word_count}} words, {{/if}}{{#if
         scene.prompt}}{{scene.prompt}}{{/if}})
 {{/each}}
 {{/if}}
 
 {{#if global_prompt}}
 Note that,{{global_prompt}}
-{{/if}}{{#if expected_word_count}}
-Body paragraphs you write must over {{expected_word_count}} words.
 {{/if}}
