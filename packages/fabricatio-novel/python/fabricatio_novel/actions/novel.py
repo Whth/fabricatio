@@ -14,6 +14,7 @@ from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.novel import Novel, NovelDraft
 from fabricatio_novel.models.scripting import Script
 from fabricatio_novel.rust import NovelBuilder
@@ -113,8 +114,13 @@ class GenerateChaptersFromScripts(NovelCompose, Action):
         scripts = ok(self.novel_scripts)
         characters = ok(self.novel_characters)
 
-        logger.info(f"Generating {len(scripts)} chapter contents for '{draft.title}'.")
-        chapter_contents = await self.create_chapters(draft, scripts, characters, self.chapter_guidance)
+        chapter_plans = [
+            ChapterPlan.with_try_script(d, s, wc, i)
+            for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
+        ]
+
+        logger.info(f"Generating {len(chapter_plans)} chapter contents for '{draft.title}'.")
+        chapter_contents = await self.create_chapters(draft, chapter_plans, characters, self.chapter_guidance)
         if not chapter_contents:
             logger.warn("Chapter content generation returned empty or None.")
             return None
@@ -152,8 +158,13 @@ class AssembleNovelFromComponents(NovelCompose, Action):
         scripts = ok(self.novel_scripts)
         chapter_contents = ok(self.novel_chapter_contents)
 
+        chapter_plans = [
+            ChapterPlan.with_try_script(d, s, wc, i)
+            for ((i, wc, d), s) in zip(draft.iter_chap(), scripts, strict=True)
+        ]
+
         logger.info("Assembling final novel from components...")
-        novel = self.assemble_novel(draft, scripts, chapter_contents)
+        novel = self.assemble_novel(draft, chapter_plans, chapter_contents)
         logger.info(f"Novel '{novel.title}' assembled with {len(novel.chapters)} chapters.")
         return novel
 
