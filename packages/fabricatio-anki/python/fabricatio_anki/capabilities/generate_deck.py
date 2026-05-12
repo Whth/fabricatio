@@ -11,7 +11,6 @@ from fabricatio_core.utils import ok, override_kwargs
 from fabricatio_anki.config import anki_config
 from fabricatio_anki.models.deck import Deck, Model, ModelMetaData
 from fabricatio_anki.models.template import Side, Template
-from fabricatio_anki.rust import fname_santitize
 
 
 class GenerateDeck(Propose):
@@ -256,7 +255,7 @@ class GenerateDeck(Propose):
         name_rendered = TEMPLATE_MANAGER.render_template(
             anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement}
         )
-        name = fname_santitize(ok(await self.ageneric_string(name_rendered, **okwargs)))
+        name = ok(await self.ageneric_string(name_rendered, **okwargs))
         if not name:
             return None
 
@@ -291,8 +290,6 @@ class GenerateDeck(Propose):
         names = ok(await self.ageneric_string(name_rendered, **okwargs))
         if not names:
             return None
-
-        names = [fname_santitize(ok(name)) for name in names]
 
         # Generate front and back sides for all requirements
         fronts = await self.generate_front_side(fields, requirement, **okwargs)
