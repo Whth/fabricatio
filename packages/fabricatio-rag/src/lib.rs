@@ -1,4 +1,3 @@
-#![feature(iterator_try_collect)]
 #![cfg_attr(feature = "stubgen", allow(dead_code, unused,))]
 
 pub mod constants;
