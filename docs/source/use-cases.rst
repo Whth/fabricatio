@@ -362,6 +362,7 @@ Key patterns:
 .. seealso::
 
    Full runnable example: `examples/generation/structured_output.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/structured_output.py>`_
+
 Extracting Structured Data
 --------------------------
 
@@ -420,6 +421,7 @@ Key patterns:
 .. seealso::
 
    Full runnable example: `examples/generation/extract.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/extract.py>`_
+
 Diff Editing
 ------------
 
@@ -584,6 +586,7 @@ Key patterns:
 .. seealso::
 
    Full runnable example: `examples/generation/improve.py <https://github.com/Whth/fabricatio/blob/master/examples/generation/improve.py>`_
+
 Task Handling with File Operations
 ----------------------------------
 
