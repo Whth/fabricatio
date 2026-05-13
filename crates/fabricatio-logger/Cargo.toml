@@ -13,7 +13,7 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 tracing = "0.1.44"
 tracing-appender = "0.2.5"
 fabricatio-constants = { path = "../fabricatio-constants" }
-pyo3-stub-gen = { version = "0.22.1", optional = true }
+pyo3-stub-gen = { version = "0.22.2", optional = true }
 strum = { version = "0.28.0", features = ["derive"] }
 
 

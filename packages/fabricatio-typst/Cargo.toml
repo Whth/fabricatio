@@ -20,7 +20,7 @@ tex-convertor = { path = "../../crates/tex-convertor" }
 serde_yaml2 = "0.1.3"
 
 error-mapping = { path = "../../crates/error-mapping", features = ["biblatex", "regex"] }
-pyo3-stub-gen = { version = "0.22.1", optional = true }
+pyo3-stub-gen = { version = "0.22.2", optional = true }
 
 [build-dependencies]
 pyo3-build-config = "0.28.3"

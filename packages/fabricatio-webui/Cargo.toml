@@ -9,13 +9,13 @@ crate-type = ["cdylib", "rlib"]
 axum = "0.8.9"
 
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
-tokio = { version = "1.52.1", features = ["rt-multi-thread"] }
-tower-http = { version = "0.6.8", features = ["cors", "fs"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread"] }
+tower-http = { version = "0.6.10", features = ["cors", "fs"] }
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 error-mapping = { path = "../../crates/error-mapping" }
-pyo3-stub-gen = { version = "0.22.1", optional = true }
+pyo3-stub-gen = { version = "0.22.2", optional = true }
 [features]
 default = ["pyo3/extension-module"]
 stubgen = ["dep:pyo3-stub-gen"]
