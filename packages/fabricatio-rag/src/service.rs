@@ -1,4 +1,4 @@
-use crate::constants::{ID_FIELD_NAME, TIMESTAMP_FIELD_NAME, VECTOR_FIELD_NAME};
+use crate::constants::{ID_FIELD_NAME, TIMESTAMP_FIELD_NAME};
 use crate::schema::schema_of;
 use crate::store::VectorStoreTable;
 use error_mapping::AsPyErr;
@@ -57,9 +57,6 @@ impl VectorStoreService {
 
             tokio::try_join!(
                 table.create_index(&[ID_FIELD_NAME], Index::Auto).execute(),
-                table
-                    .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
-                    .execute(),
                 table
                     .create_index(&[TIMESTAMP_FIELD_NAME], Index::Auto)
                     .execute(),

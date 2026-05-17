@@ -15,19 +15,19 @@ use std::sync::Arc;
 #[cached]
 pub fn schema_of(ndim: i32) -> SchemaRef {
     Arc::new(Schema::new(vec![
-        Field::new(ID_FIELD_NAME, DataType::Utf8View, false),
+        Field::new(ID_FIELD_NAME, DataType::Utf8, false),
         Field::new(
             TIMESTAMP_FIELD_NAME,
-            DataType::Time64(TimeUnit::Millisecond),
+            DataType::Time64(TimeUnit::Microsecond),
             false,
         ),
         Field::new_fixed_size_list(
             VECTOR_FIELD_NAME,
-            Field::new(VECTOR_DIM_FIELD_NAME, DataType::Float32, false),
+            Field::new(VECTOR_DIM_FIELD_NAME, DataType::Float32, true),
             ndim,
             false,
         ),
         Field::new(CONTENT_FIELD_NAME, DataType::Utf8, false),
-        Field::new(METADATA_FIELD_NAME, DataType::Utf8View, true),
+        Field::new(METADATA_FIELD_NAME, DataType::Utf8, true),
     ]))
 }

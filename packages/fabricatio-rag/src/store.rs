@@ -11,6 +11,7 @@ use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
 use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
+use lancedb::index::Index;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -188,8 +189,8 @@ impl SearchedDocument {
         let array = batch
             .column_by_name(col_name)
             .ok_or_else(|| Self::missing_column_error(col_name))?
-            .as_primitive_opt::<Int64Type>()
-            .ok_or_else(|| Self::invalid_type_error(col_name, "i64"))?;
+            .as_primitive_opt::<Time64MicrosecondType>()
+            .ok_or_else(|| Self::invalid_type_error(col_name, "Time64(us)"))?;
 
         if array.is_null(row_idx) {
             return Err(Self::null_value_error(col_name, row_idx));
@@ -288,11 +289,25 @@ impl VectorStoreTable {
                     vec![
                         Arc::new(StringArray::from(id_seq.clone())),
                         Arc::new(Time64MicrosecondArray::from(timestamp_seq)),
-                        Arc::new(
-                            FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
+                        Arc::new({
+                            let vector_field = schema_ref
+                                .field_with_name(VECTOR_FIELD_NAME)
+                                .expect("vector field in schema");
+                            let inner_field: FieldRef = match vector_field.data_type() {
+                                DataType::FixedSizeList(f, _) => f.clone(),
+                                _ => unreachable!("vector field must be FixedSizeList"),
+                            };
+                            let arr = FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
                                 vector_seq, ndim,
-                            ),
-                        ),
+                            );
+                            FixedSizeListArray::try_new(
+                                inner_field,
+                                ndim,
+                                arr.values().clone(),
+                                arr.nulls().cloned(),
+                            )
+                            .expect("FixedSizeListArray with schema field")
+                        }),
                         Arc::new(StringArray::from(content_seq)),
                         Arc::new(StringArray::from(metadata_seq)),
                     ],
@@ -302,6 +317,14 @@ impl VectorStoreTable {
             .execute()
             .await
             .into_pyresult()?;
+
+        // Create vector index now that data exists (Lance 4.0.0 requires training data)
+        table
+            .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
+            .execute()
+            .await
+            .into_pyresult()?;
+
         Ok(id_seq)
     }
 
