@@ -1,91 +1,17 @@
 """This module contains the models for the novel."""
 
-from functools import cached_property
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Self, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Self
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.models.generic import Language, SketchedAble, Titled
+from fabricatio_core.models.generic import SketchedAble, Titled
 from fabricatio_core.rust import word_count
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.rust import text_to_xhtml_paragraphs
-from fabricatio_novel.utils import formated_title
 
 if TYPE_CHECKING:
     from fabricatio_novel.models.plan import ChapterPlan
-
-
-class ChapterDraft(Titled):
-    """Chapter Draft for early stage novel design."""
-
-    title: str
-    """Chunk part of title of the Chapter. AKA, title with chap index omit"""
-
-    synopsis: str
-    """
-    Super detailed summaries for each chapter.
-    Cover: what happens, how characters change, key scenes/dialogue, setting shifts, emotional tone, and hints or themes.
-    Goal: Lock in every important detail so nothing gets lost later — like a mini-script for each chapter.
-    """
-    weight: float
-    """The weight of the chapter. higher values means more words count allocation."""
-
-
-class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
-    """A draft representing a novel, including its title, genre, characters, chapters, and synopsis."""
-
-    title: str
-    """The title of the novel."""
-    genre: List[str]
-    """The genres of the novel. Comprehensive coverage is preferred than few ones."""
-
-    synopsis: str
-    """A summary of the novel's plot."""
-
-    character_descriptions: List[str]
-    """
-    Super detailed descriptions for each main character.
-    Include: looks, personality, backstory, goals, relationships, inner struggles, and their role in the story.
-    Goal: Make every character feel real, consistent, and fully fleshed out — no vague or shallow summaries.
-    """
-
-    chapters: List[ChapterDraft]
-    """Ordered chapter drafts with per-chapter synopsis and weight."""
-
-    expected_word_count: int
-    """The expected word count of the novel."""
-
-    @property
-    def total_chapters(self) -> int:
-        """Return the number of chapters in the draft."""
-        return len(self.chapters)
-
-    @property
-    def all_chapters_titles(self) -> List[str]:
-        """Return formatted titles for all chapters as 'Ch-{idx}: {title}'."""
-        return [formated_title(i, chapter.title) for i, chapter in enumerate(self.chapters)]
-
-    def iter_chap(self) -> Generator[Tuple[int, int, ChapterDraft], None, None]:
-        """Iterate through all chapters with metadata."""
-        for i, (
-            expected_word_count,
-            chapter,
-        ) in enumerate(zip(self.chapter_expected_word_counts, self.chapters, strict=True)):
-            yield i, expected_word_count, chapter
-
-    def iter_ft_chap(self) -> Generator[Tuple[str, int, ChapterDraft], None, None]:
-        """Iterate chapters yielding formatted title, word count, and draft."""
-        for idx, wc, chap in self.iter_chap():
-            yield formated_title(idx, chap.title), wc, chap
-
-    @cached_property
-    def chapter_expected_word_counts(self) -> List[int]:
-        """Calculate the expected word count for each chapter."""
-        weights = [c.weight for c in self.chapters]
-        weights_sum = sum(weights)
-
-        return [int(self.expected_word_count * wc / weights_sum) for wc in weights]
 
 
 class Chapter(SketchedAble, PersistentAble, Titled, WordCount):

@@ -31,7 +31,7 @@ dev = [
 [project.optional-dependencies]
 
 full = [
-    "fabricatio-novel[workflows,cli]"
+    "fabricatio-novel[workflows,cli,rag]"
 ]
 
 workflows = ["fabricatio-actions"]
@@ -40,6 +40,11 @@ cli = [
     "questionary>=2.1.0",
     "typer>=0.15.2",
 ]
+
+rag = [
+    "fabricatio-lancedb",
+]
+
 
 
 [build-system]

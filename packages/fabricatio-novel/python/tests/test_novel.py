@@ -10,7 +10,8 @@ from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.models.novel import Chapter, ChapterDraft, Novel, NovelDraft
+from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
+from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Scene, Script
 from fabricatio_novel.utils import formated_title

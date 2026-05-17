@@ -14,7 +14,8 @@ from fabricatio_core.rust import detect_language
 from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.novel import Chapter, Novel, NovelDraft
+from fabricatio_novel.models.draft import NovelDraft
+from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
 

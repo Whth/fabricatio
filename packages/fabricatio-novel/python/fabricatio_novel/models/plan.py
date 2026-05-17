@@ -4,7 +4,7 @@ from typing import List, Self
 
 from fabricatio_capabilities.models.generic import WordCount
 
-from fabricatio_novel.models.novel import ChapterDraft, NovelDraft
+from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
 from fabricatio_novel.models.scripting import Script
 from fabricatio_novel.utils import formated_title
 

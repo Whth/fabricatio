@@ -14,7 +14,8 @@ from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.models.novel import Novel, NovelDraft
+from fabricatio_novel.models.draft import NovelDraft
+from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
 from fabricatio_novel.rust import NovelBuilder
@@ -133,12 +134,12 @@ class AssembleNovelFromComponents(NovelCompose, Action):
     The original draft containing title, synopsis, etc.
     """
 
-    novel_scripts: Optional[List[Script]] = None  # ← renamed
+    novel_scripts: Optional[List[Script]] = None
     """
     Scripts containing chapter titles and metadata.
     """
 
-    novel_chapter_contents: Optional[List[str]] = None  # ← renamed
+    novel_chapter_contents: Optional[List[str]] = None
     """
     Generated full text for each chapter.
     """
