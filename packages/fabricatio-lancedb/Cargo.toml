@@ -1,5 +1,5 @@
 [package]
-name = "fabricatio-rag"
+name = "fabricatio-lancedb"
 edition = "2024"
 
 [lib]
@@ -30,14 +30,12 @@ thryd = { path = "../../crates/thryd" }
 
 
 
-
 [features]
 default = ["pyo3/extension-module"]
 stubgen = []
 
 [dev-dependencies]
 criterion = "0.8.2"
-
 
 
 [[bench]]

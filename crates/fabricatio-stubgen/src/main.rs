@@ -38,8 +38,8 @@ fn main() -> Result<()> {
     #[cfg(feature = "checkpoint")]
     fabricatio_checkpoint::stub_info()?.generate()?;
 
-    #[cfg(feature = "rag")]
-    fabricatio_rag::stub_info()?.generate()?;
+    #[cfg(feature = "lancedb")]
+    fabricatio_lancedb::stub_info()?.generate()?;
 
     #[cfg(feature = "workspace")]
     fabricatio_workspace::stub_info()?.generate()?;

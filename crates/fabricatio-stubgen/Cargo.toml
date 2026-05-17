@@ -11,7 +11,7 @@ fabricatio-core = { path = "../../packages/fabricatio-core", default-features = 
 fabricatio-memory = { path = "../../packages/fabricatio-memory", default-features = false, optional = true }
 fabricatio-diff = { path = "../../packages/fabricatio-diff", default-features = false, optional = true }
 fabricatio-checkpoint = { path = "../../packages/fabricatio-checkpoint", default-features = false, optional = true }
-fabricatio-rag = { path = "../../packages/fabricatio-rag", default-features = false, optional = true }
+fabricatio-lancedb = { path = "../../packages/fabricatio-lancedb", default-features = false, optional = true }
 fabricatio-workspace = { path = "../../packages/fabricatio-workspace", default-features = false, optional = true }
 fabricatio-agent = { path = "../../packages/fabricatio-agent", default-features = false, optional = true }
 fabricatio-locale = { path = "../../packages/fabricatio-locale", default-features = false, optional = true }
@@ -29,7 +29,7 @@ all = [
     "memory",
     "diff",
     "checkpoint",
-    "rag",
+    "lancedb",
     "workspace",
     "agent",
     "locale",
@@ -46,7 +46,7 @@ core = ["fabricatio-core/stubgen"]
 memory = ["fabricatio-memory/stubgen"]
 diff = ["fabricatio-diff/stubgen"]
 checkpoint = ["fabricatio-checkpoint/stubgen"]
-rag = ["fabricatio-rag/stubgen"]
+lancedb = ["fabricatio-lancedb/stubgen"]
 workspace = ["fabricatio-workspace/stubgen"]
 agent = ["fabricatio-agent/stubgen"]
 locale = ["fabricatio-locale/stubgen"]

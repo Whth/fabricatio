@@ -34,7 +34,6 @@ pyo3-build-config = "0.28.3"
 members = [
     "crates/*",
     "packages/fabricatio-typst",
-    "packages/fabricatio-rag",
     "packages/fabricatio-core",
     "packages/fabricatio-memory",
     "packages/fabricatio-anki",
@@ -48,6 +47,7 @@ members = [
     "packages/fabricatio-webui",
     "packages/fabricatio-workspace",
     "packages/fabricatio-tei",
+    "packages/fabricatio-lancedb",
 ]
 
 [workspace.dependencies]

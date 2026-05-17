@@ -4,8 +4,8 @@ use lancedb::arrow::arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit}
 use std::hint::black_box;
 use std::sync::Arc;
 
-use fabricatio_rag::constants::*;
-use fabricatio_rag::schema::schema_of;
+use fabricatio_lancedb::constants::*;
+use fabricatio_lancedb::schema::schema_of;
 
 // --- Uncached version (the original function, but ensure it's pub or accessible) ---
 fn schema_of_plain(ndim: i32) -> SchemaRef {

@@ -1,4 +1,4 @@
-"""Tests for fabricatio-rag Rust-backed vector store operations and RAG capabilities."""
+"""Tests for fabricatio-lancedb Rust-backed vector store operations and RAG capabilities."""
 
 import uuid
 from collections.abc import Sequence
@@ -7,16 +7,16 @@ from typing import Any, Self
 import pytest
 from fabricatio_core.capabilities.usages import UseEmbedding
 from fabricatio_core.utils import ok
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
-from fabricatio_rag.capabilities.rag import RAG
-from fabricatio_rag.models.document import DocumentModel
-from fabricatio_rag.rust import (
+from fabricatio_lancedb.rust import (
     SearchedDocument,
     StoreDocument,
     VectorStoreService,
     VectorStoreTable,
 )
+from fabricatio_mock.models.mock_role import LLMTestRole
+from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
+from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.models.document import DocumentModel
 from pydantic import BaseModel
 
 NDIM = 4
