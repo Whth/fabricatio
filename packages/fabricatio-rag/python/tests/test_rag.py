@@ -6,6 +6,7 @@ from typing import Any, Self
 
 import pytest
 from fabricatio_core.capabilities.usages import UseEmbedding
+from fabricatio_core.utils import ok
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
 from fabricatio_rag.capabilities.rag import RAG
@@ -66,7 +67,7 @@ class RAGTestImpl(LLMTestRole, RAG[SimpleDocument]):
         if self._table is None:
             self._svc = svc
             self._table = await svc.create_or_open_table(f"rag_{uuid.uuid4().hex[:8]}", ndim)
-        return self._table
+        return ok(self._table)
 
     async def add_document(self, data: Any, **kwargs: Any) -> Self:
         """Vectorize and add documents to the store."""

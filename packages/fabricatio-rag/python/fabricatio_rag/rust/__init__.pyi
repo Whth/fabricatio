@@ -75,16 +75,16 @@ class VectorStoreService:
     @staticmethod
     def connect(uri: builtins.str) -> typing.Awaitable[typing.Self]:
         r"""Connect to a lancedb instance."""
-    def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Any:
+    def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
         r"""Create a table."""
-    def open_table(self, table_name: builtins.str) -> typing.Any:
+    def open_table(self, table_name: builtins.str) -> typing.Awaitable[VectorStoreTable]:
         r"""Open a table."""
-    def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Any:
+    def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
         r"""Create or open a table."""
 
 @typing.final
 class VectorStoreTable:
-    def add_documents(self, documents: list) -> typing.Any:
+    def add_documents(self, documents: list) -> typing.Awaitable[builtins.list[builtins.str]]:
         r"""Adds multiple documents to the vector store.
 
         Args:
@@ -93,7 +93,9 @@ class VectorStoreTable:
         Returns:
             An awaitable that resolves to a list of document IDs.
         """
-    def search_document(self, embedding: typing.Sequence[builtins.float], limit: builtins.int) -> typing.Any:
+    def search_document(
+        self, embedding: typing.Sequence[builtins.float], limit: builtins.int
+    ) -> typing.Awaitable[builtins.list[SearchedDocument]]:
         r"""Searches for documents similar to the given embedding vector.
 
         Args:

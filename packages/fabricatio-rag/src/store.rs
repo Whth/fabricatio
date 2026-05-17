@@ -300,6 +300,7 @@ impl VectorStoreTable {
                             let arr = FixedSizeListArray::from_iter_primitive::<Float32Type, _, _>(
                                 vector_seq, ndim,
                             );
+
                             FixedSizeListArray::try_new(
                                 inner_field,
                                 ndim,
@@ -375,6 +376,9 @@ impl VectorStoreTable {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl VectorStoreTable {
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[builtins.list[builtins.str]]", imports = ("typing", "builtins"))
+    )]
     /// Adds multiple documents to the vector store.
     ///
     /// Args:
@@ -401,6 +405,9 @@ impl VectorStoreTable {
         )
     }
 
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[builtins.list[SearchedDocument]]", imports = ("typing", "builtins"))
+    )]
     /// Searches for documents similar to the given embedding vector.
     ///
     /// Args:

@@ -39,6 +39,9 @@ impl VectorStoreService {
         })
     }
 
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
+    )]
     /// Create a table
     fn create_table<'a>(
         &self,
@@ -67,6 +70,9 @@ impl VectorStoreService {
         })
     }
 
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
+    )]
     /// Open a table
     fn open_table<'a>(&self, python: Python<'a>, table_name: String) -> PyResult<Bound<'a, PyAny>> {
         let fut = self.conn.open_table(table_name.as_str()).execute();
@@ -78,6 +84,9 @@ impl VectorStoreService {
         })
     }
 
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
+    )]
     /// Create or open a table
     fn create_or_open_table<'a>(
         &self,
