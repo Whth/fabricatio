@@ -1,24 +1,33 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Self, Type, Union, Unpack
+from typing import List, Optional, Self, Type, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.capabilities.usages import UseEmbedding, UseReranker
-from fabricatio_core.models.kwargs_types import ListStringKwargs
+from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseReranker
+from fabricatio_core.models.generic import Base
+from fabricatio_core.models.kwargs_types import ListStringKwargs, RerankerKwargs
 
 from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.document import DocumentModel
 
 
-class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
+class RAGConfigBase(Base):
+    """A base class for RAG (Retrieval Augmented Generation) configuration."""
+
+    @classmethod
+    def default(cls) -> Self:
+        return cls()
+
+
+class RAG[D: DocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](UseEmbedding, UseReranker, UseLLM, ABC):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
     @abstractmethod
     async def add_document(
         self,
-        data: Any,
-        **kwargs: Any,
+        data: D | List[D],
+        config: AC | None = None,
     ) -> Self:
         """Add documents to a collection."""
         pass
@@ -26,9 +35,9 @@ class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
     @abstractmethod
     async def afetch_document(
         self,
-        query: Union[str, List[str]],
+        query: str | List[str],
         document_model: Type[D],
-        **kwargs: Any,
+        config: FC | None = None,
     ) -> List[D]:
         """Fetch documents based on query."""
         pass
@@ -59,8 +68,7 @@ class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
         self,
         query: str,
         documents: List[D],
-        send_to: str | None = None,
-        no_cache: bool = False,
+        **kwargs: Unpack[RerankerKwargs],
     ) -> List[D]:
         """Rerank documents by relevance to query, preserving document objects.
 
@@ -70,18 +78,12 @@ class RAG[D: DocumentModel](UseEmbedding, UseReranker, ABC):
         Args:
             query: The query text to rank against.
             documents: Previously retrieved documents to rerank.
-            send_to: Router group for the reranker model.
-            no_cache: Whether to bypass the reranker cache.
+            **kwargs: Additional keyword arguments for the reranking process.
 
         Returns:
             Documents reordered by relevance (descending score).
         """
         if not documents:
             return []
-        rankings = await self.arank(
-            query=query,
-            documents=[doc.prepare_vectorization() for doc in documents],
-            send_to=send_to,
-            no_cache=no_cache,
-        )
+        rankings = await self.arank(query=query, documents=[doc.prepare_vectorization() for doc in documents], **kwargs)
         return [documents[idx] for idx, _ in rankings]

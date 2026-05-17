@@ -1,21 +1,14 @@
 """Base class for document models."""
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Self, Sequence
+from abc import abstractmethod
+from typing import Sequence
+
+from fabricatio_core.models.generic import Vectorizable
 
 
-class DocumentModel(ABC):
+class DocumentModel[ST](Vectorizable):
     """A base class for document models."""
 
-    @classmethod
     @abstractmethod
-    def from_sequence(cls, data: Sequence[dict]) -> List[Self]:
-        """Constructs a list of instances from a sequence of dictionaries."""
-
-    @abstractmethod
-    def prepare_vectorization(self) -> str:
-        """Prepares the data for vectorization."""
-
-    @abstractmethod
-    def prepare_insertion(self, vector: Sequence[float]) -> Dict[str, Any]:
+    def prepare_insertion(self, vector: Sequence[float]) -> ST:
         """Prepares the data for insertion into a vector database."""
