@@ -19,7 +19,6 @@ use pyo3::types::{PyDict, PyList};
 
 use crate::utils;
 use pyo3_async_runtimes::tokio::future_into_py;
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 use pythonize::depythonize;
 use rayon::prelude::*;
@@ -374,6 +373,7 @@ impl VectorStoreTable {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl VectorStoreTable {
     #[gen_stub(
