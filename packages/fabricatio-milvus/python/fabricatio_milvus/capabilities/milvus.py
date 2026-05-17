@@ -6,7 +6,7 @@ from typing import List, Optional, Self, Type, Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.utils import ok
-from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from more_itertools import flatten, unique
 from pydantic import Field, PrivateAttr
 from pymilvus import MilvusClient
@@ -26,7 +26,21 @@ def create_client(uri: str, token: str = "", timeout: Optional[float] = None) ->
     )
 
 
-class MilvusRAG(MilvusScopedConfig, RAG):
+class AddConfig(RAGConfigBase):
+    flush: bool = False
+    collection_name: Optional[str] = None
+
+
+class FetchConfig(RAGConfigBase):
+    collection_name: Optional[str] = None
+    similarity_threshold: float = 0.37
+    result_per_query: int = 10
+    tei_endpoint: Optional[str] = None
+    reranker_threshold: float = 0.7
+    filter_expr: str = ""
+
+
+class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedConfig, RAG[D, AC, FC]):
     """A class for the RAG model using Milvus."""
 
     target_collection: Optional[str] = Field(default=None)
@@ -101,90 +115,59 @@ class MilvusRAG(MilvusScopedConfig, RAG):
         """
         return ok(self.target_collection, "No collection is being viewed. Have you called `self.view()`?")
 
-    async def add_document[D: MilvusDataBase](
-        self, data: List[D] | D, collection_name: Optional[str] = None, flush: bool = False
+    async def add_document(
+        self,
+        data: D | List[D],
+        config: AC | None = None,
     ) -> Self:
         """Adds a document to the specified collection.
 
         Args:
             data (Union[Dict[str, Any], MilvusDataBase] | List[Union[Dict[str, Any], MilvusDataBase]]): The data to be added to the collection.
-            collection_name (Optional[str]): The name of the collection. If not provided, the currently viewed collection is used.
-            flush (bool): Whether to flush the collection after insertion.
 
         Returns:
             Self: The current instance, allowing for method chaining.
         """
-        if isinstance(data, MilvusDataBase):
-            data = [data]
+        config = config or AddConfig.default()
 
-        data_vec = await self.vectorize([d.prepare_vectorization() for d in data])
-        prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data, data_vec, strict=True)]
+        data_seq = [data] if not isinstance(data, list) else data
+        data_vec = await self.vectorize([d.prepare_vectorization() for d in data_seq])
+        prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data_seq, data_vec, strict=True)]
 
-        c_name = collection_name or self.safe_target_collection
+        c_name = config.collection_name or self.safe_target_collection
         self.check_client().client.insert(c_name, prepared_data)
 
-        if flush:
+        if config.flush:
             logger.debug(f"Flushing collection {c_name}")
             self.client.flush(c_name)
         return self
 
-    async def afetch_document[D: MilvusDataBase](
+    async def afetcah_document(
         self,
         query: str | List[str],
         document_model: Type[D],
-        collection_name: Optional[str] = None,
-        similarity_threshold: float = 0.37,
-        result_per_query: int = 10,
-        tei_endpoint: Optional[str] = None,
-        reranker_threshold: float = 0.7,
-        filter_expr: str = "",
+        config: FC | None = None,
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
         Args:
            query (List[str]): A list of vectors to search for in the database.
            document_model (Type[D]): The model class used to convert fetched data into document objects.
-           collection_name (Optional[str]): The name of the collection to search within.
-                                             If None, the currently viewed collection is used.
-           similarity_threshold (float): The similarity threshold for vector search. Defaults to 0.37.
-           result_per_query (int): The maximum number of results to return per query. Defaults to 10.
-           tei_endpoint (str): the endpoint of the TEI api.
-           reranker_threshold (float): The threshold used to filtered low relativity document.
-           filter_expr (str) : The filter expression used to filter out unwanted documents.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
         """
+        config = config or FetchConfig.default()
+
         # Step 1: Search for vectors
         search_results = self.check_client().client.search(
-            collection_name or self.safe_target_collection,
+            config.collection_name or self.safe_target_collection,
             await self.vectorize(query),
-            search_params={"radius": similarity_threshold},
+            search_params={"radius": config.similarity_threshold},
             output_fields=list(document_model.model_fields),
-            filter=filter_expr,
-            limit=result_per_query,
+            filter=config.filter_expr,
+            limit=config.result_per_query,
         )
-        if tei_endpoint is not None:
-            from fabricatio_rag.rust import TEIClient
-
-            reranker = TEIClient(base_url=tei_endpoint)
-
-            retrieved_id = set()
-            raw_result = []
-
-            for q, g in zip(query, search_results, strict=True):
-                models = document_model.from_sequence([res["entity"] for res in g if res["id"] not in retrieved_id])
-                logger.debug(f"Retrived {len(g)} raw document, filtered out {len(models)}.")
-                retrieved_id.update(res["id"] for res in g)
-                if not models:
-                    continue
-                rank_scores = await reranker.arerank(
-                    q, [m.prepare_vectorization() for m in models], truncate=True, truncation_direction="Left"
-                )
-                raw_result.extend((models[idx], scr) for (idx, scr) in rank_scores if scr > reranker_threshold)
-
-            raw_result_sorted = sorted(raw_result, key=lambda x: x[1], reverse=True)
-            return [r[0] for r in raw_result_sorted]
 
         # Step 2: Flatten the search results
         flattened_results = flatten(search_results)

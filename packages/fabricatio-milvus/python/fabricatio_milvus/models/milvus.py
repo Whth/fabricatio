@@ -4,8 +4,9 @@ from abc import ABC
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Sequence, Set
 
-from fabricatio_core.models.generic import Base, ScopedConfig, Vectorizable
+from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.utils import ok
+from fabricatio_rag.models.document import DocumentModel
 from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
 
 if TYPE_CHECKING:
@@ -29,7 +30,7 @@ class MilvusScopedConfig(ScopedConfig):
     """The dimensions of the Milvus server."""
 
 
-class MilvusDataBase(Base, Vectorizable, ABC):
+class MilvusDataBase[ST: Dict[str, Any]](DocumentModel[ST], ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
@@ -42,7 +43,7 @@ class MilvusDataBase(Base, Vectorizable, ABC):
     metric_type: ClassVar[str] = "COSINE"
     """The type of metric to be used in Milvus."""
 
-    def prepare_insertion(self, vector: List[float]) -> Dict[str, Any]:
+    def prepare_insertion(self, vector: Sequence[float]) -> ST:
         """Prepares the data for insertion into Milvus.
 
         Returns:
