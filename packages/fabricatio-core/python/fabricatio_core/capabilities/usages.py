@@ -21,8 +21,8 @@ from pydantic import NonNegativeInt, PositiveInt
 
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
-from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, RerankerScopedConfig, WithBriefing
+from fabricatio_core.models.kwargs_types import ChooseKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import ok
 
@@ -504,7 +504,7 @@ class UseLLM(LLMScopedConfig, ABC):
         )
 
 
-class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
+class UseEmbedding(EmbeddingScopedConfig, ABC):
     """A class representing the embedding model.
 
     This class extends LLMUsage and provides methods to generate embeddings for input text using various models.
@@ -539,26 +539,21 @@ class UseEmbedding(UseLLM, EmbeddingScopedConfig, ABC):
         return res[0] if is_text else res
 
 
-class UseReranker(UseLLM, ABC):
+class UseReranker(RerankerScopedConfig, ABC):
     """A class for reranking documents using a reranker model."""
 
     async def arank(
-        self,
-        query: str,
-        documents: List[str],
-        send_to: str | None = None,
-        no_cache: bool = False,
+        self, query: str, documents: List[str], **kwargs: Unpack[RerankerKwargs]
     ) -> List[Tuple[int, float]]:
         """Reranks a list of documents based on their relevance to the query.
 
         Args:
             query: The query text to rank documents against.
             documents: A list of document texts to rerank.
-            send_to: The namespace to send the request to. Defaults to None.
-            no_cache: Whether to bypass the cache. Defaults to False.
+            **kwargs: Additional keyword arguments for the reranker model.
 
         Returns:
             List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
         """
-        kw = self._resolve_embedding_params(send_to=send_to, no_cache=no_cache)
+        kw = self._resolve_reranker_params(**kwargs)
         return await rust.ROUTER.rerank(query=query, documents=documents, **kw)

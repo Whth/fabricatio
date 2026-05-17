@@ -22,6 +22,14 @@ class EmbeddingKwargs(RouteKwargs, total=False):
     """
 
 
+class RerankerKwargs(RouteKwargs, total=False):
+    """Configuration parameters for text reranking operations.
+
+    These arguments control the behavior of reranking models,
+    such as the number of attempts to make before giving up.
+    """
+
+
 class LLMKwargs(RouteKwargs, total=False):
     """Configuration parameters for language model inference.
 

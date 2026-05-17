@@ -17,7 +17,7 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
@@ -320,13 +320,37 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_send_to: Optional[str] = None
     """The LLM model name."""
 
+    embedding_no_cache: bool = False
+    """Whether to disable caching for embeddings."""
+
     def _resolve_embedding_params(self, send_to: str | None, no_cache: bool = False) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
                 send_to or self.embedding_send_to or CONFIG.embedding.send_to,
                 "send_to is not specified at any where",
             ),
-            no_cache=no_cache,
+            no_cache=first_available((no_cache, self.embedding_no_cache), raise_exception=False) or False,
+        )
+
+
+class RerankerScopedConfig(ScopedConfig):
+    """Configuration for reranker-related settings."""
+
+    reranker_send_to: Optional[str] = None
+    """The group name of which the requests will be sent."""
+
+    reranker_no_cache: Optional[bool] = None
+    """Whether to disable caching for the reranker."""
+
+    def _resolve_reranker_params(
+        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None
+    ) -> RerankerKwargs:
+        return RerankerKwargs(
+            send_to=ok(
+                send_to or self.reranker_send_to or CONFIG.reranker.send_to,
+                "send_to is not specified at any where",
+            ),
+            no_cache=first_available((no_cache, self.reranker_no_cache), raise_exception=False) or False,
         )
 
 

@@ -76,7 +76,8 @@ if is_installed("fabricatio_thinking"):
 
     __all__ += ["Thought"]
 if is_installed("fabricatio_novel"):
-    from fabricatio_novel.models.novel import Novel, NovelDraft
+    from fabricatio_novel.models.draft import NovelDraft
+    from fabricatio_novel.models.novel import Novel
     from fabricatio_novel.models.scripting import Scene, Script
 
     __all__ += ["Novel", "NovelDraft", "Scene", "Script"]
