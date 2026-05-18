@@ -1,3 +1,5 @@
+"""Novel draft models for early stage novel design."""
+
 from functools import cached_property
 from typing import Generator, List, Tuple
 
