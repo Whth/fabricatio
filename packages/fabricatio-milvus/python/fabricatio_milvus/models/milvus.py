@@ -30,7 +30,7 @@ class MilvusScopedConfig(ScopedConfig):
     """The dimensions of the Milvus server."""
 
 
-class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], ABC):
+class MilvusDataBase(StoredDocumentModel[Dict[str, Any]], ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
@@ -43,7 +43,7 @@ class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], ABC):
     metric_type: ClassVar[str] = "COSINE"
     """The type of metric to be used in Milvus."""
 
-    def prepare_insertion(self, vector: Sequence[float]) -> ST:
+    def prepare_insertion(self, vector: Sequence[float]) -> Dict[str, Any]:
         """Prepares the data for insertion into Milvus.
 
         Returns:
