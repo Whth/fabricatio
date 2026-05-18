@@ -8,12 +8,12 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Mapping, Sequence, Type
 
 
-class FromMapping[V,T](ABC):
+class FromMapping[V, T](ABC):
     """Class that provides a method to generate a list of objects from a mapping."""
 
     @classmethod
     @abstractmethod
-    def from_mapping(cls, mapping: Mapping[str, V],/, **kwargs: Any) -> List[T]:
+    def from_mapping(cls, mapping: Mapping[str, V], /, **kwargs: Any) -> List[T]:
         """Generate a list of objects from a mapping."""
 
 
@@ -22,5 +22,5 @@ class FromSequence[V](ABC):
 
     @classmethod
     @abstractmethod
-    def from_sequence[S](cls: Type[S], sequence: Sequence[V],/, **kwargs: Any) -> List[S]:
+    def from_sequence[S](cls: Type[S], sequence: Sequence[V], /, **kwargs: Any) -> List[S]:
         """Generate a list of objects from a sequence."""

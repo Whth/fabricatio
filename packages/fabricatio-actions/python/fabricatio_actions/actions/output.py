@@ -1,5 +1,5 @@
 """Dump the finalized output to a file."""
-from tkinter import N
+
 
 from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
@@ -183,7 +183,9 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
         return self.retrieve_cls.from_persistent(self.load_path)
 
 
-class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMapping[str | Path,"RetrieveFromLatest[T]"]):
+class RetrieveFromLatest[T: PersistentAble](
+    RetrieveFromPersistent[T], FromMapping[str | Path, "RetrieveFromLatest[T]"]
+):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 
     async def _execute(self, /, **_) -> Optional[T]:
@@ -203,7 +205,7 @@ class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMappi
         cls,
         mapping: Mapping[str, str | Path],
         /,
-        retrieve_cls: Optional[Type[T]]=None,
+        retrieve_cls: Optional[Type[T]] = None,
         **kwargs,
     ) -> List["RetrieveFromLatest[T]"]:
         """Create a list of `RetrieveFromLatest` from the mapping."""
@@ -254,7 +256,7 @@ class Forward[V: str](Action, FromMapping, FromSequence[V]):
         return source
 
     @classmethod
-    def from_sequence(cls, sequence: Sequence[V], /, original: Optional[str]=None, **kwargs: Any) -> List[Self]:
+    def from_sequence(cls, sequence: Sequence[V], /, original: Optional[str] = None, **kwargs: Any) -> List[Self]:
         """Create a list of `Forward` from the sequence."""
         return [cls(original=ok(original), output_key=o, **kwargs) for o in sequence]
 
