@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Seq
 
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.utils import ok
-from fabricatio_rag.models.document import DocumentModel
+from fabricatio_rag.models.document import StoredDocumentModel
 from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class MilvusScopedConfig(ScopedConfig):
     """The dimensions of the Milvus server."""
 
 
-class MilvusDataBase[ST: Dict[str, Any]](DocumentModel[ST], ABC):
+class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
