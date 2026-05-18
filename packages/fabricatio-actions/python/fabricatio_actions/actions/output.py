@@ -1,4 +1,5 @@
 """Dump the finalized output to a file."""
+from tkinter import N
 
 from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
@@ -182,7 +183,7 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
         return self.retrieve_cls.from_persistent(self.load_path)
 
 
-class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMapping):
+class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMapping[str | Path,"RetrieveFromLatest[T]"]):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 
     async def _execute(self, /, **_) -> Optional[T]:
@@ -201,13 +202,13 @@ class RetrieveFromLatest[T: PersistentAble](RetrieveFromPersistent[T], FromMappi
     def from_mapping(
         cls,
         mapping: Mapping[str, str | Path],
-        *,
-        retrieve_cls: Type[T],
+        /,
+        retrieve_cls: Optional[Type[T]]=None,
         **kwargs,
     ) -> List["RetrieveFromLatest[T]"]:
         """Create a list of `RetrieveFromLatest` from the mapping."""
         return [
-            cls(retrieve_cls=retrieve_cls, load_path=Path(p).as_posix(), output_key=o, **kwargs)
+            cls(retrieve_cls=ok(retrieve_cls), load_path=Path(p).as_posix(), output_key=o, **kwargs)
             for o, p in mapping.items()
         ]
 
@@ -239,7 +240,7 @@ class GatherAsList(Action):
         return result
 
 
-class Forward(Action, FromMapping, FromSequence):
+class Forward[V: str](Action, FromMapping, FromSequence[V]):
     """Forward the object from the context to the output."""
 
     output_key: str = "forwarded"
@@ -253,9 +254,9 @@ class Forward(Action, FromMapping, FromSequence):
         return source
 
     @classmethod
-    def from_sequence(cls, sequence: Sequence[str], *, original: str, **kwargs: Any) -> List[Self]:
+    def from_sequence(cls, sequence: Sequence[V], /, original: Optional[str]=None, **kwargs: Any) -> List[Self]:
         """Create a list of `Forward` from the sequence."""
-        return [cls(original=original, output_key=o, **kwargs) for o in sequence]
+        return [cls(original=ok(original), output_key=o, **kwargs) for o in sequence]
 
     @classmethod
     def from_mapping(cls, mapping: Mapping[str, str | Sequence[str]], **kwargs: Any) -> List[Self]:
