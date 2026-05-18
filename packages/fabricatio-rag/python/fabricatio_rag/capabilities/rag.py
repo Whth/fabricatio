@@ -1,7 +1,7 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Self, Type, Unpack
+from typing import List, Optional, Self, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseReranker
@@ -9,7 +9,7 @@ from fabricatio_core.models.generic import Base
 from fabricatio_core.models.kwargs_types import ListStringKwargs, RerankerKwargs
 
 from fabricatio_rag.config import rag_config
-from fabricatio_rag.models.document import DocumentModel
+from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 
 
 class RAGConfigBase(Base):
@@ -20,13 +20,15 @@ class RAGConfigBase(Base):
         return cls()
 
 
-class RAG[D: DocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](UseEmbedding, UseReranker, UseLLM, ABC):
+class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](
+    UseEmbedding, UseReranker, UseLLM, ABC
+):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 
     @abstractmethod
     async def add_document(
         self,
-        data: D | List[D],
+        data: STD | List[STD],
         config: AC | None = None,
     ) -> Self:
         """Add documents to a collection."""
@@ -36,9 +38,8 @@ class RAG[D: DocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](UseEmbedding, 
     async def afetch_document(
         self,
         query: str | List[str],
-        document_model: Type[D],
         config: FC | None = None,
-    ) -> List[D]:
+    ) -> List[SRD]:
         """Fetch documents based on query."""
         pass
 
@@ -67,9 +68,9 @@ class RAG[D: DocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](UseEmbedding, 
     async def arank_documents(
         self,
         query: str,
-        documents: List[D],
+        documents: List[SRD],
         **kwargs: Unpack[RerankerKwargs],
-    ) -> List[D]:
+    ) -> List[SRD]:
         """Rerank documents by relevance to query, preserving document objects.
 
         Delegates to UseReranker.arank() for scoring, then reorders the
@@ -85,5 +86,5 @@ class RAG[D: DocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](UseEmbedding, 
         """
         if not documents:
             return []
-        rankings = await self.arank(query=query, documents=[doc.prepare_vectorization() for doc in documents], **kwargs)
+        rankings = await self.arank(query=query, documents=[doc.as_prompt() for doc in documents], **kwargs)
         return [documents[idx] for idx, _ in rankings]
