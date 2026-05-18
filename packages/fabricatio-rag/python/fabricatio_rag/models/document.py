@@ -1,13 +1,14 @@
 """Base class for document models."""
 
-from abc import abstractmethod
+
+from abc import ABCMeta, abstractmethod
 from typing import Self, Sequence
 
 from fabricatio_capabilities.models.generic import AsPrompt
-from fabricatio_core.models.generic import Vectorizable
+from fabricatio_core.models.generic import Base, Vectorizable
 
 
-class StoredDocumentModel[ST](Vectorizable):
+class StoredDocumentModel[ST](Vectorizable, Base, metaclass=ABCMeta):
     """A base class for document models."""
 
     @abstractmethod
@@ -15,7 +16,7 @@ class StoredDocumentModel[ST](Vectorizable):
         """Prepares the data for insertion into a vector database."""
 
 
-class SearchedDocumentModel[SD](AsPrompt):
+class SearchedDocumentModel[SD](AsPrompt, Base, metaclass=ABCMeta):
     """A base class for document models retrieved from a vector database."""
 
     @classmethod
