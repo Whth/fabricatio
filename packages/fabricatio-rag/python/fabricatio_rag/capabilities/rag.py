@@ -17,6 +17,7 @@ class RAGConfigBase(Base):
 
     @classmethod
     def default(cls) -> Self:
+        """Create a default configuration instance."""
         return cls()
 
 

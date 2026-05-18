@@ -16,6 +16,8 @@ class StoredDocumentModel[ST](Vectorizable):
 
 
 class SearchedDocumentModel[SD](AsPrompt):
+    """A base class for document models retrieved from a vector database."""
+
     @classmethod
     @abstractmethod
     def from_raw(cls, raw: SD) -> Self:
