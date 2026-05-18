@@ -3,7 +3,7 @@
 from typing import Any, Self
 
 from fabricatio_core.models.generic import Action
-from fabricatio_rag.models.document import DocumentModel
+from fabricatio_rag.models.document import StoredDocumentModel
 
 from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
 from fabricatio_lancedb.rust import StoreDocument, VectorStoreService
@@ -44,9 +44,9 @@ class InjectToDB(Action, LancedbRAG):
     async def afetch_document(
         self,
         query: list[str] | str,
-        document_model: type[DocumentModel],
+        document_model: type[StoredDocumentModel],
         **kwargs: Any,
-    ) -> list[DocumentModel]:
+    ) -> list[StoredDocumentModel]:
         """Search the store and return DocumentModel instances."""
         svc = self._svc
         assert svc is not None, "Call _ensure_service first"
@@ -76,4 +76,4 @@ class LancedbRAGTalk(Action, LancedbRAG):
     async def aact(self, *args: Any, **kwargs: Any) -> Any:
         """Process user question with RAG context."""
         question = kwargs.get("question", "")
-        return await self.afetch_document(question, DocumentModel, **kwargs)
+        return await self.afetch_document(question, StoredDocumentModel, **kwargs)

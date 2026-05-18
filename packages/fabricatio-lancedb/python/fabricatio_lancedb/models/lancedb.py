@@ -2,12 +2,12 @@
 
 from typing import Any, Sequence
 
-from fabricatio_rag.models.document import DocumentModel
+from fabricatio_rag.models.document import StoredDocumentModel
 
 from fabricatio_lancedb.rust import StoreDocument
 
 
-class LancedbDocumentModel[ST: StoreDocument](DocumentModel[ST]):
+class LancedbStoredDocumentModel[ST: StoreDocument](StoredDocumentModel[ST]):
     """LanceDB-specific document model extending the base DocumentModel."""
 
     content: str

@@ -16,7 +16,7 @@ from fabricatio_lancedb.rust import (
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
 from fabricatio_rag.capabilities.rag import RAG
-from fabricatio_rag.models.document import DocumentModel
+from fabricatio_rag.models.document import StoredDocumentModel
 from pydantic import BaseModel
 
 NDIM = 4
@@ -27,7 +27,7 @@ NDIM = 4
 # ---------------------------------------------------------------------------
 
 
-class SimpleDocument(DocumentModel, BaseModel):
+class SimpleStoredDocument(StoredDocumentModel, BaseModel):
     """A minimal DocumentModel implementation for testing."""
 
     content: str
@@ -56,7 +56,7 @@ class EmbeddingTestRole(LLMTestRole, UseEmbedding):
     """Test role that adds embedding capability to LLMTestRole."""
 
 
-class RAGTestImpl(LLMTestRole, RAG[SimpleDocument]):
+class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument]):
     """Concrete RAG implementation backed by VectorStoreService for testing."""
 
     _table: VectorStoreTable | None = None
@@ -85,9 +85,9 @@ class RAGTestImpl(LLMTestRole, RAG[SimpleDocument]):
     async def afetch_document(
         self,
         query: list[str] | str,
-        document_model: type[SimpleDocument],
+        document_model: type[SimpleStoredDocument],
         **kwargs: Any,
-    ) -> list[SimpleDocument]:
+    ) -> list[SimpleStoredDocument]:
         """Search the store and return SimpleDocument instances."""
         table = self._table
         assert table is not None
@@ -446,9 +446,9 @@ class TestRankDocuments:
     async def test_rank_reorders_by_score(self, rag_role: RAGTestImpl) -> None:
         """arank_documents reorders documents by descending reranker score."""
         docs = [
-            SimpleDocument(content="low relevance", metadata={}),
-            SimpleDocument(content="high relevance", metadata={}),
-            SimpleDocument(content="medium relevance", metadata={}),
+            SimpleStoredDocument(content="low relevance", metadata={}),
+            SimpleStoredDocument(content="high relevance", metadata={}),
+            SimpleStoredDocument(content="medium relevance", metadata={}),
         ]
         # Reranker returns (index, score): doc 1 highest, doc 2 middle, doc 0 lowest
         rankings = [(1, 0.95), (2, 0.60), (0, 0.10)]
@@ -474,8 +474,8 @@ class TestRAGEndToEnd:
     async def test_add_and_fetch(self, rag_role: RAGTestImpl) -> None:
         """Add documents via mocked embeddings and search them back."""
         docs = [
-            SimpleDocument(content="rust programming", metadata={"lang": "rust"}),
-            SimpleDocument(content="python scripting", metadata={"lang": "python"}),
+            SimpleStoredDocument(content="rust programming", metadata={"lang": "rust"}),
+            SimpleStoredDocument(content="python scripting", metadata={"lang": "python"}),
         ]
         # Two embeddings for add, one for fetch query
         e1 = [1.0, 0.0, 0.0, 0.0]
@@ -484,20 +484,20 @@ class TestRAGEndToEnd:
 
         with install_dummy_embeddings(e1, e2, e_query):
             await rag_role.add_document(docs)
-            results = await rag_role.afetch_document("rust", SimpleDocument, limit=2)
+            results = await rag_role.afetch_document("rust", SimpleStoredDocument, limit=2)
 
         assert len(results) > 0
         assert results[0].content == "rust programming"
 
     async def test_add_single_and_fetch(self, rag_role: RAGTestImpl) -> None:
         """Add a single document and fetch it back."""
-        doc = SimpleDocument(content="hello world", metadata={})
+        doc = SimpleStoredDocument(content="hello world", metadata={})
         e_add = [0.5, 0.5, 0.5, 0.5]
         e_query = [0.5, 0.5, 0.5, 0.5]
 
         with install_dummy_embeddings(e_add, e_query):
             await rag_role.add_document(doc)
-            results = await rag_role.afetch_document("hello", SimpleDocument, limit=1)
+            results = await rag_role.afetch_document("hello", SimpleStoredDocument, limit=1)
 
         assert len(results) == 1
         assert results[0].content == "hello world"
