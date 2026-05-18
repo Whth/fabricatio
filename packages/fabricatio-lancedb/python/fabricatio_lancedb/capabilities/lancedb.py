@@ -17,9 +17,11 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbRAGConfig, FC: LancedbRAGCo
     """LanceDB-specific RAG capability extending the base RAG class."""
 
     async def add_document(self, data: D | List[D], config: AC | None = None) -> Self:
+        """Add a document to the LanceDB collection."""
         raise NotImplementedError
 
     async def afetch_document(
         self, query: str | List[str], document_model: Type[D], config: FC | None = None
     ) -> List[D]:
+        """Fetch documents from the LanceDB collection."""
         raise NotImplementedError
