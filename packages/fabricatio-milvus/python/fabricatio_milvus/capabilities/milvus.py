@@ -27,11 +27,15 @@ def create_client(uri: str, token: str = "", timeout: Optional[float] = None) ->
 
 
 class AddConfig(RAGConfigBase):
+    """Configuration for adding documents to a Milvus collection."""
+
     flush: bool = False
     collection_name: Optional[str] = None
 
 
 class FetchConfig(RAGConfigBase):
+    """Configuration for fetching documents from a Milvus collection."""
+
     collection_name: Optional[str] = None
     similarity_threshold: float = 0.37
     result_per_query: int = 10
@@ -123,7 +127,8 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         """Adds a document to the specified collection.
 
         Args:
-            data (Union[Dict[str, Any], MilvusDataBase] | List[Union[Dict[str, Any], MilvusDataBase]]): The data to be added to the collection.
+            data (D | List[D]): The data to be added to the collection.
+            config (AC | None): Configuration for the add operation.
 
         Returns:
             Self: The current instance, allowing for method chaining.
@@ -151,8 +156,9 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
         Args:
-           query (List[str]): A list of vectors to search for in the database.
+           query (str | List[str]): A list of vectors to search for in the database.
            document_model (Type[D]): The model class used to convert fetched data into document objects.
+           config (FC | None): Configuration for the fetch operation.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
