@@ -1,6 +1,5 @@
 """Dump the finalized output to a file."""
 
-
 from pathlib import Path
 from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
 
