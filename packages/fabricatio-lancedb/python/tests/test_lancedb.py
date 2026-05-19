@@ -15,7 +15,7 @@ from fabricatio_lancedb.rust import (
 )
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
-from fabricatio_rag.capabilities.rag import RAG
+from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 from pydantic import BaseModel
 
@@ -45,6 +45,7 @@ class SimpleStoredDocument(StoredDocumentModel, SearchedDocumentModel, BaseModel
     def prepare_insertion(self, vector: Sequence[float]) -> dict[str, Any]:
         """Prepare data for vector store insertion."""
         return {"content": self.content, "vector": list(vector), "metadata": self.metadata}
+
     @classmethod
     def from_raw(cls, raw: SearchedDocument) -> Self:
         """Create a SimpleStoredDocument from a raw SearchedDocument."""
@@ -64,8 +65,10 @@ class EmbeddingTestRole(LLMTestRole, UseEmbedding):
     """Test role that adds embedding capability to LLMTestRole."""
 
 
-class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument]):
+class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument, SimpleStoredDocument, RAGConfigBase, RAGConfigBase]):
     """Concrete RAG implementation backed by VectorStoreService for testing."""
+
+    embedding_send_to: str | None = "embedding"
 
     _table: VectorStoreTable | None = None
     _svc: VectorStoreService | None = None
@@ -77,33 +80,30 @@ class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument]):
             self._table = await svc.create_or_open_table(f"rag_{uuid.uuid4().hex[:8]}", ndim)
         return ok(self._table)
 
-    async def add_document(self, data: Any, **kwargs: Any) -> Self:
+    async def add_document(self, data: Any, config: RAGConfigBase | None = None) -> Self:
         """Vectorize and add documents to the store."""
         table = self._table
         assert table is not None
         docs = data if isinstance(data, list) else [data]
-        vectors = [await self.vectorize(doc.prepare_vectorization(), send_to="embedding") for doc in docs]
-        store_docs = [
-            StoreDocument.with_metadata(doc.content, vec, doc.metadata if doc.metadata else None)
-            for doc, vec in zip(docs, vectors, strict=True)
-        ]
+        store_docs = []
+        for doc in docs:
+            vector = await self.vectorize(doc.prepare_vectorization())
+            store_docs.append(StoreDocument.with_metadata(doc.content, vector, doc.metadata if doc.metadata else None))
         await table.add_documents(store_docs)
         return self
 
     async def afetch_document(
         self,
         query: list[str] | str,
-        document_model: type[SimpleStoredDocument],
-        **kwargs: Any,
+        config: RAGConfigBase | None = None,
     ) -> list[SimpleStoredDocument]:
         """Search the store and return SimpleDocument instances."""
         table = self._table
         assert table is not None
         query_str = query[0] if isinstance(query, list) else query
-        embedding = await self.vectorize(query_str, send_to="embedding")
-        limit = kwargs.get("limit", 5)
-        results = await table.search_document(embedding, limit=limit)
-        return [document_model(content=r.content, metadata={}) for r in results]
+        embedding = await self.vectorize(query_str)
+        results = await table.search_document(embedding, limit=5)
+        return [SimpleStoredDocument.from_raw(r) for r in results]
 
 
 # ---------------------------------------------------------------------------
@@ -492,7 +492,7 @@ class TestRAGEndToEnd:
 
         with install_dummy_embeddings(e1, e2, e_query):
             await rag_role.add_document(docs)
-            results = await rag_role.afetch_document("rust", SimpleStoredDocument, limit=2)
+            results = await rag_role.afetch_document("rust")
 
         assert len(results) > 0
         assert results[0].content == "rust programming"
@@ -505,7 +505,7 @@ class TestRAGEndToEnd:
 
         with install_dummy_embeddings(e_add, e_query):
             await rag_role.add_document(doc)
-            results = await rag_role.afetch_document("hello", SimpleStoredDocument, limit=1)
+            results = await rag_role.afetch_document("hello")
 
         assert len(results) == 1
         assert results[0].content == "hello world"
