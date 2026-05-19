@@ -1,13 +1,13 @@
 """This module contains the models for the lancedb."""
 
-from typing import Any, Sequence
+from typing import Any, Dict, Self, Sequence
 
-from fabricatio_rag.models.document import StoredDocumentModel
+from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 
-from fabricatio_lancedb.rust import StoreDocument
+from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 
 
-class LancedbStoredDocumentModel[ST: StoreDocument](StoredDocumentModel[ST]):
+class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocumentModel[ST], SearchedDocumentModel):
     """LanceDB-specific document model extending the base DocumentModel."""
 
     content: str
@@ -20,3 +20,10 @@ class LancedbStoredDocumentModel[ST: StoreDocument](StoredDocumentModel[ST]):
     def prepare_insertion(self, vector: Sequence[float]) -> ST:
         """Prepares the data for insertion into LanceDB."""
         return StoreDocument.with_metadata(content=self.content, metadata=self.metadata, vector=vector)
+
+    @classmethod
+    def from_raw(cls, raw: SR) -> Self:
+        return cls(content=raw.content, metadata=raw.access_metadata())
+
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        return {"content": self.content}
