@@ -105,6 +105,7 @@ class MilvusClassicModel[SD: Dict[str, Any]](MilvusDataBase[SD]):
 
     @classmethod
     def from_raw(cls, raw: SD) -> Self:
+        """Create a model instance from a raw Milvus search result."""
         return cls(**raw)
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
