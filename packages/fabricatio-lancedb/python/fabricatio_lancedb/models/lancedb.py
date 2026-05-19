@@ -23,6 +23,7 @@ class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocume
 
     @classmethod
     def from_raw(cls, raw: SR) -> Self:
+        """Create a document model from a raw LanceDB search result."""
         return cls(content=raw.content, metadata=raw.access_metadata())
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
