@@ -33,9 +33,10 @@ class AddConfig(RAGConfigBase):
     collection_name: Optional[str] = None
 
 
-class FetchConfig(RAGConfigBase):
+class FetchConfig[D: MilvusDataBase](RAGConfigBase):
     """Configuration for fetching documents from a Milvus collection."""
 
+    document_model: Type[D]
     collection_name: Optional[str] = None
     similarity_threshold: float = 0.37
     result_per_query: int = 10
@@ -44,7 +45,7 @@ class FetchConfig(RAGConfigBase):
     filter_expr: str = ""
 
 
-class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedConfig, RAG[D, AC, FC]):
+class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedConfig, RAG[D, D, AC, FC]):
     """A class for the RAG model using Milvus."""
 
     target_collection: Optional[str] = Field(default=None)
@@ -133,46 +134,44 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         Returns:
             Self: The current instance, allowing for method chaining.
         """
-        config = config or AddConfig.default()
+        conf = config or AddConfig.default()
 
         data_seq = [data] if not isinstance(data, list) else data
         data_vec = await self.vectorize([d.prepare_vectorization() for d in data_seq])
         prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data_seq, data_vec, strict=True)]
 
-        c_name = config.collection_name or self.safe_target_collection
+        c_name = conf.collection_name or self.safe_target_collection
         self.check_client().client.insert(c_name, prepared_data)
 
-        if config.flush:
+        if conf.flush:
             logger.debug(f"Flushing collection {c_name}")
             self.client.flush(c_name)
         return self
 
-    async def afetcah_document(
+    async def afetch_document(
         self,
         query: str | List[str],
-        document_model: Type[D],
         config: FC | None = None,
     ) -> List[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
         Args:
            query (str | List[str]): A list of vectors to search for in the database.
-           document_model (Type[D]): The model class used to convert fetched data into document objects.
            config (FC | None): Configuration for the fetch operation.
 
         Returns:
            List[D]: A list of document objects created from the fetched data.
         """
-        config = config or FetchConfig.default()
+        conf = config or FetchConfig.default()
 
         # Step 1: Search for vectors
         search_results = self.check_client().client.search(
-            config.collection_name or self.safe_target_collection,
+            conf.collection_name or self.safe_target_collection,
             await self.vectorize(query),
-            search_params={"radius": config.similarity_threshold},
-            output_fields=list(document_model.model_fields),
-            filter=config.filter_expr,
-            limit=config.result_per_query,
+            search_params={"radius": conf.similarity_threshold},
+            output_fields=list(conf.document_model.model_fields),
+            filter=conf.filter_expr,
+            limit=conf.result_per_query,
         )
 
         # Step 2: Flatten the search results
@@ -188,4 +187,4 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         # Step 4: Extract the entities
         resp = [result["entity"] for result in sorted_results]
 
-        return document_model.from_sequence(resp)
+        return conf.document_model.from_sequence(resp)
