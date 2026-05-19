@@ -50,6 +50,7 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
         config: FC | None = None,
         **kwargs: Unpack[RerankerKwargs],
     ) -> List[SRD]:
+        """Fetch documents and rerank them by relevance to the query."""
         documents = await self.afetch_document(query, config)
 
         return await self.arank_documents(query, documents, **kwargs)
