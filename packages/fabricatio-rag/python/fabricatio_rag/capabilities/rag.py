@@ -44,6 +44,16 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
         """Fetch documents based on query."""
         pass
 
+    async def afetch_documents_ranked(
+        self,
+        query: str | List[str],
+        config: FC | None = None,
+        **kwargs: Unpack[RerankerKwargs],
+    ) -> List[SRD]:
+        documents = await self.afetch_document(query, config)
+
+        return await self.arank_documents(query, documents, **kwargs)
+
     async def arefined_query(
         self,
         question: List[str] | str,
