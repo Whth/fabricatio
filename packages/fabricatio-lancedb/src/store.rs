@@ -318,12 +318,15 @@ impl VectorStoreTable {
             .await
             .into_pyresult()?;
 
-        // Create vector index now that data exists (Lance 4.0.0 requires training data)
-        table
-            .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
-            .execute()
-            .await
-            .into_pyresult()?;
+        // Create vector index only when enough rows exist for PQ training (min 256).
+        // Small datasets fall back to brute-force scan automatically.
+        if table.count_rows(None).await.into_pyresult()? >= 256 {
+            table
+                .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
+                .execute()
+                .await
+                .into_pyresult()?;
+        }
 
         Ok(id_seq)
     }
