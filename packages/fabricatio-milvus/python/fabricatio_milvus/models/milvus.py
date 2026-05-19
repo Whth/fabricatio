@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Seq
 
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.utils import ok
-from fabricatio_rag.models.document import StoredDocumentModel
+from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 from pydantic import Field, JsonValue, PositiveFloat, PositiveInt, SecretStr
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class MilvusScopedConfig(ScopedConfig):
     """The dimensions of the Milvus server."""
 
 
-class MilvusDataBase(StoredDocumentModel[Dict[str, Any]], ABC):
+class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], SearchedDocumentModel[ST], ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
@@ -43,7 +43,7 @@ class MilvusDataBase(StoredDocumentModel[Dict[str, Any]], ABC):
     metric_type: ClassVar[str] = "COSINE"
     """The type of metric to be used in Milvus."""
 
-    def prepare_insertion(self, vector: Sequence[float]) -> Dict[str, Any]:
+    def prepare_insertion(self, vector: Sequence[float]) -> ST:
         """Prepares the data for insertion into Milvus.
 
         Returns:
@@ -90,18 +90,25 @@ class MilvusDataBase(StoredDocumentModel[Dict[str, Any]], ABC):
         return CollectionSchema(fields)
 
     @classmethod
-    def from_sequence(cls, data: Sequence[Dict[str, Any]]) -> List[Self]:
+    def from_sequence(cls, data: Sequence[ST]) -> List[Self]:
         """Constructs a list of instances from a sequence of dictionaries."""
         return [cls(**d) for d in data]
 
 
-class MilvusClassicModel(MilvusDataBase):
+class MilvusClassicModel[SD: Dict[str, Any]](MilvusDataBase[SD]):
     """A class representing a classic model stored in Milvus."""
 
     text: str
     """The text to be stored in Milvus."""
     subject: str = ""
     """The subject of the text."""
+
+    @classmethod
+    def from_raw(cls, raw: SD) -> Self:
+        return cls(**raw)
+
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        return self.model_dump()
 
     def _prepare_vectorization_inner(self) -> str:
         return self.text
