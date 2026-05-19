@@ -1,6 +1,5 @@
 """Base class for document models."""
 
-
 from abc import ABCMeta, abstractmethod
 from typing import Self, Sequence
 
