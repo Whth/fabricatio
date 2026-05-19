@@ -16,7 +16,7 @@ from fabricatio_lancedb.rust import (
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.utils import install_dummy_embeddings, install_dummy_reranks
 from fabricatio_rag.capabilities.rag import RAG
-from fabricatio_rag.models.document import StoredDocumentModel
+from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 from pydantic import BaseModel
 
 NDIM = 4
@@ -27,7 +27,7 @@ NDIM = 4
 # ---------------------------------------------------------------------------
 
 
-class SimpleStoredDocument(StoredDocumentModel, BaseModel):
+class SimpleStoredDocument(StoredDocumentModel, SearchedDocumentModel, BaseModel):
     """A minimal DocumentModel implementation for testing."""
 
     content: str
@@ -38,13 +38,21 @@ class SimpleStoredDocument(StoredDocumentModel, BaseModel):
         """Construct instances from a sequence of dicts."""
         return [cls(**item) for item in data]
 
-    def prepare_vectorization(self) -> str:
+    def _prepare_vectorization_inner(self) -> str:
         """Return content for embedding."""
         return self.content
 
     def prepare_insertion(self, vector: Sequence[float]) -> dict[str, Any]:
         """Prepare data for vector store insertion."""
         return {"content": self.content, "vector": list(vector), "metadata": self.metadata}
+    @classmethod
+    def from_raw(cls, raw: SearchedDocument) -> Self:
+        """Create a SimpleStoredDocument from a raw SearchedDocument."""
+        return cls(content=raw.content, metadata=raw.access_metadata())
+
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
+        """Return data for prompt rendering."""
+        return {"content": self.content}
 
 
 # ---------------------------------------------------------------------------
