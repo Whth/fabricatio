@@ -516,6 +516,11 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
     @overload
     async def vectorize(self, input_text: str, send_to: str | None = None) -> List[float]: ...
 
+    @overload
+    async def vectorize(
+        self, input_text: List[str] | str, send_to: str | None = None
+    ) -> List[List[float]] | List[float]: ...
+
     async def vectorize(
         self, input_text: List[str] | str, send_to: str | None = None
     ) -> List[List[float]] | List[float]:
