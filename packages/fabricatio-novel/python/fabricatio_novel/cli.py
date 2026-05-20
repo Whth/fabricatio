@@ -23,7 +23,9 @@ app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.
 ns = "write"
 writer_role = Role.with_bio(name="writer").subscribe(Event.quick_instantiate(ns), DebugNovelWorkflow).dispatch()
 rag_ns = "write_rag"
-rag_writer_role = Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
+rag_writer_role = (
+    Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
+)
 
 
 def _exit_on_error(message: str) -> NoReturn:
@@ -253,6 +255,7 @@ def write_novel_with_rag(  # noqa: PLR0913
         typer.secho(f"✅ Novel with RAG styles successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
     else:
         _exit_on_error("❌ Failed to generate novel with RAG.")
+
 
 @app.command()
 def info() -> None:
