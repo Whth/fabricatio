@@ -70,7 +70,7 @@ fn update_pofile(file_path: PathBuf, messages: Vec<Msg>) -> PyResult<()> {
     for msg in messages {
         catalog.append_or_update(PoMessage::from(msg))
     }
-    let mut w = BufWriter::new(fs::File::open(file_path).into_pyresult()?);
+    let mut w = BufWriter::new(fs::File::create(file_path).into_pyresult()?);
     // Write the updated catalog back to file
     write(&catalog, &mut w).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
