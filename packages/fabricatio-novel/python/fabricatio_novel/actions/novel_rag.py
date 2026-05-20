@@ -15,6 +15,8 @@ class RetrieveWritingStyles(NovelComposeRAG, Action):
     writing_style_query: Optional[str] = None
     """The query text used to search for relevant writing style documents."""
 
+    writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None
+    """Optional fetch configuration override for writing style retrieval."""
     output_key: str = "writing_styles"
     """Key under which the retrieved writing style documents will be stored in context."""
 
@@ -24,7 +26,7 @@ class RetrieveWritingStyles(NovelComposeRAG, Action):
         """Fetch writing style documents matching the query."""
         query = ok(self.writing_style_query, "`writing_style_query` is required for writing style retrieval")
         logger.info(f"Retrieving writing styles for query: {query[:100]}...")
-        docs = list(ok(await self.afetch_document(query, WritingStyleFetchConfig.default())))
+        docs = list(ok(await self.afetch_document(query, self.writing_style_fetch_config or WritingStyleFetchConfig.default())))
         logger.info(f"Retrieved {len(docs)} writing style document(s)")
         return docs
 
@@ -42,6 +44,8 @@ class InjectWritingStyleToScript(NovelComposeRAG, Action):
 
     writing_styles: Optional[List[WritingStyleDocument]] = None
     """Global writing style documents to inject into each script's global_prompt."""
+    writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None
+    """Optional fetch configuration override for scene-level writing style retrieval."""
 
     output_key: str = "novel_scripts"
     """Key under which the augmented scripts will be stored in context (overwrites original)."""
@@ -52,7 +56,7 @@ class InjectWritingStyleToScript(NovelComposeRAG, Action):
         """Inject writing styles into script-level and scene-level prompts."""
         scripts = ok(self.novel_scripts, "`novel_scripts` is required for writing style injection")
         global_docs = ok(self.writing_styles, "`writing_styles` is required for injection")
-        config = WritingStyleFetchConfig.default()
+        config = self.writing_style_fetch_config or WritingStyleFetchConfig.default()
 
         logger.info(f"Injecting {len(global_docs)} global writing style(s) into {len(scripts)} script(s)")
 
@@ -63,9 +67,7 @@ class InjectWritingStyleToScript(NovelComposeRAG, Action):
 
             # Scene-level: fetch per-scene based on each scene's description
             for scene in script.scenes:
-                scene_docs: List[WritingStyleDocument] = list(
-                    ok(await self.afetch_document(scene.description, config))
-                )
+                scene_docs: List[WritingStyleDocument] = list(ok(await self.afetch_document(scene.description, config)))
                 for doc in scene_docs:
                     scene.append_prompt(doc.as_prompt())
 
