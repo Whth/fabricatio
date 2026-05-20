@@ -8,14 +8,16 @@ from fabricatio_core.utils import cfg
 cfg(["lancedb"])
 from fabricatio_character.models.character import CharacterCard  # noqa: I001
 from fabricatio_core import logger
-from fabricatio_core.models.kwargs_types import ValidateKwargs
+
 from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig, LancedbRAG
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
+
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
+from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 from fabricatio_novel.models.plan import ChapterPlan
 
 
@@ -42,14 +44,14 @@ class NovelComposeRAG(
         chapter_plans: List[ChapterPlan],
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[str]],
+        **kwargs: Unpack[NovelRAGKwargs[str]],
     ) -> List[str]:
         """Generate chapters with writing style augmentation via RAG.
 
         Between script generation and chapter generation, retrieves writing
         style references from LanceDB and injects them into script/scene prompts.
         """
-        config = WritingStyleFetchConfig.default()
+        config = kwargs.pop("writing_style_fetch_config", None) or WritingStyleFetchConfig.default()
 
         for cp in chapter_plans:
             # Script-level: fetch based on full script content → global_prompt
