@@ -22,6 +22,8 @@ class NovelConfig:
     """template used to render chapter xhtml."""
     novel_draft_requirement_template: str = "built-in/novel_draft_requirement"
     """template used to render novel draft requirements."""
+    writing_styles_table_name: str = "writing_styles"
+    """table name for storing writing style documents in LanceDB."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)
