@@ -2,11 +2,13 @@
 
 from fabricatio_core.utils import cfg
 
-cfg(["rag"])
-from fabricatio_rag.capabilities.rag import RAG
+cfg(["lancedb"])
+from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
 
 from fabricatio_novel.capabilities.novel import NovelCompose
 
 
-class NovelComposeRAG(NovelCompose, RAG):
+class NovelComposeRAG(NovelCompose, LancedbRAG):
     """Novel composition capability extended with RAG support."""
+
+    # TODO impl

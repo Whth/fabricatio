@@ -41,7 +41,7 @@ cli = [
     "typer>=0.15.2",
 ]
 
-rag = [
+lancedb = [
     "fabricatio-lancedb",
 ]
 
