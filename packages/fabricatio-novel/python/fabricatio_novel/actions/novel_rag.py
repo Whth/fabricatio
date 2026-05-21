@@ -29,7 +29,7 @@ class RetrieveWritingStyles(NovelComposeRAG, Action):
         """Fetch writing style documents matching the query."""
         query = ok(self.writing_style_query, "`writing_style_query` is required for writing style retrieval")
         logger.info(f"Retrieving writing styles for query: {query[:100]}...")
-        docs = list(ok(await self.afetch_document(query, self.writing_style_fetch_config or WritingStyleFetchConfig.default())))
+        docs = await self.afetch_document(query, self.writing_style_fetch_config or WritingStyleFetchConfig.default())
         logger.info(f"Retrieved {len(docs)} writing style document(s)")
         return docs
 
