@@ -9,13 +9,12 @@ from fabricatio_core import WorkFlow
 from fabricatio_novel.actions.novel import (
     AssembleNovelFromComponents,
     DumpNovel,
-    GenerateChaptersFromScripts,
     GenerateCharactersFromDraft,
     GenerateNovelDraft,
     GenerateScriptsFromDraftAndCharacters,
     ValidateNovel,
 )
-from fabricatio_novel.actions.novel_rag import InjectWritingStyleToScript, RetrieveWritingStyles
+from fabricatio_novel.actions.novel_rag import GenerateChaptersFromScriptsWithRAG
 
 
 # ==============================
@@ -28,9 +27,7 @@ WriteNovelWithRAGWorkflow = WorkFlow(
         GenerateNovelDraft,
         GenerateCharactersFromDraft,
         GenerateScriptsFromDraftAndCharacters,
-        RetrieveWritingStyles,
-        InjectWritingStyleToScript,
-        GenerateChaptersFromScripts,
+        GenerateChaptersFromScriptsWithRAG,
         AssembleNovelFromComponents,
         DumpNovel,
         PersistentAll,
@@ -52,11 +49,7 @@ DebugNovelWithRAGWorkflow = WorkFlow(
         PersistentAll,
         GenerateScriptsFromDraftAndCharacters,
         PersistentAll,
-        RetrieveWritingStyles,
-        PersistentAll,
-        InjectWritingStyleToScript,
-        PersistentAll,
-        GenerateChaptersFromScripts,
+        GenerateChaptersFromScriptsWithRAG,
         PersistentAll,
         AssembleNovelFromComponents,
         DumpNovel().to_task_output(),
@@ -76,9 +69,7 @@ ValidatedNovelWithRAGWorkflow = WorkFlow(
         GenerateNovelDraft,
         GenerateCharactersFromDraft,
         GenerateScriptsFromDraftAndCharacters,
-        RetrieveWritingStyles,
-        InjectWritingStyleToScript,
-        GenerateChaptersFromScripts,
+        GenerateChaptersFromScriptsWithRAG,
         AssembleNovelFromComponents,
         ValidateNovel,
         DumpNovel,
