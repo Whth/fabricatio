@@ -51,7 +51,7 @@ class NovelComposeRAG(
         Between script generation and chapter generation, retrieves writing
         style references from LanceDB and injects them into script/scene prompts.
         """
-        config = kwargs.pop("writing_style_fetch_config", None) or WritingStyleFetchConfig.default()
+        config = kwargs.get("writing_style_fetch_config") or WritingStyleFetchConfig.default()
 
         for cp in chapter_plans:
             # Script-level: fetch based on full script content → global_prompt
