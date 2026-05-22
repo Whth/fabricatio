@@ -7,8 +7,9 @@ from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
-from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG, WritingStyleDocument, WritingStyleFetchConfig
+from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
 from fabricatio_novel.models.draft import NovelDraft
+from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
 

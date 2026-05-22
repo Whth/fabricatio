@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 """Keyword argument types for novel RAG operations."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 
-if TYPE_CHECKING:
-    from fabricatio_novel.capabilities.novel_rag import WritingStyleFetchConfig
+from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 
 
 class NovelRAGKwargs[T](ValidateKwargs[T], total=False):

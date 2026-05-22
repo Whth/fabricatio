@@ -2,55 +2,22 @@
 
 from abc import ABC
 from pathlib import Path
-from typing import List, Optional, Self, Sequence, Type, Unpack
+from typing import List, Optional, Unpack
 
-from fabricatio_core.rust import split_into_chunks
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
 from fabricatio_character.models.character import CharacterCard  # noqa: I001
 from fabricatio_core import logger
+from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
 
 from fabricatio_core.utils import ok
-from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig, LancedbRAG
-from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
-from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
+from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbRAG
 
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 from fabricatio_novel.models.plan import ChapterPlan
-
-
-class WritingStyleDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]):
-    """Semantic marker for writing style documents stored in LanceDB."""
-
-    @classmethod
-    def from_files(cls, files: Sequence[Path], chunks_size: int = 512, overlap: float = 0.3) -> List[Self]:
-        """Create documents by splitting text files into chunks.
-
-        Args:
-            files: Sequence of text file paths to read.
-            chunks_size: Maximum word count per chunk.
-            overlap: Overlap ratio between consecutive chunks (0.0-1.0).
-
-        Returns:
-            List of WritingStyleDocument instances, one per chunk.
-        """
-        return [
-            cls(content=c)
-            for f in files
-            for c in split_into_chunks(f.read_text(encoding="utf-8"), chunks_size, overlap)
-        ]
-
-
-class WritingStyleFetchConfig(LancedbFetchRAGConfig[WritingStyleDocument]):
-    """Fetch configuration for writing style documents."""
-
-    document_model: Type[WritingStyleDocument] = WritingStyleDocument
-    limit: int = 5
-    table_name: str | None = novel_config.writing_styles_table_name
 
 
 class NovelComposeRAG(
