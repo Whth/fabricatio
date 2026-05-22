@@ -359,7 +359,6 @@ impl<M: ?Sized + Model> Deployment<M> {
     /// let request = RerankerRequest {
     ///     documents: vec!["doc1".to_string(), "doc2".to_string()],
     ///     query: "What is Rust?".to_string(),
-    ///     top_n: Some(2),
     /// };
     ///
     /// let ranking = deployment.rerank(request).await?;
