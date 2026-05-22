@@ -1,8 +1,10 @@
 """Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
 
 from abc import ABC
-from typing import List, Optional, Type, Unpack
+from pathlib import Path
+from typing import List, Optional, Self, Sequence, Type, Unpack
 
+from fabricatio_core.rust import split_into_chunks
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
@@ -23,6 +25,14 @@ from fabricatio_novel.models.plan import ChapterPlan
 
 class WritingStyleDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]):
     """Semantic marker for writing style documents stored in LanceDB."""
+
+    @classmethod
+    def from_files(cls, files: Sequence[Path], chunks_size: int = 512, overlap: float = 0.3) -> List[Self]:
+        return [
+            cls(content=c)
+            for f in files
+            for c in split_into_chunks(f.read_text(encoding="utf-8"), chunks_size, overlap)
+        ]
 
 
 class WritingStyleFetchConfig(LancedbFetchRAGConfig[WritingStyleDocument]):
@@ -70,3 +80,9 @@ class NovelComposeRAG(
 
         # Delegate to NovelCompose.create_chapters for actual generation
         return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
+
+    async def store_texts(self, files: List[Path], chunks_size: int = 512, overlap: float = 0.3) -> None:
+
+        chunks = WritingStyleDocument.from_files(files, chunks_size, overlap)
+
+        await self.add_document(chunks)
