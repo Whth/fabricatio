@@ -9,7 +9,6 @@ from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
 from pathlib import Path
-import glob
 from typing import NoReturn
 
 import typer
@@ -39,6 +38,30 @@ def _exit_on_error(message: str) -> NoReturn:
     """Helper to display error and exit."""
     typer.secho(message, fg=typer.colors.RED, bold=True)
     raise typer.Exit(code=1) from None
+
+
+def _collect_files(patterns: list[str]) -> list[Path]:
+    """Expand glob patterns and literal file paths into a deduplicated, sorted file list.
+
+    Raises typer.Exit if no valid files are found.
+    """
+    seen: set[Path] = set()
+    for pat in patterns:
+        matched = list(Path().glob(pat))
+        if matched:
+            for p in matched:
+                resolved = p.resolve()
+                if resolved.is_file():
+                    seen.add(resolved)
+        else:
+            p = Path(pat).resolve()
+            if not p.is_file():
+                _exit_on_error(f"❌ No files matched pattern and not a file: {pat}")
+            seen.add(p)
+    files = sorted(seen)
+    if not files:
+        _exit_on_error("❌ No valid files found from provided patterns.")
+    return files
 
 
 @app.command(name="w")
@@ -272,8 +295,6 @@ def info() -> None:
     typer.echo("Powered by Fabricatio Core & DebugNovelWorkflow.")
 
 
-
-
 @app.command(name="store-refs")
 def store_reference_texts(
     patterns: list[str] = typer.Argument(
@@ -293,29 +314,7 @@ def store_reference_texts(
     collected, deduplicated, and indexed. This is a standalone operation —
     it does not trigger novel generation.
     """
-    if not patterns:
-        _exit_on_error("❌ At least one file or glob pattern must be provided.")
-
-    # Expand glob patterns and collect unique resolved paths
-    seen: set[Path] = set()
-    for pat in patterns:
-        matches = [Path(m).resolve() for m in glob.glob(pat, recursive=True)]
-        if not matches:
-            # No glob match — treat as a literal path
-            p = Path(pat).resolve()
-            if not p.is_file():
-                _exit_on_error(f"❌ No files matched pattern and not a file: {pat}")
-            if p not in seen:
-                seen.add(p)
-        else:
-            for p in matches:
-                if not p.is_file():
-                    continue  # skip directories matched by glob
-                seen.add(p)
-
-    files = sorted(seen)
-    if not files:
-        _exit_on_error("❌ No valid files found from provided patterns.")
+    files = _collect_files(patterns)
 
     typer.echo(f"Ingesting {len(files)} file(s) as writing style references...")
     for f in files:
@@ -330,7 +329,11 @@ def store_reference_texts(
     result = task.delegate_blocking(store_refs_ns)
 
     if result is not None:
-        typer.secho(f"✅ Successfully ingested {result} file(s) as writing style references.", fg=typer.colors.GREEN, bold=True)
+        typer.secho(
+            f"✅ Successfully ingested {result} file(s) as writing style references.", fg=typer.colors.GREEN, bold=True
+        )
     else:
         _exit_on_error("❌ Failed to store writing style reference texts.")
+
+
 __all__ = ["app"]
