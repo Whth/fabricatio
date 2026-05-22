@@ -149,6 +149,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] `from_anchors()` and `from_line_range()` factory methods
     - [x] `apply()` with line_range and pattern matching modes + tests
 - [ ] Placeholder based multiple-agents edits
+- [x] Convert `fabricatio-rag` to a pure python package
+    - [x] Extract lancedb impl into a seperate package
+- [x] `fabricatio-novel` support rag
+- [ ] Refactor `fabricatio-typst`
 
 ## Installation
 
