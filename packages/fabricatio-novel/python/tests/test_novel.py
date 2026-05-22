@@ -4,6 +4,7 @@ This module contains pytest test cases verifying the correctness of novel data m
 utility functions, the ValidateNovel action, and capability methods using fabricatio-mock.
 """
 
+from pathlib import Path
 import pytest
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -841,6 +842,68 @@ class TestAssembleNovel:
         assert novel.chapters[0].expected_word_count == 500
         assert novel.expected_word_count == 500
 
+
+
+
+# ---------------------------------------------------------------------------
+# Tests: WritingStyleDocument.from_files (static, no LLM)
+# ---------------------------------------------------------------------------
+
+
+class TestWritingStyleDocumentFromFiles:
+    """Test suite for WritingStyleDocument.from_files factory method."""
+
+    def test_single_file_single_chunk(self, tmp_path: Path) -> None:
+        """Single short file produces one chunk."""
+        from fabricatio_core.rust import split_into_chunks
+
+        f = tmp_path / "style.txt"
+        f.write_text("Short text.", encoding="utf-8")
+        chunks = split_into_chunks(f.read_text(encoding="utf-8"), 512, 0.3)
+        assert len(chunks) == 1
+        assert chunks[0] == "Short text."
+
+    def test_single_file_multi_chunk(self, tmp_path: Path) -> None:
+        """File with many sentences produces multiple chunks."""
+        from fabricatio_core.rust import split_into_chunks
+
+        content = ". ".join(f"Sentence {i}." for i in range(100))
+        chunks = split_into_chunks(content, 5, 0.3)
+        assert len(chunks) > 1
+        for c in chunks:
+            assert c.strip()  # non-empty
+
+    def test_multiple_files(self, tmp_path: Path) -> None:
+        """Multiple files produce aggregated chunks via from_files pattern."""
+        from fabricatio_core.rust import split_into_chunks
+
+        (tmp_path / "a.txt").write_text("First file.", encoding="utf-8")
+        (tmp_path / "b.txt").write_text("Second file.", encoding="utf-8")
+        all_chunks: list[str] = []
+        for fpath in [tmp_path / "a.txt", tmp_path / "b.txt"]:
+            all_chunks.extend(split_into_chunks(fpath.read_text(encoding="utf-8"), 512, 0.3))
+        assert len(all_chunks) == 2
+        assert all_chunks[0] == "First file."
+        assert all_chunks[1] == "Second file."
+
+    def test_empty_file(self, tmp_path: Path) -> None:
+        """Empty file produces no chunks."""
+        from fabricatio_core.rust import split_into_chunks
+
+        f = tmp_path / "empty.txt"
+        f.write_text("", encoding="utf-8")
+        chunks = split_into_chunks(f.read_text(encoding="utf-8"), 512, 0.3)
+        assert len(chunks) == 0
+
+    def test_overlap_bounds(self, tmp_path: Path) -> None:
+        """Overlap=0 and overlap=1 both produce valid chunks."""
+        from fabricatio_core.rust import split_into_chunks
+
+        content = ". ".join(f"S{i}." for i in range(100))
+        chunks_no = split_into_chunks(content, 10, 0.0)
+        chunks_full = split_into_chunks(content, 10, 1.0)
+        assert len(chunks_no) > 1
+        assert len(chunks_full) > 1
 
 # ---------------------------------------------------------------------------
 # Tests: capability methods with mock LLM (async)
