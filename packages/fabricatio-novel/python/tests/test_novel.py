@@ -5,6 +5,7 @@ utility functions, the ValidateNovel action, and capability methods using fabric
 """
 
 from pathlib import Path
+
 import pytest
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -843,8 +844,6 @@ class TestAssembleNovel:
         assert novel.expected_word_count == 500
 
 
-
-
 # ---------------------------------------------------------------------------
 # Tests: WritingStyleDocument.from_files (static, no LLM)
 # ---------------------------------------------------------------------------
@@ -904,6 +903,7 @@ class TestWritingStyleDocumentFromFiles:
         chunks_full = split_into_chunks(content, 10, 1.0)
         assert len(chunks_no) > 1
         assert len(chunks_full) > 1
+
 
 # ---------------------------------------------------------------------------
 # Tests: capability methods with mock LLM (async)
