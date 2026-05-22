@@ -2,8 +2,9 @@
 
 from typing import Any, Dict, Self, Sequence
 
-from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
+
+from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 
 
 class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocumentModel[ST], SearchedDocumentModel):
