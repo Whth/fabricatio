@@ -1,4 +1,5 @@
 """Novel RAG actions for retrieval-augmented generation."""
+from pathlib import Path
 
 from typing import Any, ClassVar, List, Optional
 
@@ -134,3 +135,34 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
             return None
         logger.info(f"Successfully generated {len(chapter_contents)} RAG chapter content(s).")
         return chapter_contents
+
+
+class StoreWritingStyleTexts(NovelComposeRAG, Action):
+    """Store writing style reference texts from files into LanceDB.
+
+    Reads text files, splits them into chunks, and indexes them
+    in the LanceDB vector store for later RAG retrieval. This is a
+    standalone ingestion workflow — it does not generate novel content.
+    """
+
+    files: Optional[List[Path]] = None
+    """List of text file paths to ingest as writing style references."""
+
+    chunks_size: int = 512
+    """Maximum words per chunk when splitting files."""
+
+    overlap: float = 0.3
+    """Overlap ratio between consecutive chunks (0.0–1.0)."""
+
+    output_key: str = "stored_count"
+    """Key under which the count of ingested files will be stored in context."""
+
+    ctx_override: ClassVar[bool] = True
+
+    async def _execute(self, *_: Any, **cxt: Any) -> int:
+        """Ingest files into LanceDB as writing style chunks."""
+        files = ok(self.files, "`files` is required for storing writing style texts")
+        logger.info(f"Storing writing style texts from {len(files)} file(s) (chunk_size={self.chunks_size}, overlap={self.overlap})...")
+        await self.store_texts(files, self.chunks_size, self.overlap)
+        logger.info(f"Successfully stored writing style texts from {len(files)} file(s)")
+        return len(files)
