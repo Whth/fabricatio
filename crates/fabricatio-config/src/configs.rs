@@ -194,6 +194,9 @@ pub struct RoutingConfig {
     /// List of configured providers available for routing.
     pub providers: Vec<ProviderConfig>,
 
+    /// List of configured reranker model deployments associated with the providers.
+    pub reranker_deployments: Vec<DeploymentConfig>,
+
     /// List of configured embedding model deployments associated with the providers.
     pub embedding_deployments: Vec<DeploymentConfig>,
 

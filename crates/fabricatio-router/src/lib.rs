@@ -605,6 +605,15 @@ pub fn init_router_from_config() -> PyResult<Router> {
             .clone(),
     )?;
 
+    let rr = add_providers_from_configs(rr, fabricatio_config::CONFIG.routing.providers.clone())?;
+    let rr = add_models_from_configs(
+        rr,
+        fabricatio_config::CONFIG
+            .routing
+            .reranker_deployments
+            .clone(),
+    )?;
+
     Ok(Router::new(er, cr, rr))
 }
 
