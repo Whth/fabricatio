@@ -9,13 +9,14 @@ from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
 from pathlib import Path
+import glob
 from typing import NoReturn
 
 import typer
 from fabricatio_core import Event, Role, Task
 
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow
-from fabricatio_novel.workflows.novel_rag import DebugNovelWithRAGWorkflow
+from fabricatio_novel.workflows.novel_rag import DebugNovelWithRAGWorkflow, StoreWritingStyleTextsWorkflow
 
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
 
@@ -25,6 +26,12 @@ writer_role = Role.with_bio(name="writer").subscribe(Event.quick_instantiate(ns)
 rag_ns = "write_rag"
 rag_writer_role = (
     Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
+)
+store_refs_ns = "store_refs"
+store_refs_role = (
+    Role.with_bio(name="ref_ingester")
+    .subscribe(Event.quick_instantiate(store_refs_ns), StoreWritingStyleTextsWorkflow)
+    .dispatch()
 )
 
 
@@ -265,4 +272,65 @@ def info() -> None:
     typer.echo("Powered by Fabricatio Core & DebugNovelWorkflow.")
 
 
+
+
+@app.command(name="store-refs")
+def store_reference_texts(
+    patterns: list[str] = typer.Argument(
+        ...,
+        help="File paths and/or glob patterns to ingest (e.g. 'refs/*.txt').",
+    ),
+    chunks_size: int = typer.Option(
+        512, "--chunks-size", "-cs", help="Maximum words per chunk when splitting files.", envvar="NOVEL_CHUNKS_SIZE"
+    ),
+    overlap: float = typer.Option(
+        0.3, "--overlap", "-ov", help="Overlap ratio between consecutive chunks (0.0–1.0).", envvar="NOVEL_OVERLAP"
+    ),
+) -> None:
+    """Ingest text files as writing style references into the LanceDB vector store.
+
+    Accepts literal file paths and glob patterns. All matching files are
+    collected, deduplicated, and indexed. This is a standalone operation —
+    it does not trigger novel generation.
+    """
+    if not patterns:
+        _exit_on_error("❌ At least one file or glob pattern must be provided.")
+
+    # Expand glob patterns and collect unique resolved paths
+    seen: set[Path] = set()
+    for pat in patterns:
+        matches = [Path(m).resolve() for m in glob.glob(pat, recursive=True)]
+        if not matches:
+            # No glob match — treat as a literal path
+            p = Path(pat).resolve()
+            if not p.is_file():
+                _exit_on_error(f"❌ No files matched pattern and not a file: {pat}")
+            if p not in seen:
+                seen.add(p)
+        else:
+            for p in matches:
+                if not p.is_file():
+                    continue  # skip directories matched by glob
+                seen.add(p)
+
+    files = sorted(seen)
+    if not files:
+        _exit_on_error("❌ No valid files found from provided patterns.")
+
+    typer.echo(f"Ingesting {len(files)} file(s) as writing style references...")
+    for f in files:
+        typer.echo(f"  • {f}")
+
+    task = Task(name="Store writing style references").update_init_context(
+        files=files,
+        chunks_size=chunks_size,
+        overlap=overlap,
+    )
+
+    result = task.delegate_blocking(store_refs_ns)
+
+    if result is not None:
+        typer.secho(f"✅ Successfully ingested {result} file(s) as writing style references.", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to store writing style reference texts.")
 __all__ = ["app"]
