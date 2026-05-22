@@ -31,7 +31,7 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         """Add a document to the LanceDB collection."""
         conf = config or LancedbAddRAGConfig.default()
 
-        table = await get_service().create_or_open_table(conf.table_name)
+        table = await (await get_service()).create_or_open_table(conf.table_name)
 
         data_seq = data if isinstance(data, list) else [data]
         vec_seq = await self.vectorize([d.prepare_vectorization() for d in data_seq])
@@ -46,7 +46,7 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         """Fetch documents from the LanceDB collection."""
         conf = config or LancedbFetchRAGConfig.default()
 
-        table = await get_service().create_or_open_table(conf.table_name)
+        table = await (await get_service()).create_or_open_table(conf.table_name)
 
         if isinstance(query, str):
             search_vec = await self.vectorize(query)

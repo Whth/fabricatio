@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-lancedb"
-version = "0.2.0"
+version = "0.2.1"
 description = "LanceDB vector store backend for fabricatio RAG"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -19,7 +19,8 @@ requires-python = ">=3.12,<3.15"
 dependencies = [
     "fabricatio-core",
     "fabricatio-rag",
-    "more-itertools"
+    "more-itertools",
+    "async-lru"
 ]
 
 [dependency-groups]
