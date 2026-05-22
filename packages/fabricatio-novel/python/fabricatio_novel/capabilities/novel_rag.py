@@ -28,6 +28,16 @@ class WritingStyleDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]
 
     @classmethod
     def from_files(cls, files: Sequence[Path], chunks_size: int = 512, overlap: float = 0.3) -> List[Self]:
+        """Create documents by splitting text files into chunks.
+
+        Args:
+            files: Sequence of text file paths to read.
+            chunks_size: Maximum word count per chunk.
+            overlap: Overlap ratio between consecutive chunks (0.0-1.0).
+
+        Returns:
+            List of WritingStyleDocument instances, one per chunk.
+        """
         return [
             cls(content=c)
             for f in files
@@ -82,7 +92,13 @@ class NovelComposeRAG(
         return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
 
     async def store_texts(self, files: List[Path], chunks_size: int = 512, overlap: float = 0.3) -> None:
+        """Chunk and store text files as writing style reference documents in LanceDB.
 
+        Args:
+            files: List of text file paths to ingest.
+            chunks_size: Maximum word count per chunk.
+            overlap: Overlap ratio between consecutive chunks (0.0-1.0).
+        """
         chunks = WritingStyleDocument.from_files(files, chunks_size, overlap)
 
         await self.add_document(chunks)
