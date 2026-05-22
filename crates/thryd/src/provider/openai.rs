@@ -1,5 +1,5 @@
 use crate::Result;
-use crate::model::{CompletionModel, EmbeddingModel};
+use crate::model::{CompletionModel, EmbeddingModel, RerankerModel};
 use crate::models::openai::OpenaiModel;
 use crate::provider::Provider;
 use crate::utils::build_headers;
@@ -142,6 +142,7 @@ impl Default for OpenaiCompatible {
 /// This implementation supports:
 /// - Completion models (chat completions)
 /// - Embedding models
+/// - Reranker models
 ///
 /// # Headers
 ///
@@ -171,6 +172,13 @@ impl Provider for OpenaiCompatible {
         self: Arc<Self>,
         model_name: String,
     ) -> Result<Box<dyn EmbeddingModel>> {
+        Ok(Box::new(OpenaiModel::new(model_name, self)))
+    }
+
+    fn create_reranker_model(
+        self: Arc<Self>,
+        model_name: String,
+    ) -> Result<Box<dyn RerankerModel>> {
         Ok(Box::new(OpenaiModel::new(model_name, self)))
     }
 }

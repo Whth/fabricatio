@@ -25,7 +25,10 @@
 //! }).await?;
 //! ```
 
-use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+use crate::model::{
+    CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model, RerankerModel,
+    RerankerRequest,
+};
 use crate::provider::Provider;
 use async_openai::types::chat::{
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequest,
@@ -33,11 +36,12 @@ use async_openai::types::chat::{
     CreateChatCompletionStreamResponse,
 };
 
-use crate::{Completion, Embeddings, ThrydError};
+use crate::{Completion, Embeddings, Ranking, ThrydError};
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
 use futures::{StreamExt, TryStreamExt};
+use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumString};
@@ -55,7 +59,7 @@ use tracing::*;
 /// - [`Completions`](OpenAiRoute::Completions) - Legacy completions API for base models
 /// - [`ListModels`](OpenAiRoute::ListModels) - List available models
 /// - [`Embeddings`](OpenAiRoute::Embeddings) - Generate text embeddings
-///
+/// - [`Reranks`](OpenAiRoute::Reranks) - Rerank documents by relevance
 /// # Traits Enabled
 ///
 /// - [`Debug`](std::fmt::Debug) - For debug formatting
@@ -117,6 +121,16 @@ pub enum OpenAiRoute {
     /// `POST /v1/embeddings`
     #[strum(serialize = "embeddings")]
     Embeddings,
+
+    /// Reranks API: `reranks`
+    ///
+    /// Reranks documents against a query, returning relevance scores.
+    /// Used for search result ranking and document retrieval optimization.
+    ///
+    /// # API Path
+    /// `POST /v1/reranks`
+    #[strum(serialize = "reranks")]
+    Reranks,
 }
 
 /// OpenAI-compatible model implementation.
@@ -370,5 +384,104 @@ impl EmbeddingModel for OpenaiModel {
             .into_iter()
             .map(|e| e.embedding)
             .collect::<Embeddings>())
+    }
+}
+
+/// Request body for the reranks API endpoint.
+///
+/// Sent as JSON to `POST /v1/reranks`. Follows the DashScope/OpenAI-compatible
+/// rerank API format.
+#[derive(Debug, Serialize)]
+struct RerankRequestBody {
+    /// The model name (e.g., "qwen3-rerank", "gte-rerank-v2")
+    model: String,
+    /// The query text to rank documents against
+    query: String,
+    /// The list of candidate documents to rerank
+    documents: Vec<String>,
+}
+
+/// A single result from the reranks API response.
+#[derive(Debug, Deserialize)]
+struct RerankResultItem {
+    /// The original index of the document in the request's documents array
+    index: usize,
+    /// The relevance score assigned by the reranker model
+    relevance_score: f32,
+}
+
+/// Response body from the reranks API endpoint.
+#[derive(Debug, Deserialize)]
+struct RerankResponseBody {
+    /// The ranked results with index and score
+    results: Vec<RerankResultItem>,
+}
+
+/// # Reranker Implementation
+///
+/// Implements [`RerankerModel`] for `OpenaiModel`, providing document reranking
+/// through OpenAI-compatible rerank APIs (DashScope, etc.).
+///
+/// Sends a POST to the `reranks` endpoint with the model name, query, and documents.
+/// Returns documents ranked by relevance score in descending order.
+///
+/// # Example
+///
+/// ```ignore
+/// use thryd::{OpenaiModel, OpenaiCompatible, RerankerRequest};
+/// use secrecy::SecretString;
+/// use std::sync::Arc;
+///
+/// let provider = Arc::new(OpenaiCompatible::new(
+///     "dashscope".to_string(),
+///     SecretString::from("sk-..."),
+///     "https://dashscope.aliyuncs.com/compatible-api/v1".parse().unwrap(),
+/// ));
+/// let model = OpenaiModel::new("qwen3-rerank".to_string(), provider);
+///
+/// let request = RerankerRequest {
+///     query: "什么是文本排序模型".to_string(),
+///     documents: vec![
+///         "文本排序模型广泛用于搜索引擎和推荐系统中".to_string(),
+///         "量子计算是计算科学的一个前沿领域".to_string(),
+///         "预训练语言模型的发展给文本排序模型带来了新的进展".to_string(),
+///     ],
+/// };
+///
+/// let ranking = model.rerank(request).await?;
+/// // Returns: [(2, 0.98), (0, 0.95), (1, 0.30)]
+/// ```
+///
+/// [`RerankerModel`]: crate::model::RerankerModel
+#[async_trait]
+impl RerankerModel for OpenaiModel {
+    async fn rerank(&self, request: RerankerRequest) -> crate::Result<Ranking> {
+        let body = RerankRequestBody {
+            model: self.model_name().to_string(),
+            query: request.query,
+            documents: request.documents,
+        };
+
+        let v = to_value(body)?;
+        trace!("Rerank request: {v:?}");
+
+        let resp = self
+            .provider
+            .post(OpenAiRoute::Reranks.as_ref(), &v)
+            .await?
+            .error_for_status()?
+            .json::<RerankResponseBody>()
+            .await?;
+
+        let mut ranking: Ranking = resp
+            .results
+            .into_iter()
+            .map(|r| (r.index, r.relevance_score))
+            .collect();
+
+        // Sort by score descending (highest relevance first)
+        ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        Ok(ranking)
     }
 }
