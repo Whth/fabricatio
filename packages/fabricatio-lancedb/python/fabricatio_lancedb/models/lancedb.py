@@ -2,9 +2,8 @@
 
 from typing import Any, Dict, Self, Sequence
 
-from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
-
 from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
+from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 
 
 class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocumentModel[ST], SearchedDocumentModel):
@@ -27,4 +26,4 @@ class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocume
         return cls(content=raw.content, metadata=raw.access_metadata())
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
-        return {"content": self.content}
+        return self.model_dump(exclude_none=True)
