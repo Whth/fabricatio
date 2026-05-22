@@ -14,7 +14,7 @@ from fabricatio_novel.actions.novel import (
     GenerateScriptsFromDraftAndCharacters,
     ValidateNovel,
 )
-from fabricatio_novel.actions.novel_rag import GenerateChaptersFromScriptsWithRAG
+from fabricatio_novel.actions.novel_rag import GenerateChaptersFromScriptsWithRAG, StoreWritingStyleTexts
 
 
 # ==============================
@@ -77,3 +77,14 @@ ValidatedNovelWithRAGWorkflow = WorkFlow(
     ),
 )
 """Production-grade novel generation with RAG and quality validation."""
+
+
+# ==============================
+# 📥 Writing Style Reference Ingestion (Standalone)
+# ==============================
+StoreWritingStyleTextsWorkflow = WorkFlow(
+    name="StoreWritingStyleTextsWorkflow",
+    description="Ingest plain-text files as writing style references into LanceDB. Standalone workflow — not part of novel generation.",
+    steps=(StoreWritingStyleTexts,),
+)
+"""Standalone ingestion workflow for adding writing style reference data."""
