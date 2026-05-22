@@ -1,6 +1,6 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import List
+from typing import Any, Dict, List, Self
 
 from fabricatio_capabilities.models.generic import PersistentAble
 from fabricatio_core.models.generic import SketchedAble
@@ -94,6 +94,14 @@ class ArticleEssence(SketchedAble, PersistentAble, MilvusDataBase):
 
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
+
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        return self.model_dump()
+
+    @classmethod
+    def from_raw(cls, raw: Dict[str, Any]) -> Self:
+        """CreateCreate a model instance from a raw JSON object."""
+        return cls.model_validate(raw)
 
     def _prepare_vectorization_inner(self) -> str:
         return self.compact()
