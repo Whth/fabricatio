@@ -10,16 +10,18 @@ from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.journal import logger
 from fabricatio_core.rust import blake3_hash, split_into_chunks
 from fabricatio_core.utils import ok, wrap_in_block
-from fabricatio_rag.models.milvus import MilvusDataBase
+from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
+from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
+from typing import Sequence
 
 from fabricatio_typst.models.kwargs_types import ChunkKwargs
 from fabricatio_typst.rust import BibManager
 
 
-class ArticleChunk(MilvusDataBase):
+class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
     """The chunk of an article."""
 
     etc_word: ClassVar[str] = "等"
@@ -44,8 +46,9 @@ class ArticleChunk(MilvusDataBase):
         "Bibliography",
         "Reference",
     ]
-    chunk: str
+    content: str
     """The segment of the article"""
+
     year: int
     """The year of the article"""
     authors: List[str] = Field(default_factory=list)
@@ -65,8 +68,7 @@ class ArticleChunk(MilvusDataBase):
         """Get the cite number."""
         return ok(self._cite_number, "cite number not set")
 
-    def _prepare_vectorization_inner(self) -> str:
-        return self.chunk
+
 
     @classmethod
     def from_file[P: str | Path](
@@ -99,7 +101,7 @@ class ArticleChunk(MilvusDataBase):
         article_title = ok(bib_mgr.get_title_by_key(key), f"no title found for {key}")
 
         result = [
-            cls(chunk=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
+            cls(content=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
             for c in split_into_chunks(
                 cls.purge_numeric_citation(cls.strip(Path(path).read_text(encoding="utf-8"))), **kwargs
             )
@@ -168,6 +170,28 @@ class ArticleChunk(MilvusDataBase):
         self._cite_number = cite_number
         return self
 
+    def prepare_insertion(self, vector: Sequence[float]) -> StoreDocument:
+        """Serialize typed fields into metadata for LanceDB storage."""
+        meta = {
+            "year": self.year,
+            "authors": self.authors,
+            "article_title": self.article_title,
+            "bibtex_cite_key": self.bibtex_cite_key,
+        }
+        return StoreDocument.with_metadata(content=self.content, metadata=meta, vector=vector)
+
+    @classmethod
+    def from_raw(cls, raw: SearchedDocument) -> Self:
+        """Deserialize from a LanceDB search result."""
+        meta = raw.access_metadata()
+        return cls(
+            content=raw.content,
+            year=meta.get("year", 0),
+            authors=meta.get("authors", []),
+            article_title=meta.get("article_title", ""),
+            bibtex_cite_key=meta.get("bibtex_cite_key", ""),
+        )
+
 
 @dataclass
 class CitationManager(AsPrompt):
@@ -190,7 +214,8 @@ class CitationManager(AsPrompt):
         self.article_chunks.clear()
         self.article_chunks.extend(article_chunks)
         if dedup:
-            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.chunk.encode())))
+            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.content.encode())))
+
         if set_cite_number:
             self.set_cite_number_all()
         return self
@@ -204,7 +229,8 @@ class CitationManager(AsPrompt):
         """Add article chunks."""
         self.article_chunks.extend(article_chunks)
         if dedup:
-            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.chunk.encode())))
+            self.article_chunks = list(unique(self.article_chunks, lambda c: blake3_hash(c.content.encode())))
+
         if set_cite_number:
             self.set_cite_number_all()
         return self
@@ -227,7 +253,8 @@ class CitationManager(AsPrompt):
             g = list(g_iter)
 
             logger.debug(f"Group [{k}]: {len(g)}")
-            seg.append(wrap_in_block("\n\n".join(a.chunk for a in g), first(g).reference_header))
+            seg.append(wrap_in_block("\n\n".join(a.content for a in g), first(g).reference_header))
+
         return {"References": "\n".join(seg)}
 
     def apply(self, string: str) -> str:
@@ -282,8 +309,6 @@ class CitationManager(AsPrompt):
         chunk_seq = {a.bibtex_cite_key: a for a in self.article_chunks if a.cite_number in citation_seq}
         return "".join(a.as_typst_cite() for a in chunk_seq.values())
 
-    def as_milvus_filter_expr(self, blacklist: bool = True) -> str:
-        """Asynchronously fetches documents from a Milvus database based on input vectors."""
-        if blacklist:
-            return " and ".join(f'bibtex_cite_key != "{a.bibtex_cite_key}"' for a in self.article_chunks)
-        return " or ".join(f'bibtex_cite_key == "{a.bibtex_cite_key}"' for a in self.article_chunks)
+    def get_dedup_key_set(self) -> set[str]:
+        """Return the set of bibtex_cite_keys already held, for client-side dedup."""
+        return {a.bibtex_cite_key for a in self.article_chunks}

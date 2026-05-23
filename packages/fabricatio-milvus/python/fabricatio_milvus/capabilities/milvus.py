@@ -36,7 +36,8 @@ class AddConfig(RAGConfigBase):
 class FetchConfig[D: MilvusDataBase](RAGConfigBase):
     """Configuration for fetching documents from a Milvus collection."""
 
-    document_model: Type[D]
+    document_model: Optional[Type[D]] = None
+
     collection_name: Optional[str] = None
     similarity_threshold: float = 0.37
     result_per_query: int = 10
@@ -163,13 +164,15 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
            List[D]: A list of document objects created from the fetched data.
         """
         conf = config or FetchConfig.default()
-
+        doc_model = conf.document_model
+        if doc_model is None:
+            raise ValueError("document_model must be provided in FetchConfig")
         # Step 1: Search for vectors
         search_results = self.check_client().client.search(
             conf.collection_name or self.safe_target_collection,
             await self.vectorize(query),
             search_params={"radius": conf.similarity_threshold},
-            output_fields=list(conf.document_model.model_fields),
+            output_fields=list(doc_model.model_fields),
             filter=conf.filter_expr,
             limit=conf.result_per_query,
         )
@@ -187,4 +190,42 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         # Step 4: Extract the entities
         resp = [result["entity"] for result in sorted_results]
 
-        return conf.document_model.from_sequence(resp)
+        return doc_model.from_sequence(resp)
+
+    async def aretrieve(
+        self,
+        query: str | List[str],
+        document_model: Type[D],
+        max_accepted: int = 10,
+        collection_name: Optional[str] = None,
+        similarity_threshold: float = 0.37,
+        filter_expr: str = "",
+        tei_endpoint: Optional[str] = None,
+        reranker_threshold: Optional[float] = None,
+        result_per_query: Optional[int] = None,
+    ) -> List[D]:
+        """Convenience method to vectorize a query, search Milvus, and return typed documents.
+
+        Args:
+            query: The query string(s) to search for.
+            document_model: The MilvusDataBase subclass to deserialize results into.
+            max_accepted: Maximum number of results to return.
+            collection_name: Override the target collection name.
+            similarity_threshold: Minimum similarity score for results.
+            filter_expr: Milvus filter expression.
+            tei_endpoint: Optional TEI endpoint for reranking.
+            reranker_threshold: Optional reranker threshold.
+
+        Returns:
+            List of document instances of type D.
+        """
+        conf = FetchConfig(
+            document_model=document_model,
+            collection_name=collection_name,
+            similarity_threshold=similarity_threshold,
+            result_per_query=result_per_query or max_accepted,
+            filter_expr=filter_expr,
+            tei_endpoint=tei_endpoint,
+            reranker_threshold=reranker_threshold or 0.7,
+        )
+        return await self.afetch_document(query, conf)
