@@ -62,13 +62,14 @@ use std::sync::Arc;
 /// # Example
 ///
 /// ```rust
-/// use thryd::model::EmbeddingRequest;
+/// use thryd::EmbeddingRequest;
 ///
 /// let request = EmbeddingRequest {
 ///     texts: vec![
 ///         "The quick brown fox".to_string(),
 ///         "jumps over the lazy dog".to_string(),
 ///     ],
+///     ndim: 1536,
 /// };
 /// ```
 #[derive(Debug, Clone, Serialize)]
@@ -76,6 +77,7 @@ pub struct EmbeddingRequest {
     /// The batch of text strings to encode into embeddings.
     /// Each string is encoded as a separate embedding vector.
     pub texts: Vec<String>,
+    pub ndim: u32,
 }
 
 /// Request payload for generating text completions.
@@ -86,7 +88,7 @@ pub struct EmbeddingRequest {
 /// # Example
 ///
 /// ```rust
-/// use thryd::model::CompletionRequest;
+/// use thryd::CompletionRequest;
 ///
 /// let request = CompletionRequest {
 ///     message: "Explain recursion in programming".to_string(),
@@ -134,7 +136,7 @@ pub struct CompletionRequest {
 /// # Example
 ///
 /// ```rust
-/// use thryd::model::RerankerRequest;
+/// use thryd::RerankerRequest;
 ///
 /// let request = RerankerRequest {
 ///     query: "What is Rust?".to_string(),

@@ -371,6 +371,7 @@ impl EmbeddingModel for OpenaiModel {
         let request = CreateEmbeddingRequestArgs::default()
             .model(self.model_name())
             .input(request.texts)
+            .dimensions(request.ndim)
             .build()?;
 
         let v = to_value(request)?;
