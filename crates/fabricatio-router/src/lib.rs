@@ -252,22 +252,24 @@ impl Router {
     /// Args:
     ///     send_to (str): The router group name to route the embedding request.
     ///     texts (List[str]): A list of text strings to generate embeddings for.
+    ///     ndim (int): The dimensionality of the output embeddings. Must match between search and store.
     ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
     ///
     /// Returns:
     ///     List[List[float]]: A list of embedding vectors corresponding to the input texts.
-    #[pyo3(signature = (send_to, texts, no_cache = false))]
+    #[pyo3(signature = (send_to, texts, ndim, no_cache = false))]
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
         send_to: RouteGroupName,
         texts: Vec<String>,
+        ndim: u32,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            Self::embedding_inner(send_to, EmbeddingRequest { texts }, r, no_cache).await
+            Self::embedding_inner(send_to, EmbeddingRequest { texts, ndim }, r, no_cache).await
         })
     }
 
