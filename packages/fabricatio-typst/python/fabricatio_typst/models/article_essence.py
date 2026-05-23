@@ -1,11 +1,9 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import Any, Dict, List, Self, Sequence
+from typing import Any, Dict, List, Optional
 
 from fabricatio_capabilities.models.generic import PersistentAble
-from fabricatio_core.models.generic import SketchedAble
-from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
-from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
+from fabricatio_core.models.generic import SketchedAble, Vectorizable
 from pydantic import BaseModel
 
 
@@ -57,8 +55,7 @@ class Highlightings(BaseModel):
     """
 
 
-class ArticleEssence(SketchedAble, PersistentAble, LancedbDocumentModel[StoreDocument, SearchedDocument]):
-
+class ArticleEssence(SketchedAble, PersistentAble, Vectorizable):
     """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
@@ -96,22 +93,16 @@ class ArticleEssence(SketchedAble, PersistentAble, LancedbDocumentModel[StoreDoc
 
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
+    metadata: Optional[Dict[str, Any]] = None
+    """Optional metadata for vector DB storage."""
+
+    @property
+    def content(self) -> str:
+        """Serialized JSON content for storage."""
+        return self.compact()
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
         return self.model_dump()
 
     def _prepare_vectorization_inner(self) -> str:
         return self.compact()
-
-    @classmethod
-    def from_raw(cls, raw: SearchedDocument) -> Self:
-        """Deserialize from a LanceDB search result."""
-        return cls.model_validate(raw.access_metadata())
-
-    def prepare_insertion(self, vector: Sequence[float]) -> StoreDocument:
-        """Serialize fields into metadata for LanceDB storage."""
-        return StoreDocument.with_metadata(
-            content=self.compact(),
-            metadata=self.model_dump(exclude_none=True),
-            vector=vector,
-        )
