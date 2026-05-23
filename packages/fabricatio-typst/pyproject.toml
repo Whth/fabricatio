@@ -23,7 +23,6 @@ dependencies = [
     "fabricatio-core",
     "fabricatio-tool",
     "fabricatio-capabilities",
-    "fabricatio-lancedb",
 ]
 
 
@@ -31,14 +30,16 @@ dependencies = [
 
 [project.optional-dependencies]
 
-full = ["fabricatio-typst[workflows,actions]"]
+full = ["fabricatio-typst[workflows,actions,rag]"]
 
 workflows = ["fabricatio-actions"]
 
 actions = [
     "fabricatio-improve",
+    "fabricatio-rule",
     "questionary"
 ]
+rag = ["fabricatio-lancedb"]
 
 
 [build-system]
