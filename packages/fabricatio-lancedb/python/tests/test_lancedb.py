@@ -87,7 +87,7 @@ class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument, SimpleStoredDocument, R
         docs = data if isinstance(data, list) else [data]
         store_docs = []
         for doc in docs:
-            vector = await self.vectorize(doc.prepare_vectorization())
+            vector = await self.vectorize(doc.prepare_vectorization(), ndim=NDIM)
             store_docs.append(StoreDocument.with_metadata(doc.content, vector, doc.metadata if doc.metadata else None))
         await table.add_documents(store_docs)
         return self
@@ -101,7 +101,7 @@ class RAGTestImpl(LLMTestRole, RAG[SimpleStoredDocument, SimpleStoredDocument, R
         table = self._table
         assert table is not None
         query_str = query[0] if isinstance(query, list) else query
-        embedding = await self.vectorize(query_str)
+        embedding = await self.vectorize(query_str, ndim=NDIM)
         results = await table.search_document(embedding, limit=5)
         return [SimpleStoredDocument.from_raw(r) for r in results]
 
@@ -428,7 +428,7 @@ class TestVectorize:
         role = EmbeddingTestRole()
         embedding = [0.1, 0.2, 0.3, 0.4]
         with install_dummy_embeddings(embedding):
-            result = await role.vectorize("hello world", send_to="embedding")
+            result = await role.vectorize("hello world", send_to="embedding", ndim=NDIM)
         assert isinstance(result, list)
         assert len(result) == NDIM
 
@@ -437,8 +437,8 @@ class TestVectorize:
         role = EmbeddingTestRole()
         e1, e2 = [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]
         with install_dummy_embeddings(e1, e2):
-            r1 = await role.vectorize("doc-a", send_to="embedding")
-            r2 = await role.vectorize("doc-b", send_to="embedding")
+            r1 = await role.vectorize("doc-a", send_to="embedding", ndim=NDIM)
+            r2 = await role.vectorize("doc-b", send_to="embedding", ndim=NDIM)
         assert isinstance(r1, list)
         assert isinstance(r2, list)
 
