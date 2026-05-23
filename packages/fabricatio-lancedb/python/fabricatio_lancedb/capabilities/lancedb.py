@@ -14,6 +14,7 @@ class LancedbAddRAGConfig(RAGConfigBase):
     """LanceDB-specific RAG configuration."""
 
     table_name: str | None = None
+    ndim: int = 1024
 
 
 class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
@@ -34,7 +35,7 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         table = await (await get_service()).create_or_open_table(conf.table_name)
 
         data_seq = data if isinstance(data, list) else [data]
-        vec_seq = await self.vectorize([d.prepare_vectorization() for d in data_seq])
+        vec_seq = await self.vectorize([d.prepare_vectorization() for d in data_seq], ndim=conf.ndim)
 
         packs: Iterable[Tuple[D, List[float]]] = zip(data_seq, vec_seq, strict=True)
 
@@ -46,7 +47,7 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         """Fetch documents from the LanceDB collection."""
         conf = config or LancedbFetchRAGConfig.default()
 
-        table = await (await get_service()).create_or_open_table(conf.table_name)
+        table = await (await get_service()).open_table(conf.table_name)
 
         if isinstance(query, str):
             search_vec = await self.vectorize(query)

@@ -33,7 +33,7 @@ class InjectToDB(Action, LancedbRAG):
         table = await svc.create_or_open_table(table_name, ndim)
 
         docs = data if isinstance(data, list) else [data]
-        vectors = [await self.vectorize(doc.prepare_vectorization(), send_to="embedding") for doc in docs]
+        vectors = [await self.vectorize(doc.prepare_vectorization(), ndim=ndim, send_to="embedding") for doc in docs]
         store_docs = [
             StoreDocument.with_metadata(doc.content, vec, doc.metadata if doc.metadata else None)
             for doc, vec in zip(docs, vectors, strict=True)
@@ -58,7 +58,7 @@ class InjectToDB(Action, LancedbRAG):
         table = await svc.create_or_open_table(table_name, ndim)
 
         query_str = query[0] if isinstance(query, list) else query
-        embedding = await self.vectorize(query_str, send_to="embedding")
+        embedding = await self.vectorize(query_str, ndim=ndim, send_to="embedding")
         limit = kwargs.get("limit", 5)
         results = await table.search_document(embedding, limit=limit)
         return [document_model(content=r.content, metadata={}) for r in results]
