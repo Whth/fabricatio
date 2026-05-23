@@ -158,6 +158,15 @@ The primary configuration file format:
     ]
     
     cache_database_path = "path/to/.cache.db"
+    
+    [embedding]
+    send_to = "embeddings"
+    ndim = 1536
+    no_cache = false
+
+    [reranker]
+    send_to = "reranker"
+    no_cache = false
 
 pyproject.toml
 ~~~~~~~~~~~~~~
@@ -185,6 +194,15 @@ Configuration via ``[tool.fabricatio]`` table:
         { id = "mm/gpt-4o-mini", group = 'base', tpm = 100_000, rpm = 1000 }
     ]
 
+    [tool.fabricatio.embedding]
+    send_to = "embeddings"
+    ndim = 1536
+    no_cache = false
+
+    [tool.fabricatio.reranker]
+    send_to = "reranker"
+    no_cache = false
+
 Environment Variables / .env
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -198,6 +216,11 @@ Prefix all config keys with ``FABRICATIO_`` and use double underscores for nesti
     FABRICATIO_LLM__STREAM=false
     FABRICATIO_LLM__TEMPERATURE=1.0
     FABRICATIO_LLM__TOP_P=0.35
+    FABRICATIO_EMBEDDING__SEND_TO=embeddings
+    FABRICATIO_EMBEDDING__NDIM=1536
+    FABRICATIO_EMBEDDING__NO_CACHE=false
+    FABRICATIO_RERANKER__SEND_TO=reranker
+    FABRICATIO_RERANKER__NO_CACHE=false
 
 Configuration Sections
 ----------------------
@@ -231,6 +254,31 @@ Configuration Sections
            string temperature "Sampling temperature" "1.0"
            string top_p "Nucleus sampling threshold" "1.0"
            string timeout "Request timeout (seconds)" "120"
+       }
+
+[embedding]
+~~~~~~~~~~~
+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       "[embedding]" {
+           string send_to "Default routing group" ""
+           string ndim "Output vector dimensionality" ""
+           string no_cache "Disable caching" "false"
+       }
+
+[reranker]
+~~~~~~~~~~
+
+.. mermaid::
+
+   %%{init: {'themeVariables': {'fontFamily': 'monospace'}}}%%
+   erDiagram
+       "[reranker]" {
+           string send_to "Default routing group" ""
+           string no_cache "Disable caching" "false"
        }
 
 [routing]
@@ -271,6 +319,14 @@ Deployments define available models:
         "tpm": 100_000,                # Tokens per minute limit
         "rpm": 1000                    # Requests per minute limit
     }
+
+There are three deployment lists in the routing configuration, each for a different model type:
+
+- ``completion_deployments`` - For LLM text generation (chat/completion) models
+- ``embedding_deployments`` - For text embedding models
+- ``reranker_deployments`` - For reranking/relevance-scoring models
+
+All three use the same deployment schema shown above.
 
 Cache Configuration
 ^^^^^^^^^^^^^^^^^^^
