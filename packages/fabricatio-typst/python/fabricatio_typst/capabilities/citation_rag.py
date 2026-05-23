@@ -1,3 +1,7 @@
+from fabricatio_core.utils import cfg
+
+cfg(["rag"])
+
 """Citation-aware RAG capability backed by LanceDB."""
 
 from abc import ABC
@@ -52,7 +56,9 @@ class CitationLancedbRAG(LancedbRAG, ABC):
                 return cm
 
             refs = await self.aretrieve(
-                ref_q, ArticleChunk, base_accepted,
+                ref_q,
+                ArticleChunk,
+                base_accepted,
                 table_name=table_name,
                 result_per_query=result_per_query,
             )

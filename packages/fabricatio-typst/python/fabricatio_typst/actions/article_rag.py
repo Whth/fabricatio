@@ -1,3 +1,7 @@
+from fabricatio_core.utils import cfg
+
+cfg(["rag"])
+
 """A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
 
 from asyncio import gather
@@ -11,16 +15,15 @@ from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
 from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
-
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from pydantic import Field, PositiveInt
 
 from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
-from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
+from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 from fabricatio_typst.rust import (
     BibManager,
     convert_all_tex_math,
@@ -51,7 +54,6 @@ TYPST_MATH_USAGE = (
 
 
 class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
-
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -74,7 +76,6 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
 
     math_req: str = TYPST_MATH_USAGE
     """The req of the write article content."""
-
 
     async def _execute(
         self,
@@ -229,7 +230,6 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
 
 
 class ArticleConsultRAG(Action, CitationLancedbRAG):
-
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -247,7 +247,6 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
     req: str = TYPST_CITE_USAGE
     """The request for the rag model."""
 
-
     @cfg_on_async(feats=["qa"])
     async def _execute(self, table_name: Optional[str] = None, **cxt) -> int:
 
@@ -255,7 +254,6 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
         from rich import print as r_print
 
         self.target_table = table_name or self.safe_target_table
-
 
         cm = CitationManager()
 
@@ -288,7 +286,6 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
 
 
 class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
-
     """Write an article based on the provided outline.
 
     This class inherits from `Action`, `RAG`, and `Censor` to provide capabilities for writing and refining articles
@@ -309,7 +306,6 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
         self,
         article: Article,
         table_name: str = "article_essence",
-
         twk_rag_ruleset: Optional[RuleSet] = None,
         parallel: bool = False,
         **cxt,

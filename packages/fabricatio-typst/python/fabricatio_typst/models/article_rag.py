@@ -1,10 +1,14 @@
+from fabricatio_core.utils import cfg
+
+cfg(["rag"])
+
 """A Module containing the article rag models."""
 
 import re
 from dataclasses import dataclass, field
 from itertools import groupby
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Self, Unpack
+from typing import ClassVar, Dict, List, Optional, Self, Sequence, Unpack
 
 from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.journal import logger
@@ -15,7 +19,6 @@ from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
-from typing import Sequence
 
 from fabricatio_typst.models.kwargs_types import ChunkKwargs
 from fabricatio_typst.rust import BibManager
@@ -67,8 +70,6 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
     def cite_number(self) -> int:
         """Get the cite number."""
         return ok(self._cite_number, "cite number not set")
-
-
 
     @classmethod
     def from_file[P: str | Path](
