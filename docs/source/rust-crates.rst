@@ -171,6 +171,10 @@ Configuration Structure:
    config --> debug
    config --> llm
    config --> routing
+   embedding["embedding\nsend_to, no_cache, ndim"]
+   reranker["reranker\nsend_to, no_cache"]
+   config --> embedding
+   config --> reranker
 
 fabricatio-logger
 -----------------
