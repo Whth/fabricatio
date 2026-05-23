@@ -323,6 +323,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "The quick brown fox jumps over the lazy dog.".to_string(),
             "Artificial intelligence is transforming the world.".to_string(),
         ],
+        ndim: 1536,
     };
     
     let embeddings = router.invoke("embeddings".to_string(), request).await?;
