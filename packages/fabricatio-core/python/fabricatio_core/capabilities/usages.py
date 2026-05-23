@@ -22,7 +22,7 @@ from pydantic import NonNegativeInt, PositiveInt
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, RerankerScopedConfig, WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import ok
 
@@ -511,29 +511,29 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
     """
 
     @overload
-    async def vectorize(self, input_text: List[str], send_to: str | None = None) -> List[List[float]]: ...
+    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
 
     @overload
-    async def vectorize(self, input_text: str, send_to: str | None = None) -> List[float]: ...
+    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
 
     @overload
     async def vectorize(
-        self, input_text: List[str] | str, send_to: str | None = None
+        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
     ) -> List[List[float]] | List[float]: ...
 
     async def vectorize(
-        self, input_text: List[str] | str, send_to: str | None = None
+        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
     ) -> List[List[float]] | List[float]:
         """Asynchronously generates vector embeddings for the given input text.
 
         Args:
             input_text (List[str] | str): A string or list of strings to generate embeddings for.
-            send_to (str | None): The namespace to send the request to. Defaults to None.
+            **kwargs (Unpack[EmbeddingKwargs]): Additional keyword arguments for the embedding model.
 
         Returns:
             List[List[float]] | List[float]: The generated embeddings.
         """
-        kw = self._resolve_embedding_params(send_to=send_to)
+        kw = self._resolve_embedding_params(**kwargs)
         is_text = False
 
         if isinstance(input_text, str):

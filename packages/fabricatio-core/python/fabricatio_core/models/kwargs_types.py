@@ -21,6 +21,8 @@ class EmbeddingKwargs(RouteKwargs, total=False):
     to vector representations.
     """
 
+    ndim: int
+
 
 class RerankerKwargs(RouteKwargs, total=False):
     """Configuration parameters for text reranking operations.

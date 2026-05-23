@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
 
 import orjson
+from fabricatio_core.journal import logger
+from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.utils import first_available, ok
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -15,11 +19,6 @@ from pydantic import (
     PositiveInt,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
-
-from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
-from fabricatio_core.utils import first_available, ok
 
 
 class Base(BaseModel, ABC):
@@ -323,13 +322,22 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_no_cache: bool = False
     """Whether to disable caching for embeddings."""
 
-    def _resolve_embedding_params(self, send_to: str | None, no_cache: bool = False) -> EmbeddingKwargs:
+    embedding_ndim: Optional[int] = None
+    """The dimensionality of the output embeddings. Must match between search and store."""
+
+    def _resolve_embedding_params(
+        self, send_to: str | None = None, ndim: int | None = None, no_cache: bool | None = None, /, **_
+    ) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
                 send_to or self.embedding_send_to or CONFIG.embedding.send_to,
                 "send_to is not specified at any where",
             ),
-            no_cache=first_available((no_cache, self.embedding_no_cache), raise_exception=False) or False,
+            ndim=first_available((ndim, self.embedding_ndim, CONFIG.embedding.ndim)),
+            no_cache=first_available(
+                (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache), raise_exception=False
+            )
+            or False,
         )
 
 
@@ -343,14 +351,17 @@ class RerankerScopedConfig(ScopedConfig):
     """Whether to disable caching for the reranker."""
 
     def _resolve_reranker_params(
-        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None
+        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, /, **_
     ) -> RerankerKwargs:
         return RerankerKwargs(
             send_to=ok(
                 send_to or self.reranker_send_to or CONFIG.reranker.send_to,
                 "send_to is not specified at any where",
             ),
-            no_cache=first_available((no_cache, self.reranker_no_cache), raise_exception=False) or False,
+            no_cache=first_available(
+                (no_cache, self.reranker_no_cache, CONFIG.reranker.no_cache), raise_exception=False
+            )
+            or False,
         )
 
 
