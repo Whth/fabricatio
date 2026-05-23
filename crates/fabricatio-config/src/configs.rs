@@ -57,6 +57,17 @@ pub struct LLMConfig {
 #[pyclass(from_py_object, get_all)]
 pub struct EmbeddingConfig {
     pub send_to: Option<String>,
+    pub no_cache: Option<bool>,
+    pub ndim: Option<u32>,
+}
+
+/// Reranker configuration structure
+#[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass(from_py_object, get_all)]
+pub struct RerankerConfig {
+    pub send_to: Option<String>,
+    pub no_cache: Option<bool>,
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -251,6 +262,10 @@ pub struct Config {
     /// Embedding configuration parameters.
     #[pyo3(get)]
     pub embedding: EmbeddingConfig,
+
+    /// Reranker configuration parameters.
+    #[pyo3(get)]
+    pub reranker: RerankerConfig,
 
     /// Language Learning Model settings with validation rules.
     #[pyo3(get)]
