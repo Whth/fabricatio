@@ -32,6 +32,7 @@ __all__ = [
     "Logger",
     "ProviderConfig",
     "ProviderType",
+    "RerankerConfig",
     "Router",
     "RouterUsage",
     "RoutingConfig",
@@ -177,6 +178,9 @@ class Config:
     def embedding(self) -> EmbeddingConfig:
         r"""Embedding configuration parameters."""
     @property
+    def reranker(self) -> RerankerConfig:
+        r"""Reranker configuration parameters."""
+    @property
     def llm(self) -> LLMConfig:
         r"""Language Learning Model settings with validation rules."""
     @property
@@ -264,6 +268,10 @@ class EmbeddingConfig:
     r"""Embedding configuration structure."""
     @property
     def send_to(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def no_cache(self) -> typing.Optional[builtins.bool]: ...
+    @property
+    def ndim(self) -> typing.Optional[builtins.int]: ...
 
 @typing.final
 class EmitterConfig:
@@ -648,6 +656,14 @@ class ProviderConfig:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
 
 @typing.final
+class RerankerConfig:
+    r"""Reranker configuration structure."""
+    @property
+    def send_to(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def no_cache(self) -> typing.Optional[builtins.bool]: ...
+
+@typing.final
 class Router:
     def completion(
         self,
@@ -715,13 +731,18 @@ class Router:
             List[str | None]: A list of complete aggregated response contents. Failed requests return None.
         """
     def embedding(
-        self, send_to: builtins.str, texts: typing.Sequence[builtins.str], no_cache: builtins.bool = False
+        self,
+        send_to: builtins.str,
+        texts: typing.Sequence[builtins.str],
+        ndim: builtins.int,
+        no_cache: builtins.bool = False,
     ) -> typing.Awaitable[typing.List[typing.List[float]]]:
         r"""Sends an embedding request to the specified group.
 
         Args:
             send_to (str): The router group name to route the embedding request.
             texts (List[str]): A list of text strings to generate embeddings for.
+            ndim (int): The dimensionality of the output embeddings. Must match between search and store.
             no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
 
         Returns:
@@ -754,7 +775,7 @@ class Router:
     ) -> None:
         r"""Adds a provider to the router.
 
-        This method registers a new provider with both the completion and embedding routers.
+        This method registers a new provider with the completion, embedding, and reranker routers.
 
         Args:
             provider_type (ProviderType): The type of the provider (e.g., OpenAI, Anthropic).
@@ -827,6 +848,18 @@ class Router:
         """
     def add_or_update_dummy_completion_model(
         self, group: builtins.str, model_identifier: builtins.str, responses: typing.Sequence[builtins.str]
+    ) -> None: ...
+    def add_or_update_dummy_embedding_model(
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        embeddings: typing.Sequence[typing.Sequence[typing.Sequence[builtins.float]]],
+    ) -> None: ...
+    def add_or_update_dummy_reranker_model(
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        rankings: typing.Sequence[typing.Sequence[tuple[builtins.int, builtins.float]]],
     ) -> None: ...
 
 @typing.final
@@ -1228,6 +1261,9 @@ class RoutingConfig:
     @property
     def providers(self) -> builtins.list[ProviderConfig]:
         r"""List of configured providers available for routing."""
+    @property
+    def reranker_deployments(self) -> builtins.list[DeploymentConfig]:
+        r"""List of configured reranker model deployments associated with the providers."""
     @property
     def embedding_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured embedding model deployments associated with the providers."""
