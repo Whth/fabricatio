@@ -42,6 +42,9 @@ Config {
     // Embedding model configuration  
     embedding: EmbeddingConfig,
     
+    // Reranker model configuration
+    reranker: RerankerConfig,
+    
     // Debug and logging settings
     debug: DebugConfig,
     
@@ -78,6 +81,25 @@ LLMConfig {
     stream: bool,                          // Streaming responses
     max_tokens: Option<u32>,               // Minimum 1 token
     // ... and more settings
+}
+```
+
+### Embedding Configuration (EmbeddingConfig)
+
+```rust
+EmbeddingConfig {
+    send_to: Option<String>,          // Default routing group for embedding requests
+    no_cache: Option<bool>,           // Disable response caching for embeddings
+    ndim: Option<u32>,                // Dimensionality of output embedding vectors
+}
+```
+
+### Reranker Configuration (RerankerConfig)
+
+```rust
+RerankerConfig {
+    send_to: Option<String>,          // Default routing group for reranker requests
+    no_cache: Option<bool>,           // Disable response caching for reranker
 }
 ```
 
