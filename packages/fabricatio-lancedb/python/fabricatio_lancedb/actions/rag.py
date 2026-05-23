@@ -1,8 +1,10 @@
 """LanceDB-specific RAG actions."""
 
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
+from fabricatio_core import CONFIG
 from fabricatio_core.models.generic import Action
+from fabricatio_core.utils import first_available
 from fabricatio_rag.models.document import StoredDocumentModel
 
 from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
@@ -11,6 +13,8 @@ from fabricatio_lancedb.rust import StoreDocument, VectorStoreService
 
 class InjectToDB(Action, LancedbRAG):
     """Inject data into the LanceDB vector store."""
+
+    ctx_override: ClassVar[bool] = True
 
     _svc: VectorStoreService | None = None
     _table_name: str | None = None
@@ -29,11 +33,11 @@ class InjectToDB(Action, LancedbRAG):
         table_name = kwargs.get("table_name", self._table_name)
         assert table_name is not None, "table_name must be provided"
 
-        ndim = kwargs.get("ndim", 768)
+        ndim = first_available((self.embedding_ndim, CONFIG.embedding.ndim))
         table = await svc.create_or_open_table(table_name, ndim)
 
         docs = data if isinstance(data, list) else [data]
-        vectors = [await self.vectorize(doc.prepare_vectorization(), ndim=ndim, send_to="embedding") for doc in docs]
+        vectors = [await self.vectorize(doc.prepare_vectorization()) for doc in docs]
         store_docs = [
             StoreDocument.with_metadata(doc.content, vec, doc.metadata if doc.metadata else None)
             for doc, vec in zip(docs, vectors, strict=True)
@@ -54,11 +58,11 @@ class InjectToDB(Action, LancedbRAG):
         table_name = kwargs.get("table_name", self._table_name)
         assert table_name is not None, "table_name must be provided"
 
-        ndim = kwargs.get("ndim", 768)
+        ndim = first_available((self.embedding_ndim, CONFIG.embedding.ndim))
         table = await svc.create_or_open_table(table_name, ndim)
 
         query_str = query[0] if isinstance(query, list) else query
-        embedding = await self.vectorize(query_str, ndim=ndim, send_to="embedding")
+        embedding = await self.vectorize(query_str)
         limit = kwargs.get("limit", 5)
         results = await table.search_document(embedding, limit=limit)
         return [document_model(content=r.content, metadata={}) for r in results]
