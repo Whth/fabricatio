@@ -10,13 +10,14 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
 from fabricatio_core.utils import ok
-from fabricatio_rag.capabilities.rag import MilvusRAG
+from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
+
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from pydantic import Field, PositiveInt
 
-from fabricatio_typst.capabilities.citation_rag import CitationMilvusRAG
-from fabricatio_typst.models.aricle_rag import ArticleChunk, CitationManager
+from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
+from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
@@ -49,7 +50,8 @@ TYPST_MATH_USAGE = (
 )
 
 
-class WriteArticleContentRAG(Action, Extract, CitationMilvusRAG):
+class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
+
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -72,17 +74,17 @@ class WriteArticleContentRAG(Action, Extract, CitationMilvusRAG):
 
     math_req: str = TYPST_MATH_USAGE
     """The req of the write article content."""
-    tei_endpoint: Optional[str] = None
+
 
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        collection_name: Optional[str] = None,
+        table_name: Optional[str] = None,
         supervisor: Optional[bool] = None,
         **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline).update_ref(article_outline)
-        self.target_collection = collection_name or self.safe_target_collection
+        self.target_table = table_name or self.safe_target_table
         if supervisor or (supervisor is None and self.supervisor):
             for chap, sec, subsec in article.iter_subsections():
                 await self._supervisor_inner(article, article_outline, chap, sec, subsec)
@@ -223,12 +225,11 @@ class WriteArticleContentRAG(Action, Extract, CitationMilvusRAG):
             expand_multiplier=self.search_increment_multiplier,
             base_accepted=self.ref_limit,
             result_per_query=self.result_per_query,
-            similarity_threshold=self.threshold,
-            tei_endpoint=self.tei_endpoint,
         )
 
 
-class ArticleConsultRAG(Action, CitationMilvusRAG):
+class ArticleConsultRAG(Action, CitationLancedbRAG):
+
     """Write an article based on the provided outline."""
 
     ctx_override: ClassVar[bool] = True
@@ -245,14 +246,16 @@ class ArticleConsultRAG(Action, CitationMilvusRAG):
     """The model to use for refining query."""
     req: str = TYPST_CITE_USAGE
     """The request for the rag model."""
-    tei_endpoint: Optional[str] = None
+
 
     @cfg_on_async(feats=["qa"])
-    async def _execute(self, collection_name: Optional[str] = None, **cxt) -> int:
+    async def _execute(self, table_name: Optional[str] = None, **cxt) -> int:
+
         from questionary import confirm, text
         from rich import print as r_print
 
-        self.target_collection = collection_name or self.safe_target_collection
+        self.target_table = table_name or self.safe_target_table
+
 
         cm = CitationManager()
 
@@ -270,8 +273,6 @@ class ArticleConsultRAG(Action, CitationMilvusRAG):
                 expand_multiplier=self.search_increment_multiplier,
                 base_accepted=self.ref_limit,
                 result_per_query=self.ref_per_q,
-                similarity_threshold=self.similarity_threshold,
-                tei_endpoint=self.tei_endpoint,
             )
 
             ret = await self.aask(f"{cm.as_prompt()}\n{self.req}\n{req}")
@@ -286,7 +287,8 @@ class ArticleConsultRAG(Action, CitationMilvusRAG):
         return counter
 
 
-class TweakArticleMilvusRAG(Action, MilvusRAG, Censor):
+class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
+
     """Write an article based on the provided outline.
 
     This class inherits from `Action`, `RAG`, and `Censor` to provide capabilities for writing and refining articles
@@ -306,7 +308,8 @@ class TweakArticleMilvusRAG(Action, MilvusRAG, Censor):
     async def _execute(
         self,
         article: Article,
-        collection_name: str = "article_essence",
+        table_name: str = "article_essence",
+
         twk_rag_ruleset: Optional[RuleSet] = None,
         parallel: bool = False,
         **cxt,
@@ -318,7 +321,8 @@ class TweakArticleMilvusRAG(Action, MilvusRAG, Censor):
 
         Args:
             article (Article): The article to be processed.
-            collection_name (str): The name of the collection to view for processing.
+            table_name (str): The name of the table to view for processing.
+
             twk_rag_ruleset (Optional[RuleSet]): The ruleset to apply for censoring. If not provided, the class's ruleset is used.
             parallel (bool): If True, process subsections in parallel. Otherwise, process them sequentially.
             **cxt: Additional context parameters.
@@ -326,7 +330,7 @@ class TweakArticleMilvusRAG(Action, MilvusRAG, Censor):
         Returns:
             Article: The processed article with enhanced subsections and applied censoring rules.
         """
-        self.view(collection_name)
+        self.view(table_name)
 
         if parallel:
             await gather(

@@ -31,15 +31,15 @@ if is_installed("fabricatio_typst"):
         "WriteResearchContentSummary",
     ]
 
-    if is_installed("fabricatio_rag"):
+    if is_installed("fabricatio_lancedb"):
         from fabricatio_typst.actions.article_rag import (
             ArticleConsultRAG,
             ChunkArticle,
-            TweakArticleMilvusRAG,
+            TweakArticleLancedbRAG,
             WriteArticleContentRAG,
         )
 
-        __all__ += ["ArticleConsultRAG", "ChunkArticle", "TweakArticleMilvusRAG", "WriteArticleContentRAG"]
+        __all__ += ["ArticleConsultRAG", "ChunkArticle", "TweakArticleLancedbRAG", "WriteArticleContentRAG"]
 if is_installed("fabricatio_rag"):
     from fabricatio_milvus.actions.rag import InjectToDB, MilvusRAGTalk
 

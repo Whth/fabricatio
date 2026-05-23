@@ -1,10 +1,11 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import Any, Dict, List, Self
+from typing import Any, Dict, List, Self, Sequence
 
 from fabricatio_capabilities.models.generic import PersistentAble
 from fabricatio_core.models.generic import SketchedAble
-from fabricatio_milvus.models.milvus import MilvusDataBase
+from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
+from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 from pydantic import BaseModel
 
 
@@ -56,7 +57,8 @@ class Highlightings(BaseModel):
     """
 
 
-class ArticleEssence(SketchedAble, PersistentAble, MilvusDataBase):
+class ArticleEssence(SketchedAble, PersistentAble, LancedbDocumentModel[StoreDocument, SearchedDocument]):
+
     """Structured representation of a scientific article's core elements in its original language."""
 
     language: str
@@ -98,10 +100,18 @@ class ArticleEssence(SketchedAble, PersistentAble, MilvusDataBase):
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
         return self.model_dump()
 
-    @classmethod
-    def from_raw(cls, raw: Dict[str, Any]) -> Self:
-        """CreateCreate a model instance from a raw JSON object."""
-        return cls.model_validate(raw)
-
     def _prepare_vectorization_inner(self) -> str:
         return self.compact()
+
+    @classmethod
+    def from_raw(cls, raw: SearchedDocument) -> Self:
+        """Deserialize from a LanceDB search result."""
+        return cls.model_validate(raw.access_metadata())
+
+    def prepare_insertion(self, vector: Sequence[float]) -> StoreDocument:
+        """Serialize fields into metadata for LanceDB storage."""
+        return StoreDocument.with_metadata(
+            content=self.compact(),
+            metadata=self.model_dump(exclude_none=True),
+            vector=vector,
+        )

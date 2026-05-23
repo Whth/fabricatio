@@ -23,7 +23,7 @@ dependencies = [
     "fabricatio-core",
     "fabricatio-tool",
     "fabricatio-capabilities",
-    "fabricatio-rag"
+    "fabricatio-lancedb",
 ]
 
 
@@ -67,3 +67,9 @@ default = true
 Homepage = "https://github.com/Whth/fabricatio"
 Repository = "https://github.com/Whth/fabricatio"
 Issues = "https://github.com/Whth/fabricatio/issues"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "fabricatio-mock",
+]

@@ -1,11 +1,13 @@
-"""Demonstrates article generation with Milvus RAG. The Connect action links article briefing, proposal, outline, and content into a reference chain, then TweakArticleMilvusRAG retrieves relevant sources to improve the article content."""
+"""Demonstrates article generation with LanceDB RAG. The Connect action links article briefing, proposal, outline, and content into a reference chain, then TweakArticleLancedbRAG retrieves relevant sources to improve the article content."""
+
 
 import asyncio
 from pathlib import Path
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
-from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleMilvusRAG
+from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleLancedbRAG
+
 from fabricatio.models import Article, ArticleOutline, ArticleProposal
 from fabricatio_core.capabilities.propose import Propose
 
@@ -66,7 +68,7 @@ async def main() -> None:
                         output_key="article",
                     ),
                     Connect,
-                    TweakArticleMilvusRAG(output_key="to_dump", llm_temperature=1.12, llm_top_p=0.36),
+                    TweakArticleLancedbRAG(output_key="to_dump", llm_temperature=1.12, llm_top_p=0.36),
                     PersistentAll,
                     DumpFinalizedOutput(output_key="task_output"),
                 ),
