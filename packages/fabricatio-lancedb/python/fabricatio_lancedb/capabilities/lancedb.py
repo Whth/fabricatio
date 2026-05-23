@@ -3,6 +3,8 @@
 import asyncio
 from typing import Iterable, List, Self, Tuple, Type
 
+from fabricatio_core import CONFIG
+from fabricatio_core.utils import first_available
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from more_itertools import flatten
 
@@ -14,7 +16,7 @@ class LancedbAddRAGConfig(RAGConfigBase):
     """LanceDB-specific RAG configuration."""
 
     table_name: str | None = None
-    ndim: int = 1024
+
 
 
 class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
@@ -32,10 +34,12 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         """Add a document to the LanceDB collection."""
         conf = config or LancedbAddRAGConfig.default()
 
-        table = await (await get_service()).create_or_open_table(conf.table_name)
+        table = await (await get_service()).create_or_open_table(
+            conf.table_name, first_available((self.embedding_ndim, CONFIG.embedding.ndim))
+        )
 
         data_seq = data if isinstance(data, list) else [data]
-        vec_seq = await self.vectorize([d.prepare_vectorization() for d in data_seq], ndim=conf.ndim)
+        vec_seq = await self.vectorize([d.prepare_vectorization() for d in data_seq])
 
         packs: Iterable[Tuple[D, List[float]]] = zip(data_seq, vec_seq, strict=True)
 
