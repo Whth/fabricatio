@@ -14,7 +14,8 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
 from fabricatio_core.utils import ok
-from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
+from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig, LancedbRAG
+from fabricatio_rag.actions.db import StoreDocuments
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from pydantic import Field, PositiveInt
@@ -23,7 +24,7 @@ from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
-from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
+from fabricatio_typst.models.article_rag import ArticleChunk, ArticleEssenceStorable, CitationManager
 from fabricatio_typst.rust import (
     BibManager,
     convert_all_tex_math,
@@ -397,3 +398,15 @@ class ChunkArticle(Action):
                 max_overlapping_rate or self.max_overlapping_rate, "No max_overlapping_rate provided!"
             ),
         )
+
+
+class StoreArticleEssence(
+    StoreDocuments[
+        ArticleEssenceStorable,
+        ArticleEssenceStorable,
+        LancedbAddRAGConfig,
+        LancedbFetchRAGConfig[ArticleEssenceStorable],
+    ],
+    LancedbRAG[ArticleEssenceStorable, LancedbAddRAGConfig, LancedbFetchRAGConfig[ArticleEssenceStorable]],
+):
+    """Store ArticleEssence instances into LanceDB."""
