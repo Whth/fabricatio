@@ -1,8 +1,9 @@
+"""A Module containing the article rag models."""
+
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
 
-"""A Module containing the article rag models."""
 
 import re
 from dataclasses import dataclass, field

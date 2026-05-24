@@ -1,8 +1,8 @@
+"""Citation-aware RAG capability backed by LanceDB."""
+
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
-
-"""Citation-aware RAG capability backed by LanceDB."""
 
 from abc import ABC
 from typing import Optional, Set
@@ -17,7 +17,7 @@ from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 class CitationLancedbRAG(LancedbRAG, ABC):
     """RAG capability with citation-aware iterative search and client-side dedup."""
 
-    async def clued_search(
+    async def clued_search(  # noqa: PLR0913
         self,
         requirement: str,
         cm: CitationManager,

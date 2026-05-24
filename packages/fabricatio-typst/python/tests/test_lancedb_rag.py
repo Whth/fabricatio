@@ -4,15 +4,15 @@ Covers model roundtrip (prepare_insertion), CitationManager dedup,
 and CitationLancedbRAG.clued_search with mocked LLM + embedding router.
 """
 
-from typing import List
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional
 
 import pytest
-from fabricatio_lancedb.rust import StoreDocument
 from fabricatio_mock.models.mock_role import LLMTestRole
-
-
 from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
 from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
+
+if TYPE_CHECKING:
+    from fabricatio_lancedb.rust import StoreDocument
 
 
 # ---------------------------------------------------------------------------
@@ -132,11 +132,8 @@ class TestArticleChunkModel:
         assert "Some text" in result
         assert "and more" in result
 
-    def test_from_file_requires_bib_key(self, tmp_path) -> None:
+    def test_from_file_requires_bib_key(self, tmp_path) -> None:  # noqa: ANN001
         """from_file returns empty list when no cite key is found."""
-        import tempfile
-        from pathlib import Path
-
         from fabricatio_typst.rust import BibManager
 
         # Create a temp file with content
@@ -205,7 +202,7 @@ class TestCitationManager:
         assert count >= 0  # may be 0 if numbers don't match
 
     def test_apply_replaces_citations(self, populated_cm: CitationManager) -> None:
-        """apply substitutes citation placeholders with typst cite commands."""
+        """Apply substitutes citation placeholders with typst cite commands."""
         text = "According to [[1]], the results are clear."
         result = populated_cm.apply(text)
         # Should have replaced the placeholder
@@ -220,16 +217,22 @@ class TestCitationManager:
 class MockCitationLancedbRAG(LLMTestRole, CitationLancedbRAG):
     """Test double that overrides aretrieve and arefined_query to avoid real LanceDB/LLM calls."""
 
-    canned_chunks: List[ArticleChunk] = []
+    canned_chunks: ClassVar[List[ArticleChunk]] = []
     retrieve_calls: int = 0
 
-    async def aretrieve(self, query, document_model, max_accepted=10,
-                        table_name=None, result_per_query=None):
+    async def aretrieve(
+        self,
+        query: Any,  # type: ignore[annotation-unchecked]
+        document_model: Any,  # type: ignore[annotation-unchecked]
+        max_accepted: int = 10,
+        table_name: Optional[str] = None,
+        result_per_query: Optional[int] = None,
+    ) -> List[ArticleChunk]:
         """Return canned chunks, tracking call count."""
         self.retrieve_calls += 1
         return list(self.canned_chunks)
 
-    async def arefined_query(self, question, **kwargs):
+    async def arefined_query(self, question: str, **kwargs: Any) -> List[str]:
         """Return a canned refined query — no LLM call needed."""
         return ["mock refined query"]
 
@@ -237,8 +240,14 @@ class MockCitationLancedbRAG(LLMTestRole, CitationLancedbRAG):
 class MockDedupCitationLancedbRAG(MockCitationLancedbRAG):
     """Variant that returns a chunk whose key is already held — for dedup testing."""
 
-    async def aretrieve(self, query, document_model, max_accepted=10,
-                        table_name=None, result_per_query=None):
+    async def aretrieve(  # noqa: D102
+        self,
+        query: Any,  # type: ignore[annotation-unchecked]
+        document_model: Any,  # type: ignore[annotation-unchecked]
+        max_accepted: int = 10,
+        table_name: Optional[str] = None,
+        result_per_query: Optional[int] = None,
+    ) -> List[ArticleChunk]:
         self.retrieve_calls += 1
         return [
             ArticleChunk(
@@ -363,6 +372,7 @@ class TestCitationLancedbRAG:
 # LancedbRAG view/table pattern (model-level, no DB needed)
 # ---------------------------------------------------------------------------
 
+
 class TestLancedbRAGViewPattern:
     """Verify the view()/safe_target_table pattern works without DB."""
 
@@ -376,7 +386,7 @@ class TestLancedbRAGViewPattern:
     def test_safe_target_table_raises_when_none(self) -> None:
         """safe_target_table raises when no table is viewed."""
         role = MockCitationLancedbRAG()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No table is being viewed"):
             _ = role.safe_target_table
 
     def test_safe_target_table_ok_after_view(self) -> None:

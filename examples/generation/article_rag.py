@@ -1,13 +1,11 @@
 """Demonstrates article generation with LanceDB RAG. The Connect action links article briefing, proposal, outline, and content into a reference chain, then TweakArticleLancedbRAG retrieves relevant sources to improve the article content."""
 
-
 import asyncio
 from pathlib import Path
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
 from fabricatio.actions import DumpFinalizedOutput, PersistentAll, RetrieveFromPersistent, TweakArticleLancedbRAG
-
 from fabricatio.models import Article, ArticleOutline, ArticleProposal
 from fabricatio_core.capabilities.propose import Propose
 

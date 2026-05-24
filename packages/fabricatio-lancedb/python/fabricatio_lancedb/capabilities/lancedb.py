@@ -3,7 +3,6 @@
 import asyncio
 from typing import Iterable, List, Optional, Self, Tuple, Type
 
-
 from fabricatio_core import CONFIG
 from fabricatio_core.utils import first_available, ok
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase

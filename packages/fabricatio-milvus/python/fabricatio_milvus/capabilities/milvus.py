@@ -192,7 +192,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
 
         return doc_model.from_sequence(resp)
 
-    async def aretrieve(
+    async def aretrieve(  # noqa: PLR0913
         self,
         query: str | List[str],
         document_model: Type[D],
@@ -215,6 +215,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
             filter_expr: Milvus filter expression.
             tei_endpoint: Optional TEI endpoint for reranking.
             reranker_threshold: Optional reranker threshold.
+            result_per_query: Optional number of results per individual query (overrides max_accepted per query).
 
         Returns:
             List of document instances of type D.

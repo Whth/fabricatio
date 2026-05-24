@@ -1,8 +1,8 @@
+"""A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
+
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
-
-"""A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
 
 from asyncio import gather
 from pathlib import Path
