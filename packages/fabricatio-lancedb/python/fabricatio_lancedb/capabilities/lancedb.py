@@ -85,29 +85,3 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         )
         return list(flatten(searched))
 
-    async def aretrieve(
-        self,
-        query: str | List[str],
-        document_model: Type[D],
-        max_accepted: int = 10,
-        table_name: Optional[str] = None,
-        result_per_query: Optional[int] = None,
-    ) -> List[D]:
-        """Convenience method to vectorize a query, search LanceDB, and return typed documents.
-
-        Args:
-            query: The query string(s) to search for.
-            document_model: The LancedbDocumentModel subclass to deserialize results into.
-            max_accepted: Maximum number of results to return.
-            table_name: Override the target table name.
-            result_per_query: If provided, overrides max_accepted for the limit.
-
-        Returns:
-            List of document instances of type D.
-        """
-        conf = LancedbFetchRAGConfig(
-            document_model=document_model,
-            limit=result_per_query or max_accepted,
-            table_name=table_name,
-        )
-        return await self.afetch_document(query, conf)
