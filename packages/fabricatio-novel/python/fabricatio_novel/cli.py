@@ -9,7 +9,7 @@ from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, Optional
 
 import typer
 from fabricatio_core import Event, Role, Task
@@ -307,6 +307,20 @@ def store_reference_texts(
     overlap: float = typer.Option(
         0.3, "--overlap", "-ov", help="Overlap ratio between consecutive chunks (0.0–1.0).", envvar="NOVEL_OVERLAP"
     ),
+    ndim: Optional[int] = typer.Option(
+        None,
+        "--ndim",
+        "-nd",
+        help="Embedding vector dimensionality. Must match the embedding model's output dimension.",
+        envvar="FABRICATIO_EMBEDDING__NDIM",
+    ),
+    embedding_send_to: Optional[str] = typer.Option(
+        None,
+        "--send-to",
+        "-st",
+        help="Routing group for embedding requests.",
+        envvar="FABRICATIO_EMBEDDING__SEND_TO",
+    ),
 ) -> None:
     """Ingest text files as writing style references into the LanceDB vector store.
 
@@ -324,6 +338,8 @@ def store_reference_texts(
         text_files=files,
         chunk_size=chunks_size,
         chunk_overlap_ratio=overlap,
+        embedding_ndim=ndim,
+        embedding_send_to=embedding_send_to,
     )
 
     result = task.delegate_blocking(store_refs_ns)
