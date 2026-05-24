@@ -1,6 +1,6 @@
 # `fabricatio-comfyui`
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Whth/fabricatio/blob/master/LICENSE)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-comfyui)
 [![PyPI Version](https://img.shields.io/pypi/v/fabricatio-comfyui)](https://pypi.org/project/fabricatio-comfyui/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-comfyui/week)](https://pepy.tech/projects/fabricatio-comfyui)
@@ -40,16 +40,22 @@ Mix `Comfyui` into a Role and use `comfyui_generate`:
 
 ```python
 import asyncio
-from fabricatio import Role, Task, WorkFlow, Event, logger
+
+from fabricatio import Role, logger
 from fabricatio_comfyui import Comfyui
+
 
 class ImageRole(Role, Comfyui):
     """Role with ComfyUI image generation capability."""
 
-async def main():
-    role = ImageRole(name="ComfyUI Worker", description="Generates images via ComfyUI.")
 
-    # A workflow exported from ComfyUI in API format
+async def main() -> None:
+    """Run a txt2img workflow on the ComfyUI server."""
+    role = ImageRole(
+        name="ComfyUI Worker",
+        description="Generates images via ComfyUI.",
+    )
+
     workflow = {
         "3": {
             "class_type": "KSampler",
@@ -74,6 +80,7 @@ async def main():
     result = await role.comfyui_generate(workflow, download_dir="./outputs")
     logger.info(f"Generated {len(result.all_images)} image(s) — prompt_id={result.prompt_id}")
 
+
 asyncio.run(main())
 ```
 
@@ -93,6 +100,12 @@ GenerateImage = WorkFlow(
 
 ```python
 result = await role.comfyui_upload_image("./input_photo.png")
+```
+
+### Interrupt execution
+
+```python
+await role.comfyui_interrupt()
 ```
 
 ## API
