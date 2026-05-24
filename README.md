@@ -94,10 +94,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Chat interface + API client + WebSocket/SSE streaming
     - [ ] Config panel + agent status dashboard
     - [ ] Error handling + loading states + UX polish
-kq|- [ ] Add ComfyUI integration.
-fq|    - [ ] Package skeleton + `ComfyUIClient` for prompt queue, progress polling, image retrieval
-wz|    - [ ] Workflow template system with dynamic parameter injection (seeds, prompts, dimensions)
-nb|    - [ ] `ComfyUIAction` + Python bindings + integration tests
+        - [ ] Add ComfyUI integration.
+        - [ ] Package skeleton + `ComfyUIClient` for prompt queue, progress polling, image retrieval
+        - [ ] Workflow template system with dynamic parameter injection (seeds, prompts, dimensions)
+        - [ ] `ComfyUIAction` + Python bindings + integration tests
 - [ ] Add Plugin system.
     - [ ] Plugin protocol + registry + lifecycle (load/unload)
     - [ ] Hook points in core lifecycle + entry-point discovery
@@ -157,6 +157,9 @@ nb|    - [ ] `ComfyUIAction` + Python bindings + integration tests
     - [x] Extract lancedb impl into a seperate package
 - [x] `fabricatio-novel` support rag
 - [ ] Refactor `fabricatio-typst`
+- [ ] Lancedb integration refactor
+- [ ] Milvus integration refactor
+- [ ] Novel generation fix
 
 ## Installation
 
