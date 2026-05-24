@@ -361,10 +361,12 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
                 f"{article.referenced.as_prompt()}\n# Subsection requiring reference enhancement\n{subsec.display()}\n"
             )
         )
+        conf = LancedbFetchRAGConfig(document_model=ArticleEssence, limit=self.ref_limit)
+        refs = await self.afetch_document(refind_q, conf)
         await self.censor_obj_inplace(
             subsec,
             ruleset=ruleset,
-            reference=f"{'\n\n'.join(d.display() for d in await self.aretrieve(refind_q, document_model=ArticleEssence, max_accepted=self.ref_limit))}\n\n"
+            reference=f"{'\n\n'.join(d.display() for d in refs)}\n\n"
             f"You can use Reference above to rewrite the `{subsec.__class__.__name__}`.\n"
             f"You should Always use `{subsec.language}` as written language, "
             f"which is the original language of the `{subsec.title}`. "
