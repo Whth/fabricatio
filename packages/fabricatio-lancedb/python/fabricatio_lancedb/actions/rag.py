@@ -3,7 +3,7 @@
 from typing import Any, ClassVar, Self
 
 from fabricatio_core import CONFIG
-from fabricatio_core.models.generic import Action
+from fabricatio_core.models.action import Action
 from fabricatio_core.utils import first_available
 from fabricatio_rag.models.document import StoredDocumentModel
 
