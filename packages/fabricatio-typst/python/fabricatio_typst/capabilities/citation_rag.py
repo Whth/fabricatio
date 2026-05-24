@@ -1,6 +1,6 @@
 from fabricatio_core.utils import cfg
 
-cfg(["rag"])
+cfg(["lancedb"])
 
 """Citation-aware RAG capability backed by LanceDB."""
 

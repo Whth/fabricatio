@@ -1,6 +1,6 @@
 from fabricatio_core.utils import cfg
 
-cfg(["rag"])
+cfg(["lancedb"])
 
 """A Module containing the article rag models."""
 

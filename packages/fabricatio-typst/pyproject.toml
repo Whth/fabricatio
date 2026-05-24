@@ -39,7 +39,7 @@ actions = [
     "fabricatio-rule",
     "questionary"
 ]
-rag = ["fabricatio-lancedb"]
+lancedb = ["fabricatio-lancedb"]
 
 
 [build-system]

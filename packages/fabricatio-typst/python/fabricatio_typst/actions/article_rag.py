@@ -1,6 +1,6 @@
 from fabricatio_core.utils import cfg
 
-cfg(["rag"])
+cfg(["lancedb"])
 
 """A module for writing articles using RAG (Retrieval-Augmented Generation) capabilities."""
 
