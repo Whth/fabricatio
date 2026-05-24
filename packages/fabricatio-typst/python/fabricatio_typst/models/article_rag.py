@@ -17,12 +17,13 @@ from fabricatio_core.rust import blake3_hash, split_into_chunks
 from fabricatio_core.utils import ok, wrap_in_block
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
-from fabricatio_typst.models.article_essence import ArticleEssence as _ArticleEssence
-from fabricatio_typst.models.kwargs_types import ChunkKwargs
-from fabricatio_typst.rust import BibManager
 from more_itertools.more import first
 from more_itertools.recipes import flatten, unique
 from pydantic import Field
+
+from fabricatio_typst.models.article_essence import ArticleEssence as _ArticleEssence
+from fabricatio_typst.models.kwargs_types import ChunkKwargs
+from fabricatio_typst.rust import BibManager
 
 
 class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
