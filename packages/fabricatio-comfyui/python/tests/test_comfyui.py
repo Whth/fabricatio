@@ -95,10 +95,11 @@ async def test_comfyui_generate_full_flow(tmp_path: Path) -> None:
         },
     }
 
-    with patch.object(client, "_api_post") as mock_post, patch.object(
-        client, "_api_get"
-    ) as mock_get, patch.object(client, "comfyui_get_image") as mock_img:
-
+    with (
+        patch.object(client, "_api_post") as mock_post,
+        patch.object(client, "_api_get") as mock_get,
+        patch.object(client, "comfyui_get_image") as mock_img,
+    ):
         mock_post.return_value = {"prompt_id": "mock-uuid-123", "number": 1}
 
         mock_history: Dict[str, Any] = {
@@ -147,9 +148,7 @@ async def test_comfyui_generate_timeout() -> None:
 
     client = Comfyui()
 
-    with patch.object(client, "_api_post") as mock_post, patch.object(
-        client, "_api_get", return_value={}
-    ):
+    with patch.object(client, "_api_post") as mock_post, patch.object(client, "_api_get", return_value={}):
         mock_post.return_value = {"prompt_id": "timeout-uuid"}
 
         with pytest.raises(TimeoutError):

@@ -68,6 +68,7 @@ class Comfyui:
             if ct.startswith("image/") or ct.startswith("application/"):
                 return resp.content
             return resp.json()
+
     async def _api_upload(
         self,
         path: str,

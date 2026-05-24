@@ -23,8 +23,10 @@ Txt2Img = WorkFlow(
 Txt2ImgWithDownload = WorkFlow(
     name="ComfyUI Txt2Img with Download",
     description="Generate an image via ComfyUI and save outputs to a local directory.",
-    steps=(ComfyuiGenerateImage(
-        output_key="comfyui_result",
-        download_dir="./comfyui_outputs",
-    ),),
+    steps=(
+        ComfyuiGenerateImage(
+            output_key="comfyui_result",
+            download_dir="./comfyui_outputs",
+        ),
+    ),
 )

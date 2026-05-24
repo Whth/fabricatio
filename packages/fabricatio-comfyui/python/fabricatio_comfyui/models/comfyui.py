@@ -46,11 +46,13 @@ class ComfyuiOutputImage:
         """Query string for the ``/view`` endpoint."""
         from urllib.parse import urlencode
 
-        return urlencode({
-            "filename": self.filename,
-            "subfolder": self.subfolder,
-            "type": self.type,
-        })
+        return urlencode(
+            {
+                "filename": self.filename,
+                "subfolder": self.subfolder,
+                "type": self.type,
+            }
+        )
 
 
 @dataclass
