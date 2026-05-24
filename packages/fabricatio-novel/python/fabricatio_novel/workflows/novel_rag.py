@@ -85,6 +85,6 @@ ValidatedNovelWithRAGWorkflow = WorkFlow(
 StoreWritingStyleTextsWorkflow = WorkFlow(
     name="StoreWritingStyleTextsWorkflow",
     description="Ingest plain-text files as writing style references into LanceDB. Standalone workflow — not part of novel generation.",
-    steps=(StoreWritingStyleTexts,),
+    steps=(StoreWritingStyleTexts().to_task_output(),),
 )
 """Standalone ingestion workflow for adding writing style reference data."""

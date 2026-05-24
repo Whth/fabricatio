@@ -1,11 +1,11 @@
 """Novel RAG actions for retrieval-augmented generation."""
 
-from pathlib import Path
-from typing import Any, ClassVar, List, Optional
+from typing import Any, ClassVar, List, Optional, Type
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
+from fabricatio_rag.actions.db import StoreTextFile
 
 from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
 from fabricatio_novel.models.draft import NovelDraft
@@ -138,7 +138,7 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
         return chapter_contents
 
 
-class StoreWritingStyleTexts(NovelComposeRAG, Action):
+class StoreWritingStyleTexts(StoreTextFile, NovelComposeRAG):
     """Store writing style reference texts from files into LanceDB.
 
     Reads text files, splits them into chunks, and indexes them
@@ -146,26 +146,6 @@ class StoreWritingStyleTexts(NovelComposeRAG, Action):
     standalone ingestion workflow — it does not generate novel content.
     """
 
-    files: Optional[List[Path]] = None
-    """List of text file paths to ingest as writing style references."""
-
-    chunks_size: int = 512
-    """Maximum words per chunk when splitting files."""
-
-    overlap: float = 0.3
-    """Overlap ratio between consecutive chunks (0.0–1.0)."""
+    store_model: Type[WritingStyleDocument] = WritingStyleDocument
 
     output_key: str = "stored_count"
-    """Key under which the count of ingested files will be stored in context."""
-
-    ctx_override: ClassVar[bool] = True
-
-    async def _execute(self, *_: Any, **cxt: Any) -> int:
-        """Ingest files into LanceDB as writing style chunks."""
-        files = ok(self.files, "`files` is required for storing writing style texts")
-        logger.info(
-            f"Storing writing style texts from {len(files)} file(s) (chunk_size={self.chunks_size}, overlap={self.overlap})..."
-        )
-        await self.store_texts(files, self.chunks_size, self.overlap)
-        logger.info(f"Successfully stored writing style texts from {len(files)} file(s)")
-        return len(files)

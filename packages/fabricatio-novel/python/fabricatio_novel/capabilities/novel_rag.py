@@ -1,7 +1,6 @@
 """Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
 
 from abc import ABC
-from pathlib import Path
 from typing import List, Optional, Unpack
 
 from fabricatio_core.utils import cfg
@@ -57,15 +56,3 @@ class NovelComposeRAG(
 
         # Delegate to NovelCompose.create_chapters for actual generation
         return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
-
-    async def store_texts(self, files: List[Path], chunks_size: int = 512, overlap: float = 0.3) -> None:
-        """Chunk and store text files as writing style reference documents in LanceDB.
-
-        Args:
-            files: List of text file paths to ingest.
-            chunks_size: Maximum word count per chunk.
-            overlap: Overlap ratio between consecutive chunks (0.0-1.0).
-        """
-        chunks = WritingStyleDocument.from_files(files, chunks_size, overlap)
-
-        await self.add_document(chunks)

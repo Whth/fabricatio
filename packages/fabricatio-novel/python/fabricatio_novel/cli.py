@@ -321,9 +321,9 @@ def store_reference_texts(
         typer.echo(f"  • {f}")
 
     task = Task(name="Store writing style references").update_init_context(
-        files=files,
-        chunks_size=chunks_size,
-        overlap=overlap,
+        text_files=files,
+        chunk_size=chunks_size,
+        chunk_overlap_ratio=overlap,
     )
 
     result = task.delegate_blocking(store_refs_ns)
