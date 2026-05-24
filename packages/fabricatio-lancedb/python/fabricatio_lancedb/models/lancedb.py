@@ -28,3 +28,8 @@ class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocume
 
     def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
         return self.model_dump(exclude_none=True)
+
+    @classmethod
+    def with_text_chunk(cls, chunk: str) -> Self:
+        """Create a document model instance from a plain text chunk."""
+        return cls(content=chunk)
