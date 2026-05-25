@@ -4,6 +4,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, ClassVar, List, Type
 
+from fabricatio_core import logger
 from fabricatio_core.models.action import Action
 
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
@@ -29,8 +30,9 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
         *_: Any,
         **cxt,
     ) -> int:
+        logger.debug(f"Chunking {len(text_files)} text file(s) into chunk sized {self.chunk_size}...")
         models = self.store_model.from_txt_files(text_files, self.chunk_size, self.chunk_overlap_ratio)
-
+        logger.debug(f"Get {len(models)} chunks.")
         await self.add_document(models, config=self.store_config)
         return len(text_files)
 
