@@ -9,7 +9,7 @@ from typing import Optional, Set
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ListStringKwargs
-from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
+from fabricatio_lancedb.capabilities.lancedb import LancedbFetchRAGConfig, LancedbRAG
 
 from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 
@@ -38,7 +38,7 @@ class CitationLancedbRAG(LancedbRAG, ABC):
             raise ValueError("max_round should be greater than 0")
         if max_round == 1:
             logger.warn(
-                "max_round should be greater than 1, otherwise it behaves nothing different from `self.aretrieve`"
+                "max_round should be greater than 1, otherwise it behaves nothing different from `self.afetch_document`"
             )
 
         refinery_kwargs = refinery_kwargs or {}
@@ -55,13 +55,12 @@ class CitationLancedbRAG(LancedbRAG, ABC):
                 logger.error(f"At round [{i}/{max_round}] search, failed to refine the query, exit.")
                 return cm
 
-            refs = await self.aretrieve(
-                ref_q,
-                ArticleChunk,
-                base_accepted,
+            conf = LancedbFetchRAGConfig(
+                document_model=ArticleChunk,
+                limit=result_per_query or base_accepted,
                 table_name=table_name,
-                result_per_query=result_per_query,
             )
+            refs = await self.afetch_document(ref_q, conf)
 
             # Client-side dedup: exclude already-held citations
             held_keys: Set[str] = cm.get_dedup_key_set()

@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
 
 import orjson
+from fabricatio_core.journal import logger
+from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.utils import first_available, ok
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -15,11 +19,6 @@ from pydantic import (
     PositiveInt,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
-
-from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
-from fabricatio_core.utils import first_available, ok
 
 
 class Base(BaseModel, ABC):
@@ -327,7 +326,7 @@ class EmbeddingScopedConfig(ScopedConfig):
     """The dimensionality of the output embeddings. Must match between search and store."""
 
     def _resolve_embedding_params(
-        self, send_to: str | None = None, ndim: int | None = None, no_cache: bool | None = None, /, **_
+        self, send_to: str | None = None, ndim: int | None = None, no_cache: bool | None = None, **_
     ) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
@@ -352,7 +351,7 @@ class RerankerScopedConfig(ScopedConfig):
     """Whether to disable caching for the reranker."""
 
     def _resolve_reranker_params(
-        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, /, **_
+        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, **_
     ) -> RerankerKwargs:
         return RerankerKwargs(
             send_to=ok(
@@ -403,7 +402,6 @@ class LLMScopedConfig(ScopedConfig):
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
         no_cache: Optional[bool] = None,
-        /,
         **_,
     ) -> LLMKwargs:
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""

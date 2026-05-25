@@ -11,6 +11,8 @@ class LancedbConfig:
 
     database_uri: str = field(default="./lance.db")
 
+    default_table_name: str = field(default="default")
+
 
 lancedb_config = CONFIG.load("lancedb", LancedbConfig)
 

@@ -4,7 +4,7 @@ Covers model roundtrip (prepare_insertion), CitationManager dedup,
 and CitationLancedbRAG.clued_search with mocked LLM + embedding router.
 """
 
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, List
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -215,18 +215,15 @@ class TestCitationManager:
 
 
 class MockCitationLancedbRAG(LLMTestRole, CitationLancedbRAG):
-    """Test double that overrides aretrieve and arefined_query to avoid real LanceDB/LLM calls."""
+    """Test double that overrides afetch_document and arefined_query to avoid real LanceDB/LLM calls."""
 
     canned_chunks: ClassVar[List[ArticleChunk]] = []
     retrieve_calls: int = 0
 
-    async def aretrieve(
+    async def afetch_document(
         self,
         query: Any,  # type: ignore[annotation-unchecked]
-        document_model: Any,  # type: ignore[annotation-unchecked]
-        max_accepted: int = 10,
-        table_name: Optional[str] = None,
-        result_per_query: Optional[int] = None,
+        config: Any = None,  # type: ignore[annotation-unchecked]
     ) -> List[ArticleChunk]:
         """Return canned chunks, tracking call count."""
         self.retrieve_calls += 1
@@ -240,13 +237,10 @@ class MockCitationLancedbRAG(LLMTestRole, CitationLancedbRAG):
 class MockDedupCitationLancedbRAG(MockCitationLancedbRAG):
     """Variant that returns a chunk whose key is already held — for dedup testing."""
 
-    async def aretrieve(  # noqa: D102
+    async def afetch_document(  # noqa: D102
         self,
         query: Any,  # type: ignore[annotation-unchecked]
-        document_model: Any,  # type: ignore[annotation-unchecked]
-        max_accepted: int = 10,
-        table_name: Optional[str] = None,
-        result_per_query: Optional[int] = None,
+        config: Any = None,  # type: ignore[annotation-unchecked]
     ) -> List[ArticleChunk]:
         self.retrieve_calls += 1
         return [
@@ -265,7 +259,7 @@ class TestCitationLancedbRAG:
 
     @pytest.fixture
     def canned_chunks(self) -> List[ArticleChunk]:
-        """Chunks returned by the mock aretrieve."""
+        """Chunks returned by the mock afetch_document."""
         return [
             ArticleChunk(
                 content="Chunk about neural networks.",
@@ -285,7 +279,7 @@ class TestCitationLancedbRAG:
 
     @pytest.mark.asyncio
     async def test_clued_search_basic_flow(self, canned_chunks: List[ArticleChunk]) -> None:
-        """clued_search runs the search loop with mocked aretrieve + arefined_query."""
+        """clued_search runs the search loop with mocked afetch_document + arefined_query."""
         role = MockCitationLancedbRAG()
         role.canned_chunks = canned_chunks
         cm = CitationManager()

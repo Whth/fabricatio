@@ -2,17 +2,16 @@
 
 from functools import cache
 from operator import itemgetter
-from typing import List, Optional, Self, Type, Unpack
+from typing import List, Optional, Self, Type
 
 from fabricatio_core import logger
 from fabricatio_core.utils import ok
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from more_itertools import flatten, unique
-from pydantic import Field, PrivateAttr
+from pydantic import PrivateAttr
 from pymilvus import MilvusClient
 
 from fabricatio_milvus.config import milvus_config
-from fabricatio_milvus.models.kwargs_types import CollectionConfigKwargs
 from fabricatio_milvus.models.milvus import MilvusDataBase, MilvusScopedConfig
 
 
@@ -49,9 +48,6 @@ class FetchConfig[D: MilvusDataBase](RAGConfigBase):
 class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedConfig, RAG[D, D, AC, FC]):
     """A class for the RAG model using Milvus."""
 
-    target_collection: Optional[str] = Field(default=None)
-    """The name of the collection being viewed."""
-
     _client: Optional[MilvusClient] = PrivateAttr(None)
     """The Milvus client used for the RAG model."""
 
@@ -83,44 +79,6 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
             raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
         return self
 
-    def view(
-        self, collection_name: Optional[str], create: bool = False, **kwargs: Unpack[CollectionConfigKwargs]
-    ) -> Self:
-        """View the specified collection.
-
-        Args:
-            collection_name (str): The name of the collection.
-            create (bool): Whether to create the collection if it does not exist.
-            **kwargs (Unpack[CollectionConfigKwargs]): Additional keyword arguments for collection configuration.
-        """
-        if create and collection_name and not self.check_client().client.has_collection(collection_name):
-            kwargs["dimension"] = ok(
-                kwargs.get("dimension") or self.milvus_dimensions or milvus_config.milvus_dimensions,
-                "`dimension` is not set at any level.",
-            )
-            self.client.create_collection(collection_name, auto_id=True, **kwargs)
-            logger.info(f"Creating collection {collection_name}")
-
-        self.target_collection = collection_name
-        return self
-
-    def quit_viewing(self) -> Self:
-        """Quit the current view.
-
-        Returns:
-            Self: The current instance, allowing for method chaining.
-        """
-        return self.view(None)
-
-    @property
-    def safe_target_collection(self) -> str:
-        """Get the name of the collection being viewed, raise an error if not viewing any collection.
-
-        Returns:
-            str: The name of the collection being viewed.
-        """
-        return ok(self.target_collection, "No collection is being viewed. Have you called `self.view()`?")
-
     async def add_document(
         self,
         data: D | List[D],
@@ -141,7 +99,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         data_vec = await self.vectorize([d.prepare_vectorization() for d in data_seq])
         prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data_seq, data_vec, strict=True)]
 
-        c_name = conf.collection_name or self.safe_target_collection
+        c_name = ok(conf.collection_name, "collection_name must be provided in AddConfig")
         self.check_client().client.insert(c_name, prepared_data)
 
         if conf.flush:
@@ -169,7 +127,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
             raise ValueError("document_model must be provided in FetchConfig")
         # Step 1: Search for vectors
         search_results = self.check_client().client.search(
-            conf.collection_name or self.safe_target_collection,
+            ok(conf.collection_name, "collection_name must be provided in FetchConfig"),
             await self.vectorize(query),
             search_params={"radius": conf.similarity_threshold},
             output_fields=list(doc_model.model_fields),
