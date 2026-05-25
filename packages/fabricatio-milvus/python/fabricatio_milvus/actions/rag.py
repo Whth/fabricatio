@@ -8,7 +8,7 @@ from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
 
-from fabricatio_milvus.capabilities.milvus import MilvusRAG
+from fabricatio_milvus.capabilities.milvus import AddConfig, MilvusRAG
 from fabricatio_milvus.config import milvus_config
 from fabricatio_milvus.models.milvus import MilvusClassicModel, MilvusDataBase
 
@@ -35,24 +35,23 @@ class InjectToDB(Action, MilvusRAG):
         if override_inject:
             self.check_client().client.drop_collection(self.collection_name)
 
-        await self.view(
-            self.collection_name,
-            create=True,
-            schema=seq[0].as_milvus_schema(
-                ok(
-                    self.milvus_dimensions
-                    or milvus_config.milvus_dimensions
-                    or self.embedding_dimensions
-                    or CONFIG.embedding.dimensions
+        dimension = ok(
+            self.milvus_dimensions or milvus_config.milvus_dimensions or self.embedding_ndim or CONFIG.embedding.ndim
+        )
+        if not self.check_client().client.has_collection(self.collection_name):
+            self.client.create_collection(
+                self.collection_name,
+                auto_id=True,
+                dimension=dimension,
+                schema=seq[0].as_milvus_schema(dimension),
+                index_params=IndexParams(
+                    seq[0].vector_field_name,
+                    index_name=seq[0].vector_field_name,
+                    index_type=seq[0].index_type,
+                    metric_type=seq[0].metric_type,
                 ),
-            ),
-            index_params=IndexParams(
-                seq[0].vector_field_name,
-                index_name=seq[0].vector_field_name,
-                index_type=seq[0].index_type,
-                metric_type=seq[0].metric_type,
-            ),
-        ).add_document(seq, flush=True)
+            )
+        await self.add_document(seq, AddConfig(collection_name=self.collection_name, flush=True))
 
         return self.collection_name
 
@@ -79,14 +78,24 @@ class MilvusRAGTalk(Action, MilvusRAG):
         collection_name = kwargs.get("collection_name", "my_collection")
         counter = 0
 
-        self.view(collection_name, create=True)
+        if not self.check_client().client.has_collection(collection_name):
+            self.client.create_collection(
+                collection_name,
+                auto_id=True,
+                dimension=ok(
+                    self.milvus_dimensions or milvus_config.milvus_dimensions,
+                    "`dimension` is not set at any level.",
+                ),
+            )
 
         try:
             while True:
                 user_say = await text("User: ").ask_async()
                 if user_say is None:
                     break
-                ret: List[MilvusClassicModel] = await self.aretrieve(user_say, document_model=MilvusClassicModel)
+                ret: List[MilvusClassicModel] = await self.aretrieve(
+                    user_say, document_model=MilvusClassicModel, collection_name=collection_name
+                )
 
                 gpt_say = await self.aask(
                     user_say, system_message="\n".join(m.text for m in ret) + "\nYou can refer facts provided above."
