@@ -1,14 +1,15 @@
 """This module contains the capabilities for the lancedb."""
 
 import asyncio
+from dataclasses import field
 from typing import Iterable, List, Optional, Self, Tuple, Type
 
 from fabricatio_core import CONFIG
 from fabricatio_core.utils import first_available, ok
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from more_itertools import flatten
-from pydantic import Field
 
+from fabricatio_lancedb.config import lancedb_config
 from fabricatio_lancedb.inited_service import get_service
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 
@@ -16,7 +17,7 @@ from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 class LancedbAddRAGConfig(RAGConfigBase):
     """LanceDB-specific RAG configuration."""
 
-    table_name: str | None = None
+    table_name: str = field(default_factory=lambda: lancedb_config.default_table_name)
 
 
 class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
@@ -24,35 +25,17 @@ class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
 
     document_model: Optional[Type[D]] = None
     limit: int = 15
-    table_name: str | None = None
+    table_name: str = field(default_factory=lambda: lancedb_config.default_table_name)
 
 
 class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFetchRAGConfig](RAG[D, D, AC, FC]):
     """LanceDB-specific RAG capability extending the base RAG class."""
 
-    target_table: Optional[str] = Field(default=None)
-    """The name of the table being viewed."""
-
-    def view(self, table_name: Optional[str]) -> Self:
-        """View the specified table."""
-        self.target_table = table_name
-        return self
-
-    def quit_viewing(self) -> Self:
-        """Quit the current view."""
-        return self.view(None)
-
-    @property
-    def safe_target_table(self) -> str:
-        """Get the name of the table being viewed."""
-        return ok(self.target_table, "No table is being viewed. Have you called `self.view()`?")
-
     async def add_document(self, data: D | List[D], config: AC | None = None) -> Self:
         """Add a document to the LanceDB collection."""
         conf = config or LancedbAddRAGConfig.default()
-
         table = await (await get_service()).create_or_open_table(
-            conf.table_name or self.safe_target_table,
+            conf.table_name,
             first_available((self.embedding_ndim, CONFIG.embedding.ndim)),
         )
 
@@ -68,11 +51,8 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
     async def afetch_document(self, query: str | List[str], config: FC | None = None) -> List[D]:
         """Fetch documents from the LanceDB collection."""
         conf = config or LancedbFetchRAGConfig.default()
-        doc_model = conf.document_model
-        if doc_model is None:
-            raise ValueError("document_model must be provided in FetchConfig")
-
-        table = await (await get_service()).open_table(conf.table_name or self.safe_target_table)
+        doc_model = ok(conf.document_model)
+        table = await (await get_service()).open_table(conf.table_name)
 
         if isinstance(query, str):
             search_vec = await self.vectorize(query)
@@ -84,4 +64,3 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
             *[table.search_document(v, limit=conf.limit) for v in search_vec]
         )
         return list(flatten(searched))
-
