@@ -161,6 +161,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Milvus integration refactor
 - [ ] Novel generation fix
 - [ ] Embedding fail without any debug info fix
+- [ ] Retry for embedding and rerank
 
 ## Installation
 
