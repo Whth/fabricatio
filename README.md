@@ -94,10 +94,12 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Chat interface + API client + WebSocket/SSE streaming
     - [ ] Config panel + agent status dashboard
     - [ ] Error handling + loading states + UX polish
-        - [ ] Add ComfyUI integration.
-        - [ ] Package skeleton + `ComfyUIClient` for prompt queue, progress polling, image retrieval
-        - [ ] Workflow template system with dynamic parameter injection (seeds, prompts, dimensions)
-        - [ ] `ComfyUIAction` + Python bindings + integration tests
+- [ ] Add ComfyUI integration.
+    - [x] Package skeleton + `ComfyUIClient` for prompt queue, progress polling, image retrieval
+    - [x] Workflow template system with dynamic parameter injection
+    - [x] `ComfyUIAction` + Python bindings + integration tests
+    - [ ] WebSocket real-time progress tracking
+    - [ ] End-to-end integration test with running ComfyUI instance
 - [ ] Add Plugin system.
     - [ ] Plugin protocol + registry + lifecycle (load/unload)
     - [ ] Hook points in core lifecycle + entry-point discovery
