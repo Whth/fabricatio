@@ -188,6 +188,39 @@ impl OpenaiModel {
     pub fn new(name: String, provider: Arc<dyn Provider>) -> Self {
         Self { name, provider }
     }
+
+    /// Parse the HTTP response body as the expected JSON type, logging
+    /// the raw response body on API errors or deserialization failures.
+    async fn parse_response<T: serde::de::DeserializeOwned>(
+        &self,
+        response: reqwest::Response,
+        endpoint: &str,
+    ) -> crate::Result<T> {
+        let status = response.status();
+        let body = response.text().await.map_err(|e| ThrydError::Reqwest(e))?;
+
+        if !status.is_success() {
+            error!("API error [{}] {}: {}", status.as_u16(), endpoint, body);
+            return Err(ThrydError::ApiError {
+                status: status.as_u16(),
+                body,
+            });
+        }
+
+        match serde_json::from_str::<T>(&body) {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                error!(
+                    "Failed to deserialize response from {} (status {}): {} — body: {}",
+                    endpoint,
+                    status.as_u16(),
+                    e,
+                    body,
+                );
+                Err(ThrydError::Json(e))
+            }
+        }
+    }
 }
 
 impl Model for OpenaiModel {
