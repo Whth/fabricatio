@@ -408,12 +408,14 @@ impl EmbeddingModel for OpenaiModel {
             .build()?;
 
         let v = to_value(request)?;
-        Ok(self
+        let response = self
             .provider
             .post(OpenAiRoute::Embeddings.as_ref(), &v)
-            .await?
-            .json::<CreateEmbeddingResponse>()
-            .await?
+            .await?;
+        let emb_response = self
+            .parse_response::<CreateEmbeddingResponse>(response, "embeddings")
+            .await?;
+        Ok(emb_response
             .data
             .into_iter()
             .map(|e| e.embedding)
@@ -499,12 +501,12 @@ impl RerankerModel for OpenaiModel {
         let v = to_value(body)?;
         trace!("Rerank request: {v:?}");
 
-        let resp = self
+        let response = self
             .provider
             .post(OpenAiRoute::Reranks.as_ref(), &v)
-            .await?
-            .error_for_status()?
-            .json::<RerankResponseBody>()
+            .await?;
+        let resp = self
+            .parse_response::<RerankResponseBody>(response, "reranks")
             .await?;
 
         let mut ranking: Ranking = resp
