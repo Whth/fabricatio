@@ -180,6 +180,10 @@ pub enum ThrydError {
     #[error("Router error: {0}")]
     Router(String),
 
+    #[error("API error (HTTP {status}): {body}")]
+    ApiError { status: u16, body: String },
+
+    /// Internal/unexpected error.
     #[error("Internal error: {0}")]
     Internal(String),
 }
