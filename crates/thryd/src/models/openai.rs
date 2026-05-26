@@ -311,11 +311,20 @@ impl CompletionModel for OpenaiModel {
         let v = to_value(request)?;
         trace!("Completion request: {v:?}",);
         if stream {
-            let res = self
+            let response = self
                 .provider
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &v)
-                .await?
-                .error_for_status()?
+                .await?;
+            let status = response.status();
+            if !status.is_success() {
+                let body = response.text().await.map_err(ThrydError::from)?;
+                error!("API error [{}] chat/completions: {}", status.as_u16(), body);
+                return Err(ThrydError::ApiError {
+                    status: status.as_u16(),
+                    body,
+                });
+            }
+            let res = response
                 .bytes_stream()
                 .eventsource()
                 .map(|event| {
@@ -338,29 +347,24 @@ impl CompletionModel for OpenaiModel {
                 .collect();
             Ok(res)
         } else {
-            let content = if let Some(choice) = self
+            let response = self
                 .provider
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &v)
-                .await?
-                .error_for_status()?
-                .json::<CreateChatCompletionResponse>()
-                .await
-                .inspect(|resp| {
-                    if let Some(usage) = resp.usage.as_ref() {
-                        debug!(
-                            "Request tokens usages: Input {} | Output {} | Total {}",
-                            usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
-                        )
-                    }
-                })?
+                .await?;
+            let completion_response = self
+                .parse_response::<CreateChatCompletionResponse>(response, "chat/completions")
+                .await?;
+            if let Some(usage) = completion_response.usage.as_ref() {
+                debug!(
+                    "Request tokens usages: Input {} | Output {} | Total {}",
+                    usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+                );
+            }
+            let content = completion_response
                 .choices
                 .first()
-                && let Some(content) = choice.message.content.clone()
-            {
-                content
-            } else {
-                String::new()
-            };
+                .and_then(|choice| choice.message.content.clone())
+                .unwrap_or_default();
             Ok(content)
         }
     }
