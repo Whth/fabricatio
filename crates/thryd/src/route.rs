@@ -64,21 +64,21 @@
 //! }).await?;
 //! ```
 
+use crate::Result;
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
-use crate::Result;
 use crate::{
-    Completion, Embedding, Embeddings, Ranking, RerankerModel, RerankerRequest,
-    ThrydError, TieredCache, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS,
+    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embedding, Embeddings, Ranking,
+    RerankerModel, RerankerRequest, ThrydError, TieredCache,
 };
 use async_trait::async_trait;
-use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
-use serde::de::DeserializeOwned;
+use dashmap::mapref::one::Ref;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
@@ -238,6 +238,11 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         group: RouteGroupName,
         deployment: Deployment<Tag::Model>,
     ) -> Result<&Self> {
+        debug!(
+            "Adding deployment `{}` to group `{}`",
+            deployment.identifier(),
+            group
+        );
         self.groups
             .entry(group)
             .or_default()
@@ -255,6 +260,10 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         group: &str,
         deployment_identifier: DeploymentIdentifier,
     ) -> Result<&Self> {
+        debug!(
+            "Removing deployment `{}` from group `{}`",
+            deployment_identifier, group
+        );
         self.groups
             .get_mut(group)
             .ok_or_else(|| {
@@ -343,6 +352,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// * `Ok(self)` on success
     /// * `Err(ThrydError::Router)` if the group was not found
     pub fn remove_group(&self, group: &str) -> Result<&Self> {
+        debug!("Removing group `{}`", group);
         self.groups.remove(group).ok_or_else(|| {
             ThrydError::Router(format!("Group with name `{}` is not added.", group))
         })?;
@@ -382,16 +392,27 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         let mut d_ref: Option<DeploymentEntry<Tag::Model>> = None;
 
         let g = self.get_group(group.clone())?;
+        let group_size = g.value().len();
+        debug!("Routing group `{group}` ({group_size} deployments)");
 
         for d in g.value() {
             let wait_time = d.min_cooldown_time(input_text.clone()).await;
+            trace!("  `{}` cooldown: {wait_time}ms", d.identifier());
             if wait_time == 0 {
+                debug!("  Selected `{}` (immediately available)", d.identifier());
                 d_ref = Some(d.clone());
                 break;
             } else if wait_time < min_wait_time {
                 min_wait_time = wait_time;
                 d_ref = Some(d.clone());
             }
+        }
+
+        if d_ref.is_some() && min_wait_time != u64::MAX {
+            debug!(
+                "  Selected `{}` (least wait: {min_wait_time}ms)",
+                d_ref.as_ref().unwrap().identifier()
+            );
         }
 
         d_ref.ok_or_else(|| {
@@ -479,11 +500,11 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         send_to: RouteGroupName,
         request: Tag::Request,
     ) -> Result<Tag::Response> {
-        debug!("Invoking route (no cache): {}", send_to);
+        debug!("Invoke (no-cache) → group `{send_to}`");
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
-
+        debug!("Executing request on `{}`", d.identifier());
         Tag::execute_request(d, request).await
     }
 }
@@ -495,6 +516,7 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
         request: Tag::Request,
         no_cache: bool,
     ) -> Result<Tag::Response> {
+        debug!("Invoke dispatch: group=`{send_to}`, no_cache={no_cache}");
         if no_cache {
             self.invoke_fresh(send_to, request).await
         } else {
@@ -507,10 +529,11 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
         send_to: RouteGroupName,
         request: Tag::Request,
     ) -> Result<Tag::Response> {
-        debug!("Invoking route (cached): {}", send_to);
+        debug!("Invoke (cached) → group `{send_to}`");
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
+        debug!("Resolving cache for `{}`", d.identifier());
         // Split creation from await so generic Tag is consumed before the await point,
         // satisfying async_trait Send requirement on the default implementation.
         Tag::cache_resolve(&self.cache, d, request).await
@@ -639,6 +662,7 @@ pub trait ModelTypeTag {
                 // satisfying async_trait Send requirement on the default implementation.
                 let fut = Self::execute_request(deployment, request);
                 let res = fut.await?;
+                debug!("Caching result for: {key}");
                 cache.set_ser(&key, &res)?;
                 Ok(res)
             }
@@ -816,6 +840,7 @@ impl ModelTypeTag for EmbeddingTag {
         };
 
         let ndim = request.ndim;
+        let total = request.texts.len();
         let texts = request.texts;
 
         // Phase 1: Check cache for each unique text
@@ -837,8 +862,16 @@ impl ModelTypeTag for EmbeddingTag {
             }
         }
 
+        let unique = text_status.len();
+        let cached_count = text_status.values().filter(|v| v.is_some()).count();
+        let uncached_count = unique - cached_count;
+        debug!(
+            "Embedding cache: {total} texts, {unique} unique, {cached_count} cached, {uncached_count} uncached (ndim={ndim})"
+        );
+
         // Phase 2: All cached → return immediately
         if all_cached {
+            debug!("All {unique} unique texts cache-hit, returning immediately");
             return Ok(texts
                 .iter()
                 .map(|t| text_status.get(t).unwrap().clone().unwrap())
@@ -855,6 +888,8 @@ impl ModelTypeTag for EmbeddingTag {
         }
 
         // Phase 4: Call API once for all uncached texts
+        let uncached_len = uncached.len();
+        debug!("Embedding API call: {uncached_len} uncached texts");
         let sub_request = EmbeddingRequest {
             texts: uncached.clone(),
             ndim,
@@ -869,6 +904,7 @@ impl ModelTypeTag for EmbeddingTag {
             cache.set_ser(&key, &emb)?;
             text_status.insert(text.clone(), Some(emb));
         }
+        debug!("Cached {uncached_len} fresh embeddings");
 
         // Phase 6: Assemble final result preserving original order & duplicates
         Ok(texts
