@@ -32,6 +32,7 @@ use crate::{
 };
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};
+use tracing::{debug, trace};
 
 /// Macro for automatically tracking usage when a request succeeds.
 ///
@@ -171,6 +172,12 @@ impl<M: ?Sized + Model> Deployment<M> {
     ///     );
     /// ```
     pub fn with_usage_constrain(mut self, rpm: Option<u64>, tpm: Option<u64>) -> Self {
+        debug!(
+            "`{}` quota configured: rpm={:?}, tpm={:?}",
+            self.model.identifier(),
+            rpm,
+            tpm
+        );
         self.usage_tracker = Some(Mutex::new(UsageTracker::with_quota(tpm, rpm)));
         self
     }
@@ -221,10 +228,22 @@ impl<M: ?Sized + Model> Deployment<M> {
     pub async fn wait_capacity_for(&self, input_text: String) -> Result<&Self> {
         if let Some(tracker) = &self.usage_tracker {
             let need = count_token(input_text);
+            let mut waited_total = 0u64;
             while let time = tracker.lock().await.need_wait_for(need)
                 && time > 0
             {
+                waited_total += time;
+                debug!(
+                    "`{}` rate-limited, sleeping {time}ms (cumulative {waited_total}ms)",
+                    self.model.identifier()
+                );
                 sleep(Duration::from_millis(time)).await;
+            }
+            if waited_total > 0 {
+                debug!(
+                    "`{}` capacity available after {waited_total}ms",
+                    self.model.identifier()
+                );
             }
             Ok(self)
         } else {
@@ -258,7 +277,9 @@ impl<M: ?Sized + Model> Deployment<M> {
     /// ```
     pub async fn min_cooldown_time(&self, input_text: String) -> u64 {
         if let Some(tracker) = &self.usage_tracker {
-            tracker.lock().await.need_wait_for_string(input_text)
+            let wait = tracker.lock().await.need_wait_for_string(input_text);
+            trace!("`{}` cooldown: {wait}ms", self.model.identifier());
+            wait
         } else {
             0
         }
@@ -294,7 +315,8 @@ impl<M: ?Sized + Model> Deployment<M> {
     where
         M: CompletionModel,
     {
-        if let Some(tracker) = &self.usage_tracker {
+        debug!("`{}` completion request", self.model.identifier());
+        let res = if let Some(tracker) = &self.usage_tracker {
             let input = request.message.clone();
             let res = self.model.completion(request).await;
             with_tracking!(
@@ -305,7 +327,13 @@ impl<M: ?Sized + Model> Deployment<M> {
             )
         } else {
             self.model.completion(request).await
-        }
+        };
+        debug!(
+            "`{}` completion {}",
+            self.model.identifier(),
+            if res.is_ok() { "succeeded" } else { "failed" }
+        );
+        res
     }
 
     /// Makes an embedding request through the deployment.
@@ -335,13 +363,24 @@ impl<M: ?Sized + Model> Deployment<M> {
     where
         M: EmbeddingModel,
     {
-        if let Some(tracker) = &self.usage_tracker {
+        debug!(
+            "`{}` embedding request ({} texts)",
+            self.model.identifier(),
+            request.texts.len()
+        );
+        let res = if let Some(tracker) = &self.usage_tracker {
             let input = request.texts.iter().cloned().collect();
             let res = self.model.embedding(request).await;
             with_tracking!(tracker, input, res)
         } else {
             self.model.embedding(request).await
-        }
+        };
+        debug!(
+            "`{}` embedding {}",
+            self.model.identifier(),
+            if res.is_ok() { "succeeded" } else { "failed" }
+        );
+        res
     }
 
     /// Makes a reranking request through the deployment.
@@ -369,12 +408,23 @@ impl<M: ?Sized + Model> Deployment<M> {
     where
         M: RerankerModel,
     {
-        if let Some(tracker) = &self.usage_tracker {
+        debug!(
+            "`{}` rerank request ({} docs)",
+            self.model.identifier(),
+            request.documents.len()
+        );
+        let res = if let Some(tracker) = &self.usage_tracker {
             let input = request.documents.iter().cloned().collect();
             let res = self.model.rerank(request).await;
             with_tracking!(tracker, input, res)
         } else {
             self.model.rerank(request).await
-        }
+        };
+        debug!(
+            "`{}` rerank {}",
+            self.model.identifier(),
+            if res.is_ok() { "succeeded" } else { "failed" }
+        );
+        res
     }
 }
