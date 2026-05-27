@@ -164,6 +164,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Novel generation fix
 - [x] Embedding fail without any debug info fix
 - [x] sparse cache for embedding
+- [ ] `Thryd` router support retry
 
 ## Installation
 
