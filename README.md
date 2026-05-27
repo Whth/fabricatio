@@ -159,12 +159,11 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Extract lancedb impl into a seperate package
 - [x] `fabricatio-novel` support rag
 - [ ] Refactor `fabricatio-typst`
-- [ ] Lancedb integration refactor
-- [ ] Milvus integration refactor
+- [x] Lancedb integration refactor
+- [x] Milvus integration refactor
 - [ ] Novel generation fix
-- [ ] Embedding fail without any debug info fix
-- [ ] Retry for embedding and rerank
-- [ ] sparse cache for embedding
+- [x] Embedding fail without any debug info fix
+- [x] sparse cache for embedding
 
 ## Installation
 

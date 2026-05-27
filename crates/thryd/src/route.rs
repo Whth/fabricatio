@@ -64,21 +64,21 @@
 //! }).await?;
 //! ```
 
-use crate::Result;
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
+use crate::Result;
 use crate::{
-    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embeddings, Ranking, RerankerModel,
-    RerankerRequest, ThrydError, TieredCache,
+    Completion, Embedding, Embeddings, Ranking, RerankerModel, RerankerRequest,
+    ThrydError, TieredCache, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS,
 };
 use async_trait::async_trait;
-use dashmap::DashMap;
 use dashmap::mapref::one::Ref;
-use serde::Serialize;
+use dashmap::DashMap;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
@@ -483,9 +483,12 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
+
         Tag::execute_request(d, request).await
     }
+}
 
+impl<Tag: ModelTypeTag + Send> Router<Tag> {
     pub async fn invoke(
         &self,
         send_to: RouteGroupName,
@@ -505,26 +508,12 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         request: Tag::Request,
     ) -> Result<Tag::Response> {
         debug!("Invoking route (cached): {}", send_to);
-
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
-
-        if let Some(cache) = &self.cache {
-            let key = Tag::prepare_cache_key(&request);
-
-            if let Some(val) = cache.get_de::<Tag::Response>(key.as_str()) {
-                debug!("Cache hit for: {key}");
-                Ok(val)
-            } else {
-                debug!("Cache missed for: {key}");
-                let res = Tag::execute_request(d, request).await?;
-                cache.set_ser(&key, &res)?;
-                Ok(res)
-            }
-        } else {
-            Tag::execute_request(d, request).await
-        }
+        // Split creation from await so generic Tag is consumed before the await point,
+        // satisfying async_trait Send requirement on the default implementation.
+        Tag::cache_resolve(&self.cache, d, request).await
     }
 }
 
@@ -595,7 +584,8 @@ pub trait ModelTypeTag {
     type Model: ?Sized + Model;
 
     /// The request struct type for this model type.
-    type Request;
+    /// Must be `Send` to support async_trait default method futures.
+    type Request: Send;
 
     /// The response type for this model type.
     /// Must support serialization for caching and deserialization for cache retrieval.
@@ -629,6 +619,33 @@ pub trait ModelTypeTag {
     /// Override to customize cache key generation.
     fn prepare_cache_key(request: &Self::Request) -> String {
         blake3::hash(Self::prepare_input_text(request).as_bytes()).to_string()
+    }
+
+    /// Each tag defines its own caching strategy. Default: batch-level.
+    /// Override for per-item sparse caching.
+    async fn cache_resolve(
+        cache: &Option<TieredCache>,
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        if let Some(cache) = cache {
+            let key = Self::prepare_cache_key(&request);
+            if let Some(val) = cache.get_de::<Self::Response>(key.as_str()) {
+                debug!("Cache hit for: {key}");
+                Ok(val)
+            } else {
+                debug!("Cache missed for: {key}");
+                // Split creation from await so request is consumed before the await point,
+                // satisfying async_trait Send requirement on the default implementation.
+                let fut = Self::execute_request(deployment, request);
+                let res = fut.await?;
+                cache.set_ser(&key, &res)?;
+                Ok(res)
+            }
+        } else {
+            let fut = Self::execute_request(deployment, request);
+            fut.await
+        }
     }
 
     /// Execute a request against a deployment.
@@ -783,6 +800,83 @@ impl ModelTypeTag for EmbeddingTag {
         t_seq.concat()
     }
 
+    async fn cache_resolve(
+        cache: &Option<TieredCache>,
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        // Fast path: no cache → execute directly (moves request, no partial destructure)
+        let cache = match cache {
+            Some(c) => c,
+            None => {
+                // Split creation from await to satisfy async_trait Send requirement
+                let fut = Self::execute_request(deployment, request);
+                return fut.await;
+            }
+        };
+
+        let ndim = request.ndim;
+        let texts = request.texts;
+
+        // Phase 1: Check cache for each unique text
+        // text_status maps text → Some(embedding) if cached, None if uncached
+        let mut text_status: std::collections::HashMap<String, Option<Embedding>> =
+            std::collections::HashMap::with_capacity(texts.len());
+        let mut all_cached = true;
+
+        for text in &texts {
+            if text_status.contains_key(text) {
+                continue;
+            }
+            let key = format!("emb:{}:{}", ndim, blake3::hash(text.as_bytes()));
+            if let Some(emb) = cache.get_de::<Embedding>(&key) {
+                text_status.insert(text.clone(), Some(emb));
+            } else {
+                text_status.insert(text.clone(), None);
+                all_cached = false;
+            }
+        }
+
+        // Phase 2: All cached → return immediately
+        if all_cached {
+            return Ok(texts
+                .iter()
+                .map(|t| text_status.get(t).unwrap().clone().unwrap())
+                .collect());
+        }
+
+        // Phase 3: Collect unique uncached texts in original order (first occurrence)
+        let mut uncached: Vec<String> = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for text in &texts {
+            if text_status.get(text).unwrap().is_none() && seen.insert(text.clone()) {
+                uncached.push(text.clone());
+            }
+        }
+
+        // Phase 4: Call API once for all uncached texts
+        let sub_request = EmbeddingRequest {
+            texts: uncached.clone(),
+            ndim,
+        };
+        // Split creation from await to satisfy async_trait Send requirement
+        let fut = Self::execute_request(deployment, sub_request);
+        let fresh = fut.await?;
+
+        // Phase 5: Store each fresh embedding in cache
+        for (text, emb) in uncached.iter().zip(fresh) {
+            let key = format!("emb:{}:{}", ndim, blake3::hash(text.as_bytes()));
+            cache.set_ser(&key, &emb)?;
+            text_status.insert(text.clone(), Some(emb));
+        }
+
+        // Phase 6: Assemble final result preserving original order & duplicates
+        Ok(texts
+            .into_iter()
+            .map(|t| text_status.get(&t).unwrap().clone().unwrap())
+            .collect())
+    }
+
     async fn execute_request(
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
@@ -870,5 +964,174 @@ mod tests {
         // Second call must return cached result (only 1 response was configured)
         let second = router.invoke_cached("rank".into(), request).await.unwrap();
         assert_eq!(first, second);
+    }
+
+    #[tokio::test]
+    async fn test_embedding_sparse_cache_per_text() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("emb-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Single response: first API call returns 2 embeddings for ["A", "B"]
+        let model = DummyModel::new("embed".to_string(), provider)
+            .with_embedding_responses(vec![vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        // First call: uncached ["A", "B"] → hits API
+        let first = router
+            .invoke_cached(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["hello".into(), "world".into()],
+                    ndim: 3,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(first, vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]);
+
+        // Second call: ["hello"] → cache hit, no API call (only 1 response configured)
+        let second = router
+            .invoke_cached(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["hello".into()],
+                    ndim: 3,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(second, vec![vec![0.1, 0.2, 0.3]]);
+    }
+
+    #[tokio::test]
+    async fn test_embedding_sparse_cache_within_batch_dedup() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("dedup-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Single response: one embedding for deduped ["hello"]
+        let model = DummyModel::new("embed".to_string(), provider)
+            .with_embedding_responses(vec![vec![vec![0.1, 0.2, 0.3]]]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        // Request with duplicate text: ["hello", "hello"] → API called once for ["hello"]
+        let result = router
+            .invoke_cached(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["hello".into(), "hello".into()],
+                    ndim: 3,
+                },
+            )
+            .await
+            .unwrap();
+
+        // Should return two copies of the same embedding
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], vec![0.1, 0.2, 0.3]);
+        assert_eq!(result[1], vec![0.1, 0.2, 0.3]);
+    }
+
+    #[tokio::test]
+    async fn test_embedding_sparse_cache_mixed() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("mixed-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Two responses: DummyModel pops LIFO, so last element is returned first
+        // Index 1 (last): first call → ["A", "B"] → 2 embeddings
+        // Index 0 (first): second call → ["C"] → 1 embedding
+        let model = DummyModel::new("embed".to_string(), provider).with_embedding_responses(vec![
+            vec![vec![0.7, 0.8, 0.9]],
+            vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
+        ]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        // First call: ["A", "B"] → API call, both cached
+        let first = router
+            .invoke_cached(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["A".into(), "B".into()],
+                    ndim: 3,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(first, vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]);
+
+        // Second call: ["A", "C"] → "A" cached, "C" uncached → only API call for "C"
+        let second = router
+            .invoke_cached(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["A".into(), "C".into()],
+                    ndim: 3,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(second, vec![vec![0.1, 0.2, 0.3], vec![0.7, 0.8, 0.9]]);
+    }
+
+    #[tokio::test]
+    async fn test_embedding_sparse_cache_no_cache_bypass() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("nocache-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Two responses: DummyModel pops LIFO, so last element is returned first
+        let model = DummyModel::new("embed".to_string(), provider)
+            .with_embedding_responses(vec![vec![vec![0.7, 0.8, 0.9]], vec![vec![0.1, 0.2, 0.3]]]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        // First call with no_cache=true → bypasses cache entirely, calls API
+        let first = router
+            .invoke(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["hello".into()],
+                    ndim: 3,
+                },
+                true,
+            )
+            .await
+            .unwrap();
+        assert_eq!(first, vec![vec![0.1, 0.2, 0.3]]);
+
+        // Second call with no_cache=false → cache miss (fresh call didn't write) → API call
+        let second = router
+            .invoke(
+                "embed".into(),
+                EmbeddingRequest {
+                    texts: vec!["hello".into()],
+                    ndim: 3,
+                },
+                false,
+            )
+            .await
+            .unwrap();
+        assert_eq!(second, vec![vec![0.7, 0.8, 0.9]]);
     }
 }
