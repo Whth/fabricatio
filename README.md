@@ -161,7 +161,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Refactor `fabricatio-typst`
 - [x] Lancedb integration refactor
 - [x] Milvus integration refactor
-- [ ] Novel generation fix
+- [x] Novel generation fix
 - [x] Embedding fail without any debug info fix
 - [x] sparse cache for embedding
 - [ ] `Thryd` router support retry
