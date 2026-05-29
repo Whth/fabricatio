@@ -321,6 +321,9 @@ def store_reference_texts(
         help="Routing group for embedding requests.",
         envvar="FABRICATIO_EMBEDDING__SEND_TO",
     ),
+    batch_size: int = typer.Option(
+        10, "--batch-size", "-bs", help="Number of chunks per storage batch.", envvar="NOVEL_BATCH_SIZE"
+    ),
 ) -> None:
     """Ingest text files as writing style references into the LanceDB vector store.
 
@@ -340,6 +343,7 @@ def store_reference_texts(
         chunk_overlap_ratio=overlap,
         embedding_ndim=ndim,
         embedding_send_to=embedding_send_to,
+        store_batch_size=batch_size,
     )
 
     result = task.delegate_blocking(store_refs_ns)
