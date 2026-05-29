@@ -15,7 +15,7 @@ use lancedb::index::Index;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::PyDict;
 
 use crate::utils;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -269,6 +269,7 @@ impl VectorStoreTable {
         table: Table,
         schema_ref: SchemaRef,
         documents: Vec<StoreDocument>,
+        rebuild_index: bool,
     ) -> PyResult<Vec<String>> {
         let (mut id_seq, timestamp_seq, mut vector_seq, mut content_seq, mut metadata_seq) =
             Self::make_container(documents.len())?;
@@ -320,7 +321,7 @@ impl VectorStoreTable {
 
         // Create vector index only when enough rows exist for PQ training (min 256).
         // Small datasets fall back to brute-force scan automatically.
-        if table.count_rows(None).await.into_pyresult()? >= 256 {
+        if rebuild_index && table.count_rows(None).await.into_pyresult()? >= 256 {
             table
                 .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
                 .execute()
@@ -382,30 +383,52 @@ impl VectorStoreTable {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[builtins.list[builtins.str]]", imports = ("typing", "builtins"))
     )]
+    #[pyo3(signature = (documents, rebuild_index=true))]
     /// Adds multiple documents to the vector store.
     ///
     /// Args:
     ///     documents: A list of StoreDocument objects to be added to the store.
+    ///     rebuild_index: If true (default), rebuild the vector index after adding. Set to false for bulk inserts.
     ///
     /// Returns:
     ///     An awaitable that resolves to a list of document IDs.
     fn add_documents<'a>(
         &self,
         python: Python<'a>,
-        documents: Bound<'a, PyList>,
+        documents: Vec<StoreDocument>,
+        rebuild_index: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let docs = documents
-            .iter()
-            .map(|document| {
-                let doc = document.extract::<StoreDocument>()?;
-                Ok(doc)
-            })
-            .collect::<PyResult<Vec<StoreDocument>>>()?;
-
         future_into_py(
             python,
-            Self::add_documents_inner(self.ndim, self.table.clone(), self.schema_ref.clone(), docs),
+            Self::add_documents_inner(
+                self.ndim,
+                self.table.clone(),
+                self.schema_ref.clone(),
+                documents,
+                rebuild_index,
+            ),
         )
+    }
+
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing", "builtins"))
+    )]
+    /// Rebuilds the vector index on the table.
+    ///
+    /// Useful after bulk inserts with `rebuild_index=False`.
+    /// No-op if the table has fewer than 256 rows (minimum for PQ training).
+    fn rebuild_index<'a>(&self, python: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+        let table = self.table.clone();
+        future_into_py(python, async move {
+            if table.count_rows(None).await.into_pyresult()? >= 256 {
+                table
+                    .create_index(&[VECTOR_FIELD_NAME], Index::Auto)
+                    .execute()
+                    .await
+                    .into_pyresult()?;
+            }
+            Ok(())
+        })
     }
 
     #[gen_stub(

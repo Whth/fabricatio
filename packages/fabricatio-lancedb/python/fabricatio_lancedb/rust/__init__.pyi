@@ -84,14 +84,24 @@ class VectorStoreService:
 
 @typing.final
 class VectorStoreTable:
-    def add_documents(self, documents: list) -> typing.Awaitable[builtins.list[builtins.str]]:
+    def add_documents(
+        self, documents: list[StoreDocument], rebuild_index: builtins.bool = True
+    ) -> typing.Awaitable[builtins.list[builtins.str]]:
         r"""Adds multiple documents to the vector store.
 
         Args:
             documents: A list of StoreDocument objects to be added to the store.
+            rebuild_index: If True (default), rebuild the vector index after adding. Set to False for bulk inserts.
 
         Returns:
             An awaitable that resolves to a list of document IDs.
+        """
+
+    def rebuild_index(self) -> typing.Awaitable[None]:
+        r"""Rebuilds the vector index on the table.
+
+        Useful after bulk inserts with ``rebuild_index=False``.
+        No-op if the table has fewer than 256 rows (minimum for PQ training).
         """
     def search_document(
         self, embedding: typing.Sequence[builtins.float], limit: builtins.int
