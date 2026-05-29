@@ -6,7 +6,6 @@ from typing import Any, ClassVar, List, Type
 
 from fabricatio_core import logger
 from fabricatio_core.models.action import Action
-from more_itertools.more import chunked
 
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
@@ -23,7 +22,6 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
     chunk_size: int = 512
     chunk_overlap_ratio: float = 0.3
 
-    store_batch_size: int = 10
     ctx_override: ClassVar[bool] = True
 
     async def _execute(
@@ -35,10 +33,7 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
         logger.debug(f"Chunking {len(text_files)} text file(s) into chunk sized {self.chunk_size}...")
         models = self.store_model.from_txt_files(text_files, self.chunk_size, self.chunk_overlap_ratio)
         logger.debug(f"Get {len(models)} chunks.")
-        batches = list(chunked(models, self.store_batch_size))
-        logger.debug(f"Store {len(batches)} batches.")
-        for batch in batches:
-            await self.add_document(batch, config=self.store_config)
+        await self.add_document(models, config=self.store_config)
         return len(text_files)
 
 
