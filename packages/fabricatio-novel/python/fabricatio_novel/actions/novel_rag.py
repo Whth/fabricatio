@@ -1,10 +1,12 @@
 """Novel RAG actions for retrieval-augmented generation."""
 
+from pathlib import Path
 from typing import Any, ClassVar, List, Optional, Type
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
+from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
 from fabricatio_rag.actions.db import StoreTextFile
 
 from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
@@ -149,3 +151,22 @@ class StoreWritingStyleTexts(StoreTextFile, NovelComposeRAG):
     store_model: Type[WritingStyleDocument] = WritingStyleDocument
 
     output_key: str = "stored_count"
+
+    store_config: LancedbAddRAGConfig | None = None
+
+    async def _execute(
+        self,
+        text_files: List[Path],
+        *_: Any,
+        **cxt,
+    ) -> int:
+        table_name = None
+        if self.store_config:
+            table_name = self.store_config.table_name
+            self.store_config.rebuild_index = False
+
+        cont = await super()._execute(text_files=text_files, **cxt)
+        logger.info("Rebuilding index...")
+        await self.rebuild_index(table_name)
+        logger.info("Index rebuilt!")
+        return cont
