@@ -6,6 +6,7 @@ with customizable outlines, chapter guidance, language options, styling, and mor
 """
 
 from fabricatio_core.utils import cfg
+from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
 
 cfg(feats=["cli"])
 from pathlib import Path
@@ -324,6 +325,9 @@ def store_reference_texts(
     batch_size: int = typer.Option(
         10, "--batch-size", "-bs", help="Number of chunks per storage batch.", envvar="NOVEL_BATCH_SIZE"
     ),
+    parallel_size: int = typer.Option(
+        10, "--parallel-size", "-ps", help="Number of worker sending embedding reqs.", envvar="NOVEL_PARALLEL_SIZE"
+    ),
 ) -> None:
     """Ingest text files as writing style references into the LanceDB vector store.
 
@@ -337,13 +341,16 @@ def store_reference_texts(
     for f in files:
         typer.echo(f"  • {f}")
 
+    conf = LancedbAddRAGConfig.default()
+    conf.embedding_batch_size = batch_size
+    conf.embedding_parallel_size = parallel_size
     task = Task(name="Store writing style references").update_init_context(
         text_files=files,
         chunk_size=chunks_size,
         chunk_overlap_ratio=overlap,
+        store_config=conf,
         embedding_ndim=ndim,
         embedding_send_to=embedding_send_to,
-        store_batch_size=batch_size,
     )
 
     result = task.delegate_blocking(store_refs_ns)
