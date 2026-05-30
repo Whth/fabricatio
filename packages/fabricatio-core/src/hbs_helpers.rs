@@ -3,7 +3,7 @@ use crate::language::convert_to_string_respectively;
 use crate::word_split::word_count as wc;
 use blake3::hash as blake3_hash;
 use handlebars::handlebars_helper;
-use serde_json::Value;
+use serde_json::{Value, to_string};
 use whichlang::detect_language;
 
 handlebars_helper!(len: |v: Value| match v {
@@ -19,9 +19,9 @@ handlebars_helper!(hash: |v:String| blake3_hash(v.as_bytes()).to_string());
 
 handlebars_helper!(word_count: |v:String| wc(v.as_str()));
 
-handlebars_helper!(block: |v:String,title:String| {
+handlebars_helper!(block: |v:Value,title:String| {
 
-    format!("{}\n",generic_block(title.as_str(),v.as_str()))
+    format!("{}\n",generic_block(title.as_str(),to_string(&v).unwrap_or_default().as_str()))
 
 });
 
