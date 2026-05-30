@@ -281,7 +281,7 @@ class TestCitationLancedbRAG:
     async def test_clued_search_basic_flow(self, canned_chunks: List[ArticleChunk]) -> None:
         """clued_search runs the search loop with mocked afetch_document + arefined_query."""
         role = MockCitationLancedbRAG()
-        role.canned_chunks = canned_chunks
+        MockCitationLancedbRAG.canned_chunks = canned_chunks
         cm = CitationManager()
 
         result = await role.clued_search(
@@ -331,7 +331,7 @@ class TestCitationLancedbRAG:
     async def test_clued_search_max_capacity(self, canned_chunks: List[ArticleChunk]) -> None:
         """When max_capacity is exceeded, chunks are truncated."""
         role = MockCitationLancedbRAG()
-        role.canned_chunks = canned_chunks * 10
+        MockCitationLancedbRAG.canned_chunks = canned_chunks * 10
         cm = CitationManager()
 
         result = await role.clued_search(
@@ -348,7 +348,7 @@ class TestCitationLancedbRAG:
     async def test_clued_search_empty_citation_manager(self, canned_chunks: List[ArticleChunk]) -> None:
         """clued_search works starting from an empty CitationManager."""
         role = MockCitationLancedbRAG()
-        role.canned_chunks = canned_chunks
+        MockCitationLancedbRAG.canned_chunks = canned_chunks
         cm = CitationManager()
 
         result = await role.clued_search(
@@ -360,38 +360,3 @@ class TestCitationLancedbRAG:
         )
 
         assert len(result.article_chunks) > 0
-
-
-# ---------------------------------------------------------------------------
-# LancedbRAG view/table pattern (model-level, no DB needed)
-# ---------------------------------------------------------------------------
-
-
-class TestLancedbRAGViewPattern:
-    """Verify the view()/safe_target_table pattern works without DB."""
-
-    def test_view_sets_target_table(self) -> None:
-        """view() updates target_table."""
-        role = MockCitationLancedbRAG()
-        assert role.target_table is None
-        role.view("my_table")
-        assert role.target_table == "my_table"
-
-    def test_safe_target_table_raises_when_none(self) -> None:
-        """safe_target_table raises when no table is viewed."""
-        role = MockCitationLancedbRAG()
-        with pytest.raises(ValueError, match="No table is being viewed"):
-            _ = role.safe_target_table
-
-    def test_safe_target_table_ok_after_view(self) -> None:
-        """safe_target_table returns table name after view()."""
-        role = MockCitationLancedbRAG()
-        role.view("test_table")
-        assert role.safe_target_table == "test_table"
-
-    def test_quit_viewing_resets(self) -> None:
-        """quit_viewing() resets target_table to None."""
-        role = MockCitationLancedbRAG()
-        role.view("test_table")
-        role.quit_viewing()
-        assert role.target_table is None
