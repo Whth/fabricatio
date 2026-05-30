@@ -9,7 +9,7 @@ from fabricatio_core.models.generic import Base, Vectorizable
 from fabricatio_core.rust import split_into_chunks
 
 
-class StoredDocumentModel[ST](Vectorizable, Base, metaclass=ABCMeta):
+class StoredDocumentModel[ST](Base, Vectorizable, metaclass=ABCMeta):
     """A base class for document models."""
 
     @abstractmethod
