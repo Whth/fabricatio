@@ -58,7 +58,7 @@ class CitationLancedbRAG(LancedbRAG, ABC):
             conf = LancedbFetchRAGConfig(
                 document_model=ArticleChunk,
                 limit=result_per_query or base_accepted,
-                table_name=table_name,
+                **({"table_name": table_name} if table_name else {}),
             )
             refs = await self.afetch_document(ref_q, conf)
 
