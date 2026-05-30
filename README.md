@@ -158,8 +158,8 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Convert `fabricatio-rag` to a pure python package
     - [x] Extract lancedb impl into a seperate package
 - [x] `fabricatio-novel` support rag
-- [ ] Refactor `fabricatio-typst`
 - [x] Lancedb integration refactor
+   - [ ] Refactor `fabricatio-typst`
 - [x] Milvus integration refactor
 - [x] Novel generation fix
 - [x] Embedding fail without any debug info fix
