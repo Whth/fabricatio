@@ -25,6 +25,8 @@ DEFAULT_LICENSE := "MIT"
 DEFAULT_EMAIL := "example@mail.com"
 DEFAULT_DESC := "An extension of fabricatio"
 
+alias tp := test_package
+
 # Format and fix code style.
 fix:
     cargo fmt
@@ -67,6 +69,9 @@ test_raw:
 
 # Install full dependencies and run tests.
 test: py_sync test_raw
+
+test_package name:
+    cd {{ PACKAGES }}/fabricatio-{{ name }} && uv run --no-sync pytest
 
 # Build and prepare for publishing.
 publish py_ver=PY dist_dir=DIST:
