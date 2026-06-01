@@ -100,6 +100,11 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] `ComfyUIAction` + Python bindings + integration tests
     - [ ] WebSocket real-time progress tracking
     - [ ] End-to-end integration test with running ComfyUI instance
+- [ ] Novel scene image generation with ComfyUI.
+    - [ ] Scene extraction from novel content + prompt engineering for image generation
+    - [ ] `SceneImageAction` in `fabricatio-novel` calling `fabricatio-comfyui` to generate scene illustrations
+    - [ ] Image embedding into novel output (EPUB/Typst) + configurable style/template selection
+    - [ ] Per-chapter image caching + regeneration on content changes
 - [ ] Add Plugin system.
     - [ ] Plugin protocol + registry + lifecycle (load/unload)
     - [ ] Hook points in core lifecycle + entry-point discovery
