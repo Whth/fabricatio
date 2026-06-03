@@ -15,6 +15,7 @@ from typing import NoReturn, Optional
 import typer
 from fabricatio_core import Event, Role, Task
 
+from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 from fabricatio_novel.workflows.novel_rag import DebugNovelWithRAGWorkflow, StoreWritingStyleTextsWorkflow
 
@@ -236,6 +237,13 @@ def write_novel_with_rag(  # noqa: PLR0913
     persist_dir: Path = typer.Option(
         "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
     ),
+    rag_limit: int = typer.Option(
+        5,
+        "--rag-limit",
+        "-rl",
+        help="Number of writing style documents to retrieve per prompt.",
+        envvar="NOVEL_RAG_LIMIT",
+    ),
 ) -> None:
     """Generate a novel with RAG writing style augmentation based on the provided outline."""
     # Check mutual exclusivity for outline
@@ -278,6 +286,7 @@ def write_novel_with_rag(  # noqa: PLR0913
         novel_language=language,
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
+        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
     )
 
     result = task.delegate_blocking(rag_ns)
