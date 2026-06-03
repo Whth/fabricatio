@@ -17,7 +17,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
-from fabricatio_novel.models.scripting import Script
+from fabricatio_novel.models.scripting import ChapterSummary, Script
 
 
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
@@ -165,8 +165,13 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         guidance: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
-        """Generate actual chapter contents from scripts."""
-        logger.debug(f"Generating chapter contents for {len(chapter_plans)} script(s)")
+        """Generate chapters sequentially with rolling summary context.
+
+        Each chapter is generated one at a time. After each chapter, a structured
+        summary is produced and passed to the next chapter's prompt to maintain
+        narrative continuity across the entire novel.
+        """
+        logger.debug(f"Generating chapter contents sequentially for {len(chapter_plans)} script(s)")
         if not chapter_plans:
             logger.warn("No scripts provided for chapter generation.")
             return []
@@ -174,8 +179,14 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         character_prompt = dump_card(*characters)
         logger.debug(f"Using {len(characters)} character(s) context for chapter generation")
 
-        chapter_prompts = [
-            {
+        chapter_contents: List[str] = []
+        previous_summary: Optional[ChapterSummary] = None
+
+        for i, cp in enumerate(chapter_plans):
+            logger.debug(f"Generating chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
+
+            # 1. Build prompt context with cross-chapter information
+            prompt_ctx = {
                 "script": cp.script.as_prompt(),
                 "characters": character_prompt,
                 "language": draft.language,
@@ -183,20 +194,59 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "expected_word_count": cp.expected_word_count,
                 "chapter_title": cp.formatted_chapter_title,
                 "novel_title": draft.title,
+                "novel_synopsis": draft.synopsis,
+                "all_chapters_titles": draft.all_chapters_titles,
+                "previous_summary": previous_summary.model_dump() if previous_summary else None,
             }
-            for cp in chapter_plans
-        ]
-        logger.debug(f"Prepared {len(chapter_prompts)} chapter generation prompts")
+            rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
 
-        chapter_requirement: List[str] = TEMPLATE_MANAGER.render_template(
-            novel_config.chapter_requirement_template, chapter_prompts
+            # 2. Generate chapter content
+            raw_chapter = ok(await self.aask(rendered, **kwargs))
+            if not raw_chapter:
+                logger.warn(f"Failed to generate content for {cp.formatted_chapter_title}")
+                chapter_contents.append("")
+                continue
+
+            raw_text = raw_chapter[0]
+            chapter_contents.append(raw_text)
+            logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_text)} chars)")
+
+            # 3. Summarize chapter for next iteration's context
+            previous_summary = await self.summarize_chapter(
+                cp.formatted_chapter_title, raw_text, draft.language, **kwargs
+            )
+            if previous_summary:
+                logger.debug(
+                    f"Chapter {i + 1} summarized: {len(previous_summary.key_events)} events, "
+                    f"{len(previous_summary.unresolved_threads)} open threads"
+                )
+
+        logger.info(f"Generated {len(chapter_contents)} chapter content(s) sequentially")
+        return chapter_contents
+
+    async def summarize_chapter(
+        self,
+        chapter_title: str,
+        chapter_content: str,
+        language: str,
+        **kwargs: Unpack[ValidateKwargs[ChapterSummary]],
+    ) -> Optional[ChapterSummary]:
+        """Generate a structured summary of a chapter for cross-chapter context tracking.
+
+        Args:
+            chapter_title: The formatted title of the chapter.
+            chapter_content: The raw text content of the generated chapter.
+            language: The language of the novel.
+            **kwargs: Additional keyword arguments for LLM usage.
+
+        Returns:
+            A ChapterSummary if successful, None otherwise.
+        """
+        prompt = TEMPLATE_MANAGER.render_template(
+            novel_config.chapter_summarization_template,
+            {"chapter_title": chapter_title, "chapter_content": chapter_content, "language": language},
         )
-        logger.debug(f"Chapter requirement template length: {len(chapter_requirement)}")
-
-        response = ok(await self.aask(chapter_requirement, **kwargs))
-
-        logger.info(f"Generated {len(response)} chapter content(s)")
-        return response
+        return await self.propose(ChapterSummary, prompt, **kwargs)
 
     @staticmethod
     def assemble_novel(draft: NovelDraft, chapter_plans: List[ChapterPlan], chapter_contents: List[str]) -> Novel:

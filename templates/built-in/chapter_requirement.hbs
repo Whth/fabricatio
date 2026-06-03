@@ -1,6 +1,23 @@
 {{block characters "Characters Info Board"}}
 {{block script "Chapter Script"}}
 Writing {{chapter_title}} of novel "{{novel_title}}".
+
+**Novel Synopsis:**
+{{novel_synopsis}}
+
+**All Chapters:**
+{{ls all_chapters_titles}}
+
+{{#if previous_summary}}
+**Previous Chapter Context (for continuity — MUST maintain consistency with this):**
+Key Events: {{ls previous_summary.key_events}}
+{{#each previous_summary.character_states}}
+- {{@key}}: {{this}}
+{{/each}}
+Emotional Arc: {{previous_summary.emotional_arc}}
+Unresolved Threads: {{ls previous_summary.unresolved_threads}}
+{{/if}}
+
 {{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
 You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
 You MUST use "{{ language }}" as the writen language.
