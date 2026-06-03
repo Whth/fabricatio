@@ -8,7 +8,7 @@ import asyncio
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Self
 
 import httpx
 
@@ -62,12 +62,11 @@ class ComfyuiClient:
         client.open()
         return client
 
-
-
-    async def __aenter__(self) -> "ComfyuiClient":
+    async def __aenter__(self) -> Self:
         """Open the connection pool and return ``self``."""
         self.open()
         return self
+
     async def __aexit__(self, *_: object) -> None:
         """Close the connection pool."""
         await self.close()
