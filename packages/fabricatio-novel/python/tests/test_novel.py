@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_router_usage
+from fabricatio_mock.models.mock_router import return_json_router_usage, return_model_json_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
 from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
-from fabricatio_novel.models.scripting import Scene, Script
+from fabricatio_novel.models.scripting import ChapterSummary, Scene, Script
 from fabricatio_novel.utils import formated_title
 
 # ---------------------------------------------------------------------------
@@ -991,3 +991,265 @@ class TestNovelCapabilities:
             assert result is not None
             assert len(result) == 1
             assert result[0].scenes[0].description == "The hero begins the journey."
+
+
+# ---------------------------------------------------------------------------
+# Tests: ChapterSummary model
+# ---------------------------------------------------------------------------
+
+
+class TestChapterSummary:
+    """Test suite for the ChapterSummary model."""
+
+    def test_create_with_all_fields(self) -> None:
+        """Test creating a ChapterSummary with all fields populated."""
+        summary = ChapterSummary(
+            key_events=["Hero wakes up", "Hero finds sword"],
+            character_states={"Hero": "confused but determined", "Mentor": "watching from afar"},
+            emotional_arc="From confusion to resolve",
+            unresolved_threads=["Who left the sword?", "What is the prophecy?"],
+        )
+        assert len(summary.key_events) == 2
+        assert summary.key_events[0] == "Hero wakes up"
+        assert summary.character_states["Hero"] == "confused but determined"
+        assert summary.emotional_arc == "From confusion to resolve"
+        assert len(summary.unresolved_threads) == 2
+
+    def test_create_with_empty_lists(self) -> None:
+        """Test creating a ChapterSummary with empty lists."""
+        summary = ChapterSummary(
+            key_events=[],
+            character_states={},
+            emotional_arc="Calm chapter with no major events.",
+            unresolved_threads=[],
+        )
+        assert summary.key_events == []
+        assert summary.character_states == {}
+        assert summary.unresolved_threads == []
+
+    def test_model_dump(self) -> None:
+        """Test that model_dump produces a dict suitable for template rendering."""
+        summary = ChapterSummary(
+            key_events=["Event A", "Event B"],
+            character_states={"Alice": "happy", "Bob": "sad"},
+            emotional_arc="Bittersweet.",
+            unresolved_threads=["Thread A"],
+        )
+        dumped = summary.model_dump()
+        assert isinstance(dumped, dict)
+        assert dumped["key_events"] == ["Event A", "Event B"]
+        assert dumped["character_states"] == {"Alice": "happy", "Bob": "sad"}
+        assert dumped["emotional_arc"] == "Bittersweet."
+        assert dumped["unresolved_threads"] == ["Thread A"]
+
+    def test_json_roundtrip(self) -> None:
+        """Test that ChapterSummary survives JSON serialization and deserialization."""
+        summary = ChapterSummary(
+            key_events=["X happened"],
+            character_states={"Protagonist": "wounded"},
+            emotional_arc="Tense.",
+            unresolved_threads=["Will they survive?"],
+        )
+        json_str = summary.model_dump_json()
+        restored = ChapterSummary.model_validate_json(json_str)
+        assert restored.key_events == summary.key_events
+        assert restored.character_states == summary.character_states
+        assert restored.emotional_arc == summary.emotional_arc
+        assert restored.unresolved_threads == summary.unresolved_threads
+
+
+# ---------------------------------------------------------------------------
+# Tests: summarize_chapter capability (async, mock LLM)
+# ---------------------------------------------------------------------------
+
+
+class TestSummarizeChapter:
+    """Test suite for NovelCompose.summarize_chapter using fabricatio-mock."""
+
+    @pytest.fixture
+    def role(self) -> NovelRole:
+        """Create a NovelRole instance for testing."""
+        return NovelRole()
+
+    @pytest.fixture
+    def sample_summary(self) -> ChapterSummary:
+        """Create a sample ChapterSummary for mock-based tests."""
+        return ChapterSummary(
+            key_events=["The hero drew the sword from the stone"],
+            character_states={"Hero": "shocked and empowered"},
+            emotional_arc="From disbelief to determination",
+            unresolved_threads=["Why was the sword there?", "Who is the hero's father?"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_summarize_chapter_returns_summary(self, role: NovelRole, sample_summary: ChapterSummary) -> None:
+        """Test summarize_chapter returns a ChapterSummary from mocked LLM."""
+        responses = return_model_json_router_usage(sample_summary)
+        with install_router_usage(*responses):
+            result = await role.summarize_chapter("Ch-1: The Awakening", "The hero woke up.", "English")
+            assert result is not None
+            assert isinstance(result, ChapterSummary)
+            assert result.key_events == ["The hero drew the sword from the stone"]
+            assert result.emotional_arc == "From disbelief to determination"
+
+    @pytest.mark.asyncio
+    async def test_summarize_chapter_preserves_character_states(
+        self, role: NovelRole, sample_summary: ChapterSummary
+    ) -> None:
+        """Test that character states are preserved through summarization."""
+        responses = return_model_json_router_usage(sample_summary)
+        with install_router_usage(*responses):
+            result = await role.summarize_chapter("Ch-1: Test", "Some content.", "English")
+            assert result is not None
+            assert "Hero" in result.character_states
+            assert result.character_states["Hero"] == "shocked and empowered"
+
+    @pytest.mark.asyncio
+    async def test_summarize_chapter_preserves_unresolved_threads(
+        self, role: NovelRole, sample_summary: ChapterSummary
+    ) -> None:
+        """Test that unresolved threads are preserved through summarization."""
+        responses = return_model_json_router_usage(sample_summary)
+        with install_router_usage(*responses):
+            result = await role.summarize_chapter("Ch-1: Test", "Some content.", "English")
+            assert result is not None
+            assert len(result.unresolved_threads) == 2
+            assert "Why was the sword there?" in result.unresolved_threads
+
+    @pytest.mark.asyncio
+    async def test_summarize_chapter_returns_none_on_failure(self, role: NovelRole) -> None:
+        """Test that summarize_chapter returns None when LLM returns unparseable output."""
+        responses = return_json_router_usage("this is plain text, not valid json for ChapterSummary")
+        with install_router_usage(*responses):
+            result = await role.summarize_chapter("Ch-1: Fail", "Some content.", "English")
+            assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: create_chapters sequential with rolling summary (async, mock LLM)
+# ---------------------------------------------------------------------------
+
+
+class TestCreateChaptersSequential:
+    """Test suite for the sequential create_chapters with rolling summary context."""
+
+    @pytest.fixture
+    def sample_draft(self) -> NovelDraft:
+        """Create a multi-chapter draft for sequential testing."""
+        return NovelDraft(
+            title="Sequential Test Novel",
+            genre=["Fiction"],
+            synopsis="A hero's journey across three chapters.",
+            character_descriptions=["A brave hero"],
+            chapters=[
+                ChapterDraft(title="Beginning", synopsis="The hero starts.", weight=1.0),
+                ChapterDraft(title="Middle", synopsis="The hero struggles.", weight=1.0),
+                ChapterDraft(title="End", synopsis="The hero triumphs.", weight=1.0),
+            ],
+            expected_word_count=300,
+            language="English",
+            sketch="",
+        )
+
+    @pytest.fixture
+    def sample_character(self) -> CharacterCard:
+        """Create a sample CharacterCard for sequential tests."""
+        return CharacterCard(
+            name="Hero",
+            description="A brave hero",
+            role="Protagonist",
+            look="Tall with brown hair",
+            act="Courageous and kind",
+            want="Save the world",
+            flaw="Too trusting",
+            sketch="",
+        )
+
+    @pytest.fixture
+    def sample_script(self) -> Script:
+        """Create a sample Script for sequential tests."""
+        return Script.with_raw_synosis("The hero begins the journey.")
+
+    @pytest.fixture
+    def sample_summary(self) -> ChapterSummary:
+        """Create a sample ChapterSummary for sequential tests."""
+        return ChapterSummary(
+            key_events=["Hero started the journey"],
+            character_states={"Hero": "determined"},
+            emotional_arc="Hopeful.",
+            unresolved_threads=["What lies ahead?"],
+        )
+
+    @pytest.fixture
+    def role(self) -> NovelRole:
+        """Create a NovelRole instance for sequential tests."""
+        return NovelRole()
+
+    @pytest.mark.asyncio
+    async def test_create_chapters_generates_all_chapters(
+        self,
+        role: NovelRole,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+        sample_summary: ChapterSummary,
+    ) -> None:
+        """Test that create_chapters generates content for every chapter plan."""
+        from fabricatio_novel.models.plan import ChapterPlan
+
+        scripts = [sample_script, sample_script, sample_script]
+        chapter_plans = ChapterPlan.from_draft(sample_draft, scripts)
+
+        # Mock queue: all responses are ChapterSummary JSON.
+        # aask calls return the JSON as raw text (chapter content).
+        # propose calls parse the JSON as ChapterSummary (rolling summary).
+        responses = return_model_json_router_usage(sample_summary)
+        with install_router_usage(*responses):
+            result = await role.create_chapters(sample_draft, chapter_plans, [sample_character])
+
+        assert result is not None
+        assert len(result) == 3
+        for content in result:
+            assert isinstance(content, str)
+            assert len(content) > 0
+
+    @pytest.mark.asyncio
+    async def test_create_chapters_empty_plans_returns_empty(
+        self,
+        role: NovelRole,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+    ) -> None:
+        """Test that create_chapters returns empty list when given no chapter plans."""
+        result = await role.create_chapters(sample_draft, [], [sample_character])
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_create_chapters_single_chapter(
+        self,
+        role: NovelRole,
+        sample_character: CharacterCard,
+        sample_script: Script,
+        sample_summary: ChapterSummary,
+    ) -> None:
+        """Test create_chapters with a single chapter plan (edge case: no previous summary for ch1)."""
+        single_draft = NovelDraft(
+            title="One Shot",
+            genre=["Fiction"],
+            synopsis="A single chapter story.",
+            character_descriptions=["A hero"],
+            chapters=[ChapterDraft(title="Solo", synopsis="Everything happens.", weight=1.0)],
+            expected_word_count=100,
+            language="English",
+            sketch="",
+        )
+        chapter_plans = ChapterPlan.from_draft(single_draft, [sample_script])
+
+        responses = return_model_json_router_usage(sample_summary)
+        with install_router_usage(*responses):
+            result = await role.create_chapters(single_draft, chapter_plans, [sample_character])
+
+        assert result is not None
+        assert len(result) == 1
+        assert isinstance(result[0], str)
+        assert len(result[0]) > 0
