@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.31.2-dev3"
+version = "0.31.3"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -223,9 +223,9 @@ fabricatio-checkpoint = { workspace = true }
 fabricatio-webui = { workspace = true }
 fabricatio-milvus = { workspace = true }
 fabricatio-workspace = { workspace = true }
-fabricatio-tei = {workspace = true}
-fabricatio-lancedb = {workspace = true}
-fabricatio-comfyui = {workspace = true}
+fabricatio-tei = { workspace = true }
+fabricatio-lancedb = { workspace = true }
+fabricatio-comfyui = { workspace = true }
 
 
 
