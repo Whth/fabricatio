@@ -69,3 +69,19 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
     def with_raw_synosis(cls, synosis: str) -> Self:
         """Create a script with a single scene containing the synopsis as narrative."""
         return cls(global_prompt="", scenes=[Scene.with_raw_description(synosis)])
+
+
+class ChapterSummary(SketchedAble):
+    """Structured summary of a generated chapter for cross-chapter context tracking."""
+
+    key_events: List[str]
+    """Major plot events that occurred in this chapter."""
+
+    character_states: Dict[str, str]
+    """Map of character name to their emotional/physical state at chapter end."""
+
+    emotional_arc: str
+    """The emotional trajectory and tone shift across this chapter."""
+
+    unresolved_threads: List[str]
+    """Plot hooks, tensions, or questions that remain open for future chapters."""
