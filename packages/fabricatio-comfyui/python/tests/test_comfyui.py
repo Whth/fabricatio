@@ -23,20 +23,24 @@ class TestModels:
     """Model unit tests."""
 
     def test_node_ref_to_list(self) -> None:
+        """Convert node reference to ComfyUI link list."""
         ref = ComfyuiNodeRef(node_id="3", output_index=0)
         assert ref.to_list() == ["3", 0]
 
     def test_node_ref_default_index(self) -> None:
+        """Node reference defaults to output index 0."""
         ref = ComfyuiNodeRef(node_id="5")
         assert ref.output_index == 0
 
     def test_output_image_url_path(self) -> None:
+        """Output image URL path encodes all fields."""
         img = ComfyuiOutputImage(filename="test.png", subfolder="sub", type="output")
         assert "filename=test.png" in img.url_path
         assert "subfolder=sub" in img.url_path
         assert "type=output" in img.url_path
 
     def test_execution_result_all_images(self) -> None:
+        """Flatten images from multiple output nodes."""
         result = ComfyuiExecutionResult(
             prompt_id="abc",
             outputs={
@@ -49,16 +53,19 @@ class TestModels:
         assert result.succeeded is True
 
     def test_execution_result_failed(self) -> None:
+        """Failed result exposes error message."""
         result = ComfyuiExecutionResult(prompt_id="abc", status="error", error="CUDA out of memory")
         assert result.succeeded is False
         assert result.error == "CUDA out of memory"
 
     def test_execution_result_empty(self) -> None:
+        """Empty result yields no images and not succeeded."""
         result = ComfyuiExecutionResult(prompt_id="abc")
         assert result.all_images == []
         assert result.succeeded is False
 
     def test_history_entry_from_raw(self) -> None:
+        """Parse history entry from raw API response."""
         raw = {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {"9": {"images": [{"filename": "img.png", "subfolder": "", "type": "output"}]}},
@@ -70,18 +77,21 @@ class TestModels:
         assert entry.outputs["9"].images[0].filename == "img.png"
 
     def test_history_entry_from_raw_empty(self) -> None:
+        """Empty raw dict defaults to unknown status with no outputs."""
         entry = HistoryEntry.from_raw({})
         assert entry.status.status_str == "unknown"
         assert entry.status.completed is False
         assert entry.outputs == {}
 
     def test_history_entry_from_raw_failed(self) -> None:
+        """Failed history entry carries exception string."""
         raw = {"status": {"status_str": "error", "completed": True, "exception": "CUDA OOM"}, "outputs": {}}
         entry = HistoryEntry.from_raw(raw)
         assert entry.status.status_str == "error"
         assert entry.status.exception == "CUDA OOM"
 
     def test_queue_info_from_raw(self) -> None:
+        """Parse queue info with running and pending entries."""
         raw = {
             "queue_running": [[1, "pid-1", {}, {}, []]],
             "queue_pending": [[2, "pid-2", {}, {}, ["node1"]]],
@@ -93,16 +103,19 @@ class TestModels:
         assert info.queue_pending[0].outputs_to_execute == ["node1"]
 
     def test_queue_info_from_raw_empty(self) -> None:
+        """Empty raw dict yields empty queue lists."""
         info = QueueInfo.from_raw({})
         assert info.queue_running == []
         assert info.queue_pending == []
 
     def test_upload_response_from_raw(self) -> None:
+        """Parse upload response fields from raw dict."""
         resp = UploadResponse.from_raw({"name": "test.png", "subfolder": "input", "type": "input"})
         assert resp.name == "test.png"
         assert resp.subfolder == "input"
 
     def test_prompt_response_fields(self) -> None:
+        """PromptResponse carries id, number, and default empty errors."""
         resp = PromptResponse(prompt_id="uuid-123", number=5)
         assert resp.prompt_id == "uuid-123"
         assert resp.number == 5
@@ -137,9 +150,7 @@ async def test_generate_full_flow(tmp_path: Path) -> None:
         mock_history: Dict[str, Any] = {
             "mock-uuid-123": {
                 "status": {"status_str": "completed", "completed": True},
-                "outputs": {
-                    "9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}
-                },
+                "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
             }
         }
 
@@ -178,6 +189,7 @@ async def test_generate_timeout() -> None:
 
 @pytest.mark.asyncio
 async def test_upload_image(tmp_path: Path) -> None:
+    """Upload a local image file and verify the typed response."""
     client = ComfyuiClient()
 
     with patch.object(client, "_upload") as mock_upload:
@@ -194,6 +206,7 @@ async def test_upload_image(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_queue_returns_typed() -> None:
+    """queue_prompt returns a PromptResponse, not a raw dict."""
     client = ComfyuiClient()
 
     with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
@@ -204,6 +217,7 @@ async def test_queue_returns_typed() -> None:
 
 @pytest.mark.asyncio
 async def test_get_history_returns_typed() -> None:
+    """get_history returns a HistoryEntry for a known prompt id."""
     client = ComfyuiClient()
 
     raw = {
@@ -220,6 +234,7 @@ async def test_get_history_returns_typed() -> None:
 
 @pytest.mark.asyncio
 async def test_get_history_missing() -> None:
+    """get_history returns None for a nonexistent prompt id."""
     client = ComfyuiClient()
 
     with patch.object(client, "_get", return_value={}):
@@ -229,6 +244,7 @@ async def test_get_history_missing() -> None:
 
 @pytest.mark.asyncio
 async def test_queue_info_typed() -> None:
+    """get_queue_info returns a typed QueueInfo object."""
     client = ComfyuiClient()
 
     raw = {"queue_running": [], "queue_pending": [[1, "pid", {}, {}, []]]}
