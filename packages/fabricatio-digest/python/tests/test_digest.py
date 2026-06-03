@@ -195,7 +195,7 @@ async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[
     responses = return_model_json_router_usage(test_tasklist)
 
     with install_router_usage(*responses):
-        result = await digest_role.digest(requirement, mock_receptions, temperature=0.7, send_to="gpt-4")
+        result = await digest_role.digest(requirement, mock_receptions, temperature=0.7)
 
         assert result is not None
         assert result.ultimate_target == requirement
