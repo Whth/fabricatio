@@ -63,7 +63,7 @@ class UseLLM(LLMScopedConfig, ABC):
     ) -> str: ...
 
     @logging_exec_time
-    async def aask(
+    async def aask(  # noqa: PLR0913
         self,
         question: str | List[str],
         stream: Optional[bool] = None,
@@ -173,7 +173,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     if (validated := validator(response := await self.aask(question=q, **_kw))) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
-                except ValidationError as e:  # noqa: BLE001
+                except ValidationError as e:
                     logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
                 logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
