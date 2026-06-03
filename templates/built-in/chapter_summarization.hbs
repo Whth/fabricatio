@@ -2,6 +2,16 @@ Analyze the following chapter content and produce a structured summary for narra
 
 **Chapter:** {{chapter_title}}
 
+{{#if previous_summary}}
+**Starting State (from previous chapter — use as baseline to identify what changed):**
+{{previous_summary}}
+
+{{/if}}
 {{block chapter_content "Chapter Content"}}
 
+{{#if previous_summary}}
+Describe what CHANGED from the starting state above — track transitions, not just the final state. Resolve or update threads listed in the starting state.
+{{else}}
+Establish the initial state — this is the first chapter, so capture the baseline for all characters, threads, and emotional tone.
+{{/if}}
 Respond entirely in "{{ language }}".

@@ -196,7 +196,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "novel_title": draft.title,
                 "novel_synopsis": draft.synopsis,
                 "all_chapters_titles": draft.all_chapters_titles,
-                "previous_summary": previous_summary.model_dump() if previous_summary else None,
+                "previous_summary": previous_summary.as_prompt() if previous_summary else None,
             }
             rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
 
@@ -213,7 +213,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
             # 3. Summarize chapter for next iteration's context
             previous_summary = await self.summarize_chapter(
-                cp.formatted_chapter_title, raw_text, draft.language, **kwargs
+                cp.formatted_chapter_title, raw_text, draft.language, previous_summary, **kwargs
             )
             if previous_summary:
                 logger.debug(
@@ -229,14 +229,17 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         chapter_title: str,
         chapter_content: str,
         language: str,
+        previous_summary: Optional["ChapterSummary"] = None,
         **kwargs: Unpack[ValidateKwargs[ChapterSummary]],
-    ) -> Optional[ChapterSummary]:
+    ) -> Optional["ChapterSummary"]:
         """Generate a structured summary of a chapter for cross-chapter context tracking.
 
         Args:
             chapter_title: The formatted title of the chapter.
             chapter_content: The raw text content of the generated chapter.
             language: The language of the novel.
+            previous_summary: The previous chapter's summary, used as starting-state reference.
+                For the first chapter this is None.
             **kwargs: Additional keyword arguments for LLM usage.
 
         Returns:
@@ -244,7 +247,12 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         """
         prompt = TEMPLATE_MANAGER.render_template(
             novel_config.chapter_summarization_template,
-            {"chapter_title": chapter_title, "chapter_content": chapter_content, "language": language},
+            {
+                "chapter_title": chapter_title,
+                "chapter_content": chapter_content,
+                "language": language,
+                "previous_summary": previous_summary.as_prompt() if previous_summary else None,
+            },
         )
         return await self.propose(ChapterSummary, prompt, **kwargs)
 

@@ -26,6 +26,8 @@ class NovelConfig:
     """template used to render chapter summarization prompts for cross-chapter context tracking."""
     writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
     """template used to render writing style documents as prompts (content only, no metadata)."""
+    chapter_summary_as_prompt_template: str = "built-in/chapter_summary_as_prompt"
+    """template used to render chapter summaries as prompts (content only, no metadata)."""
     writing_styles_table_name: str = "writing_styles"
     """table name for storing writing style documents in LanceDB."""
 

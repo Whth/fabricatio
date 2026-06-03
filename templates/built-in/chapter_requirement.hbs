@@ -10,12 +10,7 @@ Writing {{chapter_title}} of novel "{{novel_title}}".
 
 {{#if previous_summary}}
 **Previous Chapter Context (for continuity — MUST maintain consistency with this):**
-Key Events: {{ls previous_summary.key_events}}
-{{#each previous_summary.character_states}}
-- {{@key}}: {{this}}
-{{/each}}
-Emotional Arc: {{previous_summary.emotional_arc}}
-Unresolved Threads: {{ls previous_summary.unresolved_threads}}
+{{previous_summary}}
 {{/if}}
 
 {{#if guidance}}{{block guidance "Chapter Writting Guidance"}}

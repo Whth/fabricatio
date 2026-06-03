@@ -71,17 +71,22 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
         return cls(global_prompt="", scenes=[Scene.with_raw_description(synosis)])
 
 
-class ChapterSummary(SketchedAble):
+class ChapterSummary(SketchedAble, AsPrompt):
     """Structured summary of a generated chapter for cross-chapter context tracking."""
 
-    key_events: List[str]
+    key_events: List[str] = Field(default_factory=list)
     """Major plot events that occurred in this chapter."""
 
-    character_states: Dict[str, str]
+    character_states: Dict[str, str] = Field(default_factory=dict)
     """Map of character name to their emotional/physical state at chapter end."""
 
-    emotional_arc: str
+    emotional_arc: str = ""
     """The emotional trajectory and tone shift across this chapter."""
 
-    unresolved_threads: List[str]
+    unresolved_threads: List[str] = Field(default_factory=list)
     """Plot hooks, tensions, or questions that remain open for future chapters."""
+
+    rendering_template: ClassVar[str] = novel_config.chapter_summary_as_prompt_template
+
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        return self.model_dump()
