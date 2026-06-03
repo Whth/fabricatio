@@ -1,9 +1,7 @@
 """Actions for ComfyUI image generation workflow."""
 
-from __future__ import annotations
-
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
@@ -11,6 +9,7 @@ from fabricatio_core.utils import ok
 
 from fabricatio_comfyui.capabilities.comfyui import Comfyui
 from fabricatio_comfyui.config import comfyui_config
+from fabricatio_comfyui.models.comfyui import ComfyuiExecutionResult, UploadResponse
 
 __all__ = [
     "ComfyuiGenerateImage",
@@ -28,42 +27,28 @@ class ComfyuiGenerateImage(Action, Comfyui):
 
     output_key: str = "comfyui_result"
 
-    workflow: Dict[str, Any] = None  # type: ignore[assignment]
+    workflow: dict[str, Any] = None  # type: ignore[assignment]
     """The ComfyUI workflow graph to execute."""
 
-    download_dir: Optional[str | Path] = None
+    download_dir: str | Path | None = None
     """If set, download output images to this directory."""
 
     poll_interval: float = 1.0
     """Seconds between progress polling requests."""
 
-    timeout: Optional[float] = None
+    timeout: float | None = None
     """Maximum seconds to wait for completion."""
 
-    async def _execute(self, *_: Any, **cxt: Any) -> Dict[str, Any]:
+    async def _execute(self, *_: Any, **cxt: Any) -> ComfyuiExecutionResult:
         workflow = ok(self.workflow, "ComfyuiGenerateImage requires a `workflow` dict")
         logger.info("Starting ComfyUI image generation")
 
-        result = await self.comfyui_generate(
+        return await self.comfyui_generate(
             workflow=workflow,
             download_dir=self.download_dir,
             poll_interval=self.poll_interval,
             timeout=self.timeout or comfyui_config.timeout,
         )
-
-        return {
-            "prompt_id": result.prompt_id,
-            "status": result.status,
-            "error": result.error,
-            "images": [
-                {
-                    "filename": img.filename,
-                    "subfolder": img.subfolder,
-                    "type": img.type,
-                }
-                for img in result.all_images
-            ],
-        }
 
 
 class ComfyuiUploadImage(Action, Comfyui):
@@ -77,7 +62,7 @@ class ComfyuiUploadImage(Action, Comfyui):
     image_type: str = "input"
     """Target directory: ``input`` or ``temp``."""
 
-    async def _execute(self, *_: Any, **cxt: Any) -> Dict[str, Any]:
+    async def _execute(self, *_: Any, **cxt: Any) -> UploadResponse:
         p = Path(ok(self.image_path, "ComfyuiUploadImage requires an `image_path`"))
         logger.info(f"Uploading image {p.name} to ComfyUI")
         return await self.comfyui_upload_image(
