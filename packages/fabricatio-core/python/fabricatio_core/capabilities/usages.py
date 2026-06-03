@@ -17,14 +17,14 @@ from asyncio import gather
 from typing import Callable, Dict, List, Optional, Set, Tuple, Unpack, overload
 
 from more_itertools import duplicates_everseen
-from pydantic import NonNegativeInt, PositiveInt
+from pydantic import NonNegativeInt, PositiveInt, ValidationError
 
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, RerankerScopedConfig, WithBriefing
 from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
-from fabricatio_core.utils import ok
+from fabricatio_core.utils import ok, override_kwargs
 
 
 class UseLLM(LLMScopedConfig, ABC):
@@ -39,6 +39,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         question: List[str],
         send_to: Optional[str] = None,
+        no_cache: Optional[bool] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         max_completion_tokens: Optional[int] = None,
@@ -52,6 +53,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         question: str,
         send_to: Optional[str] = None,
+        no_cache: Optional[bool] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         max_completion_tokens: Optional[int] = None,
@@ -66,6 +68,7 @@ class UseLLM(LLMScopedConfig, ABC):
         question: str | List[str],
         stream: Optional[bool] = None,
         send_to: Optional[str] = None,
+        no_cache: Optional[bool] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         max_completion_tokens: Optional[int] = None,
@@ -77,6 +80,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Args:
             question (str | List[str]): The question or list of questions to ask the model.
             send_to (Optional[str]): The target namespace for the request. If None, uses the default `llm_send_to`.
+            no_cache (Optional[bool]): Whether to use cached responses. If None, uses `llm_no_cache`.
             temperature (Optional[float]): Sampling temperature for response generation. If None, uses `llm_temperature`.
             top_p (Optional[float]): Nucleus sampling parameter. If None, uses `llm_top_p`.
             max_completion_tokens (Optional[int]): Maximum number of tokens to generate. If None, uses `llm_max_completion_tokens`.
@@ -91,6 +95,7 @@ class UseLLM(LLMScopedConfig, ABC):
         kw = self._resolve_completion_params(
             stream=stream,
             send_to=send_to,
+            no_cache=no_cache,
             temperature=temperature,
             top_p=top_p,
             max_completion_tokens=max_completion_tokens,
@@ -162,16 +167,17 @@ class UseLLM(LLMScopedConfig, ABC):
         """
 
         async def _inner(q: str) -> Optional[T]:
+            _kw = kwargs
             for lap in range(max_validations):
                 try:
-                    if (validated := validator(response := await self.aask(question=q, **kwargs))) is not None:
+                    if (validated := validator(response := await self.aask(question=q, **_kw))) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
-                except Exception as e:  # noqa: BLE001
+                except ValidationError as e:  # noqa: BLE001
                     logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
-                    break
                 logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
+                _kw = override_kwargs(_kw, no_cache=True)
 
             if default is None:
                 logger.error(f"Failed to validate the response after {max_validations} attempts.")
