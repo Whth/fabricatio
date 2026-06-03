@@ -493,19 +493,26 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ///     frequency_penalty: None,
     /// }).await?;
     /// ```
-    /// Invoke a request bypassing all cache layers.
-    /// Always calls the LLM directly and never writes to cache.
+    /// Invoke a request bypassing the cache read.
+    /// Always calls the LLM directly and writes the result back to cache,
+    /// overriding any stale entry so future cached calls get the fresh response.
     pub async fn invoke_fresh(
         &self,
         send_to: RouteGroupName,
         request: Tag::Request,
     ) -> Result<Tag::Response> {
-        debug!("Invoke (no-cache) → group `{send_to}`");
+        debug!("Invoke (no-cache read) → group `{send_to}`");
         let d = self
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
         debug!("Executing request on `{}`", d.identifier());
-        Tag::execute_request(d, request).await
+        let key = Tag::prepare_cache_key(&request);
+        let res = Tag::execute_request(d, request).await?;
+        if let Some(cache) = &self.cache {
+            debug!("Overriding cache for: {key}");
+            cache.set_ser(&key, &res)?;
+        }
+        Ok(res)
     }
 }
 
