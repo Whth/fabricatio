@@ -91,8 +91,6 @@ class ViewImageParams(BaseModel):
         }
 
 
-
-
 class PromptResponse(BaseModel):
     """Response from ``POST /prompt``."""
 
