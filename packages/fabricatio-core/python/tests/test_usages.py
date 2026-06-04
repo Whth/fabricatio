@@ -50,7 +50,7 @@ async def test_aask(mock_router: list[str], ret_value: str, role_with_llm: LLMTe
         role_with_llm: Test role with LLM capabilities
     """
     with install_router_usage(*mock_router):
-        assert (await role_with_llm.aask(send_to="openai/gpt-3.5-turbo", question=ret_value)) == ret_value
+        assert (await role_with_llm.aask(question=ret_value)) == ret_value
 
 
 @pytest.mark.parametrize(

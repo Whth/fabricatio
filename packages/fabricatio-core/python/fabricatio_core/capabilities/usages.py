@@ -38,70 +38,33 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: List[str],
-        send_to: Optional[str] = None,
-        no_cache: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        stream: Optional[bool] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[str]: ...
 
     @overload
     async def aask(
         self,
         question: str,
-        send_to: Optional[str] = None,
-        no_cache: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        stream: Optional[bool] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str: ...
 
     @logging_exec_time
-    async def aask(  # noqa: PLR0913
+    async def aask(
         self,
         question: str | List[str],
-        stream: Optional[bool] = None,
-        send_to: Optional[str] = None,
-        no_cache: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
         Args:
             question (str | List[str]): The question or list of questions to ask the model.
-            send_to (Optional[str]): The target namespace for the request. If None, uses the default `llm_send_to`.
-            no_cache (Optional[bool]): Whether to use cached responses. If None, uses `llm_no_cache`.
-            temperature (Optional[float]): Sampling temperature for response generation. If None, uses `llm_temperature`.
-            top_p (Optional[float]): Nucleus sampling parameter. If None, uses `llm_top_p`.
-            max_completion_tokens (Optional[int]): Maximum number of tokens to generate. If None, uses `llm_max_completion_tokens`.
-            stream (Optional[bool]): Whether to stream the response. If None, uses `llm_stream`.
-            presence_penalty (Optional[float]): Presence penalty for response generation. If None, uses `llm_presence_penalty`.
-            frequency_penalty (Optional[float]): Frequency penalty for response generation. If None, uses `llm_frequency_penalty`.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             str | List[str]: The content of the model's response message. Returns a single string if input is a string,
                 or a list of strings if input is a list of strings.
         """
-        kw = self._resolve_completion_params(
-            stream=stream,
-            send_to=send_to,
-            no_cache=no_cache,
-            temperature=temperature,
-            top_p=top_p,
-            max_completion_tokens=max_completion_tokens,
-            presence_penalty=presence_penalty,
-            frequency_penalty=frequency_penalty,
-        )
+        kw = self._resolve_completion_params(**kwargs)
 
         return await rust.router_usage.ask(question=question, **kw)
 
