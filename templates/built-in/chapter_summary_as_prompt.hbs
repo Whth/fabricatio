@@ -2,5 +2,11 @@ Key Events: {{ls key_events}}
 {{#each character_states}}
 - {{@key}}: {{this}}
 {{/each}}
+{{#if character_knowledge}}
+Character Knowledge:
+{{#each character_knowledge}}
+- {{@key}}: {{join this ", "}}
+{{/each}}
+{{/if}}
 Emotional Arc: {{emotional_arc}}
 Unresolved Threads: {{ls unresolved_threads}}

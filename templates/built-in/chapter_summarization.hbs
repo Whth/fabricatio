@@ -11,7 +11,9 @@ Analyze the following chapter content and produce a structured summary for narra
 
 {{#if previous_summary}}
 Describe what CHANGED from the starting state above — track transitions, not just the final state. Resolve or update threads listed in the starting state.
+For each character, update `character_knowledge` — MERGE new facts/events into their existing list. Never remove previously listed knowledge; only add what's newly revealed in this chapter.
 {{else}}
 Establish the initial state — this is the first chapter, so capture the baseline for all characters, threads, and emotional tone.
+For `character_knowledge`, list every fact, event, name, relationship, or secret each character knows after this chapter.
 {{/if}}
 Respond entirely in "{{ language }}".
