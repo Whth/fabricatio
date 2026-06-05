@@ -8,53 +8,72 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
-
-
-An extension of fabricatio.
+Web UI service for the Fabricatio LLM application framework. Serves a Vue-based single-page application built with Vite over an axum HTTP server (Rust, bound via PyO3).
 
 ---
 
-## 📦 Installation
-
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+## Installation
 
 ```bash
 pip install fabricatio[webui]
-
-# or with uv
-# uv pip install fabricatio[webui]
+# or
+pip install fabricatio-webui
 ```
 
-Or install `fabricatio-webui` along with all other components of `fabricatio`:
+The CLI entry point requires the `cli` extra:
 
 ```bash
-pip install fabricatio[full]
-
-# or with uv
-# uv pip install fabricatio[full]
+pip install fabricatio-webui[cli]
 ```
 
-## 🔍 Overview
+## Quick Start
 
-Provides essential tools for:
+Start the service with the bundled frontend:
 
-...
+```bash
+fc-webui
+```
 
+This serves the SPA at `http://127.0.0.1:9846`. Use `--frontend-dir` / `-d` to point at a custom build, and `--addr` / `-a` to change the bind address:
 
+```bash
+fc-webui --addr 0.0.0.0:3000 --frontend-dir ./dist
+```
 
-## 🧩 Key Features
+## API
 
-...
+All functionality is exposed through the Rust-backed Python module `fabricatio_webui.rust`.
 
+### `start_service(frontend_dir, addr)`
 
-## 🔗 Dependencies
+Starts an async HTTP server (axum + tokio) that serves static files from `frontend_dir` with SPA fallback (all unmatched routes serve `index.html`). CORS is permissive.
 
-Core dependencies:
+| Parameter     | Type               | Description                              |
+|---------------|--------------------|------------------------------------------|
+| `frontend_dir`| `str \| PathLike`  | Directory containing the built frontend  |
+| `addr`        | `str`              | Bind address, e.g. `"127.0.0.1:9846"`   |
 
-- `fabricatio-core` - Core interfaces and utilities
-...
+```python
+import asyncio
+from fabricatio_webui.rust import start_service
 
-## 📄 License
+asyncio.run(start_service("./www", "127.0.0.1:9846"))
+```
+
+### Configuration
+
+`WebuiConfig` is a frozen dataclass loaded from Fabricatio's configuration system:
+
+```python
+from fabricatio_webui.config import webui_config
+```
+
+## Dependencies
+
+- `fabricatio-core` — core interfaces and configuration
+- `axum` + `tokio` + `tower-http` (Rust) — HTTP server and middleware
+- `typer` (optional, for CLI) — `fc-webui` command
+
+## License
 
 This project is licensed under the MIT License.
