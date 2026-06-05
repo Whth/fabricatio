@@ -80,6 +80,9 @@ class ChapterSummary(SketchedAble, AsPrompt):
     character_states: Dict[str, str] = Field(default_factory=dict)
     """Map of character name to their emotional/physical state at chapter end."""
 
+    character_knowledge: Dict[str, List[str]] = Field(default_factory=dict)
+    """Map of character name to list of facts/events they know or experienced up to this chapter."""
+
     emotional_arc: str = ""
     """The emotional trajectory and tone shift across this chapter."""
 
