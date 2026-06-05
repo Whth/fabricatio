@@ -7,11 +7,9 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-rule)](https://pepy.tech/projects/fabricatio-rule)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-A Python module for rule-based content validation, correction, and enforcement in LLM applications.
+LLM-backed rule drafting, content validation, and correction enforcement for Fabricatio agents.
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[rule]
@@ -19,115 +17,174 @@ pip install fabricatio[rule]
 uv pip install fabricatio[rule]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+## Overview
 
-```bash
-pip install fabricatio[full]
-# or
-uv pip install fabricatio[full]
-```
+`fabricatio-rule` provides capability mixins and actions that let Fabricatio agents validate and correct content against structured, machine-readable rulesets. Rulesets are drafted from natural language requirements using the agent's configured LLM, then applied to strings or structured objects (implementing `Display`/`WithBriefing`). Violations produce typed `Improvement` objects — making downstream correction workflows fully automated.
 
-## 🔍 Overview
+## Key Types
 
-Provides robust tools for defining, applying, and enforcing rulesets across text and structured objects. Combines
-capabilities from multiple packages to offer:
+| Class | Role |
+|---|---|
+| `Rule` | A single rule: name, description, plus lists of `violation_examples` and `compliance_examples`. Extends `WithBriefing`, `Language`, `SketchedAble`, `PersistentAble`. |
+| `RuleSet` | A named collection of `Rule` instances. Has a `gather(*rulesets)` classmethod to merge multiple rulesets into one. Extends the same base classes as `Rule`. |
+| `RuleSetMetadata` | A `Patch[RuleSet]` for updating a ruleset's name and description fields, used internally during drafting. |
+| `CheckKwargs` | Typed kwargs for check operations; extends `ReferencedKwargs[Improvement]` with a `ruleset: RuleSet` field. |
 
-- Rule generation based on natural language requirements
-  This feature allows users to define rulesets using natural language descriptions. The module parses the natural
-  language input and converts it into a structured ruleset. For example, a user can describe a rule like "All sentences
-  must end with a period" and the module will generate the corresponding rule for content validation.
-- Content validation against rulesets
-  Once the rulesets are defined, the module can validate text and structured objects against these rules. It checks if
-  the content adheres to all the rules in the ruleset. For instance, if a rule states that all words should be in
-  lowercase, the module will flag any words in uppercase as violations.
-- Automatic correction suggestions
-  When content violations are detected, the module can generate automatic correction suggestions. These suggestions are
-  based on the defined rules and the nature of the violation. For example, if a spelling error is detected according to
-  a spelling rule, it can suggest the correct spelling.
-- Censoring/filtering of content
-  This feature enables the censoring or filtering of content based on the rulesets. It can remove or modify parts of the
-  content that violate the rules. For example, if a rule prohibits the use of certain words, the module can censor those
-  words in the content.
+## Capabilities
 
-### Key Features:
+### `Check` — rule-based validation
 
-- Asynchronous execution support
-  The module supports asynchronous execution, which means it can perform multiple tasks concurrently without blocking
-  the main thread. This is useful for handling large amounts of content or multiple rulesets simultaneously. For
-  example, it can validate multiple documents at the same time, improving the overall performance.
-- Structured rule definition format
-  The rulesets are defined in a structured format, which makes them easy to manage and apply. Each rule has a clear
-  definition, including the conditions and actions. This structured format also allows for easy combination and
-  modification of rulesets. For example, users can combine multiple rulesets to create a more comprehensive set of
-  rules.
-- Evidence-based judgment integration
-  The module integrates evidence-based judgment capabilities. It can collect evidence about content violations and use
-  this evidence to make more informed decisions. For example, if a rule violation occurs, it can record the location,
-  the nature of the violation, and any relevant context as evidence.
-- Content correction workflows
-  The content correction workflows define the steps for correcting content violations. It includes processes such as
-  identifying violations, generating correction suggestions, and applying the corrections. These workflows ensure a
-  systematic approach to content correction. For example, it can first identify all the spelling errors, then generate
-  correction suggestions, and finally apply the corrections to the content.
-- Multiple input types (strings, Display/WithBriefing objects)
-  The module can handle multiple input types, including plain strings and more complex Display/WithBriefing objects.
-  This flexibility allows it to be used in different scenarios. For example, it can validate the text in a simple string
-  or the content of a structured object with additional metadata.
+`from fabricatio_rule.capabilities.check import Check`
 
-## 🧩 Usage Example
+An ABC mixin (extends `EvidentlyJudge`, `Propose`) that adds rule-aware validation to any agent:
 
 ```python
-from fabricatio_rule.actions.rules import DraftRuleSet
-The `DraftRuleSet` class is used to generate rulesets based on natural language requirements. It takes a natural language description as input and returns a structured `RuleSet` object. For example, it can convert a description like "All paragraphs should have at least three sentences" into a rule that can be used for content validation.
+class Check(EvidentlyJudge, Propose, ABC):
+    async def draft_ruleset(
+        self, ruleset_requirement: str, rule_count: int = 0, **kwargs
+    ) -> Optional[RuleSet]: ...
+
+    async def check_string_against_rule(
+        self, input_text: str, rule: Rule, reference: str = "", **kwargs
+    ) -> Optional[Improvement]: ...
+
+    async def check_obj_against_rule(
+        self, obj: M, rule: Rule, reference: str = "", **kwargs
+    ) -> Optional[Improvement]: ...
+
+    async def check_string(
+        self, input_text: str, ruleset: RuleSet, reference: str = "", **kwargs
+    ) -> Optional[List[Improvement]]: ...
+
+    async def check_obj(
+        self, obj: M, ruleset: RuleSet, reference: str = "", **kwargs
+    ) -> Optional[List[Improvement]]: ...
+```
+
+- `draft_ruleset` breaks a natural language requirement into individual rule requirements, proposes `Rule` instances and a `RuleSetMetadata` patch, then assembles the final `RuleSet`.
+- `check_string` / `check_obj` validate content against every rule in a ruleset concurrently, returning a list of `Improvement` objects (one per violation).
+- `check_string_against_rule` / `check_obj_against_rule` validate against a single rule. They use `evidently_judge` to confirm a violation, then propose an `Improvement` if one is found.
+
+### `Censor` — check-then-correct workflows
+
+`from fabricatio_rule.capabilities.censor import Censor`
+
+An ABC mixin (extends `Correct`, `Check`) that combines validation and correction:
+
+```python
+class Censor(Correct, Check, ABC):
+    async def censor_string(
+        self, input_text: str, ruleset: RuleSet, **kwargs
+    ) -> Optional[str]: ...
+
+    async def censor_obj(
+        self, obj: M, ruleset: RuleSet, **kwargs
+    ) -> Optional[M]: ...
+
+    async def censor_obj_inplace(
+        self, obj: M, ruleset: RuleSet, **kwargs
+    ) -> Optional[M]: ...
+```
+
+Each method checks the input against the ruleset, gathers any `Improvement` results, then applies corrections via `fabricatio-improve`'s `Correct` capability. Returns the corrected value, or the original if no violations are found.
+
+## Actions
+
+### `DraftRuleSet`
+
+`from fabricatio_rule.actions.rules import DraftRuleSet`
+
+An `Action` (mixing in `Check` and `FromMapping`) that drafts a `RuleSet` from a natural language requirement and stores it in the agent's context under `output_key` (default `"drafted_ruleset"`). Supports batch creation via `from_mapping`.
+
+### `GatherRuleset`
+
+`from fabricatio_rule.actions.rules import GatherRuleset`
+
+An `Action` (mixing in `FromMapping`) that gathers multiple `RuleSet` instances from the agent's context into a single merged ruleset via `RuleSet.gather()`. Validates that all named keys exist and reference `RuleSet` instances.
+
+## Configuration
+
+```python
+from fabricatio_rule.config import rule_config
+
+@dataclass
+class RuleConfig:
+    ruleset_requirement_breakdown_template: str  # template for breaking down requirements
+    rule_requirement_template: str               # template for proposing individual rules
+    check_string_template: str                   # template for check strings
+```
+
+Loaded via `fabricatio-core`'s `CONFIG.load("rule", RuleConfig)`. Customize template names at runtime to swap prompt strategies.
+
+## Usage
+
+```python
+from fabricatio_rule.actions.rules import DraftRuleSet, GatherRuleset
 from fabricatio_rule.capabilities.censor import Censor
-The `Censor` class is responsible for content filtering and correction. It can apply the defined rulesets to the input content and perform actions such as censoring inappropriate words or correcting grammar errors. It can be subclassed to implement custom logic for content handling.
 from fabricatio_rule.models.rule import RuleSet
-The `RuleSet` class represents a collection of rules. It provides methods for managing and applying the rules in the set. For example, it can check if a piece of content adheres to all the rules in the set and return the results of the validation.
 
 
 class MyCensor(Censor):
-    pass  # Implement custom logic if needed
+    """Agent that validates and corrects content against rules."""
+    pass
 
 
 async def example():
-    # Generate a ruleset
-    draft_action = DraftRuleSet(ruleset_requirement="Professional tone and grammar")
-    ruleset: RuleSet = await draft_action._execute()
+    # Generate a ruleset from a natural language requirement
+    draft = DraftRuleSet(
+        ruleset_requirement="Professional tone: no slang, no contractions, formal grammar",
+        output_key="style_rules",
+    )
+    style_rules: RuleSet = await draft._execute()
 
-    # Use censor to validate and correct content
+    # Check and correct content
     censor = MyCensor()
     result = await censor.censor_string(
-        "Ths is a verry bad exmple of txt.",
-        ruleset
+        "this aint right lol",
+        style_rules,
     )
-    print(f"Corrected text: {result}")
+    print(f"Corrected: {result}")
 ```
 
-## 📁 Structure
+Merging multiple rulesets:
+
+```python
+async def merge_example(cxt):
+    gather = GatherRuleset(
+        to_gather=["style_rules", "grammar_rules"],
+        output_key="all_rules",
+    )
+    combined = await gather._execute(**cxt)
+    # combined is RuleSet.gather(style_rules, grammar_rules)
+```
+
+## Package Structure
 
 ```
 fabricatio-rule/
-├── actions/
-│   └── rules.py       - Rule set drafting/gathering actions
-├── capabilities/
-│   ├── check.py       - Core rule checking functionality
-│   └── censor.py      - Content filtering/correction capabilities
-└── models/
-    ├── kwargs_types.py - Validation argument types
-    ├── patch.py        - Metadata patching utilities
-    └── rule.py         - Rule/RuleSet definitions
+├── python/fabricatio_rule/
+│   ├── actions/
+│   │   └── rules.py           # DraftRuleSet, GatherRuleset
+│   ├── capabilities/
+│   │   ├── check.py           # Check mixin
+│   │   └── censor.py          # Censor mixin
+│   ├── models/
+│   │   ├── rule.py            # Rule, RuleSet
+│   │   ├── patch.py           # RuleSetMetadata
+│   │   └── kwargs_types.py    # CheckKwargs
+│   └── config.py              # RuleConfig, rule_config
+└── python/tests/
+    ├── test_check.py
+    └── test_ruleset.py
 ```
 
-## 🔗 Dependencies
+## Dependencies
 
-Built on top of other Fabricatio modules:
+- `fabricatio-core` — base interfaces, templates, action infrastructure
+- `fabricatio-improve` — `Improvement` model and `Correct` capability
+- `fabricatio-judge` — `EvidentlyJudge` for violation detection
+- `fabricatio-capabilities` — base capability patterns (`Patch`, `ProposedUpdateAble`)
 
-- `fabricatio-core` - Core interfaces and utilities
-- `fabricatio-improve` - Correction suggestion mechanisms
-- `fabricatio-judge` - Evidence-based decision making
-- `fabricatio-capabilities` - Base capability patterns
+## License
 
-## 📄 License
-
-MIT – see [LICENSE](../../LICENSE)
-
+MIT — see [LICENSE](LICENSE)
