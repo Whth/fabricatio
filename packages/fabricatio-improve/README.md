@@ -7,11 +7,9 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-improve)](https://pepy.tech/projects/fabricatio-improve)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-A Python library for content review, correction, and improvement in LLM applications.
+Content review, correction, and improvement for LLM applications built on Fabricatio's agent framework.
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[improve]
@@ -19,7 +17,7 @@ pip install fabricatio[improve]
 uv pip install fabricatio[improve]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+For a full installation with all Fabricatio components:
 
 ```bash
 pip install fabricatio[full]
@@ -27,89 +25,134 @@ pip install fabricatio[full]
 uv pip install fabricatio[full]
 ```
 
-## 🔍 Overview
+## Overview
 
-Provides tools for:
+`fabricatio-improve` provides two capability classes that integrate into the Fabricatio agent architecture:
 
-- Content review and problem detection
-  The content review and problem detection tool analyzes the input text to identify various issues. It uses natural
-  language processing techniques to check for grammar errors, spelling mistakes, and semantic inconsistencies. For
-  example, it can detect incorrect word usage, missing punctuation, and unclear sentence structures. It also looks for
-  logical problems in the content, such as contradictions or incomplete arguments.
-- Problem-solution pair generation
-  Once problems are detected, this feature generates appropriate solutions. It takes into account the nature of the
-  problem and the context of the text. For grammar and spelling errors, it can suggest the correct words or phrases. For
-  semantic issues, it can propose alternative ways to express the ideas. The solutions are presented in a clear and
-  actionable format, making it easy for users to implement them.
-- Text correction and refinement
-  The text correction and refinement tool applies the generated solutions to the original text. It not only fixes the
-  identified problems but also refines the overall quality of the text. This includes improving the readability, style,
-  and coherence of the content. For example, it can rephrase sentences to make them more concise and clear, and adjust
-  the tone of the text to be more appropriate for the intended audience.
-- Improvement prioritization based on severity
-  This feature prioritizes the detected problems based on their severity. It assigns a severity level to each problem,
-  taking into account factors such as the impact on the meaning of the text, the frequency of occurrence, and the
-  importance of the context. High - severity problems are given higher priority, ensuring that users focus on fixing the
-  most critical issues first.
-- Interactive feedback loops with users
-  The interactive feedback loops allow users to participate in the improvement process. After the initial analysis and
-  solution generation, the tool presents the problems and solutions to the users. Users can then provide their own
-  feedback, accept or reject the proposed solutions, and suggest alternative approaches. This iterative process ensures
-  that the final improved text meets the users' expectations.
+- **Review** — analyzes text, tasks, or objects to identify problems and propose solutions using LLM-driven evaluation against configurable criteria.
+- **Correct** — applies reviewed problems and solutions to fix troubled text or objects, including best-solution selection and template-based correction.
 
-Built on top of Fabricatio's agent framework with support for asynchronous execution.
+## Key Classes
 
-## 🧩 Usage Example
+### Capabilities
+
+| Class | Base Classes | Description |
+|-------|-------------|-------------|
+| `Review` | `Rating`, `Propose` | Reviews content against a topic and criteria, producing an `Improvement` with identified problems and proposed solutions. |
+| `Correct` | `Rating` | Decides best solutions from review results, then applies fixes to troubled objects or strings using templates. |
+
+### Models
+
+| Model | Description |
+|-------|-------------|
+| `Improvement` | Result of a review — holds `focused_on` topic and a list of `ProblemSolutions`. Supports interactive supervisor filtering and gathering multiple improvements. |
+| `Problem` | A detected issue with `description` (cause), `severity_level` (0-10), and `location`. |
+| `Solution` | A proposed fix with `description` (mechanism), `execute_steps`, `feasibility_level`, and `impact_level`. |
+| `ProblemSolutions` | A pair of one `Problem` with its candidate `Solution` list. Supports deciding the final solution and interactive editing. |
+
+### KWArgs Types
+
+| Type | Used By | Description |
+|------|---------|-------------|
+| `ReviewKwargs` | `Review` | Review parameters including required `topic`, optional `criteria` set, and `rating_manual` dict. |
+| `CorrectKwargs` | `Correct` | Correction parameters including the `improvement` to apply. |
+
+### Configuration
+
+`ImproveConfig` (loaded via `fabricatio_core.CONFIG`) exposes configurable template names:
+
+- `review_string_template` — template for review operations
+- `fix_troubled_string_template` — template for string correction
+- `fix_troubled_obj_template` — template for object correction
+
+## Usage
+
+### Review
+
+```python
+from fabricatio_improve.capabilities.review import Review
+
+
+class MyAgent(Review):
+    """An agent that can review content."""
+
+
+async def review_content():
+    agent = MyAgent()
+    improvement = await agent.review_string(
+        "The quick brown fox jump over the lazy dog.",
+        topic="grammar",
+        criteria={"subject-verb agreement", "spelling"},
+        rating_manual={"spelling": "no typos: 10, minor typos: 5, many typos: 0"},
+    )
+
+    for ps in improvement.problem_solutions:
+        print(f"Problem: {ps.problem.description} (severity: {ps.problem.severity_level}/10)")
+        for sol in ps.solutions:
+            print(f"  Solution: {sol.description}")
+            print(f"  Steps: {', '.join(sol.execute_steps)}")
+```
+
+### Correct
 
 ```python
 from fabricatio_improve.capabilities.correct import Correct
-The `Correct` class is the core component for text correction. It uses a set of pre - trained models and rules to analyze the input text and generate correction suggestions. It can handle different types of text, including articles, reports, and emails.
 from fabricatio_improve.models.improve import Improvement
-The `Improvement` model represents the overall result of the text improvement process. It contains information about the detected problems, the proposed solutions, and the severity levels of each problem. It also provides methods for accessing and manipulating this information.
-from fabricatio_improve.models.problem import Problem, Solution
-The `Problem` class represents a detected issue in the text. It includes attributes such as the description of the problem, its location in the text, and its severity level. The `Solution` class represents the proposed solution for a problem. It contains the description of the solution and the steps to implement it.
+from fabricatio_improve.models.problem import Problem, ProblemSolutions, Solution
 
 
-async def improve_content():
-    # Initialize corrector
-    corrector = Correct()
+class MyCorrector(Correct):
+    """An agent that can correct content."""
 
-    # Sample problematic text
-    text = "Ths txt has many speling erors."
 
-    # Get improvement suggestions
-    improvement: Improvement = await corrector.correct(text)
+async def correct_content():
+    corrector = MyCorrector()
 
-    print(f"Found {len(improvement.problem_solutions)} issues:")
-    for ps in improvement.problem_solutions:
-        print(f"\nProblem: {ps.problem.description}")
-        print(f"Location: {ps.problem.location}")
-        print(f"Severity: {ps.problem.severity_level}/10")
-        print(f"Solution: {ps.solution.description}")
-        print(f"Steps: {', '.join(ps.solution.execute_steps)}")
+    # Build an improvement from prior review
+    problem = Problem(
+        name="subject-verb agreement",
+        cause="'jump' should be 'jumps' for third-person singular",
+        severity_level=7,
+        location="line 1",
+    )
+    solution = Solution(
+        name="fix verb",
+        mechanism="Change 'jump' to 'jumps'",
+        execute_steps=["locate the verb 'jump'", "replace with 'jumps'"],
+        feasibility_level=10,
+        impact_level=5,
+    )
+    improvement = Improvement(
+        focused_on="grammar",
+        problem_solutions=[ProblemSolutions(problem=problem, solutions=[solution])],
+    )
+
+    corrected = await corrector.correct_string(
+        "The quick brown fox jump over the lazy dog.",
+        improvement,
+    )
+    print(corrected)
 ```
 
-## 📁 Structure
+## Structure
 
 ```
 fabricatio-improve/
-├── capabilities/     - Core improvement functionality
-│   ├── correct.py    - Text correction capabilities
-│   └── review.py     - Content review capabilities
-└── models/           - Data models for improvements
-    ├── improve.py    - Improvement result model
-    ├── kwargs_types.py - Validation argument types
-    └── problem.py    - Problem-solution pair definitions
+├── capabilities/
+│   ├── correct.py       — Correct capability (apply fixes to content)
+│   └── review.py        — Review capability (detect problems, propose solutions)
+└── models/
+    ├── improve.py        — Improvement result model
+    ├── problem.py        — Problem, Solution, ProblemSolutions models
+    └── kwargs_types.py   — KWArgs types for correction and review
 ```
 
-## 🔗 Dependencies
+## Dependencies
 
-Built on top of other Fabricatio modules:
+- `fabricatio-core` — core interfaces and utilities
+- `fabricatio-capabilities` — base capability patterns (Rating, Propose)
+- `fabricatio-question` — interactive prompts for supervisor check
 
-- `fabricatio-core` - Core interfaces and utilities
-- `fabricatio-capabilities` - Base capability patterns
+## License
 
-## 📄 License
-
-MIT – see [LICENSE](../../LICENSE)
-
+MIT — see [LICENSE](../../LICENSE)
