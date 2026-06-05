@@ -8,13 +8,11 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-An extension of fabricatio, which brings up the capability to generate localization based on PO file.
+Localization extension for Fabricatio. Reads, translates, and writes gettext `.po` files using LLM-powered translation.
 
 ---
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[locale]
@@ -22,39 +20,90 @@ pip install fabricatio[locale]
 uv pip install fabricatio[locale]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+## Overview
 
-```bash
-pip install fabricatio[full]
-# or
-uv pip install fabricatio[full]
+`fabricatio-locale` automates `.po` file localization by combining Rust-backed PO file I/O with Fabricatio's translation pipeline. It parses standard gettext `.po` files, translates message strings to a target language via `fabricatio-translate`, and writes the localized file back — preserving message IDs, metadata, and file structure.
+
+## API
+
+### Rust-backed (PyO3)
+
+| Symbol | Description |
+|---|---|
+| `Msg(id, txt)` | Immutable message object: `id` is the msgid, `txt` is the translated msgstr. |
+| `read_pofile(path)` | Parses a `.po` file and returns `list[Msg]`. |
+| `update_pofile(path, messages)` | Writes a sequence of `Msg` back to a `.po` file. |
+
+These are available as `from fabricatio_locale.rust import Msg, read_pofile, update_pofile`.
+
+### Capability
+
+| Class | Description |
+|---|---|
+| `Localize` | Extends `Translate`. Provides `async localize(msgs: list[Msg], **kwargs) -> list[Msg]` — translates message texts while preserving IDs. |
+
+### Action
+
+| Class | Description |
+|---|---|
+| `LocalizePoFile` | An executable action combining `Localize` with PO file I/O. Fields: `pofile` (source path), `target_lang` (language code), `output_path` (defaults to overwriting input). Calling `execute()` reads, localizes, and writes the file. |
+
+### Configuration
+
+```python
+from fabricatio_locale.config import locale_config
+# LocaleConfig is a frozen dataclass loaded from Fabricatio's configuration system.
 ```
 
-## 🔍 Overview
+## Usage
 
-Provides localization capabilities for fabricatio applications, enabling the translation and adaptation of text content
-for different languages and regions using PO file standards. It facilitates seamless internationalization workflows in
-AI-driven content creation and processing.
+```python
+from fabricatio_locale.rust import Msg, read_pofile, update_pofile
 
-## 🧩 Key Features
+# Read a PO file
+messages = read_pofile("locales/en.po")
+for msg in messages:
+    print(f"msgid={msg.id} msgstr={msg.txt}")
 
-- **PO File Processing**: Parse and process standard gettext PO files for localization
-- **Message Translation**: Translate message texts while preserving identifiers and context
-- **Batch Localization**: Handle multiple messages simultaneously for efficient processing
-- **Translation Integration**: Leverages advanced translation capabilities for accurate localization
-- **Format Preservation**: Maintains message structure and metadata during translation
-- **Internationalization Support**: Enables global content adaptation for diverse audiences
+# Modify and write back
+updated = [Msg(id=m.id, txt="translated text") for m in messages]
+update_pofile("locales/en.po", updated)
+```
 
-## 🔗 Dependencies
+```python
+from fabricatio_locale.capabilities.localize import Localize
 
-Core dependencies:
+# Localize messages programmatically
+class MyLocalizer(Localize):
+    pass
 
-- `fabricatio-core` - Core interfaces and utilities
-- `fabricatio-translate` - Translation capabilities
+localizer = MyLocalizer()
+result = await localizer.localize(
+    [Msg(id="hello", txt="Hello")],
+    target_language="fr"
+)
+# result[0].txt -> "Bonjour"
+```
 
-No additional dependencies required.
+```python
+from fabricatio_locale.actions.localize import LocalizePoFile
 
-## 📄 License
+# End-to-end PO file localization
+action = LocalizePoFile(
+    pofile="locales/en.po",
+    target_lang="es",
+    output_path="locales/es.po"
+)
+output = await action.execute()
+# output: Path("locales/es.po")
+```
 
-MIT – see [LICENSE](../../LICENSE)
+## Dependencies
 
+- `fabricatio-core` — core interfaces (Action, configuration)
+- `fabricatio-translate` — LLM translation pipeline (the `Translate` capability)
+- `polib` (Rust) — PO file parsing and writing
+
+## License
+
+MIT — see [LICENSE](LICENSE)
