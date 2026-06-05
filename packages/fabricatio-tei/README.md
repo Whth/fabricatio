@@ -8,53 +8,93 @@
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
 [![Build Tool: uv + maturin](https://img.shields.io/badge/built%20with-uv%20%2B%20maturin-orange)](https://github.com/astral-sh/uv)
 
+Integration with [HuggingFace Text Embeddings Inference (TEI)](https://github.com/huggingface/text-embeddings-inference)
+for Fabricatio's provider routing system. Register a TEI server as a provider and use it for embedding generation
+and document reranking through Fabricatio's standard model interfaces.
 
+Requires Python 3.12+.
 
-An extension of fabricatio.
-
----
-
-## 📦 Installation
-
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
+## Installation
 
 ```bash
 pip install fabricatio[tei]
-
-# or with uv
-# uv pip install fabricatio[tei]
+# or
+uv pip install fabricatio[tei]
 ```
 
-Or install `fabricatio-tei` along with all other components of `fabricatio`:
+## Key Components
 
-```bash
-pip install fabricatio[full]
+### Provider Registration (`add_tei`)
 
-# or with uv
-# uv pip install fabricatio[full]
+Rust-backed function exposed as `fabricatio_tei.rust.add_tei`. Registers a TEI server as both an embedding
+and reranking provider in Fabricatio's global router.
+
+```python
+from fabricatio_tei.rust import add_tei
+
+add_tei("my-tei", "http://localhost:8080")
 ```
 
-## 🔍 Overview
+After registration, the TEI server is available to any agent or workflow that uses `UseEmbedding` or `UseReranker`
+capabilities from `fabricatio-core`. Models created through the router will issue requests to the TEI server's
+`/embed` and `/rerank` endpoints.
 
-Provides essential tools for:
+### `Tei` Capability Mixin
 
-...
+Abstract base class inheriting `UseLLM` from `fabricatio-core`. Provides a `tei()` method placeholder for
+building agents that consume TEI services. Extend this class alongside test roles or other capability mixins.
 
+```python
+from fabricatio_tei.capabilities.tei import Tei
+from fabricatio_mock.models.mock_role import LLMTestRole
 
+class TeiRole(LLMTestRole, Tei):
+    """Test role combining LLM testing with TEI capabilities."""
+```
 
-## 🧩 Key Features
+### `TeiConfig`
 
-...
+Dataclass loaded from Fabricatio's configuration system under the `"tei"` section. Extend with fields as needed
+for your deployment.
 
+```python
+from fabricatio_tei.config import tei_config
+```
 
-## 🔗 Dependencies
+## Supported Endpoints
 
-Core dependencies:
+| Route | Endpoint | Use Case |
+|---|---|---|
+| `/embed` | POST with `{"inputs": "text"}` | Generate embeddings for text inputs |
+| `/rerank` | POST with `{"query": "...", "texts": [...]}` | Rerank documents by relevance to a query |
 
-- `fabricatio-core` - Core interfaces and utilities
-...
+The TEI provider implements both `EmbeddingModel` and `RerankerModel` from the `thryd` crate, making it
+compatible with any Fabricatio workflow that consumes these traits.
 
-## 📄 License
+## Package Structure
+
+```
+fabricatio-tei/
+├── python/fabricatio_tei/
+│   ├── capabilities/      - Tei abstract base class
+│   ├── actions/           - Action definitions
+│   ├── models/            - Model definitions
+│   ├── workflows/         - Workflow definitions
+│   ├── config.py          - TeiConfig dataclass
+│   └── __init__.py
+├── src/                   - Rust implementation
+│   ├── lib.rs             - PyO3 module entry point
+│   └── tei.rs             - TEI provider, models, and routes
+├── Cargo.toml
+└── pyproject.toml
+```
+
+## Dependencies
+
+- `fabricatio-core` — router, embedding/reranking interfaces, and configuration system
+- `thryd` (Rust) — provider and model abstractions
+- `fabricatio-router` (Rust) — global provider registry
+
+## License
 
 This project is licensed under the MIT License.
