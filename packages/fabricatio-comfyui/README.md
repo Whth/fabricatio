@@ -5,7 +5,22 @@
 [![PyPI Version](https://img.shields.io/pypi/v/fabricatio-comfyui)](https://pypi.org/project/fabricatio-comfyui/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-comfyui/week)](https://pepy.tech/projects/fabricatio-comfyui)
 
-ComfyUI API integration for Fabricatio — generate images by submitting workflows to a ComfyUI server and downloading the results.
+Async ComfyUI API client for Fabricatio — submit workflow graphs, poll for
+completion, and download generated images. Built on `httpx` with persistent
+connection pooling and full Pydantic-typed API coverage.
+
+## Architecture
+
+The package provides three integration layers, each building on the one below:
+
+| Layer | Class | Purpose |
+|-------|-------|---------|
+| Client | `ComfyuiClient` | Standalone async HTTP client with connection pooling |
+| Capability | `Comfyui` | Mixin that adds ComfyUI methods to a Fabricatio `Role` |
+| Action | `ComfyuiGenerateImage`, `ComfyuiUploadImage` | Pluggable steps for Fabricatio `WorkFlow` |
+
+Pre-built workflow templates (`Txt2Img`, `Txt2ImgWithDownload`) are also
+available as a quick starting point.
 
 ## Installation
 
@@ -17,7 +32,8 @@ uv pip install fabricatio[comfyui]
 
 ## Configuration
 
-Configure the ComfyUI server URL via environment, `.env`, `fabricatio.toml`, or `pyproject.toml`:
+Configure the ComfyUI server URL via environment, `.env`, `fabricatio.toml`, or
+`pyproject.toml`:
 
 ```dotenv
 FABRICATIO_COMFYUI__BASE_URL=http://127.0.0.1:8188
@@ -32,91 +48,134 @@ base_url = "http://127.0.0.1:8188"
 timeout = 300
 ```
 
+The config dataclass supports three fields:
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `base_url` | `http://127.0.0.1:8188` | ComfyUI server base URL |
+| `timeout` | `300.0` | Request timeout in seconds |
+| `pool_size` | `10` | Max concurrent connections in the httpx pool |
+
+Access config at runtime: `from fabricatio_comfyui import comfyui_config`
+
 ## Usage
 
-### Quick Start (capability)
+### Standalone client
 
-Mix `Comfyui` into a Role and use `comfyui_generate`:
+Use `ComfyuiClient` directly as an async context manager — no Fabricatio
+dependency beyond config:
 
 ```python
 import asyncio
-
-from fabricatio import Role, logger
-from fabricatio_comfyui import Comfyui
-
-
-class ImageRole(Role, Comfyui):
-    """Role with ComfyUI image generation capability."""
-
+from fabricatio_comfyui import ComfyuiClient
 
 async def main() -> None:
-    """Run a txt2img workflow on the ComfyUI server."""
-    role = ImageRole(
-        name="ComfyUI Worker",
-        description="Generates images via ComfyUI.",
-    )
-
-    workflow = {
-        "3": {
-            "class_type": "KSampler",
-            "inputs": {
-                "seed": 42, "steps": 20, "cfg": 8,
-                "sampler_name": "euler", "scheduler": "normal",
-                "denoise": 1,
-                "model": ["4", 0],
-                "positive": ["6", 0],
-                "negative": ["7", 0],
-                "latent_image": ["5", 0],
-            },
-        },
-        "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_base.safetensors"}},
-        "5": {"class_type": "EmptyLatentImage", "inputs": {"batch_size": 1, "height": 1024, "width": 1024}},
-        "6": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["4", 1], "text": "a serene mountain landscape"}},
-        "7": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["4", 1], "text": "blurry, low quality"}},
-        "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
-        "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "fabricatio", "images": ["8", 0]}},
-    }
-
-    result = await role.comfyui_generate(workflow, download_dir="./outputs")
-    logger.info(f"Generated {len(result.all_images)} image(s) — prompt_id={result.prompt_id}")
-
+    async with ComfyuiClient.create() as client:
+        result = await client.generate(workflow, download_dir="./outputs")
+        for img in result.all_images:
+            image_bytes = await client.get_image(img.filename)
 
 asyncio.run(main())
 ```
 
-### As an Action (in a WorkFlow)
+### Capability mixin (with a Role)
+
+Mix `Comfyui` into a Role to get `comfyui_*` methods:
+
+```python
+import asyncio
+from fabricatio import Role
+from fabricatio_comfyui import Comfyui
+
+class ImageRole(Role, Comfyui):
+    """Role with ComfyUI image generation capability."""
+
+async def main() -> None:
+    role = ImageRole(name="ComfyUI Worker")
+    result = await role.comfyui_generate(workflow, download_dir="./outputs")
+    for img in result.all_images:
+        print(img.filename)
+
+asyncio.run(main())
+```
+
+### Action (in a WorkFlow)
+
+Use `ComfyuiGenerateImage` and `ComfyuiUploadImage` as composable steps:
 
 ```python
 from fabricatio import WorkFlow
-from fabricatio_comfyui import ComfyuiGenerateImage
+from fabricatio_comfyui import ComfyuiGenerateImage, ComfyuiUploadImage
 
 GenerateImage = WorkFlow(
     name="ComfyUI Generate",
     steps=(ComfyuiGenerateImage(workflow=WORKFLOW, download_dir="./outputs"),),
 )
+
+UploadThenGenerate = WorkFlow(
+    name="Img2Img Pipeline",
+    steps=(
+        ComfyuiUploadImage(image_path="./input.png"),
+        ComfyuiGenerateImage(workflow=IMG2IMG_WORKFLOW),
+    ),
+)
 ```
 
-### Upload an image (for img2img)
+### Upload an image (img2img)
 
 ```python
 result = await role.comfyui_upload_image("./input_photo.png")
+print(result.name)  # filename on the server
 ```
 
-### Interrupt execution
+### Built-in workflow templates
+
+Two minimal templates are provided as quick starting points. In practice, you
+should export your own workflows via "Save (API Format)" from the ComfyUI
+interface.
 
 ```python
-await role.comfyui_interrupt()
+from fabricatio_comfyui.workflows import Txt2Img, Txt2ImgWithDownload
 ```
 
-## API
+## API Reference
 
-| Method | Description |
-|--------|-------------|
-| `comfyui_queue_prompt(workflow)` | Submit a workflow graph, returns `prompt_id` |
-| `comfyui_wait_for_completion(prompt_id)` | Poll until execution finishes |
-| `comfyui_generate(workflow, download_dir=…)` | Queue + wait + download in one call |
-| `comfyui_get_image(filename, …)` | Download a single image by filename |
-| `comfyui_upload_image(image_path)` | Upload an image (img2img input) |
-| `comfyui_interrupt()` | Stop the current execution |
-| `comfyui_get_queue_info()` | Check queue status |
-| `comfyui_get_history(prompt_id)` | Get execution history entry |
+### ComfyuiClient / Comfyui capability
+
+All methods are available on both `ComfyuiClient` and the `Comfyui` capability
+mixin (prefixed with `comfyui_` on the mixin).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `queue_prompt(workflow)` | `PromptResponse` | Submit a workflow graph for execution |
+| `get_queue_info()` | `QueueInfo` | Fetch current queue status (running + pending) |
+| `get_history(prompt_id)` | `HistoryEntry \| None` | Retrieve execution history for a prompt |
+| `wait_for_completion(prompt_id)` | `ComfyuiExecutionResult` | Poll until execution finishes or fails |
+| `generate(workflow, download_dir=…)` | `ComfyuiExecutionResult` | Queue + wait + optionally download images |
+| `get_image(filename, …)` | `bytes` | Download a single generated image |
+| `upload_image(image_path, …)` | `UploadResponse` | Upload an image for img2img workflows |
+| `interrupt()` | `None` | Interrupt the currently running workflow |
+
+### Actions
+
+| Class | Fields | Description |
+|-------|--------|-------------|
+| `ComfyuiGenerateImage` | `workflow`, `download_dir`, `poll_interval`, `timeout` | Queue a workflow and wait for images |
+| `ComfyuiUploadImage` | `image_path`, `image_type` | Upload an image to the server |
+
+### Models
+
+All API responses are deserialized into frozen Pydantic models. Key types:
+
+| Model | Description |
+|-------|-------------|
+| `PromptResponse` | Response from `POST /prompt` — contains `prompt_id` |
+| `ComfyuiExecutionResult` | Final result — `outputs`, `all_images`, `succeeded` |
+| `ComfyuiOutputImage` | Single image metadata — `filename`, `subfolder`, `type` |
+| `HistoryEntry` | Execution history — `status`, per-node `outputs` |
+| `QueueInfo` | Queue state — `queue_running`, `queue_pending` |
+| `UploadResponse` | Upload result — `name`, `subfolder`, `type` |
+
+## License
+
+MIT — see the [LICENSE](https://github.com/Whth/fabricatio/blob/master/LICENSE) file.
