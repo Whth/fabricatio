@@ -7,8 +7,8 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-mock)](https://pepy.tech/projects/fabricatio-mock)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-Test utilities and mock implementations for fabricatio. Provides configurable dummy LLM responses
-so you can test agent workflows without real API calls.
+Test utilities and mock implementations for fabricatio. Provides configurable dummy LLM,
+embedding, and reranker responses so you can test agent workflows without real API calls.
 
 ---
 
@@ -44,7 +44,7 @@ from fabricatio_mock.models.mock_router import return_router_usage
 @pytest.mark.asyncio
 async def test_my_role():
     # Responses are returned in FIFO order across calls.
-    # The default value is appended automatically for safety.
+    # Each is padded automatically to cover retries.
     with install_router_usage(*return_router_usage("Hello", "World")):
         result = await some_llm_call(question="greet")
         assert result == "Hello"
@@ -53,7 +53,7 @@ async def test_my_role():
         assert result == "World"
 ```
 
-### Important: unique question strings
+### Unique question strings
 
 The router uses a persistent response cache keyed by request hash. **Every test case MUST use a unique `question` string** to avoid stale cache hits from previous tests:
 
@@ -88,14 +88,14 @@ All `return_*_router_usage` functions return a `list[str]` ready to unpack into 
 
 | Function | Description |
 |---|---|
-| `return_router_usage(*values, default=)` | Plain string responses |
-| `return_json_router_usage(*jsons, default=)` | Wraps each in a JSON code block |
-| `return_code_router_usage(*codes, lang=, default=)` | Wraps each in a fenced code block |
-| `return_python_router_usage(*codes, default=)` | Shorthand for `lang="python"` |
-| `return_json_obj_router_usage(*objs, default=)` | Serializes objects with `orjson` then wraps in JSON block |
-| `return_model_json_router_usage(*models, default=)` | Serializes Pydantic models then wraps in JSON block |
-| `return_generic_router_usage(*strings, lang=, default=)` | Wraps each in a generic delimiter block |
-| `return_mixed_router_usage(*values, default=)` | Accepts `Value` dataclass for mixed-type responses |
+| `return_router_usage(*values, default=, padding=)` | Plain string responses. `default` defaults to the last value; `padding` (default 10) appends extra copies for retry safety. |
+| `return_json_router_usage(*jsons, default=, padding=)` | Wraps each string in a ` ```json ` code block. |
+| `return_code_router_usage(*codes, lang=, default=, padding=)` | Wraps each string in a fenced code block with the given `lang`. |
+| `return_python_router_usage(*codes, default=, padding=)` | Shorthand for `return_code_router_usage(..., lang="python")`. |
+| `return_json_obj_router_usage(*objs, default=, padding=)` | Serializes objects with `orjson` then wraps in a JSON code block. |
+| `return_model_json_router_usage(*models, default=, padding=)` | Serializes Pydantic models via `model_dump(by_alias=True)` then wraps in a JSON code block. |
+| `return_generic_router_usage(*strings, lang=, default=, padding=)` | Wraps each string in `--- Start of {lang} ---` / `--- End of {lang} ---` delimiters. |
+| `return_mixed_router_usage(*values, default=, padding=)` | Accepts `Value` dataclass instances for mixed-type responses in a single sequence. |
 
 ### `Value` dataclass
 
@@ -113,7 +113,18 @@ with install_router_usage(*return_mixed_router_usage(
     ...
 ```
 
-Type options: `"model"`, `"json"`, `"python"`, `"generic"`, `"raw"`.
+Type options: `"model"`, `"json"`, `"python"`, `"generic"`, `"raw"`. When a `convertor` callable is provided, it takes precedence over the type-based conversion.
+
+### `pad_responses`
+
+The low-level padding helper used by all `return_*` functions. DummyModel errors when its internal queue is exhausted; padding with extra copies of the default value covers retries (`max_validations`) and batch calls.
+
+```python
+from fabricatio_mock.models.mock_router import pad_responses
+
+# Returns ["Hello", "World", "World", "World", ...] (last value repeated 10 times)
+pad_responses("Hello", "World", default="Fallback", padding=3)
+```
 
 ---
 
@@ -125,10 +136,14 @@ Pre-configured roles for testing LLM and Propose capabilities:
 from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 
 role = LLMTestRole.with_bio(name="tester")
-    # llm_send_to="openai/gpt-3.5-turbo"
-    # llm_api_endpoint="https://api.openai.com/v1"
-    # llm_api_key=SecretStr("sk-123456789")
+# llm_send_to defaults to "llm" (fabricatio_mock.DUMMY_LLM_GROUP)
+# llm_no_cache defaults to True
 ```
+
+| Class | Bases | Purpose |
+|---|---|---|
+| `LLMTestRole` | `Role`, `UseLLM` | Role with LLM calling capability; `llm_send_to` targets the dummy LLM group. |
+| `ProposeTestRole` | `LLMTestRole`, `Propose` | Extends `LLMTestRole` with the `Propose` capability. |
 
 ---
 
@@ -136,51 +151,16 @@ role = LLMTestRole.with_bio(name="tester")
 
 | Function | Description |
 |---|---|
-| `install_router_usage(*responses, group=)` | Context manager: configures the router singleton with dummy responses |
-| `setup_dummy_responses(*responses, group=)` | Same as above but not a context manager (permanent until next call) |
-| `code_block(content, lang)` | Wraps content in a fenced code block |
-| `generic_block(content, lang)` | Wraps content in `--- Start/End of ... ---` delimiters |
-| `make_roles(names, role_cls)` | Creates a list of Role instances from names |
-| `make_n_roles(n, role_cls)` | Creates n Role instances with auto-generated names |
-| `setup_dummy_embeddings(*embeddings, group=, model_id=)` | Configures router with dummy embedding vectors |
-| `install_dummy_embeddings(*embeddings, group=, model_id=)` | Context manager version of the above |
-| `setup_dummy_reranks(*rankings, group=, model_id=)` | Configures router with dummy reranker ranking tuples |
-| `install_dummy_reranks(*rankings, group=, model_id=)` | Context manager version of the above |
-
----
-
-## How It Works
-
-fabricatio delegates LLM calls to a Rust-side singleton router (`rust.ROUTER`).
-`install_router_usage` mutates this singleton in-place by:
-
-1. Registering a `DummyProvider`
-2. Deploying a `DummyModel` with the given responses to the `"openai/gpt-3.5-turbo"` route
-
-Responses are popped from the model's queue in LIFO order internally; the builder functions
-reverse them before storing so callers get FIFO semantics.
-
-Because the router is a shared `Arc`, all code paths that call through `router_usage.ask()`
-see the injected responses automatically.
-
----
-
-## Legacy API
-
-The older `install_router` + `return_string` API patches `rust.ROUTER` at the Python level.
-This no longer intercepts calls made through `UseLLM` (which delegates to `rust.router_usage.ask()`).
-
-These functions are kept for backward compatibility but should not be used for new tests:
-
-- `install_router(router)` — Python-level `unittest.mock.patch` on `rust.ROUTER`
-- `return_string(*values)` — returns a mock `Router` object
-- `return_json_string`, `return_python_string`, `return_code_string`, `return_generic_string`, etc.
-
----
-
-## License
-
-MIT - see [LICENSE](../../LICENSE)
+| `install_router_usage(*responses, group=)` | Context manager: configures the router singleton with dummy LLM responses. Restorable by the caller after `with` block exit. |
+| `setup_dummy_responses(*responses, group=)` | Same as above but not a context manager — permanent until the next call. |
+| `code_block(content, lang)` | Wraps `content` in a fenced code block: ` ```{lang}\n{content}\n``` `. |
+| `generic_block(content, lang)` | Wraps `content` in `--- Start of {lang} ---` / `--- End of {lang} ---` delimiters. |
+| `make_roles(names, role_cls)` | Creates a list of `Role` instances from a list of names. |
+| `make_n_roles(n, role_cls)` | Creates `n` `Role` instances with auto-generated names (`"Role 1"`, `"Role 2"`, …). |
+| `setup_dummy_embeddings(*embeddings, group=, model_id=)` | Configures the router with dummy embedding vectors (permanent). |
+| `install_dummy_embeddings(*embeddings, group=, model_id=)` | Context manager version of `setup_dummy_embeddings`. |
+| `setup_dummy_reranks(*rankings, group=, model_id=)` | Configures the router with dummy reranker ranking tuples (permanent). |
+| `install_dummy_reranks(*rankings, group=, model_id=)` | Context manager version of `setup_dummy_reranks`. |
 
 ---
 
@@ -192,8 +172,9 @@ In addition to completion mocking, `fabricatio-mock` supports embedding and rera
 
 | Constant | Default Value | Description |
 |---|---|---|
-| `DUMMY_EMBEDDING_GROUP` | `"embedding"` | Default router group for mock embedding models |
-| `DUMMY_RERANKER_GROUP` | `"reranker"` | Default router group for mock reranker models |
+| `DUMMY_LLM_GROUP` | `"llm"` | Default router group for mock LLM models. |
+| `DUMMY_EMBEDDING_GROUP` | `"embedding"` | Default router group for mock embedding models. |
+| `DUMMY_RERANKER_GROUP` | `"reranker"` | Default router group for mock reranker models. |
 
 ### Embedding Mock Example
 
@@ -227,5 +208,42 @@ with install_dummy_reranks(*rankings):
 
 | Function | Description |
 |---|---|
-| `pad_embeddings(*embeddings, default=, padding=)` | Pads embedding vectors with copies of the default for DummyModel safety |
-| `pad_rankings(*rankings, default=, padding=)` | Pads ranking tuples with copies of the default for DummyModel safety |
+| `pad_embeddings(*embeddings, default=, padding=)` | Pads embedding vectors with copies of the default (defaults to last value) for DummyModel safety. |
+| `pad_rankings(*rankings, default=, padding=)` | Pads ranking tuples with copies of the default (defaults to last value) for DummyModel safety. |
+
+---
+
+## How It Works
+
+fabricatio delegates LLM calls to a Rust-side singleton router (`rust.ROUTER`).
+`install_router_usage` mutates this singleton in-place by:
+
+1. Registering a `DummyProvider` via `rust.ROUTER.add_provider(ProviderType.Dummy)`
+2. Deploying a `DummyModel` with the given responses to a route group
+
+Responses are reversed before storing because `DummyModel` uses LIFO (`Vec::pop`) internally.
+The builder functions reverse them so callers get FIFO semantics.
+
+Because the router is a shared `Arc`, all code paths that call through `router_usage.ask()`
+see the injected responses automatically.
+
+The `padding` parameter (default 10) appends extra copies of the default value to each
+response list. This prevents `DummyModel` errors when the model is called more times than
+expected — for example, during retries from `max_validations` or batched calls.
+
+---
+
+## Configuration
+
+```python
+from fabricatio_mock.config import mock_config
+
+# mock_config is a frozen dataclass loaded via CONFIG.load("mock", MockConfig).
+# Extend MockConfig in your own code to add mock-specific settings.
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
