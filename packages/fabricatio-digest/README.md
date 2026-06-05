@@ -7,53 +7,78 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-digest)](https://pepy.tech/projects/fabricatio-digest)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-An extension for fabricatio, providing capabilities to handle raw requirement, digesting it into a task list.
+Converts a natural-language requirement into a validated, executable `TaskList` with role awareness and dependency sequencing.
 
 ---
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[digest]
-# or
-uv pip install fabricatio[digest]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+## Overview
 
-```bash
-pip install fabricatio[full]
-# or
-uv pip install fabricatio[full]
+`fabricatio-digest` takes a raw requirement string together with a set of registered roles and uses an LLM-backed proposal pipeline to generate a structured `TaskList`. The resulting task list is executable — each task carries the context and description injected during generation, and hook callbacks can be attached for pre/post-execution behavior.
+
+## Key Classes
+
+### `Digest` (mixin capability)
+
+Extends `Propose`. Inherit this to add requirement-to-tasklist generation to a role.
+
+```python
+from fabricatio_digest.capabilities.digest import Digest
+
+class PlannerRole(SomeBaseRole, Digest):
+    """A role that can break down requirements into task lists."""
+    pass
+
+task_list = await planner.digest(
+    requirement="Summarize all PRs from the last week and post to Slack.",
+    receptions={RoleName("reviewer"), RoleName("notifier")},
+)
 ```
 
-## 🔍 Overview
+| Method | Description |
+|--------|-------------|
+| `digest(requirement, receptions, **kwargs)` | Renders a template with the requirement and role metadata, then calls `propose(TaskList, ...)`. Returns `Optional[TaskList]`. |
 
-Provides intelligent requirement analysis and task list generation capabilities for fabricatio workflows. The package
-transforms raw requirements into well-structured, actionable task lists with dependency management and validation,
-enabling seamless integration with Fabricatio's agent framework.
+### `TaskList`
 
-## 🧩 Key Features
+Pydantic model representing a sequence of tasks that aim to satisfy an `ultimate_target`.
 
-- **Intelligent Parsing**: Advanced natural language processing to understand complex requirements and extract key
-  information
-- **Dependency Management**: Automatic identification of task dependencies and proper sequencing for execution
-- **Customization**: Configurable rules for task categorization, prioritization, and workflow generation
-- **Team Coordination**: Support for multi-agent task distribution and collaborative task execution
-- **Validation System**: Built-in validation to ensure generated tasks are actionable and well-defined
-- **Template-Driven Generation**: Uses configurable templates for consistent task breakdown and planning
+| Field / Method | Description |
+|----------------|-------------|
+| `ultimate_target: str` | The overarching goal of the task list. |
+| `tasks: List[Task]` | Ordered list of `Task` objects from `fabricatio-core`. |
+| `parallel: bool` | If `True`, tasks are executed concurrently. |
+| `add_before_exec_hook(hook)` | Register a callback to run before each task. |
+| `add_after_exec_hook(hook)` | Register a callback to run after each task. |
+| `inject_context(**kwargs)` | Merge keyword arguments into every task's initial context. |
+| `inject_description(desc: str)` | Append extra text to every task's description. |
+| `execute(parallel=None)` | Run the task sequence, respecting hooks and the parallel flag. |
+| `explain()` | Render a human-readable explanation via template. |
 
-## 🔗 Dependencies
+### `DigestConfig`
 
-Core dependencies:
+Dataclass loaded from `fabricatio-core` configuration under the `digest` namespace.
 
-- `fabricatio-core` - Core interfaces and utilities
+| Field | Default | Description |
+|-------|---------|-------------|
+| `digest_template` | `"built-in/digest"` | Template used to build the proposal prompt. |
+| `task_list_explain_template` | `"built-in/task_list_explain"` | Template used by `TaskList.explain()`. |
 
-No additional dependencies required.
+Access the global instance:
 
-## 📄 License
+```python
+from fabricatio_digest.config import digest_config
+```
 
-MIT – see [LICENSE](../../LICENSE)
+## Dependencies
 
+- `fabricatio-core` — core interfaces, template manager, and `Propose`/`Task` base classes.
+
+## License
+
+MIT — see [LICENSE](../../LICENSE)
