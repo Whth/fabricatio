@@ -7,11 +7,9 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-judge)](https://pepy.tech/projects/fabricatio-judge)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-A Python module for evidence-based decision making in LLM applications.
+Structured, evidence-based binary judgment for LLM applications.
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[judge]
@@ -19,142 +17,137 @@ pip install fabricatio[judge]
 uv pip install fabricatio[judge]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+## Overview
 
-```bash
-pip install fabricatio[full]
-# or
-uv pip install fabricatio[full]
-```
+`fabricatio-judge` provides capability mixins that turn any Fabricatio agent into a structured judge. Instead of raw LLM calls that return arbitrary text, judgments produce typed `JudgeMent` objects — capturing the issue, affirmative and denying evidence, and a final boolean verdict — so downstream code can act on a reliable, machine-readable result.
 
-## 🔍 Overview
+Two judgment strategies are available:
 
-Provides the `AdvancedJudge` class for structured judgment tasks, using collected evidence to determine a final boolean
-The `AdvancedJudge` class is the core of this module. It uses a structured approach to collect and analyze evidence. It
-can handle different types of evidence, such as text, numerical data, and expert opinions. The evidence is then used to
-make a binary decision (true or false) based on predefined rules and algorithms.
-verdict.
+- **Single-judge** (`EvidentlyJudge`): one LLM evaluates the prompt and returns a `JudgeMent`.
+- **Weighted voting** (`VoteJudge`): multiple LLM configurations each produce a `JudgeMent`; their boolean verdicts are weighted and tallied against a configurable pass threshold.
 
-### Key Features:
+## Key Types
 
-- Asynchronous judgment execution
-  Asynchronous judgment execution allows the module to perform multiple judgment tasks simultaneously without blocking
-  the main thread. This is particularly useful in applications where real - time responses are required. For example, in
-  a chatbot application, the judge can evaluate multiple user queries concurrently, improving the overall performance
-  and responsiveness.
-- Evidence tracking (affirmative & denying)
-  The evidence tracking feature keeps a record of both affirmative and denying evidence. Affirmative evidence supports
-  the positive outcome of the judgment, while denying evidence supports the negative outcome. This helps in making more
-  informed decisions and provides transparency in the judgment process. For example, in a legal application, the judge
-  can track the evidence presented by both the prosecution and the defense.
-- Integration with Fabricatio agent framework
-  The integration with the Fabricatio agent framework allows the `AdvancedJudge` class to communicate and collaborate
-  with other agents in the system. It can receive evidence from other agents, share its judgment results, and
-  participate in complex workflows. This enables the creation of more sophisticated and intelligent applications. For
-  example, in a multi - agent system for project management, the judge can interact with agents responsible for task
-  management and resource allocation.
-- Extensible for custom logic
-  The module is designed to be extensible, allowing users to implement custom logic. Users can subclass the
-  `AdvancedJudge` class and override its methods to add their own rules and algorithms. This provides flexibility and
-  adaptability to different application requirements. For example, in a domain - specific application, users can define
-  their own evidence evaluation criteria and decision - making processes.
+| Class | Role |
+|---|---|
+| `JudgeMent` | Pydantic model holding `issue_to_judge`, `affirm_evidence`, `deny_evidence`, and `final_judgement`. Truthy via `__bool__`. |
+| `EvidentlyJudge` | ABC mixin (extends `Propose`). Adds `evidently_judge(prompt, **kwargs)`. |
+| `VoteLLMConfig` | Config model (extends `ScopedConfig`). Declares `vote_llm` (weight → kwargs map) and `vote_pass_threshold`. |
+| `VoteJudge` | ABC mixin (extends `EvidentlyJudge` + `VoteLLMConfig`). Adds `vote_judge(prompt, ...)` and `resolve_pass(…)`. |
 
-## 🧩 Usage
+### `JudgeMent`
 
 ```python
-from fabricatio.capabilities import EvidentlyJudge
-
-The
-`EvidentlyJudge`
-
-
-class is imported from the `fabricatio.capabilities` module.It provides a set of methods for evidence collection, analysis, and judgment.To use it, you can create an instance of the class and call its methods to perform judgment tasks.
-
-
-from fabricatio.models import JudgeMent
-
-The
-`JudgeMent`
-model
-represents
-the
-result
-of
-a
-judgment
-task.It
-contains
-attributes
-such as the
-final
-verdict(a
-boolean
-value) and additional
-information
-about
-the
-judgment
-process, such as the
-evidence
-used and the
-decision - making
-steps.
-
-
-class MyJudge(EvidentlyJudge):
-    pass  # Implement custom logic if needed
-
-
-async def evaluate():
-    judge = MyJudge()
-    result: JudgeMent = await judge.evidently_judge("Is water wet?")
-    The
-    `evidently_judge`
-    method is used
-    to
-    perform
-    a
-    judgment
-    task.It
-    takes
-    a
-    question or a
-    statement as input and returns
-    a
-    `JudgeMent`
-    object.In
-    this
-    example, the
-    judge
-    will
-    collect
-    evidence
-    related
-    to
-    the
-    question
-    "Is water wet?" and make
-    a
-    decision
-    based
-    on
-    the
-    available
-    evidence.
-    print(f"Verdict: {result.final_judgement}")
+class JudgeMent(SketchedAble):
+    issue_to_judge: str          # The question or statement under evaluation
+    affirm_evidence: List[str]   # Evidence supporting a True verdict
+    deny_evidence: List[str]     # Evidence supporting a False verdict
+    final_judgement: bool        # The binary verdict
 ```
 
-## 📁 Structure
+### `EvidentlyJudge`
+
+```python
+class EvidentlyJudge(Propose, ABC):
+    async def evidently_judge(
+        self, prompt: str | List[str], **kwargs
+    ) -> JudgeMent | List[JudgeMent] | None
+```
+
+Accepts a single prompt (returns `JudgeMent | None`) or a list (returns `List[JudgeMent | None]`). Delegates to the agent's `propose` infrastructure, which invokes the configured LLM with structured output constrained to the `JudgeMent` schema.
+
+### `VoteJudge`
+
+```python
+class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
+    async def vote_judge(
+        self, prompt: str | List[str],
+        vote_pass_threshold: float | None = None, **kwargs
+    ) -> bool | List[bool | None] | None
+
+    @staticmethod
+    def resolve_pass(
+        weights: List[float],
+        judgments: List[JudgeMent],
+        vote_pass_threshold: float,
+    ) -> bool
+```
+
+`vote_judge` runs `evidently_judge` concurrently across all configured LLM weights for each prompt, then calls `resolve_pass` to determine the final boolean. The pass criterion:
+
+```
+sum(weight[i] for i where judgment[i] is True) >= threshold * sum(all weights)
+```
+
+If any individual judgment returns `None`, the vote is treated as `False` with a warning.
+
+## Usage
+
+### Single-judge
+
+```python
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
+from fabricatio_judge.models.judgement import JudgeMent
+
+
+class MyAgent(EvidentlyJudge):
+    """Agent that can judge evidence."""
+    pass
+
+
+async def main():
+    agent = MyAgent()
+    result: JudgeMent = await agent.evidently_judge("Is the PR safe to merge?")
+    if result:
+        print(f"Approved — evidence: {result.affirm_evidence}")
+    else:
+        print(f"Blocked — concerns: {result.deny_evidence}")
+```
+
+### Weighted voting
+
+```python
+from fabricatio_judge.capabilities.advanced_judge import VoteJudge
+from fabricatio_judge.models.judgement import JudgeMent
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+from typing import Dict
+
+
+class MyVoter(VoteJudge):
+    vote_llm: Dict[float, ValidateKwargs[JudgeMent]] = {
+        0.5: {"temperature": 0.3},   # conservative
+        0.7: {"temperature": 0.7},   # balanced
+        0.9: {"temperature": 1.0},   # creative
+    }
+    vote_pass_threshold: float = 0.5
+
+
+async def main():
+    voter = MyVoter()
+    passed = await voter.vote_judge("Should we deploy to production?")
+    print(f"Deploy decision: {passed}")
+
+    # Multiple prompts at once
+    results = await voter.vote_judge([
+        "Is service A healthy?",
+        "Is service B healthy?",
+    ])
+    # results → [True, False]
+```
+
+## Package Structure
 
 ```
 fabricatio-judge/
-├── capabilities/     - Judgment logic (`AdvancedJudge`)
-└── models/           - Judgment output model (`JudgeMent`)
+├── python/fabricatio_judge/
+│   ├── capabilities/
+│   │   └── advanced_judge.py   # EvidentlyJudge, VoteJudge, VoteLLMConfig
+│   └── models/
+│       └── judgement.py        # JudgeMent
+└── python/tests/
+    └── test_judge.py
 ```
 
-## 📄 License
+## License
 
-MIT – see [LICENSE](../../LICENSE)
-
-
-
+MIT — see [LICENSE](LICENSE)
