@@ -7,14 +7,11 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-capable)](https://pepy.tech/projects/fabricatio-capable)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-
-An extension of fabricatio.
+Capability assessment mixin for Fabricatio agents — determines whether a request can be fulfilled given available tools and context.
 
 ---
 
-## 📦 Installation
-
-This package is part of the `fabricatio` monorepo and can be installed as an optional dependency using either pip or uv:
+## Installation
 
 ```bash
 pip install fabricatio[capable]
@@ -22,34 +19,99 @@ pip install fabricatio[capable]
 uv pip install fabricatio[capable]
 ```
 
-For a full installation that includes this package and all other components of `fabricatio`:
+For the full Fabricatio suite:
 
 ```bash
 pip install fabricatio[full]
-# or
-uv pip install fabricatio[full]
 ```
-## 🔍 Overview
 
-Provides capability assessment and validation framework for fabricatio agents, enabling intelligent evaluation of whether specific tasks can be performed using available tools and context. It integrates judgment capabilities with tool usage assessment to determine agent feasibility for complex requests.
-## 🧩 Key Features
+---
 
-- **Capability Assessment**: Evaluate whether agents can handle specific requests based on available tools and context
-- **Intelligent Judgment**: Use advanced judgment mechanisms to assess task feasibility and requirements
-- **Tool Integration**: Seamlessly work with toolboxes to validate capability against available resources
-- **Batch Processing**: Support both single and batch capability assessments for multiple requests
-- **Template-Driven Evaluation**: Configurable assessment templates for consistent capability evaluation
-- **Context-Aware Validation**: Leverage briefing and context information for accurate capability determination
+## Overview
 
+`fabricatio-capable` provides the `Capable` mixin class, which equips an agent with the ability to assess whether a given task is within its capabilities. It answers questions like: "given my current toolboxes and context, can I handle this request?"
 
-## 🔗 Dependencies
-Core dependencies:
+The mixin composes three capabilities into one method:
 
-- `fabricatio-core` - Core interfaces and utilities
-- `fabricatio-tool` - Tool usage and toolbox management
-- `fabricatio-judge` - Advanced judgment and evaluation capabilities
+- **`WithBriefing`** — supplies agent context as a structured briefing.
+- **`EvidentlyJudge`** — delegates to the evidence-based judgment engine from `fabricatio-judge`.
+- **`UseTool`** — provides access to the agent's `ToolBox` set for tool-cognizant evaluation.
 
-No additional dependencies required.
-## 📄 License
+The `capable()` method renders a configurable Jinja2 template with the briefing, request text, and toolbox metadata, then passes it through `evidently_judge` to produce a `JudgeMent` — a binary verdict backed by affirmative and denying evidence.
 
-This project is licensed under the MIT License.
+---
+
+## Key Types
+
+| Name | Location | Description |
+|---|---|---|
+| `Capable` | `fabricatio_capable.capabilities.capable` | ABC mixin combining briefing, judgment, and tool-awareness. Exposes the `capable()` async method. |
+| `CapableConfig` | `fabricatio_capable.config` | Frozen dataclass holding `capable_template` (default `"built-in/capable"`). Loaded via `fabricatio_core.CONFIG`. |
+
+---
+
+## Usage
+
+### Single Request
+
+```python
+from fabricatio_capable.capabilities.capable import Capable
+from fabricatio_judge.models.judgement import JudgeMent
+from fabricatio_tool.models.tool import ToolBox
+
+class MyAgent(Capable):
+    # Capable is an ABC; provide your concrete agent logic here.
+    ...
+
+agent = MyAgent()
+toolboxes = {ToolBox(name="file_tools"), ToolBox(name="web_tools")}
+
+result: JudgeMent | None = await agent.capable(
+    "Read the latest commit and summarize changes",
+    toolboxes=toolboxes,
+)
+
+if result and result.final_judgement:
+    print("Capable — proceeding.")
+else:
+    print("Not capable. Evidence:", result.evidences if result else "N/A")
+```
+
+### Batch Assessment
+
+```python
+requests = [
+    "Fetch weather data for Tokyo",
+    "Train a LoRA on 100GB of images",
+]
+results = await agent.capable(requests, toolboxes=toolboxes)
+
+for req, judgement in zip(requests, results):
+    verdict = judgement.final_judgement if judgement else "undetermined"
+    print(f"{req}: {verdict}")
+```
+
+### Configuration
+
+Override the default template via configuration:
+
+```python
+from fabricatio_capable.config import capable_config
+# capable_config.capable_template is "built-in/capable" by default
+# Register a custom template under a different name and set it:
+# capable_config = CapableConfig(capable_template="my_custom_capable")
+```
+
+---
+
+## Dependencies
+
+- `fabricatio-core` — Core interfaces, briefing model, template manager
+- `fabricatio-tool` — `UseTool` capability and `ToolBox` model
+- `fabricatio-judge` — `EvidentlyJudge` and `JudgeMent`
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
