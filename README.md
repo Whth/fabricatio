@@ -169,7 +169,36 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Novel generation fix
 - [x] Embedding fail without any debug info fix
 - [x] sparse cache for embedding
-- [ ] `Thryd` router support retry
+- [x] `Thryd` router support retry
+- [ ] Add VFS-based sandbox subpackage for isolated LLM file operations
+    - [ ] Rust crate: `VirtualFS` trait + in-memory tree (read/write/list/delete/stat) + overlay mount system (copy-on-write over real paths)
+    - [ ] Rust crate: diff snapshot & apply — `SandboxSession` tracking all mutations, producing a unified diff, and optionally writing changes back to real FS
+    - [ ] Python bindings (PyO3) for `VirtualFS`, `SandboxSession`, overlay mounts
+    - [ ] Integration with `fabricatio-core` file I/O hooks so Actions transparently operate inside a sandbox
+    - [ ] Tests — Rust unit tests for VFS ops + overlay + diff/apply; Python binding smoke tests
+- [ ] Typst compilation
+    - [ ] Integrate `typst-rs` or shell out to `typst compile` so `fabricatio-typst` Article model produces PDF output
+    - [ ] Template library for common document types (paper, report, slides)
+    - [ ] Python bindings + CLI (`fabricatio-typst compile`) + tests
+- [ ] `fabricatio-rag` test suite
+    - [ ] Unit tests for abstract RAG capability (add_document, afetch_document, refined_query, ranking)
+    - [ ] Integration tests with `fabricatio-lancedb` and `fabricatio-milvus` backends
+    - [ ] Edge-case tests: empty corpus, duplicate documents, concurrent add/fetch
+- [ ] Character system completion
+    - [ ] Wire `CharacterCard` + `CharacterCompose` into `fabricatio-novel` chapter generation for consistency
+    - [ ] Character relationship tracking (affinity graph, interaction history)
+    - [ ] Actions + workflows + tests for batch character generation and validation
+- [ ] Judge integration with novel + RAG
+    - [ ] Wire `EvidentlyJudge` / `VoteJudge` into novel pipeline for chapter quality gating
+    - [ ] Add RAG relevance scoring action using judge capabilities
+    - [ ] Actions + workflows + tests
+- [ ] Web search action
+    - [ ] `WebSearchAction` in `fabricatio-actions` backed by search API (Tavily/SerpAPI/DuckDuckGo)
+    - [ ] `WebScrapeAction` for extracting content from fetched URLs
+    - [ ] Wire into research workflow + tests
+- [ ] Add `cargo clippy` + `cargo test` to CI
+    - [ ] Fix ruff CI no-op (installs ruff but never runs `ruff check`)
+    - [ ] Add clippy + cargo test steps to `.github/workflows/tests.yaml` matrix
 
 ## Installation
 
