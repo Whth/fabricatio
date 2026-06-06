@@ -48,6 +48,8 @@ members = [
     "packages/fabricatio-workspace",
     "packages/fabricatio-tei",
     "packages/fabricatio-lancedb",
+    "packages/fabricatio-sandbox",
+    "packages/fabricatio-skill",
 ]
 
 [workspace.dependencies]
