@@ -13,6 +13,26 @@ pub struct BibManager {
     source: Bibliography,
 }
 
+impl BibManager {
+    /// Shared fuzzy search: finds the cite key whose `text_fn` output scores highest.
+    fn best_fuzzy_match(&self, query: &str, text_fn: fn(&biblatex::Entry) -> Option<String>) -> Option<String> {
+        let mut matcher = Matcher::new(Config::DEFAULT);
+        let pattern = Pattern::new(query, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+
+        self.source
+            .iter()
+            .filter_map(|entry| {
+                let mut buf = vec![];
+                let text = text_fn(entry)?;
+                let score = pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher);
+                Some((score?, entry))
+            })
+            .par_bridge()
+            .max_by_key(|(score, _)| *score)
+            .map(|(_, entry)| entry.key.clone())
+    }
+}
+
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl BibManager {
@@ -20,9 +40,7 @@ impl BibManager {
     #[new]
     fn new(path: String) -> PyResult<Self> {
         let bib = std::fs::read_to_string(path).into_pyresult()?;
-
         let source = Bibliography::parse(&bib).into_pyresult()?;
-
         Ok(BibManager { source })
     }
 
@@ -43,127 +61,77 @@ impl BibManager {
     }
 
     fn get_cite_key_by_title_fuzzy(&self, title: String) -> Option<String> {
-        let mut matcher = Matcher::new(Config::DEFAULT);
-        let pattern = Pattern::new(
-            title.as_str(),
-            CaseMatching::Ignore,
-            Normalization::Smart,
-            AtomKind::Fuzzy,
-        );
-        self.source
-            .iter()
-            .filter_map(|entry| {
-                let mut buf = vec![];
-                let text = entry
-                    .title()
-                    .ok()?
-                    .to_biblatex_string(false)
-                    .remove_brackets();
-                Some((
-                    pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
-                    entry,
-                ))
-            })
-            .par_bridge()
-            // Use filter_map's more concise form with pattern matching
-            .filter_map(|(maybe_score, entry)| maybe_score.map(|score| (score, entry)))
-            .max_by_key(|(score, _)| *score)
-            .map(|(_, entry)| entry.key.clone())
+        self.best_fuzzy_match(&title, |entry| {
+            Some(entry.title().ok()?.to_biblatex_string(false).remove_brackets())
+        })
     }
 
     /// Find the corresponding cite key of an article with given query string using fuzzy matcher
     fn get_cite_key_fuzzy(&self, query: String) -> Option<String> {
-        let mut matcher = Matcher::new(Config::DEFAULT);
-        let pattern = Pattern::new(
-            query.as_str(),
-            CaseMatching::Ignore,
-            Normalization::Smart,
-            AtomKind::Fuzzy,
-        );
-
-        self.source
-            .iter()
-            .map(|entry| {
-                let mut buf = vec![];
-                let text = entry.to_biblatex_string().remove_brackets();
-                (
-                    pattern.score(Utf32Str::new(text.as_str(), &mut buf), &mut matcher),
-                    entry,
-                )
-            })
-            .par_bridge()
-            // Use filter_map's more concise form with pattern matching
-            .filter_map(|(maybe_score, entry)| maybe_score.map(|score| (score, entry)))
-            .max_by_key(|(score, _)| *score)
-            .map(|(_, entry)| entry.key.clone())
+        self.best_fuzzy_match(&query, |entry| Some(entry.to_biblatex_string().remove_brackets()))
     }
+
     #[pyo3(signature = (is_verbatim=false))]
     fn list_titles(&self, is_verbatim: bool) -> Vec<String> {
         self.source
             .iter()
             .filter_map(|entry| {
-                Some(
-                    entry
-                        .title()
-                        .ok()?
-                        .to_biblatex_string(is_verbatim)
-                        .remove_brackets(),
-                )
+                Some(entry.title().ok()?.to_biblatex_string(is_verbatim).remove_brackets())
             })
-            .collect::<Vec<_>>()
+            .collect()
     }
 
-    fn get_author_by_key(&self, key: String) -> Option<Vec<String>> {
-        self.source.get(key.as_str()).map(|en| {
+    fn get_author_by_key(&self, key: &str) -> Option<Vec<String>> {
+        self.source.get(key).map(|en| {
             en.author()
                 .unwrap()
                 .iter()
-                .map(|auther| format!("{}", auther).to_string())
+                .map(|author| author.to_string())
                 .collect()
         })
     }
 
-    fn get_year_by_key(&self, key: String) -> Option<i32> {
+    fn get_year_by_key(&self, key: &str) -> Option<i32> {
+        self.source.get(key).and_then(|en| match en.date().ok()? {
+            PermissiveType::Typed(t) => match t.value {
+                biblatex::DateValue::At(da)
+                | biblatex::DateValue::Before(da)
+                | biblatex::DateValue::After(da)
+                | biblatex::DateValue::Between(da, _) => Some(da.year),
+            },
+            _ => None,
+        })
+    }
+
+    fn get_abstract_by_key(&self, key: &str) -> Option<String> {
+        self.get_field_by_key(key, "abstract")
+    }
+
+    fn get_title_by_key(&self, key: &str) -> Option<String> {
+        self.get_field_by_key(key, "title")
+    }
+
+    fn get_field_by_key(&self, key: &str, field: &str) -> Option<String> {
         self.source
-            .get(key.as_str())
-            .map(|en| match en.date().ok()? {
-                PermissiveType::Typed(t) => match t.value {
-                    biblatex::DateValue::At(da) => Some(da.year),
-                    biblatex::DateValue::Before(da) => Some(da.year),
-                    biblatex::DateValue::After(da) => Some(da.year),
-                    biblatex::DateValue::Between(da, _) => Some(da.year),
-                },
-                _ => None,
-            })?
-    }
-
-    fn get_abstract_by_key(&self, key: String) -> Option<String> {
-        self.get_field_by_key(key, "abstract".to_string())
-    }
-
-    fn get_title_by_key(&self, key: String) -> Option<String> {
-        self.get_field_by_key(key, "title".to_string())
-    }
-
-    fn get_field_by_key(&self, key: String, field: String) -> Option<String> {
-        self.source.get(key.as_str()).map(|en| {
-            Some(
-                en.get(field.as_str())?
-                    .to_biblatex_string(false)
-                    .remove_brackets(),
-            )
-        })?
+            .get(key)
+            .and_then(|en| Some(en.get(field)?.to_biblatex_string(false).remove_brackets()))
     }
 }
 
-/// Remove brackets
+/// Remove curly braces from a string.
 trait RemoveBrackets {
     fn remove_brackets(&self) -> String;
 }
 
+impl RemoveBrackets for str {
+    fn remove_brackets(&self) -> String {
+        self.replace('{', "").replace('}', "")
+    }
+}
+
 impl RemoveBrackets for String {
     fn remove_brackets(&self) -> String {
-        self.replace("{", "").replace("}", "")
+        self.as_str().remove_brackets()
     }
 }
 

@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 #[cfg(feature = "stubgen")]
@@ -7,41 +9,32 @@ use regex::Regex;
 use serde_yaml2::wrapper::YamlNodeWrapper;
 use tex_convertor::convert_all_tex_math as conv_to_typst;
 use tex2typst_rs::tex2typst;
-
-/// A trait to add and remove comments from a string-like type.
-pub trait Commentable: AsRef<str> {
-    /// Adds a comment prefix `//` to each line of the string.
-    ///
-    /// Returns:
-    ///     A new string with `//` prepended to each line.
-    fn comment(&self) -> String {
-        self.as_ref()
-            .lines() // Split the string into lines
-            .map(|line| format!("// {}", line)) // Add `//` to each line
-            .collect::<Vec<_>>() // Collect the lines into a Vec<String>
-            .join("\n") // Join the lines back into a single string with newline characters
+fn comment_lines(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + s.lines().count() * 3);
+    for (i, line) in s.lines().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str("// ");
+        out.push_str(line);
     }
-
-    /// Removes the comment prefix `//` from each line of the string.
-    ///
-    /// Returns:
-    ///     A new string with `//` or `// ` prefix removed from each line.
-    fn uncomment(&self) -> String {
-        self.as_ref()
-            .lines() // Split the string into lines
-            .map(|line| {
-                line.strip_prefix("// ")
-                    .or_else(|| line.strip_prefix("//"))
-                    .unwrap_or(line) // Remove `//` or `// ` prefix if present
-            })
-            .collect::<Vec<_>>() // Collect the lines back into a Vec<&str>
-            .join("\n") // Join the lines back into a single string with newline characters
-    }
+    out
 }
 
-// Implement the `Commentable` trait for all types that implement `AsRef<str>`.
-impl<T: AsRef<str>> Commentable for T {}
-
+fn uncomment_lines(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for (i, line) in s.lines().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        let stripped = line
+            .strip_prefix("// ")
+            .or_else(|| line.strip_prefix("//"))
+            .unwrap_or(line);
+        out.push_str(stripped);
+    }
+    out
+}
 /// Converts a raw LaTeX string to Typst format.
 ///
 /// Args:
@@ -65,7 +58,7 @@ fn tex_to_typst(string: &str) -> PyResult<String> {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn comment(string: &str) -> String {
-    string.comment()
+    comment_lines(string)
 }
 
 /// Removes comment prefix `//` from each line of the string.
@@ -78,7 +71,7 @@ fn comment(string: &str) -> String {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn uncomment(string: &str) -> String {
-    string.uncomment()
+    uncomment_lines(string)
 }
 
 /// Removes leading and trailing comment lines from a multi-line string.
@@ -137,22 +130,19 @@ fn convert_all_tex_math(string: &str) -> PyResult<String> {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 pub fn fix_misplaced_labels(string: &str) -> String {
-    // Match \[ ... \] blocks, non-greedy matching for the content inside
-    let block_re = Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap();
-    // Match label format <...>
-    let label_re = Regex::new(r#"(?s)<[a-zA-Z0-9\-]*>"#).unwrap();
+    static BLOCK_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap());
+    static LABEL_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r#"(?s)<[a-zA-Z0-9\-]*>"#).unwrap());
 
-    block_re
-        .replace_all(string, move |caps: &regex::Captures| {
+    BLOCK_RE
+        .replace_all(string, |caps: &regex::Captures| {
             let content = caps.get(1).unwrap().as_str();
-            // Extract all labels and concatenate them into a single string
-            let labels_str = label_re
+            let labels_str = LABEL_RE
                 .find_iter(content)
                 .map(|mat| mat.as_str())
                 .collect::<String>();
-            // Remove labels from the content
-            let new_content = label_re.replace_all(content, "").to_string();
-            // Construct the new block: [new content] + labels
+            let new_content = LABEL_RE.replace_all(content, "").to_string();
             format!("\\[{}\\]", new_content) + &labels_str
         })
         .into_owned()
@@ -170,19 +160,28 @@ pub fn fix_misplaced_labels(string: &str) -> String {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 fn split_out_metadata<'a>(python: Python<'a>, string: &str) -> (Option<Bound<'a, PyAny>>, String) {
-    let metadata = string
+    // Find byte offset past the last leading comment line.
+    let meta_end = string
         .lines()
         .take_while(|line| line.starts_with("//"))
-        .collect::<Vec<&str>>()
-        .join("\n");
+        .last()
+        .map(|last| {
+            let offset = unsafe { last.as_ptr().offset_from(string.as_ptr()) } as usize;
+            offset + last.len()
+        })
+        .unwrap_or(0);
 
-    if let Ok(value) = serde_yaml2::from_str::<YamlNodeWrapper>(metadata.uncomment().as_str()) {
+    if meta_end == 0 {
+        return (None, string.to_string());
+    }
+
+    let meta_slice = &string[..meta_end];
+    let uncommented = uncomment_lines(meta_slice);
+
+    if let Ok(value) = serde_yaml2::from_str::<YamlNodeWrapper>(&uncommented) {
         (
             Some(pythonize(python, &value).unwrap()),
-            string
-                .strip_prefix(metadata.as_str())
-                .unwrap_or(string)
-                .into(),
+            string[meta_end..].to_string(),
         )
     } else {
         (None, string.to_string())
@@ -204,7 +203,7 @@ fn to_metadata(data: &Bound<'_, PyAny>) -> PyResult<String> {
         .and_then(|value| {
             serde_yaml2::to_string(&value)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))
-                .map(|s| s.comment())
+                .map(|s| comment_lines(&s))
         })
 }
 
