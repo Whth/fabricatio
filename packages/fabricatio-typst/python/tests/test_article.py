@@ -12,7 +12,12 @@ from fabricatio_typst.models.article_main import (
     ArticleSubsection,
     Paragraph,
 )
-from fabricatio_typst.models.article_outline import ArticleOutline
+from fabricatio_typst.models.article_outline import (
+    ArticleChapterOutline,
+    ArticleOutline,
+    ArticleSectionOutline,
+    ArticleSubsectionOutline,
+)
 
 
 class TestParagraph:
@@ -120,7 +125,6 @@ class TestArticle:
 
     def test_iter_subsections(self, article: Article) -> None:
         """Test subsection iteration functionality."""
-        # Setup test hierarchy
         chapter = ArticleChapter(heading="Chapter", sections=[], elaboration="", aims=[], expected_word_count=500)
         section = ArticleSection(heading="Section", subsections=[], elaboration="", aims=[], expected_word_count=500)
         subsection = ArticleSubsection(
@@ -130,8 +134,90 @@ class TestArticle:
         chapter.sections.append(section)
         article.chapters.append(chapter)
 
-        # Test iteration
         results = list(article.iter_subsections())
         assert len(results) == 1
         assert isinstance(results[0], tuple)
         assert len(results[0]) == 3  # (chapter, section, subsection)
+
+    def test_extract_outline_preserves_structure(self) -> None:
+        article = Article(heading="Test", expected_word_count=100, elaboration="", aims=[], chapters=[])
+        sub = ArticleSubsection(heading="Sub", expected_word_count=10, paragraphs=[], elaboration="", aims=[])
+        sec = ArticleSection(heading="Sec", subsections=[sub], elaboration="", aims=[], expected_word_count=10)
+        chap = ArticleChapter(heading="Chap", sections=[sec], elaboration="", aims=[], expected_word_count=10)
+        article.chapters.append(chap)
+
+        outline = article.extract_outline()
+        assert outline.title == "Test"
+        assert len(outline.chapters) == 1
+        assert outline.chapters[0].title == "Chap"
+        assert outline.chapters[0].sections[0].title == "Sec"
+        assert outline.chapters[0].sections[0].subsections[0].title == "Sub"
+
+    def test_from_outline_creates_article(self) -> None:
+        """from_outline creates an Article with matching structure."""
+        sub = ArticleSubsectionOutline(heading="Sub", expected_word_count=10, elaboration="", aims=[])
+        sec = ArticleSectionOutline(heading="Sec", subsections=[sub], elaboration="", aims=[], expected_word_count=10)
+        chap = ArticleChapterOutline(heading="Chap", sections=[sec], elaboration="", aims=[], expected_word_count=10)
+        outline = ArticleOutline(heading="Test", expected_word_count=100, elaboration="", aims=[], chapters=[chap])
+
+        article = Article.from_outline(outline)
+        assert article.title == "Test"
+        assert len(article.chapters) == 1
+        assert article.chapters[0].title == "Chap"
+        assert article.chapters[0].sections[0].title == "Sec"
+
+    def test_artifacts_propagate_through_from_outline(self) -> None:
+        """Artifacts survive from_outline round-trip."""
+        from fabricatio_typst.models.artifacts import ArticleArtifacts
+
+        outline = ArticleOutline(heading="T", expected_word_count=10, elaboration="", aims=[], chapters=[])
+        outline.artifacts.update_briefing("test briefing")
+
+        article = Article.from_outline(outline)
+        assert article.artifacts.briefing == "test briefing"
+        assert article.artifacts is outline.artifacts  # same object
+
+    def test_artifacts_propagate_through_extract_outline(self) -> None:
+        """Artifacts survive extract_outline round-trip."""
+        article = Article(heading="T", expected_word_count=10, elaboration="", aims=[], chapters=[])
+        article.artifacts.update_briefing("hello")
+
+        outline = article.extract_outline()
+        assert outline.artifacts.briefing == "hello"
+        assert outline.artifacts is article.artifacts  # same object
+
+
+class TestConflictResolution:
+    """Test resolve_update_conflict across the hierarchy."""
+
+    def _make_chapter(self, title: str, sec_title: str = "S") -> ArticleChapterOutline:
+        sub = ArticleSubsectionOutline(heading=sec_title, expected_word_count=10, elaboration="", aims=[])
+        sec = ArticleSectionOutline(heading=sec_title, subsections=[sub], elaboration="", aims=[], expected_word_count=10)
+        return ArticleChapterOutline(heading=title, sections=[sec], elaboration="", aims=[], expected_word_count=10)
+
+    def test_no_conflict_on_identical(self) -> None:
+        """Identical chapters produce empty conflict string."""
+        a = self._make_chapter("Same")
+        b = self._make_chapter("Same")
+        assert a.resolve_update_conflict(b) == ""
+
+    def test_title_mismatch_detected(self) -> None:
+        a = self._make_chapter("A")
+        b = self._make_chapter("B")
+        result = a.resolve_update_conflict(b)
+        assert "Title mismatched" in result
+
+    def test_section_count_mismatch_detected(self) -> None:
+        a = self._make_chapter("T")
+        b = self._make_chapter("T")
+        extra_sub = ArticleSubsectionOutline(heading="X", expected_word_count=10, elaboration="", aims=[])
+        extra_sec = ArticleSectionOutline(heading="X", subsections=[extra_sub], elaboration="", aims=[], expected_word_count=10)
+        b.sections.append(extra_sec)
+        result = a.resolve_update_conflict(b)
+        assert "Chapter count mismatched" in result
+
+    def test_subsection_title_mismatch_detected(self) -> None:
+        a = self._make_chapter("T", sec_title="Orig")
+        b = self._make_chapter("T", sec_title="Changed")
+        result = a.resolve_update_conflict(b)
+        assert "Title mismatched" in result
