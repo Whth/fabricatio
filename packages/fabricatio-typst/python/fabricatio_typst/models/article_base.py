@@ -1,7 +1,6 @@
-"""A foundation for hierarchical document components with dependency tracking."""
+"""Hierarchical article outline base classes (section → chapter → article)."""
 
 from abc import ABC
-from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
 
@@ -11,110 +10,23 @@ from fabricatio_capabilities.models.generic import (
     ModelHash,
     PersistentAble,
     ProposedUpdateAble,
-    WordCount,
 )
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import (
-    Described,
-    Language,
-    SketchedAble,
-    Titled,
-)
-from fabricatio_core.rust import (
-    detect_language,
-    word_count,
-)
-from fabricatio_core.utils import fallback_kwargs, ok
+from fabricatio_core.utils import ok
 from fabricatio_tool.fs import dump_text
 from pydantic import Field
 
 from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.generic import Introspect
+from fabricatio_typst.models.meta import ArticleMetaData, FromTypstCode, ToTypstCode
 from fabricatio_typst.rust import (
     extract_body,
     extract_sections,
     replace_thesis_body,
-    split_out_metadata,
     strip_comment,
-    to_metadata,
 )
 
 ARTICLE_WRAPPER = typst_config.article_wrapper
-
-
-class ReferringType(StrEnum):
-    """Enumeration of different types of references that can be made in an article."""
-
-    CHAPTER = "chapter"
-    SECTION = "section"
-    SUBSECTION = "subsection"
-
-
-type RefKey = Tuple[str, Optional[str], Optional[str]]
-
-
-class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
-    """Metadata for an article component."""
-
-    description: str = Field(
-        alias="elaboration",
-        description=Described.model_fields["description"].description,
-    )
-
-    title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
-
-    aims: List[str]
-    """List of writing aims of the research component in academic style."""
-
-    _unstructured_body: str = ""
-    """Store the source of the unknown information."""
-
-    @property
-    def typst_metadata_comment(self) -> str:
-        """Generates a comment for the metadata of the article component."""
-        data = self.model_dump(
-            include={"description", "aims", "expected_word_count"},
-            by_alias=True,
-        )
-        return to_metadata({k: v for k, v in data.items() if v})
-
-    @property
-    def unstructured_body(self) -> str:
-        """Returns the unstructured body of the article component."""
-        return self._unstructured_body
-
-    def update_unstructured_body[S: "ArticleMetaData"](self: S, body: str) -> S:
-        """Update the unstructured body of the article component."""
-        self._unstructured_body = body
-        return self
-
-    @property
-    def language(self) -> str:
-        """Get the language of the article component."""
-        return detect_language(self.title)
-
-
-class FromTypstCode(ArticleMetaData):
-    """Base class for article components that can be created from a Typst code snippet."""
-
-    @classmethod
-    def from_typst_code(cls, title: str, body: str, **kwargs) -> Self:
-        """Converts a Typst code snippet into an article component."""
-        data, body = split_out_metadata(body)
-
-        return cls(
-            heading=title.strip(),
-            **fallback_kwargs(data or {}, elaboration="", expected_word_count=word_count(body), aims=[]),
-            **kwargs,
-        )
-
-
-class ToTypstCode(ArticleMetaData):
-    """Base class for article components that can be converted to a Typst code snippet."""
-
-    def to_typst_code(self) -> str:
-        """Converts the component into a Typst code snippet for rendering."""
-        return f"{self.title}\n{self.typst_metadata_comment}\n\n{self._unstructured_body}"
 
 
 class ArticleOutlineBase(
@@ -300,16 +212,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, ToTypstCode, ABC):
     """Base class for article outlines."""
 
-    description: str = Field(
-        alias="elaboration",
-    )
-    """The abstract of this article, which serves as a concise summary of an academic article, encapsulating its core purpose, methodologies, key results,
-    and conclusions while enabling readers to rapidly assess the relevance and significance of the study.
-    Functioning as the article's distilled essence, it succinctly articulates the research problem, objectives,
-    and scope, providing a roadmap for the full text while also facilitating database indexing, literature reviews,
-    and citation tracking through standardized metadata. Additionally, it acts as an accessibility gateway,
-    allowing scholars to gauge the study's contribution to existing knowledge, its methodological rigor,
-    and its broader implications without engaging with the entire manuscript, thereby optimizing scholarly communication efficiency."""
+    description: str = Field(alias="elaboration")
 
     chapters: List[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
@@ -346,14 +249,8 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
             .update_unstructured_body("" if raw else strip_comment(body))
         )
 
-    def iter_dfs_rev(
-        self,
-    ) -> Generator[ArticleOutlineBase, None, None]:
-        """Performs a depth-first search (DFS) through the article structure in reverse order.
-
-        Returns:
-            Generator[ArticleMainBase]: Each component in the article structure in reverse order.
-        """
+    def iter_dfs_rev(self) -> Generator[ArticleOutlineBase, None, None]:
+        """Performs a depth-first search (DFS) through the article structure in reverse order."""
         for chap in self.chapters:
             for sec in chap.sections:
                 yield from sec.subsections
@@ -361,11 +258,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
             yield chap
 
     def iter_dfs(self) -> Generator[ArticleOutlineBase, None, None]:
-        """Performs a depth-first search (DFS) through the article structure.
-
-        Returns:
-            Generator[ArticleMainBase]: Each component in the article structure.
-        """
+        """Performs a depth-first search (DFS) through the article structure."""
         for chap in self.chapters:
             yield chap
             for sec in chap.sections:
@@ -373,21 +266,13 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
                 yield from sec.subsections
 
     def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
-        """Iterates through all sections in the article.
-
-        Returns:
-            Generator[ArticleOutlineBase]: Each section in the article.
-        """
+        """Iterates through all sections in the article."""
         for chap in self.chapters:
             for sec in chap.sections:
                 yield chap, sec
 
     def iter_subsections(self) -> Generator[Tuple[ChapterBase, SectionBase, SubSectionBase], None, None]:
-        """Iterates through all subsections in the article.
-
-        Returns:
-            Generator[ArticleOutlineBase]: Each subsection in the article.
-        """
+        """Iterates through all subsections in the article."""
         for chap, sec in self.iter_sections():
             for subsec in sec.subsections:
                 yield chap, sec, subsec
@@ -432,17 +317,6 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         == Section Title (Level 2)
         === Subsection Title (Level 3)
         ==== Subsubsection Title (Level 4)
-
-        Returns:
-            str: Strictly formatted outline with academic sectioning
-
-        Example:
-            = Methodology
-            == Neural Architecture Search Framework
-            === Differentiable Search Space
-            ==== Constrained Optimization Parameters
-            === Implementation Details
-            == Evaluation Protocol
         """
         return self.to_typst_code()
 
