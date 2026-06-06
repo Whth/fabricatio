@@ -30,7 +30,7 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::provider::dummy::DummyProvider;
-use crate::{Completion, Embeddings, Ranking, RerankerModel, RerankerRequest};
+use crate::{Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, ThrydError};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
@@ -78,6 +78,8 @@ pub struct DummyModel {
     response_q_vec: Mutex<Vec<Embeddings>>,
     /// Queue for reranker responses, consumed in LIFO order.
     response_q_ranks: Mutex<Vec<Ranking>>,
+    /// Queue of errors to return before normal responses (LIFO). For testing retry.
+    completion_errors: Mutex<Vec<ThrydError>>,
     provider: Arc<dyn Provider>, // dummy model will not try to use provider to send req.
 }
 
@@ -106,8 +108,18 @@ impl DummyModel {
             response_q_string: Mutex::new(vec![]),
             response_q_vec: Mutex::new(vec![]),
             response_q_ranks: Mutex::new(vec![]),
+            completion_errors: Mutex::new(vec![]),
             provider,
         }
+    }
+
+    /// Configures errors to return before normal completion responses (LIFO).
+    ///
+    /// Errors are consumed first; once exhausted, the normal response queue is used.
+    /// Useful for testing retry logic.
+    pub fn with_completion_errors(self, errors: Vec<ThrydError>) -> Self {
+        *self.completion_errors.lock().unwrap() = errors;
+        self
     }
 
     /// Configures the completion response queue.
@@ -252,6 +264,13 @@ impl Model for DummyModel {
 #[async_trait]
 impl CompletionModel for DummyModel {
     async fn completion(&self, _request: CompletionRequest) -> crate::Result<Completion> {
+        // Drain error queue first (LIFO) — for testing retry.
+        if let Ok(mut errors) = self.completion_errors.lock() {
+            if let Some(err) = errors.pop() {
+                return Err(err);
+            }
+        }
+
         let mut queue = self
             .response_q_string
             .lock()

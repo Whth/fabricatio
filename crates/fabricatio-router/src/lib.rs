@@ -13,8 +13,8 @@ use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
     Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel, EmbeddingModel,
-    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RerankerModel,
-    RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
+    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RetryConfig,
+    RerankerModel, RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
 };
 
 pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
@@ -509,6 +509,39 @@ impl Router {
             .into_pyresult()?;
         Ok(())
     }
+
+    /// Configures automatic retry on transient network failures for all sub-routers.
+    ///
+    /// When set, failed requests (network errors, timeouts, upstream 429/5xx) are
+    /// retried with exponential backoff.
+    ///
+    /// Args:
+    ///     max_retries (int): Maximum retry attempts after initial failure. 0 disables retries.
+    ///     initial_backoff_ms (int): Initial backoff duration in milliseconds. Defaults to 1000.
+    ///     max_backoff_ms (int): Maximum backoff cap in milliseconds. Defaults to 30000.
+    ///     backoff_multiplier (float): Exponential backoff multiplier. Defaults to 2.0.
+    #[pyo3(signature = (max_retries, initial_backoff_ms = 1000, max_backoff_ms = 30000, backoff_multiplier = 2.0))]
+    pub fn set_retry(
+        &self,
+        max_retries: u32,
+        initial_backoff_ms: u64,
+        max_backoff_ms: u64,
+        backoff_multiplier: f64,
+    ) {
+        let config = if max_retries == 0 {
+            None
+        } else {
+            Some(RetryConfig {
+                max_retries,
+                initial_backoff_ms,
+                max_backoff_ms,
+                backoff_multiplier,
+            })
+        };
+        self.completion_router.set_retry(config.clone());
+        self.embedding_router.set_retry(config.clone());
+        self.reranker_router.set_retry(config);
+    }
 }
 
 /// Adds providers to a router from configuration.
@@ -615,6 +648,24 @@ pub fn init_router_from_config() -> PyResult<Router> {
             .reranker_deployments
             .clone(),
     )?;
+
+    // Apply retry config from settings if present.
+    let routing = &fabricatio_config::CONFIG.routing;
+    let (cr, er, rr) = if let Some(max_retries) = routing.retry_max_retries {
+        let rc = RetryConfig {
+            max_retries,
+            initial_backoff_ms: routing.retry_initial_backoff_ms.unwrap_or(1000),
+            max_backoff_ms: routing.retry_max_backoff_ms.unwrap_or(30_000),
+            backoff_multiplier: routing.retry_backoff_multiplier.unwrap_or(2.0),
+        };
+        trace!(
+            "Enabling retry: max_retries={}, backoff={}ms..{}ms x{}",
+            rc.max_retries, rc.initial_backoff_ms, rc.max_backoff_ms, rc.backoff_multiplier
+        );
+        (cr.with_retry(rc.clone()), er.with_retry(rc.clone()), rr.with_retry(rc))
+    } else {
+        (cr, er, rr)
+    };
 
     Ok(Router::new(er, cr, rr))
 }

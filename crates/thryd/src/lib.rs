@@ -183,6 +183,7 @@ pub use provider::{ProviderType, create_provider, dummy::*, openai::*};
 /// - [`Router`] - Main router for managing deployments and routing requests
 /// - [`CompletionTag`] - Tag type for completion requests
 /// - [`EmbeddingTag`] - Tag type for embedding requests
+/// - [`RetryConfig`] - Configuration for automatic retry on transient failures
 pub use route::*;
 
 /// Token usage tracking and rate limiting utilities.

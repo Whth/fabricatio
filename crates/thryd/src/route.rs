@@ -83,6 +83,95 @@ use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
 
+/// Configuration for automatic retry on transient network failures.
+///
+/// When configured on a [`Router`], failed requests will be retried with
+/// exponential backoff for errors classified as transient (network failures,
+/// timeouts, upstream 429/5xx).
+///
+/// # Example
+///
+/// ```ignore
+/// use thryd::{Router, CompletionTag, RetryConfig};
+///
+/// let router = Router::<CompletionTag>::default()
+///     .with_retry(RetryConfig {
+///         max_retries: 3,
+///         initial_backoff_ms: 500,
+///         ..RetryConfig::default()
+///     });
+/// ```
+#[derive(Debug, Clone)]
+pub struct RetryConfig {
+    /// Maximum number of retry attempts after the initial failure. `0` means no retries.
+    pub max_retries: u32,
+    /// Initial backoff duration in milliseconds before the first retry.
+    pub initial_backoff_ms: u64,
+    /// Cap on backoff duration in milliseconds.
+    pub max_backoff_ms: u64,
+    /// Multiplier applied to backoff after each retry (exponential backoff).
+    pub backoff_multiplier: f64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_backoff_ms: 1000,
+            max_backoff_ms: 30_000,
+            backoff_multiplier: 2.0,
+        }
+    }
+}
+
+/// Execute an async operation with retry on transient errors.
+///
+/// Retries on network failures, timeouts, and upstream 429/5xx errors.
+/// Uses exponential backoff, respecting `RateLimitExceeded.wait_time_ms` as floor.
+async fn retry_on_transient<F, Fut, T>(config: &RetryConfig, mut op: F) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    let mut attempt = 0u32;
+    loop {
+        match op().await {
+            Ok(val) => return Ok(val),
+            Err(e) if attempt < config.max_retries && is_transient(&e) => {
+                attempt += 1;
+                let base = (config.initial_backoff_ms as f64
+                    * config.backoff_multiplier.powi(attempt as i32 - 1))
+                .min(config.max_backoff_ms as f64) as u64;
+
+                let wait_ms = match &e {
+                    ThrydError::RateLimitExceeded { wait_time_ms } => base.max(*wait_time_ms),
+                    _ => base,
+                };
+
+                warn!(
+                    "Transient error (attempt {}/{}): {}. Retrying in {}ms",
+                    attempt, config.max_retries, e, wait_ms
+                );
+                tokio::time::sleep(tokio::time::Duration::from_millis(wait_ms)).await;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
+/// Returns `true` for errors caused by transient network/server conditions.
+fn is_transient(e: &ThrydError) -> bool {
+    match e {
+        ThrydError::Reqwest(_)
+        | ThrydError::Timeout(_)
+        | ThrydError::RateLimitExceeded { .. }
+        | ThrydError::SSE(_) => true,
+        ThrydError::ApiError { status, .. } => *status == 429 || *status >= 500,
+        _ => false,
+    }
+}
+
+
 /// Unique identifier for a deployment, format: `"{provider_name}{SEPARATE}{model_name}"`.
 pub type DeploymentIdentifier = String;
 
@@ -141,6 +230,9 @@ pub struct Router<Tag: ModelTypeTag> {
 
     /// Deployment groups by name. Each group contains deployments for routing.
     groups: DashMap<RouteGroupName, Vec<DeploymentEntry<Tag::Model>>>,
+
+    /// Retry configuration for transient failures. `None` disables retries.
+    retry: std::sync::RwLock<Option<RetryConfig>>,
 }
 
 impl<Tag: ModelTypeTag> Router<Tag> {
@@ -184,6 +276,23 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             ..Self::default()
         })
     }
+
+    /// Enable automatic retry on transient failures with the given configuration.
+    ///
+    /// # Arguments
+    /// * `config` - Retry policy (max retries, backoff parameters).
+    pub fn with_retry(self, config: RetryConfig) -> Self {
+        *self.retry.write().unwrap() = Some(config);
+        self
+    }
+
+    /// Update the retry configuration at runtime.
+    ///
+    /// Pass `None` to disable retries.
+    pub fn set_retry(&self, config: Option<RetryConfig>) {
+        *self.retry.write().unwrap() = config;
+    }
+
 
     /// Register or update a provider in the router.
     ///
@@ -507,7 +616,14 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             .await?;
         debug!("Executing request on `{}`", d.identifier());
         let key = Tag::prepare_cache_key(&request);
-        let res = Tag::execute_request(d, request).await?;
+        let rc = self.retry.read().unwrap().clone();
+        let res = if let Some(rc) = rc {
+            let d2 = d.clone();
+            let r2 = request.clone();
+            retry_on_transient(&rc, || Tag::execute_request(d2.clone(), r2.clone())).await?
+        } else {
+            Tag::execute_request(d, request).await?
+        };
         if let Some(cache) = &self.cache {
             debug!("Overriding cache for: {key}");
             cache.set_ser(&key, &res)?;
@@ -541,9 +657,15 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
             .wait_for_any(send_to, Tag::prepare_input_text(&request))
             .await?;
         debug!("Resolving cache for `{}`", d.identifier());
-        // Split creation from await so generic Tag is consumed before the await point,
-        // satisfying async_trait Send requirement on the default implementation.
-        Tag::cache_resolve(&self.cache, d, request).await
+        let rc = self.retry.read().unwrap().clone();
+        if let Some(rc) = rc {
+            let cache = &self.cache;
+            let d2 = d.clone();
+            let r2 = request.clone();
+            retry_on_transient(&rc, || Tag::cache_resolve(cache, d2.clone(), r2.clone())).await
+        } else {
+            Tag::cache_resolve(&self.cache, d, request).await
+        }
     }
 }
 
@@ -553,6 +675,7 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
             cache: None,
             providers: DashMap::default(),
             groups: DashMap::default(),
+            retry: std::sync::RwLock::new(None),
         }
     }
 }
@@ -614,8 +737,8 @@ pub trait ModelTypeTag {
     type Model: ?Sized + Model;
 
     /// The request struct type for this model type.
-    /// Must be `Send` to support async_trait default method futures.
-    type Request: Send;
+    /// Must be `Send + Clone` to support async_trait default method futures and retry.
+    type Request: Send + Clone;
 
     /// The response type for this model type.
     /// Must support serialization for caching and deserialization for cache retrieval.
@@ -1177,4 +1300,260 @@ mod tests {
             .unwrap();
         assert_eq!(second, vec![vec![0.7, 0.8, 0.9]]);
     }
+
+    #[tokio::test]
+    async fn test_retry_succeeds_first_try() {
+        let config = RetryConfig {
+            max_retries: 3,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let result = retry_on_transient(&config, || async { Ok::<_, ThrydError>(42) }).await;
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[tokio::test]
+    async fn test_retry_succeeds_after_transient_failures() {
+        let config = RetryConfig {
+            max_retries: 3,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let attempts = std::sync::atomic::AtomicU32::new(0);
+        let result = retry_on_transient(&config, || {
+            let n = attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            async move {
+                if n < 2 {
+                    Err(ThrydError::Timeout(5000))
+                } else {
+                    Ok("success")
+                }
+            }
+        })
+        .await;
+        assert_eq!(result.unwrap(), "success");
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn test_retry_fails_on_non_transient_error() {
+        let config = RetryConfig {
+            max_retries: 3,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let attempts = std::sync::atomic::AtomicU32::new(0);
+        let result: std::result::Result<(), _> = retry_on_transient(&config, || {
+            attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            async { Err(ThrydError::Router("bad group".into())) }
+        })
+        .await;
+        assert!(result.is_err());
+        // Non-transient error → fail immediately, no retry
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn test_retry_exhausted_returns_last_error() {
+        let config = RetryConfig {
+            max_retries: 2,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let attempts = std::sync::atomic::AtomicU32::new(0);
+        let result: std::result::Result<(), _> = retry_on_transient(&config, || {
+            attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            async { Err(ThrydError::Timeout(1000)) }
+        })
+        .await;
+        assert!(result.is_err());
+        // 1 initial + 2 retries = 3 total attempts
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn test_retry_respects_rate_limit_wait_time() {
+        let config = RetryConfig {
+            max_retries: 1,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let start = std::time::Instant::now();
+        let result: std::result::Result<(), _> = retry_on_transient(&config, || async {
+            Err(ThrydError::RateLimitExceeded {
+                wait_time_ms: 50,
+            })
+        })
+        .await;
+        assert!(result.is_err());
+        // Should have waited at least 50ms (the rate limit floor), not just 1ms (initial backoff)
+        assert!(start.elapsed() >= std::time::Duration::from_millis(45));
+    }
+
+    #[tokio::test]
+    async fn test_retry_api_error_5xx_is_transient() {
+        let config = RetryConfig {
+            max_retries: 1,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let attempts = std::sync::atomic::AtomicU32::new(0);
+        let result = retry_on_transient(&config, || {
+            let n = attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            async move {
+                if n == 0 {
+                    Err(ThrydError::ApiError {
+                        status: 503,
+                        body: "Service Unavailable".into(),
+                    })
+                } else {
+                    Ok("recovered")
+                }
+            }
+        })
+        .await;
+        assert_eq!(result.unwrap(), "recovered");
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn test_retry_api_error_400_is_not_transient() {
+        let config = RetryConfig {
+            max_retries: 3,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        };
+        let attempts = std::sync::atomic::AtomicU32::new(0);
+        let result: std::result::Result<(), _> = retry_on_transient(&config, || {
+            attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            async {
+                Err(ThrydError::ApiError {
+                    status: 400,
+                    body: "Bad Request".into(),
+                })
+            }
+        })
+        .await;
+        assert!(result.is_err());
+        // 400 is not transient → fail immediately
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+
+    #[tokio::test]
+    async fn test_retry_integration_invoke_fresh_with_transient_errors() {
+        let router = Router::<CompletionTag>::default().with_retry(RetryConfig {
+            max_retries: 2,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        });
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // LIFO: errors popped first (last-in first-out)
+        // Queue: [timeout_err, timeout_err, "ok"] → "ok" is popped last (first call), errors first
+        // Actually LIFO means last element returned first.
+        // We want: call 1 → timeout, call 2 → timeout, call 3 → "ok"
+        // So push: ["ok", timeout, timeout] → pop order: timeout, timeout, "ok"
+        let model = DummyModel::new("retry-test".to_string(), provider)
+            .with_completion_errors(vec![
+                ThrydError::Timeout(1000),
+                ThrydError::Timeout(1000),
+            ])
+            .with_completion_responses(vec!["recovered".to_string()]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
+        router.add_deployment("test".into(), deployment).unwrap();
+
+        let result = router
+            .invoke_fresh(
+                "test".into(),
+                CompletionRequest {
+                    message: "hello".into(),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result, "recovered");
+    }
+
+    #[tokio::test]
+    async fn test_retry_integration_invoke_cached_with_transient_errors() {
+        let router = Router::<CompletionTag>::default().with_retry(RetryConfig {
+            max_retries: 2,
+            initial_backoff_ms: 1,
+            max_backoff_ms: 10,
+            backoff_multiplier: 2.0,
+        });
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        let model = DummyModel::new("retry-cached-test".to_string(), provider)
+            .with_completion_errors(vec![
+                ThrydError::ApiError {
+                    status: 503,
+                    body: "Service Unavailable".into(),
+                },
+            ])
+            .with_completion_responses(vec!["ok".to_string()]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
+        router.add_deployment("test".into(), deployment).unwrap();
+
+        let result = router
+            .invoke_cached(
+                "test".into(),
+                CompletionRequest {
+                    message: "hello".into(),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result, "ok");
+    }
+
+    #[tokio::test]
+    async fn test_retry_integration_disabled_by_default() {
+        // Router without retry → transient errors propagate immediately
+        let router = Router::<CompletionTag>::default();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        let model = DummyModel::new("no-retry".to_string(), provider)
+            .with_completion_errors(vec![ThrydError::Timeout(1000)])
+            .with_completion_responses(vec!["ok".to_string()]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
+        router.add_deployment("test".into(), deployment).unwrap();
+
+        let result = router
+            .invoke_fresh(
+                "test".into(),
+                CompletionRequest {
+                    message: "hello".into(),
+                    ..Default::default()
+                },
+            )
+            .await;
+
+        // Should fail immediately — no retry configured
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ThrydError::Timeout(1000)));
+    }
+
 }

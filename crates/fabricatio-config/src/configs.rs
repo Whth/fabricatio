@@ -216,6 +216,18 @@ pub struct RoutingConfig {
 
     /// Path to the cache database file.
     pub cache_database_path: Option<PathBuf>,
+
+    /// Maximum retry attempts for transient network failures. None disables retries.
+    pub retry_max_retries: Option<u32>,
+
+    /// Initial backoff duration in milliseconds before the first retry. Default: 1000.
+    pub retry_initial_backoff_ms: Option<u64>,
+
+    /// Maximum backoff duration in milliseconds. Default: 30000.
+    pub retry_max_backoff_ms: Option<u64>,
+
+    /// Exponential backoff multiplier. Default: 2.0.
+    pub retry_backoff_multiplier: Option<f64>,
 }
 
 /// General configuration structure for application-wide settings
