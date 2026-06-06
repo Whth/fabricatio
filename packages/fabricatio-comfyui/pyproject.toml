@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-comfyui"
-version = "0.1.0"
+version = "0.2.0"
 description = "ComfyUI API integration for Fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -21,6 +21,7 @@ requires-python = ">=3.12,< 3.15"
 dependencies = [
     "fabricatio-core",
     "httpx>=0.28.0",
+    "websockets>=13.0",
 ]
 
 [dependency-groups]

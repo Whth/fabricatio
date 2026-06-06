@@ -4,20 +4,26 @@ Holds a :class:`ComfyuiClient` instance and delegates every API call to it.
 Mix into a Role to gain ComfyUI interaction methods.
 """
 
-from pathlib import Path
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from fabricatio_core.journal import logger
 from pydantic import PrivateAttr
 
 from fabricatio_comfyui.client import ComfyuiClient
-from fabricatio_comfyui.models.comfyui import (
-    ComfyuiExecutionResult,
-    HistoryEntry,
-    PromptResponse,
-    QueueInfo,
-    UploadResponse,
-)
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from fabricatio_comfyui.models.comfyui import (
+        ComfyuiExecutionResult,
+        HistoryEntry,
+        PromptResponse,
+        QueueInfo,
+        UploadResponse,
+    )
+    from fabricatio_comfyui.models.workflow import WorkflowBuilder
 
 __all__ = ["Comfyui"]
 
@@ -31,7 +37,8 @@ class Comfyui:
     def comfyui(self) -> ComfyuiClient:
         """Return the underlying client, creating lazily if needed."""
         if self._client is None:
-            self._client = ComfyuiClient.cached()
+            self._client = ComfyuiClient()
+            self._client.open()
         return self._client
 
     # ------------------------------------------------------------------
@@ -40,12 +47,11 @@ class Comfyui:
 
     async def comfyui_queue_prompt(
         self,
-        workflow: Dict[str, Any],
-        client_id: Optional[str] = None,
+        workflow: Dict[str, Any] | WorkflowBuilder,
         front: bool = False,
     ) -> PromptResponse:
         """Submit a workflow graph for execution."""
-        resp = await self.comfyui.queue_prompt(workflow, client_id=client_id, front=front)
+        resp = await self.comfyui.queue_prompt(workflow, front=front)
         logger.info(f"ComfyUI prompt queued: {resp.prompt_id}")
         return resp
 
@@ -63,7 +69,7 @@ class Comfyui:
         poll_interval: float = 1.0,
         timeout: Optional[float] = None,
     ) -> ComfyuiExecutionResult:
-        """Poll until a prompt completes or fails."""
+        """Poll until a prompt completes or fails (HTTP polling fallback)."""
         return await self.comfyui.wait_for_completion(prompt_id, poll_interval=poll_interval, timeout=timeout)
 
     async def comfyui_get_image(
@@ -95,23 +101,41 @@ class Comfyui:
 
     async def comfyui_generate(
         self,
-        workflow: Dict[str, Any],
+        workflow: Dict[str, Any] | WorkflowBuilder,
         download_dir: Optional[str | Path] = None,
-        client_id: Optional[str] = None,
-        poll_interval: float = 1.0,
         timeout: Optional[float] = None,
     ) -> ComfyuiExecutionResult:
-        """Queue a workflow, wait for completion, optionally download images."""
-        logger.info("Starting ComfyUI image generation")
+        """Queue a workflow, wait for completion via WebSocket, optionally download images.
+
+        Uses WebSocket (Method 2) for real-time execution monitoring.
+        Falls back to HTTP polling if WebSocket fails.
+        """
+        logger.info("Starting ComfyUI image generation (WebSocket)")
         result = await self.comfyui.generate(
             workflow,
             download_dir=download_dir,
-            client_id=client_id,
-            poll_interval=poll_interval,
             timeout=timeout,
         )
         if result.succeeded:
             logger.info(f"ComfyUI generation completed: {len(result.all_images)} images")
         else:
             logger.error(f"ComfyUI generation failed: {result.error}")
+        return result
+
+    async def comfyui_generate_ws_images(
+        self,
+        workflow: Dict[str, Any] | WorkflowBuilder,
+        timeout: Optional[float] = None,
+    ) -> ComfyuiExecutionResult:
+        """Queue a workflow and receive images via WebSocket binary frames (Method 3).
+
+        The workflow must contain a ``SaveImageWebsocket`` node.  Images are
+        delivered directly via WebSocket — no disk I/O on the server.
+        """
+        logger.info("Starting ComfyUI image generation (WS direct images)")
+        result = await self.comfyui.generate_ws_images(workflow, timeout=timeout)
+        if result.succeeded:
+            logger.info(f"ComfyUI WS image generation completed: {len(result.all_images)} images")
+        else:
+            logger.error("ComfyUI WS image generation failed")
         return result
