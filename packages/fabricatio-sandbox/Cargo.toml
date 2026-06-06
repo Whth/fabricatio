@@ -1,0 +1,17 @@
+[package]
+name = "fabricatio-sandbox"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.28.3" }
+pyo3-stub-gen = { version = "0.22.2", optional = true }
+vfs = "0.13.0"
+similar = "3.1.0"
+thiserror = "2.0"
+
+[features]
+default = ["pyo3/extension-module"]
+stubgen = ["dep:pyo3-stub-gen"]
