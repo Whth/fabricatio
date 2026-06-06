@@ -15,16 +15,17 @@ from fabricatio_core.models.generic import (
 )
 from pydantic import Field
 
-from fabricatio_typst.models.generic import (
-    WithRef,
-)
+from fabricatio_typst.models.artifacts import ArticleArtifacts
 
 
-class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, WordCount, Described, Titled, Language):
+class ArticleProposal(SketchedAble, AsPrompt, PersistentAble, WordCount, Described, Titled, Language):
     """Structured proposal for academic paper development with core research elements.
 
     Guides LLM in generating comprehensive research proposals with clearly defined components.
     """
+
+    artifacts: ArticleArtifacts = Field(default_factory=ArticleArtifacts)
+    """Shared pipeline artifacts (briefing, proposal, outline)."""
 
     focused_problem: List[str]
     """A list of specific research problems or questions that the paper aims to address."""
@@ -52,6 +53,6 @@ class ArticleProposal(SketchedAble, WithRef[str], AsPrompt, PersistentAble, Word
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
-            "ArticleBriefing": self.referenced,
+            "ArticleBriefing": self.artifacts.access_briefing(),
             "ArticleProposal": self.display(),
         }

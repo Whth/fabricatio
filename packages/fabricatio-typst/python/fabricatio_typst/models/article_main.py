@@ -22,7 +22,7 @@ from fabricatio_typst.models.article_outline import (
     ArticleSectionOutline,
     ArticleSubsectionOutline,
 )
-from fabricatio_typst.models.generic import WithRef
+from fabricatio_typst.models.artifacts import ArticleArtifacts
 from fabricatio_typst.rust import (
     convert_all_tex_math,
     fix_misplaced_labels,
@@ -137,7 +137,6 @@ class ArticleChapter(ChapterBase[ArticleSection]):
 
 
 class Article(
-    WithRef[ArticleOutline],
     PersistentAble,
     ArticleBase[ArticleChapter],
 ):
@@ -147,15 +146,20 @@ class Article(
     aiming to provide a comprehensive model for academic papers.
     """
 
+    artifacts: ArticleArtifacts = Field(default_factory=ArticleArtifacts)
+    """Shared pipeline artifacts (briefing, proposal, outline)."""
+
     child_type: ClassVar[Type[ChapterBase]] = ArticleChapter
 
     def _as_prompt_inner(self) -> Dict[str, str]:
-        return {
-            "Original Article Briefing": self.referenced.referenced.referenced,
-            "Original Article Proposal": self.referenced.referenced.display(),
-            "Original Article Outline": self.referenced.display(),
-            "Original Article": self.display(),
-        }
+        out: Dict[str, str] = {"Original Article": self.display()}
+        if self.artifacts.briefing:
+            out["Original Article Briefing"] = self.artifacts.briefing
+        if self.artifacts.proposal:
+            out["Original Article Proposal"] = self.artifacts.proposal.display()
+        if self.artifacts.outline:
+            out["Original Article Outline"] = self.artifacts.outline.display()
+        return out
 
     def convert_tex(self, paragraphs: bool = True, descriptions: bool = True) -> Self:
         """Convert tex to typst code."""
@@ -175,7 +179,7 @@ class Article(
     def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
         return super().iter_subsections()  # pyright: ignore [reportReturnType]
 
-    def extrac_outline(self) -> ArticleOutline:
+    def extract_outline(self) -> ArticleOutline:
         """Extract outline from article."""
         # Create an empty list to hold chapter outlines
         chapters = []
@@ -213,10 +217,10 @@ class Article(
                 )
             )
 
-        # Create and return the article outline
         return ArticleOutline(
-            **self.model_dump(exclude={"chapters"}, by_alias=True),
+            **self.model_dump(exclude={"chapters", "artifacts"}, by_alias=True),
             chapters=chapters,
+            artifacts=self.artifacts,
         )
 
     @classmethod
@@ -229,23 +233,23 @@ class Article(
         Returns:
             Article: The generated article.
         """
-        # Set the title from the outline
-        article = Article(**outline.model_dump(exclude={"chapters"}, by_alias=True), chapters=[])
+        article = Article(
+            **outline.model_dump(exclude={"chapters", "artifacts"}, by_alias=True),
+            chapters=[],
+            artifacts=outline.artifacts,
+        )
 
         for chapter in outline.chapters:
-            # Create a new chapter
             article_chapter = ArticleChapter(
                 sections=[],
                 **chapter.model_dump(exclude={"sections"}, by_alias=True),
             )
             for section in chapter.sections:
-                # Create a new section
                 article_section = ArticleSection(
                     subsections=[],
                     **section.model_dump(exclude={"subsections"}, by_alias=True),
                 )
                 for subsection in section.subsections:
-                    # Create a new subsection
                     article_subsection = ArticleSubsection(
                         paragraphs=[],
                         **subsection.model_dump(by_alias=True),
@@ -261,9 +265,11 @@ class Article(
         self = cls.from_typst_code(article_outline.title, typst_code)
         self.expected_word_count = article_outline.expected_word_count
         self.description = article_outline.description
+        self.artifacts = article_outline.artifacts
+        self.artifacts.update_outline(article_outline)
         for a, o in zip(self.iter_dfs(), article_outline.iter_dfs(), strict=True):
             a.update_metadata(o)
-        return self.update_ref(article_outline)
+        return self
 
     @cfg_on_async(feats=["qa"])
     async def edit_titles(self) -> Self:

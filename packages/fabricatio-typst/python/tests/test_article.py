@@ -69,7 +69,7 @@ class TestArticle:
         """Create a test article instance."""
         outline = ArticleOutline(heading="Outline", expected_word_count=500, elaboration="", aims=[], chapters=[])
         article = Article(heading="Test Article", expected_word_count=500, chapters=[], elaboration="", aims=[])
-        article.update_ref(outline)  # Use proper method to set reference
+        article.artifacts.update_outline(outline)
         return article
 
     def test_convert_tex_processing(self, article: Article) -> None:
@@ -112,7 +112,7 @@ class TestArticle:
         article.chapters.append(chapter)
 
         # Mock questionary input would go here in real test
-        outline = article.extrac_outline()
+        outline = article.extract_outline()
         # Verify structure remains intact (would check actual edits with mock input)
         assert outline.chapters[0].title == "Original Chapter"
         assert outline.chapters[0].sections[0].title == "Original Section"

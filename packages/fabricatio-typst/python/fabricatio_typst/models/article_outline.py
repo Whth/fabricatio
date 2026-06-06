@@ -3,6 +3,7 @@
 from typing import ClassVar, Dict, Type
 
 from fabricatio_capabilities.models.generic import PersistentAble
+from pydantic import Field
 
 from fabricatio_typst.models.article_base import (
     ArticleBase,
@@ -10,8 +11,7 @@ from fabricatio_typst.models.article_base import (
     SectionBase,
     SubSectionBase,
 )
-from fabricatio_typst.models.article_proposal import ArticleProposal
-from fabricatio_typst.models.generic import WithRef
+from fabricatio_typst.models.artifacts import ArticleArtifacts
 
 
 class ArticleSubsectionOutline(SubSectionBase):
@@ -31,17 +31,19 @@ class ArticleChapterOutline(ChapterBase[ArticleSectionOutline]):
 
 
 class ArticleOutline(
-    WithRef[ArticleProposal],
     PersistentAble,
     ArticleBase[ArticleChapterOutline],
 ):
     """Outline of an academic paper, containing chapters, sections, subsections."""
 
+    artifacts: ArticleArtifacts = Field(default_factory=ArticleArtifacts)
+    """Shared pipeline artifacts (briefing, proposal, outline)."""
+
     child_type: ClassVar[Type[ChapterBase]] = ArticleChapterOutline
 
     def _as_prompt_inner(self) -> Dict[str, str]:
         return {
-            "Original Article Briefing": self.referenced.referenced,
-            "Original Article Proposal": self.referenced.display(),
+            "Original Article Briefing": self.artifacts.access_briefing(),
+            "Original Article Proposal": self.artifacts.access_proposal().display(),
             "Original Article Outline": self.display(),
         }

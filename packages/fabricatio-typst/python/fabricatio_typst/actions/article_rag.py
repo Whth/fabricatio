@@ -85,7 +85,7 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
         supervisor: Optional[bool] = None,
         **cxt,
     ) -> Article:
-        article = Article.from_outline(article_outline).update_ref(article_outline)
+        article = Article.from_outline(article_outline)
         self.target_table = table_name or self.safe_target_table
         if supervisor or (supervisor is None and self.supervisor):
             for chap, sec, subsec in article.iter_subsections():
@@ -358,7 +358,7 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
         """
         refind_q = ok(
             await self.arefined_query(
-                f"{article.referenced.as_prompt()}\n# Subsection requiring reference enhancement\n{subsec.display()}\n"
+                f"{article.artifacts.access_outline().as_prompt()}\n# Subsection requiring reference enhancement\n{subsec.display()}\n"
             )
         )
         conf = LancedbFetchRAGConfig(document_model=ArticleEssence, limit=self.ref_limit)

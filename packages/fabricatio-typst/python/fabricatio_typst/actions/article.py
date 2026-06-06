@@ -127,13 +127,15 @@ class GenerateArticleProposal(Action, Propose):
         ).read_text(encoding="utf-8")
 
         logger.info("Start generating the proposal.")
-        return ok(
+        proposal = ok(
             await self.propose(
                 ArticleProposal,
                 f"{briefing}\n\nWrite the value string using `{detect_language(briefing)}` as written language.",
             ),
             "Could not generate the proposal.",
-        ).update_ref(briefing)
+        )
+        proposal.artifacts.update_briefing(briefing)
+        return proposal
 
 
 class GenerateInitialOutline(Action, Extract, Correct):
@@ -178,10 +180,12 @@ class GenerateInitialOutline(Action, Extract, Correct):
                 ) or raw_outline
                 r_print(raw_outline)
 
-        return ok(
+        outline = ok(
             await self.extract(ArticleOutline, raw_outline, **self.extract_kwargs),
             "Could not generate the initial outline.",
-        ).update_ref(article_proposal)
+        )
+        outline.artifacts.update_proposal(article_proposal)
+        return outline
 
 
 class ExtractOutlineFromRaw(Action, Extract):
@@ -220,14 +224,16 @@ class FixIntrospectedErrors(Action, Censor):
         while pack := article_outline.gather_introspected():
             logger.info(f"Found {counter}th introspected errors")
             logger.warn(f"Found introspected error: {pack}")
-            article_outline = ok(
+            corrected = ok(
                 await self.censor_obj(
                     article_outline,
                     ruleset=ok(intro_fix_ruleset or self.ruleset, "No ruleset provided"),
                     reference=f"{article_outline.display()}\n # Fatal Error of the Original Article Outline\n{pack}",
                 ),
                 "Could not correct the component.",
-            ).update_ref(origin)
+            )
+            corrected.artifacts = origin.artifacts
+            article_outline = corrected
 
             if self.max_error_count and counter > self.max_error_count:
                 logger.warn("Max error count reached, stopping.")
@@ -250,9 +256,7 @@ class GenerateArticle(Action, Censor):
         article_gen_ruleset: Optional[RuleSet] = None,
         **_,
     ) -> Optional[Article]:
-        article: Article = Article.from_outline(ok(article_outline, "Article outline not specified.")).update_ref(
-            article_outline
-        )
+        article: Article = Article.from_outline(ok(article_outline, "Article outline not specified."))
 
         await gather(
             *[
@@ -389,7 +393,7 @@ class WriteResearchContentSummary(Action, UseLLM):
         if not chap_1.sections:
             raise ValueError("No sections found in the first chapter of the article.")
 
-        outline = article.extrac_outline()
+        outline = article.extract_outline()
         suma: str = await self.aask(
             TEMPLATE_MANAGER.render_template(
                 typst_config.research_content_summary_template,

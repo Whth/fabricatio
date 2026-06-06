@@ -264,7 +264,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
 
         if self.title != other.title:
             out += f"Title mismatched, expected `{self.title}`, got `{other.title}`"
-        if len(self.sections) == len(other.sections):
+        if len(self.sections) != len(other.sections):
             out += f"Chapter count mismatched, expected `{len(self.sections)}`, got `{len(other.sections)}`"
 
         return out or "\n".join(

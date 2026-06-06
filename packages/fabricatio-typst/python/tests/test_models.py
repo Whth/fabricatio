@@ -84,8 +84,8 @@ class TestArticleProposal:
             expected_word_count=500,
             title="Research Title",
         )
-        # WithRef[str] requires update_ref to set the briefing string
-        proposal.update_ref("Test briefing string")
+        # Set the briefing via artifacts
+        proposal.artifacts.update_briefing("Test briefing string")
         return proposal
 
     def test_creation(self, proposal: ArticleProposal) -> None:
