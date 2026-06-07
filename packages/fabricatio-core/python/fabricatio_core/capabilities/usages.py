@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Set, Tuple, Unpack, overload
+from typing import Callable, Dict, List, Optional, Set, Tuple, Unpack, overload, Literal
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt, ValidationError
@@ -30,7 +30,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger, ValueType
 from fabricatio_core.utils import ok, override_kwargs
 
 
@@ -157,16 +157,31 @@ class UseLLM(LLMScopedConfig, ABC):
 
     @overload
     async def amapping_kv(
-        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
+        self,
+        requirement: str,
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.String],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, str]]],
     ) -> Optional[Dict[str, str]]: ...
 
     @overload
     async def amapping_kv(
-        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
-    ) -> List[Optional[Dict[str, str]]] | None: ...
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.Int],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[MappingKwargs[str, int]],
+    ) -> List[Optional[Dict[str, int]]] | None: ...
 
     async def amapping_kv(
-        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
+        self,
+        requirement: str | List[str],
+        key_type: ValueType,
+        value_type: ValueType,
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[MappingKwargs[str, str]],
     ) -> None | Dict[str, str] | List[Optional[Dict[str, str]]]:
         """Asynchronously maps a requirement to a key-value dictionary via LLM.
 
@@ -174,13 +189,15 @@ class UseLLM(LLMScopedConfig, ABC):
 
         Args:
             requirement: A single string or list of strings describing the mapping task.
+            key_type: The type of the keys in the mapping.
+            value_type: The type of the values in the mapping.
             k: The number of key-value pairs to generate, 0 means infinite. Defaults to 0.
             **kwargs: Additional keyword arguments including key_type, value_type, and LLM params.
 
         Returns:
             Optional[Dict[str, str]]: The validated mapping, or None on failure.
         """
-        params = self._resolve_mapping_kv_params(**kwargs)
+        params = self._resolve_mapping_kv_params(key_type=key_type, value_type=value_type, **kwargs)
         return await rust.router_usage.mapping_kv(
             requirement=requirement,
             k=k,
