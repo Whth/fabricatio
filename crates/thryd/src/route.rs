@@ -171,7 +171,6 @@ fn is_transient(e: &ThrydError) -> bool {
     }
 }
 
-
 /// Unique identifier for a deployment, format: `"{provider_name}{SEPARATE}{model_name}"`.
 pub type DeploymentIdentifier = String;
 
@@ -292,7 +291,6 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     pub fn set_retry(&self, config: Option<RetryConfig>) {
         *self.retry.write().unwrap() = config;
     }
-
 
     /// Register or update a provider in the router.
     ///
@@ -1385,9 +1383,7 @@ mod tests {
         };
         let start = std::time::Instant::now();
         let result: std::result::Result<(), _> = retry_on_transient(&config, || async {
-            Err(ThrydError::RateLimitExceeded {
-                wait_time_ms: 50,
-            })
+            Err(ThrydError::RateLimitExceeded { wait_time_ms: 50 })
         })
         .await;
         assert!(result.is_err());
@@ -1446,7 +1442,6 @@ mod tests {
         assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
-
     #[tokio::test]
     async fn test_retry_integration_invoke_fresh_with_transient_errors() {
         let router = Router::<CompletionTag>::default().with_retry(RetryConfig {
@@ -1465,10 +1460,7 @@ mod tests {
         // We want: call 1 → timeout, call 2 → timeout, call 3 → "ok"
         // So push: ["ok", timeout, timeout] → pop order: timeout, timeout, "ok"
         let model = DummyModel::new("retry-test".to_string(), provider)
-            .with_completion_errors(vec![
-                ThrydError::Timeout(1000),
-                ThrydError::Timeout(1000),
-            ])
+            .with_completion_errors(vec![ThrydError::Timeout(1000), ThrydError::Timeout(1000)])
             .with_completion_responses(vec!["recovered".to_string()]);
 
         let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
@@ -1501,12 +1493,10 @@ mod tests {
         router.add_or_update_provider(provider.clone());
 
         let model = DummyModel::new("retry-cached-test".to_string(), provider)
-            .with_completion_errors(vec![
-                ThrydError::ApiError {
-                    status: 503,
-                    body: "Service Unavailable".into(),
-                },
-            ])
+            .with_completion_errors(vec![ThrydError::ApiError {
+                status: 503,
+                body: "Service Unavailable".into(),
+            }])
             .with_completion_responses(vec!["ok".to_string()]);
 
         let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
@@ -1555,5 +1545,4 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), ThrydError::Timeout(1000)));
     }
-
 }

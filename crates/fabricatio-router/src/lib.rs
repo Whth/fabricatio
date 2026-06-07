@@ -13,8 +13,8 @@ use thryd::tracker::Quota;
 use thryd::utils::analyze_identifier;
 use thryd::{
     Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel, EmbeddingModel,
-    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RetryConfig,
-    RerankerModel, RerankerRequest, RerankerTag, Router as ThrydRouter, create_provider,
+    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RerankerModel,
+    RerankerRequest, RerankerTag, RetryConfig, Router as ThrydRouter, create_provider,
 };
 
 pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
@@ -662,7 +662,11 @@ pub fn init_router_from_config() -> PyResult<Router> {
             "Enabling retry: max_retries={}, backoff={}ms..{}ms x{}",
             rc.max_retries, rc.initial_backoff_ms, rc.max_backoff_ms, rc.backoff_multiplier
         );
-        (cr.with_retry(rc.clone()), er.with_retry(rc.clone()), rr.with_retry(rc))
+        (
+            cr.with_retry(rc.clone()),
+            er.with_retry(rc.clone()),
+            rr.with_retry(rc),
+        )
     } else {
         (cr, er, rr)
     };
