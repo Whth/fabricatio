@@ -144,7 +144,7 @@ impl RouterUsage {
     ) -> PyResult<Option<HashMap<String, String>>> {
         self.ask_validate_inner(
             requirement,
-            |resp| JSON_PARSER.validate_dict_str_str(resp, k, true),
+            |resp| JSON_PARSER.validate_dict_inner(resp, k, true),
             default,
             max_validations,
             params,
@@ -162,7 +162,7 @@ impl RouterUsage {
     ) -> PyResult<Vec<Option<HashMap<String, String>>>> {
         self.ask_validate_batch_inner(
             requirements,
-            |resp| JSON_PARSER.validate_dict_str_str(resp, k, true),
+            |resp| JSON_PARSER.validate_dict_inner(resp, k, true),
             default,
             max_validations,
             params,
