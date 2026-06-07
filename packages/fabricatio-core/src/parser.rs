@@ -12,8 +12,8 @@ use pyo3::types::{PyDict, PyList, PySet, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
@@ -210,11 +210,52 @@ impl TextCapturer {
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
 #[derive(Clone)]
 #[pyclass(from_py_object)]
-enum ValueType {
+pub enum ValueType {
     String,
     Float,
     Int,
     Bool,
+}
+
+/// A validated dictionary result typed by key/value kinds.
+///
+/// Each variant wraps a `HashMap` with concrete Rust types, eliminating
+/// the need for `pythonize` at the validation boundary. Callers that need
+/// a Python object invoke [`into_py_any`](ValidatedDict::into_py_any) explicitly.
+#[derive(Clone)]
+pub enum ValidatedDict {
+    StringString(HashMap<String, String>),
+    StringFloat(HashMap<String, f64>),
+    StringInt(HashMap<String, i64>),
+    StringBool(HashMap<String, bool>),
+    IntString(HashMap<i64, String>),
+    IntFloat(HashMap<i64, f64>),
+    IntInt(HashMap<i64, i64>),
+    IntBool(HashMap<i64, bool>),
+    BoolString(HashMap<bool, String>),
+    BoolFloat(HashMap<bool, f64>),
+    BoolInt(HashMap<bool, i64>),
+    BoolBool(HashMap<bool, bool>),
+}
+
+impl ValidatedDict {
+    /// Convert into a Python object via `pythonize`.
+    pub fn into_py_any(self, py: Python) -> Bound<PyAny> {
+        match self {
+            ValidatedDict::StringString(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::StringFloat(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::StringInt(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::StringBool(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::IntString(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::IntFloat(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::IntInt(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::IntBool(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::BoolString(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::BoolFloat(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::BoolInt(v) => pythonize(py, &v).unwrap(),
+            ValidatedDict::BoolBool(v) => pythonize(py, &v).unwrap(),
+        }
+    }
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
@@ -255,6 +296,70 @@ impl JsonParser {
             return None;
         }
         Some(val)
+    }
+
+    /// Validates that the text parses to a typed dictionary.
+    ///
+    /// Returns a [`ValidatedDict`] variant whose inner `HashMap` types are
+    /// determined by `key_type` / `value_type`. Callers that need a Python
+    /// object call [`ValidatedDict::into_py_any`] explicitly.
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     key_type: The type of dictionary keys.
+    ///     value_type: The type of dictionary values.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated dictionary or None if deserialization or length check fails.
+    pub fn validate_dict_k_v_inner(
+        &self,
+        text: &str,
+        key_type: ValueType,
+        value_type: ValueType,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<ValidatedDict> {
+        match (key_type, value_type) {
+            (ValueType::String, ValueType::String) => self
+                .validate_dict_inner::<String, String>(text, length, fix)
+                .map(ValidatedDict::StringString),
+            (ValueType::String, ValueType::Float) => self
+                .validate_dict_inner::<String, f64>(text, length, fix)
+                .map(ValidatedDict::StringFloat),
+            (ValueType::String, ValueType::Int) => self
+                .validate_dict_inner::<String, i64>(text, length, fix)
+                .map(ValidatedDict::StringInt),
+            (ValueType::String, ValueType::Bool) => self
+                .validate_dict_inner::<String, bool>(text, length, fix)
+                .map(ValidatedDict::StringBool),
+            (ValueType::Int, ValueType::String) => self
+                .validate_dict_inner::<i64, String>(text, length, fix)
+                .map(ValidatedDict::IntString),
+            (ValueType::Int, ValueType::Float) => self
+                .validate_dict_inner::<i64, f64>(text, length, fix)
+                .map(ValidatedDict::IntFloat),
+            (ValueType::Int, ValueType::Int) => self
+                .validate_dict_inner::<i64, i64>(text, length, fix)
+                .map(ValidatedDict::IntInt),
+            (ValueType::Int, ValueType::Bool) => self
+                .validate_dict_inner::<i64, bool>(text, length, fix)
+                .map(ValidatedDict::IntBool),
+            (ValueType::Bool, ValueType::String) => self
+                .validate_dict_inner::<bool, String>(text, length, fix)
+                .map(ValidatedDict::BoolString),
+            (ValueType::Bool, ValueType::Float) => self
+                .validate_dict_inner::<bool, f64>(text, length, fix)
+                .map(ValidatedDict::BoolFloat),
+            (ValueType::Bool, ValueType::Int) => self
+                .validate_dict_inner::<bool, i64>(text, length, fix)
+                .map(ValidatedDict::BoolInt),
+            (ValueType::Bool, ValueType::Bool) => self
+                .validate_dict_inner::<bool, bool>(text, length, fix)
+                .map(ValidatedDict::BoolBool),
+            _ => panic!("Invalid type combination"),
+        }
     }
 }
 
@@ -643,64 +748,9 @@ impl JsonParser {
         value_type: ValueType,
         length: Option<usize>,
         fix: bool,
-    ) -> PyResult<Bound<'a, PyAny>> {
-        let v = match (key_type, value_type) {
-            (ValueType::String, ValueType::String) => pythonize(
-                python,
-                &self.validate_dict_inner::<String, String>(text, length, fix),
-            ),
-            (ValueType::String, ValueType::Float) => pythonize(
-                python,
-                &self.validate_dict_inner::<String, f64>(text, length, fix),
-            ),
-            (ValueType::String, ValueType::Int) => pythonize(
-                python,
-                &self.validate_dict_inner::<String, i64>(text, length, fix),
-            ),
-            (ValueType::String, ValueType::Bool) => pythonize(
-                python,
-                &self.validate_dict_inner::<String, bool>(text, length, fix),
-            ),
-            (ValueType::Int, ValueType::String) => pythonize(
-                python,
-                &self.validate_dict_inner::<i64, String>(text, length, fix),
-            ),
-            (ValueType::Int, ValueType::Float) => pythonize(
-                python,
-                &self.validate_dict_inner::<i64, f64>(text, length, fix),
-            ),
-            (ValueType::Int, ValueType::Int) => pythonize(
-                python,
-                &self.validate_dict_inner::<i64, i64>(text, length, fix),
-            ),
-            (ValueType::Int, ValueType::Bool) => pythonize(
-                python,
-                &self.validate_dict_inner::<i64, bool>(text, length, fix),
-            ),
-            (ValueType::Bool, ValueType::String) => pythonize(
-                python,
-                &self.validate_dict_inner::<bool, String>(text, length, fix),
-            ),
-            (ValueType::Bool, ValueType::Float) => pythonize(
-                python,
-                &self.validate_dict_inner::<bool, f64>(text, length, fix),
-            ),
-            (ValueType::Bool, ValueType::Int) => pythonize(
-                python,
-                &self.validate_dict_inner::<bool, i64>(text, length, fix),
-            ),
-            (ValueType::Bool, ValueType::Bool) => pythonize(
-                python,
-                &self.validate_dict_inner::<bool, bool>(text, length, fix),
-            ),
-            _ => {
-                return Err(PyValueError::new_err(
-                    "validate_dict_k_v: unsupported type combination",
-                ));
-            }
-        };
-
-        v.into_pyresult()
+    ) -> Option<Bound<'a, PyAny>> {
+        self.validate_dict_k_v_inner(text, key_type, value_type, length, fix)
+            .map(|v| v.into_py_any(python))
     }
 }
 
