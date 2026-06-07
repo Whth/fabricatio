@@ -42,6 +42,7 @@ __all__ = [
     "TemplateManager",
     "TemplateManagerConfig",
     "TextCapturer",
+    "ValueType",
     "blake3_hash",
     "detect_language",
     "extra_satisfied",
@@ -587,10 +588,17 @@ class JsonParser:
         Returns:
             The validated dictionary or None if validation fails.
         """
-    def validate_dict_str_str(
-        self, text: builtins.str, length: typing.Optional[builtins.int] = None, fix: builtins.bool = True
-    ) -> typing.Dict[str, str] | None:
-        r"""Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: builtins.str,
+        key_type: ValueType = ...,
+        value_type: ValueType = ...,
+        length: typing.Optional[builtins.int] = None,
+        fix: builtins.bool = True,
+    ) -> typing.Any:
+        r"""
+        Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
 
         This is a typed convenience wrapper over `deserialize` that avoids Python
         GIL interaction since it operates on pure Rust types.
@@ -603,6 +611,114 @@ class JsonParser:
         Returns:
             The validated `HashMap<String, String>` or None if deserialization or length check fails.
         """
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.String],
+        value_type: typing.Literal[ValueType.String],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[str, str] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.String],
+        value_type: typing.Literal[ValueType.Float],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[str, float] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.String],
+        value_type: typing.Literal[ValueType.Int],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[str, int] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.String],
+        value_type: typing.Literal[ValueType.Bool],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[str, bool] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Int],
+        value_type: typing.Literal[ValueType.String],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[int, str] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Int],
+        value_type: typing.Literal[ValueType.Float],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[int, float] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Int],
+        value_type: typing.Literal[ValueType.Int],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[int, int] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Int],
+        value_type: typing.Literal[ValueType.Bool],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[int, bool] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Bool],
+        value_type: typing.Literal[ValueType.String],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[bool, str] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Bool],
+        value_type: typing.Literal[ValueType.Float],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[bool, float] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Bool],
+        value_type: typing.Literal[ValueType.Int],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[bool, int] | None: ...
+    @typing.overload
+    def validate_dict_k_v(
+        self,
+        text: str,
+        key_type: typing.Literal[ValueType.Bool],
+        value_type: typing.Literal[ValueType.Bool],
+        length: typing.Optional[int] = None,
+        fix: bool = True,
+    ) -> typing.Dict[bool, bool] | None: ...
 
 @typing.final
 class LLMConfig:
@@ -861,6 +977,24 @@ class Router:
         model_identifier: builtins.str,
         rankings: typing.Sequence[typing.Sequence[tuple[builtins.int, builtins.float]]],
     ) -> None: ...
+    def set_retry(
+        self,
+        max_retries: builtins.int,
+        initial_backoff_ms: builtins.int = 1000,
+        max_backoff_ms: builtins.int = 30000,
+        backoff_multiplier: builtins.float = 2.0,
+    ) -> None:
+        r"""Configures automatic retry on transient network failures for all sub-routers.
+
+        When set, failed requests (network errors, timeouts, upstream 429/5xx) are
+        retried with exponential backoff.
+
+        Args:
+            max_retries (int): Maximum retry attempts after initial failure. 0 disables retries.
+            initial_backoff_ms (int): Initial backoff duration in milliseconds. Defaults to 1000.
+            max_backoff_ms (int): Maximum backoff cap in milliseconds. Defaults to 30000.
+            backoff_multiplier (float): Exponential backoff multiplier. Defaults to 2.0.
+        """
 
 @typing.final
 class RouterUsage:
@@ -1273,6 +1407,18 @@ class RoutingConfig:
     @property
     def cache_database_path(self) -> typing.Optional[pathlib.Path]:
         r"""Path to the cache database file."""
+    @property
+    def retry_max_retries(self) -> typing.Optional[builtins.int]:
+        r"""Maximum retry attempts for transient network failures. None disables retries."""
+    @property
+    def retry_initial_backoff_ms(self) -> typing.Optional[builtins.int]:
+        r"""Initial backoff duration in milliseconds before the first retry. Default: 1000."""
+    @property
+    def retry_max_backoff_ms(self) -> typing.Optional[builtins.int]:
+        r"""Maximum backoff duration in milliseconds. Default: 30000."""
+    @property
+    def retry_backoff_multiplier(self) -> typing.Optional[builtins.float]:
+        r"""Exponential backoff multiplier. Default: 2.0."""
 
 @typing.final
 class SecretStr:
@@ -1536,6 +1682,13 @@ class TaskStatus(enum.Enum):
     def __setstate__(self, state: bytes) -> None: ...
     def __getstate__(self) -> bytes: ...
     def __getnewargs__(self) -> tuple[builtins.int]: ...
+
+@typing.final
+class ValueType(enum.Enum):
+    String = ...
+    Float = ...
+    Int = ...
+    Bool = ...
 
 def blake3_hash(content: bytes) -> builtins.str:
     r"""Calculates a BLAKE3 hash of the given content.
