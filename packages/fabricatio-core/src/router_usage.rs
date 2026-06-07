@@ -1,6 +1,6 @@
 use crate::parser::{
-    CodeSnippet, ValidatedDict, ValueType, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER,
-    SNIPPET_PARSER,
+    CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER, ValidatedDict,
+    ValueType,
 };
 use crate::templates::TEMPLATE_MANAGER;
 use cfg_if::cfg_if;
@@ -9,8 +9,8 @@ use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
 use fabricatio_router::Router;
 use fabricatio_router::{CompletionRequest, RouteGroupName};
-use futures::future::join_all;
 use futures::StreamExt;
+use futures::future::join_all;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -18,7 +18,7 @@ use pyo3::{BoundObject, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde::de::DeserializeOwned;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -447,6 +447,20 @@ impl RouterUsage {
         }
     }
 
+    /// Asynchronously maps a requirement to a key-value dictionary via LLM, with typed key/value validation.
+    ///
+    /// Unlike `mapping_strings` (str→str only), this method supports arbitrary key and value types
+    /// controlled by `key_type` and `value_type` parameters.
+    ///
+    /// # Arguments
+    /// * `requirement` - A single string or list of strings describing the mapping task.
+    /// * `key_type` - Expected type for dictionary keys (e.g. `ValueType::String`, `ValueType::Int`).
+    /// * `value_type` - Expected type for dictionary values.
+    /// * `k` - Optional number of key-value pairs to generate.
+    /// * `max_validations` - Maximum number of LLM retry attempts for validation.
+    /// * `default` - Optional fallback dictionary returned when all attempts fail.
+    ///
+    /// Returns `Optional[Dict]` for single requirement, `List[Optional[Dict]]` for batch.
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
     pub fn mapping_kv<'a>(
@@ -765,11 +779,11 @@ pyo3_stub_gen::inventory::submit! {
             @overload
             def ask(self, question: typing.Union[str, typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
             @overload
-            def mapping_strings(self, requirement: str, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
+            def mapping_kv(self, requirement: str, key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
             @overload
-            def mapping_strings(self, requirement: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+            def mapping_kv(self, requirement: typing.List[str], key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
             @overload
-            def mapping_strings(self, requirement: typing.Union[str, typing.List[str]], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]]: ...
+            def mapping_kv(self, requirement: typing.Union[str, typing.List[str]], key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]]: ...
             @overload
             def listing_strings(self, requirement: str, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
             @overload

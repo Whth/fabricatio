@@ -208,7 +208,7 @@ class TestJsonParser:
         """Test validate_dict with valid dict."""
         parser = JsonParser.with_pattern(r"\{.*\}")
         text = '{"key": "value"}'
-        result = parser.validate_dict(text, length=1, fix=False)
+        result = parser.validate_dict_k_v(text, length=1, fix=False)
         assert result is not None
         assert len(result) == 1
 
@@ -216,7 +216,7 @@ class TestJsonParser:
         """Test validate_dict returns None when length doesn't match."""
         parser = JsonParser.with_pattern(r"\{.*\}")
         text = '{"key": "value"}'
-        result = parser.validate_dict(text, length=5, fix=False)
+        result = parser.validate_dict_k_v(text, length=5, fix=False)
         assert result is None
 
 

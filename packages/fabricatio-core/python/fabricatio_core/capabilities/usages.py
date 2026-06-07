@@ -22,7 +22,14 @@ from pydantic import NonNegativeInt, PositiveInt, ValidationError
 from fabricatio_core import rust
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfig, RerankerScopedConfig, WithBriefing
-from fabricatio_core.models.kwargs_types import ChooseKwargs, EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import (
+    ChooseKwargs,
+    EmbeddingKwargs,
+    LLMKwargs,
+    MappingKwargs,
+    RerankerKwargs,
+    ValidateKwargs,
+)
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import ok, override_kwargs
 
@@ -149,30 +156,32 @@ class UseLLM(LLMScopedConfig, ABC):
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
     @overload
-    async def amapping_str(
-        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    async def amapping_kv(
+        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
     ) -> Optional[Dict[str, str]]: ...
 
     @overload
-    async def amapping_str(
-        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    async def amapping_kv(
+        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
     ) -> List[Optional[Dict[str, str]]] | None: ...
 
-    async def amapping_str(
-        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+    async def amapping_kv(
+        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[MappingKwargs[str, str]]
     ) -> None | Dict[str, str] | List[Optional[Dict[str, str]]]:
-        """Asynchronously generates a mapping of strings based on a given requirement.
+        """Asynchronously maps a requirement to a key-value dictionary via LLM.
+
+        Supports arbitrary key/value types through `key_type` and `value_type` parameters.
 
         Args:
-            requirement (str): The requirement for the mapping of strings.
-            k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            requirement: A single string or list of strings describing the mapping task.
+            k: The number of key-value pairs to generate, 0 means infinite. Defaults to 0.
+            **kwargs: Additional keyword arguments including key_type, value_type, and LLM params.
 
         Returns:
-            Optional[Dict[str, str]]: The validated response as a mapping of strings.
+            Optional[Dict[str, str]]: The validated mapping, or None on failure.
         """
-        params = self._resolve_validation_params(**kwargs)
-        return await rust.router_usage.mapping_strings(
+        params = self._resolve_mapping_kv_params(**kwargs)
+        return await rust.router_usage.mapping_kv(
             requirement=requirement,
             k=k,
             **params,

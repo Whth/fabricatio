@@ -7,8 +7,6 @@ import pathlib
 import typing
 
 _T = typing.TypeVar("_T")
-_K = typing.TypeVar("_K")
-_V = typing.TypeVar("_V")
 
 __all__ = [
     "CONFIG",
@@ -568,49 +566,6 @@ class JsonParser:
         Returns:
             The validated set or None if validation fails.
         """
-    def validate_dict(
-        self,
-        text: builtins.str,
-        key_type: typing.Type[_K] | None = None,
-        value_type: typing.Type[_V] | None = None,
-        length: typing.Optional[builtins.int] = None,
-        fix: builtins.bool = True,
-    ) -> typing.Dict[_K, _V] | None:
-        r"""Validates that the text parses to a dictionary with optional constraints.
-
-        Args:
-            text: The text to parse as JSON.
-            key_type: Optional type to check all keys against.
-            value_type: Optional type to check all values against.
-            length: Optional exact length requirement.
-            fix: Whether to attempt JSON repair before parsing.
-
-        Returns:
-            The validated dictionary or None if validation fails.
-        """
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: builtins.str,
-        key_type: ValueType = ...,
-        value_type: ValueType = ...,
-        length: typing.Optional[builtins.int] = None,
-        fix: builtins.bool = True,
-    ) -> typing.Any:
-        r"""
-        Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
-
-        This is a typed convenience wrapper over `deserialize` that avoids Python
-        GIL interaction since it operates on pure Rust types.
-
-        Args:
-            text: The text to parse as JSON.
-            length: Optional exact length requirement.
-            fix: Whether to attempt JSON repair before parsing.
-
-        Returns:
-            The validated `HashMap<String, String>` or None if deserialization or length check fails.
-        """
     @typing.overload
     def validate_dict_k_v(
         self,
@@ -1038,9 +993,11 @@ class RouterUsage:
         no_cache: bool,
     ) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
     @typing.overload
-    def mapping_strings(
+    def mapping_kv(
         self,
         requirement: str,
+        key_type: ValueType,
+        value_type: ValueType,
         k: typing.Optional[int],
         max_validations: int,
         default: typing.Optional[typing.Dict[str, str]],
@@ -1054,9 +1011,11 @@ class RouterUsage:
         no_cache: bool,
     ) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
     @typing.overload
-    def mapping_strings(
+    def mapping_kv(
         self,
         requirement: typing.List[str],
+        key_type: ValueType,
+        value_type: ValueType,
         k: typing.Optional[int],
         max_validations: int,
         default: typing.Optional[typing.Dict[str, str]],
@@ -1070,9 +1029,11 @@ class RouterUsage:
         no_cache: bool,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
     @typing.overload
-    def mapping_strings(
+    def mapping_kv(
         self,
         requirement: typing.Union[str, typing.List[str]],
+        key_type: ValueType,
+        value_type: ValueType,
         k: typing.Optional[int],
         max_validations: int,
         default: typing.Optional[typing.Dict[str, str]],

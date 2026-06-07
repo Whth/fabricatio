@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload, Dict
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
 
 import orjson
 from pydantic import (
@@ -20,9 +20,9 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
     EmbeddingKwargs,
     LLMKwargs,
+    MappingKwargs,
     RerankerKwargs,
     ValidateKwargs,
-    MappingKwargs,
 )
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, ValueType, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok

@@ -178,7 +178,7 @@ async def test_aask_validate[T](
     ],
 )
 @pytest.mark.asyncio
-async def test_amapping_str(
+async def test_amapping_kv(
     mock_router: list[str],
     ret_value: str,
     requirement: str,
@@ -186,7 +186,7 @@ async def test_amapping_str(
     expected_result: Optional[Dict[str, str]],
     role_with_llm: LLMTestRole,
 ) -> None:
-    """Test the amapping_str method with different scenarios.
+    """Test the amapping_kv method with different scenarios.
 
     Validates correct handling of various input combinations including:
     - Successful generation of valid string mappings.
@@ -202,7 +202,7 @@ async def test_amapping_str(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.amapping_str(requirement=requirement, k=k)
+        result = await role_with_llm.amapping_kv(requirement=requirement, k=k)
 
         assert result == expected_result
 

@@ -12,8 +12,8 @@ use pyo3::types::{PyDict, PyList, PySet, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
@@ -646,87 +646,6 @@ impl JsonParser {
         Some(val_set)
     }
 
-    /// Validates that the text parses to a dictionary with optional constraints.
-    ///
-    /// Args:
-    ///     text: The text to parse as JSON.
-    ///     key_type: Optional type to check all keys against.
-    ///     value_type: Optional type to check all values against.
-    ///     length: Optional exact length requirement.
-    ///     fix: Whether to attempt JSON repair before parsing.
-    ///
-    /// Returns:
-    ///     The validated dictionary or None if validation fails.
-    #[pyo3(signature=(text, key_type=None, value_type=None, length=None, fix=true))]
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Dict[_K, _V]|None", imports = ("typing",))
-    )]
-    pub fn validate_dict<'a>(
-        &self,
-        python: Python<'a>,
-        text: &str,
-
-        #[gen_stub(override_type(type_repr = "typing.Type[_K]|None"))] key_type: Option<
-            &Bound<PyType>,
-        >,
-        #[gen_stub(override_type(type_repr = "typing.Type[_V]|None"))] value_type: Option<
-            &Bound<PyType>,
-        >,
-        length: Option<usize>,
-        fix: bool,
-    ) -> Option<Bound<'a, PyDict>> {
-        let val_dict = self.convert(python, text, fix).and_then(|val| {
-            val.cast_into_exact::<PyDict>()
-                .map_err(|_| {
-                    warn!(
-                        "validate_dict: validation failed for text with length={:?}",
-                        length
-                    );
-                })
-                .ok()
-        })?;
-
-        let len = val_dict.len();
-        if let Some(l) = length
-            && l != 0
-            && len != l
-        {
-            warn!(
-                "validate_dict: length mismatch - expected {:?}, got {}",
-                length, len
-            );
-            return None;
-        }
-
-        if let Some(t) = key_type
-            && !val_dict
-                .keys()
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        {
-            warn!(
-                "validate_dict: type check failed with key_type={:?}",
-                t.to_string()
-            );
-            return None;
-        }
-
-        if let Some(t) = value_type
-            && !val_dict
-                .values()
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        {
-            warn!(
-                "validate_dict: type check failed with value_type={:?}",
-                t.to_string()
-            );
-            return None;
-        }
-
-        Some(val_dict)
-    }
-
     /// Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
     ///
     /// This is a typed convenience wrapper over `deserialize` that avoids Python
@@ -740,6 +659,7 @@ impl JsonParser {
     /// Returns:
     ///     The validated `HashMap<String, String>` or None if deserialization or length check fails.
     #[pyo3(signature=(text, key_type=ValueType::String,value_type=ValueType::String,length=None, fix=true))]
+    #[gen_stub(skip)]
     pub fn validate_dict_k_v<'a>(
         &self,
         python: Python<'a>,

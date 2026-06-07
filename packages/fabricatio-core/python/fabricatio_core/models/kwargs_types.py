@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import List, Optional, TypedDict, Dict
+from typing import Dict, List, Optional, TypedDict
 
 from fabricatio_core.rust import ValueType
 
@@ -67,6 +67,7 @@ class MappingKwargs[K, V](ValidateKwargs[Dict[K, V]], total=False):
     such as the number of attempts to make before giving up.
     """
 
+    k: int
     key_type: ValueType
     value_type: ValueType
 
