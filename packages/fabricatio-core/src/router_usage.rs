@@ -221,7 +221,7 @@ impl RouterUsage {
         }
     }
 
-    pub async fn mapping_kv_inner<
+    pub async fn mapping_kv_rs<
         K: DeserializeOwned + Eq + Hash + Clone,
         V: DeserializeOwned + Clone,
     >(
@@ -241,8 +241,8 @@ impl RouterUsage {
         )
         .await
     }
-
-    pub async fn mapping_kv(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn mapping_kv_inner(
         &self,
         requirement: Batch<String>,
         key_type: ValueType,
@@ -250,7 +250,6 @@ impl RouterUsage {
         k: Option<usize>,
         max_validations: usize,
         default: Option<ValidatedDict>,
-
         params: &CompletionParams,
     ) -> PyResult<Batch<Option<ValidatedDict>>> {
         self.ask_validate(
@@ -450,7 +449,7 @@ impl RouterUsage {
 
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
-    pub fn mapping_strings<'a>(
+    pub fn mapping_kv<'a>(
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
@@ -470,6 +469,7 @@ impl RouterUsage {
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
+        let default = default.map(|d| d.unbind());
         let params = CompletionParams {
             send_to,
             stream,
@@ -480,13 +480,12 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
         future_into_py(python, async move {
             let rendered = requirement
                 .map(|r| json!({"requirement": r, "k": k}))
                 .render_template(&CONFIG.templates.mapping_template)?;
             let result = slf
-                .mapping_kv(
+                .mapping_kv_inner(
                     rendered,
                     key_type,
                     value_type,
@@ -496,11 +495,10 @@ impl RouterUsage {
                     &params,
                 )
                 .await?;
-
             Python::try_attach(|py| {
                 let mapped = result.map(|vd| match vd {
                     Some(d) => Some(d.into_py_any(py)),
-                    None => default.clone(),
+                    None => default.as_ref().map(|d| d.bind(py).clone().into_any()),
                 });
                 batch_to_py(mapped, py)
             })
