@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Optional, Set, Tuple, Unpack, overload, Literal
+from typing import Callable, Dict, List, Literal, Optional, Set, Tuple, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt, ValidationError
@@ -26,11 +26,10 @@ from fabricatio_core.models.kwargs_types import (
     ChooseKwargs,
     EmbeddingKwargs,
     LLMKwargs,
-    MappingKwargs,
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger, ValueType
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, ValueType, logger
 from fabricatio_core.utils import ok, override_kwargs
 
 
@@ -168,20 +167,120 @@ class UseLLM(LLMScopedConfig, ABC):
     @overload
     async def amapping_kv(
         self,
+        requirement: str,
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.Int],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, int]]],
+    ) -> Optional[Dict[str, int]]: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: str,
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.Float],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
+    ) -> Optional[Dict[str, float]]: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: str,
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.String],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, str]]],
+    ) -> Optional[Dict[int, str]]: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: str,
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.Int],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, int]]],
+    ) -> Optional[Dict[int, int]]: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: str,
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.Float],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, float]]],
+    ) -> Optional[Dict[int, float]]: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.String],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, str]]],
+    ) -> List[Optional[Dict[str, str]]] | None: ...
+
+    @overload
+    async def amapping_kv(
+        self,
         requirement: List[str],
         key_type: Literal[ValueType.String],
         value_type: Literal[ValueType.Int],
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[MappingKwargs[str, int]],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, int]]],
     ) -> List[Optional[Dict[str, int]]] | None: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.String],
+        value_type: Literal[ValueType.Float],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
+    ) -> List[Optional[Dict[str, float]]] | None: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.String],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, str]]],
+    ) -> List[Optional[Dict[int, str]]] | None: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.Int],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, int]]],
+    ) -> List[Optional[Dict[int, int]]] | None: ...
+
+    @overload
+    async def amapping_kv(
+        self,
+        requirement: List[str],
+        key_type: Literal[ValueType.Int],
+        value_type: Literal[ValueType.Float],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[Dict[int, float]]],
+    ) -> List[Optional[Dict[int, float]]] | None: ...
 
     async def amapping_kv(
         self,
         requirement: str | List[str],
-        key_type: ValueType,
-        value_type: ValueType,
+        key_type: ValueType = ValueType.String,
+        value_type: ValueType = ValueType.String,
         k: NonNegativeInt = 0,
-        **kwargs: Unpack[MappingKwargs[str, str]],
+        **kwargs: Unpack[ValidateKwargs[Dict[str, str]]],
     ) -> None | Dict[str, str] | List[Optional[Dict[str, str]]]:
         """Asynchronously maps a requirement to a key-value dictionary via LLM.
 
@@ -189,13 +288,13 @@ class UseLLM(LLMScopedConfig, ABC):
 
         Args:
             requirement: A single string or list of strings describing the mapping task.
-            key_type: The type of the keys in the mapping.
-            value_type: The type of the values in the mapping.
+            key_type: The type of the keys in the mapping (String or Int).
+            value_type: The type of the values in the mapping (String, Int, or Float).
             k: The number of key-value pairs to generate, 0 means infinite. Defaults to 0.
-            **kwargs: Additional keyword arguments including key_type, value_type, and LLM params.
+            **kwargs: Additional keyword arguments for LLM configuration and validation.
 
         Returns:
-            Optional[Dict[str, str]]: The validated mapping, or None on failure.
+            Optional[Dict] for single requirement, List[Optional[Dict]] for batch.
         """
         params = self._resolve_mapping_kv_params(key_type=key_type, value_type=value_type, **kwargs)
         return await rust.router_usage.mapping_kv(
