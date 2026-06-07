@@ -350,6 +350,19 @@ impl RouterUsage {
         )
         .await
     }
+    fn choose_validate(resp: &str, valid_names: &[String], k: Option<usize>) -> Option<Vec<usize>> {
+        let names = JSON_PARSER.validate_list_str(resp, k, true)?;
+        let indices: Vec<usize> = names
+            .iter()
+            .filter_map(|n| valid_names.iter().position(|v| v == n))
+            .collect();
+        if names.is_empty() || !indices.is_empty() {
+            Some(indices)
+        } else {
+            None
+        }
+    }
+
     pub async fn choose_inner(
         &self,
         requirement: String,
@@ -361,18 +374,7 @@ impl RouterUsage {
     ) -> PyResult<Option<Vec<usize>>> {
         self.ask_validate_inner(
             requirement,
-            |resp| {
-                let names = JSON_PARSER.validate_list_str(resp, k, true)?;
-                let indices: Vec<usize> = names
-                    .iter()
-                    .filter_map(|n| valid_names.iter().position(|v| v == n))
-                    .collect();
-                if names.is_empty() || !indices.is_empty() {
-                    Some(indices)
-                } else {
-                    None
-                }
-            },
+            |resp| Self::choose_validate(resp, &valid_names, k),
             default,
             max_validations,
             params,
@@ -391,18 +393,7 @@ impl RouterUsage {
     ) -> PyResult<Vec<Option<Vec<usize>>>> {
         self.ask_validate_batch_inner(
             requirements,
-            |resp| {
-                let names = JSON_PARSER.validate_list_str(resp, k, true)?;
-                let indices: Vec<usize> = names
-                    .iter()
-                    .filter_map(|n| valid_names.iter().position(|v| v == n))
-                    .collect();
-                if names.is_empty() || !indices.is_empty() {
-                    Some(indices)
-                } else {
-                    None
-                }
-            },
+            |resp| Self::choose_validate(resp, &valid_names, k),
             default,
             max_validations,
             params,
