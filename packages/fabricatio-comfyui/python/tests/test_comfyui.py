@@ -659,7 +659,7 @@ def _comfyui_available() -> bool:
     try:
         r = httpx.get("http://127.0.0.1:8188/system_stats", timeout=3.0)
         return r.status_code == 200
-    except Exception:
+    except httpx.RequestError:
         return False
 
 
