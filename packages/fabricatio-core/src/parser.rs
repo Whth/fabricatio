@@ -6,15 +6,18 @@ use error_mapping::AsPyErr;
 use fabricatio_logger::warn;
 use llm_json::repair_json;
 use once_cell::sync::Lazy;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySet, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
+use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -204,6 +207,15 @@ impl TextCapturer {
         Self::new(format!("{}\n(.*?)\n{}", left_delimiter, right))
     }
 }
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
+#[derive(Clone)]
+#[pyclass(from_py_object)]
+enum ValueType {
+    String,
+    Float,
+    Int,
+    Bool,
+}
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
@@ -222,6 +234,27 @@ impl JsonParser {
         } else {
             serde_json::from_str::<T>(text.as_ref()).into_pyresult()
         }
+    }
+
+    pub fn validate_dict_inner<K: DeserializeOwned + Eq + Hash, V: DeserializeOwned>(
+        &self,
+        text: &str,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<HashMap<K, V>> {
+        let val = Self::deserialize::<HashMap<K, V>>(text, fix).ok()?;
+        let len = val.len();
+        if let Some(l) = length
+            && l != 0
+            && len != l
+        {
+            warn!(
+                "validate_dict_str_str: length mismatch - expected {:?}, got {}",
+                length, len
+            );
+            return None;
+        }
+        Some(val)
     }
 }
 
@@ -601,29 +634,106 @@ impl JsonParser {
     ///
     /// Returns:
     ///     The validated `HashMap<String, String>` or None if deserialization or length check fails.
-    #[pyo3(signature=(text, length=None, fix=true))]
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Dict[str, str]|None", imports = ("typing",))
-    )]
-    pub fn validate_dict_str_str(
+    #[pyo3(signature=(text, key_type=ValueType::String,value_type=ValueType::String,length=None, fix=true))]
+    pub fn validate_dict_k_v<'a>(
         &self,
+        python: Python<'a>,
         text: &str,
+        key_type: ValueType,
+        value_type: ValueType,
         length: Option<usize>,
         fix: bool,
-    ) -> Option<HashMap<String, String>> {
-        let val = Self::deserialize::<HashMap<String, String>>(text, fix).ok()?;
-        let len = val.len();
-        if let Some(l) = length
-            && l != 0
-            && len != l
-        {
-            warn!(
-                "validate_dict_str_str: length mismatch - expected {:?}, got {}",
-                length, len
-            );
-            return None;
-        }
-        Some(val)
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let v = match (key_type, value_type) {
+            (ValueType::String, ValueType::String) => pythonize(
+                python,
+                &self.validate_dict_inner::<String, String>(text, length, fix),
+            ),
+            (ValueType::String, ValueType::Float) => pythonize(
+                python,
+                &self.validate_dict_inner::<String, f64>(text, length, fix),
+            ),
+            (ValueType::String, ValueType::Int) => pythonize(
+                python,
+                &self.validate_dict_inner::<String, i64>(text, length, fix),
+            ),
+            (ValueType::String, ValueType::Bool) => pythonize(
+                python,
+                &self.validate_dict_inner::<String, bool>(text, length, fix),
+            ),
+            (ValueType::Int, ValueType::String) => pythonize(
+                python,
+                &self.validate_dict_inner::<i64, String>(text, length, fix),
+            ),
+            (ValueType::Int, ValueType::Float) => pythonize(
+                python,
+                &self.validate_dict_inner::<i64, f64>(text, length, fix),
+            ),
+            (ValueType::Int, ValueType::Int) => pythonize(
+                python,
+                &self.validate_dict_inner::<i64, i64>(text, length, fix),
+            ),
+            (ValueType::Int, ValueType::Bool) => pythonize(
+                python,
+                &self.validate_dict_inner::<i64, bool>(text, length, fix),
+            ),
+            (ValueType::Bool, ValueType::String) => pythonize(
+                python,
+                &self.validate_dict_inner::<bool, String>(text, length, fix),
+            ),
+            (ValueType::Bool, ValueType::Float) => pythonize(
+                python,
+                &self.validate_dict_inner::<bool, f64>(text, length, fix),
+            ),
+            (ValueType::Bool, ValueType::Int) => pythonize(
+                python,
+                &self.validate_dict_inner::<bool, i64>(text, length, fix),
+            ),
+            (ValueType::Bool, ValueType::Bool) => pythonize(
+                python,
+                &self.validate_dict_inner::<bool, bool>(text, length, fix),
+            ),
+            _ => {
+                return Err(PyValueError::new_err(
+                    "validate_dict_k_v: unsupported type combination",
+                ));
+            }
+        };
+
+        v.into_pyresult()
+    }
+}
+
+#[cfg(feature = "stubgen")]
+pyo3_stub_gen::inventory::submit! {
+    gen_methods_from_python! {
+        r#"
+        class JsonParser:
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, str] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, float] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, int] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, bool] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, str] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, float] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, int] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, bool] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, str] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, float] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, int] | None: ...
+            @overload
+            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, bool] | None: ...
+        "#
     }
 }
 
@@ -948,6 +1058,7 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CodeSnippet>()?;
     m.add_class::<GenericBlockParser>()?;
     m.add_class::<ContentBlockParser>()?;
+    m.add_class::<ValueType>()?;
     m.add(var_names::JSON_PARSER, JSON_PARSER.to_owned())?;
     m.add(var_names::PYTHON_PARSER, PYTHON_PARSER.to_owned())?;
     m.add(var_names::GENERIC_PARSER, GENERIC_PARSER.to_owned())?;
