@@ -155,7 +155,7 @@ class UseLLM(LLMScopedConfig, ABC):
         return await (gather(*[_inner(q) for q in question]) if isinstance(question, list) else _inner(question))
 
     @overload
-    async def amapping_kv[K: int | str, V: int | float | str | bool](
+    async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
         requirement: str,
         key_type: Type[K],
@@ -165,7 +165,7 @@ class UseLLM(LLMScopedConfig, ABC):
     ) -> Optional[Dict[K, V]]: ...
 
     @overload
-    async def amapping_kv[K: int | str, V: int | float | str | bool](
+    async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
         requirement: List[str],
         key_type: Type[K],
@@ -174,7 +174,7 @@ class UseLLM(LLMScopedConfig, ABC):
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> List[Optional[Dict[K, V]]] | None: ...
 
-    async def amapping_kv[K: int | str, V: int | float | str | bool](
+    async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
         requirement: str | List[str],
         key_type: Type[K],
