@@ -14,7 +14,7 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
-from typing import Callable, Dict, List, Literal, Optional, Set, Tuple, Unpack, overload, Type
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Unpack, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt, ValidationError
@@ -29,7 +29,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, ValueType, logger
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
 from fabricatio_core.utils import ok, override_kwargs
 
 
@@ -196,9 +196,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Returns:
             Optional[Dict] for single requirement, List[Optional[Dict]] for batch.
         """
-        params = self._resolve_mapping_kv_params(
-            key_type=ValueType.from_type(key_type), value_type=ValueType.from_type(value_type), **kwargs
-        )
+        params = self._resolve_mapping_kv_params(key_type=key_type, value_type=value_type, **kwargs)
         return await rust.router_usage.mapping_kv(
             requirement=requirement,
             k=k,

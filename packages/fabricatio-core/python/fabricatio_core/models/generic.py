@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Set, Type, Union, Unpack, final, overload
 
 import orjson
 from pydantic import (
@@ -24,7 +24,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, ValueType, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
 
@@ -441,8 +441,8 @@ class LLMScopedConfig(ScopedConfig):
 
     def _resolve_mapping_kv_params[K, V](
         self,
-        key_type: ValueType = ValueType.String,
-        value_type: ValueType = ValueType.String,
+        key_type: Type[K],
+        value_type: Type[V],
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> MappingKwargs[K, V]:
         """Resolve mapping key-value parameters from kwargs, instance defaults, and CONFIG.

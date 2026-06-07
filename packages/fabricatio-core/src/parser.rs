@@ -12,10 +12,10 @@ use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PySet, PyString, PyTyp
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::Hash;
 use std::io::Write;
@@ -221,7 +221,7 @@ pub enum ValueType {
 impl ValueType {
     /// Create a ValueType from a Python type.
     #[staticmethod]
-    fn from_type(py_type: Bound<PyType>) -> PyResult<Self> {
+    pub fn from_type(py_type: Bound<PyType>) -> PyResult<Self> {
         if py_type.is_subclass_of::<PyFloat>()? {
             Ok(ValueType::Float)
         } else if py_type.is_subclass_of::<PyInt>()? {
@@ -280,6 +280,71 @@ impl ValidatedDict {
     }
 }
 
+/// A validated set result typed by element kind.
+///
+/// Each variant wraps a `HashSet` with concrete Rust types.
+/// Callers that need a Python set invoke [`into_py_any`](ValidatedSet::into_py_any) explicitly.
+#[derive(Clone)]
+pub enum ValidatedSet {
+    String(HashSet<String>),
+    Float(HashSet<f64>),
+    Int(HashSet<i64>),
+    Bool(HashSet<bool>),
+}
+
+impl ValidatedSet {
+    fn len(&self) -> usize {
+        match self {
+            ValidatedSet::String(v) => v.len(),
+            ValidatedSet::Float(v) => v.len(),
+            ValidatedSet::Int(v) => v.len(),
+            ValidatedSet::Bool(v) => v.len(),
+        }
+    }
+
+    /// Convert into a Python `set` via [`PySet::new`].
+    pub fn into_py_any(self, py: Python) -> Bound<PySet> {
+        match self {
+            ValidatedSet::String(v) => PySet::new(py, &v).unwrap(),
+            ValidatedSet::Float(v) => PySet::new(py, &v).unwrap(),
+            ValidatedSet::Int(v) => PySet::new(py, &v).unwrap(),
+            ValidatedSet::Bool(v) => PySet::new(py, &v).unwrap(),
+        }
+    }
+}
+
+/// A validated list result typed by element kind.
+///
+/// Each variant wraps a `Vec` with concrete Rust types.
+/// Callers that need a Python list invoke [`into_py_any`](ValidatedList::into_py_any) explicitly.
+#[derive(Clone)]
+pub enum ValidatedList {
+    String(Vec<String>),
+    Float(Vec<f64>),
+    Int(Vec<i64>),
+    Bool(Vec<bool>),
+}
+impl ValidatedList {
+    fn len(&self) -> usize {
+        match self {
+            ValidatedList::String(v) => v.len(),
+            ValidatedList::Float(v) => v.len(),
+            ValidatedList::Int(v) => v.len(),
+            ValidatedList::Bool(v) => v.len(),
+        }
+    }
+
+    /// Convert into a Python `list` via [`PyList::new`].
+    pub fn into_py_any(self, py: Python) -> Bound<PyList> {
+        match self {
+            ValidatedList::String(v) => PyList::new(py, &v).unwrap(),
+            ValidatedList::Float(v) => PyList::new(py, &v).unwrap(),
+            ValidatedList::Int(v) => PyList::new(py, &v).unwrap(),
+            ValidatedList::Bool(v) => PyList::new(py, &v).unwrap(),
+        }
+    }
+}
+
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
 #[pyclass(from_py_object)]
@@ -299,6 +364,43 @@ impl JsonParser {
         }
     }
 
+    pub fn validate_list_inner<T: DeserializeOwned>(
+        &self,
+        text: &str,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<Vec<T>> {
+        let val = Self::deserialize::<Vec<T>>(text, fix).ok()?;
+
+        let len = val.len();
+        if let Some(l) = length
+            && l != 0
+            && len != l
+        {
+            warn!("length mismatch - expected {:?}, got {}", length, len);
+            return None;
+        }
+        Some(val)
+    }
+
+    pub fn validate_set_inner<T: DeserializeOwned + Eq + Hash>(
+        &self,
+        text: &str,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<HashSet<T>> {
+        let val = Self::deserialize::<HashSet<T>>(text, fix).ok()?;
+        let len = val.len();
+        if let Some(l) = length
+            && l != 0
+            && len != l
+        {
+            warn!("length mismatch - expected {:?}, got {}", length, len);
+            return None;
+        }
+        Some(val)
+    }
+
     pub fn validate_dict_inner<K: DeserializeOwned + Eq + Hash, V: DeserializeOwned>(
         &self,
         text: &str,
@@ -311,10 +413,7 @@ impl JsonParser {
             && l != 0
             && len != l
         {
-            warn!(
-                "validate_dict_str_str: length mismatch - expected {:?}, got {}",
-                length, len
-            );
+            warn!("length mismatch - expected {:?}, got {}", length, len);
             return None;
         }
         Some(val)
@@ -335,7 +434,7 @@ impl JsonParser {
     ///
     /// Returns:
     ///     The validated dictionary or None if deserialization or length check fails.
-    pub fn validate_dict_k_v_inner(
+    pub fn validate_dict_kv_inner(
         &self,
         text: &str,
         key_type: ValueType,
@@ -382,6 +481,68 @@ impl JsonParser {
                 .map(ValidatedDict::BoolBool),
             _ => panic!("Invalid type combination"),
         }
+    }
+
+    /// Validates that the text parses to a typed set.
+    ///
+    /// Returns a [`HashSet`] with concrete element type determined by
+    /// `value_type`. Callers that need a Python set call
+    /// [`validate_set`](JsonParser::validate_set) or convert via [`PySet::new`].
+    ///
+    /// Args:
+    ///     text: The text to parse as JSON.
+    ///     value_type: The type of set elements.
+    ///     length: Optional exact length requirement.
+    ///     fix: Whether to attempt JSON repair before parsing.
+    ///
+    /// Returns:
+    ///     The validated set or None if deserialization or length check fails.
+    pub fn validate_set_v_inner(
+        &self,
+        text: &str,
+        value_type: ValueType,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<ValidatedSet> {
+        let val = match value_type {
+            ValueType::String => {
+                ValidatedSet::String(self.validate_set_inner::<String>(text, length, fix)?)
+            }
+            ValueType::Float => {
+                // TODO
+                panic!("validate_set_inner: float not supported")
+            }
+            ValueType::Int => ValidatedSet::Int(self.validate_set_inner::<i64>(text, length, fix)?),
+            ValueType::Bool => {
+                ValidatedSet::Bool(self.validate_set_inner::<bool>(text, length, fix)?)
+            }
+        };
+        Some(val)
+    }
+
+    pub fn validate_list_v_inner(
+        &self,
+        text: &str,
+        value_type: ValueType,
+        length: Option<usize>,
+        fix: bool,
+    ) -> Option<ValidatedList> {
+        let val = match value_type {
+            ValueType::String => {
+                ValidatedList::String(self.validate_list_inner::<String>(text, length, fix)?)
+            }
+            ValueType::Float => {
+                ValidatedList::Float(self.validate_list_inner::<f64>(text, length, fix)?)
+            }
+            ValueType::Int => {
+                ValidatedList::Int(self.validate_list_inner::<i64>(text, length, fix)?)
+            }
+            ValueType::Bool => {
+                ValidatedList::Bool(self.validate_list_inner::<bool>(text, length, fix)?)
+            }
+        };
+
+        Some(val)
     }
 }
 
@@ -511,7 +672,7 @@ impl JsonParser {
     ///
     /// Returns:
     ///     The validated list or None if validation fails.
-    #[pyo3(signature=(text, elements_type=None, length=None, fix=true))]
+    #[pyo3(signature=(text, elements_type, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.List[_T]|None", imports = ("typing",))
     )]
@@ -520,100 +681,26 @@ impl JsonParser {
         python: Python<'a>,
         text: &str,
 
-        #[gen_stub(override_type(type_repr = "typing.Type[_T]|None"))] elements_type: Option<
-            &Bound<PyType>,
-        >,
+        #[gen_stub(override_type(type_repr = "typing.Type[_T]"))] elements_type: Bound<'a, PyType>,
         length: Option<usize>,
         fix: bool,
     ) -> Option<Bound<'a, PyList>> {
-        let val_list = self.convert(python, text, fix)
-            .and_then(|val| {
-                val.cast_into_exact::<PyList>()
-                    .map_err(|_| {
-                        warn!(
-                            "validate_list: validation failed for text with length={:?}, elements_type={:?}",
-                            length,
-                            elements_type.map(|t| t.to_string())
-                        );
-                    })
-                    .ok()
-            })?;
-
-        let len = val_list.len();
-        if let Some(l) = length
-            && l != 0
-            && len != l
-        {
-            warn!(
-                "validate_list: length mismatch - expected {:?}, got {}",
-                length, len
-            );
-            return None;
-        }
-
-        if let Some(t) = elements_type
-            && !val_list
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        {
-            warn!(
-                "validate_list: element type check failed for type={:?}",
-                t.to_string()
-            );
-            return None;
-        }
-
-        Some(val_list)
+        let value_type = ValueType::from_type(elements_type).ok()?;
+        self.validate_list_v_inner(text, value_type, length, fix)
+            .map(|v| v.into_py_any(python))
     }
 
-    /// Validates that the text parses to a `Vec<String>` with optional length constraint.
-    ///
-    /// This is a typed convenience wrapper over `deserialize` that avoids Python
-    /// GIL interaction since it operates on pure Rust types.
+    /// Validates that the text parses to a typed set and returns a Python set.
     ///
     /// Args:
     ///     text: The text to parse as JSON.
+    ///     elements_type: The type of set elements.
     ///     length: Optional exact length requirement.
     ///     fix: Whether to attempt JSON repair before parsing.
     ///
     /// Returns:
-    ///     The validated `Vec<String>` or None if deserialization or length check fails.
-    #[pyo3(signature=(text, length=None, fix=true))]
-    #[gen_stub(
-        override_return_type(type_repr = "typing.List[str]|None", imports = ("typing",))
-    )]
-    pub fn validate_list_str(
-        &self,
-        text: &str,
-        length: Option<usize>,
-        fix: bool,
-    ) -> Option<Vec<String>> {
-        let val = Self::deserialize::<Vec<String>>(text, fix).ok()?;
-        let len = val.len();
-        if let Some(l) = length
-            && l != 0
-            && len != l
-        {
-            warn!(
-                "validate_list_str: length mismatch - expected {:?}, got {}",
-                length, len
-            );
-            return None;
-        }
-        Some(val)
-    }
-
-    /// Validates that the text parses to a set with optional constraints.
-    ///
-    /// Args:
-    ///     text: The text to parse as JSON.
-    ///     elements_type: Optional type to check all elements against.
-    ///     length: Optional exact length requirement.
-    ///     fix: Whether to attempt JSON repair before parsing.
-    ///
-    /// Returns:
-    ///     The validated set or None if validation fails.
-    #[pyo3(signature=(text, elements_type=None, length=None, fix=true))]
+    ///     The validated Python set or None if validation fails.
+    #[pyo3(signature=(text, elements_type, length=None, fix=true))]
     #[gen_stub(
         override_return_type(type_repr = "typing.Set[_T]|None", imports = ("typing",))
     )]
@@ -622,110 +709,46 @@ impl JsonParser {
         python: Python<'a>,
         text: &str,
 
-        #[gen_stub(override_type(type_repr = "typing.Type[_T]|None"))] elements_type: Option<
-            &Bound<PyType>,
-        >,
+        #[gen_stub(override_type(type_repr = "typing.Type[_T]"))] elements_type: Bound<'a, PyType>,
         length: Option<usize>,
         fix: bool,
-    ) -> Option<Bound<'a, PySet>> {
-        let val_set = self.convert(python, text, fix)
-            .and_then(|val| {
-                val.cast_into_exact::<PySet>()
-                    .map_err(|_| {
-                        warn!(
-                            "validate_set: validation failed for text with length={:?}, elements_type={:?}",
-                            length,
-                            elements_type.map(|t| t.to_string())
-                        );
-                    })
-                    .ok()
-            })?;
-
-        let len = val_set.len();
-        if let Some(l) = length
-            && l != 0
-            && len != l
-        {
-            warn!(
-                "validate_set: length mismatch - expected {:?}, got {}",
-                length, len
-            );
-            return None;
-        }
-
-        if let Some(t) = elements_type
-            && !val_set
-                .iter()
-                .all(|item| item.is_instance(t).unwrap_or(false))
-        {
-            warn!(
-                "validate_set: element type check failed for type={:?}",
-                t.to_string()
-            );
-            return None;
-        }
-
-        Some(val_set)
+    ) -> PyResult<Option<Bound<'a, PySet>>> {
+        let value_type = ValueType::from_type(elements_type)?;
+        Ok(self
+            .validate_set_v_inner(text, value_type, length, fix)
+            .map(|v| v.into_py_any(python)))
     }
 
-    /// Validates that the text parses to a `HashMap<String, String>` with optional length constraint.
-    ///
-    /// This is a typed convenience wrapper over `deserialize` that avoids Python
-    /// GIL interaction since it operates on pure Rust types.
+    /// Validates that the text parses to a typed dictionary and returns a Python dict.
     ///
     /// Args:
     ///     text: The text to parse as JSON.
+    ///     key_type: The type of dictionary keys.
+    ///     value_type: The type of dictionary values.
     ///     length: Optional exact length requirement.
     ///     fix: Whether to attempt JSON repair before parsing.
     ///
     /// Returns:
-    ///     The validated `HashMap<String, String>` or None if deserialization or length check fails.
-    #[pyo3(signature=(text, key_type=ValueType::String,value_type=ValueType::String,length=None, fix=true))]
-    #[gen_stub(skip)]
-    pub fn validate_dict_k_v<'a>(
+    ///     The validated Python dict or None if validation fails.
+    #[pyo3(signature=(text, key_type,value_type,length=None, fix=true))]
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Dict[_K,_V]|None", imports = ("typing",))
+    )]
+    pub fn validate_dict<'a>(
         &self,
         python: Python<'a>,
         text: &str,
-        key_type: ValueType,
-        value_type: ValueType,
+        #[gen_stub(override_type(type_repr = "typing.Type[_K]"))] key_type: Bound<'a, PyType>,
+        #[gen_stub(override_type(type_repr = "typing.Type[_V]"))] value_type: Bound<'a, PyType>,
         length: Option<usize>,
         fix: bool,
-    ) -> Option<Bound<'a, PyAny>> {
-        self.validate_dict_k_v_inner(text, key_type, value_type, length, fix)
-            .map(|v| v.into_py_any(python))
-    }
-}
+    ) -> PyResult<Option<Bound<'a, PyAny>>> {
+        let key_type = ValueType::from_type(key_type)?;
+        let value_type = ValueType::from_type(value_type)?;
 
-#[cfg(feature = "stubgen")]
-pyo3_stub_gen::inventory::submit! {
-    gen_methods_from_python! {
-        r#"
-        class JsonParser:
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, str] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, float] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, int] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.String], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[str, bool] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, str] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, float] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, int] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Int], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[int, bool] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.String], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, str] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Float], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, float] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Int], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, int] | None: ...
-            @overload
-            def validate_dict_k_v(self, text: str, key_type: typing.Literal[ValueType.Bool], value_type: typing.Literal[ValueType.Bool], length: typing.Optional[int] = None, fix: bool = True) -> typing.Dict[bool, bool] | None: ...
-        "#
+        Ok(self
+            .validate_dict_kv_inner(text, key_type, value_type, length, fix)
+            .map(|v| v.into_py_any(python)))
     }
 }
 

@@ -202,7 +202,7 @@ async def test_amapping_kv(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.amapping_kv(requirement=requirement, k=k)
+        result = await role_with_llm.amapping_kv(requirement=requirement, key_type=str, value_type=str, k=k)
 
         assert result == expected_result
 

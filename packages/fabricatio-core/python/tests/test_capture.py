@@ -193,7 +193,7 @@ class TestJsonParser:
         """Test validate_list with valid list."""
         parser = JsonParser.with_pattern(r"\[.*\]")
         text = '["a", "b", "c"]'
-        result = parser.validate_list(text, length=3, fix=False)
+        result = parser.validate_list(text, elements_type=str, length=3, fix=False)
         assert result is not None
         assert len(result) == 3
 
@@ -201,14 +201,14 @@ class TestJsonParser:
         """Test validate_list returns None when length doesn't match."""
         parser = JsonParser.with_pattern(r"\[.*\]")
         text = '["a", "b", "c"]'
-        result = parser.validate_list(text, length=5, fix=False)
+        result = parser.validate_list(text, elements_type=str, length=5, fix=False)
         assert result is None
 
     def test_validate_dict_success(self) -> None:
         """Test validate_dict with valid dict."""
         parser = JsonParser.with_pattern(r"\{.*\}")
         text = '{"key": "value"}'
-        result = parser.validate_dict_k_v(text, length=1, fix=False)
+        result = parser.validate_dict(text, key_type=str, value_type=str, length=1, fix=False)
         assert result is not None
         assert len(result) == 1
 
@@ -216,7 +216,7 @@ class TestJsonParser:
         """Test validate_dict returns None when length doesn't match."""
         parser = JsonParser.with_pattern(r"\{.*\}")
         text = '{"key": "value"}'
-        result = parser.validate_dict_k_v(text, length=5, fix=False)
+        result = parser.validate_dict(text, key_type=str, value_type=str, length=5, fix=False)
         assert result is None
 
 

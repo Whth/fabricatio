@@ -7,6 +7,8 @@ import pathlib
 import typing
 
 _T = typing.TypeVar("_T")
+_K = typing.TypeVar("_K")
+_V = typing.TypeVar("_V")
 
 __all__ = [
     "CONFIG",
@@ -517,7 +519,7 @@ class JsonParser:
     def validate_list(
         self,
         text: builtins.str,
-        elements_type: typing.Type[_T] | None = None,
+        elements_type: typing.Type[_T],
         length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
     ) -> typing.List[_T] | None:
@@ -532,148 +534,44 @@ class JsonParser:
         Returns:
             The validated list or None if validation fails.
         """
-    def validate_list_str(
-        self, text: builtins.str, length: typing.Optional[builtins.int] = None, fix: builtins.bool = True
-    ) -> typing.List[str] | None:
-        r"""Validates that the text parses to a `Vec<String>` with optional length constraint.
-
-        This is a typed convenience wrapper over `deserialize` that avoids Python
-        GIL interaction since it operates on pure Rust types.
-
-        Args:
-            text: The text to parse as JSON.
-            length: Optional exact length requirement.
-            fix: Whether to attempt JSON repair before parsing.
-
-        Returns:
-            The validated `Vec<String>` or None if deserialization or length check fails.
-        """
     def validate_set(
         self,
         text: builtins.str,
-        elements_type: typing.Type[_T] | None = None,
+        elements_type: typing.Type[_T],
         length: typing.Optional[builtins.int] = None,
         fix: builtins.bool = True,
     ) -> typing.Set[_T] | None:
-        r"""Validates that the text parses to a set with optional constraints.
+        r"""Validates that the text parses to a typed set and returns a Python set.
 
         Args:
             text: The text to parse as JSON.
-            elements_type: Optional type to check all elements against.
+            elements_type: The type of set elements.
             length: Optional exact length requirement.
             fix: Whether to attempt JSON repair before parsing.
 
         Returns:
-            The validated set or None if validation fails.
+            The validated Python set or None if validation fails.
         """
-    @typing.overload
-    def validate_dict_k_v(
+    def validate_dict(
         self,
-        text: str,
-        key_type: typing.Literal[ValueType.String],
-        value_type: typing.Literal[ValueType.String],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[str, str] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.String],
-        value_type: typing.Literal[ValueType.Float],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[str, float] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.String],
-        value_type: typing.Literal[ValueType.Int],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[str, int] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.String],
-        value_type: typing.Literal[ValueType.Bool],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[str, bool] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Int],
-        value_type: typing.Literal[ValueType.String],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[int, str] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Int],
-        value_type: typing.Literal[ValueType.Float],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[int, float] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Int],
-        value_type: typing.Literal[ValueType.Int],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[int, int] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Int],
-        value_type: typing.Literal[ValueType.Bool],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[int, bool] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Bool],
-        value_type: typing.Literal[ValueType.String],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[bool, str] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Bool],
-        value_type: typing.Literal[ValueType.Float],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[bool, float] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Bool],
-        value_type: typing.Literal[ValueType.Int],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[bool, int] | None: ...
-    @typing.overload
-    def validate_dict_k_v(
-        self,
-        text: str,
-        key_type: typing.Literal[ValueType.Bool],
-        value_type: typing.Literal[ValueType.Bool],
-        length: typing.Optional[int] = None,
-        fix: bool = True,
-    ) -> typing.Dict[bool, bool] | None: ...
+        text: builtins.str,
+        key_type: typing.Type[_K],
+        value_type: typing.Type[_V],
+        length: typing.Optional[builtins.int] = None,
+        fix: builtins.bool = True,
+    ) -> typing.Dict[_K, _V] | None:
+        r"""Validates that the text parses to a typed dictionary and returns a Python dict.
+
+        Args:
+            text: The text to parse as JSON.
+            key_type: The type of dictionary keys.
+            value_type: The type of dictionary values.
+            length: Optional exact length requirement.
+            fix: Whether to attempt JSON repair before parsing.
+
+        Returns:
+            The validated Python dict or None if validation fails.
+        """
 
 @typing.final
 class LLMConfig:
@@ -1653,7 +1551,7 @@ class ValueType(enum.Enum):
 
     @staticmethod
     def from_type(py_type: type) -> ValueType:
-        """Create a ValueType from a Python type."""
+        r"""Create a ValueType from a Python type."""
 
 def blake3_hash(content: bytes) -> builtins.str:
     r"""Calculates a BLAKE3 hash of the given content.

@@ -13,7 +13,7 @@ use futures::StreamExt;
 use futures::future::join_all;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyType};
 use pyo3::{BoundObject, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
@@ -254,7 +254,7 @@ impl RouterUsage {
     ) -> PyResult<Batch<Option<ValidatedDict>>> {
         self.ask_validate(
             requirement,
-            |resp| JSON_PARSER.validate_dict_k_v_inner(resp, key_type, value_type, k, true),
+            |resp| JSON_PARSER.validate_dict_kv_inner(resp, key_type, value_type, k, true),
             default,
             max_validations,
             params,
@@ -272,7 +272,7 @@ impl RouterUsage {
     ) -> PyResult<Batch<Option<Vec<String>>>> {
         self.ask_validate(
             requirement,
-            |resp| JSON_PARSER.validate_list_str(resp, k, true),
+            |resp| JSON_PARSER.validate_list_inner(resp, k, true),
             default,
             max_validations,
             params,
@@ -357,7 +357,7 @@ impl RouterUsage {
     }
 
     fn choose_validate(resp: &str, valid_names: &[String], k: Option<usize>) -> Option<Vec<usize>> {
-        let names = JSON_PARSER.validate_list_str(resp, k, true)?;
+        let names = JSON_PARSER.validate_list_inner::<String>(resp, k, true)?;
         let indices: Vec<usize> = names
             .iter()
             .filter_map(|n| valid_names.iter().position(|v| v == n))
@@ -467,8 +467,8 @@ impl RouterUsage {
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
-        key_type: ValueType,
-        value_type: ValueType,
+        key_type: Bound<'a, PyType>,
+        value_type: Bound<'a, PyType>,
         k: Option<usize>,
         max_validations: usize,
         default: Option<Bound<'a, PyDict>>,
@@ -494,6 +494,9 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
+
+        let key_type = ValueType::from_type(key_type)?;
+        let value_type = ValueType::from_type(value_type)?;
         future_into_py(python, async move {
             let rendered = requirement
                 .map(|r| json!({"requirement": r, "k": k}))
