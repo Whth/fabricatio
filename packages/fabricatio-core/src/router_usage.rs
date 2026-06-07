@@ -13,12 +13,15 @@ use futures::future::join_all;
 use futures::StreamExt;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
+use pyo3::{BoundObject, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::sync::Arc;
 
 /// Bundled completion parameters shared across all inner ask/mapping functions.
 #[derive(Clone)]
@@ -33,11 +36,61 @@ struct CompletionParams {
     no_cache: bool,
 }
 
+#[derive(Clone)]
 enum Batch<V> {
     Single(V),
     Batch(Vec<V>),
 }
 
+impl<V> Batch<V> {
+    fn map<U>(self, mut f: impl FnMut(V) -> U) -> Batch<U> {
+        match self {
+            Batch::Single(v) => Batch::Single(f(v)),
+            Batch::Batch(v) => Batch::Batch(v.into_iter().map(|v| f(v)).collect()),
+        }
+    }
+}
+
+impl Batch<Value> {
+    fn render_template(self, template: &str) -> PyResult<Batch<String>> {
+        match self {
+            Batch::Single(data) => Ok(Batch::Single(
+                TEMPLATE_MANAGER.render(template, &data).into_pyresult()?,
+            )),
+            Batch::Batch(data) => Ok(Batch::Batch(
+                TEMPLATE_MANAGER
+                    .render_batch(template, &data)
+                    .into_pyresult()?,
+            )),
+        }
+    }
+}
+
+fn extract_batch(ob: &Bound<'_, PyAny>) -> PyResult<Batch<String>> {
+    if let Ok(v) = ob.extract::<Vec<String>>() {
+        Ok(Batch::Batch(v))
+    } else if let Ok(s) = ob.extract::<String>() {
+        Ok(Batch::Single(s))
+    } else {
+        Err(PyTypeError::new_err(
+            "requirement must be a string or a list of strings",
+        ))
+    }
+}
+
+fn batch_to_py<'py, T: IntoPyObject<'py>>(
+    batch: Batch<Option<T>>,
+    py: Python<'py>,
+) -> PyResult<Py<PyAny>>
+where
+    PyErr: From<T::Error>,
+{
+    Ok(match batch {
+        Batch::Single(Some(v)) => v.into_pyobject(py)?.unbind().into_any(),
+        Batch::Single(None) => py.None(),
+        Batch::Batch(v) => v.into_pyobject(py)?.unbind().into_any(),
+    })
+}
 impl CompletionParams {
     fn to_request(&self, message: String) -> CompletionRequest {
         CompletionRequest {
@@ -144,37 +197,43 @@ impl RouterUsage {
         Ok(a)
     }
 
-    pub async fn mapping_kv_inner<K: DeserializeOwned + Eq + Hash, V: DeserializeOwned>(
+    pub async fn ask_validate<F, T>(
         &self,
-        requirement: String,
-        k: Option<usize>,
+        question: Batch<String>,
+        validator: F,
+        default: Option<T>,
         max_validations: usize,
-        default: Option<HashMap<K, V>>,
         params: &CompletionParams,
-    ) -> PyResult<Option<HashMap<K, V>>> {
-        self.ask_validate_inner(
-            requirement,
-            |resp| JSON_PARSER.validate_dict_inner::<K, V>(resp, k, true),
-            default,
-            max_validations,
-            params,
-        )
-        .await
+    ) -> PyResult<Batch<Option<T>>>
+    where
+        F: FnOnce(&str) -> Option<T> + Clone,
+        T: Clone,
+    {
+        match question {
+            Batch::Single(s) => self
+                .ask_validate_inner(s, validator, default, max_validations, params)
+                .await
+                .map(Batch::Single),
+            Batch::Batch(s_seq) => self
+                .ask_validate_batch_inner(s_seq, validator, default, max_validations, params)
+                .await
+                .map(Batch::Batch),
+        }
     }
 
-    pub async fn mapping_kv_batch_inner<
+    pub async fn mapping_kv_inner<
         K: DeserializeOwned + Eq + Hash + Clone,
         V: DeserializeOwned + Clone,
     >(
         &self,
-        requirements: Vec<String>,
+        requirement: Batch<String>,
         k: Option<usize>,
         max_validations: usize,
         default: Option<HashMap<K, V>>,
         params: &CompletionParams,
-    ) -> PyResult<Vec<Option<HashMap<K, V>>>> {
-        self.ask_validate_batch_inner(
-            requirements,
+    ) -> PyResult<Batch<Option<HashMap<K, V>>>> {
+        self.ask_validate(
+            requirement,
             |resp| JSON_PARSER.validate_dict_inner::<K, V>(resp, k, true),
             default,
             max_validations,
@@ -185,7 +244,7 @@ impl RouterUsage {
 
     pub async fn mapping_kv(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         key_type: ValueType,
         value_type: ValueType,
         k: Option<usize>,
@@ -193,30 +252,9 @@ impl RouterUsage {
         default: Option<ValidatedDict>,
 
         params: &CompletionParams,
-    ) -> PyResult<Option<ValidatedDict>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<ValidatedDict>>> {
+        self.ask_validate(
             requirement,
-            |resp| JSON_PARSER.validate_dict_k_v_inner(resp, key_type, value_type, k, true),
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
-
-    pub async fn mapping_kv_batch(
-        &self,
-
-        requirements: Vec<String>,
-        key_type: ValueType,
-        value_type: ValueType,
-        k: Option<usize>,
-        max_validations: usize,
-        default: Option<ValidatedDict>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<ValidatedDict>>> {
-        self.ask_validate_batch_inner(
-            requirements,
             |resp| JSON_PARSER.validate_dict_k_v_inner(resp, key_type, value_type, k, true),
             default,
             max_validations,
@@ -227,13 +265,13 @@ impl RouterUsage {
 
     pub async fn list_str_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         k: Option<usize>,
         max_validations: usize,
         default: Option<Vec<String>>,
         params: &CompletionParams,
-    ) -> PyResult<Option<Vec<String>>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<Vec<String>>>> {
+        self.ask_validate(
             requirement,
             |resp| JSON_PARSER.validate_list_str(resp, k, true),
             default,
@@ -243,31 +281,14 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn list_str_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        k: Option<usize>,
-        max_validations: usize,
-        default: Option<Vec<String>>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<Vec<String>>>> {
-        self.ask_validate_batch_inner(
-            requirements,
-            |resp| JSON_PARSER.validate_list_str(resp, k, true),
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
     pub async fn generic_str_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         max_validations: usize,
         default: Option<String>,
         params: &CompletionParams,
-    ) -> PyResult<Option<String>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<String>>> {
+        self.ask_validate(
             requirement,
             |resp| GENERIC_PARSER.capture(resp),
             default,
@@ -277,30 +298,15 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn generic_str_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        max_validations: usize,
-        default: Option<String>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<String>>> {
-        self.ask_validate_batch_inner(
-            requirements,
-            |resp| GENERIC_PARSER.capture(resp),
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
     pub async fn code_str_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
+
         max_validations: usize,
         default: Option<String>,
         params: &CompletionParams,
-    ) -> PyResult<Option<String>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<String>>> {
+        self.ask_validate(
             requirement,
             |resp| PYTHON_PARSER.capture(resp),
             default,
@@ -310,30 +316,14 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn code_str_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        max_validations: usize,
-        default: Option<String>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<String>>> {
-        self.ask_validate_batch_inner(
-            requirements,
-            |resp| PYTHON_PARSER.capture(resp),
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
     pub async fn code_snippets_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         max_validations: usize,
         default: Option<Vec<CodeSnippet>>,
         params: &CompletionParams,
-    ) -> PyResult<Option<Vec<CodeSnippet>>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<Vec<CodeSnippet>>>> {
+        self.ask_validate(
             requirement,
             |resp| {
                 let v = SNIPPET_PARSER.parse(resp);
@@ -346,33 +336,14 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn code_snippets_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        max_validations: usize,
-        default: Option<Vec<CodeSnippet>>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<Vec<CodeSnippet>>>> {
-        self.ask_validate_batch_inner(
-            requirements,
-            |resp| {
-                let v = SNIPPET_PARSER.parse(resp);
-                if v.is_empty() { None } else { Some(v) }
-            },
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
     pub async fn judge_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         max_validations: usize,
         default: Option<bool>,
         params: &CompletionParams,
-    ) -> PyResult<Option<bool>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<bool>>> {
+        self.ask_validate(
             requirement,
             |resp| {
                 JSON_PARSER
@@ -386,26 +357,6 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn judge_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        max_validations: usize,
-        default: Option<bool>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<bool>>> {
-        self.ask_validate_batch_inner(
-            requirements,
-            |resp| {
-                JSON_PARSER
-                    .capture(resp, true)
-                    .and_then(|s| serde_json::from_str::<bool>(&s).ok())
-            },
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
     fn choose_validate(resp: &str, valid_names: &[String], k: Option<usize>) -> Option<Vec<usize>> {
         let names = JSON_PARSER.validate_list_str(resp, k, true)?;
         let indices: Vec<usize> = names
@@ -421,34 +372,15 @@ impl RouterUsage {
 
     pub async fn choose_inner(
         &self,
-        requirement: String,
+        requirement: Batch<String>,
         valid_names: Vec<String>,
         k: Option<usize>,
         max_validations: usize,
         default: Option<Vec<usize>>,
         params: &CompletionParams,
-    ) -> PyResult<Option<Vec<usize>>> {
-        self.ask_validate_inner(
+    ) -> PyResult<Batch<Option<Vec<usize>>>> {
+        self.ask_validate(
             requirement,
-            |resp| Self::choose_validate(resp, &valid_names, k),
-            default,
-            max_validations,
-            params,
-        )
-        .await
-    }
-
-    pub async fn choose_batch_inner(
-        &self,
-        requirements: Vec<String>,
-        valid_names: Vec<String>,
-        k: Option<usize>,
-        max_validations: usize,
-        default: Option<Vec<usize>>,
-        params: &CompletionParams,
-    ) -> PyResult<Vec<Option<Vec<usize>>>> {
-        self.ask_validate_batch_inner(
-            requirements,
             |resp| Self::choose_validate(resp, &valid_names, k),
             default,
             max_validations,
@@ -487,21 +419,9 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-        if let Ok(msg_seq) = question.extract::<Vec<String>>() {
-            self.router.completion_batch(
-                python,
-                params.send_to.clone(),
-                msg_seq,
-                params.stream,
-                params.top_p,
-                params.temperature,
-                params.max_completion_tokens,
-                params.presence_penalty,
-                params.frequency_penalty,
-                params.no_cache,
-            )
-        } else if let Ok(msg) = question.extract::<String>() {
-            self.router.completion(
+        let question = extract_batch(&question)?;
+        match question {
+            Batch::Single(msg) => self.router.completion(
                 python,
                 params.send_to.clone(),
                 msg,
@@ -512,11 +432,19 @@ impl RouterUsage {
                 params.presence_penalty,
                 params.frequency_penalty,
                 params.no_cache,
-            )
-        } else {
-            Err(PyTypeError::new_err(
-                "message must be a string or a list of strings",
-            ))
+            ),
+            Batch::Batch(msg_seq) => self.router.completion_batch(
+                python,
+                params.send_to.clone(),
+                msg_seq,
+                params.stream,
+                params.top_p,
+                params.temperature,
+                params.max_completion_tokens,
+                params.presence_penalty,
+                params.frequency_penalty,
+                params.no_cache,
+            ),
         }
     }
 
@@ -530,8 +458,7 @@ impl RouterUsage {
         value_type: ValueType,
         k: Option<usize>,
         max_validations: usize,
-        default: Option<HashMap<String, String>>,
-
+        default: Option<Bound<'a, PyDict>>,
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -541,6 +468,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -553,72 +481,31 @@ impl RouterUsage {
             no_cache,
         };
 
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs
-                    .iter()
-                    .map(|r| json!({"requirement": r, "k": k}))
-                    .collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.mapping_template, &data)
-                    .into_pyresult()?;
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| json!({"requirement": r, "k": k}))
+                .render_template(&CONFIG.templates.mapping_template)?;
+            let result = slf
+                .mapping_kv(
+                    rendered,
+                    key_type,
+                    value_type,
+                    k,
+                    max_validations,
+                    None,
+                    &params,
+                )
+                .await?;
 
-                let vd_seq = slf
-                    .mapping_kv_batch(
-                        rendered,
-                        key_type,
-                        value_type,
-                        k,
-                        max_validations,
-                        None,
-                        &params,
-                    )
-                    .await?;
-                Ok(vd_seq
-                    .into_iter()
-                    .map(|vd| {
-                        if let Some(d) = vd
-                            && let ValidatedDict::StringString(dss) = d
-                        {
-                            Some(dss)
-                        } else {
-                            default.clone()
-                        }
-                    })
-                    .collect::<Vec<_>>())
+            Python::try_attach(|py| {
+                let mapped = result.map(|vd| match vd {
+                    Some(d) => Some(d.into_py_any(py)),
+                    None => default.clone(),
+                });
+                batch_to_py(mapped, py)
             })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data = json!({"requirement": req, "k": k});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.mapping_template, &data)
-                    .into_pyresult()?;
-                let vd = slf
-                    .mapping_kv(
-                        rendered,
-                        key_type,
-                        value_type,
-                        k,
-                        max_validations,
-                        None,
-                        &params,
-                    )
-                    .await?;
-
-                let d = if let Some(d) = vd
-                    && let ValidatedDict::StringString(dss) = d
-                {
-                    Some(dss)
-                } else {
-                    default
-                };
-                Ok(d)
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+            .expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -629,7 +516,6 @@ impl RouterUsage {
         k: Option<usize>,
         max_validations: usize,
         default: Option<Vec<String>>,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -639,6 +525,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -650,35 +537,15 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs
-                    .iter()
-                    .map(|r| json!({"requirement": r, "k": k}))
-                    .collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.liststr_template, &data)
-                    .into_pyresult()?;
-
-                slf.list_str_batch_inner(rendered, k, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data = json!({"requirement": req, "k": k});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.liststr_template, &data)
-                    .into_pyresult()?;
-
-                slf.list_str_inner(rendered, k, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| json!({"requirement": r, "k": k}))
+                .render_template(&CONFIG.templates.liststr_template)?;
+            let result = slf
+                .list_str_inner(rendered, k, max_validations, default, &params)
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -688,7 +555,6 @@ impl RouterUsage {
         requirement: Bound<'a, PyAny>,
         max_validations: usize,
         default: Option<String>,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -698,6 +564,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -709,35 +576,15 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs
-                    .iter()
-                    .map(|r| json!({"requirement": r, "language": "String"}))
-                    .collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.generic_string_template, &data)
-                    .into_pyresult()?;
-
-                slf.generic_str_batch_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data = json!({"requirement": req, "language": "String"});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.generic_string_template, &data)
-                    .into_pyresult()?;
-
-                slf.generic_str_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| json!({"requirement": r, "language": "String"}))
+                .render_template(&CONFIG.templates.generic_string_template)?;
+            let result = slf
+                .generic_str_inner(rendered, max_validations, default, &params)
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -748,7 +595,6 @@ impl RouterUsage {
         code_language: Option<String>,
         max_validations: usize,
         default: Option<String>,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -758,6 +604,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -769,35 +616,15 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs
-                    .iter()
-                    .map(|r| json!({"requirement": r, "code_language": code_language}))
-                    .collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.code_string_template, &data)
-                    .into_pyresult()?;
-
-                slf.code_str_batch_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data = json!({"requirement": req, "code_language": code_language});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.code_string_template, &data)
-                    .into_pyresult()?;
-
-                slf.code_str_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| json!({"requirement": r, "code_language": code_language}))
+                .render_template(&CONFIG.templates.code_string_template)?;
+            let result = slf
+                .code_str_inner(rendered, max_validations, default, &params)
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -808,7 +635,6 @@ impl RouterUsage {
         code_language: Option<String>,
         max_validations: usize,
         default: Option<Vec<CodeSnippet>>,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -818,6 +644,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -829,35 +656,15 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs
-                    .iter()
-                    .map(|r| json!({"requirement": r, "code_language": code_language}))
-                    .collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.code_snippet_template, &data)
-                    .into_pyresult()?;
-
-                slf.code_snippets_batch_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data = json!({"requirement": req, "code_language": code_language});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.code_snippet_template, &data)
-                    .into_pyresult()?;
-
-                slf.code_snippets_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| json!({"requirement": r, "code_language": code_language}))
+                .render_template(&CONFIG.templates.code_snippet_template)?;
+            let result = slf
+                .code_snippets_inner(rendered, max_validations, default, &params)
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -869,7 +676,6 @@ impl RouterUsage {
         default: Option<bool>,
         affirm_case: String,
         deny_case: String,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -879,6 +685,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -890,33 +697,17 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                let data: Vec<Value> = reqs.iter().map(|r| json!({"prompt": r, "affirm_case": affirm_case.clone(), "deny_case": deny_case.clone()})).collect();
-                let rendered = TEMPLATE_MANAGER
-                    .render_batch(&CONFIG.templates.make_judgment_template, &data)
-                    .into_pyresult()?;
-
-                slf.judge_batch_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                let data =
-                    json!({"prompt": req, "affirm_case": affirm_case, "deny_case": deny_case});
-                let rendered = TEMPLATE_MANAGER
-                    .render(&CONFIG.templates.make_judgment_template, &data)
-                    .into_pyresult()?;
-
-                slf.judge_inner(rendered, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let rendered = requirement
+                .map(|r| {
+                    json!({"prompt": r, "affirm_case": affirm_case.clone(), "deny_case": deny_case.clone()})
+                })
+                .render_template(&CONFIG.templates.make_judgment_template)?;
+            let result = slf
+                .judge_inner(rendered, max_validations, default, &params)
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
@@ -928,7 +719,6 @@ impl RouterUsage {
         k: Option<usize>,
         max_validations: usize,
         default: Option<Vec<usize>>,
-
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -938,6 +728,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         no_cache: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
+        let requirement = extract_batch(&requirement)?;
         let slf = self.to_owned();
         let params = CompletionParams {
             send_to,
@@ -949,22 +740,19 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
-
-        if let Ok(reqs) = requirement.extract::<Vec<String>>() {
-            future_into_py(python, async move {
-                slf.choose_batch_inner(reqs, valid_names, k, max_validations, default, &params)
-                    .await
-            })
-        } else if let Ok(req) = requirement.extract::<String>() {
-            future_into_py(python, async move {
-                slf.choose_inner(req, valid_names, k, max_validations, default, &params)
-                    .await
-            })
-        } else {
-            Err(PyTypeError::new_err(
-                "requirement must be a string or a list of strings",
-            ))
-        }
+        future_into_py(python, async move {
+            let result = slf
+                .choose_inner(
+                    requirement,
+                    valid_names,
+                    k,
+                    max_validations,
+                    default,
+                    &params,
+                )
+                .await?;
+            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+        })
     }
 }
 #[cfg(feature = "stubgen")]
