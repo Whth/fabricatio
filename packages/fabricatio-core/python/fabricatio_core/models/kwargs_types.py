@@ -1,6 +1,8 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import List, Optional, TypedDict
+from typing import List, Optional, TypedDict, Dict
+
+from fabricatio_core.rust import ValueType
 
 
 class RouteKwargs(TypedDict, total=False):
@@ -56,6 +58,17 @@ class ValidateKwargs[T](LLMKwargs, total=False):
 
     default: Optional[T]
     max_validations: int
+
+
+class MappingKwargs[K, V](ValidateKwargs[Dict[K, V]], total=False):
+    """Arguments for mapping operations.
+
+    Extends RouteKwargs with parameters for mapping operations,
+    such as the number of attempts to make before giving up.
+    """
+
+    key_type: ValueType
+    value_type: ValueType
 
 
 class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):

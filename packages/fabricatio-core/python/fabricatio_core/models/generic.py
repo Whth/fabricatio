@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload
+from typing import Any, Callable, Iterable, List, Optional, Self, Set, Union, Unpack, final, overload, Dict
 
 import orjson
 from pydantic import (
@@ -17,8 +17,14 @@ from pydantic import (
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import EmbeddingKwargs, LLMKwargs, RerankerKwargs, ValidateKwargs
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.models.kwargs_types import (
+    EmbeddingKwargs,
+    LLMKwargs,
+    RerankerKwargs,
+    ValidateKwargs,
+    MappingKwargs,
+)
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, ValueType, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
 
@@ -432,6 +438,25 @@ class LLMScopedConfig(ScopedConfig):
     ) -> ValidateKwargs[T]:
         res = self._resolve_completion_params(**kwargs)
         return ValidateKwargs(default=default, max_validations=max_validations, **res)
+
+    def _resolve_mapping_kv_params[K, V](
+        self,
+        key_type: ValueType = ValueType.String,
+        value_type: ValueType = ValueType.String,
+        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
+    ) -> MappingKwargs[K, V]:
+        """Resolve mapping key-value parameters from kwargs, instance defaults, and CONFIG.
+
+        Args:
+            key_type: The expected key type for the mapping.
+            value_type: The expected value type for the mapping.
+            **kwargs: Additional LLM keyword arguments.
+
+        Returns:
+            MappingKwargs with resolved parameters.
+        """
+        res = self._resolve_validation_params(**kwargs)
+        return MappingKwargs(key_type=key_type, value_type=value_type, **res)
 
 
 class UnsortGenerate(GenerateJsonSchema):
