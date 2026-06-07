@@ -8,12 +8,12 @@ use llm_json::repair_json;
 use once_cell::sync::Lazy;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PySet, PyType};
+use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PySet, PyString, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
@@ -215,6 +215,28 @@ pub enum ValueType {
     Float,
     Int,
     Bool,
+}
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[pymethods]
+impl ValueType {
+    /// Create a ValueType from a Python type.
+    #[staticmethod]
+    fn from_type(py_type: Bound<PyType>) -> PyResult<Self> {
+        if py_type.is_subclass_of::<PyFloat>()? {
+            Ok(ValueType::Float)
+        } else if py_type.is_subclass_of::<PyInt>()? {
+            Ok(ValueType::Int)
+        } else if py_type.is_subclass_of::<PyBool>()? {
+            Ok(ValueType::Bool)
+        } else if py_type.is_subclass_of::<PyString>()? {
+            Ok(ValueType::String)
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err(format!(
+                "Unsupported type: {}",
+                py_type.fully_qualified_name()?
+            )))
+        }
+    }
 }
 
 /// A validated dictionary result typed by key/value kinds.

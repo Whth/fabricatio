@@ -1651,6 +1651,10 @@ class ValueType(enum.Enum):
     Int = ...
     Bool = ...
 
+    @staticmethod
+    def from_type(py_type: type) -> ValueType:
+        """Create a ValueType from a Python type."""
+
 def blake3_hash(content: bytes) -> builtins.str:
     r"""Calculates a BLAKE3 hash of the given content.
 
