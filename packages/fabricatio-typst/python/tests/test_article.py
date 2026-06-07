@@ -168,8 +168,6 @@ class TestArticle:
 
     def test_artifacts_propagate_through_from_outline(self) -> None:
         """Artifacts survive from_outline round-trip."""
-        from fabricatio_typst.models.artifacts import ArticleArtifacts
-
         outline = ArticleOutline(heading="T", expected_word_count=10, elaboration="", aims=[], chapters=[])
         outline.artifacts.update_briefing("test briefing")
 
@@ -192,7 +190,9 @@ class TestConflictResolution:
 
     def _make_chapter(self, title: str, sec_title: str = "S") -> ArticleChapterOutline:
         sub = ArticleSubsectionOutline(heading=sec_title, expected_word_count=10, elaboration="", aims=[])
-        sec = ArticleSectionOutline(heading=sec_title, subsections=[sub], elaboration="", aims=[], expected_word_count=10)
+        sec = ArticleSectionOutline(
+            heading=sec_title, subsections=[sub], elaboration="", aims=[], expected_word_count=10
+        )
         return ArticleChapterOutline(heading=title, sections=[sec], elaboration="", aims=[], expected_word_count=10)
 
     def test_no_conflict_on_identical(self) -> None:
@@ -211,7 +211,9 @@ class TestConflictResolution:
         a = self._make_chapter("T")
         b = self._make_chapter("T")
         extra_sub = ArticleSubsectionOutline(heading="X", expected_word_count=10, elaboration="", aims=[])
-        extra_sec = ArticleSectionOutline(heading="X", subsections=[extra_sub], elaboration="", aims=[], expected_word_count=10)
+        extra_sec = ArticleSectionOutline(
+            heading="X", subsections=[extra_sub], elaboration="", aims=[], expected_word_count=10
+        )
         b.sections.append(extra_sec)
         result = a.resolve_update_conflict(b)
         assert "Chapter count mismatched" in result

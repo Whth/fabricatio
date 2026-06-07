@@ -15,9 +15,18 @@ pub struct BibManager {
 
 impl BibManager {
     /// Shared fuzzy search: finds the cite key whose `text_fn` output scores highest.
-    fn best_fuzzy_match(&self, query: &str, text_fn: fn(&biblatex::Entry) -> Option<String>) -> Option<String> {
+    fn best_fuzzy_match(
+        &self,
+        query: &str,
+        text_fn: fn(&biblatex::Entry) -> Option<String>,
+    ) -> Option<String> {
         let mut matcher = Matcher::new(Config::DEFAULT);
-        let pattern = Pattern::new(query, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+        let pattern = Pattern::new(
+            query,
+            CaseMatching::Ignore,
+            Normalization::Smart,
+            AtomKind::Fuzzy,
+        );
 
         self.source
             .iter()
@@ -62,13 +71,21 @@ impl BibManager {
 
     fn get_cite_key_by_title_fuzzy(&self, title: String) -> Option<String> {
         self.best_fuzzy_match(&title, |entry| {
-            Some(entry.title().ok()?.to_biblatex_string(false).remove_brackets())
+            Some(
+                entry
+                    .title()
+                    .ok()?
+                    .to_biblatex_string(false)
+                    .remove_brackets(),
+            )
         })
     }
 
     /// Find the corresponding cite key of an article with given query string using fuzzy matcher
     fn get_cite_key_fuzzy(&self, query: String) -> Option<String> {
-        self.best_fuzzy_match(&query, |entry| Some(entry.to_biblatex_string().remove_brackets()))
+        self.best_fuzzy_match(&query, |entry| {
+            Some(entry.to_biblatex_string().remove_brackets())
+        })
     }
 
     #[pyo3(signature = (is_verbatim=false))]
@@ -76,7 +93,13 @@ impl BibManager {
         self.source
             .iter()
             .filter_map(|entry| {
-                Some(entry.title().ok()?.to_biblatex_string(is_verbatim).remove_brackets())
+                Some(
+                    entry
+                        .title()
+                        .ok()?
+                        .to_biblatex_string(is_verbatim)
+                        .remove_brackets(),
+                )
             })
             .collect()
     }

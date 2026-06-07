@@ -130,8 +130,7 @@ fn convert_all_tex_math(string: &str) -> PyResult<String> {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 pub fn fix_misplaced_labels(string: &str) -> String {
-    static BLOCK_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap());
+    static BLOCK_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"(?s)\\\[(.*?)\\]"#).unwrap());
     static LABEL_RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r#"(?s)<[a-zA-Z0-9\-]*>"#).unwrap());
 

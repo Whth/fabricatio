@@ -20,15 +20,15 @@ ArticleOutline.model_rebuild()
 Article.model_rebuild()
 
 __all__ = [
-    "ArticleArtifacts",
-    "ArticleProposal",
-    "ArticleOutline",
-    "ArticleChapterOutline",
-    "ArticleSectionOutline",
-    "ArticleSubsectionOutline",
     "Article",
+    "ArticleArtifacts",
     "ArticleChapter",
+    "ArticleChapterOutline",
+    "ArticleOutline",
+    "ArticleProposal",
     "ArticleSection",
+    "ArticleSectionOutline",
     "ArticleSubsection",
+    "ArticleSubsectionOutline",
     "Paragraph",
 ]
