@@ -156,7 +156,7 @@ class Rating(Propose, ABC):
 
         def _validator(response: str) -> Dict[str, str] | None:
             if (
-                json_data := json_parser.validate_dict_k_v(response, key_type=str, value_type=str)
+                json_data := json_parser.validate_dict(response, key_type=str, value_type=str)
             ) is not None and json_data.keys() == criteria:
                 return json_data
             return None
@@ -222,7 +222,7 @@ class Rating(Propose, ABC):
         m: NonNegativeInt = 0,
         reasons_count: PositiveInt = 2,
         criteria_count: PositiveInt = 5,
-        **kwargs: Unpack[ValidateKwargs],
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> Optional[Set[str]]:
         """Asynchronously drafts a set of rating criteria based on provided examples.
 
@@ -247,23 +247,27 @@ class Rating(Propose, ABC):
         if m:
             examples = sample(examples, m)
 
+        rendered_seq = [
+            TEMPLATE_MANAGER.render_template(
+                capabilities_config.extract_reasons_from_examples_template,
+                {
+                    "topic": topic,
+                    "first": pair[0],
+                    "second": pair[1],
+                    "reasons_count": reasons_count,
+                },
+            )
+            for pair in (permutations(examples, 2))
+        ]
+
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
-            await self.aask_validate(  # pyright: ignore [reportArgumentType]
-                question=[
-                    TEMPLATE_MANAGER.render_template(
-                        capabilities_config.extract_reasons_from_examples_template,
-                        {
-                            "topic": topic,
-                            "first": pair[0],
-                            "second": pair[1],
-                            "reasons_count": reasons_count,
-                        },
-                    )
-                    for pair in (permutations(examples, 2))
-                ],
-                validator=lambda resp: json_parser.validate_list(resp, elements_type=str, length=reasons_count),
-                **kwargs,
+            ok(
+                await self.alist_str(
+                    requirement=rendered_seq,
+                    k=reasons_count,
+                    **kwargs,
+                )
             )
         )
         # extract certain mount of criteria from reasons according to their importance and frequency
