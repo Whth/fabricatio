@@ -140,6 +140,7 @@ class TestArticle:
         assert len(results[0]) == 3  # (chapter, section, subsection)
 
     def test_extract_outline_preserves_structure(self) -> None:
+        """Verify outline extraction preserves chapter/section/subsection hierarchy."""
         article = Article(heading="Test", expected_word_count=100, elaboration="", aims=[], chapters=[])
         sub = ArticleSubsection(heading="Sub", expected_word_count=10, paragraphs=[], elaboration="", aims=[])
         sec = ArticleSection(heading="Sec", subsections=[sub], elaboration="", aims=[], expected_word_count=10)
@@ -202,12 +203,14 @@ class TestConflictResolution:
         assert a.resolve_update_conflict(b) == ""
 
     def test_title_mismatch_detected(self) -> None:
+        """Verify that differing chapter titles are detected as conflicts."""
         a = self._make_chapter("A")
         b = self._make_chapter("B")
         result = a.resolve_update_conflict(b)
         assert "Title mismatched" in result
 
     def test_section_count_mismatch_detected(self) -> None:
+        """Verify that section count mismatches are detected."""
         a = self._make_chapter("T")
         b = self._make_chapter("T")
         extra_sub = ArticleSubsectionOutline(heading="X", expected_word_count=10, elaboration="", aims=[])
@@ -219,6 +222,7 @@ class TestConflictResolution:
         assert "Chapter count mismatched" in result
 
     def test_subsection_title_mismatch_detected(self) -> None:
+        """Verify that differing subsection titles are detected as conflicts."""
         a = self._make_chapter("T", sec_title="Orig")
         b = self._make_chapter("T", sec_title="Changed")
         result = a.resolve_update_conflict(b)

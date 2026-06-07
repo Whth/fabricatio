@@ -1,8 +1,8 @@
 """IllustratedNovelCompose — NovelCompose subclass for image-enriched novel generation.
 
-Two-phase pipeline using UseLLM.amapping_str:
-    Phase 1: allocate image budget across chapters → {chapter_index: image_count}
-    Phase 2: per chapter, select paragraphs + generate prompts → {paragraph_index: image_prompt}
+Two-phase pipeline using UseLLM.amapping_kv with typed key/value:
+    Phase 1: allocate image budget across chapters → {chapter_index: image_count} (Int→Float)
+    Phase 2: per chapter, select paragraphs + generate prompts → {paragraph_index: image_prompt} (Int→String)
 
 Then: ComfyUI generates images, <img> tags injected directly into raw text.
 """
@@ -24,11 +24,10 @@ if TYPE_CHECKING:
     from fabricatio_novel.models.novel import Chapter
 
 
-def _inject_images(paras: list[str], picks: dict[str, str], image_dir: str) -> list[str]:
+def _inject_images(paras: list[str], picks: dict[int, str], image_dir: str) -> list[str]:
     """Insert <img> tags after selected paragraphs. Returns modified list."""
     result = list(paras)
-    for idx_str, prompt in picks.items():
-        idx = int(idx_str)
+    for idx, prompt in picks.items():
         if 0 <= idx < len(result):
             epub_path = f"{image_dir}/scene_{idx}.png"
             result[idx] += f'\n<img src="{epub_path}" alt="{prompt[:80]}"/>'
@@ -138,16 +137,18 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
                 "language": language,
             },
         )
-        weights: Optional[dict[str, str]] = await self.amapping_str(
+        weights: Optional[dict[int, float]] = await self.amapping_kv(
             rendered,
+            key_type=int,
+            value_type=float,
             k=len(novel.chapters),
             **kwargs,
         )
         if not weights:
             return {}
 
-        # Convert relative weights to actual image counts
-        numeric = {int(k): max(float(v), 0) for k, v in weights.items()}
+        # Clamp negative weights to 0
+        numeric = {k: max(v, 0.0) for k, v in weights.items()}
         total = sum(numeric.values())
         if total <= 0:
             return {}
@@ -178,7 +179,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         prompt_guideline: Optional[str],
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> None:
-        """Phase 2: LLM selects paragraphs + generates prompts via amapping_str."""
+        """Phase 2: LLM selects paragraphs + generates prompts via amapping_kv."""
         paras = split_paragraphs(chapter.content)
         if not paras:
             return
@@ -196,20 +197,20 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
                 "language": language,
             },
         )
-        picks: Optional[dict[str, str]] = await self.amapping_str(
+        picks = await self.amapping_kv(
             rendered,
+            key_type=int,
+            value_type=str,
             k=chapter_budget,
-            **kwargs,
         )
         if not picks:
             return
 
         # Generate images via ComfyUI
         image_dir = f"images/ch{chapter.chapter_index}"
-        valid_picks: dict[str, str] = {}
+        valid_picks: dict[int, str] = {}
 
-        for idx_str, prompt in picks.items():
-            idx = int(idx_str)
+        for idx, prompt in picks.items():
             if not (0 <= idx < len(paras)):
                 logger.warn(f"Invalid paragraph index {idx} (max {len(paras) - 1})")
                 continue
@@ -230,7 +231,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             if src != target:
                 src.rename(target)
 
-            valid_picks[idx_str] = prompt
+            valid_picks[idx] = prompt
             logger.info(f"Illustrated paragraph {idx} in chapter {chapter.chapter_index}")
 
         # Inject <img> tags into raw text

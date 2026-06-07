@@ -53,10 +53,12 @@ class ComfyuiHTTPClient:
     # ------------------------------------------------------------------
 
     async def __aenter__(self) -> Self:
+        """Enter async context manager, opening the connection pool."""
         self.open()
         return self
 
     async def __aexit__(self, *_: object) -> None:
+        """Exit async context manager, closing the connection pool."""
         await self.close()
 
     def open(self) -> None:

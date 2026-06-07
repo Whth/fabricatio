@@ -10,20 +10,24 @@ class TestVirtualFS:
     """Tests for the VirtualFS pyclass."""
 
     def test_create_empty(self) -> None:
+        """Verify create empty."""
         vfs = VirtualFS()
         assert "VirtualFS" in repr(vfs)
 
     def test_write_and_read_text(self) -> None:
+        """Verify write and read text."""
         vfs = VirtualFS()
         vfs.write_text("hello.txt", "world")
         assert vfs.read_text("hello.txt") == "world"
 
     def test_write_and_read_bytes(self) -> None:
+        """Verify write and read bytes."""
         vfs = VirtualFS()
         vfs.write_bytes("data.bin", b"\x00\x01\x02")
         assert vfs.read_bytes("data.bin") == b"\x00\x01\x02"
 
     def test_nested_paths(self) -> None:
+        """Verify nested paths."""
         vfs = VirtualFS()
         vfs.write_text("a/b/c.txt", "deep")
         assert vfs.read_text("a/b/c.txt") == "deep"
@@ -32,6 +36,7 @@ class TestVirtualFS:
         assert not vfs.is_file("a/b")
 
     def test_list_dir(self) -> None:
+        """Verify list dir."""
         vfs = VirtualFS()
         vfs.write_text("dir/a.txt", "1")
         vfs.write_text("dir/b.txt", "2")
@@ -39,6 +44,7 @@ class TestVirtualFS:
         assert sorted(names) == ["a.txt", "b.txt"]
 
     def test_walk_dir(self) -> None:
+        """Verify walk dir."""
         vfs = VirtualFS()
         vfs.write_text("src/main.rs", "fn main() {}")
         vfs.write_text("src/lib.rs", "pub fn hello() {}")
@@ -48,6 +54,7 @@ class TestVirtualFS:
         assert "lib.rs" in filenames
 
     def test_exists_is_file_is_dir(self) -> None:
+        """Verify exists is file is dir."""
         vfs = VirtualFS()
         assert not vfs.exists("missing")
         vfs.write_text("file.txt", "x")
@@ -56,16 +63,19 @@ class TestVirtualFS:
         assert not vfs.is_dir("file.txt")
 
     def test_create_dir(self) -> None:
+        """Verify create dir."""
         vfs = VirtualFS()
         vfs.create_dir("new_dir")
         assert vfs.is_dir("new_dir")
 
     def test_create_dir_all(self) -> None:
+        """Verify create dir all."""
         vfs = VirtualFS()
         vfs.create_dir_all("a/b/c/d")
         assert vfs.is_dir("a/b/c/d")
 
     def test_remove_file(self) -> None:
+        """Verify remove file."""
         vfs = VirtualFS()
         vfs.write_text("temp.txt", "bye")
         assert vfs.exists("temp.txt")
@@ -73,6 +83,7 @@ class TestVirtualFS:
         assert not vfs.exists("temp.txt")
 
     def test_remove_dir_all(self) -> None:
+        """Verify remove dir all."""
         vfs = VirtualFS()
         vfs.write_text("rm_dir/a.txt", "1")
         vfs.write_text("rm_dir/b.txt", "2")
@@ -81,6 +92,7 @@ class TestVirtualFS:
         assert not vfs.exists("rm_dir")
 
     def test_copy_file(self) -> None:
+        """Verify copy file."""
         vfs = VirtualFS()
         vfs.write_text("original.txt", "data")
         vfs.copy_file("original.txt", "copy.txt")
@@ -88,6 +100,7 @@ class TestVirtualFS:
         assert vfs.read_text("original.txt") == "data"
 
     def test_rename(self) -> None:
+        """Verify rename."""
         vfs = VirtualFS()
         vfs.write_text("old.txt", "content")
         vfs.rename("old.txt", "new.txt")
@@ -95,11 +108,13 @@ class TestVirtualFS:
         assert vfs.read_text("new.txt") == "content"
 
     def test_abs_path(self) -> None:
+        """Verify abs path."""
         vfs = VirtualFS()
         ap = vfs.abs_path("some/file.txt")
         assert "some/file.txt" in ap
 
     def test_read_nonexistent_raises(self) -> None:
+        """Verify read nonexistent raises."""
         vfs = VirtualFS()
         with pytest.raises(RuntimeError):
             vfs.read_text("nope.txt")
@@ -109,11 +124,13 @@ class TestSandboxSession:
     """Tests for the SandboxSession pyclass."""
 
     def test_create_empty(self) -> None:
+        """Verify create empty."""
         session = SandboxSession()
         assert session.root_path()
         assert session.mounts() == {}
 
     def test_create_with_mounts(self, tmp_path: Path) -> None:
+        """Verify create with mounts."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "hello.txt").write_text("from real fs")
@@ -122,6 +139,7 @@ class TestSandboxSession:
         assert session.mounts() == {"/project": str(real_dir)}
 
     def test_read_mounted_file(self, tmp_path: Path) -> None:
+        """Verify read mounted file."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "hello.txt").write_text("real content")
@@ -130,6 +148,7 @@ class TestSandboxSession:
         assert session.read_text("/project/hello.txt") == "real content"
 
     def test_write_does_not_modify_real_fs(self, tmp_path: Path) -> None:
+        """Verify write does not modify real fs."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("original")
@@ -143,6 +162,7 @@ class TestSandboxSession:
         assert session.read_text("/project/file.txt") == "modified in sandbox"
 
     def test_diff_tracks_modifications(self, tmp_path: Path) -> None:
+        """Verify diff tracks modifications."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("line1\nline2\nline3\n")
@@ -156,6 +176,7 @@ class TestSandboxSession:
         assert "+modified" in diff["/project/file.txt"]
 
     def test_diff_empty_when_no_changes(self) -> None:
+        """Verify diff empty when no changes."""
         session = SandboxSession()
         session.write_text("new.txt", "hello")
         # No originals tracked for a fresh file that was just created once
@@ -170,6 +191,7 @@ class TestSandboxSession:
         assert isinstance(diff, dict)
 
     def test_diff_tracks_new_file_creation_and_modification(self) -> None:
+        """Verify diff tracks new file creation and modification."""
         session = SandboxSession()
         # First write — file is new, no original to compare against
         session.write_text("file.txt", "version1")
@@ -185,6 +207,7 @@ class TestSandboxSession:
         assert "+version2" in diff2["file.txt"]
 
     def test_reset_clears_diffs(self, tmp_path: Path) -> None:
+        """Verify reset clears diffs."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "f.txt").write_text("original")
@@ -200,6 +223,7 @@ class TestSandboxSession:
         assert len(diff_after_reset) == 0
 
     def test_apply_flushes_to_real_fs(self, tmp_path: Path) -> None:
+        """Verify apply flushes to real fs."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("original")
@@ -211,6 +235,7 @@ class TestSandboxSession:
         assert (real_dir / "file.txt").read_text() == "applied content"
 
     def test_apply_creates_new_files(self, tmp_path: Path) -> None:
+        """Verify apply creates new files."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
 
@@ -221,6 +246,7 @@ class TestSandboxSession:
         assert (real_dir / "new_file.txt").read_text() == "brand new"
 
     def test_apply_creates_nested_dirs(self, tmp_path: Path) -> None:
+        """Verify apply creates nested dirs."""
         real_dir = tmp_path / "real"
         real_dir.mkdir()
 
@@ -231,10 +257,12 @@ class TestSandboxSession:
         assert (real_dir / "src" / "deep" / "file.rs").read_text() == "fn main() {}"
 
     def test_repr(self) -> None:
+        """Verify repr."""
         session = SandboxSession()
         assert "SandboxSession" in repr(session)
 
     def test_vfs_operations_on_session(self) -> None:
+        """Verify vfs operations on session."""
         session = SandboxSession()
         session.create_dir("mydir")
         session.write_text("mydir/file.txt", "hello")

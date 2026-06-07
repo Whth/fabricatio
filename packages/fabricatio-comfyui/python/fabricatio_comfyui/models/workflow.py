@@ -114,6 +114,7 @@ class Node(BaseModel):
         return d
 
     def __repr__(self) -> str:
+        """Return a developer-friendly representation of this node."""
         label = f" ({self.title})" if self.title else ""
         return f"Node({self.id!r}, {self.type!r}{label})"
 
@@ -348,4 +349,5 @@ class Workflow:
         raise KeyError("No KSampler or KSamplerAdvanced node found in workflow")
 
     def __repr__(self) -> str:
+        """Return a developer-friendly representation of this workflow."""
         return f"Workflow({len(self.node_map)} nodes)"
