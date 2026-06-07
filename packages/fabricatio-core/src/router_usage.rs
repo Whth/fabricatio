@@ -1,4 +1,7 @@
-use crate::parser::{CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER};
+use crate::parser::{
+    CodeSnippet, ValidatedDict, ValueType, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER,
+    SNIPPET_PARSER,
+};
 use crate::templates::TEMPLATE_MANAGER;
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
@@ -6,14 +9,16 @@ use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
 use fabricatio_router::Router;
 use fabricatio_router::{CompletionRequest, RouteGroupName};
-use futures::StreamExt;
 use futures::future::join_all;
+use futures::StreamExt;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
-use serde_json::{Value, json};
+use serde::de::DeserializeOwned;
+use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::hash::Hash;
 
 /// Bundled completion parameters shared across all inner ask/mapping functions.
 #[derive(Clone)]
@@ -26,6 +31,11 @@ struct CompletionParams {
     presence_penalty: Option<f32>,
     frequency_penalty: Option<f32>,
     no_cache: bool,
+}
+
+enum Batch<V> {
+    Single(V),
+    Batch(Vec<V>),
 }
 
 impl CompletionParams {
@@ -134,17 +144,17 @@ impl RouterUsage {
         Ok(a)
     }
 
-    pub async fn mapping_str_inner(
+    pub async fn mapping_kv_inner<K: DeserializeOwned + Eq + Hash, V: DeserializeOwned>(
         &self,
         requirement: String,
         k: Option<usize>,
         max_validations: usize,
-        default: Option<HashMap<String, String>>,
+        default: Option<HashMap<K, V>>,
         params: &CompletionParams,
-    ) -> PyResult<Option<HashMap<String, String>>> {
+    ) -> PyResult<Option<HashMap<K, V>>> {
         self.ask_validate_inner(
             requirement,
-            |resp| JSON_PARSER.validate_dict_inner(resp, k, true),
+            |resp| JSON_PARSER.validate_dict_inner::<K, V>(resp, k, true),
             default,
             max_validations,
             params,
@@ -152,23 +162,69 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn mapping_str_batch_inner(
+    pub async fn mapping_kv_batch_inner<
+        K: DeserializeOwned + Eq + Hash + Clone,
+        V: DeserializeOwned + Clone,
+    >(
         &self,
         requirements: Vec<String>,
         k: Option<usize>,
         max_validations: usize,
-        default: Option<HashMap<String, String>>,
+        default: Option<HashMap<K, V>>,
         params: &CompletionParams,
-    ) -> PyResult<Vec<Option<HashMap<String, String>>>> {
+    ) -> PyResult<Vec<Option<HashMap<K, V>>>> {
         self.ask_validate_batch_inner(
             requirements,
-            |resp| JSON_PARSER.validate_dict_inner(resp, k, true),
+            |resp| JSON_PARSER.validate_dict_inner::<K, V>(resp, k, true),
             default,
             max_validations,
             params,
         )
         .await
     }
+
+    pub async fn mapping_kv(
+        &self,
+        requirement: String,
+        key_type: ValueType,
+        value_type: ValueType,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<ValidatedDict>,
+
+        params: &CompletionParams,
+    ) -> PyResult<Option<ValidatedDict>> {
+        self.ask_validate_inner(
+            requirement,
+            |resp| JSON_PARSER.validate_dict_k_v_inner(resp, key_type, value_type, k, true),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
+    pub async fn mapping_kv_batch(
+        &self,
+
+        requirements: Vec<String>,
+        key_type: ValueType,
+        value_type: ValueType,
+        k: Option<usize>,
+        max_validations: usize,
+        default: Option<ValidatedDict>,
+        params: &CompletionParams,
+    ) -> PyResult<Vec<Option<ValidatedDict>>> {
+        self.ask_validate_batch_inner(
+            requirements,
+            |resp| JSON_PARSER.validate_dict_k_v_inner(resp, key_type, value_type, k, true),
+            default,
+            max_validations,
+            params,
+        )
+        .await
+    }
+
     pub async fn list_str_inner(
         &self,
         requirement: String,
@@ -470,6 +526,8 @@ impl RouterUsage {
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
+        key_type: ValueType,
+        value_type: ValueType,
         k: Option<usize>,
         max_validations: usize,
         default: Option<HashMap<String, String>>,
@@ -504,8 +562,30 @@ impl RouterUsage {
                 let rendered = TEMPLATE_MANAGER
                     .render_batch(&CONFIG.templates.mapping_template, &data)
                     .into_pyresult()?;
-                slf.mapping_str_batch_inner(rendered, k, max_validations, default, &params)
-                    .await
+
+                let vd_seq = slf
+                    .mapping_kv_batch(
+                        rendered,
+                        key_type,
+                        value_type,
+                        k,
+                        max_validations,
+                        None,
+                        &params,
+                    )
+                    .await?;
+                Ok(vd_seq
+                    .into_iter()
+                    .map(|vd| {
+                        if let Some(d) = vd
+                            && let ValidatedDict::StringString(dss) = d
+                        {
+                            Some(dss)
+                        } else {
+                            default.clone()
+                        }
+                    })
+                    .collect::<Vec<_>>())
             })
         } else if let Ok(req) = requirement.extract::<String>() {
             future_into_py(python, async move {
@@ -513,8 +593,26 @@ impl RouterUsage {
                 let rendered = TEMPLATE_MANAGER
                     .render(&CONFIG.templates.mapping_template, &data)
                     .into_pyresult()?;
-                slf.mapping_str_inner(rendered, k, max_validations, default, &params)
-                    .await
+                let vd = slf
+                    .mapping_kv(
+                        rendered,
+                        key_type,
+                        value_type,
+                        k,
+                        max_validations,
+                        None,
+                        &params,
+                    )
+                    .await?;
+
+                let d = if let Some(d) = vd
+                    && let ValidatedDict::StringString(dss) = d
+                {
+                    Some(dss)
+                } else {
+                    default
+                };
+                Ok(d)
             })
         } else {
             Err(PyTypeError::new_err(
