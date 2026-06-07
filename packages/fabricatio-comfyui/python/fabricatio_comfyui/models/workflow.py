@@ -1,41 +1,82 @@
-"""Programmatic builder for ComfyUI workflow graphs.
+"""Typed models for ComfyUI workflow graphs.
 
-Load workflows from exported API-format JSON (like ``demo.json``) or build
-them from scratch, then modify nodes and connections without hand-editing JSON.
+Provides :class:`Node` (a single workflow node) and :class:`Workflow`
+(a full workflow graph) with proper typing, validation, and clean
+API-format serialization.
 """
 
-from __future__ import annotations
-
+import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Self
 
-__all__ = ["ComfyNode", "WorkflowBuilder"]
+from pydantic import BaseModel, ConfigDict, Field
+
+__all__ = ["Node", "NodeRef", "Workflow"]
 
 
-class ComfyNode:
-    """A single node in a ComfyUI workflow graph.
+# ------------------------------------------------------------------
+# Node reference — typed link between nodes
+# ------------------------------------------------------------------
 
-    Attributes:
-        node_id: String node identifier (e.g. ``"42"``).
-        class_type: ComfyUI node class (e.g. ``"KSampler"``).
-        inputs: Raw input values.  Node references are stored as ``[node_id, output_index]``.
-        meta: The ``_meta`` dict (title, etc.).
+
+class NodeRef(BaseModel):
+    """A typed reference to another node's output.
+
+    In the ComfyUI API format, connections are stored as ``[node_id, output_index]``.
+    This model makes that explicit.
     """
 
-    __slots__ = ("class_type", "inputs", "meta", "node_id")
+    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    def __init__(
-        self,
-        node_id: str,
-        class_type: str,
-        inputs: Dict[str, Any] | None = None,
-        meta: Dict[str, str] | None = None,
-    ) -> None:
-        """Initialize a ComfyNode with its ID, type, inputs, and metadata."""
-        self.node_id = node_id
-        self.class_type = class_type
-        self.inputs: Dict[str, Any] = dict(inputs) if inputs else {}
-        self.meta: Dict[str, str] = dict(meta) if meta else {}
+    node_id: str
+    """The source node ID."""
+
+    output_index: int = 0
+    """The output index on the source node (default 0)."""
+
+    def to_api(self) -> list[str | int]:
+        """Serialize to ComfyUI API format: ``[node_id, output_index]``."""
+        return [self.node_id, self.output_index]
+
+    @classmethod
+    def from_api(cls, raw: list[Any]) -> Self:
+        """Parse from ``[node_id, output_index]``."""
+        return cls(node_id=str(raw[0]), output_index=int(raw[1]))
+
+    @staticmethod
+    def is_ref(value: Any) -> bool:
+        """Return ``True`` if *value* looks like a node reference."""
+        return isinstance(value, list) and len(value) == 2 and isinstance(value[0], str)
+
+
+# ------------------------------------------------------------------
+# Single node
+# ------------------------------------------------------------------
+
+
+class Node(BaseModel):
+    """A single node in a ComfyUI workflow graph.
+
+    Inputs are stored in their API-format representation.  Literal values
+    keep their native types.  Node connections are stored as
+    ``[node_id, output_index]`` lists — use :meth:`connect` /
+    :meth:`get_ref` for typed access.
+    """
+
+    model_config = ConfigDict(use_attribute_docstrings=True)
+
+    id: str
+    """Node identifier (e.g. ``"42"``)."""
+
+    type: str
+    """ComfyUI node class (e.g. ``"KSampler"``, ``"CLIPTextEncode"``)."""
+
+    inputs: Dict[str, Any] = Field(default_factory=dict)
+    """Input values.  Literals are native types; node refs are ``[node_id, output_index]``."""
+
+    title: str = ""
+    """Human-readable title (stored in ``_meta.title``)."""
 
     # ------------------------------------------------------------------
     # Input manipulation
@@ -46,194 +87,179 @@ class ComfyNode:
         self.inputs[name] = value
         return self
 
-    def connect(self, input_name: str, source: ComfyNode, output_index: int = 0) -> Self:
+    def connect(self, input_name: str, source: "Node", output_index: int = 0) -> Self:
         """Wire *input_name* to *source*'s output at *output_index*."""
-        self.inputs[input_name] = [source.node_id, output_index]
+        self.inputs[input_name] = [source.id, output_index]
         return self
 
-    def get_ref(self, input_name: str) -> tuple[str, int] | None:
-        """Return ``(node_id, output_index)`` if the input is a node reference, else ``None``."""
+    def get_ref(self, input_name: str) -> NodeRef | None:
+        """Return a :class:`NodeRef` if the input is a connection, else ``None``."""
         val = self.inputs.get(input_name)
-        if isinstance(val, (list, tuple)) and len(val) == 2 and isinstance(val[0], str):
-            return (val[0], int(val[1]))
+        if NodeRef.is_ref(val):
+            return NodeRef.from_api(val)
         return None
 
     # ------------------------------------------------------------------
     # Serialization
     # ------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_api(self) -> Dict[str, Any]:
         """Serialize to ComfyUI API format."""
         d: Dict[str, Any] = {
             "inputs": dict(self.inputs),
-            "class_type": self.class_type,
+            "class_type": self.type,
         }
-        if self.meta:
-            d["_meta"] = dict(self.meta)
+        if self.title:
+            d["_meta"] = {"title": self.title}
         return d
 
     def __repr__(self) -> str:
-        """Return a developer-friendly string representation."""
-        title = self.meta.get("title", "")
-        label = f" ({title})" if title else ""
-        return f"ComfyNode({self.node_id!r}, {self.class_type!r}{label})"
+        label = f" ({self.title})" if self.title else ""
+        return f"Node({self.id!r}, {self.type!r}{label})"
 
 
-class WorkflowBuilder:
+# ------------------------------------------------------------------
+# Full workflow graph
+# ------------------------------------------------------------------
+
+
+@dataclass
+class Workflow:
     """Programmatic builder for ComfyUI workflow graphs.
 
-    Examples::
+    Load from exported API-format JSON or build from scratch::
 
-        # Load from an exported API-format JSON
-        wb = WorkflowBuilder.from_file("demo.json")
+        wf = Workflow.from_file("demo.json")
+        wf.set_positive_prompt("masterpiece, best quality")
+        wf.set_checkpoint("v1-5-pruned-emaonly.safetensors")
 
-        # Modify the checkpoint
-        wb.set_checkpoint("v1-5-pruned-emaonly.safetensors")
-
-        # Update the positive prompt
-        wb.set_positive_prompt("masterpiece, best quality, 1girl")
-
-        # Serialize back to a dict for queue_prompt()
-        workflow_dict = wb.to_dict()
+        # Serialize for client.queue_prompt()
+        data = wf.to_api()
 
         # Build from scratch
-        wb = WorkflowBuilder()
-        ckpt = wb.add_node("CheckpointLoaderSimple", inputs={"ckpt_name": "model.safetensors"})
-        empty = wb.add_node("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
-        pos = wb.add_node("CLIPTextEncode", inputs={"text": "a cat"})
+        wf = Workflow.new()
+        ckpt = wf.add("CheckpointLoaderSimple", inputs={"ckpt_name": "model.safetensors"})
+        empty = wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
+        pos = wf.add("CLIPTextEncode", inputs={"text": "a cat"})
         pos.connect("clip", ckpt, 1)
-        ...
     """
 
-    __slots__ = ("_next_id", "_nodes")
-
-    def __init__(self) -> None:
-        """Initialize an empty workflow builder."""
-        self._nodes: Dict[str, ComfyNode] = {}
-        self._next_id: int = 1
+    node_map: Dict[str, Node] = field(default_factory=dict)
+    counter: int = 1
 
     # ------------------------------------------------------------------
     # Construction
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> Self:
-        """Load from an exported ComfyUI API-format JSON dict.
+    def new(cls) -> Self:
+        """Create an empty workflow."""
+        return cls()
 
-        Node IDs and all input references are preserved exactly.
-        """
-        wb = cls()
+    @classmethod
+    def from_api(cls, data: Dict[str, Any]) -> Self:
+        """Load from a ComfyUI API-format JSON dict."""
+        wf = cls()
         max_id = 0
         for node_id, node_data in data.items():
             nid = int(node_id)
             max_id = max(max_id, nid)
-            wb._nodes[node_id] = ComfyNode(
-                node_id=node_id,
-                class_type=node_data.get("class_type", ""),
+            meta = node_data.get("_meta", {})
+            wf.node_map[node_id] = Node(
+                id=node_id,
+                type=node_data.get("class_type", ""),
                 inputs=dict(node_data.get("inputs", {})),
-                meta=dict(node_data.get("_meta", {})),
+                title=meta.get("title", ""),
             )
-        wb._next_id = max_id + 1
-        return wb
+        wf.counter = max_id + 1
+        return wf
 
     @classmethod
     def from_file(cls, path: str | Path) -> Self:
         """Load from a ``.json`` file."""
-        import json
-
         p = Path(path)
-        return cls.from_json(json.loads(p.read_text(encoding="utf-8")))
+        return cls.from_api(json.loads(p.read_text(encoding="utf-8")))
+
+    @classmethod
+    def default(cls) -> Self:
+        """Load the bundled demo workflow shipped with the package."""
+        demo = Path(__file__).resolve().parent.parent / "workflows" / "default.json"
+        return cls.from_file(demo)
 
     # ------------------------------------------------------------------
     # Node management
     # ------------------------------------------------------------------
 
-    def add_node(
+    def add(
         self,
-        class_type: str,
+        type: str,
         *,
         title: str = "",
         inputs: Dict[str, Any] | None = None,
-    ) -> ComfyNode:
+    ) -> Node:
         """Add a new node, auto-assigning the next available ID."""
-        node_id = str(self._next_id)
-        self._next_id += 1
-        meta: Dict[str, str] = {}
-        if title:
-            meta["title"] = title
-        node = ComfyNode(node_id=node_id, class_type=class_type, inputs=inputs, meta=meta)
-        self._nodes[node_id] = node
+        node_id = str(self.counter)
+        self.counter += 1
+        node = Node(id=node_id, type=type, inputs=dict(inputs) if inputs else {}, title=title)
+        self.node_map[node_id] = node
         return node
 
-    def get_node(self, node_id: str) -> ComfyNode:
+    def get(self, node_id: str) -> Node:
         """Get a node by ID.  Raises ``KeyError`` if not found."""
-        return self._nodes[node_id]
+        return self.node_map[node_id]
 
-    def nodes_by_type(self, class_type: str) -> List[ComfyNode]:
-        """Find all nodes with the given *class_type*."""
-        return [n for n in self._nodes.values() if n.class_type == class_type]
+    def by_type(self, type: str) -> List[Node]:
+        """Find all nodes with the given *type*."""
+        return [n for n in self.node_map.values() if n.type == type]
 
-    def remove_node(self, node_id: str) -> None:
-        """Remove a node and disconnect all references to it from other nodes."""
-        del self._nodes[node_id]
-        for node in self._nodes.values():
-            to_remove = []
-            for key, val in node.inputs.items():
-                if isinstance(val, (list, tuple)) and len(val) == 2 and val[0] == node_id:
-                    to_remove.append(key)
-            for key in to_remove:
-                del node.inputs[key]
+    def remove(self, node_id: str) -> None:
+        """Remove a node and disconnect all references to it."""
+        del self.node_map[node_id]
+        for node in self.node_map.values():
+            to_remove = [k for k, v in node.inputs.items() if NodeRef.is_ref(v) and v[0] == node_id]
+            for k in to_remove:
+                del node.inputs[k]
 
     @property
     def node_ids(self) -> list[str]:
         """All node IDs in this workflow."""
-        return list(self._nodes.keys())
+        return list(self.node_map.keys())
 
     @property
-    def nodes(self) -> list[ComfyNode]:
+    def nodes(self) -> list[Node]:
         """All nodes in this workflow."""
-        return list(self._nodes.values())
+        return list(self.node_map.values())
 
     # ------------------------------------------------------------------
     # Serialization
     # ------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_api(self) -> Dict[str, Any]:
         """Serialize to ComfyUI API format (pass to ``client.queue_prompt``)."""
-        return {node_id: node.to_dict() for node_id, node in self._nodes.items()}
+        return {node_id: node.to_api() for node_id, node in self.node_map.items()}
 
     # ------------------------------------------------------------------
     # Convenience methods for common operations
     # ------------------------------------------------------------------
 
-    def set_checkpoint(self, ckpt_name: str, *, node_id: str | None = None) -> ComfyNode:
-        """Set the checkpoint on a ``CheckpointLoaderSimple`` node.
-
-        If *node_id* is ``None``, the first matching node is used.
-        """
-        node = self._resolve_node("CheckpointLoaderSimple", node_id)
+    def set_checkpoint(self, ckpt_name: str, *, node_id: str | None = None) -> Node:
+        """Set the checkpoint on a ``CheckpointLoaderSimple`` node."""
+        node = self._resolve("CheckpointLoaderSimple", node_id)
         node.set_input("ckpt_name", ckpt_name)
         return node
 
-    def set_vae(self, vae_name: str, *, node_id: str | None = None) -> ComfyNode:
+    def set_vae(self, vae_name: str, *, node_id: str | None = None) -> Node:
         """Set the VAE on a ``VAELoader`` node."""
-        node = self._resolve_node("VAELoader", node_id)
+        node = self._resolve("VAELoader", node_id)
         node.set_input("vae_name", vae_name)
         return node
 
-    def set_positive_prompt(self, text: str, *, node_id: str | None = None) -> ComfyNode:
-        """Set the positive prompt text on a ``CLIPTextEncode`` node.
-
-        If multiple ``CLIPTextEncode`` nodes exist and *node_id* is ``None``,
-        the first one found is used.  For precise control, pass *node_id*.
-        """
+    def set_positive_prompt(self, text: str, *, node_id: str | None = None) -> Node:
+        """Set the positive prompt text on a ``CLIPTextEncode`` node."""
         return self._set_prompt(text, node_id, index=0)
 
-    def set_negative_prompt(self, text: str, *, node_id: str | None = None) -> ComfyNode:
-        """Set the negative prompt text on a ``CLIPTextEncode`` node.
-
-        With multiple prompt nodes, the second one is targeted by default.
-        """
+    def set_negative_prompt(self, text: str, *, node_id: str | None = None) -> Node:
+        """Set the negative prompt text on a ``CLIPTextEncode`` node (second one)."""
         return self._set_prompt(text, node_id, index=1)
 
     def set_sampler(
@@ -246,19 +272,12 @@ class WorkflowBuilder:
         scheduler: str | None = None,
         denoise: float | None = None,
         node_id: str | None = None,
-    ) -> ComfyNode:
-        """Update sampler parameters on a ``KSampler`` or ``KSamplerAdvanced`` node.
-
-        Only the provided parameters are updated; others are left unchanged.
-        """
-        # Try KSamplerAdvanced first, then KSampler
-        node = self._find_sampler_node(node_id)
+    ) -> Node:
+        """Update sampler parameters on a ``KSampler`` or ``KSamplerAdvanced`` node."""
+        node = self._find_sampler(node_id)
         if seed is not None:
-            # KSampler uses "seed", KSamplerAdvanced uses "noise_seed"
             if "noise_seed" in node.inputs:
                 node.set_input("noise_seed", seed)
-            elif "seed" in node.inputs:
-                node.set_input("seed", seed)
             else:
                 node.set_input("seed", seed)
         if steps is not None:
@@ -279,9 +298,9 @@ class WorkflowBuilder:
         width: int | None = None,
         height: int | None = None,
         node_id: str | None = None,
-    ) -> ComfyNode:
+    ) -> Node:
         """Set width/height on an ``EmptyLatentImage`` node."""
-        node = self._resolve_node("EmptyLatentImage", node_id)
+        node = self._resolve("EmptyLatentImage", node_id)
         if width is not None:
             node.set_input("width", width)
         if height is not None:
@@ -292,47 +311,41 @@ class WorkflowBuilder:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _resolve_node(self, class_type: str, node_id: str | None) -> ComfyNode:
-        """Find a node by *class_type* (or *node_id* if given).  Raises on miss."""
+    def _resolve(self, type: str, node_id: str | None) -> Node:
         if node_id is not None:
-            node = self._nodes.get(node_id)
+            node = self.node_map.get(node_id)
             if node is None:
                 raise KeyError(f"Node {node_id!r} not found")
             return node
-        matches = self.nodes_by_type(class_type)
+        matches = self.by_type(type)
         if not matches:
-            raise KeyError(f"No node with class_type={class_type!r} found in workflow")
+            raise KeyError(f"No node with type={type!r} found in workflow")
         return matches[0]
 
-    def _set_prompt(self, text: str, node_id: str | None, *, index: int) -> ComfyNode:
-        """Set prompt text, targeting the *index*-th CLIPTextEncode node if no *node_id*."""
+    def _set_prompt(self, text: str, node_id: str | None, *, index: int) -> Node:
         if node_id is not None:
-            node = self._nodes.get(node_id)
+            node = self.node_map.get(node_id)
             if node is None:
                 raise KeyError(f"Node {node_id!r} not found")
         else:
-            matches = self.nodes_by_type("CLIPTextEncode")
+            matches = self.by_type("CLIPTextEncode")
             if len(matches) <= index:
-                raise KeyError(
-                    f"Need at least {index + 1} CLIPTextEncode node(s), found {len(matches)}"
-                )
+                raise KeyError(f"Need at least {index + 1} CLIPTextEncode node(s), found {len(matches)}")
             node = matches[index]
         node.set_input("text", text)
         return node
 
-    def _find_sampler_node(self, node_id: str | None) -> ComfyNode:
-        """Find a KSampler or KSamplerAdvanced node."""
+    def _find_sampler(self, node_id: str | None) -> Node:
         if node_id is not None:
-            node = self._nodes.get(node_id)
+            node = self.node_map.get(node_id)
             if node is None:
                 raise KeyError(f"Node {node_id!r} not found")
             return node
-        for cls in ("KSamplerAdvanced", "KSampler"):
-            matches = self.nodes_by_type(cls)
+        for sampler_type in ("KSamplerAdvanced", "KSampler"):
+            matches = self.by_type(sampler_type)
             if matches:
                 return matches[0]
         raise KeyError("No KSampler or KSamplerAdvanced node found in workflow")
 
     def __repr__(self) -> str:
-        """Return a developer-friendly string representation."""
-        return f"WorkflowBuilder({len(self._nodes)} nodes)"
+        return f"Workflow({len(self.node_map)} nodes)"

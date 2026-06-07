@@ -15,19 +15,31 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
     ViewImageParams,
 )
+from fabricatio_comfyui.models.kwargs_types import (
+    GenerateKwargs,
+    PollKwargs,
+    QueueKwargs,
+    UploadKwargs,
+    ViewImageKwargs,
+)
 
 __all__ = [
     "ComfyuiExecutionResult",
     "ComfyuiNodeRef",
     "ComfyuiOutputImage",
+    "GenerateKwargs",
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
+    "PollKwargs",
     "PromptRequest",
     "PromptResponse",
     "QueueEntry",
     "QueueInfo",
+    "QueueKwargs",
     "SystemStats",
+    "UploadKwargs",
     "UploadResponse",
+    "ViewImageKwargs",
     "ViewImageParams",
 ]

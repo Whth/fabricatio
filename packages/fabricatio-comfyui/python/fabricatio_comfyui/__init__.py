@@ -1,8 +1,7 @@
 """ComfyUI API integration for Fabricatio.
 
 Provides async ComfyUI client, actions, and workflow templates for
-generating images via a ComfyUI server.  Supports all three ComfyUI
-API methods: HTTP-only, WebSocket + History, and WebSocket + direct images.
+generating images via a ComfyUI server over HTTP.
 """
 
 from fabricatio_comfyui.actions import ComfyuiGenerateImage, ComfyuiUploadImage
@@ -14,10 +13,17 @@ from fabricatio_comfyui.models.comfyui import (
     ComfyuiNodeRef,
     ComfyuiOutputImage,
 )
-from fabricatio_comfyui.models.workflow import ComfyNode, WorkflowBuilder
+from fabricatio_comfyui.models.kwargs_types import (
+    GenerateKwargs,
+    PollKwargs,
+    QueueKwargs,
+    UploadKwargs,
+    ViewImageKwargs,
+)
+from fabricatio_comfyui.models.workflow import Node, NodeRef, Workflow
+from fabricatio_comfyui.pool import close_all, get_client
 
 __all__ = [
-    "ComfyNode",
     "Comfyui",
     "ComfyuiClient",
     "ComfyuiConfig",
@@ -26,6 +32,15 @@ __all__ = [
     "ComfyuiNodeRef",
     "ComfyuiOutputImage",
     "ComfyuiUploadImage",
-    "WorkflowBuilder",
+    "GenerateKwargs",
+    "Node",
+    "NodeRef",
+    "PollKwargs",
+    "QueueKwargs",
+    "UploadKwargs",
+    "ViewImageKwargs",
+    "Workflow",
+    "close_all",
     "comfyui_config",
+    "get_client",
 ]

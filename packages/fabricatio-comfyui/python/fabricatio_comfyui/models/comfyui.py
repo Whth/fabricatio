@@ -308,7 +308,7 @@ class ComfyuiExecutionResult(BaseModel):
     @property
     def succeeded(self) -> bool:
         """Whether the execution completed without error."""
-        return self.status == "completed" and self.error is None
+        return self.status in ("completed", "success") and self.error is None
 
 
 # ------------------------------------------------------------------

@@ -1,7 +1,5 @@
 """Actions for ComfyUI image generation workflow."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 
@@ -24,17 +22,14 @@ class ComfyuiGenerateImage(Action, Comfyui):
 
     The ``workflow`` field should contain a full ComfyUI workflow graph
     (exported via "Save (API Format)" from the ComfyUI interface) or a
-    :class:`~fabricatio_comfyui.models.workflow.WorkflowBuilder` instance.
+    :class:`~fabricatio_comfyui.models.workflow.Workflow` instance.
     Use ``download_dir`` to save images locally.
-
-    Uses WebSocket (Method 2) for real-time execution monitoring.
-    Falls back to HTTP polling if WebSocket connection fails.
     """
 
     output_key: str = "comfyui_result"
 
     workflow: Any = None
-    """The ComfyUI workflow graph to execute (dict or WorkflowBuilder)."""
+    """The ComfyUI workflow graph to execute (dict or Workflow)."""
     download_dir: str | Path | None = None
     """If set, download output images to this directory."""
 
@@ -42,13 +37,13 @@ class ComfyuiGenerateImage(Action, Comfyui):
     """Maximum seconds to wait for completion."""
 
     async def _execute(self, *_: Any, **cxt: Any) -> ComfyuiExecutionResult:
-        workflow = ok(self.workflow, "ComfyuiGenerateImage requires a `workflow` dict or WorkflowBuilder")
+        workflow = ok(self.workflow, "ComfyuiGenerateImage requires a `workflow` dict or Workflow")
         logger.info("Starting ComfyUI image generation")
 
         return await self.comfyui_generate(
             workflow=workflow,
             download_dir=self.download_dir,
-            timeout=self.timeout or comfyui_config.ws_timeout,
+            timeout=self.timeout or comfyui_config.timeout,
         )
 
 
