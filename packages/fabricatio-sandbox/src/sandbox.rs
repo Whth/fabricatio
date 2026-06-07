@@ -80,31 +80,52 @@ impl VirtualFS {
     }
 
     fn exists(&self, path: &str) -> PyResult<bool> {
-        self.root.join(path).and_then(|p| p.exists()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.exists())
+            .map_err(vfs_err)
     }
 
     fn is_file(&self, path: &str) -> PyResult<bool> {
-        self.root.join(path).and_then(|p| p.is_file()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.is_file())
+            .map_err(vfs_err)
     }
 
     fn is_dir(&self, path: &str) -> PyResult<bool> {
-        self.root.join(path).and_then(|p| p.is_dir()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.is_dir())
+            .map_err(vfs_err)
     }
 
     fn create_dir(&self, path: &str) -> PyResult<()> {
-        self.root.join(path).and_then(|p| p.create_dir()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.create_dir())
+            .map_err(vfs_err)
     }
 
     fn create_dir_all(&self, path: &str) -> PyResult<()> {
-        self.root.join(path).and_then(|p| p.create_dir_all()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.create_dir_all())
+            .map_err(vfs_err)
     }
 
     fn remove_file(&self, path: &str) -> PyResult<()> {
-        self.root.join(path).and_then(|p| p.remove_file()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.remove_file())
+            .map_err(vfs_err)
     }
 
     fn remove_dir_all(&self, path: &str) -> PyResult<()> {
-        self.root.join(path).and_then(|p| p.remove_dir_all()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .and_then(|p| p.remove_dir_all())
+            .map_err(vfs_err)
     }
 
     fn copy_file(&self, src: &str, dst: &str) -> PyResult<()> {
@@ -122,7 +143,10 @@ impl VirtualFS {
     }
 
     fn abs_path(&self, path: &str) -> PyResult<String> {
-        self.root.join(path).map(|p| p.as_str().to_owned()).map_err(vfs_err)
+        self.root
+            .join(path)
+            .map(|p| p.as_str().to_owned())
+            .map_err(vfs_err)
     }
 
     fn __repr__(&self) -> String {

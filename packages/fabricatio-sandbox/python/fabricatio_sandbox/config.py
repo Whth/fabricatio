@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 
-
 from fabricatio_core import CONFIG
 
 
