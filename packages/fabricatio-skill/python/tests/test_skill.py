@@ -2,7 +2,6 @@
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-
 from fabricatio_skill.capabilities.skill import UseSkill
 from fabricatio_skill.rust import Skill, SkillMeta, get_skill, scan_skills, search_skills
 
@@ -86,9 +85,19 @@ class TestSkillRust:
     def test_search_skills(self) -> None:
         """Test keyword-based skill search."""
         skills = [
-            Skill(name="code_review", description="Review code quality", tags=["code", "review"], content="Check.", path="a.md"),
-            Skill(name="security", description="Security audit", tags=["security", "audit"], content="Vulns.", path="b.md"),
-            Skill(name="performance", description="Performance optimization", tags=["perf"], content="Speed.", path="c.md"),
+            Skill(
+                name="code_review",
+                description="Review code quality",
+                tags=["code", "review"],
+                content="Check.",
+                path="a.md",
+            ),
+            Skill(
+                name="security", description="Security audit", tags=["security", "audit"], content="Vulns.", path="b.md"
+            ),
+            Skill(
+                name="performance", description="Performance optimization", tags=["perf"], content="Speed.", path="c.md"
+            ),
         ]
 
         results = search_skills("security", skills)
@@ -174,10 +183,24 @@ class TestUseSkill:
     async def test_use_skill_forced_names(self) -> None:
         """Test use_skill with forced skill names and no distill."""
         role = SkillRole()
-        role.add_skills([
-            Skill(name="review", description="Code review", tags=["code"], content="# Review\nCheck quality.", path="review.md"),
-            Skill(name="security", description="Security", tags=["sec"], content="# Security\nCheck vulns.", path="sec.md"),
-        ])
+        role.add_skills(
+            [
+                Skill(
+                    name="review",
+                    description="Code review",
+                    tags=["code"],
+                    content="# Review\nCheck quality.",
+                    path="review.md",
+                ),
+                Skill(
+                    name="security",
+                    description="Security",
+                    tags=["sec"],
+                    content="# Security\nCheck vulns.",
+                    path="sec.md",
+                ),
+            ]
+        )
 
         role.mock_llm_response("reviewed answer")
 

@@ -100,10 +100,7 @@ pub struct SkillMeta {
 #[pymethods]
 impl SkillMeta {
     fn __repr__(&self) -> String {
-        format!(
-            "SkillMeta(name='{}', tags={:?})",
-            self.name, self.tags
-        )
+        format!("SkillMeta(name='{}', tags={:?})", self.name, self.tags)
     }
 }
 

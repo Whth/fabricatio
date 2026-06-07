@@ -64,9 +64,7 @@ class UseSkill(UseLLM, ABC):
             logger.warn("No skills available for selection.")
             return []
 
-        skill_summaries = "\n".join(
-            f"- **{s.name}**: {s.description} [tags: {', '.join(s.tags)}]" for s in pool
-        )
+        skill_summaries = "\n".join(f"- **{s.name}**: {s.description} [tags: {', '.join(s.tags)}]" for s in pool)
         prompt = TEMPLATE_MANAGER.render_template(
             skill_config.select_skills_template,
             {"question": question, "skills": skill_summaries},
@@ -107,9 +105,7 @@ class UseSkill(UseLLM, ABC):
         if not skills:
             return ""
 
-        skill_blocks = "\n\n".join(
-            f"--- skill: {s.name} ---\n{s.content}" for s in skills
-        )
+        skill_blocks = "\n\n".join(f"--- skill: {s.name} ---\n{s.content}" for s in skills)
         prompt = TEMPLATE_MANAGER.render_template(
             skill_config.distill_skills_template,
             {"question": question, "skills": skill_blocks},
