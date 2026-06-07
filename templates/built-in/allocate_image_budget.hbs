@@ -1,0 +1,18 @@
+Assign relative importance weights for illustration across novel chapters.
+
+**Novel:** {{novel_title}}
+
+{{#if guideline}}
+**Illustration Guideline:**
+{{guideline}}
+{{/if}}
+
+**Chapters:**
+{{#each chapters}}
+- Chapter [{{this.index}}] "{{this.title}}": {{this.paragraph_count}} paragraphs
+{{/each}}
+
+For each chapter, assign a relative weight indicating how much it deserves illustration.
+Higher weight = more images. Use 0 for chapters that don't need any illustration.
+Do NOT compute exact counts — just express relative importance (e.g. 1, 2, 3, 5).
+Respond in "{{language}}".

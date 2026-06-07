@@ -1,0 +1,26 @@
+Select paragraphs to illustrate in a novel chapter.
+
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+**Novel:** {{novel_title}}
+
+**Budget:** Select AT MOST {{budget}} paragraphs to illustrate.
+{{#if guideline}}
+**Selection Guideline:**
+{{guideline}}
+{{/if}}
+{{#if prompt_guideline}}
+**Image Prompt Style:**
+{{prompt_guideline}}
+{{/if}}
+
+**Paragraphs:**
+{{#each paragraphs}}
+[{{@index}}] {{this}}
+{{/each}}
+
+For each selected paragraph, provide:
+- `index`: the paragraph number from the list above
+- `image_prompt`: a detailed scene description for image generation
+
+Select fewer than {{budget}} if no paragraph meets the guideline. Select zero if none qualifies.
+Respond in "{{language}}".

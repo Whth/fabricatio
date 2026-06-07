@@ -45,6 +45,10 @@ lancedb = [
     "fabricatio-lancedb",
 ]
 
+comfyui = [
+    "fabricatio-comfyui",
+]
+
 
 
 [build-system]

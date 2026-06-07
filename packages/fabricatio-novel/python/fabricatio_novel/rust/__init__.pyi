@@ -7,6 +7,8 @@ import typing
 
 __all__ = [
     "NovelBuilder",
+    "join_paragraphs",
+    "split_paragraphs",
     "text_to_xhtml_paragraphs",
 ]
 
@@ -43,4 +45,11 @@ class NovelBuilder:
     def export(self, path: builtins.str | os.PathLike | pathlib.Path) -> NovelBuilder:
         r"""Exports the built novel to the specified file path."""
 
-def text_to_xhtml_paragraphs(source: builtins.str) -> builtins.str: ...
+def split_paragraphs(source: builtins.str) -> list[builtins.str]:
+    r"""Split source text into a list of non-empty paragraph strings."""
+
+def join_paragraphs(paras: list[builtins.str]) -> builtins.str:
+    r"""Wrap each paragraph in `<p>` tags and join with newlines."""
+
+def text_to_xhtml_paragraphs(source: builtins.str) -> builtins.str:
+    r"""Convenience: split source into paragraphs then wrap in `<p>` tags."""

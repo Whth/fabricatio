@@ -6,6 +6,7 @@ leverage capabilities from the fabricatio_core and interact with both Python and
 Rust components to perform their tasks.
 """
 
+import re
 from pathlib import Path
 from typing import Any, ClassVar, List, Optional
 
@@ -302,6 +303,13 @@ class DumpNovel(Action):
     The file system path to the novel cover image.
     """
 
+    image_root: Optional[Path] = None
+    """
+    Base directory for resolving chapter illustration image paths.
+    When set, <img src="..."> tags in chapter content are scanned and
+    matching files are registered as EPUB resources.
+    """
+
     output_key: str = "novel_path"
     """
     The key under which the output path will be stored in the context.
@@ -335,6 +343,21 @@ class DumpNovel(Action):
 
         if self.cover_image:
             builder.add_cover_image(self.cover_image.name, self.cover_image)
+
+        # Register chapter illustration images as EPUB resources
+        if self.image_root:
+            seen: set[str] = set()
+            for chapter in novel.chapters:
+                for m in re.finditer(r'<img\s+src="([^"]+)"', chapter.content):
+                    img_path = m.group(1)
+                    if img_path in seen:
+                        continue
+                    seen.add(img_path)
+                    src = self.image_root / img_path
+                    if src.exists():
+                        builder.add_resource(Path(img_path), src)
+                    else:
+                        logger.warn(f"Illustration image not found: {src}")
 
         for chapter in novel.chapters:
             builder.add_chapter(chapter.title, chapter.to_xhtml())

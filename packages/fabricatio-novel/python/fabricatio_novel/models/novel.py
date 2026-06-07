@@ -21,11 +21,13 @@ class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
     """Zero-based index of this chapter within the novel."""
 
     content: str
-    """The content of the chapter."""
+    """Raw chapter text. May contain image references like ![prompt](path).
+    Converted to XHTML paragraphs in to_xhtml()."""
 
     def to_xhtml(self) -> str:
         """Convert the chapter to XHTML format."""
         data: Dict[str, Any] = self.model_dump()
+        data["content"] = text_to_xhtml_paragraphs(self.content)
         return TEMPLATE_MANAGER.render_template(novel_config.render_chapter_xhtml_template, data)
 
     @property
@@ -35,10 +37,9 @@ class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
 
     @classmethod
     def with_raw_content(cls, raw: str, title: str, expected_word_count: int, chapter_index: int) -> Self:
-        """Create a chapter from raw text, converting to XHTML paragraphs."""
-        cleaned_content = text_to_xhtml_paragraphs(raw)
+        """Create a chapter from raw text. Content stored as-is; XHTML conversion deferred to to_xhtml()."""
         return cls(
-            content=cleaned_content,
+            content=raw,
             title=title,
             expected_word_count=expected_word_count,
             chapter_index=chapter_index,

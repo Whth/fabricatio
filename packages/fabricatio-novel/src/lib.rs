@@ -13,22 +13,40 @@ mod novel;
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     novel::register(python, m)?;
+    m.add_function(wrap_pyfunction!(split_paragraphs, m)?)?;
+    m.add_function(wrap_pyfunction!(join_paragraphs, m)?)?;
     m.add_function(wrap_pyfunction!(text_to_xhtml_paragraphs, m)?)?;
     Ok(())
 }
 
+/// Split source text into a list of non-empty paragraph strings.
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
-fn text_to_xhtml_paragraphs(source: &str) -> String {
-    // Match one or more newlines as paragraph separators
+fn split_paragraphs(source: &str) -> Vec<String> {
     Regex::new(r"\n+")
         .unwrap()
         .split(source.trim())
-        .map(|line| line.trim())
+        .map(|line| line.trim().to_string())
         .filter(|line| !line.is_empty())
-        .map(|line| format!("<p>{}</p>", line))
+        .collect()
+}
+
+/// Wrap each paragraph in `<p>` tags and join with newlines.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
+#[pyfunction]
+fn join_paragraphs(paras: Vec<String>) -> String {
+    paras
+        .iter()
+        .map(|p| format!("<p>{}</p>", p))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Convenience: split source into paragraphs then wrap in `<p>` tags.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
+#[pyfunction]
+fn text_to_xhtml_paragraphs(source: &str) -> String {
+    join_paragraphs(split_paragraphs(source))
 }
 
 #[cfg(feature = "stubgen")]

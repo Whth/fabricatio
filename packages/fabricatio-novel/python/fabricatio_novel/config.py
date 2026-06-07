@@ -31,6 +31,18 @@ class NovelConfig:
     writing_styles_table_name: str = "writing_styles"
     """table name for storing writing style documents in LanceDB."""
 
+    allocate_image_budget_template: str = "built-in/allocate_image_budget"
+    """template used to allocate image budget across chapters."""
+
+    select_illustrations_template: str = "built-in/select_illustrations"
+    """template used to select paragraphs for illustration."""
+
+    illustration_selection_guideline_template: str = "built-in/illustration_selection_guideline"
+    """template used to render the illustration selection guideline."""
+
+    image_prompt_guideline_template: str = "built-in/image_prompt_guideline"
+    """template used to render the image prompt generation guideline."""
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 
