@@ -70,6 +70,8 @@ fn main() -> Result<()> {
 
     #[cfg(feature = "tei")]
     fabricatio_tei::stub_info()?.generate()?;
+    #[cfg(feature = "skill")]
+    fabricatio_skill::stub_info()?.generate()?;
 
     println!("Stubgen Done!");
     Ok(())

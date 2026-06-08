@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-stubgen"
-version = "0.1.6"
+version = "0.1.7-dev0"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
@@ -22,6 +22,7 @@ fabricatio-tool = { path = "../../packages/fabricatio-tool", default-features = 
 fabricatio-typst = { path = "../../packages/fabricatio-typst", default-features = false, optional = true }
 fabricatio-webui = { path = "../../packages/fabricatio-webui", default-features = false, optional = true }
 fabricatio-tei = { path = "../../packages/fabricatio-tei", default-features = false, optional = true }
+fabricatio-skill = { path = "../../packages/fabricatio-skill", default-features = false, optional = true }
 
 [features]
 all = [
@@ -39,7 +40,8 @@ all = [
     "tool",
     "typst",
     "webui",
-    "tei"
+    "tei",
+    "skill"
 ]
 
 core = ["fabricatio-core/stubgen"]
@@ -57,5 +59,5 @@ tool = ["fabricatio-tool/stubgen"]
 typst = ["fabricatio-typst/stubgen"]
 webui = ["fabricatio-webui/stubgen"]
 tei = ["fabricatio-tei/stubgen"]
-
+skill = ["fabricatio-skill/stubgen"]
 default = []
