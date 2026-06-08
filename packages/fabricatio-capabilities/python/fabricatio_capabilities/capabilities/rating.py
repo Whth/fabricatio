@@ -9,7 +9,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER, ValueType, json_parser
+from fabricatio_core.rust import TEMPLATE_MANAGER, json_parser
 from fabricatio_core.utils import ok, override_kwargs
 from more_itertools import flatten, windowed
 from pydantic import Field, NonNegativeInt, PositiveInt, create_model
