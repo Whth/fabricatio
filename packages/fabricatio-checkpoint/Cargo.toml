@@ -9,14 +9,14 @@ crate-type = ["cdylib", "rlib"]
 blake3 = "1.8.5"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
-git2 = { version = "0.20.4", features = ["vendored-libgit2"], default-features = false }
+git2 = { version = "0.21.0", features = ["vendored-libgit2"], default-features = false }
 moka = { version = "0.12.15", features = ["sync"] }
 
 pyo3 = { version = "0.28.3" }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
 rayon = "1.12.0"
-pyo3-stub-gen = "0.22.2"
+pyo3-stub-gen = "0.22.3"
 
 
 

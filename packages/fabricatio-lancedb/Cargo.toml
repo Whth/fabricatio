@@ -15,14 +15,14 @@ error-mapping = { workspace = true, features = [
     "strum", "lancedb", "serde_json", "pythonize",
     "pyo3_cast", "arrow-schema", "thryd"
 ] }
-pyo3-stub-gen = "0.22.2"
+pyo3-stub-gen = "0.22.3"
 strum = { version = "0.28.0", features = ["derive"] }
-lancedb = { version = "0.27.2", default-features = false }
+lancedb = { version = "0.30.0", default-features = false }
 pythonize = "0.28.0"
-uuid = { version = "1.23.1", features = ["v7"] }
-cached = "0.59.0"
-serde_json = { version = "1.0.149", default-features = false }
-arrow-array = { version = "57.3.0", default-features = false }
+uuid = { version = "1.23.2", features = ["v7"] }
+cached = "2.0.2"
+serde_json = { version = "1.0.150", default-features = false }
+arrow-array = { version = "58.3.0", default-features = false }
 tokio = { version = "1.52.3", default-features = false }
 rayon = { version = "1.12.0", default-features = false }
 futures-util = { version = "0.3.32", default-features = false }

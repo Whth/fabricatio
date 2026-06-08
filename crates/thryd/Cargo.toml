@@ -1,6 +1,6 @@
 [package]
 name = "thryd"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 description = "A light weight, embeded llm request router, with cache."
 authors.workspace = true
@@ -8,33 +8,33 @@ license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
-async-openai = { version = "0.38.1", features = ["completions", "embedding-types"] }
+async-openai = { version = "0.41.0", features = ["completions", "embedding-types"] }
 async-trait = "0.1.89"
-cached = "0.59.0"
+cached = "2.0.2"
 eventsource-stream = "0.2.3"
 futures = "0.3.32"
-http = "1.4.0"
+http = "1.4.2"
 moka = { version = "0.12.15", features = ["sync"] }
 once_cell = "1.21.4"
-reqwest = { version = "0.13.3", features = ["json", "rustls", "stream"] }
+reqwest = { version = "0.13.4", features = ["json", "rustls", "stream"] }
 secrecy = "0.10.3"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
 thiserror = "2.0.18"
-tiktoken-rs = "0.11.0"
+tiktoken-rs = "0.12.0"
 tokio = "1.52.3"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 
 
 pyo3 = { version = "0.28.3", optional = true }
-pyo3-stub-gen = { version = "0.22.2", optional = true }
+pyo3-stub-gen = { version = "0.22.3", optional = true }
 redb = { version = "4.1.0", features = ["cache_metrics"] }
 postcard = { version = "1.1.3", features = ["use-std"] }
 blake3 = "1.8.5"
-dashmap = "6.1.0"
+dashmap = "6.2.1"
 
 
 

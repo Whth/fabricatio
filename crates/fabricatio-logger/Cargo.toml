@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-logger"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2024"
 readme = "README.md"
 authors.workspace = true
@@ -8,12 +8,12 @@ license-file.workspace = true
 
 [dependencies]
 pyo3 = "0.28.3"
-chrono = "0.4.44"
+chrono = "0.4.45"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.44"
 tracing-appender = "0.2.5"
 fabricatio-constants = { path = "../fabricatio-constants" }
-pyo3-stub-gen = { version = "0.22.2", optional = true }
+pyo3-stub-gen = { version = "0.22.3", optional = true }
 strum = { version = "0.28.0", features = ["derive"] }
 
 

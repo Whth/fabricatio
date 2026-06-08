@@ -7,12 +7,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 blake3 = "1.8.5"
-handlebars = "6.4.0"
+handlebars = "6.4.1"
 pyo3 = { version = "0.28.3" }
 pythonize = "0.28.0"
 rayon = "1.12.0"
-serde_json = "1.0.149"
-unicode-segmentation = "1.13.2"
+serde_json = "1.0.150"
+unicode-segmentation = "1.13.3"
 walkdir = "2.5.0"
 regex = "1.12"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -28,8 +28,8 @@ fabricatio-router = { path = "../../crates/fabricatio-router" }
 
 once_cell = "1.21.4"
 postcard = { version = "1.1.3", features = ["use-std"] }
-pyo3-stub-gen = "0.22.2"
-chrono = "0.4.44"
+pyo3-stub-gen = "0.22.3"
+chrono = "0.4.45"
 cfg-if = "1.0.4"
 pyo3-async-runtimes = { version = "0.28.0", features = ["tokio-runtime"] }
 tokio = { version = "1.52.3", features = ["rt-multi-thread"] }
