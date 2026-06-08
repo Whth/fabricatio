@@ -1,17 +1,17 @@
 {
   "4": {
     "inputs": {
-      "ckpt_name": "YOUR_MODEL.safetensors"
+      "ckpt_name": "catTowerNoobaiXL_v15Vpred.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
       "title": "Load Checkpoint"
     }
   },
-  "5": {
+  "6": {
     "inputs": {
-      "width": 1024,
-      "height": 576,
+      "width": 512,
+      "height": 512,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -19,22 +19,9 @@
       "title": "Empty Latent Image"
     }
   },
-  "6": {
-    "inputs": {
-      "text": "masterpiece, best quality, 4k, highres, beautiful scenery, detailed background",
-      "clip": [
-        "4",
-        1
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Positive)"
-    }
-  },
   "7": {
     "inputs": {
-      "text": "worst, lowres, low quality, deformed, ugly, blurry, text, watermark",
+      "text": "1girls,best quality,masterpiece,4k,highres,\n\nbeautiful,cute,lovely,perfect eyes,upper body\n\n",
       "clip": [
         "4",
         1
@@ -42,43 +29,26 @@
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "CLIP Text Encode (Negative)"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "8": {
     "inputs": {
-      "seed": 0,
-      "steps": 20,
-      "cfg": 7,
-      "sampler_name": "euler_ancestral",
-      "scheduler": "normal",
-      "denoise": 1,
-      "model": [
+      "text": "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,garbage,multiple arms,",
+      "clip": [
         "4",
-        0
-      ],
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "5",
-        0
+        1
       ]
     },
-    "class_type": "KSampler",
+    "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "KSampler"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "9": {
     "inputs": {
       "samples": [
-        "8",
+        "25",
         0
       ],
       "vae": [
@@ -91,16 +61,128 @@
       "title": "VAE Decode"
     }
   },
-  "10": {
+  "13": {
+    "inputs": {
+      "pixels": [
+        "19",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "15": {
+    "inputs": {
+      "samples": [
+        "26",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "16": {
     "inputs": {
       "images": [
-        "9",
+        "15",
         0
       ]
     },
     "class_type": "PreviewImage",
     "_meta": {
       "title": "Preview Image"
+    }
+  },
+  "19": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": 2.31,
+      "image": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale Image By"
+    }
+  },
+  "25": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 1072236688235494,
+      "steps": 17,
+      "cfg": 8.2,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 55,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "7",
+        0
+      ],
+      "negative": [
+        "8",
+        0
+      ],
+      "latent_image": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "KSampler (Advanced)"
+    }
+  },
+  "26": {
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 1072236688235494,
+      "steps": 17,
+      "cfg": 8,
+      "sampler_name": "dpmpp_3m_sde_gpu",
+      "scheduler": "simple",
+      "start_at_step": 8,
+      "end_at_step": 999,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "7",
+        0
+      ],
+      "negative": [
+        "8",
+        0
+      ],
+      "latent_image": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "KSampler (Advanced)"
     }
   }
 }
