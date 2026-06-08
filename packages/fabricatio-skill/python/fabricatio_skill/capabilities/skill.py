@@ -9,25 +9,47 @@ from fabricatio_core.models.kwargs_types import LLMKwargs
 from pydantic import Field
 
 from fabricatio_skill.config import skill_config
-from fabricatio_skill.rust import Skill, get_skill
+from fabricatio_skill.models.skill import get_skill_registry
+from fabricatio_skill.rust import get_skill
 
 
 class UseSkill(UseLLM, ABC):
     """Mixin that provides progressive skill resolution for LLM calls.
 
     Skills are text-based instruction files (markdown) that provide context
-    to LLM agents. This mixin provides a multi-level pipeline:
+    to LLM agents.  Skill objects live in the global ``SkillRegistry``;
+    this class stores only their **names** as lightweight handles.
+
+    Pipeline levels:
 
     Level 1 (Rust):   scan / search / get — file discovery + keyword matching
     Level 2 (Python): select / distill — LLM-powered relevance + extraction
     Level 3 (Python): use_skill — full progressive pipeline (select → distill → ask)
     """
 
-    skills: List[Skill] = Field(default_factory=list)
-    """Loaded skill definitions available for this role/action."""
+    skill_names: List[str] = Field(default_factory=list)
+    """Names of loaded skills available for this role/action (resolved via registry)."""
 
-    def add_skills(self, skills: List[Skill], names: Optional[List[str]] = None) -> Self:
-        """Register skills on this instance. Filter by names if provided.
+    # ── helpers ───────────────────────────────────────────────────────
+
+    def _resolve_skills(self, names: Optional[List[str]] = None) -> list:
+        """Return Skill objects from the registry.
+
+        Args:
+            names: Specific names to resolve. ``None`` → ``self.skill_names``.
+        """
+        target = names if names is not None else self.skill_names
+        return get_skill_registry().get_many(target)
+
+    @property
+    def skills(self) -> list:
+        """Convenience: resolve current skill_names to live Skill objects."""
+        return self._resolve_skills()
+
+    # ── Level 1: Register ─────────────────────────────────────────────
+
+    def add_skills(self, skills: list, names: Optional[List[str]] = None) -> Self:
+        """Register skills in the global registry and track their names here.
 
         Args:
             skills: Skill objects to register.
@@ -37,8 +59,10 @@ class UseSkill(UseLLM, ABC):
             Self for method chaining.
         """
         selected = [s for s in skills if s.name in names] if names else list(skills)
-        self.skills.extend(selected)
-        logger.info(f"Registered {len(selected)} skill(s): {[s.name for s in selected]}")
+        get_skill_registry().register(selected)
+        new_names = [s.name for s in selected if s.name not in self.skill_names]
+        self.skill_names.extend(new_names)
+        logger.info(f"Registered {len(new_names)} skill(s): {new_names}")
         return self
 
     # ── Level 2: Select ──────────────────────────────────────────────
@@ -46,20 +70,21 @@ class UseSkill(UseLLM, ABC):
     async def select_skills(
         self,
         question: str,
-        available: Optional[List[Skill]] = None,
+        available: Optional[List[str]] = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[Skill]:
+    ) -> list:
         """Use LLM to select skills relevant to a question.
 
         Args:
             question: The question/task to match skills against.
-            available: Pool of skills to select from. Defaults to self.skills.
+            available: Skill name pool to select from. Defaults to self.skill_names.
             **kwargs: LLM parameters.
 
         Returns:
             Skills deemed relevant by the LLM, in relevance order.
         """
-        pool = available if available is not None else self.skills
+        pool_names = available if available is not None else self.skill_names
+        pool = get_skill_registry().get_many(pool_names)
         if not pool:
             logger.warn("No skills available for selection.")
             return []
@@ -89,7 +114,7 @@ class UseSkill(UseLLM, ABC):
     async def distill_skills(
         self,
         question: str,
-        skills: List[Skill],
+        skills: list,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Use LLM to extract the essential parts of skills relevant to a question.
@@ -137,8 +162,8 @@ class UseSkill(UseLLM, ABC):
         Args:
             question: The question/task to solve.
             names: Force-select these skill names (skips LLM selection).
-                   If None and select=True, uses LLM to pick from self.skills.
-                   If None and select=False, uses all self.skills.
+                   If None and select=True, uses LLM to pick from self.skill_names.
+                   If None and select=False, uses all self.skill_names.
             select: Whether to use LLM for skill selection (default True).
             distill: Whether to use LLM for distillation (default True).
             in_content: Whether search_skills also matches within content body.
@@ -149,7 +174,7 @@ class UseSkill(UseLLM, ABC):
         """
         # Stage 1: SELECT
         if names:
-            selected = [s for s in self.skills if s.name in names]
+            selected = self._resolve_skills(names)
             if len(selected) < len(names):
                 found = {s.name for s in selected}
                 missing = [n for n in names if n not in found]
@@ -157,7 +182,7 @@ class UseSkill(UseLLM, ABC):
         elif select:
             selected = await self.select_skills(question, **kwargs)
         else:
-            selected = list(self.skills)
+            selected = self._resolve_skills()
 
         if not selected:
             logger.warn("No skills selected. Proceeding without skill context.")

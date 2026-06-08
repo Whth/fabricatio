@@ -3,6 +3,7 @@
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_skill.capabilities.skill import UseSkill
+from fabricatio_skill.models.skill import get_skill_registry
 from fabricatio_skill.rust import Skill, SkillMeta, get_skill, scan_skills, search_skills
 
 
@@ -138,6 +139,13 @@ class TestSkillRust:
 
 class TestUseSkill:
     """Tests for the UseSkill capability mixin."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_registry(self) -> None:
+        """Ensure the global registry is clean for each test."""
+        get_skill_registry().clear()
+        yield
+        get_skill_registry().clear()
 
     def test_add_skills(self) -> None:
         """Test adding skills to the role."""

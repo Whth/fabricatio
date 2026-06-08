@@ -2,7 +2,9 @@ use pyo3::exceptions::PyFileNotFoundError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Mutex;
 use walkdir::WalkDir;
 
 #[cfg(feature = "stubgen")]
@@ -250,7 +252,7 @@ pub fn search_skills(query: &str, skills: Vec<Skill>, in_content: bool) -> Vec<S
         .collect();
 
     // Sort by score descending
-    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    scored.sort_by_key(|b| std::cmp::Reverse(b.0));
     scored.into_iter().map(|(_, skill)| skill).collect()
 }
 
@@ -268,9 +270,85 @@ pub fn get_skill(name: &str, skills: Vec<Skill>) -> Option<Skill> {
     skills.into_iter().find(|s| s.name == name)
 }
 
+/// Process-wide registry that owns all loaded ``Skill`` objects.
+///
+/// Python roles store skill **names** (plain ``str``) and resolve real
+/// ``Skill`` objects through this registry at runtime.
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass]
+pub struct SkillRegistry {
+    store: Mutex<HashMap<String, Skill>>,
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[pymethods]
+impl SkillRegistry {
+    #[new]
+    fn new() -> Self {
+        Self {
+            store: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// Register skills. Returns count of newly added entries.
+    fn register(&self, skills: Vec<Skill>) -> usize {
+        let mut store = self.store.lock().unwrap();
+        let before = store.len();
+        for s in skills {
+            store.entry(s.name.clone()).or_insert(s);
+        }
+        store.len() - before
+    }
+
+    /// Remove skills by name. Returns count removed.
+    fn unregister(&self, names: Vec<String>) -> usize {
+        let mut store = self.store.lock().unwrap();
+        names.iter().filter(|n| store.remove(*n).is_some()).count()
+    }
+
+    /// Remove all registered skills.
+    fn clear(&self) {
+        self.store.lock().unwrap().clear();
+    }
+
+    /// Return a skill by exact name, or ``None``.
+    fn get(&self, name: &str) -> Option<Skill> {
+        self.store.lock().unwrap().get(name).cloned()
+    }
+
+    /// Return skills for the given names, silently skipping missing.
+    fn get_many(&self, names: Vec<String>) -> Vec<Skill> {
+        let store = self.store.lock().unwrap();
+        names.iter().filter_map(|n| store.get(n).cloned()).collect()
+    }
+
+    /// Return every registered skill.
+    fn all(&self) -> Vec<Skill> {
+        self.store.lock().unwrap().values().cloned().collect()
+    }
+
+    /// Return every registered skill name.
+    fn names(&self) -> Vec<String> {
+        self.store.lock().unwrap().keys().cloned().collect()
+    }
+
+    fn __contains__(&self, name: &str) -> bool {
+        self.store.lock().unwrap().contains_key(name)
+    }
+
+    fn __len__(&self) -> usize {
+        self.store.lock().unwrap().len()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("SkillRegistry({} skills)", self.store.lock().unwrap().len())
+    }
+}
+
 pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Skill>()?;
     m.add_class::<SkillMeta>()?;
+    m.add_class::<SkillRegistry>()?;
     m.add_function(wrap_pyfunction!(scan_skills, m)?)?;
     m.add_function(wrap_pyfunction!(search_skills, m)?)?;
     m.add_function(wrap_pyfunction!(get_skill, m)?)?;
