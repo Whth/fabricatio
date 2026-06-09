@@ -247,7 +247,7 @@ async def test_alist_v(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.alist_v(requirement=requirement, k=k)
+        result = await role_with_llm.alist_v(requirement=requirement, value_type=str, k=k)
 
         assert result == expected_result
 
@@ -293,7 +293,7 @@ async def test_alist_v_with_requirement_list(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.alist_v(requirement=requirement_list, k=k)
+        result = await role_with_llm.alist_v(requirement=requirement_list, value_type=str, k=k)
 
         assert result == expected_result
 
