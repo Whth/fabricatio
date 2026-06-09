@@ -226,7 +226,7 @@ class UseLLM(LLMScopedConfig, ABC):
     async def alist_v[T: int | str | bool | float](
         self,
         requirement: str | List[str],
-        value_type: Type[T] = str,
+        value_type: Type[T],
         k: NonNegativeInt = 0,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> List[T] | List[List[T] | None] | None:
