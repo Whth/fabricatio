@@ -1,6 +1,6 @@
 use crate::parser::{
     CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER, ValidatedDict,
-    ValueType,
+    ValidatedList, ValueType,
 };
 use crate::templates::TEMPLATE_MANAGER;
 use cfg_if::cfg_if;
@@ -11,17 +11,16 @@ use fabricatio_router::Router;
 use fabricatio_router::{CompletionRequest, RouteGroupName};
 use futures::StreamExt;
 use futures::future::join_all;
+use pyo3::BoundObject;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyType};
-use pyo3::{BoundObject, IntoPyObjectExt};
+use pyo3::types::{PyDict, PyList, PyType};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::Arc;
 
 /// Bundled completion parameters shared across all inner ask/mapping functions.
 #[derive(Clone)]
@@ -262,17 +261,18 @@ impl RouterUsage {
         .await
     }
 
-    pub async fn list_str_inner(
+    pub async fn list_v_inner(
         &self,
         requirement: Batch<String>,
+        value_type: ValueType,
         k: Option<usize>,
         max_validations: usize,
-        default: Option<Vec<String>>,
+        default: Option<ValidatedList>,
         params: &CompletionParams,
-    ) -> PyResult<Batch<Option<Vec<String>>>> {
+    ) -> PyResult<Batch<Option<ValidatedList>>> {
         self.ask_validate(
             requirement,
-            |resp| JSON_PARSER.validate_list_inner(resp, k, true),
+            |resp| JSON_PARSER.validate_list_v_inner(resp, value_type, k, true),
             default,
             max_validations,
             params,
@@ -524,13 +524,14 @@ impl RouterUsage {
     }
     #[allow(clippy::too_many_arguments)]
     #[gen_stub(skip)]
-    pub fn listing_strings<'a>(
+    pub fn listing_v<'a>(
         &self,
         python: Python<'a>,
         requirement: Bound<'a, PyAny>,
+        value_type: Bound<'a, PyType>,
         k: Option<usize>,
         max_validations: usize,
-        default: Option<Vec<String>>,
+        default: Option<Bound<'a, PyList>>,
         send_to: RouteGroupName,
         stream: bool,
         top_p: Option<f32>,
@@ -552,14 +553,26 @@ impl RouterUsage {
             frequency_penalty,
             no_cache,
         };
+        let default = default.map(|d| d.unbind());
+
+        let value_type = ValueType::from_type(value_type)?;
+
         future_into_py(python, async move {
             let rendered = requirement
                 .map(|r| json!({"requirement": r, "k": k}))
                 .render_template(&CONFIG.templates.liststr_template)?;
             let result = slf
-                .list_str_inner(rendered, k, max_validations, default, &params)
+                .list_v_inner(rendered, value_type, k, max_validations, None, &params)
                 .await?;
-            Python::try_attach(|py| batch_to_py(result, py)).expect("Python not initialized")
+            Python::try_attach(|py| {
+                let mapped = result.map(|vd| match vd {
+                    Some(d) => Some(d.into_py(py)),
+                    None => default.as_ref().map(|d| d.bind(py).clone()),
+                });
+
+                batch_to_py(mapped, py)
+            })
+            .expect("Python not initialized")
         })
     }
     #[allow(clippy::too_many_arguments)]
@@ -782,17 +795,17 @@ pyo3_stub_gen::inventory::submit! {
             @overload
             def ask(self, question: typing.Union[str, typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
             @overload
-            def mapping_kv(self, requirement: str, key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
+            def mapping_kv(self, requirement: str, key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
             @overload
-            def mapping_kv(self, requirement: typing.List[str], key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+            def mapping_kv(self, requirement: typing.List[str], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
             @overload
-            def mapping_kv(self, requirement: typing.Union[str, typing.List[str]], key_type: ValueType, value_type: ValueType, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[str, str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]]: ...
+            def mapping_kv(self, requirement: typing.Union[str, typing.List[str]], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[_K, _V]], typing.List[typing.Optional[typing.Dict[_K, _V]]]]]: ...
             @overload
-            def listing_strings(self, requirement: str, k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
+            def listing_v(self, requirement: str, value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
             @overload
-            def listing_strings(self, requirement: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
+            def listing_v(self, requirement: typing.List[str], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
             @overload
-            def listing_strings(self, requirement: typing.Union[str, typing.List[str]], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[str]], typing.List[typing.Optional[typing.List[str]]]]]: ...
+            def listing_v(self, requirement: typing.Union[str, typing.List[str]], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[_V]], typing.List[typing.Optional[typing.List[_V]]]]]: ...
             @overload
             def generic_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], no_cache: bool) -> typing.Awaitable[typing.Optional[str]]: ...
             @overload

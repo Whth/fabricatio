@@ -118,7 +118,7 @@ async def test_tagging_list_returns_empty_for_none(
 
     with install_router_usage(*responses):
         result = await role.tagging(["some text"])
-        # When alist_str returns None for a list item, the code converts it to []
+        # When alist_v returns None for a list item, the code converts it to []
         assert result == [[]]
 
 

@@ -894,11 +894,11 @@ class RouterUsage:
     def mapping_kv(
         self,
         requirement: str,
-        key_type: ValueType,
-        value_type: ValueType,
+        key_type: typing.Type[_K],
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.Dict[str, str]],
+        default: typing.Optional[typing.Dict[_K, _V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -907,16 +907,16 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-    ) -> typing.Awaitable[typing.Optional[typing.Dict[str, str]]]: ...
+    ) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
     @typing.overload
     def mapping_kv(
         self,
         requirement: typing.List[str],
-        key_type: ValueType,
-        value_type: ValueType,
+        key_type: typing.Type[_K],
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.Dict[str, str]],
+        default: typing.Optional[typing.Dict[_K, _V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -925,16 +925,16 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-    ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[str, str]]]]: ...
+    ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
     @typing.overload
     def mapping_kv(
         self,
         requirement: typing.Union[str, typing.List[str]],
-        key_type: ValueType,
-        value_type: ValueType,
+        key_type: typing.Type[_K],
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.Dict[str, str]],
+        default: typing.Optional[typing.Dict[_K, _V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -944,15 +944,16 @@ class RouterUsage:
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
     ) -> typing.Awaitable[
-        typing.Union[typing.Optional[typing.Dict[str, str]], typing.List[typing.Optional[typing.Dict[str, str]]]]
+        typing.Union[typing.Optional[typing.Dict[_K, _V]], typing.List[typing.Optional[typing.Dict[_K, _V]]]]
     ]: ...
     @typing.overload
-    def listing_strings(
+    def listing_v(
         self,
         requirement: str,
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.List[str]],
+        default: typing.Optional[typing.List[_V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -961,14 +962,15 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-    ) -> typing.Awaitable[typing.Optional[typing.List[str]]]: ...
+    ) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
     @typing.overload
-    def listing_strings(
+    def listing_v(
         self,
         requirement: typing.List[str],
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.List[str]],
+        default: typing.Optional[typing.List[_V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -977,14 +979,15 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-    ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[str]]]]: ...
+    ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
     @typing.overload
-    def listing_strings(
+    def listing_v(
         self,
         requirement: typing.Union[str, typing.List[str]],
+        value_type: typing.Type[_V],
         k: typing.Optional[int],
         max_validations: int,
-        default: typing.Optional[typing.List[str]],
+        default: typing.Optional[typing.List[_V]],
         send_to: str,
         stream: bool,
         top_p: typing.Optional[float],
@@ -994,7 +997,7 @@ class RouterUsage:
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
     ) -> typing.Awaitable[
-        typing.Union[typing.Optional[typing.List[str]], typing.List[typing.Optional[typing.List[str]]]]
+        typing.Union[typing.Optional[typing.List[_V]], typing.List[typing.Optional[typing.List[_V]]]]
     ]: ...
     @typing.overload
     def generic_string(

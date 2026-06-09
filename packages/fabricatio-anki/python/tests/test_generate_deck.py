@@ -47,7 +47,7 @@ def deck_factory(
 
 
 def _json_array(items: List[str]) -> str:
-    """Serialize a list to a JSON code block for alist_str."""
+    """Serialize a list to a JSON code block for alist_v."""
     return code_block(orjson.dumps(items).decode(), "json")
 
 
@@ -73,9 +73,9 @@ def _build_deck_responses(
 
     Response consumption order:
     1. propose → metadata JSON (code block)
-    2. alist_str → model requirements (code block JSON array)
+    2. alist_v → model requirements (code block JSON array)
     3. generate_model → ageneric_string → model name (generic block)
-    4. generate_model → alist_str → template requirements (code block JSON array)
+    4. generate_model → alist_v → template requirements (code block JSON array)
     5. generate_template → ageneric_string → template name (generic block)
     6. generate_template → acode_string → front HTML (python code block)
     7. generate_template → acode_string → back HTML (python code block)
@@ -237,7 +237,7 @@ async def test_generate_model_multiple_requirements(
     all_responses = [
         # ageneric_string batch (1 per requirement)
         *[generic_block(n) for n in model_names],
-        # alist_str batch (1 per requirement)
+        # alist_v batch (1 per requirement)
         *[code_block(orjson.dumps(template_reqs).decode(), "json") for _ in requirements],
         # gather of generate_template calls (3 per requirement: name + front + back)
         *[

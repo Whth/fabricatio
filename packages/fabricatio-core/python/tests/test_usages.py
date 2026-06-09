@@ -223,7 +223,7 @@ async def test_amapping_kv(
     ],
 )
 @pytest.mark.asyncio
-async def test_alist_str(
+async def test_alist_v(
     mock_router: list[str],
     ret_value: str,
     requirement: str,
@@ -231,7 +231,7 @@ async def test_alist_str(
     expected_result: Optional[List[str]],
     role_with_llm: LLMTestRole,
 ) -> None:
-    """Test the alist_str method with different scenarios.
+    """Test the alist_v method with different scenarios.
 
     Validates correct handling of various input combinations including:
     - Successful generation of valid string lists.
@@ -247,7 +247,7 @@ async def test_alist_str(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.alist_str(requirement=requirement, k=k)
+        result = await role_with_llm.alist_v(requirement=requirement, k=k)
 
         assert result == expected_result
 
@@ -270,7 +270,7 @@ async def test_alist_str(
     ],
 )
 @pytest.mark.asyncio
-async def test_alist_str_with_requirement_list(
+async def test_alist_v_with_requirement_list(
     mock_router: list[str],
     ret_value: str,
     requirement_list: List[str],
@@ -278,7 +278,7 @@ async def test_alist_str_with_requirement_list(
     expected_result: Optional[List[str]],
     role_with_llm: LLMTestRole,
 ) -> None:
-    """Test the alist_str method with a list of requirements.
+    """Test the alist_v method with a list of requirements.
 
     Validates correct handling of:
     - Generation of string lists based on multiple requirements.
@@ -293,7 +293,7 @@ async def test_alist_str_with_requirement_list(
         role_with_llm: Test role with LLM capabilities.
     """
     with install_router_usage(*mock_router):
-        result = await role_with_llm.alist_str(requirement=requirement_list, k=k)
+        result = await role_with_llm.alist_v(requirement=requirement_list, k=k)
 
         assert result == expected_result
 

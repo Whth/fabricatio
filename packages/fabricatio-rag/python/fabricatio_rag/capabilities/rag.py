@@ -6,7 +6,7 @@ from typing import List, Optional, Self, Unpack
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseReranker
 from fabricatio_core.models.generic import Base
-from fabricatio_core.models.kwargs_types import ListStringKwargs, RerankerKwargs
+from fabricatio_core.models.kwargs_types import ListingKwargs, RerankerKwargs
 
 from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
@@ -47,7 +47,7 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
     async def arefined_query(
         self,
         question: List[str] | str,
-        **kwargs: Unpack[ListStringKwargs],
+        **kwargs: Unpack[ListingKwargs[str]],
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 
@@ -58,11 +58,12 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
         Returns:
             List[str]: A list of refined questions.
         """
-        return await self.alist_str(
+        return await self.alist_v(
             TEMPLATE_MANAGER.render_template(
                 rag_config.refined_query_template,
                 {"question": [question] if isinstance(question, str) else question},
             ),
+            value_type=str,
             **kwargs,
         )
 

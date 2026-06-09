@@ -81,10 +81,11 @@ class Tagging(Propose):
             TypeError: If text is neither a string nor a list of strings.
         """
         if isinstance(text, str):
-            return await self.alist_str(
+            return await self.alist_v(
                 TEMPLATE_MANAGER.render_template(
                     tagging_config.tagging_template, {"text": text, "requirement": requirement}
                 ),
+                value_type=str,
                 k=k,
                 **kwargs,
             )
@@ -93,7 +94,7 @@ class Tagging(Propose):
                 tagging_config.tagging_template, [{"text": t, "requirement": requirement} for t in text]
             )
 
-            tags_seq = await gather(*[self.alist_str(r, k=k, **kwargs) for r in rendered])
+            tags_seq = await gather(*[self.alist_v(r, value_type=str, k=k, **kwargs) for r in rendered])
 
             return [t or [] for t in tags_seq]
 

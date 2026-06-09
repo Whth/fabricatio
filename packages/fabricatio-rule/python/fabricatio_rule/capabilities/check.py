@@ -41,15 +41,16 @@ class Check(EvidentlyJudge, Propose, ABC):
         Notes:
             - Requires valid template configuration in configs.templates
             - Returns None if any step in rule generation fails
-            - Uses `alist_str` for requirement breakdown and iterative rule proposal
+            - Uses `alist_v` for requirement breakdown and iterative rule proposal
         """
         rule_reqs = (
-            await self.alist_str(
+            await self.alist_v(
                 TEMPLATE_MANAGER.render_template(
                     rule_config.ruleset_requirement_breakdown_template,
                     {"ruleset_requirement": ruleset_requirement},
                 ),
-                rule_count,
+                value_type=str,
+                k=rule_count,
                 **override_kwargs(kwargs, default=None),
             )
             if rule_count > 1

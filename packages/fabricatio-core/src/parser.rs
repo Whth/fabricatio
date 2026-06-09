@@ -6,13 +6,11 @@ use error_mapping::AsPyErr;
 use fabricatio_logger::warn;
 use llm_json::repair_json;
 use once_cell::sync::Lazy;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PySet, PyString, PyType};
+use pyo3::types::{PyBool, PyFloat, PyInt, PyList, PySet, PyString, PyType};
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 use regex::{Captures, Regex};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -293,7 +291,7 @@ pub enum ValidatedSet {
 }
 
 impl ValidatedSet {
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             ValidatedSet::String(v) => v.len(),
             ValidatedSet::Float(v) => v.len(),
@@ -316,7 +314,7 @@ impl ValidatedSet {
 /// A validated list result typed by element kind.
 ///
 /// Each variant wraps a `Vec` with concrete Rust types.
-/// Callers that need a Python list invoke [`into_py_any`](ValidatedList::into_py_any) explicitly.
+/// Callers that need a Python list invoke [`into_py_any`](ValidatedList::into_py) explicitly.
 #[derive(Clone)]
 pub enum ValidatedList {
     String(Vec<String>),
@@ -325,17 +323,8 @@ pub enum ValidatedList {
     Bool(Vec<bool>),
 }
 impl ValidatedList {
-    fn len(&self) -> usize {
-        match self {
-            ValidatedList::String(v) => v.len(),
-            ValidatedList::Float(v) => v.len(),
-            ValidatedList::Int(v) => v.len(),
-            ValidatedList::Bool(v) => v.len(),
-        }
-    }
-
     /// Convert into a Python `list` via [`PyList::new`].
-    pub fn into_py_any(self, py: Python) -> Bound<PyList> {
+    pub fn into_py(self, py: Python) -> Bound<PyList> {
         match self {
             ValidatedList::String(v) => PyList::new(py, &v).unwrap(),
             ValidatedList::Float(v) => PyList::new(py, &v).unwrap(),
@@ -687,7 +676,7 @@ impl JsonParser {
     ) -> Option<Bound<'a, PyList>> {
         let value_type = ValueType::from_type(elements_type).ok()?;
         self.validate_list_v_inner(text, value_type, length, fix)
-            .map(|v| v.into_py_any(python))
+            .map(|v| v.into_py(python))
     }
 
     /// Validates that the text parses to a typed set and returns a Python set.

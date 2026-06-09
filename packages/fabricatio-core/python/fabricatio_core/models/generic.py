@@ -19,6 +19,7 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
     EmbeddingKwargs,
+    ListValueKwargs,
     LLMKwargs,
     MappingKwargs,
     RerankerKwargs,
@@ -457,6 +458,23 @@ class LLMScopedConfig(ScopedConfig):
         """
         res = self._resolve_validation_params(**kwargs)
         return MappingKwargs(key_type=key_type, value_type=value_type, **res)
+
+    def _resolve_listing_v_params[T: int | str | bool | float](
+        self,
+        value_type: Type[T],
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
+    ) -> ListValueKwargs[T]:
+        """Resolve listing value parameters from kwargs, instance defaults, and CONFIG.
+
+        Args:
+            value_type: The expected element type for the list.
+            **kwargs: Additional LLM keyword arguments.
+
+        Returns:
+            ListValueKwargs with resolved parameters.
+        """
+        res = self._resolve_validation_params(**kwargs)
+        return ListValueKwargs(value_type=value_type, **res)
 
 
 class UnsortGenerate(GenerateJsonSchema):

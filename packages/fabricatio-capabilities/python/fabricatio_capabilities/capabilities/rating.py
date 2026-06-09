@@ -263,8 +263,9 @@ class Rating(Propose, ABC):
         # extract reasons from the comparison of ordered pairs of extracted from examples
         reasons = flatten(
             ok(
-                await self.alist_str(
+                await self.alist_v(
                     requirement=rendered_seq,
+                    value_type=str,
                     k=reasons_count,
                     **kwargs,
                 )

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
-from fabricatio_core.models.kwargs_types import ListStringKwargs, ValidateKwargs
+from fabricatio_core.models.kwargs_types import ListingKwargs, ValidateKwargs
 from fabricatio_core.utils import ok
 
 from fabricatio_plot.config import plot_config
@@ -23,7 +23,7 @@ class SynthesizeData(UseLLM, ABC):
     """
 
     async def generate_header(
-        self, requirement: str | List[str], **kwargs: Unpack[ListStringKwargs]
+        self, requirement: str | List[str], **kwargs: Unpack[ListingKwargs[str]]
     ) -> None | List[str] | List[List[str] | None]:
         """Generate appropriate column headers based on the given requirement(s).
 
@@ -41,7 +41,7 @@ class SynthesizeData(UseLLM, ABC):
         rendered = TEMPLATE_MANAGER.render_template(
             plot_config.generate_header_template, [{"requirement": req} for req in requirement]
         )
-        header = await self.alist_str(rendered, **kwargs)
+        header = await self.alist_v(rendered, value_type=str, **kwargs)
         if header is None:
             return None
         return header[0] if was_str else header

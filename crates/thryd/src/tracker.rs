@@ -1,5 +1,5 @@
-use crate::utils::{current_timestamp, TimeStamp};
-use crate::{BUCKETS_WINDOW_S, BUCKET_COUNT};
+use crate::utils::{TimeStamp, current_timestamp};
+use crate::{BUCKET_COUNT, BUCKETS_WINDOW_S};
 use cached::macros::cached;
 
 /// Counts tokens in a string using tiktoken's o200k_base encoding.

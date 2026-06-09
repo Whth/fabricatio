@@ -25,6 +25,8 @@ from fabricatio_core.models.generic import EmbeddingScopedConfig, LLMScopedConfi
 from fabricatio_core.models.kwargs_types import (
     ChooseKwargs,
     EmbeddingKwargs,
+    ListValueKwargs,
+    ListingKwargs,
     LLMKwargs,
     RerankerKwargs,
     ValidateKwargs,
@@ -204,47 +206,60 @@ class UseLLM(LLMScopedConfig, ABC):
         )
 
     @overload
-    async def alist_str(
-        self, requirement: str, k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[str] | None: ...
+    async def alist_v[T: int | str | bool | float](
+        self,
+        requirement: str,
+        value_type: Type[T],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
+    ) -> List[T] | None: ...
 
     @overload
-    async def alist_str(
-        self, requirement: List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[List[str] | None] | None: ...
+    async def alist_v[T: int | str | bool | float](
+        self,
+        requirement: List[str],
+        value_type: Type[T],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
+    ) -> List[List[T] | None] | None: ...
 
-    async def alist_str(
-        self, requirement: str | List[str], k: NonNegativeInt = 0, **kwargs: Unpack[ValidateKwargs[List[str]]]
-    ) -> List[str] | List[List[str] | None] | None:
-        """Asynchronously generates a list of strings based on a given requirement.
+    async def alist_v[T: int | str | bool | float](
+        self,
+        requirement: str | List[str],
+        value_type: Type[T] = str,
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[List[T]]],
+    ) -> List[T] | List[List[T] | None] | None:
+        """Asynchronously generates a list of values based on a given requirement.
 
         Args:
-            requirement (str): The requirement for the list of strings.
+            requirement (str | List[str]): The requirement for the list.
+            value_type (Type[T]): The type of list elements (str, int, float, bool). Defaults to str.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            Optional[List[str]]: The validated response as a list of strings.
+            List[T] | List[List[T] | None] | None: The validated response as a list of values.
         """
-        return await rust.router_usage.listing_strings(
-            requirement=requirement, k=k, **self._resolve_validation_params(**kwargs)
-        )
+        params = self._resolve_listing_v_params(value_type=value_type, **kwargs)
+        return await rust.router_usage.listing_v(requirement=requirement, k=k, **params)
 
     async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[str]]) -> Optional[List[str]]:
-        """Asynchronously generates a list of strings based on a given requirement.
+        """Asynchronously generates a list of path strings based on a given requirement.
 
         Args:
-            requirement (str): The requirement for the list of strings.
+            requirement (str): The requirement for the list of paths.
             **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            Optional[List[str]]: The validated response as a list of strings.
+            Optional[List[str]]: The validated response as a list of path strings.
         """
-        return await self.alist_str(
+        return await self.alist_v(
             TEMPLATE_MANAGER.render_template(
                 CONFIG.templates.pathstr_template,
                 {"requirement": requirement},
             ),
+            value_type=str,
             **kwargs,
         )
 
@@ -252,7 +267,7 @@ class UseLLM(LLMScopedConfig, ABC):
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
-            requirement (str): The requirement for the list of strings.
+            requirement (str): The requirement for the path.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:

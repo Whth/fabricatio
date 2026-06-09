@@ -8,7 +8,7 @@ from abc import ABC
 from typing import Optional, Set
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.kwargs_types import ListStringKwargs
+from fabricatio_core.models.kwargs_types import ListingKwargs
 from fabricatio_lancedb.capabilities.lancedb import LancedbFetchRAGConfig, LancedbRAG
 
 from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
@@ -25,7 +25,7 @@ class CitationLancedbRAG(LancedbRAG, ABC):
         max_round: int = 3,
         expand_multiplier: float = 1.4,
         base_accepted: int = 12,
-        refinery_kwargs: Optional[ListStringKwargs] = None,
+        refinery_kwargs: Optional[ListingKwargs[str]] = None,
         result_per_query: Optional[int] = None,
         table_name: Optional[str] = None,
     ) -> CitationManager:

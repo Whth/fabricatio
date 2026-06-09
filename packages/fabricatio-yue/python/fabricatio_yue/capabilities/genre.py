@@ -81,11 +81,12 @@ class SelectGenre(UseLLM):
         """
         if isinstance(requirement, str):
             logger.debug("Processing single requirement")
-            result = await self.alist_str(
+            result = await self.alist_v(
                 TEMPLATE_MANAGER.render_template(
                     yue_config.select_genre_template,
                     {"requirement": requirement, "genre_classifier": genre_classifier, "genres": genres},
                 ),
+                value_type=str,
                 **kwargs,
             )
             logger.debug(f"Selected genres for single requirement: {result}")
@@ -93,7 +94,7 @@ class SelectGenre(UseLLM):
         if isinstance(requirement, list):
             logger.debug(f"Processing {len(requirement)} requirements")
             # Handle list of requirements
-            result = await self.alist_str(
+            result = await self.alist_v(
                 TEMPLATE_MANAGER.render_template(
                     yue_config.select_genre_template,
                     [
@@ -101,6 +102,7 @@ class SelectGenre(UseLLM):
                         for req in requirement
                     ],
                 ),
+                value_type=str,
                 **kwargs,
             )
             logger.debug(f"Selected genres for multiple requirements: {result}")

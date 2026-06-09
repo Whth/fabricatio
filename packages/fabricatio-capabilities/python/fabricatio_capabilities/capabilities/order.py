@@ -58,7 +58,7 @@ class Ordering(Rating):
         )
 
         logger.debug(f"Ordering sequence: \n{seq}")
-        ordered_raw = await self.alist_str(rendered, k=len(seq), **kwargs)
+        ordered_raw = await self.alist_v(rendered, value_type=str, k=len(seq), **kwargs)
 
         if (ordered_raw is not None) and (sorted(seq) == sorted(ordered_raw)):
             return ordered_raw

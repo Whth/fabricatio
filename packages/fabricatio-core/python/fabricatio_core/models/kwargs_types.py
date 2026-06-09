@@ -80,5 +80,11 @@ class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
     k: int
 
 
-class ListStringKwargs(ChooseKwargs[str], total=False):
-    """Arguments for operations that return a list of strings."""
+class ListingKwargs[T: int | str | bool | float](ChooseKwargs[T], total=False):
+    """Arguments for operations that return a list of items without exposing value_type."""
+
+
+class ListValueKwargs[T: int | str | bool | float](ChooseKwargs[T], total=False):
+    """Arguments for operations that return a list of typed values."""
+
+    value_type: Type[T]

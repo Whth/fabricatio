@@ -50,11 +50,12 @@ class GenerateDeck(Propose):
             **ov_kwargs,
         )
 
-        model_generation_requirements = await self.alist_str(
+        model_generation_requirements = await self.alist_v(
             TEMPLATE_MANAGER.render_template(
                 anki_config.generate_anki_model_generation_requirements_template,
                 {"requirement": requirement, "fields": fields},
             ),
+            value_type=str,
             k=km,
             **ov_kwargs,
         )
@@ -133,11 +134,12 @@ class GenerateDeck(Propose):
             )
             # draft card template generation requirements
             template_generation_requirements = ok(
-                await self.alist_str(
+                await self.alist_v(
                     TEMPLATE_MANAGER.render_template(
                         anki_config.generate_anki_card_template_generation_requirements_template,
                         {"fields": fields, "requirement": requirement},
                     ),
+                    value_type=str,
                     k=k,
                     **override_kwargs(kwargs, defualt=None),
                 )
@@ -162,11 +164,12 @@ class GenerateDeck(Propose):
             )
 
             template_generation_requirements_seq = ok(
-                await self.alist_str(
+                await self.alist_v(
                     TEMPLATE_MANAGER.render_template(
                         anki_config.generate_anki_card_template_generation_requirements_template,
                         [{"fields": fields, "requirement": req} for req in requirement],
                     ),
+                    value_type=str,
                     k=k,
                     **override_kwargs(kwargs, defualt=None),
                 )

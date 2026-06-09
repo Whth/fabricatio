@@ -12,7 +12,7 @@ from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.decorators import cfg_on_async
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
-from fabricatio_core.models.kwargs_types import ListStringKwargs, LLMKwargs
+from fabricatio_core.models.kwargs_types import ListingKwargs, LLMKwargs
 from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig, LancedbRAG
 from fabricatio_rag.actions.db import StoreDocuments
@@ -66,7 +66,7 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
     """The threshold of relevance"""
     extractor_model: LLMKwargs
     """The model to use for extracting the content from the retrieved references."""
-    query_model: ListStringKwargs | None = None
+    query_model: ListingKwargs[str] | None = None
     """The model to use for querying the database"""
     supervisor: bool = False
     """Whether to use supervisor mode"""
@@ -243,7 +243,7 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
     """The limit of references to retrieve per query."""
     similarity_threshold: float = 0.62
     """The similarity threshold of references to retrieve."""
-    ref_q_model: ListStringKwargs = Field(default_factory=ListStringKwargs)
+    ref_q_model: ListingKwargs[str] = Field(default_factory=ListingKwargs)
     """The model to use for refining query."""
     req: str = TYPST_CITE_USAGE
     """The request for the rag model."""
