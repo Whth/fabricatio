@@ -1,6 +1,6 @@
 [package]
 name = "thryd"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 description = "A light weight, embeded llm request router, with cache."
 authors.workspace = true
@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 async-openai = { version = "0.41.0", features = ["completions", "embedding-types"] }
 async-trait = "0.1.89"
-cached = "2.0.2"
+cached = { version = "2.0.2", features = ["proc_macro"] }
 eventsource-stream = "0.2.3"
 futures = "0.3.32"
 http = "1.4.2"
