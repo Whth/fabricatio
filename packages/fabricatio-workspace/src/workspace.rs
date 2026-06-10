@@ -53,11 +53,12 @@ pub fn fork(
     let wt_list = repo.worktrees().into_pyresult()?;
 
     for wt_name in wt_list.iter().flatten() {
+        let Some(wt_name) = wt_name else { continue };
         trace!("Looking worktree: {wt_name}");
         if let Ok(wt) = repo.find_worktree(wt_name)
             && let Ok(repo) = Repository::open(wt.path())
             && let Ok(head) = repo.head()
-            && let Some(ref_name) = head.name()
+            && let Ok(ref_name) = head.name()
             && ref_name.ends_with(branch_name)
         {
             return if exist_ok {
@@ -162,14 +163,13 @@ pub fn prune(repo_path: PathBuf) -> PyResult<usize> {
 
     let mut pruned_count = 0;
     let wt_list = repo.worktrees().into_pyresult()?;
-
     for wt_name in wt_list.iter().flatten() {
+        let Some(wt_name) = wt_name else { continue };
         trace!("Checking worktree for pruning: {wt_name}");
         if let Ok(wt) = repo.find_worktree(wt_name) {
             if !wt.is_prunable(None).into_pyresult()? {
                 continue;
             }
-
             trace!(
                 "Pruning stale worktree: {wt_name} at {}",
                 wt.path().display()
