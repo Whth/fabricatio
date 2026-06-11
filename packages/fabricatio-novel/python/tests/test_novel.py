@@ -390,7 +390,7 @@ class TestChapter:
         assert chapter.exact_word_count == 0
 
     def test_with_raw_content(self) -> None:
-        """Test with_raw_content factory converts raw text to XHTML paragraphs."""
+        """Test with_raw_content factory stores raw text; XHTML deferred to to_xhtml()."""
         raw = "First paragraph.\n\nSecond paragraph."
         chapter = Chapter.with_raw_content(
             raw=raw,
@@ -398,8 +398,12 @@ class TestChapter:
             expected_word_count=50,
             chapter_index=0,
         )
-        assert "<p>First paragraph.</p>" in chapter.content
-        assert "<p>Second paragraph.</p>" in chapter.content
+        # content stores raw text
+        assert chapter.content == raw
+        # to_xhtml() wraps in <p> tags
+        xhtml = chapter.to_xhtml()
+        assert "<p>First paragraph.</p>" in xhtml
+        assert "<p>Second paragraph.</p>" in xhtml
         assert chapter.title == "Test Chapter"
         assert chapter.expected_word_count == 50
         assert chapter.chapter_index == 0
@@ -411,7 +415,7 @@ class TestChapter:
         assert chapter.chapter_index == 2
 
     def test_from_plan_and_raw_content(self, chapter_draft_intro: ChapterDraft) -> None:
-        """Test from_plan_and_raw_content factory creates a chapter from a plan."""
+        """Test from_plan_and_raw_content factory stores raw text; XHTML deferred."""
         script = Script.with_raw_synosis("A hero wakes up.")
         plan = ChapterPlan.new(
             draft=chapter_draft_intro,
@@ -424,7 +428,8 @@ class TestChapter:
         assert chapter.title == "Awakening"
         assert chapter.expected_word_count == 500
         assert chapter.chapter_index == 0
-        assert "<p>" in chapter.content
+        assert chapter.content == raw_text
+        assert "<p>" in chapter.to_xhtml()
 
 
 # ---------------------------------------------------------------------------
@@ -815,8 +820,9 @@ class TestAssembleNovel:
         assert novel.chapters[1].title == "End"
         assert novel.chapters[1].chapter_index == 1
         assert novel.expected_word_count == 200
-        # content is wrapped in <p> tags by from_plan_and_raw_content
-        assert "<p>" in novel.chapters[0].content
+        # content stores raw text; XHTML conversion deferred to to_xhtml()
+        assert novel.chapters[0].content == "Once upon a time."
+        assert "<p>" in novel.chapters[0].to_xhtml()
 
     def test_assemble_word_count_propagation(self) -> None:
         """Test that expected_word_count propagates from plans to chapters."""
