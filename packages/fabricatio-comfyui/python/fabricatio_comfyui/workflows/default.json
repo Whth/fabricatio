@@ -11,7 +11,7 @@
   "6": {
     "inputs": {
       "width": 512,
-      "height": 512,
+      "height": 768,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -21,7 +21,7 @@
   },
   "7": {
     "inputs": {
-      "text": "1girls,best quality,masterpiece,4k,highres,\n\nbeautiful,cute,lovely,perfect eyes,upper body\n\n",
+      "text": "2girls,best quality,masterpiece,4k,highres,\nbeautiful,cute,lovely,perfect eyes,small breasts,\nfull body,body dress",
       "clip": [
         "4",
         1
@@ -34,7 +34,7 @@
   },
   "8": {
     "inputs": {
-      "text": "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,garbage,multiple arms,",
+      "text": "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,garbage,multiple arms,multiple legs,multiple fingers, low quality, jpeg artifacts, out of frame, watermark, signature,blurry,texts",
       "clip": [
         "4",
         1
@@ -156,11 +156,11 @@
     "inputs": {
       "add_noise": "disable",
       "noise_seed": 1072236688235494,
-      "steps": 17,
+      "steps": 15,
       "cfg": 8,
-      "sampler_name": "dpmpp_3m_sde_gpu",
+      "sampler_name": "er_sde",
       "scheduler": "simple",
-      "start_at_step": 8,
+      "start_at_step": 0,
       "end_at_step": 999,
       "return_with_leftover_noise": "disable",
       "model": [
