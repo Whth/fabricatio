@@ -15,4 +15,6 @@ Assign relative importance weights for illustration across novel chapters.
 For each chapter, assign a relative weight indicating how much it deserves illustration.
 Higher weight = more images. Use 0 for chapters that don't need any illustration.
 Do NOT compute exact counts — just express relative importance (e.g. 1, 2, 3, 5).
-Respond in "{{language}}".
+
+Respond with a JSON object mapping chapter index (integer) to weight (number). Example: {"0": 3, "1": 1, "2": 5}
+Write image generation prompt in {{language}} if any, but the JSON keys and values must be machine-parseable.

@@ -1,9 +1,7 @@
-Select paragraphs to illustrate in a novel chapter.
-
-**Chapter:** {{chapter_title}} (index {{chapter_index}})
-**Novel:** {{novel_title}}
-
-**Budget:** Select AT MOST {{budget}} paragraphs to illustrate.
+**Paragraphs:**
+{{#each paragraphs}}
+[{{@index}}] {{this}}
+{{/each}}
 {{#if guideline}}
 **Selection Guideline:**
 {{guideline}}
@@ -12,15 +10,18 @@ Select paragraphs to illustrate in a novel chapter.
 **Image Prompt Style:**
 {{prompt_guideline}}
 {{/if}}
+Select paragraphs to illustrate in a novel chapter.
 
-**Paragraphs:**
-{{#each paragraphs}}
-[{{@index}}] {{this}}
-{{/each}}
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+**Novel:** {{novel_title}}
+
+**Budget:** Select AT MOST {{budget}} paragraphs to illustrate.
 
 For each selected paragraph, provide:
 - `index`: the paragraph number from the list above
 - `image_prompt`: a detailed scene description for image generation
 
 Select fewer than {{budget}} if no paragraph meets the guideline. Select zero if none qualifies.
-Respond in "{{language}}".
+
+Respond with a JSON object mapping paragraph index (integer) to image prompt string. Example: {"0": "a girl standing in cherry blossom rain", "3": "sunset over the ocean"}
+Write image prompts in {{language}}, but the JSON structure must be machine-parseable.
