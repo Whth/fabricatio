@@ -5,35 +5,24 @@ It utilizes the Fabricatio Core library and includes functionality for generatin
 with customizable outlines, chapter guidance, language options, styling, and more.
 """
 
+from fabricatio_core.decorators import cfg_on
 from fabricatio_core.utils import cfg
-from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
 
 cfg(feats=["cli"])
+
 from pathlib import Path
 from typing import NoReturn, Optional
 
 import typer
 from fabricatio_core import Event, Role, Task
 
-from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow
-from fabricatio_novel.workflows.novel_rag import DebugNovelWithRAGWorkflow, StoreWritingStyleTextsWorkflow
 
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
 
 # Register the writer role and workflow
 ns = "write"
 writer_role = Role.with_bio(name="writer").subscribe(Event.quick_instantiate(ns), DebugNovelWorkflow).dispatch()
-rag_ns = "write_rag"
-rag_writer_role = (
-    Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
-)
-store_refs_ns = "store_refs"
-store_refs_role = (
-    Role.with_bio(name="ref_ingester")
-    .subscribe(Event.quick_instantiate(store_refs_ns), StoreWritingStyleTextsWorkflow)
-    .dispatch()
-)
 
 
 def _exit_on_error(message: str) -> NoReturn:
@@ -174,6 +163,7 @@ def write_novel(  # noqa: PLR0913
 
 
 @app.command(name="wr")
+@cfg_on(["lancedb"])
 def write_novel_with_rag(  # noqa: PLR0913
     outline: str = typer.Option(
         None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
@@ -246,6 +236,12 @@ def write_novel_with_rag(  # noqa: PLR0913
     ),
 ) -> None:
     """Generate a novel with RAG writing style augmentation based on the provided outline."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.novel_rag import DebugNovelWithRAGWorkflow
+
+    rag_ns = "write_rag"
+    Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
+
     # Check mutual exclusivity for outline
     if outline is not None and outline_file is not None:
         _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
@@ -297,6 +293,326 @@ def write_novel_with_rag(  # noqa: PLR0913
         _exit_on_error("❌ Failed to generate novel with RAG.")
 
 
+@app.command(name="wi")
+@cfg_on(["comfyui"])
+def write_illustrated_novel(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub",
+        "--output",
+        "-out",
+        dir_okay=False,
+        help="Output EPUB file path.",
+        envvar="NOVEL_OUTPUT_PATH",
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English",
+        "--lang",
+        "-l",
+        help="Language of the novel (e.g., 简体中文, English, jp).",
+        envvar="NOVEL_LANGUAGE",
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+    image_root: Path = typer.Option(
+        "./illustrations",
+        "--image-root",
+        "-ir",
+        help="Root directory for saving generated illustration images.",
+        envvar="NOVEL_IMAGE_ROOT",
+    ),
+    workflow_template: Optional[Path] = typer.Option(
+        None,
+        "--workflow-template",
+        "-wt",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to ComfyUI API-format JSON workflow file (defaults to bundled demo).",
+        envvar="NOVEL_WORKFLOW_TEMPLATE",
+    ),
+    illustration_budget: int = typer.Option(
+        5,
+        "--budget",
+        "-b",
+        help="Total number of illustrations to generate across all chapters.",
+        envvar="NOVEL_ILLUSTRATION_BUDGET",
+    ),
+    illustration_language: str = typer.Option(
+        "en",
+        "--illust-lang",
+        help="Language for illustration prompt generation.",
+        envvar="NOVEL_ILLUSTRATION_LANGUAGE",
+    ),
+) -> None:
+    """Generate an illustrated novel with ComfyUI-generated images embedded in the EPUB."""
+    from fabricatio_novel.workflows.illustration import DebugIllustratedNovelWorkflow
+
+    illus_ns = "write_illustrated"
+    Role.with_bio(name="illustrator").subscribe(
+        Event.quick_instantiate(illus_ns), DebugIllustratedNovelWorkflow
+    ).dispatch()
+
+    if outline is not None and outline_file is not None:
+        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
+    if outline is None and outline_file is None:
+        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
+    try:
+        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
+    except (OSError, IOError) as e:
+        _exit_on_error(f"❌ Failed to read outline file: {e}")
+    if chapter_guidance is not None and guidance_file is not None:
+        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
+    try:
+        if guidance_file:
+            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
+        elif chapter_guidance is not None:
+            guidance_content = chapter_guidance.strip()
+        else:
+            guidance_content = ""
+    except (OSError, IOError) as e:
+        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+
+    typer.echo(f"Starting illustrated novel generation: '{outline_content[:30]}...'")
+
+    task = Task(name="Write illustrated novel").update_init_context(
+        novel_outline=outline_content,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        image_root=image_root,
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+    )
+
+    result = task.delegate_blocking(illus_ns)
+
+    if result:
+        typer.secho(f"✅ Illustrated novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate illustrated novel.")
+
+
+@app.command(name="wri")
+@cfg_on(["comfyui", "lancedb"])
+def write_rag_illustrated_novel(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    rag_query: str = typer.Option(
+        ...,
+        "--rag-query",
+        "-rq",
+        help="Writing style query for RAG retrieval (e.g. 'Hemingway terse prose style').",
+        envvar="NOVEL_RAG_QUERY",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub",
+        "--output",
+        "-out",
+        dir_okay=False,
+        help="Output EPUB file path.",
+        envvar="NOVEL_OUTPUT_PATH",
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English",
+        "--lang",
+        "-l",
+        help="Language of the novel (e.g., 简体中文, English, jp).",
+        envvar="NOVEL_LANGUAGE",
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+    rag_limit: int = typer.Option(
+        5,
+        "--rag-limit",
+        "-rl",
+        help="Number of writing style documents to retrieve per prompt.",
+        envvar="NOVEL_RAG_LIMIT",
+    ),
+    image_root: Path = typer.Option(
+        "./illustrations",
+        "--image-root",
+        "-ir",
+        help="Root directory for saving generated illustration images.",
+        envvar="NOVEL_IMAGE_ROOT",
+    ),
+    workflow_template: Optional[Path] = typer.Option(
+        None,
+        "--workflow-template",
+        "-wt",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to ComfyUI API-format JSON workflow file (defaults to bundled demo).",
+        envvar="NOVEL_WORKFLOW_TEMPLATE",
+    ),
+    illustration_budget: int = typer.Option(
+        5,
+        "--budget",
+        "-b",
+        help="Total number of illustrations to generate across all chapters.",
+        envvar="NOVEL_ILLUSTRATION_BUDGET",
+    ),
+    illustration_language: str = typer.Option(
+        "en",
+        "--illust-lang",
+        help="Language for illustration prompt generation.",
+        envvar="NOVEL_ILLUSTRATION_LANGUAGE",
+    ),
+) -> None:
+    """Generate a RAG-augmented novel with ComfyUI illustrations embedded in the EPUB."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.illustration import DebugRAGIllustratedNovelWorkflow
+
+    rag_illus_ns = "write_rag_illustrated"
+    Role.with_bio(name="rag_illustrator").subscribe(
+        Event.quick_instantiate(rag_illus_ns), DebugRAGIllustratedNovelWorkflow
+    ).dispatch()
+
+    if outline is not None and outline_file is not None:
+        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
+    if outline is None and outline_file is None:
+        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
+    try:
+        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
+    except (OSError, IOError) as e:
+        _exit_on_error(f"❌ Failed to read outline file: {e}")
+    if chapter_guidance is not None and guidance_file is not None:
+        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
+    try:
+        if guidance_file:
+            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
+        elif chapter_guidance is not None:
+            guidance_content = chapter_guidance.strip()
+        else:
+            guidance_content = ""
+    except (OSError, IOError) as e:
+        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+
+    typer.echo(f"Starting RAG + illustrated novel generation: '{outline_content[:30]}...'")
+    typer.echo(f"Writing style query: '{rag_query}'")
+
+    task = Task(name="Write RAG illustrated novel").update_init_context(
+        novel_outline=outline_content,
+        writing_style_query=rag_query,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        image_root=image_root,
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+    )
+
+    result = task.delegate_blocking(rag_illus_ns)
+
+    if result:
+        typer.secho(f"✅ RAG illustrated novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate RAG illustrated novel.")
+
+
 @app.command()
 def info() -> None:
     """Show information about this CLI tool."""
@@ -306,6 +622,7 @@ def info() -> None:
 
 
 @app.command(name="store-refs")
+@cfg_on(["lancedb"])
 def store_reference_texts(
     patterns: list[str] = typer.Argument(
         ...,
@@ -344,6 +661,15 @@ def store_reference_texts(
     collected, deduplicated, and indexed. This is a standalone operation —
     it does not trigger novel generation.
     """
+    from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
+
+    from fabricatio_novel.workflows.novel_rag import StoreWritingStyleTextsWorkflow
+
+    store_refs_ns = "store_refs"
+    Role.with_bio(name="ref_ingester").subscribe(
+        Event.quick_instantiate(store_refs_ns), StoreWritingStyleTextsWorkflow
+    ).dispatch()
+
     files = _collect_files(patterns)
 
     typer.echo(f"Ingesting {len(files)} file(s) as writing style references...")
