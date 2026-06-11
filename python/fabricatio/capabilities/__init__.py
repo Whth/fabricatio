@@ -103,6 +103,11 @@ if is_installed("fabricatio_novel"):
 
     __all__ += ["NovelCompose"]
 
+    if is_installed("fabricatio_comfyui"):
+        from fabricatio_novel.capabilities.illustration import IllustratedNovelCompose
+
+        __all__ += ["IllustratedNovelCompose"]
+
 if is_installed("fabricatio_character"):
     from fabricatio_character.capabilities.character import CharacterCompose
 

@@ -106,6 +106,10 @@ if is_installed("fabricatio_novel"):
         "GenerateScriptsFromDraftAndCharacters",
         "ValidateNovel",
     ]
+    if is_installed("fabricatio_comfyui"):
+        from fabricatio_novel.actions.illustration import IllustrateNovel
+
+        __all__ += ["IllustrateNovel"]
 if is_installed("fabricatio_plot"):
     from fabricatio_plot.actions.plot import MakeCharts
     from fabricatio_plot.actions.synthesize import MakeSynthesizedData
