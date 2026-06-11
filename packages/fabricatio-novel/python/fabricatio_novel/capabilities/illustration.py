@@ -52,7 +52,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         self,
         novel: Novel,
         image_root: Path,
-        workflow_template: Path,
+        workflow_template: Optional[Path] = None,
         budget: int = 5,
         language: str = "en",
         guideline: Optional[str] = None,
@@ -61,7 +61,10 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
     ) -> Novel:
         """Two-phase image injection pipeline."""
         if budget <= 0:
+            logger.info("Illustration budget is 0, skipping.")
             return novel
+
+        logger.info(f"Phase 1: Allocating budget={budget} across {len(novel.chapters)} chapters")
 
         # Render guidelines from templates
         rendered_guideline = (
@@ -90,10 +93,11 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             **kwargs,
         )
         if not budget_map:
+            logger.warn("Budget allocation returned empty — no chapters will be illustrated. Check LLM response.")
             return novel
 
         # Phase 2: per-chapter illustration
-        base_wf = Workflow.from_file(workflow_template)
+        base_wf = Workflow.from_file(workflow_template) if workflow_template else Workflow.default()
         for chapter in novel.chapters:
             chapter_budget = budget_map.get(chapter.chapter_index, 0)
             if chapter_budget > 0:
@@ -145,12 +149,14 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             **kwargs,
         )
         if not weights:
+            logger.warn(f"Budget allocation LLM returned empty/None weights for '{novel.title}'")
             return {}
 
         # Clamp negative weights to 0
         numeric = {k: max(v, 0.0) for k, v in weights.items()}
         total = sum(numeric.values())
         if total <= 0:
+            logger.warn(f"Budget allocation: all weights are zero after clamping: {weights}")
             return {}
 
         # Proportional allocation with largest-remainder rounding
@@ -182,7 +188,10 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         """Phase 2: LLM selects paragraphs + generates prompts via amapping_kv."""
         paras = split_paragraphs(chapter.content)
         if not paras:
+            logger.warn(f"Chapter {chapter.chapter_index} '{chapter.title}': no paragraphs found, skipping")
             return
+
+        logger.info(f"Chapter {chapter.chapter_index}: {len(paras)} paragraphs, budget={chapter_budget}")
 
         rendered = TEMPLATE_MANAGER.render_template(
             novel_config.select_illustrations_template,
@@ -202,9 +211,15 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             key_type=int,
             value_type=str,
             k=chapter_budget,
+            **kwargs,
         )
         if not picks:
+            logger.warn(f"Chapter {chapter.chapter_index}: LLM returned no picks for illustration")
             return
+
+        logger.info(
+            f"Chapter {chapter.chapter_index}: LLM picked {len(picks)} paragraphs for illustration: {list(picks.keys())}"
+        )
 
         # Generate images via ComfyUI
         image_dir = f"images/ch{chapter.chapter_index}"
@@ -237,3 +252,6 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         # Inject <img> tags into raw text
         if valid_picks:
             chapter.content = "\n\n".join(_inject_images(paras, valid_picks, image_dir))
+            logger.info(f"Chapter {chapter.chapter_index}: injected {len(valid_picks)} <img> tags")
+        else:
+            logger.warn(f"Chapter {chapter.chapter_index}: no images generated from {len(picks)} picks")
