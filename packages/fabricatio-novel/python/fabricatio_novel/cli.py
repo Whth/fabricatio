@@ -55,6 +55,44 @@ def _collect_files(patterns: list[str]) -> list[Path]:
     return files
 
 
+def _resolve_text_or_file(
+    text: str | None,
+    file: Path | None,
+    *,
+    flag: str,
+    file_desc: str | None = None,
+    default: str | None = "",
+    required: bool = False,
+) -> str | None:
+    """Resolve mutually exclusive text/file argument pair into a single value.
+
+    Args:
+        text: Direct text value from CLI option.
+        file: Path to text file from CLI option.
+        flag: CLI flag name without leading dashes (e.g. "outline", "illust-guideline").
+        file_desc: Human-readable description for error messages. Defaults to ``flag``.
+        default: Value when neither text nor file is provided. Use ``None`` for optional fields.
+        required: If True, error when neither text nor file is provided.
+
+    Returns:
+        Resolved and stripped text, or default/None.
+    """
+    if file_desc is None:
+        file_desc = flag
+    if text is not None and file is not None:
+        _exit_on_error(f"❌ Cannot use both --{flag} and --{flag}-file. Please use only one.")
+    if text is None and file is None:
+        if required:
+            _exit_on_error(f"❌ Either --{flag} or --{flag}-file must be provided.")
+        return default
+    try:
+        if file:
+            return file.read_text(encoding="utf-8").strip()
+        return text.strip()  # type: ignore[union-attr]
+    except (OSError, IOError) as e:
+        _exit_on_error(f"❌ Failed to read {file_desc} file: {e}")
+
+
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913
     outline: str = typer.Option(
@@ -114,33 +152,9 @@ def write_novel(  # noqa: PLR0913
     ),
 ) -> None:
     """Generate a novel based on the provided outline and settings."""
-    # Check mutual exclusivity for outline
-    if outline is not None and outline_file is not None:
-        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
 
-    if outline is None and outline_file is None:
-        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
-
-    # Read outline
-    try:
-        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read outline file: {e}")
-
-    # Check mutual exclusivity for guidance
-    if chapter_guidance is not None and guidance_file is not None:
-        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
-
-    # Read guidance
-    try:
-        if guidance_file:
-            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
-        elif chapter_guidance is not None:
-            guidance_content = chapter_guidance.strip()
-        else:
-            guidance_content = ""
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
 
     typer.echo(f"Starting novel generation: '{outline_content[:30]}...'")
 
@@ -242,33 +256,9 @@ def write_novel_with_rag(  # noqa: PLR0913
     rag_ns = "write_rag"
     Role.with_bio(name="rag_writer").subscribe(Event.quick_instantiate(rag_ns), DebugNovelWithRAGWorkflow).dispatch()
 
-    # Check mutual exclusivity for outline
-    if outline is not None and outline_file is not None:
-        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
 
-    if outline is None and outline_file is None:
-        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
-
-    # Read outline
-    try:
-        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read outline file: {e}")
-
-    # Check mutual exclusivity for guidance
-    if chapter_guidance is not None and guidance_file is not None:
-        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
-
-    # Read guidance
-    try:
-        if guidance_file:
-            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
-        elif chapter_guidance is not None:
-            guidance_content = chapter_guidance.strip()
-        else:
-            guidance_content = ""
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
 
     typer.echo(f"Starting RAG novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
@@ -391,6 +381,42 @@ def write_illustrated_novel(  # noqa: PLR0913
         help="Language for illustration prompt generation.",
         envvar="NOVEL_ILLUSTRATION_LANGUAGE",
     ),
+    illustration_guideline: str = typer.Option(
+        None,
+        "--illust-guideline",
+        "-ig",
+        help="Guideline for illustration paragraph selection (e.g. 'focus on action scenes').",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE",
+    ),
+    illustration_guideline_file: Path = typer.Option(
+        None,
+        "--illust-guideline-file",
+        "-igf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing illustration selection guidelines.",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE_FILE",
+    ),
+    illustration_prompt_guideline: str = typer.Option(
+        None,
+        "--illust-prompt-guideline",
+        "-ipg",
+        help="Guideline for image prompt wording (e.g. 'anime style, detailed background').",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE",
+    ),
+    illustration_prompt_guideline_file: Path = typer.Option(
+        None,
+        "--illust-prompt-guideline-file",
+        "-ipgf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing image prompt wording guidelines.",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
+    ),
 ) -> None:
     """Generate an illustrated novel with ComfyUI-generated images embedded in the EPUB."""
     from fabricatio_novel.workflows.illustration import DebugIllustratedNovelWorkflow
@@ -400,25 +426,24 @@ def write_illustrated_novel(  # noqa: PLR0913
         Event.quick_instantiate(illus_ns), DebugIllustratedNovelWorkflow
     ).dispatch()
 
-    if outline is not None and outline_file is not None:
-        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
-    if outline is None and outline_file is None:
-        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
-    try:
-        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read outline file: {e}")
-    if chapter_guidance is not None and guidance_file is not None:
-        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
-    try:
-        if guidance_file:
-            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
-        elif chapter_guidance is not None:
-            guidance_content = chapter_guidance.strip()
-        else:
-            guidance_content = ""
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    illust_guideline_content = _resolve_text_or_file(
+        illustration_guideline,
+        illustration_guideline_file,
+        flag="illust-guideline",
+        file_desc="illustration guideline",
+        default=None,
+    )
+
+    illust_prompt_guideline_content = _resolve_text_or_file(
+        illustration_prompt_guideline,
+        illustration_prompt_guideline_file,
+        flag="illust-prompt-guideline",
+        file_desc="illustration prompt guideline",
+        default=None,
+    )
 
     typer.echo(f"Starting illustrated novel generation: '{outline_content[:30]}...'")
 
@@ -434,6 +459,8 @@ def write_illustrated_novel(  # noqa: PLR0913
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,
+        illustration_guideline=illust_guideline_content,
+        illustration_prompt_guideline=illust_prompt_guideline_content,
     )
 
     result = task.delegate_blocking(illus_ns)
@@ -556,6 +583,42 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         help="Language for illustration prompt generation.",
         envvar="NOVEL_ILLUSTRATION_LANGUAGE",
     ),
+    illustration_guideline: str = typer.Option(
+        None,
+        "--illust-guideline",
+        "-ig",
+        help="Guideline for illustration paragraph selection (e.g. 'focus on action scenes').",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE",
+    ),
+    illustration_guideline_file: Path = typer.Option(
+        None,
+        "--illust-guideline-file",
+        "-igf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing illustration selection guidelines.",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE_FILE",
+    ),
+    illustration_prompt_guideline: str = typer.Option(
+        None,
+        "--illust-prompt-guideline",
+        "-ipg",
+        help="Guideline for image prompt wording (e.g. 'anime style, detailed background').",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE",
+    ),
+    illustration_prompt_guideline_file: Path = typer.Option(
+        None,
+        "--illust-prompt-guideline-file",
+        "-ipgf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing image prompt wording guidelines.",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
+    ),
 ) -> None:
     """Generate a RAG-augmented novel with ComfyUI illustrations embedded in the EPUB."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -566,25 +629,24 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         Event.quick_instantiate(rag_illus_ns), DebugRAGIllustratedNovelWorkflow
     ).dispatch()
 
-    if outline is not None and outline_file is not None:
-        _exit_on_error("❌ Cannot use both --outline and --outline-file. Please use only one.")
-    if outline is None and outline_file is None:
-        _exit_on_error("❌ Either --outline or --outline-file must be provided.")
-    try:
-        outline_content = outline_file.read_text(encoding="utf-8").strip() if outline_file else outline.strip()
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read outline file: {e}")
-    if chapter_guidance is not None and guidance_file is not None:
-        _exit_on_error("❌ Cannot use both --guidance and --guidance-file. Please use only one.")
-    try:
-        if guidance_file:
-            guidance_content = guidance_file.read_text(encoding="utf-8").strip()
-        elif chapter_guidance is not None:
-            guidance_content = chapter_guidance.strip()
-        else:
-            guidance_content = ""
-    except (OSError, IOError) as e:
-        _exit_on_error(f"❌ Failed to read guidance file: {e}")
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    illust_guideline_content = _resolve_text_or_file(
+        illustration_guideline,
+        illustration_guideline_file,
+        flag="illust-guideline",
+        file_desc="illustration guideline",
+        default=None,
+    )
+
+    illust_prompt_guideline_content = _resolve_text_or_file(
+        illustration_prompt_guideline,
+        illustration_prompt_guideline_file,
+        flag="illust-prompt-guideline",
+        file_desc="illustration prompt guideline",
+        default=None,
+    )
 
     typer.echo(f"Starting RAG + illustrated novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
@@ -603,6 +665,8 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,
+        illustration_guideline=illust_guideline_content,
+        illustration_prompt_guideline=illust_prompt_guideline_content,
     )
 
     result = task.delegate_blocking(rag_illus_ns)
