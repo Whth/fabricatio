@@ -21,7 +21,7 @@
   },
   "7": {
     "inputs": {
-      "text": "2girls,best quality,masterpiece,4k,highres,\nbeautiful,cute,lovely,perfect eyes,small breasts,\nfull body,body dress",
+      "text": "1girl,best quality,masterpiece,4k,highres,\nbeautiful,cute,lovely,perfect eyes,small breasts,\nfull body,summer dress,",
       "clip": [
         "4",
         1
@@ -108,7 +108,7 @@
   "19": {
     "inputs": {
       "upscale_method": "lanczos",
-      "scale_by": 2.31,
+      "scale_by": 2.3,
       "image": [
         "9",
         0
@@ -123,13 +123,13 @@
     "inputs": {
       "add_noise": "enable",
       "noise_seed": 1072236688235494,
-      "steps": 17,
-      "cfg": 8.2,
-      "sampler_name": "res_multistep",
-      "scheduler": "simple",
+      "steps": 7,
+      "cfg": 10,
+      "sampler_name": "seeds_3",
+      "scheduler": "karras",
       "start_at_step": 0,
       "end_at_step": 55,
-      "return_with_leftover_noise": "disable",
+      "return_with_leftover_noise": "enable",
       "model": [
         "4",
         0
@@ -156,10 +156,10 @@
     "inputs": {
       "add_noise": "disable",
       "noise_seed": 1072236688235494,
-      "steps": 15,
-      "cfg": 8,
+      "steps": 14,
+      "cfg": 7.8,
       "sampler_name": "er_sde",
-      "scheduler": "simple",
+      "scheduler": "sgm_uniform",
       "start_at_step": 0,
       "end_at_step": 999,
       "return_with_leftover_noise": "disable",
