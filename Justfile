@@ -148,6 +148,10 @@ eg example_name:
     @touch examples/{{ example_name }}/{{ example_name }}.py
     @echo -e "{{ GREEN }}✅ Successfully created example 'examples/{{ example_name }}/{{ example_name }}.py'! 🎉{{ NC }}"
 
+# Generate Python type stubs for Rust packages. Pass package name (e.g. core, sandbox) or omit for all.
+stubgen name:
+    @cargo run --package fabricatio-stubgen --bin fabricatio-stubgen --features {{ name }}
+
 alias v := version
 alias r := release
 
