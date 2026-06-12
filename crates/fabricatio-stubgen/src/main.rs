@@ -56,6 +56,9 @@ fn main() -> Result<()> {
     #[cfg(feature = "novel")]
     fabricatio_novel::stub_info()?.generate()?;
 
+    #[cfg(feature = "sandbox")]
+    fabricatio_sandbox::stub_info()?.generate()?;
+
     #[cfg(feature = "anki")]
     fabricatio_anki::stub_info()?.generate()?;
 

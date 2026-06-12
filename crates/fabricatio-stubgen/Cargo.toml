@@ -17,6 +17,7 @@ fabricatio-agent = { path = "../../packages/fabricatio-agent", default-features 
 fabricatio-locale = { path = "../../packages/fabricatio-locale", default-features = false, optional = true }
 fabricatio-thinking = { path = "../../packages/fabricatio-thinking", default-features = false, optional = true }
 fabricatio-novel = { path = "../../packages/fabricatio-novel", default-features = false, optional = true }
+fabricatio-sandbox = { path = "../../packages/fabricatio-sandbox", default-features = false, optional = true }
 fabricatio-anki = { path = "../../packages/fabricatio-anki", default-features = false, optional = true }
 fabricatio-tool = { path = "../../packages/fabricatio-tool", default-features = false, optional = true }
 fabricatio-typst = { path = "../../packages/fabricatio-typst", default-features = false, optional = true }
@@ -36,6 +37,7 @@ all = [
     "locale",
     "thinking",
     "novel",
+    "sandbox",
     "anki",
     "tool",
     "typst",
@@ -54,6 +56,7 @@ agent = ["fabricatio-agent/stubgen"]
 locale = ["fabricatio-locale/stubgen"]
 thinking = ["fabricatio-thinking/stubgen"]
 novel = ["fabricatio-novel/stubgen"]
+sandbox = ["fabricatio-sandbox/stubgen"]
 anki = ["fabricatio-anki/stubgen"]
 tool = ["fabricatio-tool/stubgen"]
 typst = ["fabricatio-typst/stubgen"]
