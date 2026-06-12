@@ -1,5 +1,5 @@
 use crate::constants::*;
-use cached::proc_macro::cached;
+use cached::macros::cached;
 use lancedb::arrow::arrow_schema::*;
 use std::sync::Arc;
 
