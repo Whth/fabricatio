@@ -1,17 +1,6 @@
 {{block requirement "Generation Requirement"}}
 
 
---- Start of response example ---
-```json
-[
-"this is a short string that is purely shorter than 15 characters",
-"this is a long string that is longer than 100 characters",
-]
-```
---- End of response example ---
-
-# Warning:
-- The response SHALL be returned as a JSON array whose elements is all String within the markdown codeblock.
-- Element string length is not limited, you can generate any length string as the `Generation Requirement` demands.
-- `Generation Requirement` is absolute and highest specification. You must generate string array strictly against it.
-{{#if k}}- The array MUST contain EXACTLY {{k}} strings.{{/if}}
+- The response SHALL be returned as a JSON array whose elements are all {{value_type}} within the markdown codeblock.
+- `Generation Requirement` is absolute and highest specification. You must generate {{value_type}} array strictly against it.
+{{#if k}}- The array MUST contain EXACTLY {{k}} {{value_type}} elements.{{/if}}

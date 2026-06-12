@@ -18,6 +18,7 @@ use std::fs::File;
 use std::hash::Hash;
 use std::io::Write;
 use std::path::PathBuf;
+use strum::Display;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
@@ -206,7 +207,7 @@ impl TextCapturer {
     }
 }
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
-#[derive(Clone)]
+#[derive(Clone, Display)]
 #[pyclass(from_py_object)]
 pub enum ValueType {
     String,

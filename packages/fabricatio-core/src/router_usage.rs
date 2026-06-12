@@ -499,7 +499,7 @@ impl RouterUsage {
         let value_type = ValueType::from_type(value_type)?;
         future_into_py(python, async move {
             let rendered = requirement
-                .map(|r| json!({"requirement": r, "k": k}))
+                .map(|r| json!({"requirement": r, "k": k, "key_type": key_type.to_string(), "value_type": value_type.to_string()}))
                 .render_template(&CONFIG.templates.mapping_template)?;
             let result = slf
                 .mapping_kv_inner(
@@ -559,7 +559,7 @@ impl RouterUsage {
 
         future_into_py(python, async move {
             let rendered = requirement
-                .map(|r| json!({"requirement": r, "k": k}))
+                .map(|r| json!({"requirement": r, "k": k, "value_type": value_type.to_string()}))
                 .render_template(&CONFIG.templates.liststr_template)?;
             let result = slf
                 .list_v_inner(rendered, value_type, k, max_validations, None, &params)

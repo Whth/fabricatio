@@ -1,9 +1,8 @@
-You are an expert at creating key-value mappings. Generate a dictionary of strings that fulfills the given requirement.
-
 {{block requirement "Requirement"}}
 
 Create a mapping that:
 1. Uses clear, descriptive keys with meaningful values
 2. Fulfills the requirement: `Requirement`
-{{#if k}}{{#if (gt k 0)}}3. Contains exactly {{k}} key-value pairs{{/if}}{{/if}}
-
+3. All keys MUST be valid JSON {{key_type}} values
+4. All values MUST be valid JSON {{value_type}} values
+{{#if k}}{{#if (gt k 0)}}5. Contains exactly {{k}} key-value pairs{{/if}}{{/if}}
