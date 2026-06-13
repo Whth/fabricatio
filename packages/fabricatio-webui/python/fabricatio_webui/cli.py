@@ -8,7 +8,6 @@ from asyncio import run
 from pathlib import Path
 from typing import Optional
 
-
 from typer import Option, Typer
 
 from fabricatio_webui.registry import build_node_registry

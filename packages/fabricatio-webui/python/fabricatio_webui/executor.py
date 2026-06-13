@@ -25,6 +25,7 @@ def _norm_node_id(raw: Any) -> str:
 # WorkflowExecutor
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class WorkflowExecutor:
     """Executes a workflow graph described by JSON.
@@ -34,6 +35,7 @@ class WorkflowExecutor:
         event_callback: ``async def(event_type: str, payload: dict)`` called on
             lifecycle events.
     """
+
     _wf: Dict[str, Any] = field(init=False)
     _event: Callable[[str, Dict[str, Any]], Coroutine[Any, Any, None]] = field(init=False)
 
