@@ -207,8 +207,11 @@ class TestImprovement:
             problem=Problem(name="P", cause="c", severity_level=5, location="loc"),
             solutions=[
                 Solution(
-                    name="S", mechanism="m", execute_steps=["step"],
-                    feasibility_level=8, impact_level=7,
+                    name="S",
+                    mechanism="m",
+                    execute_steps=["step"],
+                    feasibility_level=8,
+                    impact_level=7,
                 )
             ],
         )
