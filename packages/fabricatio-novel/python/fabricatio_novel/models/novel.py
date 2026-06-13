@@ -1,8 +1,9 @@
 """This module contains the models for the novel."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Self
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Self
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
+from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import SketchedAble, Titled
 from fabricatio_core.rust import word_count
@@ -63,6 +64,8 @@ class Novel(SketchedAble, PersistentAble, Titled, WordCount):
     """A summary of the novel's plot."""
     chapters: List[Chapter]
     """List of chapters in the novel."""
+    characters: Optional[List[CharacterCard]] = None
+    """Character cards for this novel. Used by illustration pipeline to maintain visual consistency."""
 
     @property
     def exact_word_count(self) -> int:
