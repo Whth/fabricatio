@@ -18,6 +18,7 @@ classifiers = [
 requires-python = ">=3.12,<3.15"
 dependencies = [
     "fabricatio-core",
+    "orjson",
 ]
 
 [dependency-groups]
