@@ -92,6 +92,7 @@ class CensorRole(ProposeTestRole, Censor):
 
 class TestCensor:
     """Tests for Censor capability."""
+
     @pytest.fixture
     def role(self) -> CensorRole:
         """Create a CensorRole instance."""
