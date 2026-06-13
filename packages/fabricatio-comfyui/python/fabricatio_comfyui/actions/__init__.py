@@ -40,7 +40,7 @@ class ComfyuiGenerateImage(Action, Comfyui):
         workflow = ok(self.workflow, "ComfyuiGenerateImage requires a `workflow` dict or Workflow")
         logger.info("Starting ComfyUI image generation")
 
-        return await self.comfyui_generate(
+        return await self.acomfyui_generate(
             workflow=workflow,
             download_dir=self.download_dir,
             timeout=self.timeout or comfyui_config.timeout,
@@ -61,7 +61,7 @@ class ComfyuiUploadImage(Action, Comfyui):
     async def _execute(self, *_: Any, **cxt: Any) -> UploadResponse:
         p = Path(ok(self.image_path, "ComfyuiUploadImage requires an `image_path`"))
         logger.info(f"Uploading image {p.name} to ComfyUI")
-        return await self.comfyui_upload_image(
+        return await self.acomfyui_upload(
             image_path=p,
             image_type=self.image_type,
         )

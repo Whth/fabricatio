@@ -80,7 +80,8 @@ asyncio.run(main())
 
 ### Capability mixin (with a Role)
 
-Mix `Comfyui` into a Role to get `comfyui_*` methods:
+Mix `Comfyui` into a Role to get `acomfyui_*` predicate-verb methods
+(following the same `a`-prefix convention as `UseLLM.aask`):
 
 ```python
 import asyncio
@@ -92,7 +93,7 @@ class ImageRole(Role, Comfyui):
 
 async def main() -> None:
     role = ImageRole(name="ComfyUI Worker")
-    result = await role.comfyui_generate(workflow, download_dir="./outputs")
+    result = await role.acomfyui_generate(workflow, download_dir="./outputs")
     for img in result.all_images:
         print(img.filename)
 
@@ -124,7 +125,7 @@ UploadThenGenerate = WorkFlow(
 ### Upload an image (img2img)
 
 ```python
-result = await role.comfyui_upload_image("./input_photo.png")
+result = await role.acomfyui_upload("./input_photo.png")
 print(result.name)  # filename on the server
 ```
 
@@ -143,18 +144,21 @@ from fabricatio_comfyui.workflows import Txt2Img, Txt2ImgWithDownload
 ### ComfyuiClient / Comfyui capability
 
 All methods are available on both `ComfyuiClient` and the `Comfyui` capability
-mixin (prefixed with `comfyui_` on the mixin).
+mixin (prefixed with `acomfyui_` on the mixin, following the `a`-prefix
+predicate-verb convention used by `UseLLM`).
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `queue_prompt(workflow)` | `PromptResponse` | Submit a workflow graph for execution |
-| `get_queue_info()` | `QueueInfo` | Fetch current queue status (running + pending) |
-| `get_history(prompt_id)` | `HistoryEntry \| None` | Retrieve execution history for a prompt |
-| `wait_for_completion(prompt_id)` | `ComfyuiExecutionResult` | Poll until execution finishes or fails |
-| `generate(workflow, download_dir=…)` | `ComfyuiExecutionResult` | Queue + wait + optionally download images |
-| `get_image(filename, …)` | `bytes` | Download a single generated image |
-| `upload_image(image_path, …)` | `UploadResponse` | Upload an image for img2img workflows |
-| `interrupt()` | `None` | Interrupt the currently running workflow |
+| Client method | Capability method | Returns | Description |
+|---------------|-------------------|---------|-------------|
+| `generate(workflow, …)` | `acomfyui_generate(…)` | `ComfyuiExecutionResult` | Queue + wait + optionally download images |
+| `queue_prompt(workflow)` | `acomfyui_queue(…)` | `PromptResponse` | Submit a workflow graph for execution |
+| `get_queue_info()` | `acomfyui_inspect_queue()` | `QueueInfo` | Fetch current queue status (running + pending) |
+| `get_history(prompt_id)` | `acomfyui_history(prompt_id)` | `HistoryEntry \| None` | Retrieve execution history for a prompt |
+| `wait_for_completion(prompt_id)` | `acomfyui_retrieve(prompt_id)` | `ComfyuiExecutionResult` | Poll until execution finishes or fails |
+| `get_image(filename, …)` | `acomfyui_retrieve_image(filename, …)` | `bytes` | Download a single generated image |
+| `upload_image(image_path, …)` | `acomfyui_upload(image_path, …)` | `UploadResponse` | Upload an image for img2img workflows |
+| `interrupt()` | `acomfyui_interrupt()` | `None` | Interrupt the currently running workflow |
+
+Legacy `comfyui_*` aliases are still available but deprecated.
 
 ### Actions
 
