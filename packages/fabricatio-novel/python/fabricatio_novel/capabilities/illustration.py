@@ -302,7 +302,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             wf.set_positive_prompt(image_prompt)
             logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] ComfyUI positive prompt: {image_prompt}")
 
-            result = await self.comfyui_generate(wf, download_dir=str(save_dir))
+            result = await self.acomfyui_generate(wf, download_dir=str(save_dir))
             if not result.all_images:
                 logger.warn(f"Image generation failed for paragraph {idx}")
                 continue
