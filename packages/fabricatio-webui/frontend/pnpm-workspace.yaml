@@ -1,3 +1,5 @@
+allowBuilds:
+  vue-demi: true
 minimumReleaseAgeExclude:
   - '@vue/language-core@3.3.5'
   - eslint@10.5.0
