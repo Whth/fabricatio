@@ -38,7 +38,7 @@
     "npm-run-all2": "8.0.4",
     "prettier": "3.6.2",
     "typescript": "5.9.0",
-    "vite": "npm:rolldown-vite@7.3.1",
+    "vite": "8.0.16",
     "vite-plugin-vue-devtools": "8.0.5",
     "vitest": "4.0.14",
     "vue-tsc": "3.1.5"
