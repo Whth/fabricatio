@@ -10,8 +10,8 @@
   },
   "6": {
     "inputs": {
-      "width": 512,
-      "height": 768,
+      "width": 768,
+      "height": 512,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -21,7 +21,7 @@
   },
   "7": {
     "inputs": {
-      "text": "1girl,best quality,masterpiece,4k,highres,\nbeautiful,cute,lovely,perfect eyes,small breasts,\nfull body,summer dress,",
+      "text": "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, blunt bangs, waist-length twin tails, violet eyes,",
       "clip": [
         "4",
         1
@@ -107,7 +107,7 @@
   },
   "19": {
     "inputs": {
-      "upscale_method": "lanczos",
+      "upscale_method": "nearest-exact",
       "scale_by": 2.3,
       "image": [
         "9",
@@ -123,13 +123,13 @@
     "inputs": {
       "add_noise": "enable",
       "noise_seed": 1072236688235494,
-      "steps": 7,
-      "cfg": 10,
-      "sampler_name": "seeds_3",
-      "scheduler": "karras",
+      "steps": 21,
+      "cfg": 7.9,
+      "sampler_name": "er_sde",
+      "scheduler": "beta",
       "start_at_step": 0,
-      "end_at_step": 55,
-      "return_with_leftover_noise": "enable",
+      "end_at_step": 990,
+      "return_with_leftover_noise": "disable",
       "model": [
         "4",
         0
@@ -154,13 +154,13 @@
   },
   "26": {
     "inputs": {
-      "add_noise": "disable",
+      "add_noise": "enable",
       "noise_seed": 1072236688235494,
-      "steps": 14,
-      "cfg": 7.8,
+      "steps": 42,
+      "cfg": 8.5,
       "sampler_name": "er_sde",
-      "scheduler": "sgm_uniform",
-      "start_at_step": 0,
+      "scheduler": "beta",
+      "start_at_step": 20,
       "end_at_step": 999,
       "return_with_leftover_noise": "disable",
       "model": [
