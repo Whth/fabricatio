@@ -68,7 +68,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
         # Step 5: Assemble final novel
         logger.debug("Step 5: Assembling final novel from components")
-        novel = self.assemble_novel(draft, chapter_plans, chapter_contents)
+        novel = self.assemble_novel(draft, chapter_plans, chapter_contents, characters)
         logger.info(f"Novel assembly complete: '{novel.title}', {len(novel.chapters)} chapters")
         return novel
 
@@ -257,7 +257,12 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         return await self.propose(ChapterSummary, prompt, **kwargs)
 
     @staticmethod
-    def assemble_novel(draft: NovelDraft, chapter_plans: List[ChapterPlan], chapter_contents: List[str]) -> Novel:
+    def assemble_novel(
+        draft: NovelDraft,
+        chapter_plans: List[ChapterPlan],
+        chapter_contents: List[str],
+        characters: Optional[List[CharacterCard]] = None,
+    ) -> Novel:
         """Assemble the final novel from components."""
         logger.debug("Assembling final novel from draft, scripts, and chapter contents")
         if len(chapter_contents) != len(chapter_plans):
@@ -276,6 +281,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             chapters=chapters,
             synopsis=draft.synopsis,
             expected_word_count=draft.expected_word_count,
+            characters=characters,
         )
         logger.debug(f"Final novel assembled: '{novel.title}', total chapters: {len(novel.chapters)}")
         return novel

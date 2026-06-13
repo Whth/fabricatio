@@ -145,6 +145,11 @@ class AssembleNovelFromComponents(NovelCompose, Action):
     Generated full text for each chapter.
     """
 
+    novel_characters: Optional[List[CharacterCard]] = None
+    """
+    Character cards for this novel. Passed through to the Novel object for illustration consistency.
+    """
+
     output_key: str = "novel"
     """
     Key under which the assembled Novel object will be stored in context.
@@ -160,7 +165,7 @@ class AssembleNovelFromComponents(NovelCompose, Action):
         chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
         logger.info("Assembling final novel from components...")
-        novel = self.assemble_novel(draft, chapter_plans, chapter_contents)
+        novel = self.assemble_novel(draft, chapter_plans, chapter_contents, self.novel_characters)
         logger.info(f"Novel '{novel.title}' assembled with {len(novel.chapters)} chapters.")
         return novel
 
