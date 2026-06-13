@@ -1,12 +1,14 @@
 """IllustratedNovelCompose — NovelCompose subclass for image-enriched novel generation.
 
-Two-phase pipeline using UseLLM.amapping_kv with typed key/value:
-    Phase 1: allocate image budget across chapters → {chapter_index: image_count} (Int→Float)
-    Phase 2: per chapter, select paragraphs + generate prompts → {paragraph_index: image_prompt} (Int→String)
+Three-phase pipeline:
+    Phase 1: allocate image budget across chapters → {chapter_index: image_count}
+    Phase 2: per chapter, select paragraphs to illustrate → [paragraph_index, ...]
+    Phase 3: per selected paragraph, generate image prompt with character context → image_prompt string
 
 Then: ComfyUI generates images, <img> tags injected directly into raw text.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Unpack
 
@@ -22,6 +24,19 @@ from fabricatio_novel.rust import split_paragraphs
 
 if TYPE_CHECKING:
     from fabricatio_novel.models.novel import Chapter
+
+
+@dataclass
+class IllustrationContext:
+    """Shared state for the illustration pipeline, constant across all chapters."""
+
+    novel: Novel
+    image_root: Path
+    base_wf: Workflow
+    language: str
+    guideline: Optional[str]
+    prompt_guideline: Optional[str]
+    base_looks: dict[str, str]
 
 
 def _inject_images(paras: list[str], picks: dict[int, str], image_dir: str) -> list[str]:
@@ -47,6 +62,26 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         )
         DumpNovel(novel=novel, output_path=..., image_root=image_root).execute()
     """
+
+    async def _generate_base_looks(self, novel: Novel, language: str) -> dict[str, str]:
+        """Generate base physical appearance for each character (body + hair + eyes, no clothing)."""
+        if not novel.characters:
+            return {}
+
+        base_looks: dict[str, str] = {}
+        for char in novel.characters:
+            rendered = TEMPLATE_MANAGER.render_template(
+                novel_config.character_base_look_template,
+                {"name": char.name, "look": char.look, "language": language},
+            )
+            result = await self.aask(rendered)
+            if result:
+                base_looks[char.name] = result.strip()
+                logger.debug(f"Base look for {char.name}: {result.strip()}")
+            else:
+                logger.warn(f"Failed to generate base look for {char.name}, using full look as fallback")
+                base_looks[char.name] = char.look
+        return base_looks
 
     async def inject_chapter_images(
         self,
@@ -84,6 +119,9 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             else None
         )
 
+        # Generate base physical appearances for character consistency
+        base_looks = await self._generate_base_looks(novel, language)
+
         # Phase 1: allocate budget across chapters
         budget_map = await self._allocate_budget(
             novel,
@@ -98,20 +136,19 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
         # Phase 2: per-chapter illustration
         base_wf = Workflow.from_file(workflow_template) if workflow_template else Workflow.default()
+        ctx = IllustrationContext(
+            novel=novel,
+            image_root=image_root,
+            base_wf=base_wf,
+            language=language,
+            guideline=rendered_guideline,
+            prompt_guideline=rendered_prompt_guideline,
+            base_looks=base_looks,
+        )
         for chapter in novel.chapters:
             chapter_budget = budget_map.get(chapter.chapter_index, 0)
             if chapter_budget > 0:
-                await self._illustrate_chapter(
-                    chapter,
-                    novel,
-                    image_root,
-                    base_wf,
-                    chapter_budget,
-                    language,
-                    rendered_guideline,
-                    rendered_prompt_guideline,
-                    **kwargs,
-                )
+                await self._illustrate_chapter(ctx, chapter, chapter_budget, **kwargs)
 
         return novel
 
@@ -175,17 +212,12 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
     async def _illustrate_chapter(
         self,
+        ctx: IllustrationContext,
         chapter: "Chapter",
-        novel: Novel,
-        image_root: Path,
-        base_wf: Workflow,
         chapter_budget: int,
-        language: str,
-        guideline: Optional[str],
-        prompt_guideline: Optional[str],
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> None:
-        """Phase 2: LLM selects paragraphs + generates prompts via amapping_kv."""
+        """Two-stage illustration: 1) select paragraphs, 2) generate image prompt per paragraph."""
         paras = split_paragraphs(chapter.content)
         if not paras:
             logger.warn(f"Chapter {chapter.chapter_index} '{chapter.title}': no paragraphs found, skipping")
@@ -193,60 +225,97 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
         logger.info(f"Chapter {chapter.chapter_index}: {len(paras)} paragraphs, budget={chapter_budget}")
 
-        rendered = TEMPLATE_MANAGER.render_template(
-            novel_config.select_illustrations_template,
+        # Stage 1: Select which paragraphs to illustrate
+        select_rendered = TEMPLATE_MANAGER.render_template(
+            novel_config.select_paragraphs_template,
             {
                 "chapter_title": chapter.title,
                 "chapter_index": chapter.chapter_index,
-                "novel_title": novel.title,
+                "novel_title": ctx.novel.title,
+                "novel_synopsis": ctx.novel.synopsis,
                 "paragraphs": paras,
                 "budget": chapter_budget,
-                "guideline": guideline,
-                "prompt_guideline": prompt_guideline,
-                "language": language,
+                "guideline": ctx.guideline,
+                "language": ctx.language,
             },
         )
-        picks = await self.amapping_kv(
-            rendered,
-            key_type=int,
-            value_type=str,
-            k=chapter_budget,
-            **kwargs,
+        logger.debug(f"Chapter {chapter.chapter_index} stage1 prompt:\n{select_rendered}")
+
+        selected_indices: Optional[list[int]] = await self.alist_v(
+            select_rendered, value_type=int, k=chapter_budget, **kwargs
         )
-        if not picks:
-            logger.warn(f"Chapter {chapter.chapter_index}: LLM returned no picks for illustration")
+        if not selected_indices:
+            logger.warn(f"Chapter {chapter.chapter_index}: LLM selected no paragraphs for illustration")
             return
 
-        logger.info(
-            f"Chapter {chapter.chapter_index}: LLM picked {len(picks)} paragraphs for illustration: {list(picks.keys())}"
+        # Validate and deduplicate indices
+        valid_indices = sorted({i for i in selected_indices if 0 <= i < len(paras)})
+        logger.info(f"Chapter {chapter.chapter_index}: LLM selected paragraphs: {valid_indices}")
+
+        # Build character appearance reference using base looks for consistency
+        character_looks = (
+            [{"name": c.name, "look": ctx.base_looks.get(c.name, c.look)} for c in ctx.novel.characters]
+            if ctx.novel.characters
+            else []
         )
 
-        # Generate images via ComfyUI
+        # Stage 2: Generate image prompt for each selected paragraph
         image_dir = f"images/ch{chapter.chapter_index}"
         valid_picks: dict[int, str] = {}
 
-        for idx, prompt in picks.items():
-            if not (0 <= idx < len(paras)):
-                logger.warn(f"Invalid paragraph index {idx} (max {len(paras) - 1})")
+        for idx in valid_indices:
+            # Build surrounding context (up to 2 paragraphs before/after)
+            ctx_before = [{"offset": idx - i, "text": paras[i]} for i in range(max(0, idx - 2), idx)]
+            ctx_after = [{"offset": i - idx, "text": paras[i]} for i in range(idx + 1, min(len(paras), idx + 3))]
+
+            prompt_rendered = TEMPLATE_MANAGER.render_template(
+                novel_config.generate_image_prompt_template,
+                {
+                    "chapter_title": chapter.title,
+                    "chapter_index": chapter.chapter_index,
+                    "novel_title": ctx.novel.title,
+                    "novel_synopsis": ctx.novel.synopsis,
+                    "character_looks": character_looks,
+                    "paragraph_index": idx,
+                    "paragraph": paras[idx],
+                    "before_paragraphs": ctx_before,
+                    "after_paragraphs": ctx_after,
+                    "prompt_guideline": ctx.prompt_guideline,
+                    "language": ctx.language,
+                },
+            )
+            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] stage2 prompt:\n{prompt_rendered}")
+
+            image_prompt = await self.aask(prompt_rendered)
+            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] aask raw response: {image_prompt!r}")
+            if not image_prompt:
+                logger.warn(f"Chapter {chapter.chapter_index} para[{idx}]: LLM returned no image prompt")
                 continue
 
-            save_dir = image_root / image_dir
+            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] image prompt: {image_prompt}")
+
+            # Generate image via ComfyUI
+            save_dir = ctx.image_root / image_dir
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            wf = Workflow.from_api(base_wf.to_api())
-            wf.set_positive_prompt(prompt)
+            wf = Workflow.from_api(ctx.base_wf.to_api())
+            wf.set_positive_prompt(image_prompt)
+            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] ComfyUI positive prompt: {image_prompt}")
 
             result = await self.comfyui_generate(wf, download_dir=str(save_dir))
             if not result.all_images:
                 logger.warn(f"Image generation failed for paragraph {idx}")
                 continue
+            logger.debug(
+                f"Chapter {chapter.chapter_index} para[{idx}] ComfyUI generated: {result.all_images[0].filename}"
+            )
 
             src = save_dir / result.all_images[0].filename
             target = save_dir / f"scene_{idx}.png"
             if src != target:
                 src.rename(target)
 
-            valid_picks[idx] = prompt
+            valid_picks[idx] = image_prompt
             logger.info(f"Illustrated paragraph {idx} in chapter {chapter.chapter_index}")
 
         # Inject <img> tags into raw text
@@ -254,4 +323,6 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             chapter.content = "\n\n".join(_inject_images(paras, valid_picks, image_dir))
             logger.info(f"Chapter {chapter.chapter_index}: injected {len(valid_picks)} <img> tags")
         else:
-            logger.warn(f"Chapter {chapter.chapter_index}: no images generated from {len(picks)} picks")
+            logger.warn(
+                f"Chapter {chapter.chapter_index}: no images generated from {len(valid_indices)} selected paragraphs"
+            )

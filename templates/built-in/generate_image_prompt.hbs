@@ -1,0 +1,51 @@
+Generate an image generation prompt for the following paragraph.
+
+**Novel:** {{novel_title}}
+
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+
+{{#if novel_synopsis}}
+**Story Synopsis:**
+{{novel_synopsis}}
+{{/if}}
+
+{{#if character_looks}}
+**Character Base Appearance (body, hair, eyes — MUST match exactly):**
+{{#each character_looks}}
+- **{{this.name}}**: {{this.look}}
+{{/each}}
+{{/if}}
+
+**Target Paragraph [{{paragraph_index}}]:**
+{{paragraph}}
+
+**Surrounding Context:**
+{{#if before_paragraphs}}
+Previous:
+{{#each before_paragraphs}}
+[this -{{this.offset}}] {{this.text}}
+{{/each}}
+{{/if}}
+{{#if after_paragraphs}}
+Following:
+{{#each after_paragraphs}}
+[this +{{this.offset}}] {{this.text}}
+{{/each}}
+{{/if}}
+
+{{#if prompt_guideline}}
+**Prompt Style:**
+{{prompt_guideline}}
+{{/if}}
+
+**Output Format Rules:**
+1. MUST start with: best quality,masterpiece,4k,highres,
+2. Use deepdanboruu tag format — short comma-separated phrases, NOT sentences (e.g. "1girl, silver hair, violet eyes, standing" not "a girl with silver hair is standing")
+3. Body descriptions MUST be accurate: use correct breast size (small/medium/large), hip width, body type (slim/athletic/curvy), age appearance — match the character's actual description
+4. Hair color/style, eye color, skin tone MUST exactly match Character Base Appearance
+5. Clothing and accessories are scene-dependent — infer from paragraph context
+6. Prioritize intimate/sexual scenes when the paragraph contains such content
+7. No repetition — each tag appears once. Keep concise and logically consistent
+8. Tags in {{language}}
+
+Output ONLY the prompt string, nothing else.

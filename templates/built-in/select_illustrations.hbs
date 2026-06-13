@@ -1,19 +1,35 @@
-**Paragraphs:**
+Select paragraphs to illustrate in a novel chapter.
+
+**Novel:** {{novel_title}}
+
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+
+{{#if novel_synopsis}}
+**Story Synopsis:**
+{{novel_synopsis}}
+{{/if}}
+
+{{#if character_looks}}
+**Character Appearance Reference (MUST match exactly in image prompts):**
+{{#each character_looks}}
+- **{{this.name}}**: {{this.look}}
+{{/each}}
+{{/if}}
+
+**Paragraphs (surrounding paragraphs provide scene context):**
 {{#each paragraphs}}
 [{{@index}}] {{this}}
 {{/each}}
+
 {{#if guideline}}
 **Selection Guideline:**
 {{guideline}}
 {{/if}}
+
 {{#if prompt_guideline}}
 **Image Prompt Style:**
 {{prompt_guideline}}
 {{/if}}
-Select paragraphs to illustrate in a novel chapter.
-
-**Chapter:** {{chapter_title}} (index {{chapter_index}})
-**Novel:** {{novel_title}}
 
 **Budget:** Select AT MOST {{budget}} paragraphs to illustrate.
 
@@ -21,7 +37,13 @@ For each selected paragraph, provide:
 - `index`: the paragraph number from the list above
 - `image_prompt`: a detailed scene description for image generation
 
+**CRITICAL — Character Consistency Rules:**
+1. Every image prompt MUST describe characters using ONLY the appearance details from the Character Appearance Reference above.
+2. Hair color/style, eye color, skin tone, clothing, body type, and distinguishing features MUST exactly match the reference — do NOT invent or alter any visual trait.
+3. If a character appears in the paragraph, include their full visual description in the prompt (e.g. "a woman with long silver hair and violet eyes wearing a black cloak" not just "a woman").
+4. Use surrounding paragraphs to understand the scene context — what happened before and after — to generate an accurate and contextually appropriate illustration.
+
 Select fewer than {{budget}} if no paragraph meets the guideline. Select zero if none qualifies.
 
-Respond with a JSON object mapping paragraph index (integer) to image prompt string. Example: {"0": "a girl standing in cherry blossom rain", "3": "sunset over the ocean"}
+Respond with a JSON object mapping paragraph index (integer) to image prompt string.
 Write image prompts in {{language}}, but the JSON structure must be machine-parseable.

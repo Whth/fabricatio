@@ -1,0 +1,30 @@
+Select which paragraphs in this chapter are worth illustrating.
+
+**Novel:** {{novel_title}}
+
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+
+{{#if novel_synopsis}}
+**Story Synopsis:**
+{{novel_synopsis}}
+{{/if}}
+
+**Paragraphs:**
+{{#each paragraphs}}
+[{{@index}}] {{this}}
+{{/each}}
+
+{{#if guideline}}
+**Selection Guideline:**
+{{guideline}}
+{{/if}}
+
+**Budget:** Select AT MOST {{budget}} paragraphs to illustrate.
+
+Prioritize paragraphs with:
+- Strong visual scenes (action, emotion, environment)
+- Key plot moments or character introductions
+- Visually distinct settings or atmosphere shifts
+Select fewer than {{budget}} if no paragraph qualifies. Select zero if none qualifies.
+
+Respond with a JSON array of paragraph indices only. No explanations needed.

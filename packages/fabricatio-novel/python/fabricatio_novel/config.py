@@ -35,8 +35,16 @@ class NovelConfig:
     """template used to allocate image budget across chapters."""
 
     select_illustrations_template: str = "built-in/select_illustrations"
-    """template used to select paragraphs for illustration."""
+    """template used to select paragraphs for illustration (legacy single-stage)."""
 
+    select_paragraphs_template: str = "built-in/select_paragraphs_for_illustration"
+    """template used to select which paragraphs to illustrate (stage 1 of two-stage pipeline)."""
+
+    generate_image_prompt_template: str = "built-in/generate_image_prompt"
+    """template used to generate image prompt for a single paragraph (stage 2 of two-stage pipeline)."""
+
+    character_base_look_template: str = "built-in/character_base_look"
+    """template used to distill character look into permanent physical traits only."""
     illustration_selection_guideline_template: str = "built-in/illustration_selection_guideline"
     """template used to render the illustration selection guideline."""
 
