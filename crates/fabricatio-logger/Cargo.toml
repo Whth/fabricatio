@@ -1,13 +1,13 @@
 [package]
 name = "fabricatio-logger"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2024"
 readme = "README.md"
 authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3 = "0.28.3"
+pyo3 = "0.29.0"
 chrono = "0.4.45"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.44"

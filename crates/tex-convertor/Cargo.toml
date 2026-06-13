@@ -1,12 +1,12 @@
 [package]
 name = "tex-convertor"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-regex = "1.12.3"
+regex = "1.12.4"
 tex2typst-rs = "0.4.1"
 
 

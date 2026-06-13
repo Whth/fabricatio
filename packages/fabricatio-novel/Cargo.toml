@@ -6,7 +6,7 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-regex = "1.12.3"
+regex = "1.12.4"
 epub-builder = { version = "0.8.3" }
 mime_guess = "2.0.5"
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }

@@ -8,13 +8,13 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 chrono = "0.4.45"
 tantivy = { version = "0.26.1", features = ["mmap"] }
-pyo3 = { version = "0.28.3" }
+pyo3 = { version = "0.29.0" }
 serde = { version = "1.0.228", features = ["derive"] }
 once_cell = "1.21.4"
-pythonize = "0.28.0"
+pythonize = "0.29.0"
 pyo3-stub-gen = { version = "0.22.3", optional = true }
 error-mapping = { path = "../../crates/error-mapping", features = ["tantivy", "serde_json"] }
-uuid = { version = "1.23.2", features = ["v7"] }
+uuid = { version = "1.23.3", features = ["v7"] }
 moka = { version = "0.12.15", features = ["sync"] }
 sanitize-filename = "0.6.0"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
