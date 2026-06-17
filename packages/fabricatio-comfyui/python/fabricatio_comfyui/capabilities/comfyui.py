@@ -98,7 +98,6 @@ class Comfyui:
             return results
         # Single mode — inline queue+wait+download
 
-
         download_dir = kwargs.get("download_dir")
         timeout = kwargs.get("timeout")
         effective_timeout = timeout or comfyui_config.timeout
