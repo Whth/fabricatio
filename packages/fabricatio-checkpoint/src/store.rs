@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
-use std::path::{Path, PathBuf, absolute};
+use std::path::{absolute, Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 pub type RepoEntry = Arc<Mutex<Repository>>;
@@ -21,7 +21,7 @@ pub type RepoEntry = Arc<Mutex<Repository>>;
 pub struct CheckPointStore {
     #[pyo3(get)]
     /// The worktree directory being tracked.
-    workspace: PathBuf,
+    pub(crate) workspace: PathBuf,
     repo: RepoEntry,
 }
 
@@ -258,7 +258,7 @@ impl CheckPointStore {
 
         let mut changed_files = Vec::new();
         for entry in statuses.iter() {
-            if let Some(path) = entry.path() {
+            if let Ok(path) = entry.path() {
                 changed_files.push(path.to_string());
             }
         }
