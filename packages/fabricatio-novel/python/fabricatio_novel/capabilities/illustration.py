@@ -9,7 +9,7 @@ Then: ComfyUI generates images, <img> tags injected directly into raw text.
 """
 
 from asyncio import gather
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Unpack
 
@@ -42,14 +42,105 @@ class IllustrationContext:
     """Per-image ComfyUI timeout in seconds. Multiply by chapter budget for total timeout."""
 
 
-def _inject_images(paras: list[str], picks: dict[int, str], image_dir: str) -> list[str]:
+def _inject_images(paras: list[str], picks: dict[int, str], image_dir: Path) -> list[str]:
     """Insert <img> tags after selected paragraphs. Returns modified list."""
     result = list(paras)
     for idx, prompt in picks.items():
         if 0 <= idx < len(result):
-            epub_path = f"{image_dir}/scene_{idx}.png"
+            epub_path = (image_dir / f"scene_{idx}.png").as_posix()
             result[idx] += f'\n<img src="{epub_path}" alt="{prompt[:80]}"/>'
     return result
+
+
+@dataclass
+class _ChapterIllustrator:
+    """Working state for illustrating a single chapter."""
+
+    ctx: IllustrationContext
+    chapter: "Chapter"
+    paras: list[str]
+    image_dir: Path
+    save_dir: Path
+    character_looks: list[dict[str, str]]
+    valid_picks: dict[int, str] = field(default_factory=dict)
+
+    def check_existing(self, valid_indices: list[int]) -> list[int]:
+        """Mark cached images in valid_picks; return indices needing generation."""
+        needs_gen: list[int] = []
+        for idx in valid_indices:
+            if (self.save_dir / f"scene_{idx}.png").is_file():
+                self.valid_picks[idx] = ""
+                logger.info(
+                    f"Chapter {self.chapter.chapter_index} para[{idx}]: scene image exists, skipping generation"
+                )
+            else:
+                needs_gen.append(idx)
+        return needs_gen
+
+    def render_prompts(self, needs_gen: list[int]) -> list[str]:
+        """Build image prompt templates for paragraphs needing generation."""
+        rendered: list[str] = []
+        for idx in needs_gen:
+            ctx_before = [{"offset": idx - i, "text": self.paras[i]} for i in range(max(0, idx - 2), idx)]
+            ctx_after = [
+                {"offset": i - idx, "text": self.paras[i]} for i in range(idx + 1, min(len(self.paras), idx + 3))
+            ]
+            rendered.append(
+                TEMPLATE_MANAGER.render_template(
+                    novel_config.generate_image_prompt_template,
+                    {
+                        "chapter_title": self.chapter.title,
+                        "chapter_index": self.chapter.chapter_index,
+                        "novel_title": self.ctx.novel.title,
+                        "novel_synopsis": self.ctx.novel.synopsis,
+                        "character_looks": self.character_looks,
+                        "paragraph_index": idx,
+                        "paragraph": self.paras[idx],
+                        "before_paragraphs": ctx_before,
+                        "after_paragraphs": ctx_after,
+                        "prompt_guideline": self.ctx.prompt_guideline,
+                        "language": self.ctx.language,
+                    },
+                )
+            )
+            logger.debug(f"Chapter {self.chapter.chapter_index} para[{idx}] stage2 prompt:\n{rendered[-1]}")
+        return rendered
+
+    def collect_workflows(
+        self, needs_gen: list[int], image_prompts: list[str]
+    ) -> tuple[list[Workflow], list[int], list[str]]:
+        """Filter empty prompts and build ComfyUI workflows."""
+        workflows: list[Workflow] = []
+        gen_indices: list[int] = []
+        filtered_prompts: list[str] = []
+        for idx, prompt in zip(needs_gen, image_prompts, strict=True):
+            logger.debug(f"Chapter {self.chapter.chapter_index} para[{idx}] aask raw response: {prompt!r}")
+            if not prompt:
+                logger.warn(f"Chapter {self.chapter.chapter_index} para[{idx}]: LLM returned no image prompt")
+                continue
+            logger.debug(f"Chapter {self.chapter.chapter_index} para[{idx}] image prompt: {prompt}")
+            wf = Workflow.from_api(self.ctx.base_wf.to_api())
+            wf.set_positive_prompt(prompt)
+            workflows.append(wf)
+            gen_indices.append(idx)
+            filtered_prompts.append(prompt)
+        return workflows, gen_indices, filtered_prompts
+
+    def process_results(self, gen_indices: list[int], filtered_prompts: list[str], results: list) -> None:
+        """Rename generated images and track successful picks."""
+        for idx, prompt, result in zip(gen_indices, filtered_prompts, results, strict=True):
+            if not result or not result.all_images:
+                logger.warn(f"Image generation failed for paragraph {idx}")
+                continue
+            logger.debug(
+                f"Chapter {self.chapter.chapter_index} para[{idx}] ComfyUI generated: {result.all_images[0].filename}"
+            )
+            src = self.save_dir / result.all_images[0].filename
+            target = self.save_dir / f"scene_{idx}.png"
+            if src != target:
+                src.rename(target)
+            self.valid_picks[idx] = prompt
+            logger.info(f"Illustrated paragraph {idx} in chapter {self.chapter.chapter_index}")
 
 
 class IllustratedNovelCompose(NovelCompose, Comfyui):
@@ -89,6 +180,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
                 logger.warn(f"Failed to generate base look for {char.name}, using full look as fallback")
                 base_looks[char.name] = char.look
         return base_looks
+
     async def inject_chapter_images(
         self,
         novel: Novel,
@@ -164,14 +256,13 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
         return novel
 
-    # TODO typing of kwargs
     async def _allocate_budget(
         self,
         novel: Novel,
         budget: int,
         language: str,
         guideline: Optional[str],
-        **kwargs,
+        **kwargs: Unpack[ValidateKwargs[None]],
     ) -> dict[int, int]:
         """Phase 1: LLM assigns relative weights per chapter, code computes actual counts."""
         rendered = TEMPLATE_MANAGER.render_template(
@@ -222,22 +313,15 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         logger.info(f"Image budget allocation (weights→counts): {weights} → {counts}")
         return counts
 
-    async def _illustrate_chapter(
+    async def _select_paragraphs(
         self,
         ctx: IllustrationContext,
         chapter: "Chapter",
+        paras: list[str],
         chapter_budget: int,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> None:
-        """Two-stage illustration: 1) select paragraphs, 2) generate image prompt per paragraph."""
-        paras = split_paragraphs(chapter.content)
-        if not paras:
-            logger.warn(f"Chapter {chapter.chapter_index} '{chapter.title}': no paragraphs found, skipping")
-            return
-
-        logger.info(f"Chapter {chapter.chapter_index}: {len(paras)} paragraphs, budget={chapter_budget}")
-
-        # Stage 1: Select which paragraphs to illustrate
+    ) -> Optional[list[int]]:
+        """Stage 1: LLM selects paragraphs to illustrate. Returns validated sorted indices or None."""
         select_rendered = TEMPLATE_MANAGER.render_template(
             novel_config.select_paragraphs_template,
             {
@@ -258,11 +342,31 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         )
         if not selected_indices:
             logger.warn(f"Chapter {chapter.chapter_index}: LLM selected no paragraphs for illustration")
-            return
+            return None
 
-        # Validate and deduplicate indices
         valid_indices = sorted({i for i in selected_indices if 0 <= i < len(paras)})
         logger.info(f"Chapter {chapter.chapter_index}: LLM selected paragraphs: {valid_indices}")
+        return valid_indices
+
+    async def _illustrate_chapter(
+        self,
+        ctx: IllustrationContext,
+        chapter: "Chapter",
+        chapter_budget: int,
+        **kwargs: Unpack[ValidateKwargs[None]],
+    ) -> None:
+        """Two-stage illustration: 1) select paragraphs, 2) generate image prompt per paragraph."""
+        paras = split_paragraphs(chapter.content)
+        if not paras:
+            logger.warn(f"Chapter {chapter.chapter_index} '{chapter.title}': no paragraphs found, skipping")
+            return
+
+        logger.info(f"Chapter {chapter.chapter_index}: {len(paras)} paragraphs, budget={chapter_budget}")
+
+        # Stage 1: Select which paragraphs to illustrate
+        valid_indices = await self._select_paragraphs(ctx, chapter, paras, chapter_budget, **kwargs)
+        if not valid_indices:
+            return
 
         # Build character appearance reference using base looks for consistency
         character_looks = (
@@ -271,101 +375,39 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             else []
         )
 
-        # Stage 2: Batch generate all image prompts
-        image_dir = f"images/ch{chapter.chapter_index}"
+        image_dir = Path(f"images/ch{chapter.chapter_index}")
         save_dir = ctx.image_root / image_dir
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        # Skip paragraphs whose scene image already exists (resume support)
-        valid_picks: dict[int, str] = {}
-        needs_gen: list[int] = []
-        for idx in valid_indices:
-            if (save_dir / f"scene_{idx}.png").is_file():
-                valid_picks[idx] = ""
-                logger.info(f"Chapter {chapter.chapter_index} para[{idx}]: scene image exists, skipping generation")
-            else:
-                needs_gen.append(idx)
+        work = _ChapterIllustrator(ctx, chapter, paras, image_dir, save_dir, character_looks)
 
+        # Check existing images (resume support)
+        needs_gen = work.check_existing(valid_indices)
         if not needs_gen:
-            logger.info(f"Chapter {chapter.chapter_index}: all {len(valid_picks)} images already exist on disk")
-            if valid_picks:
-                chapter.content = "\n\n".join(_inject_images(paras, valid_picks, image_dir))
+            logger.info(f"Chapter {chapter.chapter_index}: all {len(work.valid_picks)} images already exist on disk")
+            if work.valid_picks:
+                chapter.content = "\n\n".join(_inject_images(paras, work.valid_picks, image_dir))
             return
 
-        # Stage 2: Batch generate image prompts (only for missing images)
-        prompt_rendereds = []
-        for idx in needs_gen:
-            ctx_before = [{"offset": idx - i, "text": paras[i]} for i in range(max(0, idx - 2), idx)]
-            ctx_after = [{"offset": i - idx, "text": paras[i]} for i in range(idx + 1, min(len(paras), idx + 3))]
-            prompt_rendereds.append(
-                TEMPLATE_MANAGER.render_template(
-                    novel_config.generate_image_prompt_template,
-                    {
-                        "chapter_title": chapter.title,
-                        "chapter_index": chapter.chapter_index,
-                        "novel_title": ctx.novel.title,
-                        "novel_synopsis": ctx.novel.synopsis,
-                        "character_looks": character_looks,
-                        "paragraph_index": idx,
-                        "paragraph": paras[idx],
-                        "before_paragraphs": ctx_before,
-                        "after_paragraphs": ctx_after,
-                        "prompt_guideline": ctx.prompt_guideline,
-                        "language": ctx.language,
-                    },
-                )
-            )
-            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] stage2 prompt:\n{prompt_rendereds[-1]}")
-
-        # Batch LLM call for all prompts
+        # Stage 2: Generate image prompts -> LLM batch -> ComfyUI
+        prompt_rendereds = work.render_prompts(needs_gen)
         image_prompts = await self.aask(prompt_rendereds)
 
-        # Build workflows and collect valid items
-        workflows: list[Workflow] = []
-        gen_indices: list[int] = []
-        filtered_prompts: list[str] = []
-        for idx, image_prompt in zip(needs_gen, image_prompts, strict=True):
-            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] aask raw response: {image_prompt!r}")
-            if not image_prompt:
-                logger.warn(f"Chapter {chapter.chapter_index} para[{idx}]: LLM returned no image prompt")
-                continue
-            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] image prompt: {image_prompt}")
-            wf = Workflow.from_api(ctx.base_wf.to_api())
-            wf.set_positive_prompt(image_prompt)
-            workflows.append(wf)
-            gen_indices.append(idx)
-            filtered_prompts.append(image_prompt)
-
+        workflows, gen_indices, filtered_prompts = work.collect_workflows(needs_gen, image_prompts)
         if not workflows:
             logger.warn(f"Chapter {chapter.chapter_index}: no valid prompts generated")
             return
 
-        # Batch ComfyUI generation (timeout scales with actual batch size)
         comfyui_timeout = len(workflows) * ctx.comfyui_timeout_per_image
         download_dirs = [str(save_dir)] * len(workflows)
         results = await self.acomfyui_generate(workflows, download_dirs=download_dirs, timeout=comfyui_timeout)
 
-        # Process results
-        for idx, image_prompt, result in zip(gen_indices, filtered_prompts, results, strict=True):
-            if not result or not result.all_images:
-                logger.warn(f"Image generation failed for paragraph {idx}")
-                continue
-            logger.debug(
-                f"Chapter {chapter.chapter_index} para[{idx}] ComfyUI generated: {result.all_images[0].filename}"
-            )
-
-            src = save_dir / result.all_images[0].filename
-            target = save_dir / f"scene_{idx}.png"
-            if src != target:
-                src.rename(target)
-
-            valid_picks[idx] = image_prompt
-            logger.info(f"Illustrated paragraph {idx} in chapter {chapter.chapter_index}")
+        work.process_results(gen_indices, filtered_prompts, results)
 
         # Inject <img> tags into raw text
-        if valid_picks:
-            chapter.content = "\n\n".join(_inject_images(paras, valid_picks, image_dir))
-            logger.info(f"Chapter {chapter.chapter_index}: injected {len(valid_picks)} <img> tags")
+        if work.valid_picks:
+            chapter.content = "\n\n".join(_inject_images(paras, work.valid_picks, image_dir))
+            logger.info(f"Chapter {chapter.chapter_index}: injected {len(work.valid_picks)} <img> tags")
         else:
             logger.warn(
                 f"Chapter {chapter.chapter_index}: no images generated from {len(valid_indices)} selected paragraphs"
