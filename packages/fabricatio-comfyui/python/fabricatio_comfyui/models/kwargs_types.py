@@ -21,6 +21,7 @@ class GenerateKwargs(TypedDict, total=False):
     timeout: Optional[float]
     """Maximum seconds to wait for completion. ``None`` uses config default."""
 
+
 class GenerateBatchKwargs(TypedDict, total=False):
     """Keyword arguments for batch ComfyUI generation."""
 
