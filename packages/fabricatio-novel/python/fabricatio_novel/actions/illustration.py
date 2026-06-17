@@ -43,6 +43,9 @@ class IllustrateNovel(IllustratedNovelCompose, Action):
     illustration_prompt_guideline: Optional[str] = None
     """Optional extra guideline for image prompt wording."""
 
+    comfyui_timeout: Optional[float] = None
+    """Absolute ComfyUI timeout in seconds. ``None`` uses budget-scaled default from config."""
+
     output_key: str = "novel"
     """Overwrites the ``novel`` key in context with the illustrated version."""
 
@@ -60,7 +63,6 @@ class IllustrateNovel(IllustratedNovelCompose, Action):
         logger.info(
             f"Illustrating novel '{novel.title}' with budget={self.illustration_budget}, template={template_name}"
         )
-
         result = await self.inject_chapter_images(
             novel=novel,
             image_root=image_root,
@@ -69,6 +71,7 @@ class IllustrateNovel(IllustratedNovelCompose, Action):
             language=self.illustration_language,
             guideline=self.illustration_guideline,
             prompt_guideline=self.illustration_prompt_guideline,
+            comfyui_timeout=self.comfyui_timeout,
         )
 
         logger.info(f"Illustration complete for '{result.title}'.")

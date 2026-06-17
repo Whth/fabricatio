@@ -417,6 +417,13 @@ def write_illustrated_novel(  # noqa: PLR0913
         help="Path to a text file containing image prompt wording guidelines.",
         envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
     ),
+    comfyui_timeout: float = typer.Option(
+        None,
+        "--comfyui-timeout",
+        "-ct",
+        help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
+        envvar="NOVEL_COMFYUI_TIMEOUT",
+    ),
 ) -> None:
     """Generate an illustrated novel with ComfyUI-generated images embedded in the EPUB."""
     from fabricatio_novel.workflows.illustration import DebugIllustratedNovelWorkflow
@@ -461,6 +468,7 @@ def write_illustrated_novel(  # noqa: PLR0913
         illustration_language=illustration_language,
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
+        comfyui_timeout=comfyui_timeout,
     )
 
     result = task.delegate_blocking(illus_ns)
@@ -619,6 +627,13 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         help="Path to a text file containing image prompt wording guidelines.",
         envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
     ),
+    comfyui_timeout: float = typer.Option(
+        None,
+        "--comfyui-timeout",
+        "-ct",
+        help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
+        envvar="NOVEL_COMFYUI_TIMEOUT",
+    ),
 ) -> None:
     """Generate a RAG-augmented novel with ComfyUI illustrations embedded in the EPUB."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -667,6 +682,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         illustration_language=illustration_language,
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
+        comfyui_timeout=comfyui_timeout,
     )
 
     result = task.delegate_blocking(rag_illus_ns)

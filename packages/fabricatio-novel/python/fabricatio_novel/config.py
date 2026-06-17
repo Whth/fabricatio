@@ -51,6 +51,9 @@ class NovelConfig:
     image_prompt_guideline_template: str = "built-in/image_prompt_guideline"
     """template used to render the image prompt generation guideline."""
 
+    comfyui_timeout_per_image: float = 240.0
+    """Timeout in seconds per image for ComfyUI generation. Total timeout = num_images * this value."""
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 

@@ -8,6 +8,7 @@ Three-phase pipeline:
 Then: ComfyUI generates images, <img> tags injected directly into raw text.
 """
 
+from asyncio import gather
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Unpack
@@ -37,6 +38,8 @@ class IllustrationContext:
     guideline: Optional[str]
     prompt_guideline: Optional[str]
     base_looks: dict[str, str]
+    comfyui_timeout_per_image: float
+    """Per-image ComfyUI timeout in seconds. Multiply by chapter budget for total timeout."""
 
 
 def _inject_images(paras: list[str], picks: dict[int, str], image_dir: str) -> list[str]:
@@ -68,13 +71,17 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         if not novel.characters:
             return {}
 
-        base_looks: dict[str, str] = {}
-        for char in novel.characters:
-            rendered = TEMPLATE_MANAGER.render_template(
+        prompts = [
+            TEMPLATE_MANAGER.render_template(
                 novel_config.character_base_look_template,
                 {"name": char.name, "look": char.look, "language": language},
             )
-            result = await self.aask(rendered)
+            for char in novel.characters
+        ]
+        results = await self.aask(prompts)
+
+        base_looks: dict[str, str] = {}
+        for char, result in zip(novel.characters, results, strict=True):
             if result:
                 base_looks[char.name] = result.strip()
                 logger.debug(f"Base look for {char.name}: {result.strip()}")
@@ -82,7 +89,6 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
                 logger.warn(f"Failed to generate base look for {char.name}, using full look as fallback")
                 base_looks[char.name] = char.look
         return base_looks
-
     async def inject_chapter_images(
         self,
         novel: Novel,
@@ -92,6 +98,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         language: str = "en",
         guideline: Optional[str] = None,
         prompt_guideline: Optional[str] = None,
+        comfyui_timeout: Optional[float] = None,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Novel:
         """Two-phase image injection pipeline."""
@@ -134,8 +141,9 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             logger.warn("Budget allocation returned empty — no chapters will be illustrated. Check LLM response.")
             return novel
 
-        # Phase 2: per-chapter illustration
+        # Phase 2: per-chapter illustration (parallel)
         base_wf = Workflow.from_file(workflow_template) if workflow_template else Workflow.default()
+        per_image = comfyui_timeout / budget if comfyui_timeout is not None else novel_config.comfyui_timeout_per_image
         ctx = IllustrationContext(
             novel=novel,
             image_root=image_root,
@@ -144,11 +152,15 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             guideline=rendered_guideline,
             prompt_guideline=rendered_prompt_guideline,
             base_looks=base_looks,
+            comfyui_timeout_per_image=per_image,
         )
-        for chapter in novel.chapters:
-            chapter_budget = budget_map.get(chapter.chapter_index, 0)
-            if chapter_budget > 0:
-                await self._illustrate_chapter(ctx, chapter, chapter_budget, **kwargs)
+        chapter_tasks = [
+            self._illustrate_chapter(ctx, chapter, budget_map.get(chapter.chapter_index, 0), **kwargs)
+            for chapter in novel.chapters
+            if budget_map.get(chapter.chapter_index, 0) > 0
+        ]
+        if chapter_tasks:
+            await gather(*chapter_tasks)
 
         return novel
 
@@ -259,51 +271,83 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             else []
         )
 
-        # Stage 2: Generate image prompt for each selected paragraph
+        # Stage 2: Batch generate all image prompts
         image_dir = f"images/ch{chapter.chapter_index}"
-        valid_picks: dict[int, str] = {}
+        save_dir = ctx.image_root / image_dir
+        save_dir.mkdir(parents=True, exist_ok=True)
 
+        # Skip paragraphs whose scene image already exists (resume support)
+        valid_picks: dict[int, str] = {}
+        needs_gen: list[int] = []
         for idx in valid_indices:
-            # Build surrounding context (up to 2 paragraphs before/after)
+            if (save_dir / f"scene_{idx}.png").is_file():
+                valid_picks[idx] = ""
+                logger.info(f"Chapter {chapter.chapter_index} para[{idx}]: scene image exists, skipping generation")
+            else:
+                needs_gen.append(idx)
+
+        if not needs_gen:
+            logger.info(f"Chapter {chapter.chapter_index}: all {len(valid_picks)} images already exist on disk")
+            if valid_picks:
+                chapter.content = "\n\n".join(_inject_images(paras, valid_picks, image_dir))
+            return
+
+        # Stage 2: Batch generate image prompts (only for missing images)
+        prompt_rendereds = []
+        for idx in needs_gen:
             ctx_before = [{"offset": idx - i, "text": paras[i]} for i in range(max(0, idx - 2), idx)]
             ctx_after = [{"offset": i - idx, "text": paras[i]} for i in range(idx + 1, min(len(paras), idx + 3))]
-
-            prompt_rendered = TEMPLATE_MANAGER.render_template(
-                novel_config.generate_image_prompt_template,
-                {
-                    "chapter_title": chapter.title,
-                    "chapter_index": chapter.chapter_index,
-                    "novel_title": ctx.novel.title,
-                    "novel_synopsis": ctx.novel.synopsis,
-                    "character_looks": character_looks,
-                    "paragraph_index": idx,
-                    "paragraph": paras[idx],
-                    "before_paragraphs": ctx_before,
-                    "after_paragraphs": ctx_after,
-                    "prompt_guideline": ctx.prompt_guideline,
-                    "language": ctx.language,
-                },
+            prompt_rendereds.append(
+                TEMPLATE_MANAGER.render_template(
+                    novel_config.generate_image_prompt_template,
+                    {
+                        "chapter_title": chapter.title,
+                        "chapter_index": chapter.chapter_index,
+                        "novel_title": ctx.novel.title,
+                        "novel_synopsis": ctx.novel.synopsis,
+                        "character_looks": character_looks,
+                        "paragraph_index": idx,
+                        "paragraph": paras[idx],
+                        "before_paragraphs": ctx_before,
+                        "after_paragraphs": ctx_after,
+                        "prompt_guideline": ctx.prompt_guideline,
+                        "language": ctx.language,
+                    },
+                )
             )
-            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] stage2 prompt:\n{prompt_rendered}")
+            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] stage2 prompt:\n{prompt_rendereds[-1]}")
 
-            image_prompt = await self.aask(prompt_rendered)
+        # Batch LLM call for all prompts
+        image_prompts = await self.aask(prompt_rendereds)
+
+        # Build workflows and collect valid items
+        workflows: list[Workflow] = []
+        gen_indices: list[int] = []
+        filtered_prompts: list[str] = []
+        for idx, image_prompt in zip(needs_gen, image_prompts, strict=True):
             logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] aask raw response: {image_prompt!r}")
             if not image_prompt:
                 logger.warn(f"Chapter {chapter.chapter_index} para[{idx}]: LLM returned no image prompt")
                 continue
-
             logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] image prompt: {image_prompt}")
-
-            # Generate image via ComfyUI
-            save_dir = ctx.image_root / image_dir
-            save_dir.mkdir(parents=True, exist_ok=True)
-
             wf = Workflow.from_api(ctx.base_wf.to_api())
             wf.set_positive_prompt(image_prompt)
-            logger.debug(f"Chapter {chapter.chapter_index} para[{idx}] ComfyUI positive prompt: {image_prompt}")
+            workflows.append(wf)
+            gen_indices.append(idx)
+            filtered_prompts.append(image_prompt)
 
-            result = await self.acomfyui_generate(wf, download_dir=str(save_dir))
-            if not result.all_images:
+        if not workflows:
+            logger.warn(f"Chapter {chapter.chapter_index}: no valid prompts generated")
+            return
+
+        # Batch ComfyUI generation (timeout scales with actual batch size)
+        comfyui_timeout = len(workflows) * ctx.comfyui_timeout_per_image
+        download_dirs = [str(save_dir)] * len(workflows)
+        results = await self.acomfyui_generate(workflows, download_dirs=download_dirs, timeout=comfyui_timeout)
+
+        # Process results
+        for idx, image_prompt, result in zip(gen_indices, filtered_prompts, results, strict=True):
+            if not result or not result.all_images:
                 logger.warn(f"Image generation failed for paragraph {idx}")
                 continue
             logger.debug(
