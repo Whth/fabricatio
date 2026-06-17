@@ -72,9 +72,7 @@ const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
         <span v-else-if="execStore.executionState === 'completed'" class="done-text">
           Completed
         </span>
-        <span v-else-if="execStore.executionState === 'failed'" class="error-text">
-          Failed
-        </span>
+        <span v-else-if="execStore.executionState === 'failed'" class="error-text"> Failed </span>
         <span v-else class="idle-text">Idle</span>
       </div>
 

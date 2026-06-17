@@ -75,7 +75,7 @@ function onDrop(ev: DragEvent) {
         position="bottom-right"
         :pannable="true"
         :zoomable="true"
-        :node-stroke-color="(n: any) => n.data?.category === 'llm' ? '#a371f7' : '#30363d'"
+        :node-stroke-color="(n: any) => (n.data?.category === 'llm' ? '#a371f7' : '#30363d')"
       />
     </VueFlow>
   </div>

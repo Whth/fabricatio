@@ -21,10 +21,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   getNodes: () => request<NodeTypeDefinition[]>('GET', '/nodes'),
   getWorkflows: () => request<WorkflowJSON[]>('GET', '/workflows'),
-  saveWorkflow: (wf: WorkflowJSON) =>
-    request<{ id: string }>('POST', '/workflows', wf),
-  execute: (req: ExecutionRequest) =>
-    request<{ execution_id: string }>('POST', '/execute', req),
+  saveWorkflow: (wf: WorkflowJSON) => request<{ id: string }>('POST', '/workflows', wf),
+  execute: (req: ExecutionRequest) => request<{ execution_id: string }>('POST', '/execute', req),
   interrupt: () => request<{ ok: boolean }>('POST', '/interrupt'),
   getQueue: () => request<unknown[]>('GET', '/queue'),
   getHistory: () => request<ExecutionStatus[]>('GET', '/history'),

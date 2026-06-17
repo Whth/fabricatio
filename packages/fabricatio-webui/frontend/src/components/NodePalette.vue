@@ -67,20 +67,11 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
     </div>
 
     <div class="search-bar">
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Search nodes..."
-        class="search-input"
-      />
+      <input v-model="search" type="text" placeholder="Search nodes..." class="search-input" />
     </div>
 
     <div class="palette-list">
-      <div
-        v-for="(items, category) in groupedByCategory"
-        :key="category"
-        class="category-group"
-      >
+      <div v-for="(items, category) in groupedByCategory" :key="category" class="category-group">
         <button class="category-header" @click="toggleCategory(category)">
           <span class="category-toggle">{{ collapsed[category] ? '\u25B6' : '\u25BC' }}</span>
           <span class="category-icon">{{ CATEGORY_ICONS[category] || '\u2699\uFE0F' }}</span>
@@ -102,9 +93,7 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
         </div>
       </div>
 
-      <div v-if="filteredTypes.length === 0" class="empty-hint">
-        No nodes match "{{ search }}"
-      </div>
+      <div v-if="filteredTypes.length === 0" class="empty-hint">No nodes match "{{ search }}"</div>
     </div>
   </aside>
 </template>
