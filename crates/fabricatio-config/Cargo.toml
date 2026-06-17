@@ -9,7 +9,7 @@ license-file.workspace = true
 
 [dependencies]
 once_cell = "1.21.4"
-pyo3-stub-gen = { version = "0.22.3" }
+pyo3-stub-gen = { version = "0.23.0" }
 
 pyo3 = "0.29.0"
 fabricatio-constants = { path = "../fabricatio-constants" }

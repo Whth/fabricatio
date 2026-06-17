@@ -15,7 +15,7 @@ error-mapping = { workspace = true, features = [
     "strum", "lancedb", "serde_json", "pythonize",
     "pyo3_cast", "arrow-schema", "thryd"
 ] }
-pyo3-stub-gen = "0.22.3"
+pyo3-stub-gen = "0.23.0"
 strum = { version = "0.28.0", features = ["derive"] }
 lancedb = { version = "0.30.0", default-features = false }
 pythonize = "0.29.0"
