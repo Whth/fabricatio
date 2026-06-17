@@ -7,12 +7,14 @@ from unittest.mock import patch
 
 import pytest
 from fabricatio_comfyui import (
+    Comfyui,
     ComfyuiClient,
     ComfyuiExecutionResult,
     ComfyuiNodeRef,
     ComfyuiOutputImage,
     Node,
     Workflow,
+    get_client,
 )
 from fabricatio_comfyui.models.comfyui import (
     HistoryEntry,
@@ -645,6 +647,114 @@ class TestClientPool:
         assert len(_CLIENT_POOL) == 1
         await close_all()
         assert len(_CLIENT_POOL) == 0
+
+
+# ======================================================================
+# Batch capability tests (via Comfyui mixin)
+# ======================================================================
+
+
+class _BatchRole(Comfyui):
+    """Concrete role for testing batch Comfyui methods."""
+
+
+@pytest.mark.asyncio
+async def test_generate_batch_flow(tmp_path: Path) -> None:
+    """Batch acomfyui_generate: queue 3 workflows, poll 3, download all."""
+    role = _BatchRole()
+    workflows = [
+        {"3": {"class_type": "KSampler", "inputs": {"seed": i}}}
+        for i in range(3)
+    ]
+
+    mock_history: Dict[str, Any] = {
+        f"pid-{i}": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": f"out_{i}.png", "subfolder": "", "type": "output"}]}},
+        }
+        for i in range(3)
+    }
+
+    client = get_client()
+    with (
+        patch.object(client._http, "_post") as mock_post,
+        patch.object(client._http, "_get") as mock_get,
+        patch.object(client, "_download_images") as mock_dl,
+    ):
+        mock_post.side_effect = [
+            {"prompt_id": f"pid-{i}", "number": i} for i in range(3)
+        ]
+
+        async def get_side_effect(path: str, **_: Any) -> Any:
+            if path.startswith("/history/"):
+                return mock_history
+            return {}
+
+        mock_get.side_effect = get_side_effect
+        mock_dl.return_value = None
+
+        results = await role.acomfyui_generate(
+            workflows,
+            download_dirs=[str(tmp_path / f"ch{i}") for i in range(3)],
+        )
+
+        assert len(results) == 3
+        for i, r in enumerate(results):
+            assert r.prompt_id == f"pid-{i}"
+            assert r.succeeded is True
+        assert mock_post.call_count == 3
+        assert mock_dl.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_queue_batch() -> None:
+    """Batch acomfyui_queue: submit 3 workflows, return 3 PromptResponse."""
+    role = _BatchRole()
+    workflows = [
+        {"1": {"class_type": "VAELoader", "inputs": {}}}
+        for _ in range(3)
+    ]
+
+    client = get_client()
+    with patch.object(client._http, "_post") as mock_post:
+        mock_post.side_effect = [
+            {"prompt_id": f"pid-{i}", "number": i, "node_errors": {}} for i in range(3)
+        ]
+        responses = await role.acomfyui_queue(workflows)
+
+        assert len(responses) == 3
+        for i, resp in enumerate(responses):
+            assert isinstance(resp, PromptResponse)
+            assert resp.prompt_id == f"pid-{i}"
+        assert mock_post.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_retrieve_batch() -> None:
+    """Batch acomfyui_retrieve: poll 3 prompt_ids, return 3 results."""
+    role = _BatchRole()
+
+    client = get_client()
+    raw = {
+        "pid-0": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+        "pid-2": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    with patch.object(client._http, "_get") as mock_get:
+        async def get_side_effect(path: str, **_: Any) -> Any:
+            if path.startswith("/history/"):
+                return raw
+            return {}
+        mock_get.side_effect = get_side_effect
+
+        results = await role.acomfyui_retrieve(
+            ["pid-0", "pid-1", "pid-2"], poll_interval=0.01, timeout=5.0
+        )
+
+        assert len(results) == 3
+        for i, r in enumerate(results):
+            assert r.prompt_id == f"pid-{i}"
+            assert r.status == "completed"
 
 
 # ======================================================================

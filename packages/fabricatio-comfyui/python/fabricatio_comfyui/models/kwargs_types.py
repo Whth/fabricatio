@@ -21,6 +21,15 @@ class GenerateKwargs(TypedDict, total=False):
     timeout: Optional[float]
     """Maximum seconds to wait for completion. ``None`` uses config default."""
 
+class GenerateBatchKwargs(TypedDict, total=False):
+    """Keyword arguments for batch ComfyUI generation."""
+
+    download_dirs: list[str | Path | None]
+    """Per-workflow download directories. ``None`` entries skip download."""
+
+    timeout: Optional[float]
+    """Maximum seconds to wait for completion."""
+
 
 class PollKwargs(TypedDict, total=False):
     """Keyword arguments for :meth:`ComfyuiClient.wait_for_completion`.

@@ -16,6 +16,7 @@ from fabricatio_comfyui.models.comfyui import (
     ViewImageParams,
 )
 from fabricatio_comfyui.models.kwargs_types import (
+    GenerateBatchKwargs,
     GenerateKwargs,
     PollKwargs,
     QueueKwargs,
@@ -27,6 +28,7 @@ __all__ = [
     "ComfyuiExecutionResult",
     "ComfyuiNodeRef",
     "ComfyuiOutputImage",
+    "GenerateBatchKwargs",
     "GenerateKwargs",
     "HistoryEntry",
     "HistoryNodeOutput",
