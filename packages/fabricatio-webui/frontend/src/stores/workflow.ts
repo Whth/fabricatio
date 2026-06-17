@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { Node, Edge, Connection } from '@vue-flow/core'
+import type { Connection } from '@vue-flow/core'
 import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
 import { api } from '@/api/client'
 
@@ -17,9 +17,25 @@ export interface FabricatioNodeData {
   nodeId: string
 }
 
+export interface WorkflowNode {
+  id: string
+  type: string
+  position: { x: number; y: number }
+  data: FabricatioNodeData
+}
+
+export interface WorkflowEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string | null
+  targetHandle?: string | null
+  type: string
+}
+
 export const useWorkflowStore = defineStore('workflow', () => {
-  const nodes = ref<Node<FabricatioNodeData>[]>([])
-  const edges = ref<Edge[]>([])
+  const nodes = ref<WorkflowNode[]>([])
+  const edges = ref<WorkflowEdge[]>([])
   const nodeTypes = ref<NodeTypeDefinition[]>([])
   const selectedNodeId = ref<string | null>(null)
   const workflowName = ref('Untitled Workflow')
@@ -36,7 +52,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   function addNode(typeDef: NodeTypeDefinition, position: { x: number; y: number }) {
     const id = nextNodeId(typeDef.type)
-    const node: Node<FabricatioNodeData> = {
+    const node: WorkflowNode = {
       id,
       type: 'fabricatio',
       position,
@@ -68,7 +84,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     const id = `e_${connection.source}_${connection.sourceHandle}_${connection.target}_${connection.targetHandle}`
     // prevent duplicates
     if (edges.value.some((e) => e.id === id)) return
-    const edge: Edge = {
+    const edge: WorkflowEdge = {
       id,
       source: connection.source,
       target: connection.target,

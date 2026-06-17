@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useWorkflowStore, type FabricatioNodeData } from '@/stores/workflow'
+import { useWorkflowStore } from '@/stores/workflow'
 
 const wfStore = useWorkflowStore()
 
@@ -8,25 +8,25 @@ const node = computed(() => wfStore.selectedNode)
 
 function updateInput(portName: string, value: string) {
   if (!node.value) return
-  const data = node.value.data as FabricatioNodeData
+  const data = node.value.data
   data.inputs = { ...data.inputs, [portName]: value }
 }
 
 function updateConfig(fieldName: string, value: string) {
   if (!node.value) return
-  const data = node.value.data as FabricatioNodeData
+  const data = node.value.data
   data.config = { ...data.config, [fieldName]: value }
 }
 
 function inputValue(portName: string): string {
   if (!node.value) return ''
-  const data = node.value.data as FabricatioNodeData
+  const data = node.value.data
   return String(data.inputs[portName] ?? '')
 }
 
 function configValue(fieldName: string): string {
   if (!node.value) return ''
-  const data = node.value.data as FabricatioNodeData
+  const data = node.value.data
   return String(data.config[fieldName] ?? '')
 }
 </script>
@@ -96,7 +96,9 @@ function configValue(fieldName: string): string {
       <section class="config-section" v-if="(node.data?.capabilities?.length ?? 0) > 0">
         <h4 class="section-title">Capabilities</h4>
         <div class="cap-list">
-          <span v-for="cap in node.data?.capabilities ?? []" :key="cap" class="cap-badge">{{ cap }}</span>
+          <span v-for="cap in node.data?.capabilities ?? []" :key="cap" class="cap-badge">{{
+            cap
+          }}</span>
         </div>
       </section>
     </div>
