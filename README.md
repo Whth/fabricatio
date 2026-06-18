@@ -99,7 +99,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Workflow template system with dynamic parameter injection
     - [x] `ComfyUIAction` + Python bindings + integration tests
     - [ ] WebSocket real-time progress tracking
-    - [ ] End-to-end integration test with running ComfyUI instance
+    - [x] End-to-end integration test with running ComfyUI instance
 - [ ] Novel scene image generation with ComfyUI.
     - [ ] Scene extraction from novel content + prompt engineering for image generation
     - [ ] `SceneImageAction` in `fabricatio-novel` calling `fabricatio-comfyui` to generate scene illustrations
@@ -164,7 +164,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Extract lancedb impl into a seperate package
 - [x] `fabricatio-novel` support rag
 - [x] Lancedb integration refactor
-   - [ ] Refactor `fabricatio-typst`
+   - [x] Refactor `fabricatio-typst`
 - [x] Milvus integration refactor
 - [x] Novel generation fix
 - [x] Embedding fail without any debug info fix
