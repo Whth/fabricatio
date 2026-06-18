@@ -65,8 +65,7 @@ These can also be set per-instance via `MilvusScopedConfig` (pydantic model with
 
 **`MilvusRAG` methods:**
 
-- `init_client(milvus_uri, milvus_token, milvus_timeout)` — initialize the underlying `MilvusClient`.
-- `check_client(init=True)` — ensure client is initialized, optionally initializing from config.
+- `client` — property returning the `MilvusClient`, eagerly created on construction from config.
 - `add_document(data, config)` — vectorize documents and insert into a collection. Creates the collection if it doesn't exist.
 - `afetch_document(query, config)` — vectorize query strings, search Milvus, deduplicate by ID, sort by distance descending, and deserialize into typed document models.
 - `aretrieve(query, document_model, ...)` — convenience wrapper that builds a `FetchConfig` and calls `afetch_document`.

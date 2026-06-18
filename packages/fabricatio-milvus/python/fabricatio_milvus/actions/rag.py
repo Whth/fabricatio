@@ -33,12 +33,12 @@ class InjectToDB(Action, MilvusRAG):
             return None
         logger.info(f"Injecting {len(seq)} items into the collection '{self.collection_name}'")
         if override_inject:
-            self.check_client().client.drop_collection(self.collection_name)
+            self.client.drop_collection(self.collection_name)
 
         dimension = ok(
             self.milvus_dimensions or milvus_config.milvus_dimensions or self.embedding_ndim or CONFIG.embedding.ndim
         )
-        if not self.check_client().client.has_collection(self.collection_name):
+        if not self.client.has_collection(self.collection_name):
             self.client.create_collection(
                 self.collection_name,
                 auto_id=True,
@@ -78,7 +78,7 @@ class MilvusRAGTalk(Action, MilvusRAG):
         collection_name = kwargs.get("collection_name", "my_collection")
         counter = 0
 
-        if not self.check_client().client.has_collection(collection_name):
+        if not self.client.has_collection(collection_name):
             self.client.create_collection(
                 collection_name,
                 auto_id=True,

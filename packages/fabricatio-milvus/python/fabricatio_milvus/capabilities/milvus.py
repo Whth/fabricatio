@@ -8,7 +8,6 @@ from fabricatio_core import logger
 from fabricatio_core.utils import ok
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase
 from more_itertools import flatten, unique
-from pydantic import PrivateAttr
 from pymilvus import MilvusClient
 
 from fabricatio_milvus.config import milvus_config
@@ -48,36 +47,19 @@ class FetchConfig[D: MilvusDataBase](RAGConfigBase):
 class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedConfig, RAG[D, D, AC, FC]):
     """A class for the RAG model using Milvus."""
 
-    _client: Optional[MilvusClient] = PrivateAttr(None)
-    """The Milvus client used for the RAG model."""
-
     @property
     def client(self) -> MilvusClient:
-        """Return the Milvus client."""
-        return ok(self._client, "Client is not initialized. Have you called `self.init_client()`?")
-
-    def init_client(
-        self,
-        milvus_uri: Optional[str] = None,
-        milvus_token: Optional[str] = None,
-        milvus_timeout: Optional[float] = None,
-    ) -> Self:
-        """Initialize the Milvus client."""
-        self._client = create_client(
-            uri=milvus_uri or ok(self.milvus_uri or milvus_config.milvus_uri),
-            token=milvus_token
-            or (token.get_secret_value() if (token := (self.milvus_token or milvus_config.milvus_token)) else ""),
-            timeout=milvus_timeout or self.milvus_timeout or milvus_config.milvus_timeout,
+        """Return the Milvus client, created on first access via cached factory."""
+        return create_client(
+            uri=ok(self.milvus_uri or milvus_config.milvus_uri, "milvus_uri must be configured"),
+            token=(
+                token.get_secret_value()
+                if (token := self.milvus_token or milvus_config.milvus_token)
+                else ""
+            ),
+            timeout=self.milvus_timeout or milvus_config.milvus_timeout,
         )
-        return self
 
-    def check_client(self, init: bool = True) -> Self:
-        """Check if the client is initialized, and if not, initialize it."""
-        if self._client is None and init:
-            return self.init_client()
-        if self._client is None and not init:
-            raise RuntimeError("Client is not initialized. Have you called `self.init_client()`?")
-        return self
 
     async def add_document(
         self,
@@ -100,7 +82,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         prepared_data = [d.prepare_insertion(vec) for d, vec in zip(data_seq, data_vec, strict=True)]
 
         c_name = ok(conf.collection_name, "collection_name must be provided in AddConfig")
-        self.check_client().client.insert(c_name, prepared_data)
+        self.client.insert(c_name, prepared_data)
 
         if conf.flush:
             logger.debug(f"Flushing collection {c_name}")
@@ -126,7 +108,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         if doc_model is None:
             raise ValueError("document_model must be provided in FetchConfig")
         # Step 1: Search for vectors
-        search_results = self.check_client().client.search(
+        search_results = self.client.search(
             ok(conf.collection_name, "collection_name must be provided in FetchConfig"),
             await self.vectorize(query),
             search_params={"radius": conf.similarity_threshold},
