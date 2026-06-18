@@ -1,7 +1,7 @@
 """ComfyUI capability mixin.
 
 Mix into a Role to gain ComfyUI interaction methods.  Clients are shared
-via :func:`~fabricatio_comfyui.pool.get_client` — no per-instance state.
+via :meth:`ComfyuiHTTPClient.create` (``@lru_cache``) — no per-instance state.
 
 Predicate-verb methods (``acomfyui_*``) follow the same naming convention as
 :class:`fabricatio_core.capabilities.usages.UseLLM` — ``a`` prefix + domain verb.
@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Unpack, overload
 from fabricatio_core.journal import logger
 
 from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.pool import get_client
+from fabricatio_comfyui.http_client import ComfyuiHTTPClient
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -69,7 +69,7 @@ class Comfyui:
         """Execute one or more workflows: queue all, then poll all, then download."""
         if isinstance(workflow, list):
             # Phase 1: submit all (parallel HTTP)
-            responses: List[PromptResponse] = list(await gather(*(get_client().queue_prompt(wf) for wf in workflow)))
+            responses: List[PromptResponse] = list(await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf) for wf in workflow)))
             logger.info(f"Batch queued {len(responses)} ComfyUI prompts")
 
             # Phase 2: wait for all (parallel polling)
@@ -78,7 +78,7 @@ class Comfyui:
             effective_timeout = timeout or comfyui_config.timeout
             results: List[ComfyuiExecutionResult] = list(
                 await gather(
-                    *(get_client().wait_for_completion(r.prompt_id, timeout=effective_timeout) for r in responses)
+                    *(ComfyuiHTTPClient.create(None).wait_for_completion(r.prompt_id, timeout=effective_timeout) for r in responses)
                 )
             )
 
@@ -87,7 +87,7 @@ class Comfyui:
             if download_dirs:
                 await gather(
                     *(
-                        get_client()._download_images(result, d)
+                        ComfyuiHTTPClient.create(None).download_images(result, d)
                         for result, d in zip(results, download_dirs, strict=True)
                         if d is not None and result.succeeded
                     )
@@ -102,11 +102,11 @@ class Comfyui:
         timeout = kwargs.get("timeout")
         effective_timeout = timeout or comfyui_config.timeout
 
-        resp = await get_client().queue_prompt(workflow)
-        result = await get_client().wait_for_completion(resp.prompt_id, timeout=effective_timeout)
+        resp = await ComfyuiHTTPClient.create(None).queue_prompt(workflow)
+        result = await ComfyuiHTTPClient.create(None).wait_for_completion(resp.prompt_id, timeout=effective_timeout)
 
         if download_dir is not None and result.succeeded:
-            await get_client()._download_images(result, download_dir)
+            await ComfyuiHTTPClient.create(None).download_images(result, download_dir)
 
         if result.succeeded:
             logger.info(f"ComfyUI generation completed: {len(result.all_images)} images")
@@ -137,21 +137,21 @@ class Comfyui:
     ) -> "PromptResponse | List[PromptResponse]":
         """Submit one or more workflows for execution without waiting."""
         if isinstance(workflow, list):
-            results = list(await gather(*(get_client().queue_prompt(wf, **kwargs) for wf in workflow)))
+            results = list(await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf, **kwargs) for wf in workflow)))
             for r in results:
                 logger.info(f"ComfyUI prompt queued: {r.prompt_id}")
             return results
-        resp = await get_client().queue_prompt(workflow, **kwargs)
+        resp = await ComfyuiHTTPClient.create(None).queue_prompt(workflow, **kwargs)
         logger.info(f"ComfyUI prompt queued: {resp.prompt_id}")
         return resp
 
     async def acomfyui_inspect_queue(self) -> "QueueInfo":
         """Fetch the current execution queue state."""
-        return await get_client().get_queue_info()
+        return await ComfyuiHTTPClient.create(None).get_queue_info()
 
     async def acomfyui_history(self, prompt_id: str) -> "HistoryEntry | None":
         """Retrieve execution history for *prompt_id*."""
-        return await get_client().get_history(prompt_id)
+        return await ComfyuiHTTPClient.create(None).get_history(prompt_id)
 
     # -- acomfyui_retrieve: single + batch --
 
@@ -176,8 +176,8 @@ class Comfyui:
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Poll until one or more prompt_ids complete."""
         if isinstance(prompt_id, list):
-            return list(await gather(*(get_client().wait_for_completion(pid, **kwargs) for pid in prompt_id)))
-        return await get_client().wait_for_completion(prompt_id, **kwargs)
+            return list(await gather(*(ComfyuiHTTPClient.create(None).wait_for_completion(pid, **kwargs) for pid in prompt_id)))
+        return await ComfyuiHTTPClient.create(None).wait_for_completion(prompt_id, **kwargs)
 
     async def acomfyui_retrieve_image(
         self,
@@ -185,7 +185,7 @@ class Comfyui:
         **kwargs: "Unpack[ViewImageKwargs]",
     ) -> bytes:
         """Download a single generated image by filename."""
-        data = await get_client().get_image(filename, **kwargs)
+        data = await ComfyuiHTTPClient.create(None).get_image(filename, **kwargs)
         logger.info(f"Downloaded image: {filename}")
         return data
 
@@ -195,13 +195,13 @@ class Comfyui:
         **kwargs: "Unpack[UploadKwargs]",
     ) -> "UploadResponse":
         """Upload an image to the server."""
-        resp = await get_client().upload_image(image_path, **kwargs)
+        resp = await ComfyuiHTTPClient.create(None).upload_image(image_path, **kwargs)
         logger.info(f"Uploaded image -> {resp.name}")
         return resp
 
     async def acomfyui_interrupt(self) -> None:
         """Interrupt the currently running workflow."""
-        await get_client().interrupt()
+        await ComfyuiHTTPClient.create(None).interrupt()
         logger.info("ComfyUI execution interrupted")
 
     # ------------------------------------------------------------------

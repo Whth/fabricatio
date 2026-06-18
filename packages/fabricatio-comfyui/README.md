@@ -13,11 +13,11 @@ connection pooling and full Pydantic-typed API coverage.
 
 The package provides three integration layers, each building on the one below:
 
-| Layer | Class | Purpose |
-|-------|-------|---------|
-| Client | `ComfyuiClient` | Standalone async HTTP client with connection pooling |
-| Capability | `Comfyui` | Mixin that adds ComfyUI methods to a Fabricatio `Role` |
-| Action | `ComfyuiGenerateImage`, `ComfyuiUploadImage` | Pluggable steps for Fabricatio `WorkFlow` |
+| Layer      | Class                                        | Purpose                                                |
+|------------|----------------------------------------------|--------------------------------------------------------|
+| Client     | `ComfyuiClient`                              | Standalone async HTTP client with connection pooling   |
+| Capability | `Comfyui`                                    | Mixin that adds ComfyUI methods to a Fabricatio `Role` |
+| Action     | `ComfyuiGenerateImage`, `ComfyuiUploadImage` | Pluggable steps for Fabricatio `WorkFlow`              |
 
 Pre-built workflow templates (`Txt2Img`, `Txt2ImgWithDownload`) are also
 available as a quick starting point.
@@ -50,11 +50,11 @@ timeout = 300
 
 The config dataclass supports three fields:
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `base_url` | `http://127.0.0.1:8188` | ComfyUI server base URL |
-| `timeout` | `300.0` | Request timeout in seconds |
-| `pool_size` | `10` | Max concurrent connections in the httpx pool |
+| Field       | Default                 | Description                                  |
+|-------------|-------------------------|----------------------------------------------|
+| `base_url`  | `http://127.0.0.1:8188` | ComfyUI server base URL                      |
+| `timeout`   | `300.0`                 | Request timeout in seconds                   |
+| `pool_size` | `10`                    | Max concurrent connections in the httpx pool |
 
 Access config at runtime: `from fabricatio_comfyui import comfyui_config`
 
@@ -69,11 +69,13 @@ dependency beyond config:
 import asyncio
 from fabricatio_comfyui import ComfyuiClient
 
+
 async def main() -> None:
-    async with ComfyuiClient.create() as client:
+    async with ComfyuiClient.create(None) as client:
         result = await client.generate(workflow, download_dir="./outputs")
         for img in result.all_images:
             image_bytes = await client.get_image(img.filename)
+
 
 asyncio.run(main())
 ```
@@ -88,14 +90,17 @@ import asyncio
 from fabricatio import Role
 from fabricatio_comfyui import Comfyui
 
+
 class ImageRole(Role, Comfyui):
     """Role with ComfyUI image generation capability."""
+
 
 async def main() -> None:
     role = ImageRole(name="ComfyUI Worker")
     result = await role.acomfyui_generate(workflow, download_dir="./outputs")
     for img in result.all_images:
         print(img.filename)
+
 
 asyncio.run(main())
 ```
@@ -147,38 +152,38 @@ All methods are available on both `ComfyuiClient` and the `Comfyui` capability
 mixin (prefixed with `acomfyui_` on the mixin, following the `a`-prefix
 predicate-verb convention used by `UseLLM`).
 
-| Client method | Capability method | Returns | Description |
-|---------------|-------------------|---------|-------------|
-| `generate(workflow, …)` | `acomfyui_generate(…)` | `ComfyuiExecutionResult` | Queue + wait + optionally download images |
-| `queue_prompt(workflow)` | `acomfyui_queue(…)` | `PromptResponse` | Submit a workflow graph for execution |
-| `get_queue_info()` | `acomfyui_inspect_queue()` | `QueueInfo` | Fetch current queue status (running + pending) |
-| `get_history(prompt_id)` | `acomfyui_history(prompt_id)` | `HistoryEntry \| None` | Retrieve execution history for a prompt |
-| `wait_for_completion(prompt_id)` | `acomfyui_retrieve(prompt_id)` | `ComfyuiExecutionResult` | Poll until execution finishes or fails |
-| `get_image(filename, …)` | `acomfyui_retrieve_image(filename, …)` | `bytes` | Download a single generated image |
-| `upload_image(image_path, …)` | `acomfyui_upload(image_path, …)` | `UploadResponse` | Upload an image for img2img workflows |
-| `interrupt()` | `acomfyui_interrupt()` | `None` | Interrupt the currently running workflow |
+| Client method                    | Capability method                      | Returns                  | Description                                    |
+|----------------------------------|----------------------------------------|--------------------------|------------------------------------------------|
+| `generate(workflow, …)`          | `acomfyui_generate(…)`                 | `ComfyuiExecutionResult` | Queue + wait + optionally download images      |
+| `queue_prompt(workflow)`         | `acomfyui_queue(…)`                    | `PromptResponse`         | Submit a workflow graph for execution          |
+| `get_queue_info()`               | `acomfyui_inspect_queue()`             | `QueueInfo`              | Fetch current queue status (running + pending) |
+| `get_history(prompt_id)`         | `acomfyui_history(prompt_id)`          | `HistoryEntry \| None`   | Retrieve execution history for a prompt        |
+| `wait_for_completion(prompt_id)` | `acomfyui_retrieve(prompt_id)`         | `ComfyuiExecutionResult` | Poll until execution finishes or fails         |
+| `get_image(filename, …)`         | `acomfyui_retrieve_image(filename, …)` | `bytes`                  | Download a single generated image              |
+| `upload_image(image_path, …)`    | `acomfyui_upload(image_path, …)`       | `UploadResponse`         | Upload an image for img2img workflows          |
+| `interrupt()`                    | `acomfyui_interrupt()`                 | `None`                   | Interrupt the currently running workflow       |
 
 Legacy `comfyui_*` aliases are still available but deprecated.
 
 ### Actions
 
-| Class | Fields | Description |
-|-------|--------|-------------|
+| Class                  | Fields                                                 | Description                          |
+|------------------------|--------------------------------------------------------|--------------------------------------|
 | `ComfyuiGenerateImage` | `workflow`, `download_dir`, `poll_interval`, `timeout` | Queue a workflow and wait for images |
-| `ComfyuiUploadImage` | `image_path`, `image_type` | Upload an image to the server |
+| `ComfyuiUploadImage`   | `image_path`, `image_type`                             | Upload an image to the server        |
 
 ### Models
 
 All API responses are deserialized into frozen Pydantic models. Key types:
 
-| Model | Description |
-|-------|-------------|
-| `PromptResponse` | Response from `POST /prompt` — contains `prompt_id` |
-| `ComfyuiExecutionResult` | Final result — `outputs`, `all_images`, `succeeded` |
-| `ComfyuiOutputImage` | Single image metadata — `filename`, `subfolder`, `type` |
-| `HistoryEntry` | Execution history — `status`, per-node `outputs` |
-| `QueueInfo` | Queue state — `queue_running`, `queue_pending` |
-| `UploadResponse` | Upload result — `name`, `subfolder`, `type` |
+| Model                    | Description                                             |
+|--------------------------|---------------------------------------------------------|
+| `PromptResponse`         | Response from `POST /prompt` — contains `prompt_id`     |
+| `ComfyuiExecutionResult` | Final result — `outputs`, `all_images`, `succeeded`     |
+| `ComfyuiOutputImage`     | Single image metadata — `filename`, `subfolder`, `type` |
+| `HistoryEntry`           | Execution history — `status`, per-node `outputs`        |
+| `QueueInfo`              | Queue state — `queue_running`, `queue_pending`          |
+| `UploadResponse`         | Upload result — `name`, `subfolder`, `type`             |
 
 ## License
 

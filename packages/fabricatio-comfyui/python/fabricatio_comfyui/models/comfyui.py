@@ -6,7 +6,7 @@ models, eliminating raw ``Dict[str, Any]`` propagation.
 
 from typing import Any, Dict, List, Optional, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
     "ComfyuiExecutionResult",
@@ -108,11 +108,7 @@ class PromptResponse(BaseModel):
     @classmethod
     def from_raw(cls, data: Dict[str, Any]) -> Self:
         """Deserialize from the raw ``POST /prompt`` response."""
-        return cls(
-            prompt_id=data.get("prompt_id", ""),
-            number=data.get("number", 0),
-            node_errors=data.get("node_errors", {}),
-        )
+        return cls.model_validate(data)
 
 
 # ------------------------------------------------------------------
@@ -125,15 +121,15 @@ class QueueEntry(BaseModel):
 
     ComfyUI returns queue entries as tuples:
     ``[number, prompt_id, prompt, extra_data, outputs_to_execute]``.
-    This model deserializes that tuple.
+    This model deserializes that tuple via a ``@model_validator``.
     """
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    number: int
+    number: int = 0
     """Queue position."""
 
-    prompt_id: str
+    prompt_id: str = ""
     """Prompt UUID."""
 
     prompt: Dict[str, Any] = Field(default_factory=dict)
@@ -145,16 +141,19 @@ class QueueEntry(BaseModel):
     outputs_to_execute: List[str] = Field(default_factory=list)
     """Node IDs that will be executed."""
 
+    @model_validator(mode="before")
     @classmethod
-    def from_tuple(cls, entry: list[Any]) -> Self:
-        """Deserialize from the ComfyUI queue tuple format."""
-        return cls(
-            number=entry[0] if len(entry) > 0 else 0,
-            prompt_id=entry[1] if len(entry) > 1 else "",
-            prompt=entry[2] if len(entry) > 2 else {},
-            extra_data=entry[3] if len(entry) > 3 else {},
-            outputs_to_execute=entry[4] if len(entry) > 4 else [],
-        )
+    def _from_tuple(cls, data: Any) -> Any:
+        """Accept ComfyUI's ``[number, prompt_id, …]`` tuple format."""
+        if isinstance(data, (list, tuple)):
+            return {
+                "number": data[0] if len(data) > 0 else 0,
+                "prompt_id": data[1] if len(data) > 1 else "",
+                "prompt": data[2] if len(data) > 2 else {},
+                "extra_data": data[3] if len(data) > 3 else {},
+                "outputs_to_execute": data[4] if len(data) > 4 else [],
+            }
+        return data
 
 
 class QueueInfo(BaseModel):
@@ -171,10 +170,7 @@ class QueueInfo(BaseModel):
     @classmethod
     def from_raw(cls, data: Dict[str, Any]) -> Self:
         """Deserialize from the raw API response."""
-        return cls(
-            queue_running=[QueueEntry.from_tuple(e) for e in data.get("queue_running", [])],
-            queue_pending=[QueueEntry.from_tuple(e) for e in data.get("queue_pending", [])],
-        )
+        return cls.model_validate(data)
 
 
 # ------------------------------------------------------------------
@@ -245,31 +241,24 @@ class HistoryEntry(BaseModel):
     outputs: Dict[str, HistoryNodeOutput] = Field(default_factory=dict)
     """Per-node outputs keyed by node ID."""
 
+    @model_validator(mode="before")
+    @classmethod
+    def _filter_empty_outputs(cls, data: Any) -> Any:
+        """Strip images without filenames and drop empty output nodes."""
+        if not isinstance(data, dict):
+            return data
+        outputs = data.get("outputs", {})
+        cleaned: Dict[str, Any] = {}
+        for node_id, node_data in outputs.items():
+            images = [img for img in node_data.get("images", []) if img.get("filename")]
+            if images:
+                cleaned[node_id] = {**node_data, "images": images}
+        return {**data, "outputs": cleaned}
+
     @classmethod
     def from_raw(cls, data: Dict[str, Any]) -> Self:
         """Deserialize from a single history entry dict."""
-        raw_status = data.get("status", {})
-        status = HistoryStatus(
-            status_str=raw_status.get("status_str", "unknown"),
-            completed=raw_status.get("completed", False),
-            exception=raw_status.get("exception"),
-        )
-
-        outputs: Dict[str, HistoryNodeOutput] = {}
-        for node_id, node_data in data.get("outputs", {}).items():
-            images = [
-                ComfyuiOutputImage(
-                    filename=img.get("filename", ""),
-                    subfolder=img.get("subfolder", ""),
-                    type=img.get("type", "output"),
-                )
-                for img in node_data.get("images", [])
-                if img.get("filename")
-            ]
-            if images:
-                outputs[node_id] = HistoryNodeOutput(images=images)
-
-        return cls(status=status, outputs=outputs)
+        return cls.model_validate(data)
 
     @classmethod
     def from_history_response(cls, response: Dict[str, Any], prompt_id: str) -> Optional[Self]:
@@ -333,11 +322,7 @@ class UploadResponse(BaseModel):
     @classmethod
     def from_raw(cls, data: Dict[str, Any]) -> Self:
         """Deserialize from the raw API response."""
-        return cls(
-            name=data.get("name", ""),
-            subfolder=data.get("subfolder", ""),
-            type=data.get("type", "input"),
-        )
+        return cls.model_validate(data)
 
 
 # ------------------------------------------------------------------

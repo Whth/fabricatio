@@ -17,9 +17,6 @@ class ComfyuiConfig:
     timeout: float = 300.0
     """Default timeout in seconds for API requests (default 5 min)."""
 
-    pool_size: int = 10
-    """Maximum number of concurrent connections in the httpx connection pool."""
-
 
 comfyui_config = CONFIG.load("comfyui", ComfyuiConfig)
 """Singleton ComfyUI config loaded from fabricatio config chain."""

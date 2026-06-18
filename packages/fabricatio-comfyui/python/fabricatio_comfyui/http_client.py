@@ -4,10 +4,10 @@ Owns the ``httpx.AsyncClient`` lifecycle and all REST endpoints.
 """
 
 import asyncio
-import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional, Self, Unpack
+from typing import Any, Dict, Optional, Unpack, final
 
 import httpx
 
@@ -22,6 +22,7 @@ from fabricatio_comfyui.models.comfyui import (
     ViewImageParams,
 )
 from fabricatio_comfyui.models.kwargs_types import (
+    GenerateKwargs,
     PollKwargs,
     QueueKwargs,
     UploadKwargs,
@@ -29,68 +30,45 @@ from fabricatio_comfyui.models.kwargs_types import (
 )
 from fabricatio_comfyui.models.workflow import Workflow
 
+from fabricatio_core.utils import first_available
+
 __all__ = ["ComfyuiHTTPClient"]
 
 
 @dataclass
+@final
 class ComfyuiHTTPClient:
     """Async HTTP client for the ComfyUI REST API.
 
     Manages an ``httpx.AsyncClient`` connection pool.  Use as an async
     context manager or call :meth:`open` / :meth:`close` manually.
+
+    Always instantiate via :meth:`create`; direct construction is internal.
     """
 
-    _http: Optional[httpx.AsyncClient] = field(default=None, init=False, repr=False)
-    _client_id: str = field(default_factory=lambda: str(uuid.uuid4()), init=False, repr=False)
+    source: httpx.AsyncClient
 
-    @property
-    def client_id(self) -> str:
-        """Persistent client ID for this instance."""
-        return self._client_id
-
-    # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
-
-    async def __aenter__(self) -> Self:
-        """Enter async context manager, opening the connection pool."""
-        self.open()
-        return self
-
-    async def __aexit__(self, *_: object) -> None:
-        """Exit async context manager, closing the connection pool."""
-        await self.close()
-
-    def open(self) -> None:
-        """Create the HTTP connection pool if not already open."""
-        if self._http is not None and not self._http.is_closed:
-            return
-        self._http = httpx.AsyncClient(
-            base_url=comfyui_config.base_url.rstrip("/"),
-            timeout=httpx.Timeout(comfyui_config.timeout),
-            limits=httpx.Limits(
-                max_connections=comfyui_config.pool_size,
-                max_keepalive_connections=comfyui_config.pool_size,
+    @staticmethod
+    @lru_cache
+    def create(base_url: str | None = None) -> "ComfyuiHTTPClient":
+        """Build a client from the global :data:`comfyui_config`."""
+        return ComfyuiHTTPClient(
+            source=httpx.AsyncClient(
+                base_url=first_available((base_url, comfyui_config.base_url)).rstrip("/"),
+                timeout=httpx.Timeout(comfyui_config.timeout),
             ),
         )
 
-    async def close(self) -> None:
-        """Close the HTTP connection pool."""
-        if self._http is not None and not self._http.is_closed:
-            await self._http.aclose()
-            self._http = None
-
     @property
-    def _client(self) -> httpx.AsyncClient:
-        self.open()
-        assert self._http is not None
-        return self._http
+    def client_id(self) -> str:
+        """Client ID derived from the configured server URL."""
+        return comfyui_config.base_url.rstrip("/").lower()
 
     # ------------------------------------------------------------------
     # Low-level HTTP
     # ------------------------------------------------------------------
 
-    async def _post(
+    async def post(
         self,
         path: str,
         *,
@@ -99,38 +77,26 @@ class ComfyuiHTTPClient:
         files: Optional[Dict[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
-        kw: Dict[str, Any] = {}
-        if timeout is not None:
-            kw["timeout"] = httpx.Timeout(timeout)
-        if files:
-            kw["data"] = data
-            kw["files"] = files
-        else:
-            kw["json"] = json_data
-        resp = await self._client.post(path, **kw)
+        """Send a POST request and return the JSON response."""
+        resp = await self.source.post(path, json=json_data, data=data, files=files, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
 
-    async def _get(
+    async def get(
         self,
         path: str,
         *,
         params: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> Any:
-        kw: Dict[str, Any] = {}
-        if timeout is not None:
-            kw["timeout"] = httpx.Timeout(timeout)
-        if params:
-            kw["params"] = params
-        resp = await self._client.get(path, **kw)
+        resp = await self.source.get(path, params=params, timeout=timeout)
         resp.raise_for_status()
         ct = resp.headers.get("content-type", "")
         if ct.startswith("image/") or ct.startswith("application/octet"):
             return resp.content
         return resp.json()
 
-    async def _upload(
+    async def upload(
         self,
         path: str,
         *,
@@ -138,12 +104,7 @@ class ComfyuiHTTPClient:
         data: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
-        kw: Dict[str, Any] = {"files": files}
-        if data:
-            kw["data"] = data
-        if timeout is not None:
-            kw["timeout"] = httpx.Timeout(timeout)
-        resp = await self._client.post(path, **kw)
+        resp = await self.source.post(path, data=data, files=files, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
 
@@ -159,22 +120,22 @@ class ComfyuiHTTPClient:
         """Submit a workflow for execution via ``POST /prompt``."""
         front = kwargs.get("front", False)
         wf = workflow.to_api() if isinstance(workflow, Workflow) else workflow
-        req = PromptRequest(prompt=wf, client_id=self._client_id, front=front)
-        data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
+        req = PromptRequest(prompt=wf, client_id=self.client_id, front=front)
+        data = await self.post("/prompt", json_data=req.model_dump(exclude_unset=True))
         return PromptResponse.from_raw(data)
 
     async def get_queue_info(self) -> QueueInfo:
         """Get current queue status via ``GET /queue``."""
-        return QueueInfo.from_raw(await self._get("/queue"))
+        return QueueInfo.from_raw(await self.get("/queue"))
 
     async def get_history(self, prompt_id: str) -> Optional[HistoryEntry]:
         """Get execution history via ``GET /history/{prompt_id}``."""
-        raw: Dict[str, Any] = await self._get(f"/history/{prompt_id}")
+        raw: Dict[str, Any] = await self.get(f"/history/{prompt_id}")
         return HistoryEntry.from_history_response(raw, prompt_id)
 
     async def interrupt(self) -> None:
         """Interrupt the currently running workflow via ``POST /interrupt``."""
-        await self._post("/interrupt")
+        await self.post("/interrupt")
 
     async def get_image(
         self,
@@ -185,7 +146,7 @@ class ComfyuiHTTPClient:
         subfolder = kwargs.get("subfolder", "")
         image_type = kwargs.get("image_type", "output")
         params = ViewImageParams(filename=filename, subfolder=subfolder, type=image_type)
-        result = await self._get("/view", params=params.to_params())
+        result = await self.get("/view", params=params.to_params())
         if isinstance(result, dict):
             raise RuntimeError(f"Failed to retrieve image {filename}: {result}")
         return result
@@ -202,7 +163,7 @@ class ComfyuiHTTPClient:
         with p.open("rb") as f:
             files = {"image": (p.name, f, "image/png")}
             data = {"type": image_type, "overwrite": str(overwrite).lower()}
-            raw = await self._upload("/upload/image", files=files, data=data)
+            raw = await self.upload("/upload/image", files=files, data=data)
         return UploadResponse.from_raw(raw)
 
     async def wait_for_completion(
@@ -227,3 +188,42 @@ class ComfyuiHTTPClient:
                 return build_result(prompt_id, entry)
 
             await asyncio.sleep(poll_interval)
+
+    # ------------------------------------------------------------------
+    # High-level generation workflows
+    # ------------------------------------------------------------------
+
+    async def generate(
+        self,
+        workflow: Dict[str, Any] | Workflow,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> ComfyuiExecutionResult:
+        """Queue a workflow and poll until completion, optionally downloading images.
+
+        Args:
+            workflow: A workflow graph dict or :class:`Workflow`.
+            **kwargs: See :class:`GenerateKwargs`.
+        """
+        download_dir = kwargs.get("download_dir")
+        timeout = kwargs.get("timeout")
+        effective_timeout = timeout or comfyui_config.timeout
+
+        resp = await self.queue_prompt(workflow)
+        result = await self.wait_for_completion(resp.prompt_id, timeout=effective_timeout)
+
+        if download_dir is not None and result.succeeded:
+            await self.download_images(result, download_dir)
+
+        return result
+
+    async def download_images(self, result: ComfyuiExecutionResult, download_dir: str | Path) -> None:
+        """Download all output images to *download_dir* concurrently."""
+        dst = Path(download_dir)
+        dst.mkdir(parents=True, exist_ok=True)
+
+        async def _fetch(img: Any) -> None:
+            data = await self.get_image(filename=img.filename, subfolder=img.subfolder, image_type=img.type)
+            (dst / img.filename).write_bytes(data)
+
+        await asyncio.gather(*(_fetch(img) for img in result.all_images))
+
