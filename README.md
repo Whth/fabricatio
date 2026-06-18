@@ -202,6 +202,13 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Provider implementations as separate packages (e.g. `fabricatio-tts-openai`, `fabricatio-tts-elevenlabs`, `fabricatio-tts-piper`) each wiring `TTSProvider` to its backend API
     - [ ] Event-system bridge: emit `tts:chunk`, `tts:start`, `tts:end` events for real-time streaming playback + interruption via `Event`
     - [ ] Integration with `fabricatio-core` templates (Handlebars `{{speak}}` helper) + Python bindings + tests
+- [ ] Add session replay + workflow continue.
+    - [ ] Record step timeline in `WorkFlow.serve()`: `(step_index, action_name, output_key, duration_ms, success, error)` per action — ~30 lines instrumentation
+    - [ ] Auto-checkpoint before each action via `CheckPointStore.save()` — leverage existing shadow git for workspace rollback on resume
+    - [ ] `fabricatio-session` crate: SQLite-backed run log + replay engine — `<1KB` per workflow run, no context dict serialization needed (thryd cache + checkpoint handle reconstruction)
+    - [ ] `WorkFlow.resume(run_id)`: read run log → `checkpoint.reset(last_commit)` → re-run steps 1..N-1 (LLM cache hits, instant) → fresh execution at failed step N
+    - [ ] Actions declare `idempotent: bool` — non-idempotent steps flagged for manual review instead of auto re-run
+    - [ ] WebUI timeline viewer: scrub through action execution history, per-step expand for LLM input/output
 - [ ] Add `cargo clippy` + `cargo test` to CI
     - [ ] Fix ruff CI no-op (installs ruff but never runs `ruff check`)
     - [ ] Add clippy + cargo test steps to `.github/workflows/tests.yaml` matrix
