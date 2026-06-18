@@ -209,6 +209,13 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] `WorkFlow.resume(run_id)`: read run log → `checkpoint.reset(last_commit)` → re-run steps 1..N-1 (LLM cache hits, instant) → fresh execution at failed step N
     - [ ] Actions declare `idempotent: bool` — non-idempotent steps flagged for manual review instead of auto re-run
     - [ ] WebUI timeline viewer: scrub through action execution history, per-step expand for LLM input/output
+- [ ] Add multimodal LLM support (`aaskv` — text + image input).
+    - [ ] `ContentPart` enum (`Text` / `ImageUrl`) + `content: Vec<ContentPart>` field on `CompletionRequest` — backward compatible (empty `content` falls back to `message` string)
+    - [ ] OpenAI serialization: switch `.content(message)` to `.content(content_parts)` using `async-openai`'s existing `ChatCompletionRequestMessageContentPart` types
+    - [ ] Cache key update: `prepare_input_text` concatenates text parts + image URLs for deterministic blake3 hashing
+    - [ ] `fabricatio-router` PyO3: `completion_v(send_to, text, images: Option<Vec<Vec<u8>>>)` — raw bytes → base64 data URIs, MIME sniffing, construct `ContentPart` list
+    - [ ] Python `UseLLM.aaskv(text: str | list[str], images: bytes | list[bytes] | None)` — clean interface, no `ContentPart` exposure
+    - [ ] Tests: text-only backward compat, single image, multi-image, batch mode
 - [ ] Add `cargo clippy` + `cargo test` to CI
     - [ ] Fix ruff CI no-op (installs ruff but never runs `ruff check`)
     - [ ] Add clippy + cargo test steps to `.github/workflows/tests.yaml` matrix
