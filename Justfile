@@ -65,7 +65,7 @@ rs_sync *arg:
 
 # Run tests without installing dependencies.
 test_raw:
-    uv run --only-dev pytest python/tests packages/*/python/tests --cov
+    uv run --only-dev pytest --import-mode=importlib python/tests packages/*/python/tests --cov
 
 # Install full dependencies and run tests.
 test: py_sync test_raw
