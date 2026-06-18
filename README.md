@@ -196,6 +196,12 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] `WebSearchAction` in `fabricatio-actions` backed by search API (Tavily/SerpAPI/DuckDuckGo)
     - [ ] `WebScrapeAction` for extracting content from fetched URLs
     - [ ] Wire into research workflow + tests
+- [ ] Add TTS subpackage (abstract interface + provider implementations).
+    - [ ] `fabricatio-tts` pure python package: `UseTTS` capability mixin + `TTSConfig` + `AudioChunk` streaming model + `SynthesisResult` output type
+    - [ ] `TTSProvider` protocol (async `synthesize(text, voice, params) → AsyncIterator[AudioChunk]`) + voice discovery + SSML support
+    - [ ] Provider implementations as separate packages (e.g. `fabricatio-tts-openai`, `fabricatio-tts-elevenlabs`, `fabricatio-tts-piper`) each wiring `TTSProvider` to its backend API
+    - [ ] Event-system bridge: emit `tts:chunk`, `tts:start`, `tts:end` events for real-time streaming playback + interruption via `Event`
+    - [ ] Integration with `fabricatio-core` templates (Handlebars `{{speak}}` helper) + Python bindings + tests
 - [ ] Add `cargo clippy` + `cargo test` to CI
     - [ ] Fix ruff CI no-op (installs ruff but never runs `ruff check`)
     - [ ] Add clippy + cargo test steps to `.github/workflows/tests.yaml` matrix
