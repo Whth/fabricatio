@@ -19,7 +19,7 @@ class TypstConfig:
     paragraph_sep: str = "// - - -"
     """The separator used to separate paragraphs."""
 
-    article_wrapper = "// =-=-=-=-=-=-=-=-=-="
+    article_wrapper: str = "// =-=-=-=-=-=-=-=-=-="
     """The wrapper used to wrap an article."""
 
     extract_essence_template: str = "built-in/extract_essence"

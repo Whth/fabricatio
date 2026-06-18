@@ -607,7 +607,7 @@ async def test_generate_batch_flow(tmp_path: Path) -> None:
     with (
         patch.object(client, "post") as mock_post,
         patch.object(client, "get") as mock_get,
-        patch.object(client, "_download_images") as mock_dl,
+        patch.object(client, "download_images") as mock_dl,
     ):
         mock_post.side_effect = [{"prompt_id": f"pid-{i}", "number": i} for i in range(3)]
 
