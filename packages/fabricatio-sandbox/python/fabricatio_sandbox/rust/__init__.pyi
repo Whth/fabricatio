@@ -15,8 +15,6 @@ class SandboxSession:
     Tracks original file content on first mutation so `diff()` produces
     per-file unified diffs and `apply()` can flush changes to the real FS.
     """
-    def __new__(cls) -> SandboxSession:
-        r"""Create an empty sandbox session with no mounts."""
     @staticmethod
     def with_mounts(mounts: typing.Mapping[builtins.str, builtins.str]) -> SandboxSession:
         r"""Create a sandbox session with read-only real-directory mounts.

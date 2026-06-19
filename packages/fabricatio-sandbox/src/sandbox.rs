@@ -354,10 +354,10 @@ impl SandboxSession {
 
         for (user_path, original) in originals.iter() {
             let vfs_path = self.resolve_path(user_path);
-            if let Ok(current) = self.vfs.read_text(&vfs_path) {
-                if &current != original {
-                    dict.set_item(user_path, unified_diff(original, &current, user_path))?;
-                }
+            if let Ok(current) = self.vfs.read_text(&vfs_path)
+                && &current != original
+            {
+                dict.set_item(user_path, unified_diff(original, &current, user_path))?;
             }
         }
 
