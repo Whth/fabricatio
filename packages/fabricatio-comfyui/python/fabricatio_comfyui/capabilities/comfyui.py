@@ -69,7 +69,9 @@ class Comfyui:
         """Execute one or more workflows: queue all, then poll all, then download."""
         if isinstance(workflow, list):
             # Phase 1: submit all (parallel HTTP)
-            responses: List[PromptResponse] = list(await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf) for wf in workflow)))
+            responses: List[PromptResponse] = list(
+                await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf) for wf in workflow))
+            )
             logger.info(f"Batch queued {len(responses)} ComfyUI prompts")
 
             # Phase 2: wait for all (parallel polling)
@@ -78,7 +80,10 @@ class Comfyui:
             effective_timeout = timeout or comfyui_config.timeout
             results: List[ComfyuiExecutionResult] = list(
                 await gather(
-                    *(ComfyuiHTTPClient.create(None).wait_for_completion(r.prompt_id, timeout=effective_timeout) for r in responses)
+                    *(
+                        ComfyuiHTTPClient.create(None).wait_for_completion(r.prompt_id, timeout=effective_timeout)
+                        for r in responses
+                    )
                 )
             )
 
@@ -137,7 +142,9 @@ class Comfyui:
     ) -> "PromptResponse | List[PromptResponse]":
         """Submit one or more workflows for execution without waiting."""
         if isinstance(workflow, list):
-            results = list(await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf, **kwargs) for wf in workflow)))
+            results = list(
+                await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf, **kwargs) for wf in workflow))
+            )
             for r in results:
                 logger.info(f"ComfyUI prompt queued: {r.prompt_id}")
             return results
@@ -176,7 +183,9 @@ class Comfyui:
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Poll until one or more prompt_ids complete."""
         if isinstance(prompt_id, list):
-            return list(await gather(*(ComfyuiHTTPClient.create(None).wait_for_completion(pid, **kwargs) for pid in prompt_id)))
+            return list(
+                await gather(*(ComfyuiHTTPClient.create(None).wait_for_completion(pid, **kwargs) for pid in prompt_id))
+            )
         return await ComfyuiHTTPClient.create(None).wait_for_completion(prompt_id, **kwargs)
 
     async def acomfyui_retrieve_image(
