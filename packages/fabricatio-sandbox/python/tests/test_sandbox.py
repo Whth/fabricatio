@@ -125,7 +125,7 @@ class TestSandboxSession:
 
     def test_create_empty(self) -> None:
         """Verify create empty."""
-        session = SandboxSession()
+        session = SandboxSession.with_mounts({})
         assert session.root_path()
         assert session.mounts() == {}
 
@@ -177,7 +177,7 @@ class TestSandboxSession:
 
     def test_diff_empty_when_no_changes(self) -> None:
         """Verify diff empty when no changes."""
-        session = SandboxSession()
+        session = SandboxSession.with_mounts({})
         session.write_text("new.txt", "hello")
         # No originals tracked for a fresh file that was just created once
         diff = session.diff()
@@ -192,7 +192,7 @@ class TestSandboxSession:
 
     def test_diff_tracks_new_file_creation_and_modification(self) -> None:
         """Verify diff tracks new file creation and modification."""
-        session = SandboxSession()
+        session = SandboxSession.with_mounts({})
         # First write — file is new, no original to compare against
         session.write_text("file.txt", "version1")
         diff1 = session.diff()
@@ -258,12 +258,12 @@ class TestSandboxSession:
 
     def test_repr(self) -> None:
         """Verify repr."""
-        session = SandboxSession()
+        session = SandboxSession.with_mounts({})
         assert "SandboxSession" in repr(session)
 
     def test_vfs_operations_on_session(self) -> None:
         """Verify vfs operations on session."""
-        session = SandboxSession()
+        session = SandboxSession.with_mounts({})
         session.create_dir("mydir")
         session.write_text("mydir/file.txt", "hello")
         assert session.is_dir("mydir")
