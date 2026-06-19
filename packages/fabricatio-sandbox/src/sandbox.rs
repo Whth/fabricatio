@@ -27,6 +27,37 @@ fn ensure_parent(p: &VfsPath) {
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl VirtualFS {
+    /// Create an empty in-memory virtual filesystem.
+    #[staticmethod]
+    fn from_memory() -> Self {
+        Self {
+            root: MemoryFS::new().into(),
+        }
+    }
+
+    /// Wrap a real directory as a read-only virtual filesystem.
+    #[staticmethod]
+    fn from_physical(root: &str) -> Self {
+        Self {
+            root: PhysicalFS::new(PathBuf::from(root)).into(),
+        }
+    }
+
+    /// Layer an in-memory upper layer over read-only real directories.
+    ///
+    /// Writes go to the in-memory layer; reads fall through to the real dirs.
+    #[staticmethod]
+    fn from_overlay(real_roots: Vec<String>) -> Self {
+        let upper: VfsPath = MemoryFS::new().into();
+        let mut layers = vec![upper];
+        for r in &real_roots {
+            layers.push(PhysicalFS::new(PathBuf::from(r)).into());
+        }
+        Self {
+            root: OverlayFS::new(&layers).into(),
+        }
+    }
+
     fn read_text(&self, path: &str) -> PyResult<String> {
         self.root
             .join(path)
