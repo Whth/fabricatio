@@ -197,7 +197,7 @@ impl OpenaiModel {
         endpoint: &str,
     ) -> crate::Result<T> {
         let status = response.status();
-        let body = response.text().await.map_err(|e| ThrydError::Reqwest(e))?;
+        let body = response.text().await.map_err(ThrydError::Reqwest)?;
 
         if !status.is_success() {
             error!("API error [{}] {}: {}", status.as_u16(), endpoint, body);

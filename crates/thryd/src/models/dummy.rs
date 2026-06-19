@@ -265,10 +265,10 @@ impl Model for DummyModel {
 impl CompletionModel for DummyModel {
     async fn completion(&self, _request: CompletionRequest) -> crate::Result<Completion> {
         // Drain error queue first (LIFO) — for testing retry.
-        if let Ok(mut errors) = self.completion_errors.lock() {
-            if let Some(err) = errors.pop() {
-                return Err(err);
-            }
+        if let Ok(mut errors) = self.completion_errors.lock()
+            && let Some(err) = errors.pop()
+        {
+            return Err(err);
         }
 
         let mut queue = self

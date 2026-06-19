@@ -71,8 +71,8 @@ use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
 use crate::{
-    Completion, DEFAULT_MAX_CAPACITY, DEFAULT_TTL_SECS, Embedding, Embeddings, Ranking,
-    RerankerModel, RerankerRequest, ThrydError, TieredCache,
+    Completion, Embedding, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest,
+    ThrydError,
 };
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -222,7 +222,7 @@ pub type DeploymentEntry<Model> = Arc<Deployment<Model>>;
 pub struct Router<Tag: ModelTypeTag> {
     /// Optional persistent cache for request deduplication.
     /// `None` when caching is disabled.
-    cache: Option<TieredCache>,
+    cache: Option<PersistentCache>,
 
     /// Registered providers by name. Thread-safe concurrent map.
     providers: DashMap<ProviderName, Arc<dyn Provider>>,
@@ -238,7 +238,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// Create a router with persistent caching enabled.
     ///
     /// # Arguments
-    /// * `database_file` - Path to the SQLite cache database file.
+    /// * `database_file` - Path to the LMDB cache database directory.
     ///   Created automatically if it doesn't exist.
     ///
     /// # Returns
@@ -247,31 +247,11 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     /// # Example
     ///
     /// ```ignore
-    /// let router = Router::<CompletionTag>::with_cache("./llm-cache.db")?;
+    /// let router = Router::<CompletionTag>::with_cache("./llm-cache")?;
     /// ```
     pub fn with_cache(database_file: impl AsRef<Path>) -> Result<Self> {
         Ok(Self {
-            cache: Some(TieredCache::create_or_open(
-                database_file,
-                DEFAULT_TTL_SECS,
-                DEFAULT_MAX_CAPACITY,
-            )?),
-            ..Self::default()
-        })
-    }
-
-    /// Create a router with custom cache TTL and capacity.
-    pub fn with_cache_config(
-        database_file: impl AsRef<Path>,
-        ttl_secs: u64,
-        max_capacity: u64,
-    ) -> Result<Self> {
-        Ok(Self {
-            cache: Some(TieredCache::create_or_open(
-                database_file,
-                ttl_secs,
-                max_capacity,
-            )?),
+            cache: Some(PersistentCache::create_or_open(database_file)?),
             ..Self::default()
         })
     }
@@ -515,10 +495,12 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             }
         }
 
-        if d_ref.is_some() && min_wait_time != u64::MAX {
+        if let Some(d) = &d_ref
+            && min_wait_time != u64::MAX
+        {
             debug!(
                 "  Selected `{}` (least wait: {min_wait_time}ms)",
-                d_ref.as_ref().unwrap().identifier()
+                d.identifier()
             );
         }
 
@@ -775,7 +757,7 @@ pub trait ModelTypeTag {
     /// Each tag defines its own caching strategy. Default: batch-level.
     /// Override for per-item sparse caching.
     async fn cache_resolve(
-        cache: &Option<TieredCache>,
+        cache: &Option<PersistentCache>,
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
     ) -> Result<Self::Response> {
@@ -953,7 +935,7 @@ impl ModelTypeTag for EmbeddingTag {
     }
 
     async fn cache_resolve(
-        cache: &Option<TieredCache>,
+        cache: &Option<PersistentCache>,
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
     ) -> Result<Self::Response> {
@@ -1089,17 +1071,16 @@ mod tests {
         let db_path = cache_dir.path().join("reranker-cache.db");
 
         let router = Router::<RerankerTag>::with_cache(&db_path).unwrap();
-
-        // Verify TieredCache can store and retrieve a Ranking
+        // Verify PersistentCache can store and retrieve a Ranking
         {
             let cache = router.cache.as_ref().unwrap();
             let test_ranking: Ranking = vec![(0, 0.95), (1, 0.8)];
-            cache.set_ser("test_key", &test_ranking).unwrap();
-            let retrieved = cache.get_de::<Ranking>("test_key");
+            cache.set_ser("ranking_test", &test_ranking).unwrap();
+            let retrieved: Option<Ranking> = cache.get_de("ranking_test");
             assert_eq!(
                 retrieved,
                 Some(test_ranking),
-                "TieredCache roundtrip failed"
+                "PersistentCache roundtrip failed"
             );
         }
 
