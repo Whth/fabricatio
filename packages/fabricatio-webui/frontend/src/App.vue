@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import { useWebSocket } from '@/composables/useWebSocket'
+import NotificationToast from '@/components/NotificationToast.vue'
 
 // Init WebSocket connection early
 const { connect } = useWebSocket()
@@ -9,6 +10,7 @@ connect()
 
 <template>
   <RouterView />
+  <NotificationToast />
 </template>
 
 <style>
