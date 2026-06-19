@@ -11,24 +11,24 @@ class TestVirtualFS:
 
     def test_create_empty(self) -> None:
         """Verify create empty."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         assert "VirtualFS" in repr(vfs)
 
     def test_write_and_read_text(self) -> None:
         """Verify write and read text."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("hello.txt", "world")
         assert vfs.read_text("hello.txt") == "world"
 
     def test_write_and_read_bytes(self) -> None:
         """Verify write and read bytes."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_bytes("data.bin", b"\x00\x01\x02")
         assert vfs.read_bytes("data.bin") == b"\x00\x01\x02"
 
     def test_nested_paths(self) -> None:
         """Verify nested paths."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("a/b/c.txt", "deep")
         assert vfs.read_text("a/b/c.txt") == "deep"
         assert vfs.is_file("a/b/c.txt")
@@ -37,7 +37,7 @@ class TestVirtualFS:
 
     def test_list_dir(self) -> None:
         """Verify list dir."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("dir/a.txt", "1")
         vfs.write_text("dir/b.txt", "2")
         names = vfs.list_dir("dir")
@@ -45,7 +45,7 @@ class TestVirtualFS:
 
     def test_walk_dir(self) -> None:
         """Verify walk dir."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("src/main.rs", "fn main() {}")
         vfs.write_text("src/lib.rs", "pub fn hello() {}")
         paths = vfs.walk_dir("src")
@@ -55,7 +55,7 @@ class TestVirtualFS:
 
     def test_exists_is_file_is_dir(self) -> None:
         """Verify exists is file is dir."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         assert not vfs.exists("missing")
         vfs.write_text("file.txt", "x")
         assert vfs.exists("file.txt")
@@ -64,19 +64,19 @@ class TestVirtualFS:
 
     def test_create_dir(self) -> None:
         """Verify create dir."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.create_dir("new_dir")
         assert vfs.is_dir("new_dir")
 
     def test_create_dir_all(self) -> None:
         """Verify create dir all."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.create_dir_all("a/b/c/d")
         assert vfs.is_dir("a/b/c/d")
 
     def test_remove_file(self) -> None:
         """Verify remove file."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("temp.txt", "bye")
         assert vfs.exists("temp.txt")
         vfs.remove_file("temp.txt")
@@ -84,7 +84,7 @@ class TestVirtualFS:
 
     def test_remove_dir_all(self) -> None:
         """Verify remove dir all."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("rm_dir/a.txt", "1")
         vfs.write_text("rm_dir/b.txt", "2")
         assert vfs.exists("rm_dir")
@@ -93,7 +93,7 @@ class TestVirtualFS:
 
     def test_copy_file(self) -> None:
         """Verify copy file."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("original.txt", "data")
         vfs.copy_file("original.txt", "copy.txt")
         assert vfs.read_text("copy.txt") == "data"
@@ -101,7 +101,7 @@ class TestVirtualFS:
 
     def test_rename(self) -> None:
         """Verify rename."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         vfs.write_text("old.txt", "content")
         vfs.rename("old.txt", "new.txt")
         assert not vfs.exists("old.txt")
@@ -109,13 +109,13 @@ class TestVirtualFS:
 
     def test_abs_path(self) -> None:
         """Verify abs path."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         ap = vfs.abs_path("some/file.txt")
         assert "some/file.txt" in ap
 
     def test_read_nonexistent_raises(self) -> None:
         """Verify read nonexistent raises."""
-        vfs = VirtualFS()
+        vfs = VirtualFS.from_memory()
         with pytest.raises(RuntimeError):
             vfs.read_text("nope.txt")
 
