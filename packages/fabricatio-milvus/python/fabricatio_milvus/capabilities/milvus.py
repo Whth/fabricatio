@@ -52,14 +52,9 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         """Return the Milvus client, created on first access via cached factory."""
         return create_client(
             uri=ok(self.milvus_uri or milvus_config.milvus_uri, "milvus_uri must be configured"),
-            token=(
-                token.get_secret_value()
-                if (token := self.milvus_token or milvus_config.milvus_token)
-                else ""
-            ),
+            token=(token.get_secret_value() if (token := self.milvus_token or milvus_config.milvus_token) else ""),
             timeout=self.milvus_timeout or milvus_config.milvus_timeout,
         )
-
 
     async def add_document(
         self,
