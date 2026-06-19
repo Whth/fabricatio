@@ -552,7 +552,6 @@ async def test_queue_info_typed() -> None:
         assert len(info.queue_pending) == 1
 
 
-
 @pytest.mark.asyncio
 async def test_client_id_uses_base_url() -> None:
     """client_id is derived from the configured base_url."""
@@ -577,7 +576,6 @@ async def test_wait_for_completion_polling() -> None:
         result = await client.wait_for_completion("pid-1", poll_interval=0.01, timeout=5.0)
         assert result.prompt_id == "pid-1"
         assert result.status == "completed"
-
 
 
 # ======================================================================
