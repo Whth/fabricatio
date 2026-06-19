@@ -2,9 +2,9 @@
 import { onMounted, computed, ref } from 'vue'
 import { useExecutionStore } from '@/stores/execution'
 import { useWebSocket } from '@/composables/useWebSocket'
-
+import { Circle, CircleDot, Check, X, ChevronDown, ChevronRight } from '@lucide/vue'
 const execStore = useExecutionStore()
-const { connected, connect, onMessage } = useWebSocket()
+const { connect, onMessage } = useWebSocket()
 
 const showErrors = ref(false)
 const nodeOutputs = ref<Record<string, Record<string, unknown>>>({})
@@ -25,83 +25,83 @@ onMounted(() => {
   })
 })
 
-async function handleQueue() {
-  try {
-    await execStore.queuePrompt()
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    execStore.errors.push({ nodeId: 'system', error: message })
+function statusLabel(status: string) {
+  const labels: Record<string, typeof Circle> = {
+    idle: Circle,
+    queued: CircleDot,
+    running: CircleDot,
+    done: Check,
+    error: X,
   }
+  return labels[status] || Circle
 }
 
-function statusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    idle: '\u25CB',
-    queued: '\u25D4',
-    running: '\u25CF',
-    done: '\u2713',
-    error: '\u2717',
-  }
-  return labels[status] || '\u25CB'
+function statusClass(status: string): string {
+  return `status-${status}`
 }
 
 const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
+
+const hasContent = computed(() => statusEntries.value.length > 0 || execStore.errorCount > 0)
 </script>
 
 <template>
-  <div class="execution-panel">
-    <!-- Controls bar -->
-    <div class="panel-controls">
-      <div class="controls-left">
-        <button class="btn btn-primary" :disabled="execStore.isRunning" @click="handleQueue">
-          Queue Prompt
-        </button>
+  <div class="execution-panel" :class="{ 'has-content': hasContent }">
+    <!-- Compact controls bar -->
+    <div class="panel-header">
+      <div class="header-left">
+        <span class="panel-title">Execution</span>
+        <span v-if="execStore.isRunning" class="running-indicator">
+          <span class="spinner"></span>
+          Running
+        </span>
+        <span v-else-if="execStore.executionState === 'completed'" class="completed-indicator">
+          <Check :size="12" class="completed-icon" /> Completed
+        </span>
+        <span v-else-if="execStore.executionState === 'failed'" class="failed-indicator">
+          <X :size="12" class="failed-icon" /> Failed
+        </span>
+        <span v-else class="idle-indicator">Idle</span>
+      </div>
+
+      <div class="header-center">
+        <span v-if="execStore.isRunning" class="executing-node">
+          {{ execStore.executingNodeId || '...' }}
+        </span>
+      </div>
+
+      <div class="header-right">
         <button
-          class="btn btn-danger"
-          :disabled="!execStore.isRunning"
+          v-if="execStore.isRunning"
+          class="btn btn-danger btn-sm"
           @click="execStore.interrupt()"
         >
           Interrupt
         </button>
-      </div>
-
-      <div class="controls-center">
-        <span v-if="execStore.isRunning" class="progress-text">
-          Executing: {{ execStore.executingNodeId || '...' }}
-        </span>
-        <span v-else-if="execStore.executionState === 'completed'" class="done-text">
-          Completed
-        </span>
-        <span v-else-if="execStore.executionState === 'failed'" class="error-text"> Failed </span>
-        <span v-else class="idle-text">Idle</span>
-      </div>
-
-      <div class="controls-right">
-        <span :class="['connection-dot', connected ? 'connected' : 'disconnected']" />
-        <span class="connection-label">{{ connected ? 'WS' : 'WS off' }}</span>
         <span v-if="execStore.queueLength > 0" class="queue-badge">
-          Queue: {{ execStore.queueLength }}
+          {{ execStore.queueLength }} queued
         </span>
       </div>
     </div>
 
-    <!-- Node status list -->
+    <!-- Node status list (when there are statuses) -->
     <div class="panel-status" v-if="statusEntries.length > 0">
       <div
         v-for="[nodeId, status] in statusEntries"
         :key="nodeId"
-        :class="['status-row', `status-${status}`]"
+        :class="['status-chip', statusClass(status)]"
       >
-        <span class="status-icon">{{ statusLabel(status) }}</span>
+        <component :is="statusLabel(status)" :size="10" class="status-icon" />
         <span class="status-node-id">{{ nodeId }}</span>
-        <span class="status-label">{{ status }}</span>
       </div>
     </div>
 
-    <!-- Errors -->
+    <!-- Errors (collapsible) -->
     <div class="panel-errors" v-if="execStore.errorCount > 0">
       <button class="errors-toggle" @click="showErrors = !showErrors">
-        Errors ({{ execStore.errorCount }}) {{ showErrors ? '\u25BC' : '\u25B6' }}
+        <span class="error-count">{{ execStore.errorCount }}</span>
+        Errors
+        <component :is="showErrors ? ChevronDown : ChevronRight" :size="12" class="toggle-icon" />
       </button>
       <div v-if="showErrors" class="errors-list">
         <div v-for="(err, i) in execStore.errors" :key="i" class="error-item">
@@ -118,163 +118,183 @@ const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
 .execution-panel {
   background: #161b22;
   border-top: 1px solid #30363d;
-  display: flex;
-  flex-direction: column;
-  max-height: 200px;
+  flex-shrink: 0;
+  transition: height 0.2s ease;
+}
+
+.execution-panel:not(.has-content) {
+  height: 36px;
+}
+
+.execution-panel.has-content {
+  height: auto;
+  max-height: 150px;
   overflow-y: auto;
 }
 
-.panel-controls {
+/* ── Header ── */
+.panel-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #21262d;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
 }
 
-.controls-left {
+.header-left {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
-.controls-center {
+.header-center {
   flex: 1;
   text-align: center;
 }
 
-.controls-right {
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Status indicators ── */
+.running-indicator {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 11px;
+  color: #58a6ff;
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #30363d;
+  border-top-color: #58a6ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.completed-indicator {
+  font-size: 11px;
+  color: #3fb950;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.failed-indicator {
+  font-size: 11px;
+  color: #f85149;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.idle-indicator {
+  font-size: 11px;
+  color: #484f58;
+}
+
+.executing-node {
+  font-size: 11px;
+  color: #e6edf3;
+  font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 /* ── Buttons ── */
 .btn {
-  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
   border: 1px solid #30363d;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 4px;
+  font-size: 11px;
   cursor: pointer;
-  background: #21262d;
-  color: #e6edf3;
-  transition: background 0.12s;
+  transition: all 0.15s;
 }
 
-.btn:hover:not(:disabled) {
-  background: #30363d;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #238636;
-  border-color: #238636;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2ea043;
+.btn-sm {
+  padding: 2px 6px;
+  font-size: 10px;
 }
 
 .btn-danger {
   background: #da3633;
   border-color: #da3633;
+  color: #ffffff;
 }
 
-.btn-danger:hover:not(:disabled) {
+.btn-danger:hover {
   background: #f85149;
 }
 
-/* ── Status text ── */
-.progress-text {
-  color: #58a6ff;
-  font-size: 12px;
-}
-
-.done-text {
-  color: #3fb950;
-  font-size: 12px;
-}
-
-.error-text {
-  color: #f85149;
-  font-size: 12px;
-}
-
-.idle-text {
-  color: #484f58;
-  font-size: 12px;
-}
-
-/* ── Connection dot ── */
-.connection-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.connection-dot.connected {
-  background: #3fb950;
-  box-shadow: 0 0 4px #3fb950;
-}
-
-.connection-dot.disconnected {
-  background: #f85149;
-}
-
-.connection-label {
-  font-size: 10px;
-  color: #8b949e;
-}
-
+/* ── Queue badge ── */
 .queue-badge {
   font-size: 10px;
   color: #ffa657;
-  margin-left: 8px;
+  padding: 2px 6px;
+  background: rgba(255, 166, 87, 0.1);
+  border-radius: 10px;
 }
 
-/* ── Node status rows ── */
+/* ── Status chips ── */
 .panel-status {
-  padding: 4px 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  padding: 4px 12px 8px;
 }
 
-.status-row {
-  display: flex;
+.status-chip {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 10px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
   background: #21262d;
+  color: #8b949e;
 }
 
-.status-row.status-running {
-  background: rgba(88, 166, 255, 0.12);
+.status-chip.status-running {
+  background: rgba(88, 166, 255, 0.15);
   color: #58a6ff;
 }
 
-.status-row.status-done {
-  background: rgba(63, 185, 80, 0.12);
+.status-chip.status-done {
+  background: rgba(63, 185, 80, 0.15);
   color: #3fb950;
 }
 
-.status-row.status-error {
-  background: rgba(248, 81, 73, 0.12);
+.status-chip.status-error {
+  background: rgba(248, 81, 73, 0.15);
   color: #f85149;
 }
 
 .status-icon {
-  font-size: 10px;
+  display: inline-flex;
 }
 
-.status-label {
-  color: #8b949e;
+.status-node-id {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 9px;
 }
 
 /* ── Errors ── */
@@ -283,6 +303,9 @@ const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
 }
 
 .errors-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: none;
   color: #f85149;
@@ -291,11 +314,30 @@ const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
   padding: 4px 0;
 }
 
+.error-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  background: #f85149;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0 4px;
+}
+
+.toggle-icon {
+  display: inline-flex;
+}
+
 .errors-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 120px;
+  margin-top: 4px;
+  max-height: 80px;
   overflow-y: auto;
 }
 
@@ -323,5 +365,15 @@ const statusEntries = computed(() => Object.entries(execStore.nodeStatuses))
   color: #8b949e;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* Scrollbar */
+.execution-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.execution-panel::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 2px;
 }
 </style>
