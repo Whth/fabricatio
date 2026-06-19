@@ -93,7 +93,7 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [ ] Finalize the webui.
     - [ ] Chat interface + API client + WebSocket/SSE streaming
     - [ ] Config panel + agent status dashboard
-    - [ ] Error handling + loading states + UX polish
+    - [x] Error handling + loading states + UX polish
 - [ ] Add ComfyUI integration.
     - [x] Package skeleton + `ComfyUIClient` for prompt queue, progress polling, image retrieval
     - [x] Workflow template system with dynamic parameter injection
@@ -170,12 +170,12 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Embedding fail without any debug info fix
 - [x] sparse cache for embedding
 - [x] `Thryd` router support retry
-- [ ] Add VFS-based sandbox subpackage for isolated LLM file operations
-    - [ ] Rust crate: `VirtualFS` trait + in-memory tree (read/write/list/delete/stat) + overlay mount system (copy-on-write over real paths)
-    - [ ] Rust crate: diff snapshot & apply — `SandboxSession` tracking all mutations, producing a unified diff, and optionally writing changes back to real FS
-    - [ ] Python bindings (PyO3) for `VirtualFS`, `SandboxSession`, overlay mounts
+- [x] Add VFS-based sandbox subpackage for isolated LLM file operations
+    - [x] Rust crate: `VirtualFS` trait + in-memory tree (read/write/list/delete/stat) + overlay mount system (copy-on-write over real paths)
+    - [x] Rust crate: diff snapshot & apply — `SandboxSession` tracking all mutations, producing a unified diff, and optionally writing changes back to real FS
+    - [x] Python bindings (PyO3) for `VirtualFS`, `SandboxSession`, overlay mounts
     - [ ] Integration with `fabricatio-core` file I/O hooks so Actions transparently operate inside a sandbox
-    - [ ] Tests — Rust unit tests for VFS ops + overlay + diff/apply; Python binding smoke tests
+    - [x] Tests — Rust unit tests for VFS ops + overlay + diff/apply; Python binding smoke tests
 - [ ] Typst compilation
     - [ ] Integrate `typst-rs` or shell out to `typst compile` so `fabricatio-typst` Article model produces PDF output
     - [ ] Template library for common document types (paper, report, slides)
