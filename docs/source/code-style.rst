@@ -150,6 +150,26 @@ PyO3 Patterns
          fn info(&self, msg: &str) -> PyResult<()> { ... }
      }
 
+- **Construction**: Use ``#[staticmethod]`` factory methods instead of ``#[new]``.
+  Named factories (``from_memory``, ``from_physical``, ``from_overlay``) are
+  self-documenting, support multiple construction strategies, and align with
+  the Python-side ``@classmethod`` factory convention (rule 2).
+
+  .. code-block:: rust
+
+     #[pymethods]
+     impl VirtualFS {
+         #[staticmethod]
+         fn from_memory() -> Self {
+             Self { root: MemoryFS::new().into() }
+         }
+
+         #[staticmethod]
+         fn from_physical(root: &str) -> Self {
+             Self { root: PhysicalFS::new(PathBuf::from(root)).into() }
+         }
+     }
+
 Async Patterns
 ~~~~~~~~~~~~~~
 
