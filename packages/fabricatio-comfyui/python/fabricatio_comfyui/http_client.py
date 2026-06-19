@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Unpack, final
 
 import httpx
+from fabricatio_core.utils import first_available
 
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.models.comfyui import (
@@ -29,8 +30,6 @@ from fabricatio_comfyui.models.kwargs_types import (
     ViewImageKwargs,
 )
 from fabricatio_comfyui.models.workflow import Workflow
-
-from fabricatio_core.utils import first_available
 
 __all__ = ["ComfyuiHTTPClient"]
 
@@ -89,6 +88,7 @@ class ComfyuiHTTPClient:
         params: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> Any:
+        """Send a GET request; return bytes for binary content, JSON otherwise."""
         resp = await self.source.get(path, params=params, timeout=timeout)
         resp.raise_for_status()
         ct = resp.headers.get("content-type", "")
@@ -104,6 +104,7 @@ class ComfyuiHTTPClient:
         data: Optional[Dict[str, str]] = None,
         timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
+        """Upload files via multipart POST and return the JSON response."""
         resp = await self.source.post(path, data=data, files=files, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
@@ -226,4 +227,3 @@ class ComfyuiHTTPClient:
             (dst / img.filename).write_bytes(data)
 
         await asyncio.gather(*(_fetch(img) for img in result.all_images))
-
