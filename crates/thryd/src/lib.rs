@@ -21,7 +21,7 @@
 //!
 //! | Module | Description |
 //! |--------|-------------|
-//! | `cache` | Persistent request caching backed by redb |
+//! | `cache` | Persistent request caching backed by heed (LMDB) |
 //! | `connections` | HTTP client connection management and pooling |
 //! | `constants` | Rate limiting and configuration constants |
 //! | `error` | Error types and result handling |
@@ -46,16 +46,13 @@
 //!     let api_key = SecretString::from("your-api-key-here".to_string());
 //!     let openai_provider = Arc::new(OpenaiCompatible::openai(api_key));
 //!
-//!     // 2. Create a router for completions
-//!     let mut router = Router::<CompletionTag>::default();
+//!     // 2. Create a router with persistent cache (optional but recommended)
+//!     let mut router = Router::<CompletionTag>::with_cache("./llm-cache")?;
 //!
-//!     // 3. Mount persistent cache (optional but recommended)
-//!     router.mount_cache(PathBuf::from("./llm-cache.db"))?;
-//!
-//!     // 4. Add the provider to the router
+//!     // 3. Add the provider to the router
 //!     router.add_provider(openai_provider)?;
 //!
-//!     // 5. Deploy a model with rate limits
+//!     // 4. Deploy a model with rate limits
 //!     router.deploy(
 //!         "default".to_string(),
 //!         "openai::gpt-4".to_string(),
@@ -63,7 +60,7 @@
 //!         Some(100_000),     // 100,000 tokens per minute
 //!     )?;
 //!
-//!     // 6. Create and make a request
+//!     // 5. Create and make a request
 //!     let request = CompletionRequest {
 //!         message: "Explain the difference between async and sync programming.".to_string(),
 //!         top_p: 0.9,
@@ -74,8 +71,8 @@
 //!         frequency_penalty: 0.0,
 //!     };
 //!
-//!     // First request hits the API
-//!     let response = router.invoke("default".to_string(), request).await?;
+//!     // First request hits the API (subsequent identical requests are served from cache)
+//!     let response = router.invoke("default".to_string(), request, false).await?;
 //!     println!("Response: {}", response);
 //!
 //!     // Subsequent identical requests are served from cache
@@ -140,7 +137,7 @@ pub mod utils;
 /// Cache-related types for persistent request caching.
 ///
 /// The main type is [`PersistentCache`] which provides a thread-safe,
-/// persistent key-value cache backed by redb.
+/// persistent key-value cache backed by heed (LMDB).
 pub use cache::*;
 
 /// Rate limiting and configuration constants.

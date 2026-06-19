@@ -98,10 +98,7 @@ use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut router = Router::<CompletionTag>::default();
-    
-    // Mount a persistent cache
-    router.mount_cache(PathBuf::from("./llm-cache.db"))?;
+    let router = Router::<CompletionTag>::with_cache("./llm-cache")?;
     
     // Configure providers and deployments...
     
@@ -112,10 +109,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     // First call hits the API
-    let response1 = router.invoke("default".to_string(), request.clone()).await?;
+    let response1 = router.invoke("default".to_string(), request.clone(), false).await?;
     
     // Second identical call returns cached result
-    let response2 = router.invoke("default".to_string(), request).await?;
+    let response2 = router.invoke("default".to_string(), request, false).await?;
     
     assert_eq!(response1, response2);
     
@@ -553,7 +550,7 @@ This project is licensed under the MIT License - see the [LICENSE](../../LICENSE
 
 - [tiktoken-rs](https://github.com/openai/tiktoken-rs) for token counting
 - [async-openai](https://github.com/64bit/async-openai) for OpenAI API client inspiration
-- [redb](https://github.com/cberner/redb) for embedded database storage
+- [heed](https://github.com/meilisearch/heed) for LMDB-based persistent cache storage
 
 ## Changelog
 
