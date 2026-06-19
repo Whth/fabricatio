@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
@@ -58,6 +58,7 @@ impl VirtualFS {
         }
     }
 
+    /// Read a text file and return its content as a string.
     fn read_text(&self, path: &str) -> PyResult<String> {
         self.root
             .join(path)
@@ -65,6 +66,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Write text content to a file, creating parent directories as needed.
     fn write_text(&self, path: &str, content: &str) -> PyResult<()> {
         let p = self.root.join(path).map_err(vfs_err)?;
         ensure_parent(&p);
@@ -72,6 +74,7 @@ impl VirtualFS {
         f.write_all(content.as_bytes()).map_err(io_err)
     }
 
+    /// Read a file and return its content as bytes.
     fn read_bytes(&self, path: &str) -> PyResult<Vec<u8>> {
         let mut buf = Vec::new();
         self.root
@@ -85,13 +88,15 @@ impl VirtualFS {
         Ok(buf)
     }
 
-    fn write_bytes(&self, path: &str, content: &[u8]) -> PyResult<()> {
+    /// Write raw bytes to a file, creating parent directories as needed.
+    fn write_bytes(&self, path: &str, content: Vec<u8>) -> PyResult<()> {
         let p = self.root.join(path).map_err(vfs_err)?;
         ensure_parent(&p);
         let mut f = p.create_file().map_err(vfs_err)?;
-        f.write_all(content).map_err(io_err)
+        f.write_all(&content).map_err(io_err)
     }
 
+    /// List immediate children of a directory, returning filenames.
     fn list_dir(&self, path: &str) -> PyResult<Vec<String>> {
         let p = self.root.join(path).map_err(vfs_err)?;
         let mut names = Vec::new();
@@ -101,6 +106,7 @@ impl VirtualFS {
         Ok(names)
     }
 
+    /// Recursively walk a directory, returning all descendant paths.
     fn walk_dir(&self, path: &str) -> PyResult<Vec<String>> {
         let p = self.root.join(path).map_err(vfs_err)?;
         let mut paths = Vec::new();
@@ -110,6 +116,7 @@ impl VirtualFS {
         Ok(paths)
     }
 
+    /// Check whether a path exists.
     fn exists(&self, path: &str) -> PyResult<bool> {
         self.root
             .join(path)
@@ -117,6 +124,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Check whether a path is a file.
     fn is_file(&self, path: &str) -> PyResult<bool> {
         self.root
             .join(path)
@@ -124,6 +132,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Check whether a path is a directory.
     fn is_dir(&self, path: &str) -> PyResult<bool> {
         self.root
             .join(path)
@@ -131,6 +140,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Create a single directory level at the given path.
     fn create_dir(&self, path: &str) -> PyResult<()> {
         self.root
             .join(path)
@@ -138,6 +148,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Create a directory and all missing ancestors.
     fn create_dir_all(&self, path: &str) -> PyResult<()> {
         self.root
             .join(path)
@@ -145,6 +156,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Remove a single file.
     fn remove_file(&self, path: &str) -> PyResult<()> {
         self.root
             .join(path)
@@ -152,6 +164,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Remove a directory and all its contents.
     fn remove_dir_all(&self, path: &str) -> PyResult<()> {
         self.root
             .join(path)
@@ -159,6 +172,7 @@ impl VirtualFS {
             .map_err(vfs_err)
     }
 
+    /// Copy a file from *src* to *dst*, creating parent dirs for *dst*.
     fn copy_file(&self, src: &str, dst: &str) -> PyResult<()> {
         let src_p = self.root.join(src).map_err(vfs_err)?;
         let dst_p = self.root.join(dst).map_err(vfs_err)?;
@@ -166,6 +180,7 @@ impl VirtualFS {
         src_p.copy_file(&dst_p).map_err(vfs_err)
     }
 
+    /// Move (rename) a file from *src* to *dst*.
     fn rename(&self, src: &str, dst: &str) -> PyResult<()> {
         let src_p = self.root.join(src).map_err(vfs_err)?;
         let dst_p = self.root.join(dst).map_err(vfs_err)?;
@@ -173,6 +188,7 @@ impl VirtualFS {
         src_p.move_file(&dst_p).map_err(vfs_err)
     }
 
+    /// Return the resolved absolute path string within the VFS.
     fn abs_path(&self, path: &str) -> PyResult<String> {
         self.root
             .join(path)
@@ -200,27 +216,23 @@ pub struct SandboxSession {
     #[allow(dead_code)] // held to keep PhysicalFS instances alive
     overlays: Vec<VfsPath>,
     originals: RefCell<HashMap<String, String>>,
+    written: RefCell<HashSet<String>>,
     mounts: HashMap<String, String>,
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl SandboxSession {
-    /// Create a new sandbox session.
+    /// Create a sandbox session with read-only real-directory mounts.
     ///
-    /// ``mounts`` maps virtual paths to real directories that are mounted
-    /// read-only into the overlay; all writes go to the in-memory layer.
-    #[new]
-    #[pyo3(signature = (mounts=None))]
-    fn new(mounts: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let mounts_map: HashMap<String, String> = match mounts {
-            Some(d) => d.extract().map_err(|e: PyErr| e)?,
-            None => HashMap::new(),
-        };
-
+    /// ``mounts`` maps virtual paths (e.g. ``"/project"``) to real directories.
+    /// All writes go to the in-memory upper layer; reads fall through to the
+    /// mounted real directories.
+    #[staticmethod]
+    fn with_mounts(mounts: HashMap<String, String>) -> PyResult<Self> {
         let upper: VfsPath = MemoryFS::new().into();
-        let mut overlays = Vec::with_capacity(mounts_map.len());
-        for real_path in mounts_map.values() {
+        let mut overlays = Vec::with_capacity(mounts.len());
+        for real_path in mounts.values() {
             overlays.push(PhysicalFS::new(PathBuf::from(real_path)).into());
         }
 
@@ -234,96 +246,117 @@ impl SandboxSession {
             vfs: VirtualFS { root },
             overlays,
             originals: RefCell::new(HashMap::new()),
-            mounts: mounts_map,
+            written: RefCell::new(HashSet::new()),
+            mounts,
         })
     }
 
     // -- VFS operations (delegated) -------------------------------------------
 
+    /// Read a text file from the sandbox, resolving mount prefixes.
     fn read_text(&self, path: &str) -> PyResult<String> {
-        self.vfs.read_text(path)
+        self.vfs.read_text(&self.resolve_path(path))
     }
 
+    /// Write text to a file, snapshotting the original before first mutation.
     fn write_text(&self, path: &str, content: &str) -> PyResult<()> {
         self.snapshot_if_needed(path);
-        self.vfs.write_text(path, content)
+        self.written.borrow_mut().insert(path.to_owned());
+        self.vfs.write_text(&self.resolve_path(path), content)
     }
 
+    /// Read a file and return its content as bytes.
     fn read_bytes(&self, path: &str) -> PyResult<Vec<u8>> {
-        self.vfs.read_bytes(path)
+        self.vfs.read_bytes(&self.resolve_path(path))
     }
 
-    fn write_bytes(&self, path: &str, content: &[u8]) -> PyResult<()> {
+    /// Write raw bytes to a file, snapshotting the original before first mutation.
+    fn write_bytes(&self, path: &str, content: Vec<u8>) -> PyResult<()> {
         self.snapshot_if_needed(path);
-        self.vfs.write_bytes(path, content)
+        self.written.borrow_mut().insert(path.to_owned());
+        self.vfs.write_bytes(&self.resolve_path(path), content)
     }
 
+    /// List immediate children of a directory.
     fn list_dir(&self, path: &str) -> PyResult<Vec<String>> {
-        self.vfs.list_dir(path)
+        self.vfs.list_dir(&self.resolve_path(path))
     }
 
+    /// Recursively walk a directory, returning all descendant paths.
     fn walk_dir(&self, path: &str) -> PyResult<Vec<String>> {
-        self.vfs.walk_dir(path)
+        self.vfs.walk_dir(&self.resolve_path(path))
     }
 
+    /// Check whether a path exists in the sandbox.
     fn exists(&self, path: &str) -> PyResult<bool> {
-        self.vfs.exists(path)
+        self.vfs.exists(&self.resolve_path(path))
     }
 
+    /// Check whether a path is a file.
     fn is_file(&self, path: &str) -> PyResult<bool> {
-        self.vfs.is_file(path)
+        self.vfs.is_file(&self.resolve_path(path))
     }
 
+    /// Check whether a path is a directory.
     fn is_dir(&self, path: &str) -> PyResult<bool> {
-        self.vfs.is_dir(path)
+        self.vfs.is_dir(&self.resolve_path(path))
     }
 
+    /// Create a single directory level.
     fn create_dir(&self, path: &str) -> PyResult<()> {
-        self.vfs.create_dir(path)
+        self.vfs.create_dir(&self.resolve_path(path))
     }
 
+    /// Create a directory and all missing ancestors.
     fn create_dir_all(&self, path: &str) -> PyResult<()> {
-        self.vfs.create_dir_all(path)
+        self.vfs.create_dir_all(&self.resolve_path(path))
     }
 
+    /// Remove a single file, snapshotting its content first.
     fn remove_file(&self, path: &str) -> PyResult<()> {
         self.snapshot_if_needed(path);
-        self.vfs.remove_file(path)
+        self.vfs.remove_file(&self.resolve_path(path))
     }
 
+    /// Remove a directory and all its contents.
     fn remove_dir_all(&self, path: &str) -> PyResult<()> {
-        self.vfs.remove_dir_all(path)
+        self.vfs.remove_dir_all(&self.resolve_path(path))
     }
 
+    /// Copy a file from *src* to *dst*, snapshotting *dst* first.
     fn copy_file(&self, src: &str, dst: &str) -> PyResult<()> {
         self.snapshot_if_needed(dst);
-        self.vfs.copy_file(src, dst)
+        self.written.borrow_mut().insert(dst.to_owned());
+        self.vfs
+            .copy_file(&self.resolve_path(src), &self.resolve_path(dst))
     }
 
+    /// Move a file from *src* to *dst*, snapshotting both first.
     fn rename(&self, src: &str, dst: &str) -> PyResult<()> {
         self.snapshot_if_needed(src);
         self.snapshot_if_needed(dst);
-        self.vfs.rename(src, dst)
+        self.written.borrow_mut().insert(dst.to_owned());
+        self.vfs
+            .rename(&self.resolve_path(src), &self.resolve_path(dst))
     }
 
+    /// Return the resolved absolute path string within the VFS.
     fn abs_path(&self, path: &str) -> PyResult<String> {
-        self.vfs.abs_path(path)
+        self.vfs.abs_path(&self.resolve_path(path))
     }
 
     // -- Session operations ---------------------------------------------------
 
     /// Return ``{virtual_path: unified_diff, ...}`` for every mutated file.
     fn diff<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let all_files = self.collect_vfs_files()?;
         let originals = self.originals.borrow();
         let dict = PyDict::new(py);
 
-        for vp in &all_files {
-            if let Some(original) = originals.get(vp.as_str()) {
-                if let Ok(current) = self.vfs.read_text(vp) {
-                    if &current != original {
-                        dict.set_item(vp, unified_diff(original, &current, vp))?;
-                    }
+        for (user_path, original) in originals.iter() {
+            let vfs_path = self.resolve_path(user_path);
+            if let Ok(current) = self.vfs.read_text(&vfs_path) {
+                if &current != original {
+                    dict.set_item(user_path, unified_diff(original, &current, user_path))?;
                 }
             }
         }
@@ -331,31 +364,23 @@ impl SandboxSession {
         Ok(dict)
     }
 
-    /// Flush mutations from the in-memory layer back to the real filesystem
-    /// using the mount mappings.
+    /// Flush mutations from the in-memory layer back to the real filesystem using the mount mappings.
+    ///
+    /// Only files that were written through the session are flushed.
+    /// New files are created under the matching mount's real directory;
+    /// existing files are overwritten.
     fn apply(&self) -> PyResult<()> {
-        let all_files = self.collect_vfs_files()?;
-
-        for vp in &all_files {
+        let written = self.written.borrow();
+        for user_path in written.iter() {
+            let vfs_path = self.resolve_path(user_path);
             if let Some((_, real_root)) = self
                 .mounts
                 .iter()
-                .find(|(vprefix, _)| vp.starts_with(vprefix.trim_start_matches('/')))
+                .find(|(vprefix, _)| self.matches_prefix(user_path, vprefix))
             {
-                let vprefix = self
-                    .mounts
-                    .iter()
-                    .find(|(_, rr)| **rr == *real_root)
-                    .map(|(vp, _)| vp.as_str())
-                    .unwrap_or("");
-
-                let rel = vp
-                    .strip_prefix(vprefix.trim_start_matches('/'))
-                    .unwrap_or(vp)
-                    .trim_start_matches('/');
+                let rel = self.strip_mount_prefix(user_path);
                 let real_path = format!("{}/{}", real_root.trim_end_matches('/'), rel);
-
-                if let Ok(content) = self.vfs.read_bytes(vp) {
+                if let Ok(content) = self.vfs.read_bytes(&vfs_path) {
                     let path = std::path::Path::new(&real_path);
                     if let Some(parent) = path.parent() {
                         std::fs::create_dir_all(parent).map_err(io_err)?;
@@ -367,14 +392,20 @@ impl SandboxSession {
         Ok(())
     }
 
-    /// Clear tracked originals so the next `diff()` captures only fresh changes.
+    /// Clear tracked originals and written paths so the next ``diff()`` captures only fresh changes.
     fn reset(&mut self) {
         self.originals.borrow_mut().clear();
+        self.written.borrow_mut().clear();
     }
 
-    /// The virtual root path string.
-    fn root_path(&self) -> &str {
-        self.vfs.root.as_str()
+    /// The virtual root path string. Returns ``"/"`` when the overlay root has no explicit path.
+    fn root_path(&self) -> String {
+        let s = self.vfs.root.as_str();
+        if s.is_empty() {
+            "/".to_owned()
+        } else {
+            s.to_owned()
+        }
     }
 
     /// Copy of the current mount mappings.
@@ -385,41 +416,64 @@ impl SandboxSession {
     fn __repr__(&self) -> String {
         format!(
             "SandboxSession(root='{}', mounts={})",
-            self.vfs.root.as_str(),
+            self.root_path(),
             self.mounts.len()
         )
     }
 }
 
 impl SandboxSession {
-    /// Snapshot the original content of `path` before first mutation.
-    fn snapshot_if_needed(&self, path: &str) {
-        let mut originals = self.originals.borrow_mut();
-        if originals.contains_key(path) {
-            return;
+    /// Translate a user-facing path (possibly with mount prefix) to an
+    /// internal VFS path by stripping the mount prefix and leading `/`.
+    fn resolve_path(&self, path: &str) -> String {
+        let stripped = path.trim_start_matches('/');
+        for mount_prefix in self.mounts.keys() {
+            let prefix = mount_prefix.trim_start_matches('/').trim_end_matches('/');
+            if stripped == prefix {
+                return String::new();
+            }
+            let prefix_slash = format!("{}/", prefix);
+            if stripped.starts_with(&prefix_slash) {
+                return stripped[prefix.len() + 1..].to_owned();
+            }
         }
-        if let Ok(original) = self.vfs.read_text(path) {
-            originals.insert(path.to_owned(), original);
-        }
+        stripped.to_owned()
     }
 
-    /// Collect every file path in the merged VFS, skipping `.whiteout` dirs.
-    fn collect_vfs_files(&self) -> PyResult<Vec<String>> {
-        let root = &self.vfs.root;
-        if !root.exists().map_err(vfs_err)? {
-            return Ok(Vec::new());
-        }
-        let mut files = Vec::new();
-        for entry in root.walk_dir().map_err(vfs_err)? {
-            let e = entry.map_err(vfs_err)?;
-            if e.as_str().contains(".whiteout") {
-                continue;
+    /// Check if a user-facing path starts with a mount prefix.
+    fn matches_prefix(&self, path: &str, mount_prefix: &str) -> bool {
+        let stripped = path.trim_start_matches('/');
+        let prefix = mount_prefix.trim_start_matches('/').trim_end_matches('/');
+        stripped == prefix || stripped.starts_with(&format!("{}/", prefix))
+    }
+
+    /// Strip the mount prefix from a user-facing path, returning the
+    /// relative portion suitable for joining with the real root.
+    fn strip_mount_prefix<'a>(&self, path: &'a str) -> &'a str {
+        let stripped = path.trim_start_matches('/');
+        for mount_prefix in self.mounts.keys() {
+            let prefix = mount_prefix.trim_start_matches('/').trim_end_matches('/');
+            if stripped == prefix {
+                return "";
             }
-            if e.is_file().unwrap_or(false) {
-                files.push(e.as_str().to_owned());
+            let prefix_slash = format!("{}/", prefix);
+            if stripped.starts_with(&prefix_slash) {
+                return &stripped[prefix.len() + 1..];
             }
         }
-        Ok(files)
+        stripped
+    }
+
+    /// Snapshot the original content of `path` before first mutation.
+    fn snapshot_if_needed(&self, user_path: &str) {
+        let mut originals = self.originals.borrow_mut();
+        if originals.contains_key(user_path) {
+            return;
+        }
+        let vfs_path = self.resolve_path(user_path);
+        if let Ok(original) = self.vfs.read_text(&vfs_path) {
+            originals.insert(user_path.to_owned(), original);
+        }
     }
 }
 

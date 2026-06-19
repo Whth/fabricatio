@@ -135,7 +135,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "hello.txt").write_text("from real fs")
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         assert session.mounts() == {"/project": str(real_dir)}
 
     def test_read_mounted_file(self, tmp_path: Path) -> None:
@@ -144,7 +144,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "hello.txt").write_text("real content")
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         assert session.read_text("/project/hello.txt") == "real content"
 
     def test_write_does_not_modify_real_fs(self, tmp_path: Path) -> None:
@@ -153,7 +153,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("original")
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         session.write_text("/project/file.txt", "modified in sandbox")
 
         # Real FS unchanged
@@ -167,7 +167,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("line1\nline2\nline3\n")
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         session.write_text("/project/file.txt", "line1\nmodified\nline3\n")
 
         diff = session.diff()
@@ -212,7 +212,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "f.txt").write_text("original")
 
-        session = SandboxSession(mounts={"/p": str(real_dir)})
+        session = SandboxSession.with_mounts({"/p": str(real_dir)})
         session.write_text("/p/f.txt", "changed")
         assert len(session.diff()) > 0
 
@@ -228,7 +228,7 @@ class TestSandboxSession:
         real_dir.mkdir()
         (real_dir / "file.txt").write_text("original")
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         session.write_text("/project/file.txt", "applied content")
         session.apply()
 
@@ -239,7 +239,7 @@ class TestSandboxSession:
         real_dir = tmp_path / "real"
         real_dir.mkdir()
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         session.write_text("/project/new_file.txt", "brand new")
         session.apply()
 
@@ -250,7 +250,7 @@ class TestSandboxSession:
         real_dir = tmp_path / "real"
         real_dir.mkdir()
 
-        session = SandboxSession(mounts={"/project": str(real_dir)})
+        session = SandboxSession.with_mounts({"/project": str(real_dir)})
         session.write_text("/project/src/deep/file.rs", "fn main() {}")
         session.apply()
 
