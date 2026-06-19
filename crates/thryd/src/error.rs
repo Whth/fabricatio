@@ -8,7 +8,7 @@
 //! - **Provider Errors**: Provider unavailability, API key issues, model support
 //! - **Router Errors**: Missing deployments, invalid group names, routing failures
 //! - **Rate Limit Errors**: RPM/TPM quota exhaustion with suggested wait times
-//! - **Cache Errors**: Database I/O failures (redb, postcard serialization)
+//! - **Cache Errors**: Database I/O failures (heed/LMDB, postcard serialization)
 //! - **Network Errors**: HTTP request failures, timeouts, SSE stream issues
 //! - **Parse Errors**: JSON processing, URL parsing, enum type conversion
 //!
@@ -51,7 +51,7 @@ use url::ParseError;
 /// | Rate Limit | [`ThrydError::RateLimitExceeded`] | RPM/TPM quota exceeded |
 /// | Network | [`ThrydError::Reqwest`] | HTTP request failures |
 /// | Network | [`ThrydError::Timeout`] | Operation timed out |
-/// | Cache | [`ThrydError::Redb`], [`ThrydError::RedbTable`], etc. | Database errors |
+/// | Cache | [`ThrydError::Heed`], [`ThrydError::PostCard`] | Database errors |
 /// | Parse | [`ThrydError::Json`] | JSON serialization errors |
 ///
 /// # Example
@@ -139,21 +139,8 @@ pub enum ThrydError {
     #[error("Postcard error: {0}")]
     PostCard(#[from] postcard::Error),
 
-    #[error("Redb error: {0}")]
-    Redb(#[from] redb::Error),
-
-    #[error("Redb table error: {0}")]
-    RedbTable(#[from] redb::TableError),
-
-    #[error("Redb transaction error: {0}")]
-    RedbTransaction(#[from] redb::TransactionError),
-
-    #[error("Redb storage error: {0}")]
-    RedbStorage(#[from] redb::StorageError),
-    #[error("Redb commit error: {0}")]
-    RedbCommit(#[from] redb::CommitError),
-    #[error("Redb database error: {0}")]
-    RedbDataBase(#[from] redb::DatabaseError),
+    #[error("heed/LMDB error: {0}")]
+    Heed(#[from] heed::Error),
 
     /// Wraps environment variable retrieval errors.
     #[error("Environment variable error: {0}")]

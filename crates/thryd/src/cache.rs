@@ -1,11 +1,19 @@
 use crate::Result;
 use crate::utils::{TimeStamp, current_timestamp};
-use redb::{Database, ReadableDatabase, ReadableTableMetadata, TableDefinition, TypeName, Value};
+use heed::{Database, Env, EnvOpenOptions, types::*};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
 
 use std::path::Path;
-use std::sync::Arc;
+
+/// Default LMDB map size: 1 GiB.
+///
+/// On Linux this is virtual address space reservation (free). On Windows this
+/// pre-allocates disk space, so pick a value that won't waste too much space.
+const DEFAULT_MAP_SIZE: usize = 1 << 30; // 1 GiB
+
+/// Named database inside the LMDB environment.
+const DB_NAME: &str = "cache";
 
 /// Internal storage format for cache entries.
 ///
@@ -13,8 +21,6 @@ use std::sync::Arc;
 /// - `timestamp`: When the entry was last written (used for TTL tracking)
 /// - `access_count`: Number of times the entry has been accessed (for eviction metrics)
 /// - `data`: The serialized value as bytes
-///
-/// This struct implements redb's `Value` trait for persistent storage.
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct CacheValue {
     /// Timestamp of the last write operation (milliseconds since epoch).
@@ -27,24 +33,12 @@ struct CacheValue {
 
 impl CacheValue {
     /// Deserializes the stored data back into a Rust value.
-    ///
-    /// # Type Parameter
-    /// * `T` - Must implement `DeserializeOwned` and `Clone`
-    ///
-    /// # Returns
-    /// * `Result<T>` - The deserialized value, or an error if deserialization fails
     fn access_data<T: DeserializeOwned>(&self) -> Result<T> {
         let v = postcard::from_bytes(&self.data)?;
         Ok(v)
     }
 
     /// Serializes a value and wraps it in a `CacheValue` with a fresh timestamp.
-    ///
-    /// # Type Parameter
-    /// * `T` - Must implement `Serialize`
-    ///
-    /// # Returns
-    /// * `Result<CacheValue>` - The serialized cache entry, or an error if serialization fails
     fn from_data<T: Serialize>(data: T) -> Result<Self> {
         postcard::to_stdvec(&data)
             .map(|e| Self {
@@ -54,62 +48,18 @@ impl CacheValue {
             })
             .map_err(|e| e.into())
     }
-
-    /// Create a CacheValue from pre-serialized data bytes.
-    fn from_raw_bytes(bytes: &[u8]) -> Self {
-        Self {
-            timestamp: current_timestamp(),
-            access_count: 0,
-            data: bytes.to_vec(),
-        }
-    }
 }
 
-/// Table definition for the cache storage (redb table name: "cache").
-const CACHE_TABLE: TableDefinition<&str, CacheValue> = TableDefinition::new("cache");
-
-/// Implements redb's `Value` trait to enable persistent storage of `CacheValue`.
+/// A persistent key-value cache backed by [heed](https://github.com/meilisearch/heed) (LMDB).
 ///
-/// This enables redb to serialize/deserialize `CacheValue` entries when storing
-/// them in the embedded database. Serialization uses the `postcard` crate.
-impl Value for CacheValue {
-    type SelfType<'a> = CacheValue;
-    type AsBytes<'a> = Vec<u8>;
-
-    fn fixed_width() -> Option<usize> {
-        None
-    }
-
-    /// Deserialize from bytes using postcard.
-    fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
-    where
-        Self: 'a,
-    {
-        postcard::from_bytes::<CacheValue>(data).expect("Failed to deserialize cache value")
-    }
-
-    /// Serialize to bytes using postcard.
-    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
-    where
-        Self: 'b,
-    {
-        postcard::to_stdvec(value).expect("Fail to serialize cache value")
-    }
-
-    fn type_name() -> TypeName {
-        TypeName::new("CacheValue")
-    }
-}
-
-/// A persistent key-value cache backed by [redb](https://github.com/cberner/redb).
-///
-/// `PersistentCache` provides a thread-safe, persistent cache using the redb embedded
-/// database. It supports serialization/deserialization of any type that implements
-/// serde's `Serialize` and `DeserializeOwned` traits.
+/// `PersistentCache` provides a thread-safe, persistent cache using the LMDB embedded
+/// database via the heed crate. It supports serialization/deserialization of any type
+/// that implements serde's `Serialize` and `DeserializeOwned` traits.
 ///
 /// # Features
 /// - **Persistent storage**: Data survives process restarts
-/// - **Zero-copy reads**: Internal get operations avoid unnecessary cloning
+/// - **Multi-process safe**: Multiple processes can access the same database
+/// - **Zero-copy reads**: LMDB memory-maps the database for fast reads (OS page cache)
 /// - **Serialization support**: Automatic serialization via `get_de` and `set_ser`
 ///
 /// # Example
@@ -123,69 +73,70 @@ impl Value for CacheValue {
 /// cache.set_ser("key", &"value").unwrap();
 ///
 /// // Retrieve and deserialize
-/// if let Some(value) = cache.get_de::<String, _>("key") {
-///     println!("Got: {}", value);
+/// if let Some(value) = cache.get_de::<String>("key") {
 /// }
 /// ```
 ///
 /// # Thread Safety
-/// The cache uses `Arc<Database>` internally, making it safe to clone and share
+/// The cache uses `Clone`-able heed types internally, making it safe to clone and share
 /// across multiple threads.
 #[derive(Clone)]
 pub struct PersistentCache {
-    /// The underlying redb database instance.
-    db: Arc<Database>,
+    /// The LMDB environment (holds the memory map and manages transactions).
+    env: Env,
+    /// The typed database handle (key: `&str`, value: raw bytes).
+    db: Database<Str, Bytes>,
 }
 
 impl PersistentCache {
     /// Opens an existing cache database or creates a new one at the specified path.
     ///
-    /// If the path already exists, opens the existing database. If the path does not
-    /// exist, creates a new database at that location.
+    /// Uses the default map size of 1 GiB. For a custom map size, use
+    /// [`create_or_open_with_map_size`](Self::create_or_open_with_map_size).
     ///
     /// # Arguments
-    /// * `path` - Path to the cache database file (created if non-existent)
+    /// * `path` - Path to the cache database directory (created if non-existent)
     ///
     /// # Returns
     /// * `Result<Self>` - A new `PersistentCache` instance, or an error if creation/open fails
-    ///
-    /// # Example
-    /// ```no_run
-    /// use thryd::PersistentCache;
-    ///
-    /// let cache = PersistentCache::create_or_open("./my-cache.db").unwrap();
-    /// ```
     pub fn create_or_open(path: impl AsRef<Path>) -> Result<Self> {
-        if path.as_ref().exists() {
-            Database::open(path.as_ref())
-                .map(|db| Self { db: Arc::new(db) })
-                .map_err(|e| e.into())
-        } else {
-            Database::create(path.as_ref())
-                .map(|db| Self { db: Arc::new(db) })
-                .map_err(|e| e.into())
-        }
+        Self::create_or_open_with_map_size(path, DEFAULT_MAP_SIZE)
     }
 
-    /// Retrieves a raw `CacheValue` from the cache by key.
+    /// Opens an existing cache database or creates a new one with a custom map size.
     ///
-    /// This is an internal method used by `get_de`. Prefer using `get_de` for
-    /// automatic deserialization.
+    /// On Linux, the map size is a virtual address space reservation (free).
+    /// On Windows, this pre-allocates disk space, so choose wisely.
     ///
     /// # Arguments
-    /// * `key` - The cache key to look up
+    /// * `path` - Path to the cache database directory (created if non-existent)
+    /// * `map_size` - Maximum database size in bytes
     ///
     /// # Returns
-    /// * `Option<CacheValue>` - The raw cache entry if found, `None` otherwise
-    fn get(&self, key: &str) -> Option<CacheValue> {
-        self.db
-            .begin_read()
-            .ok()?
-            .open_table(CACHE_TABLE)
-            .ok()?
-            .get(key)
-            .ok()?
-            .map(|e| e.value())
+    /// * `Result<Self>` - A new `PersistentCache` instance, or an error if creation/open fails
+    pub fn create_or_open_with_map_size(path: impl AsRef<Path>, map_size: usize) -> Result<Self> {
+        let path = path.as_ref();
+
+        // LMDB requires the path to be a directory. If a file exists at this path
+        // (e.g. from a previous redb database), remove it so we can create the dir.
+        if path.is_file() {
+            std::fs::remove_file(path).map_err(heed::Error::Io)?;
+        }
+        std::fs::create_dir_all(path).map_err(heed::Error::Io)?;
+
+        let mut env_builder = EnvOpenOptions::new();
+        env_builder.map_size(map_size);
+        env_builder.max_dbs(1);
+
+        // SAFETY: We ensure the path exists and we only open each environment once
+        // per process (the caller is responsible for not opening the same path twice).
+        let env = unsafe { env_builder.open(path)? };
+
+        let mut wtxn = env.write_txn()?;
+        let db = env.create_database(&mut wtxn, Some(DB_NAME))?;
+        wtxn.commit()?;
+
+        Ok(Self { env, db })
     }
 
     /// Retrieves and deserializes a value from the cache.
@@ -205,36 +156,15 @@ impl PersistentCache {
     ///
     /// let cache = PersistentCache::create_or_open("./cache.db").unwrap();
     ///
-    /// if let Some(value) = cache.get_de::<String, _>("my-key") {
+    /// if let Some(value) = cache.get_de::<String>("my-key") {
     ///     println!("Cached value: {}", value);
     /// }
     /// ```
     pub fn get_de<T: DeserializeOwned + Clone>(&self, key: &str) -> Option<T> {
-        self.get(key)?.access_data::<T>().ok()
-    }
-
-    /// Returns the raw serialized data bytes for a key.
-    /// Used by TieredCache to populate L1 on L2 hit.
-    pub(crate) fn get_raw(&self, key: &str) -> Option<Vec<u8>> {
-        self.get(key).map(|cv| cv.data)
-    }
-
-    /// Stores a raw `CacheValue` in the cache.
-    ///
-    /// This is an internal method used by `set_ser`. Prefer using `set_ser` for
-    /// automatic serialization.
-    ///
-    /// # Arguments
-    /// * `key` - The cache key
-    /// * `value` - The `CacheValue` to store
-    fn set(&self, key: impl AsRef<str>, value: CacheValue) -> Result<()> {
-        let trx = self.db.begin_write()?;
-
-        trx.open_table(CACHE_TABLE)?.insert(key.as_ref(), value)?;
-
-        trx.commit()?;
-
-        Ok(())
+        let rtxn = self.env.read_txn().ok()?;
+        let bytes = self.db.get(&rtxn, key).ok()??;
+        let cv: CacheValue = postcard::from_bytes(bytes).ok()?;
+        cv.access_data::<T>().ok()
     }
 
     /// Serializes and stores a value in the cache.
@@ -257,13 +187,12 @@ impl PersistentCache {
     /// cache.set_ser("my-key", &"my-value").unwrap();
     /// ```
     pub fn set_ser<T: Serialize>(&self, key: impl AsRef<str>, value: &T) -> Result<()> {
-        self.set(key, CacheValue::from_data(value)?)
-    }
-
-    /// Stores pre-serialized bytes directly, skipping re-serialization.
-    /// Used by TieredCache for async L2 writes.
-    pub(crate) fn set_ser_raw(&self, key: &str, bytes: &[u8]) -> Result<()> {
-        self.set(key, CacheValue::from_raw_bytes(bytes))
+        let cv = CacheValue::from_data(value)?;
+        let bytes = postcard::to_stdvec(&cv)?;
+        let mut wtxn = self.env.write_txn()?;
+        self.db.put(&mut wtxn, key.as_ref(), &bytes)?;
+        wtxn.commit()?;
+        Ok(())
     }
 
     /// Checks whether a key exists in the cache.
@@ -274,17 +203,12 @@ impl PersistentCache {
     /// # Returns
     /// * `bool` - `true` if the key exists, `false` otherwise
     pub fn contains_key(&self, key: &str) -> bool {
-        let read_txn = match self.db.begin_read() {
+        let rtxn = match self.env.read_txn() {
             Ok(txn) => txn,
             Err(_) => return false,
         };
 
-        let table = match read_txn.open_table(CACHE_TABLE) {
-            Ok(t) => t,
-            Err(_) => return false,
-        };
-
-        matches!(table.get(key), Ok(Some(_)))
+        matches!(self.db.get(&rtxn, key), Ok(Some(_)))
     }
 
     /// Removes a key from the cache.
@@ -295,15 +219,9 @@ impl PersistentCache {
     /// # Returns
     /// * `Result<()>` - Success, or an error if removal fails
     pub fn remove(&self, key: impl AsRef<str>) -> Result<()> {
-        let write_txn = self.db.begin_write()?;
-
-        {
-            let mut table = write_txn.open_table(CACHE_TABLE)?;
-            table.remove(key.as_ref())?;
-        }
-
-        write_txn.commit()?;
-
+        let mut wtxn = self.env.write_txn()?;
+        self.db.delete(&mut wtxn, key.as_ref())?;
+        wtxn.commit()?;
         Ok(())
     }
 
@@ -312,10 +230,8 @@ impl PersistentCache {
     /// # Returns
     /// * `Result<u64>` - The count of entries, or an error if the operation fails
     pub fn len(&self) -> Result<u64> {
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(CACHE_TABLE)?;
-        let leng = table.len()?;
-        Ok(leng)
+        let rtxn = self.env.read_txn()?;
+        Ok(self.db.len(&rtxn)?)
     }
 
     /// Checks whether the cache is empty.
@@ -323,87 +239,8 @@ impl PersistentCache {
     /// # Returns
     /// * `Result<bool>` - `true` if empty, `false` otherwise, or an error if check fails
     pub fn is_empty(&self) -> Result<bool> {
-        let read_txn = self.db.begin_read()?;
-        let table = read_txn.open_table(CACHE_TABLE)?;
-        let empty = table.is_empty()?;
-        Ok(empty)
-    }
-}
-
-/// Tiered cache: L1 (moka, in-memory) + L2 (redb, persistent).
-///
-/// L1 handles the hot path with TTL and LRU eviction via moka.
-/// L2 provides persistence across restarts, populated on L1 miss.
-/// L2 writes are spawned as tokio tasks -- never blocks the caller.
-#[derive(Clone)]
-pub struct TieredCache {
-    /// L1: in-memory cache with TTL and capacity eviction.
-    l1: moka::sync::Cache<String, Vec<u8>>,
-    /// L2: persistent cache (redb). None for memory-only mode.
-    l2: Option<PersistentCache>,
-}
-
-impl TieredCache {
-    /// Create a tiered cache with both L1 (memory) and L2 (persistent).
-    pub fn create_or_open(
-        path: impl AsRef<Path>,
-        ttl_secs: u64,
-        max_capacity: u64,
-    ) -> Result<Self> {
-        let l1 = moka::sync::Cache::builder()
-            .time_to_idle(std::time::Duration::from_secs(ttl_secs))
-            .max_capacity(max_capacity)
-            .build();
-        let l2 = PersistentCache::create_or_open(path)?;
-        Ok(Self { l1, l2: Some(l2) })
-    }
-
-    /// Create a memory-only tiered cache (no persistence).
-    pub fn memory_only(ttl_secs: u64, max_capacity: u64) -> Self {
-        let l1 = moka::sync::Cache::builder()
-            .time_to_idle(std::time::Duration::from_secs(ttl_secs))
-            .max_capacity(max_capacity)
-            .build();
-        Self { l1, l2: None }
-    }
-
-    /// Retrieve and deserialize a value. L1 hit -> return. L2 hit -> populate L1 -> return.
-    pub fn get_de<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
-        // L1: fast in-memory lookup
-        if let Some(bytes) = self.l1.get(key) {
-            return postcard::from_bytes(&bytes).ok();
-        }
-
-        // L2: persistent lookup, populate L1 on hit
-        if let Some(l2) = &self.l2
-            && let Some(bytes) = l2.get_raw(key)
-        {
-            self.l1.insert(key.to_string(), bytes.clone());
-            return postcard::from_bytes(&bytes).ok();
-        }
-
-        None
-    }
-
-    /// Store a value. L1 sync write + L2 async write (spawned, non-blocking).
-    pub fn set_ser<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
-        let bytes = postcard::to_stdvec(value)?;
-
-        // L1: sync write (in-memory, fast)
-        self.l1.insert(key.to_string(), bytes.clone());
-
-        // L2: async write (spawned, non-blocking)
-        if let Some(l2) = &self.l2 {
-            let l2 = l2.clone();
-            let key = key.to_string();
-            tokio::spawn(async move {
-                if let Err(e) = l2.set_ser_raw(&key, &bytes) {
-                    tracing::warn!("Failed to write cache L2: {}", e);
-                }
-            });
-        }
-
-        Ok(())
+        let rtxn = self.env.read_txn()?;
+        Ok(self.db.is_empty(&rtxn)?)
     }
 }
 
@@ -412,54 +249,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tiered_cache_l1_hit() {
-        let cache = TieredCache::memory_only(60, 100);
+    fn cache_hit() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("hit.db")).unwrap();
         cache.set_ser("key", &"value".to_string()).unwrap();
         let val: Option<String> = cache.get_de("key");
         assert_eq!(val, Some("value".to_string()));
     }
 
     #[test]
-    fn tiered_cache_miss_returns_none() {
-        let cache = TieredCache::memory_only(60, 100);
+    fn cache_miss_returns_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("miss.db")).unwrap();
         let val: Option<String> = cache.get_de("nonexistent");
         assert!(val.is_none());
     }
 
-    #[tokio::test]
-    async fn tiered_cache_l2_persists_across_instances() {
+    #[test]
+    fn cache_persists_across_instances() {
         let dir = tempfile::tempdir().unwrap();
-        let db_path = dir.path().join("cache.db");
+        let db_path = dir.path().join("persist.db");
 
         // Write via first instance
         {
-            let cache = TieredCache::create_or_open(&db_path, 60, 100).unwrap();
+            let cache = PersistentCache::create_or_open(&db_path).unwrap();
             cache.set_ser("key", &42u32).unwrap();
-            // Wait for async L2 write
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         }
 
-        // Read via new instance (simulates restart, L1 is empty)
-        let cache2 = TieredCache::create_or_open(&db_path, 60, 100).unwrap();
+        // Read via new instance (simulates restart)
+        let cache2 = PersistentCache::create_or_open(&db_path).unwrap();
         let val: Option<u32> = cache2.get_de("key");
         assert_eq!(val, Some(42));
     }
 
     #[test]
-    fn tiered_cache_ttl_expiry() {
-        // Use 1-second TTL via moka's time_to_idle
-        let cache = TieredCache::memory_only(1, 100);
-        cache.set_ser("key", &"value".to_string()).unwrap();
-        assert!(cache.get_de::<String>("key").is_some());
-
-        // Wait for TTL to expire
-        std::thread::sleep(std::time::Duration::from_secs(2));
-        assert!(cache.get_de::<String>("key").is_none());
-    }
-
-    #[test]
-    fn tiered_cache_overwrite() {
-        let cache = TieredCache::memory_only(60, 100);
+    fn cache_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("overwrite.db")).unwrap();
         cache.set_ser("key", &"old".to_string()).unwrap();
         cache.set_ser("key", &"new".to_string()).unwrap();
         let val: Option<String> = cache.get_de("key");
@@ -467,14 +293,34 @@ mod tests {
     }
 
     #[test]
-    fn persistent_cache_get_raw_and_set_ser_raw() {
+    fn cache_contains_key() {
         let dir = tempfile::tempdir().unwrap();
-        let db_path = dir.path().join("raw.db");
-        let cache = PersistentCache::create_or_open(&db_path).unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("contains.db")).unwrap();
+        assert!(!cache.contains_key("k"));
+        cache.set_ser("k", &42u32).unwrap();
+        assert!(cache.contains_key("k"));
+    }
 
-        let data = b"hello world";
-        cache.set_ser_raw("k", data).unwrap();
-        let raw = cache.get_raw("k");
-        assert_eq!(raw, Some(data.to_vec()));
+    #[test]
+    fn cache_remove() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("remove.db")).unwrap();
+        cache.set_ser("k", &42u32).unwrap();
+        assert!(cache.contains_key("k"));
+        cache.remove("k").unwrap();
+        assert!(!cache.contains_key("k"));
+    }
+
+    #[test]
+    fn cache_len_and_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = PersistentCache::create_or_open(dir.path().join("len.db")).unwrap();
+        assert!(cache.is_empty().unwrap());
+        assert_eq!(cache.len().unwrap(), 0);
+
+        cache.set_ser("a", &1u32).unwrap();
+        cache.set_ser("b", &2u32).unwrap();
+        assert_eq!(cache.len().unwrap(), 2);
+        assert!(!cache.is_empty().unwrap());
     }
 }
