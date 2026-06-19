@@ -11,6 +11,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 
 from fabricatio_mock import DUMMY_LLM_GROUP
+from fabricatio_mock.utils import setup_dummy_responses
 
 
 class LLMTestRole(Role, UseLLM):
@@ -22,6 +23,10 @@ class LLMTestRole(Role, UseLLM):
 
     llm_send_to: Optional[str] = DUMMY_LLM_GROUP
     llm_no_cache: Optional[bool] = True
+
+    def mock_llm_response(self, *responses: str) -> None:
+        """Enqueue dummy LLM responses for this role's send_to group."""
+        setup_dummy_responses(*responses, group=self.llm_send_to or DUMMY_LLM_GROUP)
 
 
 class ProposeTestRole(LLMTestRole, Propose):
