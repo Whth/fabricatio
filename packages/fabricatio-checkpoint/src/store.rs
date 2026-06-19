@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use std::fs;
-use std::path::{absolute, Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 pub type RepoEntry = Arc<Mutex<Repository>>;
