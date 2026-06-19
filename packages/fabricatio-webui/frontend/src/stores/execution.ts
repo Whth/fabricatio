@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { WSMessage } from '@/types/api'
 import { useWorkflowStore } from './workflow'
+import { useNotificationsStore } from './notifications'
 import { api } from '@/api/client'
 
 export type NodeStatus = 'idle' | 'queued' | 'running' | 'done' | 'error'
@@ -18,10 +19,13 @@ export const useExecutionStore = defineStore('execution', () => {
   const runningCount = ref(0)
 
   function handleWSMessage(msg: WSMessage) {
+    const notifications = useNotificationsStore()
+
     switch (msg.type) {
       case 'execution_start':
         executionId.value = msg.execution_id
         executionState.value = 'running'
+        notifications.info('Execution started', `Execution ${msg.execution_id.slice(0, 8)}...`)
         break
 
       case 'node_start':
@@ -54,6 +58,7 @@ export const useExecutionStore = defineStore('execution', () => {
           },
         ]
         executingNodeId.value = null
+        notifications.error(`Node error: ${msg.node_id}`, msg.error.slice(0, 100))
         break
 
       case 'node_output':
@@ -68,6 +73,7 @@ export const useExecutionStore = defineStore('execution', () => {
         executionState.value = 'completed'
         result.value = msg.result
         executingNodeId.value = null
+        notifications.success('Execution completed', 'Workflow finished successfully')
         break
 
       case 'status':
@@ -78,17 +84,34 @@ export const useExecutionStore = defineStore('execution', () => {
   }
 
   async function queuePrompt() {
+    const notifications = useNotificationsStore()
     const wfStore = useWorkflowStore()
-    const workflow = wfStore.toJSON()
-    const { execution_id } = await api.execute({ workflow })
-    executionId.value = execution_id
-    executionState.value = 'running'
+
+    try {
+      const workflow = wfStore.toJSON()
+      const { execution_id } = await api.execute({ workflow })
+      executionId.value = execution_id
+      executionState.value = 'running'
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      notifications.error('Failed to queue prompt', message)
+      throw err
+    }
   }
 
   async function interrupt() {
-    await api.interrupt()
-    executionState.value = 'idle'
-    executingNodeId.value = null
+    const notifications = useNotificationsStore()
+
+    try {
+      await api.interrupt()
+      executionState.value = 'idle'
+      executingNodeId.value = null
+      notifications.info('Execution interrupted')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      notifications.error('Failed to interrupt', message)
+      throw err
+    }
   }
 
   function reset() {

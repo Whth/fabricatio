@@ -6,6 +6,7 @@ import { api } from '@/api/client'
 
 export interface FabricatioNodeData {
   title: string
+  description: string
   category: string
   nodeType: string
   inputPorts: Array<{ name: string; type: string; optional: boolean }>
@@ -57,7 +58,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
       type: 'fabricatio',
       position,
       data: {
-        title: typeDef.title,
+        title: typeDef.type.split('.').pop() ?? typeDef.type,
+        description: typeDef.description,
         category: typeDef.category,
         nodeType: typeDef.type,
         inputPorts: typeDef.input_ports,
@@ -134,6 +136,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
       position: { x: n.pos[0], y: n.pos[1] },
       data: {
         title: n.title || n.type,
+        description: '',
         category: 'unknown',
         nodeType: n.type,
         inputPorts: [],
