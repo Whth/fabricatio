@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio"
-version = "0.32.0-dev7"
+version = "0.32.0-dev8"
 description = "A LLM multi-agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
