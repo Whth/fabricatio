@@ -24,6 +24,7 @@ const {
   onConnect,
   screenToFlowCoordinate,
   getSelectedNodes,
+  getSelectedEdges,
   findNode,
   onConnectStart,
   onConnectEnd,
@@ -97,12 +98,19 @@ function handleKeyDown(ev: KeyboardEvent) {
     }
 
     const selectedNodes = getSelectedNodes.value
-    if (selectedNodes.length > 0) {
+    const selectedEdges = getSelectedEdges.value
+    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
       ev.preventDefault()
       selectedNodes.forEach((node) => {
         wfStore.removeNode(node.id)
       })
-      notifications.info(`Deleted ${selectedNodes.length} node(s)`)
+      selectedEdges.forEach((edge) => {
+        wfStore.removeEdge(edge.id)
+      })
+      const parts = []
+      if (selectedNodes.length > 0) parts.push(`${selectedNodes.length} node(s)`)
+      if (selectedEdges.length > 0) parts.push(`${selectedEdges.length} edge(s)`)
+      notifications.info(`Deleted ${parts.join(' and ')}`)
     }
   }
 

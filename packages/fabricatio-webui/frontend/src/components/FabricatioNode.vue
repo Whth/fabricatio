@@ -262,7 +262,9 @@ function getStatusIcon() {
   height: 10px;
   border: 2px solid #30363d;
   background: #58a6ff;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
   transform-origin: center center;
 }
 
