@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import type { NodeTypeDefinition } from '@/types/api'
 import {
@@ -16,6 +16,14 @@ import {
   Settings,
 } from '@lucide/vue'
 
+const props = defineProps<{
+  visible: boolean
+}>()
+
+const emit = defineEmits<{
+  'update:visible': [value: boolean]
+}>()
+
 const CATEGORY_CONFIG: Record<string, { icon: typeof MessageSquare; color: string }> = {
   llm: { icon: MessageSquare, color: '#a371f7' },
   novel: { icon: BookOpen, color: '#3fb950' },
@@ -29,6 +37,8 @@ const CATEGORY_CONFIG: Record<string, { icon: typeof MessageSquare; color: strin
 const wfStore = useWorkflowStore()
 const search = ref('')
 const collapsed = ref<Record<string, boolean>>({})
+const hoveredItem = ref<NodeTypeDefinition | null>(null)
+const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 onMounted(async () => {
   try {
@@ -88,75 +98,199 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
   ev.dataTransfer.setData('application/fabricatio-node-type', JSON.stringify(nodeType))
   ev.dataTransfer.effectAllowed = 'copy'
 }
+
+function onItemEnter(nt: NodeTypeDefinition) {
+  if (hoverTimeout.value) clearTimeout(hoverTimeout.value)
+  hoverTimeout.value = setTimeout(() => {
+    hoveredItem.value = nt
+  }, 200)
+}
+
+function onItemLeave() {
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value)
+    hoverTimeout.value = null
+  }
+  hoveredItem.value = null
+}
+
+function close() {
+  emit('update:visible', false)
+  search.value = ''
+}
+
+// Reset hovered item when panel closes
+watch(
+  () => props.visible,
+  (v) => {
+    if (!v) {
+      hoveredItem.value = null
+      if (hoverTimeout.value) {
+        clearTimeout(hoverTimeout.value)
+        hoverTimeout.value = null
+      }
+    }
+  },
+)
 </script>
 
 <template>
-  <aside class="node-palette">
-    <div class="palette-header">
-      <div class="header-content">
-        <Package :size="16" class="header-icon" />
-        <h3>Node Library</h3>
-      </div>
-      <span class="node-count">{{ filteredTypes.length }} nodes</span>
-    </div>
-
-    <div class="search-wrapper">
-      <Search :size="12" class="search-icon" />
-      <input v-model="search" type="text" placeholder="Search nodes..." class="search-input" />
-      <button v-if="search" class="search-clear" @click="search = ''"><X :size="12" /></button>
-    </div>
-
-    <div class="palette-list">
-      <div v-for="category in sortedCategories" :key="category" class="category-group">
-        <button
-          class="category-header"
-          @click="toggleCategory(category)"
-          :style="{ '--category-color': getCategoryConfig(category).color }"
-        >
-          <span class="category-toggle">
-            <ChevronRight v-if="collapsed[category]" :size="12" />
-            <ChevronDown v-else :size="12" />
-          </span>
-          <component :is="getCategoryConfig(category).icon" :size="14" class="category-icon" />
-          <span class="category-label">{{ category }}</span>
-          <span class="category-count">{{ groupedByCategory[category].length }}</span>
-        </button>
-
-        <div v-if="!collapsed[category]" class="category-items">
-          <div
-            v-for="nt in groupedByCategory[category]"
-            :key="nt.type"
-            class="palette-item"
-            draggable="true"
-            @dragstart="onDragStart($event, nt)"
-          >
-            <div class="item-content">
-              <span class="item-title">{{ nt.type.split('.').pop() }}</span>
-              <span v-if="nt.description" class="item-desc">{{ nt.description }}</span>
+  <Teleport to="body">
+    <Transition name="palette-fade">
+      <div v-if="visible" class="palette-overlay" @click.self="close">
+        <Transition name="palette-slide">
+          <aside v-if="visible" class="node-palette">
+            <div class="palette-header">
+              <div class="header-content">
+                <Package :size="16" class="header-icon" />
+                <h3>Node Library</h3>
+              </div>
+              <span class="node-count">{{ filteredTypes.length }} nodes</span>
             </div>
-            <span class="item-type">{{ nt.type.split('.').pop() }}</span>
-          </div>
-        </div>
-      </div>
 
-      <div v-if="filteredTypes.length === 0" class="empty-state">
-        <Search :size="24" class="empty-icon" />
-        <span class="empty-text">No nodes match "{{ search }}"</span>
-        <button v-if="search" class="empty-clear" @click="search = ''">Clear search</button>
+            <div class="search-wrapper">
+              <Search :size="12" class="search-icon" />
+              <input
+                v-model="search"
+                type="text"
+                placeholder="Search nodes..."
+                class="search-input"
+              />
+              <button v-if="search" class="search-clear" @click="search = ''">
+                <X :size="12" />
+              </button>
+            </div>
+
+            <div class="palette-list">
+              <div v-for="category in sortedCategories" :key="category" class="category-group">
+                <button
+                  class="category-header"
+                  @click="toggleCategory(category)"
+                  :style="{ '--category-color': getCategoryConfig(category).color }"
+                >
+                  <span class="category-toggle">
+                    <ChevronRight v-if="collapsed[category]" :size="12" />
+                    <ChevronDown v-else :size="12" />
+                  </span>
+                  <component
+                    :is="getCategoryConfig(category).icon"
+                    :size="14"
+                    class="category-icon"
+                  />
+                  <span class="category-label">{{ category }}</span>
+                  <span class="category-count">{{ groupedByCategory[category].length }}</span>
+                </button>
+
+                <div v-if="!collapsed[category]" class="category-items">
+                  <div
+                    v-for="nt in groupedByCategory[category]"
+                    :key="nt.type"
+                    class="palette-item"
+                    draggable="true"
+                    @dragstart="onDragStart($event, nt)"
+                    @mouseenter="onItemEnter(nt)"
+                    @mouseleave="onItemLeave"
+                  >
+                    <div class="item-content">
+                      <span class="item-title">{{ nt.type.split('.').pop() }}</span>
+                      <span v-if="nt.description" class="item-desc">{{ nt.description }}</span>
+                    </div>
+                    <span class="item-type">{{ nt.type.split('.').pop() }}</span>
+
+                    <!-- Hover info card -->
+                    <div v-if="hoveredItem?.type === nt.type" class="hover-card">
+                      <div class="hover-title">{{ nt.title }}</div>
+                      <div v-if="nt.description" class="hover-desc">{{ nt.description }}</div>
+                      <div
+                        v-if="
+                          (!nt.description || nt.description.trim() === '') &&
+                          (!nt.input_ports || nt.input_ports.length === 0) &&
+                          (!nt.output_ports || nt.output_ports.length === 0)
+                        "
+                        class="hover-empty"
+                      >
+                        No details available
+                      </div>
+                      <div v-if="nt.input_ports && nt.input_ports.length > 0" class="hover-ports">
+                        <div class="hover-ports-label">Input Ports</div>
+                        <div v-for="port in nt.input_ports" :key="port.name" class="hover-port">
+                          <span class="port-name">{{ port.name }}</span>
+                          <span class="port-sep">:</span>
+                          <span class="port-type">{{ port.type }}</span>
+                        </div>
+                      </div>
+                      <div v-if="nt.output_ports && nt.output_ports.length > 0" class="hover-ports">
+                        <div class="hover-ports-label">Output Ports</div>
+                        <div v-for="port in nt.output_ports" :key="port.name" class="hover-port">
+                          <span class="port-name">{{ port.name }}</span>
+                          <span class="port-sep">:</span>
+                          <span class="port-type">{{ port.type }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="filteredTypes.length === 0" class="empty-state">
+                <Search :size="24" class="empty-icon" />
+                <span class="empty-text">No nodes match "{{ search }}"</span>
+                <button v-if="search" class="empty-clear" @click="search = ''">Clear search</button>
+              </div>
+            </div>
+          </aside>
+        </Transition>
       </div>
-    </div>
-  </aside>
+    </Transition>
+  </Teleport>
 </template>
 
-<style scoped>
+<style>
+/* Teleported overlay — not scoped since it renders outside component boundary */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+}
+
 .node-palette {
-  width: 260px;
-  min-width: 260px;
+  position: fixed;
+  left: 40px;
+  top: 48px;
+  bottom: 0;
+  width: 280px;
   background: #161b22;
   border-right: 1px solid #30363d;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 800;
+}
+</style>
+
+<style scoped>
+/* ── Transitions ── */
+.palette-fade-enter-active,
+.palette-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.palette-fade-enter-from,
+.palette-fade-leave-to {
+  opacity: 0;
+}
+
+.palette-slide-enter-active {
+  transition: transform 0.2s ease;
+}
+
+.palette-slide-leave-active {
+  transition: transform 0.15s ease;
+}
+
+.palette-slide-enter-from,
+.palette-slide-leave-to {
+  transform: translateX(-100%);
 }
 
 /* ── Header ── */
@@ -321,6 +455,7 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
 }
 
 .palette-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -379,6 +514,75 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Hover Info Card ── */
+.hover-card {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.hover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 4px;
+}
+
+.hover-desc {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.hover-empty {
+  font-size: 12px;
+  color: #484f58;
+  font-style: italic;
+}
+
+.hover-ports {
+  margin-top: 8px;
+}
+
+.hover-ports-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #484f58;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.hover-port {
+  font-size: 11px;
+  padding: 1px 0;
+  display: flex;
+  gap: 4px;
+}
+
+.port-name {
+  color: #e6edf3;
+}
+
+.port-sep {
+  color: #484f58;
+}
+
+.port-type {
+  color: #8b949e;
+  font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 /* ── Empty state ── */
