@@ -259,3 +259,24 @@ def test_set_index_from_column_invalid(sample_dataframe: pd.DataFrame) -> None:
     """Test error handling for invalid column in set_index."""
     with pytest.raises(KeyError, match="Column 'nonexistent' not found"):
         dt.set_index_from_column(sample_dataframe, column="nonexistent")
+
+
+def test_transform_column_sqrt(sample_dataframe: pd.DataFrame) -> None:
+    """Test sqrt transformation on numeric column."""
+    df = dt.transform_column(sample_dataframe, column="price", transformation="sqrt")
+    assert df["price"].iloc[0] == pytest.approx(10.0)  # sqrt(100)
+    assert df["price"].iloc[1] == pytest.approx(14.142, rel=1e-2)  # sqrt(200)
+
+
+def test_transform_column_square(sample_dataframe: pd.DataFrame) -> None:
+    """Test square transformation on numeric column."""
+    df = dt.transform_column(sample_dataframe, column="price", transformation="square")
+    assert df["price"].iloc[0] == 10000.0  # 100**2
+    assert df["price"].iloc[1] == 40000.0  # 200**2
+
+
+def test_fill_missing_values_median(sample_dataframe: pd.DataFrame) -> None:
+    """Test filling missing values using median strategy."""
+    df = dt.fill_missing_values(sample_dataframe, column="discount", strategy="median")
+    assert not df["discount"].isna().any()  # No NaN remaining
+    assert df["discount"].iloc[1] == pytest.approx(0.1, rel=1e-6)  # median of [0.1, 0.0, 0.15]
