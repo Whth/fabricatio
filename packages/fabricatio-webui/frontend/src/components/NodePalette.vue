@@ -262,7 +262,10 @@ watch(
 /* Teleported content — not scoped since it renders outside component boundary */
 .palette-overlay {
   position: fixed;
-  inset: 0;
+  left: 40px;
+  top: 48px;
+  width: 280px;
+  bottom: 0;
   z-index: 800;
 }
 
