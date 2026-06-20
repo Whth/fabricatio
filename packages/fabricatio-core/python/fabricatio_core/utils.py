@@ -1,6 +1,8 @@
 """A collection of utility functions for the fabricatio package."""
 
-from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Sequence, overload
+from enum import StrEnum, IntEnum
+from functools import lru_cache
+from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Sequence, overload, Type, Tuple, Iterator, Generator
 
 from fabricatio_core.rust import extras_satisfied
 
@@ -186,6 +188,17 @@ def first_available[T](
     if raise_exception:
         raise ValueError(msg)
     return None
+
+
+@overload
+def iter_enum(enum_type: Type[StrEnum]) -> Generator[Tuple[str, str], None, None]: ...
+@overload
+def iter_enum(enum_type: Type[IntEnum]) -> Generator[Tuple[str, int], None, None]: ...
+
+
+def iter_enum(enum_type: Type[StrEnum] | Type[IntEnum]) -> Generator[Tuple[str, str] | Tuple[str, int], None, None]:
+    """Iterates over an enum type and yields its members as tuples."""
+    yield from ((k, v.value) for (k, v) in enum_type.__members__.items())
 
 
 def wrap_in_block(string: str, title: str, style: str = "-") -> str:
