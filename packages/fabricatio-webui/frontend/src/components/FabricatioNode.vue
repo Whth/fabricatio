@@ -279,6 +279,12 @@ function getStatusIcon() {
   background: #3fb950;
 }
 
+:deep(.vue-flow__handle-invalid) {
+  background: #da3633;
+  border-color: #f85149;
+  box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.4);
+}
+
 /* ── Status styles ── */
 .fabricatio-node.status-running {
   border-color: #58a6ff;
