@@ -8,7 +8,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig({
     plugins: [
         vue(),
-        vueDevTools(),
+        // vueDevTools(),  // disabled — causes focus-stealing in production
     ],
     resolve: {
         alias: {
