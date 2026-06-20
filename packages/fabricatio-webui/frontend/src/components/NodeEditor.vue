@@ -35,6 +35,23 @@ const { onConnect, screenToFlowCoordinate, getSelectedNodes, findNode } = useVue
 })
 
 onConnect((connection: Connection) => {
+  if (connection.source === connection.target) {
+    notifications.warning('Invalid connection', 'Cannot connect a node to itself')
+    return
+  }
+  const sourceNode = findNode(connection.source!)
+  const targetNode = findNode(connection.target!)
+  if (!sourceNode || !targetNode) return
+  const isOutputPort = (sourceNode.data as any)?.outputPorts?.some(
+    (p: { name: string }) => p.name === connection.sourceHandle,
+  )
+  const isInputPort = (targetNode.data as any)?.inputPorts?.some(
+    (p: { name: string }) => p.name === connection.targetHandle,
+  )
+  if (!isOutputPort || !isInputPort) {
+    notifications.warning('Invalid connection', 'Output ports can only connect to input ports')
+    return
+  }
   wfStore.addEdge(connection)
 })
 

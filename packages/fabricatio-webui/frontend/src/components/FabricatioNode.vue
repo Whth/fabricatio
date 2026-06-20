@@ -262,12 +262,13 @@ function getStatusIcon() {
   height: 10px;
   border: 2px solid #30363d;
   background: #58a6ff;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transform-origin: center center;
 }
 
 :deep(.vue-flow__handle:hover) {
   background: #79c0ff;
-  transform: scale(1.2);
+  box-shadow: 0 0 0 2px rgba(121, 192, 255, 0.4);
 }
 
 :deep(.vue-flow__handle-connecting) {
