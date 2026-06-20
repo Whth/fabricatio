@@ -56,8 +56,16 @@ export const api = {
     request<NodeTypeDefinition[]>('GET', '/nodes', undefined, { loading: 'Loading node types...' }),
   getWorkflows: () =>
     request<WorkflowJSON[]>('GET', '/workflows', undefined, { loading: 'Loading workflows...' }),
+  getWorkflow: (id: string) =>
+    request<WorkflowJSON>('GET', `/workflows/${encodeURIComponent(id)}`, undefined, {
+      loading: 'Loading workflow...',
+    }),
   saveWorkflow: (wf: WorkflowJSON) =>
     request<{ id: string }>('POST', '/workflows', wf, { loading: 'Saving workflow...' }),
+  deleteWorkflow: (id: string) =>
+    request<{ ok: boolean }>('DELETE', `/workflows/${encodeURIComponent(id)}`, undefined, {
+      loading: 'Deleting workflow...',
+    }),
   execute: (req: ExecutionRequest) =>
     request<{ execution_id: string }>('POST', '/execute', req, {
       loading: 'Starting execution...',

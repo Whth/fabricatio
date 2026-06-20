@@ -128,26 +128,37 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
-  function fromJSON(wf: WorkflowJSON) {
+  async function fromJSON(wf: WorkflowJSON) {
     workflowName.value = wf.name || 'Untitled Workflow'
-    nodes.value = wf.nodes.map((n) => ({
-      id: n.id,
-      type: 'fabricatio',
-      position: { x: n.pos[0], y: n.pos[1] },
-      data: {
-        title: n.title || n.type,
-        description: '',
-        category: 'unknown',
-        nodeType: n.type,
-        inputPorts: [],
-        outputPorts: [],
-        capabilities: [],
-        configFields: [],
-        inputs: n.inputs,
-        config: n.config,
-        nodeId: n.id,
-      },
-    }))
+
+    // Ensure we have the node type registry so we can restore port metadata
+    if (nodeTypes.value.length === 0) {
+      await loadNodeTypes()
+    }
+    const registry = new Map(nodeTypes.value.map((t) => [t.type, t]))
+
+    nodes.value = wf.nodes.map((n) => {
+      const def = registry.get(n.type)
+      return {
+        id: n.id,
+        type: 'fabricatio',
+        position: { x: n.pos[0], y: n.pos[1] },
+        data: {
+          title: n.title ?? def?.title ?? n.type,
+          description: def?.description ?? '',
+          category: def?.category ?? 'unknown',
+          nodeType: n.type,
+          inputPorts: def?.input_ports ?? [],
+          outputPorts: def?.output_ports ?? [],
+          capabilities: def?.capabilities ?? [],
+          configFields: def?.config_fields ?? [],
+          inputs: n.inputs ?? {},
+          config: n.config ?? {},
+          nodeId: n.id,
+        },
+      }
+    })
+
     edges.value = wf.edges.map((e) => ({
       id: e.id,
       source: e.source,
@@ -156,6 +167,15 @@ export const useWorkflowStore = defineStore('workflow', () => {
       targetHandle: e.target_handle,
       type: 'smoothstep' as const,
     }))
+
+    // Bump counter past any loaded node ids to avoid collisions
+    for (const n of nodes.value) {
+      const match = n.id.match(/_(\d+)$/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num >= nodeIdCounter.value) nodeIdCounter.value = num + 1
+      }
+    }
   }
 
   function clear() {

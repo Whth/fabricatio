@@ -13,7 +13,6 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 
-#[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
 
 fn create_router(state: Arc<AppState>, frontend_dir: PathBuf) -> Router {
@@ -26,6 +25,10 @@ fn create_router(state: Arc<AppState>, frontend_dir: PathBuf) -> Router {
             "/api/workflows",
             get(api::get_workflows).post(api::save_workflow),
         )
+        .route(
+            "/api/workflows/{id}",
+            get(api::get_workflow).delete(api::delete_workflow),
+        )
         .route("/api/execute", post(api::submit_execution))
         .route("/api/interrupt", post(api::interrupt_execution))
         .route("/api/queue", get(api::get_queue))
@@ -37,18 +40,23 @@ fn create_router(state: Arc<AppState>, frontend_dir: PathBuf) -> Router {
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
+#[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
+#[gen_stub(
+    override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
+)]
 #[pyfunction]
-/// Starts the web UI service with the given frontend directory.
+/// Starts the web UI service with the given frontend and data directories.
 fn start_service<'a>(
     py: Python<'a>,
     frontend_dir: PathBuf,
+    data_dir: PathBuf,
     addr: String,
     node_registry_json: String,
 ) -> PyResult<Bound<'a, PyAny>> {
     let registry: Vec<NodeTypeDefinition> = serde_json::from_str(&node_registry_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
-    let state = Arc::new(AppState::new());
+    let state = Arc::new(AppState::new(data_dir));
     if let Ok(mut reg) = state.node_registry.write() {
         *reg = registry;
     }

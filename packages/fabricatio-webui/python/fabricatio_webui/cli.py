@@ -26,13 +26,16 @@ def _default_www() -> Path:
 @app.command()
 def main(
     frontend_dir: Optional[Path] = Option(None, "--frontend-dir", "-d", help="front end directory"),
+    data_dir: Path = Option(Path("./workflows"), "--data-dir", help="workflow persistence directory"),
     addr: str = Option("127.0.0.1:9846", "--addr", "-a", help="address to bind to"),
 ) -> None:
     """Start the webui service."""
     registry = build_node_registry()
     registry_json = json.dumps(registry.get("node_types", []))
 
+    data_dir.mkdir(parents=True, exist_ok=True)
+
     async def _wrapper() -> None:
-        await start_service(str(frontend_dir or _default_www()), addr, registry_json)
+        await start_service(str(frontend_dir or _default_www()), str(data_dir), addr, registry_json)
 
     run(_wrapper())

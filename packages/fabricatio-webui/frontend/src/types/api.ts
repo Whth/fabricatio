@@ -39,6 +39,7 @@ export interface FabricatioEdge {
 }
 
 export interface WorkflowJSON {
+  id?: string
   version: string
   name?: string
   description?: string

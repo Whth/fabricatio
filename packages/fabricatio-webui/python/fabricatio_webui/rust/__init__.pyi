@@ -10,6 +10,9 @@ __all__ = [
 ]
 
 def start_service(
-    frontend_dir: builtins.str | os.PathLike | pathlib.Path, addr: builtins.str, node_registry_json: builtins.str
-) -> typing.Any:
-    r"""Starts the web UI service with the given frontend directory."""
+    frontend_dir: builtins.str | os.PathLike | pathlib.Path,
+    data_dir: builtins.str | os.PathLike | pathlib.Path,
+    addr: builtins.str,
+    node_registry_json: builtins.str,
+) -> typing.Awaitable[None]:
+    r"""Starts the web UI service with the given frontend and data directories."""
