@@ -17,23 +17,27 @@ const notifications = useNotificationsStore()
 const isDragOver = ref(false)
 const dragPreview = ref<NodeTypeDefinition | null>(null)
 
-const { onConnect, screenToFlowCoordinate, getSelectedNodes } = useVueFlow({
+const { onConnect, screenToFlowCoordinate, getSelectedNodes, findNode } = useVueFlow({
   defaultEdgeOptions: { type: 'smoothstep', animated: false },
-  isValidConnection: (connection) => {
-    // Prevent self-connections
+  isValidConnection: (connection: Connection) => {
     if (connection.source === connection.target) return false
-    // Only allow source → target (output → input)
-    // Vue Flow handles are typed: source handles are on the right, target on the left
-    // This check is redundant with Vue Flow's built-in validation but adds safety
-    return true
+    const sourceNode = findNode(connection.source!)
+    const targetNode = findNode(connection.target!)
+    if (!sourceNode || !targetNode) return false
+    const isOutputPort = (sourceNode.data as any)?.outputPorts?.some(
+      (p: { name: string }) => p.name === connection.sourceHandle,
+    )
+    const isInputPort = (targetNode.data as any)?.inputPorts?.some(
+      (p: { name: string }) => p.name === connection.targetHandle,
+    )
+    return !!isOutputPort && !!isInputPort
   },
 })
 
 onConnect((connection: Connection) => {
-  // Double-check validity before adding
-  if (connection.source === connection.target) return
   wfStore.addEdge(connection)
 })
+
 
 function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
