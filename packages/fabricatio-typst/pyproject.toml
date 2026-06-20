@@ -23,6 +23,7 @@ dependencies = [
     "fabricatio-core",
     "fabricatio-tool",
     "fabricatio-capabilities",
+    "typst>=0.15.0",
 ]
 
 
@@ -53,16 +54,13 @@ data = "extra"
 
 [[tool.uv.index]]
 url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
 
 [[tool.uv.index]]
 url = "https://mirrors.huaweicloud.com/repository/pypi/simple"
 
 [[tool.uv.index]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-
-[[tool.uv.index]]
-url = "https://mirrors.bfsu.edu.cn/pypi/web/simple"
-default = true
 
 [project.urls]
 Homepage = "https://github.com/Whth/fabricatio"
