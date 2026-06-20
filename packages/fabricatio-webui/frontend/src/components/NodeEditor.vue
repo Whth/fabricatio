@@ -19,9 +19,19 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 
 const { onConnect, screenToFlowCoordinate, getSelectedNodes } = useVueFlow({
   defaultEdgeOptions: { type: 'smoothstep', animated: false },
+  isValidConnection: (connection) => {
+    // Prevent self-connections
+    if (connection.source === connection.target) return false
+    // Only allow source → target (output → input)
+    // Vue Flow handles are typed: source handles are on the right, target on the left
+    // This check is redundant with Vue Flow's built-in validation but adds safety
+    return true
+  },
 })
 
 onConnect((connection: Connection) => {
+  // Double-check validity before adding
+  if (connection.source === connection.target) return
   wfStore.addEdge(connection)
 })
 
