@@ -38,6 +38,7 @@ const wfStore = useWorkflowStore()
 const search = ref('')
 const collapsed = ref<Record<string, boolean>>({})
 const hoveredItem = ref<NodeTypeDefinition | null>(null)
+const hoverPos = ref<{ x: number; y: number } | null>(null)
 const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 onMounted(async () => {
@@ -99,10 +100,12 @@ function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
   ev.dataTransfer.effectAllowed = 'copy'
 }
 
-function onItemEnter(nt: NodeTypeDefinition) {
+function onItemEnter(e: MouseEvent, nt: NodeTypeDefinition) {
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value)
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   hoverTimeout.value = setTimeout(() => {
     hoveredItem.value = nt
+    hoverPos.value = { x: rect.right + 4, y: rect.top }
   }, 200)
 }
 
@@ -112,6 +115,7 @@ function onItemLeave() {
     hoverTimeout.value = null
   }
   hoveredItem.value = null
+  hoverPos.value = null
 }
 
 function close() {
@@ -188,7 +192,7 @@ watch(
                     class="palette-item"
                     draggable="true"
                     @dragstart="onDragStart($event, nt)"
-                    @mouseenter="onItemEnter(nt)"
+                    @mouseenter="onItemEnter($event, nt)"
                     @mouseleave="onItemLeave"
                   >
                     <div class="item-content">
@@ -196,38 +200,6 @@ watch(
                       <span v-if="nt.description" class="item-desc">{{ nt.description }}</span>
                     </div>
                     <span class="item-type">{{ nt.type.split('.').pop() }}</span>
-
-                    <!-- Hover info card -->
-                    <div v-if="hoveredItem?.type === nt.type" class="hover-card">
-                      <div class="hover-title">{{ nt.title }}</div>
-                      <div v-if="nt.description" class="hover-desc">{{ nt.description }}</div>
-                      <div
-                        v-if="
-                          (!nt.description || nt.description.trim() === '') &&
-                          (!nt.input_ports || nt.input_ports.length === 0) &&
-                          (!nt.output_ports || nt.output_ports.length === 0)
-                        "
-                        class="hover-empty"
-                      >
-                        No details available
-                      </div>
-                      <div v-if="nt.input_ports && nt.input_ports.length > 0" class="hover-ports">
-                        <div class="hover-ports-label">Input Ports</div>
-                        <div v-for="port in nt.input_ports" :key="port.name" class="hover-port">
-                          <span class="port-name">{{ port.name }}</span>
-                          <span class="port-sep">:</span>
-                          <span class="port-type">{{ port.type }}</span>
-                        </div>
-                      </div>
-                      <div v-if="nt.output_ports && nt.output_ports.length > 0" class="hover-ports">
-                        <div class="hover-ports-label">Output Ports</div>
-                        <div v-for="port in nt.output_ports" :key="port.name" class="hover-port">
-                          <span class="port-name">{{ port.name }}</span>
-                          <span class="port-sep">:</span>
-                          <span class="port-type">{{ port.type }}</span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -243,10 +215,51 @@ watch(
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Hover info card (teleported to body, fixed positioning) -->
+  <Teleport to="body">
+    <div
+      v-if="hoveredItem && hoverPos"
+      class="hover-card"
+      :style="{ left: hoverPos.x + 'px', top: hoverPos.y + 'px' }"
+    >
+      <div class="hover-title">{{ hoveredItem.title }}</div>
+      <div v-if="hoveredItem.description" class="hover-desc">{{ hoveredItem.description }}</div>
+      <div
+        v-if="
+          (!hoveredItem.description || hoveredItem.description.trim() === '') &&
+          (!hoveredItem.input_ports || hoveredItem.input_ports.length === 0) &&
+          (!hoveredItem.output_ports || hoveredItem.output_ports.length === 0)
+        "
+        class="hover-empty"
+      >
+        No details available
+      </div>
+      <div v-if="hoveredItem.input_ports && hoveredItem.input_ports.length > 0" class="hover-ports">
+        <div class="hover-ports-label">Input Ports</div>
+        <div v-for="port in hoveredItem.input_ports" :key="port.name" class="hover-port">
+          <span class="port-name">{{ port.name }}</span>
+          <span class="port-sep">:</span>
+          <span class="port-type">{{ port.type }}</span>
+        </div>
+      </div>
+      <div
+        v-if="hoveredItem.output_ports && hoveredItem.output_ports.length > 0"
+        class="hover-ports"
+      >
+        <div class="hover-ports-label">Output Ports</div>
+        <div v-for="port in hoveredItem.output_ports" :key="port.name" class="hover-port">
+          <span class="port-name">{{ port.name }}</span>
+          <span class="port-sep">:</span>
+          <span class="port-type">{{ port.type }}</span>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style>
-/* Teleported overlay — not scoped since it renders outside component boundary */
+/* Teleported content — not scoped since it renders outside component boundary */
 .palette-overlay {
   position: fixed;
   inset: 0;
@@ -265,6 +278,70 @@ watch(
   flex-direction: column;
   overflow: hidden;
   z-index: 800;
+}
+
+.hover-card {
+  position: fixed;
+  z-index: 950;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 200px;
+  max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.hover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 4px;
+}
+
+.hover-desc {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.hover-empty {
+  font-size: 12px;
+  color: #484f58;
+  font-style: italic;
+}
+
+.hover-ports {
+  margin-top: 6px;
+}
+
+.hover-ports-label {
+  font-size: 11px;
+  color: #58a6ff;
+  font-weight: 600;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hover-port {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.hover-port .port-name {
+  color: #e6edf3;
+}
+
+.hover-port .port-sep {
+  color: #484f58;
+  margin: 0 4px;
+}
+
+.hover-port .port-type {
+  color: #8b949e;
 }
 </style>
 
@@ -514,75 +591,6 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ── Hover Info Card ── */
-.hover-card {
-  position: absolute;
-  left: 100%;
-  top: 0;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  padding: 12px;
-  min-width: 200px;
-  max-width: 280px;
-  z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
-.hover-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-  margin-bottom: 4px;
-}
-
-.hover-desc {
-  font-size: 12px;
-  color: #8b949e;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.hover-empty {
-  font-size: 12px;
-  color: #484f58;
-  font-style: italic;
-}
-
-.hover-ports {
-  margin-top: 8px;
-}
-
-.hover-ports-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #484f58;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.hover-port {
-  font-size: 11px;
-  padding: 1px 0;
-  display: flex;
-  gap: 4px;
-}
-
-.port-name {
-  color: #e6edf3;
-}
-
-.port-sep {
-  color: #484f58;
-}
-
-.port-type {
-  color: #8b949e;
-  font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 /* ── Empty state ── */
