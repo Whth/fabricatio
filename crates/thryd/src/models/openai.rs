@@ -31,9 +31,10 @@ use crate::model::{
 };
 use crate::provider::Provider;
 use async_openai::types::chat::{
-    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequest,
-    CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
-    CreateChatCompletionStreamResponse,
+    ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestMessageContentPartText,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContentPart,
+    CreateChatCompletionRequest, CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
+    CreateChatCompletionStreamResponse, ImageUrl,
 };
 
 use crate::{Completion, Embeddings, Ranking, ThrydError};
@@ -292,6 +293,32 @@ impl Model for OpenaiModel {
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion> {
         let stream = request.stream;
+        let user_msg = if request.images.is_empty() {
+            ChatCompletionRequestUserMessageArgs::default()
+                .content(request.message)
+                .build()?
+                .into()
+        } else {
+            let mut parts: Vec<ChatCompletionRequestUserMessageContentPart> = Vec::new();
+            for url in request.images {
+                parts.push(
+                    ChatCompletionRequestMessageContentPartImage {
+                        image_url: ImageUrl { url, detail: None },
+                    }
+                    .into(),
+                );
+            }
+            parts.push(
+                ChatCompletionRequestMessageContentPartText {
+                    text: request.message,
+                }
+                .into(),
+            );
+            ChatCompletionRequestUserMessageArgs::default()
+                .content(parts)
+                .build()?
+                .into()
+        };
         let request = CreateChatCompletionRequest {
             top_p: request.top_p,
             temperature: request.temperature,
@@ -301,10 +328,7 @@ impl CompletionModel for OpenaiModel {
             ..CreateChatCompletionRequestArgs::default()
                 .model(self.model_name())
                 .stream(request.stream)
-                .messages([ChatCompletionRequestUserMessageArgs::default()
-                    .content(request.message)
-                    .build()?
-                    .into()])
+                .messages([user_msg])
                 .build()?
         };
 

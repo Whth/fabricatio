@@ -1,6 +1,6 @@
 [package]
 name = "thryd"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 description = "A light weight, embeded llm request router, with cache."
 authors.workspace = true
@@ -35,6 +35,8 @@ heed = "0.22.1"
 postcard = { version = "1.1.3", features = ["use-std"] }
 blake3 = "1.8.5"
 dashmap = "6.2.1"
+infer = "0.19"
+base64 = "0.22"
 
 
 

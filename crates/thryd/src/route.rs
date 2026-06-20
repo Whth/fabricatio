@@ -64,23 +64,24 @@
 //! }).await?;
 //! ```
 
-use crate::Result;
 use crate::deployment::Deployment;
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
+use crate::Result;
 use crate::{
     Completion, Embedding, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest,
     ThrydError,
 };
 use async_trait::async_trait;
-use dashmap::DashMap;
 use dashmap::mapref::one::Ref;
-use serde::Serialize;
+use dashmap::DashMap;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
+use strum_macros::Display;
 use tracing::*;
 
 /// Configuration for automatic retry on transient network failures.
@@ -473,7 +474,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     async fn wait_for_any(
         &self,
         group: RouteGroupName,
-        input_text: String,
+        token_count: u64,
     ) -> Result<DeploymentEntry<Tag::Model>> {
         let mut min_wait_time = u64::MAX;
         let mut d_ref: Option<DeploymentEntry<Tag::Model>> = None;
@@ -483,7 +484,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         debug!("Routing group `{group}` ({group_size} deployments)");
 
         for d in g.value() {
-            let wait_time = d.min_cooldown_time(input_text.clone()).await;
+            let wait_time = d.min_cooldown_time(token_count).await;
             trace!("  `{}` cooldown: {wait_time}ms", d.identifier());
             if wait_time == 0 {
                 debug!("  Selected `{}` (immediately available)", d.identifier());
@@ -578,8 +579,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ///     top_p: Some(0.9),
     ///     temperature: Some(0.7),
     ///     max_completion_tokens: Some(500),
-    ///     presence_penalty: None,
-    ///     frequency_penalty: None,
+    ///     ..Default::default()
     /// }).await?;
     /// ```
     /// Invoke a request bypassing the cache read.
@@ -592,10 +592,10 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ) -> Result<Tag::Response> {
         debug!("Invoke (no-cache read) → group `{send_to}`");
         let d = self
-            .wait_for_any(send_to, Tag::prepare_input_text(&request))
+            .wait_for_any(send_to, Tag::cont_tokens(&request))
             .await?;
         debug!("Executing request on `{}`", d.identifier());
-        let key = Tag::prepare_cache_key(&request);
+        let key = Tag::cache_key(&request);
         let rc = self.retry.read().unwrap().clone();
         let res = if let Some(rc) = rc {
             let d2 = d.clone();
@@ -606,7 +606,17 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         };
         if let Some(cache) = &self.cache {
             debug!("Overriding cache for: {key}");
-            cache.set_ser(&key, &res)?;
+            match &key {
+                CacheKey::Single(k) => {
+                    cache.set_ser(k.as_str(), &res)?;
+                }
+                CacheKey::Batch(ks) => {
+                    let vals = Tag::breakdown_batch_response(res.clone());
+                    for (k, val) in ks.iter().zip(vals) {
+                        cache.set_ser(k.as_str(), &val)?;
+                    }
+                }
+            }
         }
         Ok(res)
     }
@@ -634,7 +644,7 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
     ) -> Result<Tag::Response> {
         debug!("Invoke (cached) → group `{send_to}`");
         let d = self
-            .wait_for_any(send_to, Tag::prepare_input_text(&request))
+            .wait_for_any(send_to, Tag::cont_tokens(&request))
             .await?;
         debug!("Resolving cache for `{}`", d.identifier());
         let rc = self.retry.read().unwrap().clone();
@@ -658,6 +668,11 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
             retry: std::sync::RwLock::new(None),
         }
     }
+}
+#[derive(Debug, Clone, Display)]
+pub enum CacheKey {
+    Single(String),
+    Batch(Vec<String>),
 }
 
 /// Trait defining type-level routing behavior for different model types.
@@ -720,6 +735,8 @@ pub trait ModelTypeTag {
     /// Must be `Send + Clone` to support async_trait default method futures and retry.
     type Request: Send + Clone;
 
+    type CacheVal: DeserializeOwned + Serialize + Clone + Sync + Send;
+
     /// The response type for this model type.
     /// Must support serialization for caching and deserialization for cache retrieval.
     type Response: DeserializeOwned + Serialize + Clone;
@@ -736,22 +753,88 @@ pub trait ModelTypeTag {
     fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
     -> Result<Box<Self::Model>>;
 
-    /// Extract text from a request for rate limit calculations.
-    ///
-    /// The returned string is used for:
-    /// - Token counting (TPM quota tracking)
-    /// - Cache key generation (via `prepare_cache_key`)
-    ///
-    /// # Arguments
-    /// * `request` - The request to extract text from
-    fn prepare_input_text(request: &Self::Request) -> String;
+    fn cont_tokens(request: &Self::Request) -> u64;
 
-    /// Generate a cache key for a request.
-    ///
-    /// Default implementation hashes `prepare_input_text(request)` with blake3.
-    /// Override to customize cache key generation.
-    fn prepare_cache_key(request: &Self::Request) -> String {
-        blake3::hash(Self::prepare_input_text(request).as_bytes()).to_string()
+    fn cache_key(request: &Self::Request) -> CacheKey;
+
+    #[inline]
+    fn recover_batch_request(cache_vals: Vec<Self::CacheVal>) -> Self::Response {
+        unimplemented!()
+    }
+
+    #[inline]
+    fn breakdown_batch_response(response: Self::Response) -> Vec<Self::CacheVal> {
+        unimplemented!()
+    }
+
+    async fn single_cached(
+        cache: &PersistentCache,
+        key: &str,
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        if let Some(val) = cache
+            .get_de::<Self::Response>(key)
+            .inspect(|val| trace!("Cache hit for: {key}"))
+        {
+            Ok(val)
+        } else {
+            let res = Self::execute_request(deployment, request.clone()).await;
+            if let Ok(val) = res.as_ref() {
+                cache.set_ser(key, val)?;
+            };
+            res
+        }
+    }
+
+    #[inline]
+    fn build_missed_batch_request(request: Self::Request, indices: &[&usize]) -> Self::Request {
+        unimplemented!()
+    }
+
+    async fn batch_cached(
+        cache: &PersistentCache,
+        keys: &[String],
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        let indexed_vals = keys
+            .iter()
+            .enumerate()
+            .map(|(i, key)| (i, cache.get_de::<Self::CacheVal>(key)))
+            .collect::<Vec<_>>();
+
+        let (hits, missed): (Vec<_>, Vec<_>) =
+            indexed_vals.into_iter().partition(|(_, val)| val.is_some());
+
+        if missed.is_empty() {
+            let cached_vals = hits.into_iter().map(|(_, val)| val.unwrap()).collect();
+            return Ok(Self::recover_batch_request(cached_vals));
+        }
+
+        let missed_indices = missed.iter().map(|(i, _)| i).collect::<Vec<_>>();
+        let missed_request = Self::build_missed_batch_request(request, &missed_indices);
+        let resp = Self::execute_request(deployment, missed_request).await?;
+
+        let new_vals = Self::breakdown_batch_response(resp);
+
+        missed_indices
+            .iter()
+            .zip(new_vals.iter())
+            .try_for_each(|(&i, val)| cache.set_ser(keys[i.to_owned()].as_str(), val))?;
+
+        let mut total_vals = new_vals
+            .into_iter()
+            .zip(missed_indices.into_iter().cloned())
+            .collect::<Vec<_>>();
+        total_vals.extend(hits.into_iter().map(|(i, val)| (val.unwrap(), i)));
+        total_vals.sort_by_key(|(_, i)| *i);
+        Ok(Self::recover_batch_request(
+            total_vals
+                .into_iter()
+                .map(|(val, _)| val)
+                .collect::<Vec<_>>(),
+        ))
     }
 
     /// Each tag defines its own caching strategy. Default: batch-level.
@@ -762,19 +845,14 @@ pub trait ModelTypeTag {
         request: Self::Request,
     ) -> Result<Self::Response> {
         if let Some(cache) = cache {
-            let key = Self::prepare_cache_key(&request);
-            if let Some(val) = cache.get_de::<Self::Response>(key.as_str()) {
-                debug!("Cache hit for: {key}");
-                Ok(val)
-            } else {
-                debug!("Cache missed for: {key}");
-                // Split creation from await so request is consumed before the await point,
-                // satisfying async_trait Send requirement on the default implementation.
-                let fut = Self::execute_request(deployment, request);
-                let res = fut.await?;
-                debug!("Caching result for: {key}");
-                cache.set_ser(&key, &res)?;
-                Ok(res)
+            let key = Self::cache_key(&request);
+            match &key {
+                CacheKey::Single(k) => {
+                    Self::single_cached(cache, k.as_str(), deployment, request).await
+                }
+                CacheKey::Batch(ks) => {
+                    Self::batch_cached(cache, ks.as_slice(), deployment, request).await
+                }
             }
         } else {
             let fut = Self::execute_request(deployment, request);
@@ -867,6 +945,7 @@ pub struct RerankerTag;
 impl ModelTypeTag for RerankerTag {
     type Model = dyn RerankerModel;
     type Request = RerankerRequest;
+    type CacheVal = Ranking;
     type Response = Ranking;
 
     fn create_model(
@@ -876,10 +955,18 @@ impl ModelTypeTag for RerankerTag {
         provider.create_reranker_model(model_name)
     }
 
-    fn prepare_input_text(request: &Self::Request) -> String {
+    fn cont_tokens(request: &Self::Request) -> u64 {
         let mut t_seq = request.documents.clone();
+        t_seq.push(request.query.clone());
         t_seq.sort();
-        t_seq.concat()
+        crate::count_token(t_seq.concat())
+    }
+
+    fn cache_key(request: &Self::Request) -> CacheKey {
+        let mut t_seq = request.documents.clone();
+        t_seq.push(request.query.clone());
+        t_seq.sort();
+        CacheKey::Single(blake3::hash(t_seq.concat().as_bytes()).to_string())
     }
 
     async fn execute_request(
@@ -894,6 +981,7 @@ impl ModelTypeTag for RerankerTag {
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
     type Request = CompletionRequest;
+    type CacheVal = Completion;
     type Response = Completion;
 
     fn create_model(
@@ -903,8 +991,21 @@ impl ModelTypeTag for CompletionTag {
         provider.create_completion_model(model_name)
     }
 
-    fn prepare_input_text(request: &Self::Request) -> String {
-        request.message.to_string()
+    fn cont_tokens(request: &Self::Request) -> u64 {
+        crate::count_token(request.message.clone())
+    }
+
+    fn cache_key(request: &Self::Request) -> CacheKey {
+        let key = if request.images.is_empty() {
+            blake3::hash(request.message.as_bytes()).to_string()
+        } else {
+            let mut s = request.message.clone();
+            for img in &request.images {
+                s.push_str(img);
+            }
+            blake3::hash(s.as_bytes()).to_string()
+        };
+        CacheKey::Single(key)
     }
 
     async fn execute_request(
@@ -919,6 +1020,7 @@ impl ModelTypeTag for CompletionTag {
 impl ModelTypeTag for EmbeddingTag {
     type Model = dyn EmbeddingModel;
     type Request = EmbeddingRequest;
+    type CacheVal = Embedding;
     type Response = Embeddings;
 
     fn create_model(
@@ -928,99 +1030,35 @@ impl ModelTypeTag for EmbeddingTag {
         provider.create_embedding_model(model_name)
     }
 
-    fn prepare_input_text(request: &Self::Request) -> String {
+    fn cont_tokens(request: &Self::Request) -> u64 {
         let mut t_seq = request.texts.clone();
         t_seq.sort();
-        t_seq.concat()
+        crate::count_token(t_seq.concat())
     }
 
-    async fn cache_resolve(
-        cache: &Option<PersistentCache>,
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        // Fast path: no cache → execute directly (moves request, no partial destructure)
-        let cache = match cache {
-            Some(c) => c,
-            None => {
-                // Split creation from await to satisfy async_trait Send requirement
-                let fut = Self::execute_request(deployment, request);
-                return fut.await;
-            }
-        };
-
-        let ndim = request.ndim;
-        let total = request.texts.len();
-        let texts = request.texts;
-
-        // Phase 1: Check cache for each unique text
-        // text_status maps text → Some(embedding) if cached, None if uncached
-        let mut text_status: std::collections::HashMap<String, Option<Embedding>> =
-            std::collections::HashMap::with_capacity(texts.len());
-        let mut all_cached = true;
-
-        for text in &texts {
-            if text_status.contains_key(text) {
-                continue;
-            }
-            let key = format!("emb:{}:{}", ndim, blake3::hash(text.as_bytes()));
-            if let Some(emb) = cache.get_de::<Embedding>(&key) {
-                text_status.insert(text.clone(), Some(emb));
-            } else {
-                text_status.insert(text.clone(), None);
-                all_cached = false;
-            }
-        }
-
-        let unique = text_status.len();
-        let cached_count = text_status.values().filter(|v| v.is_some()).count();
-        let uncached_count = unique - cached_count;
-        debug!(
-            "Embedding cache: {total} texts, {unique} unique, {cached_count} cached, {uncached_count} uncached (ndim={ndim})"
-        );
-
-        // Phase 2: All cached → return immediately
-        if all_cached {
-            debug!("All {unique} unique texts cache-hit, returning immediately");
-            return Ok(texts
+    fn cache_key(request: &Self::Request) -> CacheKey {
+        CacheKey::Batch(
+            request
+                .texts
                 .iter()
-                .map(|t| text_status.get(t).unwrap().clone().unwrap())
-                .collect());
+                .map(|t| format!("emb:{}:{}", request.ndim, blake3::hash(t.as_bytes())))
+                .collect(),
+        )
+    }
+
+    fn recover_batch_request(cache_vals: Vec<Self::CacheVal>) -> Self::Response {
+        cache_vals
+    }
+
+    fn breakdown_batch_response(response: Self::Response) -> Vec<Self::CacheVal> {
+        response
+    }
+
+    fn build_missed_batch_request(request: Self::Request, indices: &[&usize]) -> Self::Request {
+        EmbeddingRequest {
+            texts: indices.iter().map(|&&i| request.texts[i].clone()).collect(),
+            ndim: request.ndim,
         }
-
-        // Phase 3: Collect unique uncached texts in original order (first occurrence)
-        let mut uncached: Vec<String> = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-        for text in &texts {
-            if text_status.get(text).unwrap().is_none() && seen.insert(text.clone()) {
-                uncached.push(text.clone());
-            }
-        }
-
-        // Phase 4: Call API once for all uncached texts
-        let uncached_len = uncached.len();
-        debug!("Embedding API call: {uncached_len} uncached texts");
-        let sub_request = EmbeddingRequest {
-            texts: uncached.clone(),
-            ndim,
-        };
-        // Split creation from await to satisfy async_trait Send requirement
-        let fut = Self::execute_request(deployment, sub_request);
-        let fresh = fut.await?;
-
-        // Phase 5: Store each fresh embedding in cache
-        for (text, emb) in uncached.iter().zip(fresh) {
-            let key = format!("emb:{}:{}", ndim, blake3::hash(text.as_bytes()));
-            cache.set_ser(&key, &emb)?;
-            text_status.insert(text.clone(), Some(emb));
-        }
-        debug!("Cached {uncached_len} fresh embeddings");
-
-        // Phase 6: Assemble final result preserving original order & duplicates
-        Ok(texts
-            .into_iter()
-            .map(|t| text_status.get(&t).unwrap().clone().unwrap())
-            .collect())
     }
 
     async fn execute_request(
@@ -1163,14 +1201,14 @@ mod tests {
         let provider = Arc::new(DummyProvider::default());
         router.add_or_update_provider(provider.clone());
 
-        // Single response: one embedding for deduped ["hello"]
+        // Two responses: API called for ["hello", "hello"] (no dedup)
         let model = DummyModel::new("embed".to_string(), provider)
-            .with_embedding_responses(vec![vec![vec![0.1, 0.2, 0.3]]]);
+            .with_embedding_responses(vec![vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]]);
 
         let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
         router.add_deployment("embed".into(), deployment).unwrap();
 
-        // Request with duplicate text: ["hello", "hello"] → API called once for ["hello"]
+        // Request with duplicate text: ["hello", "hello"] → API called for both
         let result = router
             .invoke_cached(
                 "embed".into(),
@@ -1182,10 +1220,10 @@ mod tests {
             .await
             .unwrap();
 
-        // Should return two copies of the same embedding
+        // Returns two embeddings (no dedup — both hit the API)
         assert_eq!(result.len(), 2);
         assert_eq!(result[0], vec![0.1, 0.2, 0.3]);
-        assert_eq!(result[1], vec![0.1, 0.2, 0.3]);
+        assert_eq!(result[1], vec![0.4, 0.5, 0.6]);
     }
 
     #[tokio::test]
@@ -1251,7 +1289,7 @@ mod tests {
         let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
         router.add_deployment("embed".into(), deployment).unwrap();
 
-        // First call with no_cache=true → bypasses cache entirely, calls API
+        // First call with no_cache=true → bypasses cache, calls API
         let first = router
             .invoke(
                 "embed".into(),
@@ -1265,7 +1303,7 @@ mod tests {
             .unwrap();
         assert_eq!(first, vec![vec![0.1, 0.2, 0.3]]);
 
-        // Second call with no_cache=false → cache miss (fresh call didn't write) → API call
+        // Second call with no_cache=false → cache HIT (invoke_fresh wrote to cache)
         let second = router
             .invoke(
                 "embed".into(),
@@ -1277,7 +1315,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(second, vec![vec![0.7, 0.8, 0.9]]);
+        assert_eq!(second, vec![vec![0.1, 0.2, 0.3]]);
     }
 
     #[tokio::test]

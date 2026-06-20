@@ -96,8 +96,7 @@ pub struct EmbeddingRequest {
 ///     top_p: Some(0.9),
 ///     temperature: Some(0.7),
 ///     max_completion_tokens: Some(500),
-///     presence_penalty: Some(0.0),
-///     frequency_penalty: Some(0.0),
+///     ..Default::default()
 /// };
 /// ```
 #[derive(Debug, Clone, Serialize, Default)]
@@ -126,6 +125,12 @@ pub struct CompletionRequest {
     /// Penalty for tokens proportional to their frequency in the prompt. Range: [-2, 2].
     /// Positive values reduce word repetition.
     pub frequency_penalty: Option<f32>,
+
+    /// Base64 data-URI images for multimodal requests (e.g. `"data:image/png;base64,..."`).
+    /// When non-empty, the OpenAI model builds multipart content internally.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub images: Vec<String>,
 }
 
 /// Request payload for reranking documents against a query.

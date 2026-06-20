@@ -88,3 +88,16 @@ pub(crate) fn build_headers(key: &SecretString) -> crate::Result<HeaderMap> {
     h.insert(AUTHORIZATION, auth_header);
     Ok(h)
 }
+
+/// Convert raw image bytes to a base64 data-URI string.
+///
+/// Uses [`infer`] to detect the MIME type from magic bytes.
+/// Format: `data:<mime>;base64,<encoded>`
+pub fn bytes_to_data_uri(bytes: &[u8]) -> String {
+    use base64::Engine;
+    let mime = infer::get(bytes)
+        .map(|k| k.mime_type())
+        .unwrap_or("application/octet-stream");
+    let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
+    format!("data:{mime};base64,{encoded}")
+}

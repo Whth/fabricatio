@@ -275,9 +275,9 @@ impl<M: ?Sized + Model> Deployment<M> {
     ///     sleep(Duration::from_millis(wait_time)).await;
     /// }
     /// ```
-    pub async fn min_cooldown_time(&self, input_text: String) -> u64 {
+    pub async fn min_cooldown_time(&self, token_count: u64) -> u64 {
         if let Some(tracker) = &self.usage_tracker {
-            let wait = tracker.lock().await.need_wait_for_string(input_text);
+            let wait = tracker.lock().await.need_wait_for(token_count);
             trace!("`{}` cooldown: {wait}ms", self.model.identifier());
             wait
         } else {
