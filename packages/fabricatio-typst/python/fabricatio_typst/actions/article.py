@@ -2,7 +2,7 @@
 
 from asyncio import gather
 from pathlib import Path
-from typing import Callable, ClassVar, List, Optional
+from typing import Callable, ClassVar, List, Optional, TypedDict, Unpack
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.capabilities.propose import Propose
@@ -421,3 +421,105 @@ class WriteResearchContentSummary(Action, UseLLM):
             Path(article_path).read_text("utf-8").replace(f"=== {self.summary_title}", f"== {self.summary_title}"),
         )
         return article
+
+
+class CompileKwargs(TypedDict, total=False):
+    """Keyword arguments passed to `typst.compile()`."""
+
+    format: str
+    ppi: float
+    pdf_standards: List[str]
+    sys_inputs: dict
+
+
+def compile_typst_source(
+    typst_source: str | Path,
+    output_path: Path,
+    **kwargs: Unpack[CompileKwargs],
+) -> Path:
+    """Compile a Typst source to disk using the `typst` compiler.
+
+    Args:
+        typst_source: Path to a `.typ` file, or source content as a string.
+        output_path: Where to write the compiled output.
+        **kwargs: Forwarded to `typst.compile()`. Key options:
+            format: Output format ("pdf", "png", "svg"). Defaults to "pdf".
+            ppi: Pixels per inch for raster output (png only). Defaults to 144.0.
+            pdf_standards: PDF standards, e.g. ["a-2a", "ua-1"].
+            sys_inputs: Values passed to Typst's `sys.inputs`.
+
+    Returns:
+        Path to the compiled file.
+    """
+    import typst
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    typst.compile(input=typst_source, output=output_path, **kwargs)
+    logger.info(f"Compiled typst document to {output_path.as_posix()}")
+    return output_path
+
+
+class CompileTypstDocument(Action):
+    """Compile a Typst document to PDF, PNG, or SVG using the typst compiler.
+
+    Accepts a Path to a `.typ` file or source content as a string.
+    """
+
+    output_key: str = "compiled_path"
+
+    async def _execute(
+        self,
+        typst_source: str | Path,
+        output_path: Path,
+        **kwargs: Unpack[CompileKwargs],
+    ) -> Path:
+        """Compile a Typst document and write to disk.
+
+        Args:
+            typst_source: Path to a `.typ` file, or source content as a string.
+            output_path: Where to write the compiled output.
+            **kwargs: Forwarded to `typst.compile()`. See `CompileKwargs`.
+
+        Returns:
+            Path to the compiled file.
+        """
+        return compile_typst_source(
+            typst_source=typst_source,
+            output_path=output_path,
+            **kwargs,
+        )
+
+
+class CompileArticle(Action):
+    """Compile a generated Article's `.typ` file to PDF.
+
+    Expects the article to have been previously dumped to a `.typ` file via DumpFinalizedOutput.
+    Reads the `.typ` from disk, compiles it, and writes the output next to the source.
+    """
+
+    output_key: str = "compiled_path"
+
+    async def _execute(
+        self,
+        article_path: Path,
+        output_path: Optional[Path] = None,
+        **kwargs: Unpack[CompileKwargs],
+    ) -> Path:
+        """Compile an article's `.typ` file to the configured output format.
+
+        Args:
+            article_path: Path to the `.typ` source file.
+            output_path: Override output path. Defaults to same name with format suffix.
+            **kwargs: Forwarded to `typst.compile()`. See `CompileKwargs`.
+
+        Returns:
+            Path to the compiled output file.
+        """
+        fmt = kwargs.get("format", "pdf")
+        out = output_path or article_path.with_suffix(f".{fmt}")
+
+        return compile_typst_source(
+            typst_source=article_path,
+            output_path=out,
+            **kwargs,
+        )
