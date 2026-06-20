@@ -453,8 +453,11 @@ def compile_typst_source(
     """
     import typst
 
+    # Normalize: Path → file path string, str → source bytes
+    source: str | bytes = str(typst_source) if isinstance(typst_source, Path) else typst_source.encode("utf-8")
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    typst.compile(input=typst_source, output=output_path, **kwargs)
+    typst.compile(input=source, output=str(output_path), **kwargs)
     logger.info(f"Compiled typst document to {output_path.as_posix()}")
     return output_path
 
