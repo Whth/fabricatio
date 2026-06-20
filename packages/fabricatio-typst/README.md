@@ -37,6 +37,7 @@ Two layers compose this package:
 - Build hierarchical article outlines and generate full content
 - RAG-backed article writing with citation-aware iterative retrieval
 - Store and query article chunks in LanceDB
+- Compile `.typ` documents to PDF, PNG, or SVG via the `typst` compiler
 
 ## Rust API
 
@@ -172,6 +173,31 @@ Each action is a Fabricatio `Action` — an async callable unit in the agent wor
 | `ChunkArticle` | Split an article into storeable chunks |
 | `StoreArticleEssence` | Store article essences into LanceDB |
 
+### Compilation
+
+| Action | Description |
+|---|---|
+| `CompileTypstDocument` | Compile a `.typ` file or source string to PDF/PNG/SVG |
+| `CompileArticle` | Compile a previously dumped article `.typ` to PDF |
+
+```python
+from pathlib import Path
+from fabricatio_typst.actions.article import CompileArticle, CompileTypstDocument
+
+# Compile a standalone .typ file
+result = await CompileTypstDocument().act({
+    "typst_source": Path("paper.typ"),
+    "output_path": Path("paper.pdf"),
+})
+# result["compiled_path"] → Path("paper.pdf")
+
+# Compile a generated article (after DumpFinalizedOutput)
+result = await CompileArticle().act({
+    "article_path": Path("output.typ"),
+})
+# result["compiled_path"] → Path("output.pdf")
+```
+
 ### Citation Capability
 
 `CitationLancedbRAG` — citation-aware iterative search that expands queries over multiple rounds and deduplicates by bibtex key.
@@ -183,24 +209,26 @@ Pre-composed action pipelines:
 | Workflow | Steps |
 |---|---|
 | `WriteOutlineCorrectedWorkFlow` | `GenerateArticleProposal` → `GenerateInitialOutline` → dump output |
+| `CompileArticleWorkflow` | Compile a `.typ` article to PDF |
 | `StoreArticle` | `ExtractArticleEssence` → `StoreArticleEssence` |
 
 Usage:
-
 ```python
 from fabricatio_typst.actions.article import GenerateArticleProposal, GenerateInitialOutline
 from fabricatio_typst.models.article_proposal import ArticleProposal
 from fabricatio_typst.models.article_outline import ArticleOutline
 
 async def generate_outline():
-    proposal: ArticleProposal = await GenerateArticleProposal()._execute(
-        article_briefing="Quantum error correction in near-term devices"
-    )
+    result = await GenerateArticleProposal().act({
+        "article_briefing": "Quantum error correction in near-term devices",
+    })
+    proposal: ArticleProposal = result["article_proposal"]
     print(f"Proposal: {proposal.title}")
 
-    outline: ArticleOutline = await GenerateInitialOutline()._execute(
-        article_proposal=proposal
-    )
+    result = await GenerateInitialOutline().act({
+        "article_proposal": proposal,
+    })
+    outline: ArticleOutline = result["initial_article_outline"]
     print(f"Outline chapters: {len(outline.chapters)}")
 ```
 
@@ -209,6 +237,7 @@ async def generate_outline():
 - `fabricatio-core` — agent framework and core models
 - `fabricatio-tool` — filesystem utilities
 - `fabricatio-capabilities` — capability mixins (Extract, Censor, etc.)
+- `typst` — Typst compiler Python bindings (for compilation actions)
 
 Optional for article generation workflows:
 
