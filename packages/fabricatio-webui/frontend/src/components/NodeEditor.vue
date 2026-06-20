@@ -10,6 +10,7 @@ import type { NodeTypeDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
 import FabricatioNode from './FabricatioNode.vue'
+import type { FabricatioNodeData } from '@/stores/workflow'
 import { Crosshair } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
@@ -17,44 +18,63 @@ const notifications = useNotificationsStore()
 const isDragOver = ref(false)
 const dragPreview = ref<NodeTypeDefinition | null>(null)
 
-const { onConnect, screenToFlowCoordinate, getSelectedNodes, findNode } = useVueFlow({
+const lastConnectionError = ref<string | null>(null)
+
+const {
+  onConnect,
+  screenToFlowCoordinate,
+  getSelectedNodes,
+  findNode,
+  onConnectStart,
+  onConnectEnd,
+} = useVueFlow({
   defaultEdgeOptions: { type: 'smoothstep', animated: false },
   isValidConnection: (connection: Connection) => {
-    if (connection.source === connection.target) return false
+    if (connection.source === connection.target) {
+      lastConnectionError.value = 'Cannot connect a node to itself'
+      return false
+    }
     const sourceNode = findNode(connection.source!)
     const targetNode = findNode(connection.target!)
-    if (!sourceNode || !targetNode) return false
-    const isOutputPort = (sourceNode.data as any)?.outputPorts?.some(
+    if (!sourceNode || !targetNode) {
+      lastConnectionError.value = null
+      return false
+    }
+    const sourceData = sourceNode.data as unknown as FabricatioNodeData
+    const targetData = targetNode.data as unknown as FabricatioNodeData
+    const isOutputPort = sourceData?.outputPorts?.some(
       (p: { name: string }) => p.name === connection.sourceHandle,
     )
-    const isInputPort = (targetNode.data as any)?.inputPorts?.some(
+    const isInputPort = targetData?.inputPorts?.some(
       (p: { name: string }) => p.name === connection.targetHandle,
     )
-    return !!isOutputPort && !!isInputPort
+    if (!isOutputPort || !isInputPort) {
+      lastConnectionError.value = 'Output ports can only connect to input ports'
+      return false
+    }
+    lastConnectionError.value = null
+    return true
   },
 })
 
+onConnectStart(() => {
+  lastConnectionError.value = null
+})
+
 onConnect((connection: Connection) => {
-  if (connection.source === connection.target) {
-    notifications.warning('Invalid connection', 'Cannot connect a node to itself')
-    return
-  }
-  const sourceNode = findNode(connection.source!)
-  const targetNode = findNode(connection.target!)
-  if (!sourceNode || !targetNode) return
-  const isOutputPort = (sourceNode.data as any)?.outputPorts?.some(
-    (p: { name: string }) => p.name === connection.sourceHandle,
-  )
-  const isInputPort = (targetNode.data as any)?.inputPorts?.some(
-    (p: { name: string }) => p.name === connection.targetHandle,
-  )
-  if (!isOutputPort || !isInputPort) {
-    notifications.warning('Invalid connection', 'Output ports can only connect to input ports')
-    return
-  }
   wfStore.addEdge(connection)
 })
 
+onConnectEnd((event) => {
+  if (lastConnectionError.value) {
+    // Only show tip if dropped on a handle (not empty canvas)
+    const target = event?.target as HTMLElement | undefined
+    if (target?.closest('.vue-flow__handle')) {
+      notifications.warning('Invalid connection', lastConnectionError.value)
+    }
+    lastConnectionError.value = null
+  }
+})
 
 function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
