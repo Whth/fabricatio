@@ -252,7 +252,7 @@ async function handleExecute() {
     <!-- Main Content -->
     <div class="editor-content">
       <ActivityBar :active-panel="activePanel" @toggle="togglePanel" />
-      <NodePalette v-model:visible="nodePaletteVisible" />
+      <NodePalette :visible="nodePaletteVisible" @update:visible="activePanel = $event ? 'nodes' : null" />
       <NodeEditor />
       <NodeConfigPanel v-if="wfStore.selectedNodeId" />
     </div>
