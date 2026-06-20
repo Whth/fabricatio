@@ -105,6 +105,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
     selectedNodeId.value = id
   }
 
+  // Track meta from the last loaded/saved workflow so toJSON can preserve it
+  const loadedMeta = ref<import('@/types/api').WorkflowMeta | undefined>(undefined)
+
   function toJSON(): WorkflowJSON {
     return {
       version: '1.0',
@@ -125,11 +128,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
         target_handle: e.targetHandle || 'default',
       })),
       init_context: {},
+      meta: loadedMeta.value,
     }
   }
 
   async function fromJSON(wf: WorkflowJSON) {
     workflowName.value = wf.name || 'Untitled Workflow'
+    loadedMeta.value = wf.meta
 
     // Ensure we have the node type registry so we can restore port metadata
     if (nodeTypes.value.length === 0) {
@@ -178,12 +183,21 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
+  function setMetaTags(tags: string[]) {
+    if (!loadedMeta.value) {
+      loadedMeta.value = { tags }
+    } else {
+      loadedMeta.value.tags = tags
+    }
+  }
+
   function clear() {
     nodes.value = []
     edges.value = []
     selectedNodeId.value = null
     workflowName.value = 'Untitled Workflow'
     nodeIdCounter.value = 0
+    loadedMeta.value = undefined
   }
 
   const selectedNode = computed(() => {
@@ -197,6 +211,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     nodeTypes,
     selectedNodeId,
     workflowName,
+    loadedMeta,
     loadNodeTypes,
     addNode,
     removeNode,
@@ -206,6 +221,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     toJSON,
     fromJSON,
     clear,
+    setMetaTags,
     selectedNode,
   }
 })

@@ -53,6 +53,19 @@ pub struct FabricatioEdge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowMeta {
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// base64-encoded PNG thumbnail
+    #[serde(default)]
+    pub thumbnail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowJson {
     pub version: String,
     #[serde(default)]
@@ -65,6 +78,8 @@ pub struct WorkflowJson {
     pub edges: Vec<FabricatioEdge>,
     #[serde(default)]
     pub init_context: serde_json::Value,
+    #[serde(default)]
+    pub meta: Option<WorkflowMeta>,
 }
 
 // ── Execution ────────────────────────────────────────────────────────────────

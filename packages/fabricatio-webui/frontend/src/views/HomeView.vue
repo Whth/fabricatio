@@ -5,11 +5,14 @@ import NodeEditor from '../components/NodeEditor.vue'
 import NodeConfigPanel from '../components/NodeConfigPanel.vue'
 import ExecutionPanel from '../components/ExecutionPanel.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import WorkflowGallery from '../components/WorkflowGallery.vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useNotificationsStore } from '@/stores/notifications'
 import { api } from '@/api/client'
+import type { WorkflowMeta } from '@/types/api'
+import { FolderOpen, Save, Trash2, Play, LayoutGrid } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
@@ -20,8 +23,10 @@ const isEditingName = ref(false)
 const editingName = ref('')
 const isSaving = ref(false)
 const isLoading = ref(false)
-const showLoadDialog = ref(false)
-const savedWorkflows = ref<Array<{ id: string; name: string; nodeCount: number }>>([])
+const showGallery = ref(false)
+const savedWorkflows = ref<
+  Array<{ id: string; name: string; nodeCount: number; meta?: WorkflowMeta }>
+>([])
 
 const hasNodes = computed(() => wfStore.nodes.length > 0)
 
@@ -63,19 +68,22 @@ async function handleSave() {
 async function handleLoad() {
   if (isLoading.value) return
 
+  // Toggle: if gallery is already open, close it
+  if (showGallery.value) {
+    showGallery.value = false
+    return
+  }
+
   isLoading.value = true
   try {
     const workflows = await api.getWorkflows()
-    if (workflows.length === 0) {
-      notifications.info('No saved workflows', 'Save a workflow first')
-      return
-    }
     savedWorkflows.value = workflows.map((wf) => ({
       id: wf.id ?? wf.name ?? crypto.randomUUID(),
       name: wf.name ?? 'Untitled',
       nodeCount: wf.nodes?.length ?? 0,
+      meta: wf.meta,
     }))
-    showLoadDialog.value = true
+    showGallery.value = true
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     notifications.error('Failed to load workflows', message)
@@ -85,7 +93,6 @@ async function handleLoad() {
 }
 
 async function loadWorkflowById(id: string) {
-  showLoadDialog.value = false
   try {
     const wf = await api.getWorkflow(id)
     wfStore.clear()
@@ -100,16 +107,37 @@ async function loadWorkflowById(id: string) {
   }
 }
 
-async function deleteWorkflowById(id: string, event: Event) {
-  event.stopPropagation()
+async function deleteWorkflowById(id: string) {
   try {
     await api.deleteWorkflow(id)
     savedWorkflows.value = savedWorkflows.value.filter((w) => w.id !== id)
     notifications.success('Deleted')
-    if (savedWorkflows.value.length === 0) showLoadDialog.value = false
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     notifications.error('Failed to delete workflow', message)
+  }
+}
+
+async function updateWorkflowTags(id: string, tags: string[]) {
+  // Update in local list
+  const wf = savedWorkflows.value.find((w) => w.id === id)
+  if (wf) {
+    if (!wf.meta) wf.meta = { tags }
+    else wf.meta.tags = tags
+  }
+  // Persist: fetch full workflow, patch meta tags, re-save
+  try {
+    const full = await api.getWorkflow(id)
+    if (!full.meta) full.meta = { tags }
+    else full.meta.tags = tags
+    await api.saveWorkflow(full)
+    // Also update the store if this is the currently loaded workflow
+    if (wfStore.loadedMeta && wfStore.workflowName === (full.name ?? 'Untitled Workflow')) {
+      wfStore.setMetaTags(tags)
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    notifications.error('Failed to update tags', message)
   }
 }
 
@@ -178,6 +206,10 @@ async function handleExecute() {
             <Save v-else :size="14" class="btn-icon" />
             <span class="btn-label">{{ isSaving ? 'Saving...' : 'Save' }}</span>
           </button>
+          <button class="btn btn-secondary" @click="handleLoad" title="Open gallery">
+            <LayoutGrid :size="14" class="btn-icon" />
+            <span class="btn-label">Gallery</span>
+          </button>
           <button
             class="btn btn-secondary"
             @click="handleClear"
@@ -219,39 +251,14 @@ async function handleExecute() {
     <!-- Execution Panel -->
     <ExecutionPanel />
 
-    <!-- Load Workflow Dialog -->
-    <Teleport to="body">
-      <div v-if="showLoadDialog" class="dialog-overlay" @click.self="showLoadDialog = false">
-        <div class="dialog">
-          <div class="dialog-header">
-            <h3>Load Workflow</h3>
-            <button class="dialog-close" @click="showLoadDialog = false">×</button>
-          </div>
-          <div class="dialog-body">
-            <div
-              v-for="wf in savedWorkflows"
-              :key="wf.id"
-              class="workflow-item"
-              @click="loadWorkflowById(wf.id)"
-            >
-              <div class="workflow-item-info">
-                <span class="workflow-item-name">{{ wf.name }}</span>
-                <span class="workflow-item-meta"
-                  >{{ wf.nodeCount }} node{{ wf.nodeCount !== 1 ? 's' : '' }}</span
-                >
-              </div>
-              <button
-                class="workflow-item-delete"
-                @click="deleteWorkflowById(wf.id, $event)"
-                title="Delete workflow"
-              >
-                <Trash2 :size="12" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Workflow Gallery -->
+    <WorkflowGallery
+      v-model:visible="showGallery"
+      :workflows="savedWorkflows"
+      @load="loadWorkflowById"
+      @delete="deleteWorkflowById"
+      @update-tags="updateWorkflowTags"
+    />
   </div>
 </template>
 
@@ -273,6 +280,8 @@ async function handleExecute() {
   background: #161b22;
   border-bottom: 1px solid #30363d;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1000;
 }
 
 .header-left {
@@ -431,90 +440,5 @@ async function handleExecute() {
   display: flex;
   flex: 1;
   overflow: hidden;
-}
-/* ── Load Workflow Dialog (teleported to body, needs :global) ── */
-:global(.dialog-overlay) {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-:global(.dialog) {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 8px;
-  width: 400px;
-  max-height: 60vh;
-  display: flex;
-  flex-direction: column;
-}
-:global(.dialog-header) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #30363d;
-}
-:global(.dialog-header h3) {
-  margin: 0;
-  font-size: 14px;
-  color: #e6edf3;
-}
-:global(.dialog-close) {
-  background: none;
-  border: none;
-  color: #8b949e;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-:global(.dialog-close:hover) {
-  color: #e6edf3;
-}
-:global(.dialog-body) {
-  padding: 8px;
-  overflow-y: auto;
-}
-:global(.workflow-item) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #e6edf3;
-}
-:global(.workflow-item:hover) {
-  background: #21262d;
-}
-:global(.workflow-item-info) {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-:global(.workflow-item-name) {
-  font-size: 13px;
-  font-weight: 500;
-}
-:global(.workflow-item-meta) {
-  font-size: 11px;
-  color: #8b949e;
-}
-:global(.workflow-item-delete) {
-  background: none;
-  border: none;
-  color: #8b949e;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-}
-:global(.workflow-item-delete:hover) {
-  background: #da3633;
-  color: #fff;
 }
 </style>

@@ -47,13 +47,32 @@ pub async fn get_workflow(
 /// POST /api/workflows — save a workflow.
 pub async fn save_workflow(
     State(state): State<Arc<AppState>>,
-    Json(wf): Json<WorkflowJson>,
+    Json(mut wf): Json<WorkflowJson>,
 ) -> Json<serde_json::Value> {
     let id = wf
         .name
         .clone()
         .filter(|n| !n.is_empty())
         .unwrap_or_else(|| Uuid::new_v4().to_string());
+
+    // Inject timestamps: preserve created_at if workflow already exists
+    let now = chrono::Utc::now().to_rfc3339();
+    let created_at = state
+        .get_workflow(&id)
+        .and_then(|existing| existing.meta)
+        .and_then(|m| m.created_at)
+        .unwrap_or_else(|| now.clone());
+
+    let tags = wf.meta.as_ref().map(|m| m.tags.clone()).unwrap_or_default();
+    let thumbnail = wf.meta.as_ref().and_then(|m| m.thumbnail.clone());
+
+    wf.meta = Some(WorkflowMeta {
+        created_at: Some(created_at),
+        updated_at: Some(now),
+        tags,
+        thumbnail,
+    });
+
     state.save_workflow(id.clone(), wf);
     Json(serde_json::json!({ "id": id }))
 }

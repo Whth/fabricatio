@@ -38,6 +38,13 @@ export interface FabricatioEdge {
   target_handle: string
 }
 
+export interface WorkflowMeta {
+  created_at?: string
+  updated_at?: string
+  tags: string[]
+  thumbnail?: string
+}
+
 export interface WorkflowJSON {
   id?: string
   version: string
@@ -46,6 +53,7 @@ export interface WorkflowJSON {
   nodes: FabricatioNode[]
   edges: FabricatioEdge[]
   init_context: Record<string, unknown>
+  meta?: WorkflowMeta
 }
 
 // ── Execution ────────────────────────────────────────────────────────────────────
