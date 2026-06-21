@@ -196,6 +196,57 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Wire `CharacterCard` + `CharacterCompose` into `fabricatio-novel` chapter generation for consistency
     - [ ] Character relationship tracking (affinity graph, interaction history)
     - [ ] Actions + workflows + tests for batch character generation and validation
+    - [ ] Mental model: Big Five + Maslow combined psychological state engine
+        - [ ] Data models: `BigFiveProfile` (5D float 0-100) + `MaslowLevel` enum + `MentalState` (merged personality + need + emotion + cognitive bias)
+        - [ ] `BigFiveProfile.distance_to()` for personality similarity; `as_vector()` for serialization
+        - [ ] `EventImpact` structured model: `threatens_need`, `fulfills_need`, `personality_shift`, `emotion`, `emotion_intensity`, `triggers_bias`
+        - [ ] `MindEngine.analyze_event()`: LLM-driven event → `EventImpact` extraction with `MentalState` as context
+        - [ ] `MindEngine.apply_impact()`: deterministic rules for Maslow level drop (threat-based instant) and rise (satisfaction-accumulation threshold ≥3)
+        - [ ] Age-based personality shift scale: child (3.0×), adolescent (1.5×), young adult (0.5×), adult (0.2×)
+        - [ ] `MindEngine.build_system_prompt()`: translate `MentalState` into LLM hard constraints (personality rules, need focus, emotion style, cognitive bias examples)
+        - [ ] `MentalState` persistence: snapshot per event for rollback and trajectory visualization
+        - [ ] Personality archetypes: pre-defined `BigFiveProfile` points (hero, villain, sage, fool, outcast) + `closest_archetype()` lookup
+        - [ ] DIAMONDS event taxonomy (Rauthmann et al., 2014): 8-dimensional situational classification replacing boolean event flags
+            - [ ] `SituationProfile` model with 8 float dimensions (Duty, Intellect, Adversity, Mating, pOsitivity, Negativity, Deception, Sociality)
+            - [ ] LLM-driven event → `SituationProfile` extraction (structured output with per-dimension 0-1 scores)
+            - [ ] Dimension → distortion mapping: Adversity→catastrophizing, Deception→personalization, Negativity→emotional_reasoning, etc.
+            - [ ] Wire into `CognitiveEngine._rule_filter()`: use dimension scores instead of boolean flags for distortion boost calculation
+        - [ ] CBT cognitive distortion engine (hybrid: rule filter + LLM refinement)
+            - [ ] `CognitiveDistortion` enum (catastrophizing, black-and-white, personalization, emotional reasoning, should-thinking)
+            - [ ] `CognitiveProfile`: per-character distortion tendency weights (0-100 each) + `most_likely()` sort
+            - [ ] `DistortionAnalysis` structured model: `triggered_distortion`, `internal_monologue`, `reasoning`
+            - [ ] `CognitiveEngine._rule_filter()`: DIAMONDS dimension scores → distortion score boost
+            - [ ] `CognitiveEngine._generate_monologue()`: cheap LLM call for internal monologue only (high-confidence path)
+            - [ ] `CognitiveEngine._llm_analyze()`: full LLM structured extraction from top-3 candidates (low-confidence path)
+            - [ ] Confidence threshold: if top candidate score > 70 → use rule result + monologue generation; else → full LLM analysis
+            - [ ] Wire into `MindEngine`: CBT as event pre-filter before Maslow impact assessment (distortion shapes interpretation, interpretation shapes need impact)
+        - [ ] Linguistic style decoupling (TTM, Zhan et al., 2025): separate "what to say" from "how to say"
+            - [ ] `LinguisticStyle` model: `preferences` (natural language description), `common_pronouns`, `common_modals`, `common_adjectives`, `style_references`
+            - [ ] `extract_style()`: LLM-driven extraction from character's historical dialogues
+            - [ ] Three-stage generation: styleless response (personality+memory) → memory-checked response (RAG correction) → stylized response (style transfer)
+            - [ ] Style references: retrieve semantically similar utterances from character history as rewriting templates
+            - [ ] Wire into `MindEngine.build_system_prompt()`: inject linguistic style constraints alongside personality and emotion
+        - [ ] Embodied perception (EFT-CoT, Du et al., 2026): somatic awareness as first stage of emotional processing
+            - [ ] Three-stage emotional pipeline: Embodied Perception → Cognitive Exploration → Narrative Intervention
+            - [ ] `SomaticState` model: body sensations mapped from emotion type + intensity (e.g. fear→racing heart, tight chest, trembling)
+            - [ ] `CognitiveExploration`: extract core beliefs and underlying thoughts from somatic experience
+            - [ ] `NarrativeIntervention`: restructure character's self-narrative based on cognitive insights
+            - [ ] Wire into `MindEngine`: emotion triggers somatic state → somatic state informs prompt constraints for physical descriptions
+        - [ ] Qualitative Suffering States (Emotional Cost Functions, Mopgar, 2026): irreversible trauma that reshapes character
+            - [ ] `QualitativeSuffering` model: `what_was_lost`, `the_void`, `how_it_changed_me`, `anticipatory_dread`
+            - [ ] Four-component architecture: Consequence Processor → Character State → Anticipatory Scan → Story Update
+            - [ ] Experiential dread: from character's own lived consequences
+            - [ ] Pre-experiential dread: acquired without direct experience (from others' stories or cultural knowledge)
+            - [ ] Suffering accumulates and reshapes character — not a temporary state but a permanent modification to MentalState
+            - [ ] Wire into `MindEngine`: traumatic events create QualitativeSuffering entries that persist and influence future interpretations
+        - [ ] Three-layer separation: analysis (LLM with schema) → update (deterministic rules) → alignment (prompt injection)
+        - [ ] Tests: Maslow level transitions, Big Five drift under events, age scaling, prompt generation, linguistic style extraction, somatic state mapping, suffering accumulation, end-to-end `process_and_respond`
+        - [ ] Evaluation framework (EMgine methodology + three-layer validation)
+            - [ ] Layer 1: Theory consistency — automated assertions checking psychological predictions (target > 90% pass rate)
+            - [ ] Layer 2: Reader perception — LLM-as-Judge + human evaluation for believability (target > 7.5/10)
+            - [ ] Layer 3: Trajectory consistency — automated checks for sudden jumps, reversals, dead spots across event sequences
+            - [ ] Literary character test suite: Hamlet, Lin Daiyu, Julien Sorel — known characters as regression test baseline
+            - [ ] `evaluate_model()` orchestrator running all three layers against test suite
 - [ ] Judge integration with novel + RAG
     - [ ] Wire `EvidentlyJudge` / `VoteJudge` into novel pipeline for chapter quality gating
     - [ ] Add RAG relevance scoring action using judge capabilities
