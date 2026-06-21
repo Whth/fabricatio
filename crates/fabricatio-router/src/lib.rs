@@ -10,7 +10,7 @@ use std::fs;
 use std::sync::Arc;
 use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
-use thryd::utils::{analyze_identifier, bytes_to_data_uri};
+pub use thryd::utils::{analyze_identifier, bytes_to_data_uri};
 use thryd::{
     CompletionModel, CompletionTag, CompletionText, DeploymentIdentifier, DummyModel, Embedding,
     EmbeddingModel, EmbeddingRequest, EmbeddingTag, ModelTypeTag, RankedDocuments, RerankerModel,
@@ -18,7 +18,6 @@ use thryd::{
 };
 
 pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
-
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Default, Clone)]
