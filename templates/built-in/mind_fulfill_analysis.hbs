@@ -1,0 +1,14 @@
+{{!--
+  Fulfilled need analysis template for process_event().
+
+  Variables:
+    - event: the event text
+    - emotion: current emotion name
+    - emotion_intensity: formatted intensity
+    - current_need: MaslowLevel name
+--}}
+Which need level does this event FULFILL for the character?
+Event: {{event}}
+Character emotion: {{emotion}} (intensity {{emotion_intensity}})
+Current need: {{current_need}}
+Return null/none if no need is fulfilled.

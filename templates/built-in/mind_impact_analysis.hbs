@@ -1,0 +1,21 @@
+{{!--
+  Impact analysis template for process_event() — emotion, intensity, personality shift.
+
+  Variables:
+    - o, c, e, a, n: BigFive scores (formatted)
+    - emotion: current emotion name
+    - emotion_intensity: formatted intensity
+    - suffering_count: number of past traumas
+    - event: the event text
+--}}
+Analyze the psychological impact of this event on the character.
+
+Character personality: O={{o}} C={{c}} E={{e}} A={{a}} N={{n}}
+Current emotion: {{emotion}} (intensity {{emotion_intensity}})
+Past traumas: {{suffering_count}}
+
+Event: {{event}}
+
+Only include personality_shift dimensions that actually shift.
+Leave threatens_need and fulfills_need as null (handled separately).
+Leave triggers_bias as empty string (handled separately).
