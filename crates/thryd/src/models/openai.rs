@@ -37,7 +37,7 @@ use async_openai::types::chat::{
     CreateChatCompletionStreamResponse, ImageUrl,
 };
 
-use crate::{Completion, Embeddings, Ranking, ThrydError};
+use crate::{CompletionResponse, EmbeddingResponse, RankedDocuments, RankingResponse, ThrydError};
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
@@ -291,7 +291,7 @@ impl Model for OpenaiModel {
 /// [`CompletionModel`]: crate::model::CompletionModel
 #[async_trait]
 impl CompletionModel for OpenaiModel {
-    async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion> {
+    async fn completion(&self, request: CompletionRequest) -> crate::Result<CompletionResponse> {
         let stream = request.stream;
         let user_msg = if request.images.is_empty() {
             ChatCompletionRequestUserMessageArgs::default()
@@ -368,8 +368,12 @@ impl CompletionModel for OpenaiModel {
                         .unwrap()
                         .clone()
                 })
-                .collect();
-            Ok(res)
+                .collect::<Vec<String>>()
+                .join("");
+            Ok(CompletionResponse {
+                content: res,
+                usage: crate::model::Usage::default(),
+            })
         } else {
             let response = self
                 .provider
@@ -378,18 +382,25 @@ impl CompletionModel for OpenaiModel {
             let completion_response = self
                 .parse_response::<CreateChatCompletionResponse>(response, "chat/completions")
                 .await?;
-            if let Some(usage) = completion_response.usage.as_ref() {
-                debug!(
-                    "Request tokens usages: Input {} | Output {} | Total {}",
-                    usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
-                );
-            }
+            let usage = completion_response
+                .usage
+                .as_ref()
+                .map(|u| crate::model::Usage {
+                    prompt_tokens: u.prompt_tokens,
+                    completion_tokens: u.completion_tokens,
+                    total_tokens: u.total_tokens,
+                })
+                .unwrap_or_default();
+            debug!(
+                "Request tokens usages: Input {} | Output {} | Total {}",
+                usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+            );
             let content = completion_response
                 .choices
                 .first()
                 .and_then(|choice| choice.message.content.clone())
                 .unwrap_or_default();
-            Ok(content)
+            Ok(CompletionResponse { content, usage })
         }
     }
 }
@@ -428,7 +439,7 @@ impl CompletionModel for OpenaiModel {
 /// [`EmbeddingModel`]: crate::model::EmbeddingModel
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Embeddings> {
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<EmbeddingResponse> {
         let request = CreateEmbeddingRequestArgs::default()
             .model(self.model_name())
             .input(request.texts)
@@ -443,11 +454,17 @@ impl EmbeddingModel for OpenaiModel {
         let emb_response = self
             .parse_response::<CreateEmbeddingResponse>(response, "embeddings")
             .await?;
-        Ok(emb_response
+        let usage = crate::model::Usage {
+            prompt_tokens: emb_response.usage.prompt_tokens,
+            completion_tokens: 0,
+            total_tokens: emb_response.usage.total_tokens,
+        };
+        let embeddings = emb_response
             .data
             .into_iter()
             .map(|e| e.embedding)
-            .collect::<Embeddings>())
+            .collect::<Vec<_>>();
+        Ok(EmbeddingResponse { embeddings, usage })
     }
 }
 
@@ -479,6 +496,16 @@ struct RerankResultItem {
 struct RerankResponseBody {
     /// The ranked results with index and score
     results: Vec<RerankResultItem>,
+    /// Optional token usage from the API (DashScope reports this).
+    #[serde(default)]
+    usage: Option<RerankUsage>,
+}
+
+/// Token usage reported by the reranker API.
+#[derive(Debug, Deserialize)]
+struct RerankUsage {
+    #[serde(default)]
+    total_tokens: u32,
 }
 
 /// # Reranker Implementation
@@ -519,7 +546,7 @@ struct RerankResponseBody {
 /// [`RerankerModel`]: crate::model::RerankerModel
 #[async_trait]
 impl RerankerModel for OpenaiModel {
-    async fn rerank(&self, request: RerankerRequest) -> crate::Result<Ranking> {
+    async fn rerank(&self, request: RerankerRequest) -> crate::Result<RankingResponse> {
         let body = RerankRequestBody {
             model: self.model_name().to_string(),
             query: request.query,
@@ -537,15 +564,23 @@ impl RerankerModel for OpenaiModel {
             .parse_response::<RerankResponseBody>(response, "reranks")
             .await?;
 
-        let mut ranking: Ranking = resp
+        let mut results: RankedDocuments = resp
             .results
             .into_iter()
             .map(|r| (r.index, r.relevance_score))
             .collect();
 
         // Sort by score descending (highest relevance first)
-        ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        Ok(ranking)
+        let usage = crate::model::Usage {
+            total_tokens: resp.usage.map(|u| u.total_tokens).unwrap_or(0),
+            ..Default::default()
+        };
+
+        Ok(RankingResponse {
+            rankings: results,
+            usage,
+        })
     }
 }

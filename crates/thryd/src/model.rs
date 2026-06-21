@@ -15,11 +15,11 @@
 //! - [`EmbeddingModel`] - Trait for embedding-generating models
 //! - [`RerankerModel`] - Trait for reranking models
 //!
-//! ## Type Aliases
+//! ## Response Types
 //!
-//! - [`Ranking`] - Reranker output: ranked document indices with scores
-//! - [`Embeddings`] - 2D vector of embedding floats
-//! - [`Completion`] - Type alias for completion text output
+//! - [`CompletionResponse`] - Completion text with usage tracking
+//! - [`EmbeddingResponse`] - Embedding vectors with usage tracking
+//! - [`RankingResponse`] - Ranked document indices with usage tracking
 //!
 //! # Example
 //!
@@ -51,8 +51,22 @@
 use crate::SEPARATE;
 use crate::provider::Provider;
 pub use async_trait::async_trait;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+/// Token usage reported by the API for a completed request.
+///
+/// Returned alongside every response so the router can track actual consumption
+/// for rate limiting instead of estimating from text length.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Usage {
+    /// Tokens consumed by the input prompt (text + images).
+    pub prompt_tokens: u32,
+    /// Tokens generated in the completion. Zero for embeddings and rerankers.
+    pub completion_tokens: u32,
+    /// Total tokens for this request (`prompt_tokens + completion_tokens`).
+    pub total_tokens: u32,
+}
 
 /// Request payload for generating text embeddings.
 ///
@@ -160,22 +174,68 @@ pub struct RerankerRequest {
     /// The list of candidate documents to rerank.
     pub documents: Vec<String>,
 }
-
-/// Type alias for reranker output.
+/// Trait for response types that carry API-reported token usage.
 ///
-/// A vector of `(document_index, relevance_score)` pairs, sorted by score descending.
-/// Higher scores indicate greater relevance to the query.
-pub type Ranking = Vec<(usize, f32)>;
+/// Implemented by [`CompletionResponse`], [`EmbeddingResponse`], and [`RankingResponse`].
+/// Enables generic usage extraction without tuple `.1` destructuring.
+pub trait WithUsage {
+    /// Returns the API-reported usage, if available.
+    fn usage(&self) -> Option<&Usage>;
+}
 
+/// Type alias for a single embedding vector.
 pub type Embedding = Vec<f32>;
-/// Type alias for a batch of embedding vectors.
+
+/// Type alias for completion text content (just the string, no usage).
+pub type CompletionText = String;
+
+/// Type alias for ranked document output (index, score pairs).
+pub type RankedDocuments = Vec<(usize, f32)>;
+
+/// Completion response with usage tracking.
 ///
-/// Each inner vector contains the embedding floats for one input text.
-pub type Embeddings = Vec<Embedding>;
+/// Contains the generated text and API-reported token consumption.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CompletionResponse {
+    pub content: CompletionText,
+    pub usage: Usage,
+}
 
-/// Type alias for completion text output.
-pub type Completion = String;
+impl WithUsage for CompletionResponse {
+    fn usage(&self) -> Option<&Usage> {
+        Some(&self.usage)
+    }
+}
 
+/// Embedding response with usage tracking.
+///
+/// Contains embedding vectors and API-reported token consumption.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EmbeddingResponse {
+    pub embeddings: Vec<Embedding>,
+    pub usage: Usage,
+}
+
+impl WithUsage for EmbeddingResponse {
+    fn usage(&self) -> Option<&Usage> {
+        Some(&self.usage)
+    }
+}
+
+/// Ranking response with usage tracking.
+///
+/// Contains ranked document indices with relevance scores and API-reported token consumption.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RankingResponse {
+    pub rankings: RankedDocuments,
+    pub usage: Usage,
+}
+
+impl WithUsage for RankingResponse {
+    fn usage(&self) -> Option<&Usage> {
+        Some(&self.usage)
+    }
+}
 /// Base trait providing metadata for all model types.
 ///
 /// Models must expose their name and associated provider.
@@ -224,9 +284,11 @@ pub trait Model: Send + Sync {
 /// ```ignore
 /// #[thryd::async_trait]
 /// impl CompletionModel for MyCompletionModel {
-///     async fn completion(&self, request: CompletionRequest) -> thryd::Result<Completion> {
-///         // Call your API and return the completion text
-///         Ok("Generated text response".to_string())
+///     async fn completion(&self, request: CompletionRequest) -> thryd::Result<CompletionResponse> {
+///         Ok(CompletionResponse {
+///             content: "Generated text response".to_string(),
+///             usage: Usage::default(),
+///         })
 ///     }
 /// }
 /// ```
@@ -238,9 +300,9 @@ pub trait CompletionModel: Model {
     /// * `request` - The completion request with prompt and generation parameters
     ///
     /// # Returns
-    /// * On success: The generated completion text
+    /// * On success: A [`CompletionResponse`] with the generated text and usage
     /// * On error: A [`crate::ThrydError`] indicating the failure reason
-    async fn completion(&self, request: CompletionRequest) -> crate::Result<Completion>;
+    async fn completion(&self, request: CompletionRequest) -> crate::Result<CompletionResponse>;
 }
 
 /// Trait for models that generate text embeddings.
@@ -253,9 +315,11 @@ pub trait CompletionModel: Model {
 /// ```ignore
 /// #[thryd::async_trait]
 /// impl EmbeddingModel for MyEmbeddingModel {
-///     async fn embedding(&self, request: EmbeddingRequest) -> thryd::Result<Embeddings> {
-///         // Call your embedding API
-///         Ok(vec![vec![0.1, 0.2, 0.3]]) // Example embedding
+///     async fn embedding(&self, request: EmbeddingRequest) -> thryd::Result<EmbeddingResponse> {
+///         Ok(EmbeddingResponse {
+///             embeddings: vec![vec![0.1, 0.2, 0.3]],
+///             usage: Usage::default(),
+///         })
 ///     }
 /// }
 /// ```
@@ -267,9 +331,9 @@ pub trait EmbeddingModel: Model {
     /// * `request` - The embedding request containing texts to encode
     ///
     /// # Returns
-    /// * On success: Vector of embedding vectors, one per input text
+    /// * On success: An [`EmbeddingResponse`] with vectors and usage
     /// * On error: A [`crate::ThrydError`] indicating the failure reason
-    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<Embeddings>;
+    async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<EmbeddingResponse>;
 }
 
 /// Trait for models that rerank documents against a query.
@@ -282,9 +346,11 @@ pub trait EmbeddingModel: Model {
 /// ```ignore
 /// #[thryd::async_trait]
 /// impl RerankerModel for MyReranker {
-///     async fn rerank(&self, request: RerankerRequest) -> thryd::Result<Ranking> {
-///         // Compute relevance scores and return ranked indices
-///         Ok(vec![(2, 0.95), (0, 0.80), (1, 0.30)])
+///     async fn rerank(&self, request: RerankerRequest) -> thryd::Result<RankingResponse> {
+///         Ok(RankingResponse {
+///             rankings: vec![(2, 0.95), (0, 0.80), (1, 0.30)],
+///             usage: Usage::default(),
+///         })
 ///     }
 /// }
 /// ```
@@ -296,7 +362,7 @@ pub trait RerankerModel: Model {
     /// * `request` - The reranker request with query and candidate documents
     ///
     /// # Returns
-    /// * On success: Vector of `(document_index, score)` pairs, sorted by score descending
+    /// * On success: A [`RankingResponse`] with ranked indices and usage
     /// * On error: A [`crate::ThrydError`] indicating the failure reason
-    async fn rerank(&self, request: RerankerRequest) -> crate::Result<Ranking>;
+    async fn rerank(&self, request: RerankerRequest) -> crate::Result<RankingResponse>;
 }

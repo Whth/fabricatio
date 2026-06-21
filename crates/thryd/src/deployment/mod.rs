@@ -28,47 +28,11 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::tracker::count_token;
 use crate::{
-    Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, Result, UsageTracker,
+    CompletionResponse, EmbeddingResponse, RerankerModel, RerankerRequest, RankingResponse, Result, UsageTracker,
 };
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};
 use tracing::{debug, trace};
-
-/// Macro for automatically tracking usage when a request succeeds.
-///
-/// This macro wraps async operations and records input/output to the usage tracker
-/// if the result is `Ok`. It handles both single-output (embedding, rerank) and
-/// dual-output (completion with both request and response) tracking patterns.
-///
-/// # Arguments
-///
-/// - `$tracker`: The `Mutex<UsageTracker>` to record usage to
-/// - `$input`: The input text/prompt to count tokens for
-/// - `$res`: The result of the operation
-/// - `$output`: (optional) The response text for completion tracking
-///
-/// # Example
-///
-/// ```ignore
-/// with_tracking!(tracker, input.clone(), res, response_string)
-/// ```
-macro_rules! with_tracking {
-    ($tracker:expr, $input:expr, $res:expr) => {{
-        if $res.is_ok() {
-            $tracker
-                .lock()
-                .await
-                .add_request_raw($input, "".to_string());
-        }
-        $res
-    }};
-    ($tracker:expr, $input:expr, $res:expr, $output:expr) => {{
-        if $res.is_ok() {
-            $tracker.lock().await.add_request_raw($input, $output);
-        }
-        $res
-    }};
-}
 
 /// A deployment wrapper that adds usage tracking and rate limiting to a model.
 ///
@@ -203,6 +167,16 @@ impl<M: ?Sized + Model> Deployment<M> {
         }
     }
 
+    /// Record token usage for rate limiting.
+    ///
+    /// Called by the Router after a successful request to update the sliding
+    /// window tracker with actual (or estimated) token consumption.
+    pub async fn record_usage(&self, tokens: u64) {
+        if let Some(tracker) = &self.usage_tracker {
+            tracker.lock().await.add_request(tokens);
+        }
+    }
+
     /// Blocks until capacity is available for the given input.
     ///
     /// If no rate limits are configured, this returns immediately. Otherwise,
@@ -311,23 +285,12 @@ impl<M: ?Sized + Model> Deployment<M> {
     /// ```
     ///
     /// [`CompletionModel`]: crate::model::CompletionModel
-    pub async fn completion(&self, request: CompletionRequest) -> Result<Completion>
+    pub async fn completion(&self, request: CompletionRequest) -> Result<CompletionResponse>
     where
         M: CompletionModel,
     {
         debug!("`{}` completion request", self.model.identifier());
-        let res = if let Some(tracker) = &self.usage_tracker {
-            let input = request.message.clone();
-            let res = self.model.completion(request).await;
-            with_tracking!(
-                tracker,
-                input,
-                res,
-                res.as_ref().map(|r| r.to_string()).unwrap_or_default()
-            )
-        } else {
-            self.model.completion(request).await
-        };
+        let res = self.model.completion(request).await;
         debug!(
             "`{}` completion {}",
             self.model.identifier(),
@@ -335,14 +298,6 @@ impl<M: ?Sized + Model> Deployment<M> {
         );
         res
     }
-
-    /// Makes an embedding request through the deployment.
-    ///
-    /// Requires the wrapped model to implement [`EmbeddingModel`]. If usage
-    /// tracking is configured, input tokens are recorded (embeddings have no output).
-    ///
-    /// # Arguments
-    ///
     /// * `request` - The embedding request parameters
     ///
     /// # Example
@@ -359,7 +314,7 @@ impl<M: ?Sized + Model> Deployment<M> {
     /// ```
     ///
     /// [`EmbeddingModel`]: crate::model::EmbeddingModel
-    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<Embeddings>
+    pub async fn embedding(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse>
     where
         M: EmbeddingModel,
     {
@@ -368,13 +323,7 @@ impl<M: ?Sized + Model> Deployment<M> {
             self.model.identifier(),
             request.texts.len()
         );
-        let res = if let Some(tracker) = &self.usage_tracker {
-            let input = request.texts.iter().cloned().collect();
-            let res = self.model.embedding(request).await;
-            with_tracking!(tracker, input, res)
-        } else {
-            self.model.embedding(request).await
-        };
+        let res = self.model.embedding(request).await;
         debug!(
             "`{}` embedding {}",
             self.model.identifier(),
@@ -404,7 +353,7 @@ impl<M: ?Sized + Model> Deployment<M> {
     /// ```
     ///
     /// [`RerankerModel`]: crate::model::RerankerModel
-    pub async fn rerank(&self, request: RerankerRequest) -> Result<Ranking>
+    pub async fn rerank(&self, request: RerankerRequest) -> Result<RankingResponse>
     where
         M: RerankerModel,
     {
@@ -413,13 +362,7 @@ impl<M: ?Sized + Model> Deployment<M> {
             self.model.identifier(),
             request.documents.len()
         );
-        let res = if let Some(tracker) = &self.usage_tracker {
-            let input = request.documents.iter().cloned().collect();
-            let res = self.model.rerank(request).await;
-            with_tracking!(tracker, input, res)
-        } else {
-            self.model.rerank(request).await
-        };
+        let res = self.model.rerank(request).await;
         debug!(
             "`{}` rerank {}",
             self.model.identifier(),

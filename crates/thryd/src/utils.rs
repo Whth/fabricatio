@@ -9,6 +9,7 @@
 //! - [`build_headers()`] - Used by providers to construct authenticated HTTP headers
 
 use crate::{ModelName, ProviderName, SEPARATE, ThrydError};
+use cached::cached;
 use http::header::AUTHORIZATION;
 use http::{HeaderMap, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
@@ -93,6 +94,10 @@ pub(crate) fn build_headers(key: &SecretString) -> crate::Result<HeaderMap> {
 ///
 /// Uses [`infer`] to detect the MIME type from magic bytes.
 /// Format: `data:<mime>;base64,<encoded>`
+#[cached(
+    key = "String",
+    convert = "{ blake3::hash(bytes).to_hex().to_string() }"
+)]
 pub fn bytes_to_data_uri(bytes: &[u8]) -> String {
     use base64::Engine;
     let mime = infer::get(bytes)

@@ -16,7 +16,7 @@
 //! `DummyModel` also supports reranker responses via [`RerankerModel`]:
 //!
 //! ```ignore
-//! use thryd::{DummyModel, RerankerRequest, Ranking};
+//! use thryd::{DummyModel, RerankerRequest, RankingResponse};
 //! use std::sync::Arc;
 //!
 //! let model = DummyModel::new("reranker".to_string(), Arc::new(DummyProvider::default()))
@@ -30,7 +30,10 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::provider::dummy::DummyProvider;
-use crate::{Completion, Embeddings, Ranking, RerankerModel, RerankerRequest, ThrydError};
+use crate::{
+    CompletionResponse, EmbeddingResponse, RankedDocuments, RankingResponse, RerankerModel,
+    RerankerRequest, ThrydError,
+};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
@@ -70,14 +73,14 @@ use std::sync::{Arc, Mutex};
 ///
 /// // Use in tests
 /// let response = model.completion(CompletionRequest::default()).await?;
-/// assert_eq!(response, "Second response"); // LIFO order!
+/// assert_eq!(response.content, "Second response"); // LIFO order!
 /// ```
 pub struct DummyModel {
     name: String,
-    response_q_string: Mutex<Vec<Completion>>,
-    response_q_vec: Mutex<Vec<Embeddings>>,
+    response_q_string: Mutex<Vec<CompletionResponse>>,
+    response_q_vec: Mutex<Vec<EmbeddingResponse>>,
     /// Queue for reranker responses, consumed in LIFO order.
-    response_q_ranks: Mutex<Vec<Ranking>>,
+    response_q_ranks: Mutex<Vec<RankingResponse>>,
     /// Queue of errors to return before normal responses (LIFO). For testing retry.
     completion_errors: Mutex<Vec<ThrydError>>,
     provider: Arc<dyn Provider>, // dummy model will not try to use provider to send req.
@@ -148,8 +151,14 @@ impl DummyModel {
     /// // Second completion call returns "Response B"
     /// // Third completion call returns "Response A"
     /// ```
-    pub fn with_completion_responses(self, responses: Vec<Completion>) -> Self {
-        *self.response_q_string.lock().unwrap() = responses;
+    pub fn with_completion_responses(self, responses: Vec<String>) -> Self {
+        *self.response_q_string.lock().unwrap() = responses
+            .into_iter()
+            .map(|s| CompletionResponse {
+                content: s,
+                usage: crate::model::Usage::default(),
+            })
+            .collect();
         self
     }
 
@@ -179,8 +188,14 @@ impl DummyModel {
     /// // First embedding call returns [[0.1,0.2,0.3], [0.4,0.5,0.6]]
     /// // Second embedding call returns [[0.7,0.8,0.9]]
     /// ```
-    pub fn with_embedding_responses(self, responses: Vec<Embeddings>) -> Self {
-        *self.response_q_vec.lock().unwrap() = responses;
+    pub fn with_embedding_responses(self, responses: Vec<Vec<crate::model::Embedding>>) -> Self {
+        *self.response_q_vec.lock().unwrap() = responses
+            .into_iter()
+            .map(|v| EmbeddingResponse {
+                embeddings: v,
+                usage: crate::model::Usage::default(),
+            })
+            .collect();
         self
     }
 
@@ -189,12 +204,12 @@ impl DummyModel {
     /// Sets the list of ranking results to return for reranker calls.
     /// Responses are consumed in LIFO order - the last element is returned first.
     ///
-    /// Each `Ranking` is a vector of `(document_index, score)` tuples,
-    /// sorted by relevance score in descending order.
+    /// Each response is a [`RankingResponse`] containing a vector of
+    /// `(document_index, score)` tuples, sorted by relevance score descending.
     ///
     /// # Arguments
     ///
-    /// * `responses` - A vector of [`Ranking`] results, each containing
+    /// * `responses` - A vector of ranking results, each containing
     ///   `(doc_idx, score)` pairs representing document relevance.
     ///
     /// # Example
@@ -205,15 +220,18 @@ impl DummyModel {
     ///
     /// let model = DummyModel::new("test".to_string(), Arc::new(DummyProvider::default()))
     ///     .with_reranker_responses(vec![
-    ///         vec![(0, 0.95), (2, 0.87), (1, 0.72)],  // First call returns this
-    ///         vec![(1, 0.99), (0, 0.65)],           // Second call returns this
+    ///         vec![(0, 0.95), (2, 0.87), (1, 0.72)],
+    ///         vec![(1, 0.99), (0, 0.65)],
     ///     ]);
-    ///
-    /// // First rerank call returns [(0, 0.95), (2, 0.87), (1, 0.72)]
-    /// // Second rerank call returns [(1, 0.99), (0, 0.65)]
     /// ```
-    pub fn with_reranker_responses(self, responses: Vec<Ranking>) -> Self {
-        *self.response_q_ranks.lock().unwrap() = responses;
+    pub fn with_reranker_responses(self, responses: Vec<RankedDocuments>) -> Self {
+        *self.response_q_ranks.lock().unwrap() = responses
+            .into_iter()
+            .map(|v| RankingResponse {
+                rankings: v,
+                usage: crate::model::Usage::default(),
+            })
+            .collect();
         self
     }
 }
@@ -263,7 +281,7 @@ impl Model for DummyModel {
 /// [`CompletionModel`]: crate::model::CompletionModel
 #[async_trait]
 impl CompletionModel for DummyModel {
-    async fn completion(&self, _request: CompletionRequest) -> crate::Result<Completion> {
+    async fn completion(&self, _request: CompletionRequest) -> crate::Result<CompletionResponse> {
         // Drain error queue first (LIFO) — for testing retry.
         if let Ok(mut errors) = self.completion_errors.lock()
             && let Some(err) = errors.pop()
@@ -300,7 +318,7 @@ impl CompletionModel for DummyModel {
 /// [`EmbeddingModel`]: crate::model::EmbeddingModel
 #[async_trait]
 impl EmbeddingModel for DummyModel {
-    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<Embeddings> {
+    async fn embedding(&self, _request: EmbeddingRequest) -> crate::Result<EmbeddingResponse> {
         let mut queue = self
             .response_q_vec
             .lock()
@@ -320,7 +338,7 @@ impl EmbeddingModel for DummyModel {
 /// Responses are consumed in LIFO order. If the queue is empty, returns
 /// `ThrydError::Internal` with an exhaustion message.
 ///
-/// Each call pops a [`Ranking`] from the queue, which contains
+/// Each call pops a [`RankingResponse`] from the queue, which contains
 /// `(document_index, score)` pairs sorted by relevance score descending.
 ///
 /// # Error
@@ -331,7 +349,7 @@ impl EmbeddingModel for DummyModel {
 /// [`RerankerModel`]: crate::model::RerankerModel
 #[async_trait]
 impl RerankerModel for DummyModel {
-    async fn rerank(&self, _request: RerankerRequest) -> crate::Result<Ranking> {
+    async fn rerank(&self, _request: RerankerRequest) -> crate::Result<RankingResponse> {
         self.response_q_ranks
             .lock()
             .map_err(|e| crate::ThrydError::Internal(e.to_string()))?
@@ -352,21 +370,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_reranker_returns_configured_response() {
-        let expected: Ranking = vec![(0, 0.95), (2, 0.87), (1, 0.72)];
-        let model = DummyModel::default().with_reranker_responses(vec![expected.clone()]);
+        let input = vec![(0, 0.95), (2, 0.87), (1, 0.72)];
+        let model = DummyModel::default().with_reranker_responses(vec![input.clone()]);
 
         let request = RerankerRequest {
             query: "test query".to_string(),
             documents: vec!["doc1".to_string(), "doc2".to_string(), "doc3".to_string()],
         };
         let result = model.rerank(request).await.unwrap();
-        assert_eq!(result, expected);
+        assert_eq!(result.rankings, input);
     }
 
     #[tokio::test]
     async fn test_reranker_lifo_order() {
-        let first: Ranking = vec![(0, 0.95)];
-        let second: Ranking = vec![(1, 0.88)];
+        let first = vec![(0usize, 0.95f32)];
+        let second = vec![(1usize, 0.88f32)];
         let model =
             DummyModel::default().with_reranker_responses(vec![first.clone(), second.clone()]);
 
@@ -376,8 +394,8 @@ mod tests {
         };
 
         // LIFO: second added is returned first
-        assert_eq!(model.rerank(req()).await.unwrap(), second);
-        assert_eq!(model.rerank(req()).await.unwrap(), first);
+        assert_eq!(model.rerank(req()).await.unwrap().rankings, second);
+        assert_eq!(model.rerank(req()).await.unwrap().rankings, first);
     }
 
     #[tokio::test]
@@ -414,7 +432,10 @@ mod tests {
             query: "q".to_string(),
             documents: vec!["d".to_string()],
         };
-        assert_eq!(model.rerank(req.clone()).await.unwrap(), vec![(1, 0.8)]);
-        assert_eq!(model.rerank(req).await.unwrap(), vec![(0, 0.9)]);
+        assert_eq!(
+            model.rerank(req.clone()).await.unwrap().rankings,
+            vec![(1, 0.8)]
+        );
+        assert_eq!(model.rerank(req).await.unwrap().rankings, vec![(0, 0.9)]);
     }
 }

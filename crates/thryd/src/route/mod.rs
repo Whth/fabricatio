@@ -64,113 +64,25 @@
 //! }).await?;
 //! ```
 
+mod retry;
+mod tag;
+
+// Re-export public types from submodules
+pub use retry::RetryConfig;
+pub use tag::{CacheKey, CompletionTag, EmbeddingTag, ModelTypeTag, RerankerTag};
+
 use crate::deployment::Deployment;
-use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::provider::Provider;
 use crate::tracker::Quota;
 use crate::utils::analyze_identifier;
-use crate::Result;
-use crate::{
-    Completion, Embedding, Embeddings, PersistentCache, Ranking, RerankerModel, RerankerRequest,
-    ThrydError,
-};
-use async_trait::async_trait;
-use dashmap::mapref::one::Ref;
+use crate::{PersistentCache, Result, ThrydError};
 use dashmap::DashMap;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use dashmap::mapref::one::Ref;
 use std::path::Path;
 use std::sync::Arc;
-use strum_macros::Display;
 use tracing::*;
 
-/// Configuration for automatic retry on transient network failures.
-///
-/// When configured on a [`Router`], failed requests will be retried with
-/// exponential backoff for errors classified as transient (network failures,
-/// timeouts, upstream 429/5xx).
-///
-/// # Example
-///
-/// ```ignore
-/// use thryd::{Router, CompletionTag, RetryConfig};
-///
-/// let router = Router::<CompletionTag>::default()
-///     .with_retry(RetryConfig {
-///         max_retries: 3,
-///         initial_backoff_ms: 500,
-///         ..RetryConfig::default()
-///     });
-/// ```
-#[derive(Debug, Clone)]
-pub struct RetryConfig {
-    /// Maximum number of retry attempts after the initial failure. `0` means no retries.
-    pub max_retries: u32,
-    /// Initial backoff duration in milliseconds before the first retry.
-    pub initial_backoff_ms: u64,
-    /// Cap on backoff duration in milliseconds.
-    pub max_backoff_ms: u64,
-    /// Multiplier applied to backoff after each retry (exponential backoff).
-    pub backoff_multiplier: f64,
-}
-
-impl Default for RetryConfig {
-    fn default() -> Self {
-        Self {
-            max_retries: 3,
-            initial_backoff_ms: 1000,
-            max_backoff_ms: 30_000,
-            backoff_multiplier: 2.0,
-        }
-    }
-}
-
-/// Execute an async operation with retry on transient errors.
-///
-/// Retries on network failures, timeouts, and upstream 429/5xx errors.
-/// Uses exponential backoff, respecting `RateLimitExceeded.wait_time_ms` as floor.
-async fn retry_on_transient<F, Fut, T>(config: &RetryConfig, mut op: F) -> Result<T>
-where
-    F: FnMut() -> Fut,
-    Fut: std::future::Future<Output = Result<T>>,
-{
-    let mut attempt = 0u32;
-    loop {
-        match op().await {
-            Ok(val) => return Ok(val),
-            Err(e) if attempt < config.max_retries && is_transient(&e) => {
-                attempt += 1;
-                let base = (config.initial_backoff_ms as f64
-                    * config.backoff_multiplier.powi(attempt as i32 - 1))
-                .min(config.max_backoff_ms as f64) as u64;
-
-                let wait_ms = match &e {
-                    ThrydError::RateLimitExceeded { wait_time_ms } => base.max(*wait_time_ms),
-                    _ => base,
-                };
-
-                warn!(
-                    "Transient error (attempt {}/{}): {}. Retrying in {}ms",
-                    attempt, config.max_retries, e, wait_ms
-                );
-                tokio::time::sleep(tokio::time::Duration::from_millis(wait_ms)).await;
-            }
-            Err(e) => return Err(e),
-        }
-    }
-}
-
-/// Returns `true` for errors caused by transient network/server conditions.
-fn is_transient(e: &ThrydError) -> bool {
-    match e {
-        ThrydError::Reqwest(_)
-        | ThrydError::Timeout(_)
-        | ThrydError::RateLimitExceeded { .. }
-        | ThrydError::SSE(_) => true,
-        ThrydError::ApiError { status, .. } => *status == 429 || *status >= 500,
-        _ => false,
-    }
-}
+use retry::retry_on_transient;
 
 /// Unique identifier for a deployment, format: `"{provider_name}{SEPARATE}{model_name}"`.
 pub type DeploymentIdentifier = String;
@@ -466,7 +378,7 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     ///
     /// # Arguments
     /// * `group` - Name of the group to route to
-    /// * `input_text` - Input text for token counting (affects TPM calculation)
+    /// * `token_count` - Token count for TPM calculation
     ///
     /// # Returns
     /// * `Ok(DeploymentEntry)` - The selected deployment
@@ -541,47 +453,6 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             .map(|p| p.value().clone())
     }
 
-    /// Invoke a model in the specified group.
-    ///
-    /// This is the main entry point for making requests. The routing logic:
-    ///
-    /// 1. **Wait for availability**: Find the least-loaded deployment using cooldown times
-    /// 2. **Cache check**: If caching enabled, check for existing result by content hash
-    /// 3. **Execute**: Call the deployment's model method if no cache hit
-    /// 4. **Cache result**: Store the response if caching enabled
-    ///
-    /// # Arguments
-    /// * `send_to` - The group name to route the request to
-    /// * `request` - The request payload (type depends on `Tag`)
-    ///
-    /// # Returns
-    /// * `Ok(Tag::Response)` - The model response (cached or freshly generated)
-    /// * `Err(ThrydError::Router)` - If no deployments available in the group
-    /// * `Err(ThrydError::Cache)` - If cache read/write fails
-    /// * `Err(ThrydError::Provider)` - If the model call fails
-    ///
-    /// # Routing Strategy
-    ///
-    /// Requests are routed to the deployment with:
-    /// - Zero cooldown time if any deployment is immediately available
-    /// - Otherwise, the deployment with the shortest projected wait time
-    ///
-    /// This achieves load balancing across multiple deployments.
-    ///
-    /// # Example: Completion
-    ///
-    /// ```rust
-    ///
-    ///
-    /// let response = router.invoke("chat".into(), CompletionRequest {
-    ///     message: "What is the meaning of life?".into(),
-    ///     stream: false,
-    ///     top_p: Some(0.9),
-    ///     temperature: Some(0.7),
-    ///     max_completion_tokens: Some(500),
-    ///     ..Default::default()
-    /// }).await?;
-    /// ```
     /// Invoke a request bypassing the cache read.
     /// Always calls the LLM directly and writes the result back to cache,
     /// overriding any stale entry so future cached calls get the fresh response.
@@ -602,8 +473,9 @@ impl<Tag: ModelTypeTag> Router<Tag> {
             let r2 = request.clone();
             retry_on_transient(&rc, || Tag::execute_request(d2.clone(), r2.clone())).await?
         } else {
-            Tag::execute_request(d, request).await?
+            Tag::execute_request(d.clone(), request).await?
         };
+        d.record_usage(Tag::total_response_tokens(&res)).await;
         if let Some(cache) = &self.cache {
             debug!("Overriding cache for: {key}");
             match &key {
@@ -648,14 +520,18 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
             .await?;
         debug!("Resolving cache for `{}`", d.identifier());
         let rc = self.retry.read().unwrap().clone();
-        if let Some(rc) = rc {
+        let res = if let Some(rc) = rc {
             let cache = &self.cache;
             let d2 = d.clone();
             let r2 = request.clone();
             retry_on_transient(&rc, || Tag::cache_resolve(cache, d2.clone(), r2.clone())).await
         } else {
-            Tag::cache_resolve(&self.cache, d, request).await
+            Tag::cache_resolve(&self.cache, d.clone(), request).await
+        };
+        if let Ok(r) = res.as_ref() {
+            d.record_usage(Tag::total_response_tokens(r)).await;
         }
+        res
     }
 }
 
@@ -669,412 +545,15 @@ impl<Tag: ModelTypeTag> Default for Router<Tag> {
         }
     }
 }
-#[derive(Debug, Clone, Display)]
-pub enum CacheKey {
-    Single(String),
-    Batch(Vec<String>),
-}
-
-/// Trait defining type-level routing behavior for different model types.
-///
-/// This trait implements the **type-level tag pattern**, using Rust's type system
-/// to route requests to the correct model type and handle serialization/caching.
-///
-/// # Type Parameters
-///
-/// * `Model` - The underlying model type (e.g., `dyn CompletionModel`)
-/// * `Request` - The request struct for this model type
-/// * `Response` - The response type for this model type
-///
-/// # Implementing ModelTypeTag
-///
-/// Implementors must define:
-/// - `create_model`: How to instantiate a model from a provider and name
-/// - `prepare_input_text`: How to extract text from requests (for cache keys, TPM counting)
-/// - `execute_request`: How to call the model with a request
-///
-/// # Example: Implementing for a Custom Model Type
-///
-/// ```ignore
-/// use async_trait::async_trait;
-/// use thryd::{Result, ThrydError, router::{ModelTypeTag, DeploymentEntry}};
-/// use thryd::model::{Model, MyCustomRequest, MyCustomResponse};
-/// use thryd::provider::Provider;
-/// use std::sync::Arc;
-///
-/// struct MyCustomTag;
-///
-/// #[async_trait]
-/// impl ModelTypeTag for MyCustomTag {
-///     type Model = dyn MyCustomModel;
-///     type Request = MyCustomRequest;
-///     type Response = MyCustomResponse;
-///
-///     fn create_model(provider: Arc<dyn Provider>, model_name: String) -> Result<Box<Self::Model>> {
-///         provider.create_custom_model(model_name)
-///     }
-///
-///     fn prepare_input_text(request: &Self::Request) -> String {
-///         request.input.clone()
-///     }
-///
-///     async fn execute_request(
-///         deployment: Arc<Deployment<Self::Model>>,
-///         request: Self::Request,
-///     ) -> Result<Self::Response> {
-///         deployment.custom_inference(request).await
-///     }
-/// }
-/// ```
-#[async_trait]
-pub trait ModelTypeTag {
-    /// The underlying model type for this tag.
-    type Model: ?Sized + Model;
-
-    /// The request struct type for this model type.
-    /// Must be `Send + Clone` to support async_trait default method futures and retry.
-    type Request: Send + Clone;
-
-    type CacheVal: DeserializeOwned + Serialize + Clone + Sync + Send;
-
-    /// The response type for this model type.
-    /// Must support serialization for caching and deserialization for cache retrieval.
-    type Response: DeserializeOwned + Serialize + Clone;
-
-    /// Create a model instance from a provider and model name.
-    ///
-    /// # Arguments
-    /// * `provider` - The provider to create the model from
-    /// * `model_name` - The name of the model within the provider
-    ///
-    /// # Returns
-    /// * `Ok(Box<Self::Model>)` - The created model
-    /// * `Err(ThrydError::Provider)` - If creation fails
-    fn create_model(provider: Arc<dyn Provider>, model_name: ModelName)
-    -> Result<Box<Self::Model>>;
-
-    fn cont_tokens(request: &Self::Request) -> u64;
-
-    fn cache_key(request: &Self::Request) -> CacheKey;
-
-    #[inline]
-    fn recover_batch_request(cache_vals: Vec<Self::CacheVal>) -> Self::Response {
-        unimplemented!()
-    }
-
-    #[inline]
-    fn breakdown_batch_response(response: Self::Response) -> Vec<Self::CacheVal> {
-        unimplemented!()
-    }
-
-    async fn single_cached(
-        cache: &PersistentCache,
-        key: &str,
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        if let Some(val) = cache
-            .get_de::<Self::Response>(key)
-            .inspect(|val| trace!("Cache hit for: {key}"))
-        {
-            Ok(val)
-        } else {
-            let res = Self::execute_request(deployment, request.clone()).await;
-            if let Ok(val) = res.as_ref() {
-                cache.set_ser(key, val)?;
-            };
-            res
-        }
-    }
-
-    #[inline]
-    fn build_missed_batch_request(request: Self::Request, indices: &[&usize]) -> Self::Request {
-        unimplemented!()
-    }
-
-    async fn batch_cached(
-        cache: &PersistentCache,
-        keys: &[String],
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        let indexed_vals = keys
-            .iter()
-            .enumerate()
-            .map(|(i, key)| (i, cache.get_de::<Self::CacheVal>(key)))
-            .collect::<Vec<_>>();
-
-        let (hits, missed): (Vec<_>, Vec<_>) =
-            indexed_vals.into_iter().partition(|(_, val)| val.is_some());
-
-        if missed.is_empty() {
-            let cached_vals = hits.into_iter().map(|(_, val)| val.unwrap()).collect();
-            return Ok(Self::recover_batch_request(cached_vals));
-        }
-
-        let missed_indices = missed.iter().map(|(i, _)| i).collect::<Vec<_>>();
-        let missed_request = Self::build_missed_batch_request(request, &missed_indices);
-        let resp = Self::execute_request(deployment, missed_request).await?;
-
-        let new_vals = Self::breakdown_batch_response(resp);
-
-        missed_indices
-            .iter()
-            .zip(new_vals.iter())
-            .try_for_each(|(&i, val)| cache.set_ser(keys[i.to_owned()].as_str(), val))?;
-
-        let mut total_vals = new_vals
-            .into_iter()
-            .zip(missed_indices.into_iter().cloned())
-            .collect::<Vec<_>>();
-        total_vals.extend(hits.into_iter().map(|(i, val)| (val.unwrap(), i)));
-        total_vals.sort_by_key(|(_, i)| *i);
-        Ok(Self::recover_batch_request(
-            total_vals
-                .into_iter()
-                .map(|(val, _)| val)
-                .collect::<Vec<_>>(),
-        ))
-    }
-
-    /// Each tag defines its own caching strategy. Default: batch-level.
-    /// Override for per-item sparse caching.
-    async fn cache_resolve(
-        cache: &Option<PersistentCache>,
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        if let Some(cache) = cache {
-            let key = Self::cache_key(&request);
-            match &key {
-                CacheKey::Single(k) => {
-                    Self::single_cached(cache, k.as_str(), deployment, request).await
-                }
-                CacheKey::Batch(ks) => {
-                    Self::batch_cached(cache, ks.as_slice(), deployment, request).await
-                }
-            }
-        } else {
-            let fut = Self::execute_request(deployment, request);
-            fut.await
-        }
-    }
-
-    /// Execute a request against a deployment.
-    ///
-    /// # Arguments
-    /// * `deployment` - The deployment to call
-    /// * `request` - The request to execute
-    ///
-    /// # Returns
-    /// * `Ok(Self::Response)` - The model response
-    /// * `Err(ThrydError::Provider)` - If the model call fails
-    async fn execute_request(
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response>;
-}
-
-/// Tag type for completion/chat models.
-///
-/// Use with [`Router<CompletionTag>`] for text generation requests.
-///
-/// # Example
-///
-/// ```ignore
-/// let mut router = Router::<CompletionTag>::default();
-/// router.add_provider(openai)?;
-///
-/// router.deploy("chat", "openai/gpt-4".into(), Some(60), Some(100_000))?;
-///
-/// let response = router.invoke("chat".into(), CompletionRequest {
-///     message: "Hello!".into(),
-///     stream: false,
-///     top_p: None, temperature: None,
-///     max_completion_tokens: Some(100),
-///     presence_penalty: None, frequency_penalty: None,
-/// }).await?;
-/// ```
-#[derive(Default)]
-pub struct CompletionTag;
-
-/// Tag type for embedding models.
-///
-/// Use with [`Router<EmbeddingTag>`] for text embedding requests.
-///
-/// # Example
-///
-/// ```ignore
-/// let mut router = Router::<EmbeddingTag>::default();
-/// router.add_provider(openai)?;
-///
-/// router.deploy("embed", "openai/text-embedding-3-small".into(), Some(3000), None)?;
-///
-/// let embeddings = router.invoke("embed".into(), EmbeddingRequest {
-///     texts: vec!["hello world".into()],
-/// }).await?;
-/// ```
-#[derive(Default)]
-pub struct EmbeddingTag;
-
-/// Tag type for reranker models.
-///
-/// Use with [`Router<RerankerTag>`] for document reranking requests.
-///
-/// # Example
-///
-/// ```ignore
-/// let mut router = Router::<RerankerTag>::default();
-/// router.add_provider(cohere)?;
-///
-/// router.deploy("rank", "cohere/rerank-3".into(), Some(100), None)?;
-///
-/// let rankings = router.invoke("rank".into(), RerankerRequest {
-///     query: "What is Rust?".into(),
-///     documents: vec![
-///         "Rust is a programming language".into(),
-///         "Python is great".into(),
-///     ],
-/// }).await?;
-/// // Returns: [(0, 0.95), (1, 0.30)] - document indices sorted by score
-/// ```
-#[derive(Default)]
-pub struct RerankerTag;
-
-#[async_trait]
-impl ModelTypeTag for RerankerTag {
-    type Model = dyn RerankerModel;
-    type Request = RerankerRequest;
-    type CacheVal = Ranking;
-    type Response = Ranking;
-
-    fn create_model(
-        provider: Arc<dyn Provider>,
-        model_name: ModelName,
-    ) -> Result<Box<Self::Model>> {
-        provider.create_reranker_model(model_name)
-    }
-
-    fn cont_tokens(request: &Self::Request) -> u64 {
-        let mut t_seq = request.documents.clone();
-        t_seq.push(request.query.clone());
-        t_seq.sort();
-        crate::count_token(t_seq.concat())
-    }
-
-    fn cache_key(request: &Self::Request) -> CacheKey {
-        let mut t_seq = request.documents.clone();
-        t_seq.push(request.query.clone());
-        t_seq.sort();
-        CacheKey::Single(blake3::hash(t_seq.concat().as_bytes()).to_string())
-    }
-
-    async fn execute_request(
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        deployment.rerank(request).await
-    }
-}
-
-#[async_trait]
-impl ModelTypeTag for CompletionTag {
-    type Model = dyn CompletionModel;
-    type Request = CompletionRequest;
-    type CacheVal = Completion;
-    type Response = Completion;
-
-    fn create_model(
-        provider: Arc<dyn Provider>,
-        model_name: ModelName,
-    ) -> Result<Box<Self::Model>> {
-        provider.create_completion_model(model_name)
-    }
-
-    fn cont_tokens(request: &Self::Request) -> u64 {
-        crate::count_token(request.message.clone())
-    }
-
-    fn cache_key(request: &Self::Request) -> CacheKey {
-        let key = if request.images.is_empty() {
-            blake3::hash(request.message.as_bytes()).to_string()
-        } else {
-            let mut s = request.message.clone();
-            for img in &request.images {
-                s.push_str(img);
-            }
-            blake3::hash(s.as_bytes()).to_string()
-        };
-        CacheKey::Single(key)
-    }
-
-    async fn execute_request(
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        deployment.completion(request).await
-    }
-}
-
-#[async_trait]
-impl ModelTypeTag for EmbeddingTag {
-    type Model = dyn EmbeddingModel;
-    type Request = EmbeddingRequest;
-    type CacheVal = Embedding;
-    type Response = Embeddings;
-
-    fn create_model(
-        provider: Arc<dyn Provider>,
-        model_name: ModelName,
-    ) -> Result<Box<Self::Model>> {
-        provider.create_embedding_model(model_name)
-    }
-
-    fn cont_tokens(request: &Self::Request) -> u64 {
-        let mut t_seq = request.texts.clone();
-        t_seq.sort();
-        crate::count_token(t_seq.concat())
-    }
-
-    fn cache_key(request: &Self::Request) -> CacheKey {
-        CacheKey::Batch(
-            request
-                .texts
-                .iter()
-                .map(|t| format!("emb:{}:{}", request.ndim, blake3::hash(t.as_bytes())))
-                .collect(),
-        )
-    }
-
-    fn recover_batch_request(cache_vals: Vec<Self::CacheVal>) -> Self::Response {
-        cache_vals
-    }
-
-    fn breakdown_batch_response(response: Self::Response) -> Vec<Self::CacheVal> {
-        response
-    }
-
-    fn build_missed_batch_request(request: Self::Request, indices: &[&usize]) -> Self::Request {
-        EmbeddingRequest {
-            texts: indices.iter().map(|&&i| request.texts[i].clone()).collect(),
-            ndim: request.ndim,
-        }
-    }
-
-    async fn execute_request(
-        deployment: Arc<Deployment<Self::Model>>,
-        request: Self::Request,
-    ) -> Result<Self::Response> {
-        deployment.embedding(request).await
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::deployment::Deployment;
+    use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest};
     use crate::models::dummy::DummyModel;
     use crate::provider::dummy::DummyProvider;
+    use crate::{RankingResponse, RerankerModel, RerankerRequest, Usage};
 
     #[tokio::test]
     async fn test_router_reranker_with_dummy() {
@@ -1100,7 +579,7 @@ mod tests {
 
         let result = router.invoke_cached("rank".into(), request).await.unwrap();
 
-        assert_eq!(result, vec![(0, 0.95), (2, 0.87), (1, 0.72)]);
+        assert_eq!(result.rankings, vec![(0, 0.95), (2, 0.87), (1, 0.72)]);
     }
 
     #[tokio::test]
@@ -1112,9 +591,12 @@ mod tests {
         // Verify PersistentCache can store and retrieve a Ranking
         {
             let cache = router.cache.as_ref().unwrap();
-            let test_ranking: Ranking = vec![(0, 0.95), (1, 0.8)];
+            let test_ranking = RankingResponse {
+                rankings: vec![(0, 0.95), (1, 0.8)],
+                usage: Usage::default(),
+            };
             cache.set_ser("ranking_test", &test_ranking).unwrap();
-            let retrieved: Option<Ranking> = cache.get_de("ranking_test");
+            let retrieved: Option<RankingResponse> = cache.get_de("ranking_test");
             assert_eq!(
                 retrieved,
                 Some(test_ranking),
@@ -1142,7 +624,7 @@ mod tests {
             .invoke_cached("rank".into(), request.clone())
             .await
             .unwrap();
-        assert_eq!(first, vec![(0, 0.9)]);
+        assert_eq!(first.rankings, vec![(0, 0.9)]);
 
         // Second call must return cached result (only 1 response was configured)
         let second = router.invoke_cached("rank".into(), request).await.unwrap();
@@ -1176,7 +658,10 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(first, vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]);
+        assert_eq!(
+            first.embeddings,
+            vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]
+        );
 
         // Second call: ["hello"] → cache hit, no API call (only 1 response configured)
         let second = router
@@ -1189,7 +674,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(second, vec![vec![0.1, 0.2, 0.3]]);
+        assert_eq!(second.embeddings, vec![vec![0.1, 0.2, 0.3]]);
     }
 
     #[tokio::test]
@@ -1221,9 +706,9 @@ mod tests {
             .unwrap();
 
         // Returns two embeddings (no dedup — both hit the API)
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0], vec![0.1, 0.2, 0.3]);
-        assert_eq!(result[1], vec![0.4, 0.5, 0.6]);
+        assert_eq!(result.embeddings.len(), 2);
+        assert_eq!(result.embeddings[0], vec![0.1, 0.2, 0.3]);
+        assert_eq!(result.embeddings[1], vec![0.4, 0.5, 0.6]);
     }
 
     #[tokio::test]
@@ -1257,7 +742,10 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(first, vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]);
+        assert_eq!(
+            first.embeddings,
+            vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]]
+        );
 
         // Second call: ["A", "C"] → "A" cached, "C" uncached → only API call for "C"
         let second = router
@@ -1270,7 +758,10 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(second, vec![vec![0.1, 0.2, 0.3], vec![0.7, 0.8, 0.9]]);
+        assert_eq!(
+            second.embeddings,
+            vec![vec![0.1, 0.2, 0.3], vec![0.7, 0.8, 0.9]]
+        );
     }
 
     #[tokio::test]
@@ -1301,7 +792,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(first, vec![vec![0.1, 0.2, 0.3]]);
+        assert_eq!(first.embeddings, vec![vec![0.1, 0.2, 0.3]]);
 
         // Second call with no_cache=false → cache HIT (invoke_fresh wrote to cache)
         let second = router
@@ -1315,7 +806,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(second, vec![vec![0.1, 0.2, 0.3]]);
+        assert_eq!(second.embeddings, vec![vec![0.1, 0.2, 0.3]]);
     }
 
     #[tokio::test]
@@ -1496,7 +987,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(result, "recovered");
+        assert_eq!(result.content, "recovered");
     }
 
     #[tokio::test]
@@ -1532,7 +1023,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(result, "ok");
+        assert_eq!(result.content, "ok");
     }
 
     #[tokio::test]
