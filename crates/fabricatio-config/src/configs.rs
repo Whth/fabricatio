@@ -128,6 +128,9 @@ pub struct TemplateConfig {
     /// The name of the make choice template which will be used to make a choice.
     pub make_choice_template: String,
 
+    /// The name of the make enum choice template which will be used to make an enum choice.
+    pub make_enum_choice_template: String,
+
     /// The name of the make judgment template which will be used to make a judgment.
     pub make_judgment_template: String,
 

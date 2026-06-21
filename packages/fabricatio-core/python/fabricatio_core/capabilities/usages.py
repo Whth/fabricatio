@@ -439,6 +439,64 @@ class UseLLM(LLMScopedConfig, ABC):
             **kwargs,
         )
 
+    async def aenum_choose[E: (StrEnum, IntEnum)](
+        self,
+        instruction: str,
+        enum_type: Type[E],
+        k: NonNegativeInt = 0,
+        **kwargs: Unpack[ValidateKwargs[List[E]]],
+    ) -> Optional[List[E]]:
+        """Asynchronously selects enum members from the given enum type based on the instruction.
+
+        Mimics :meth:`achoose` but operates on ``StrEnum`` / ``IntEnum`` members instead of
+        ``WithBriefing`` objects.  Each member's *name* is used as the choice identifier.
+        The enum class ``__doc__`` is passed as ``enum_doc`` to the template for context.
+
+        Args:
+            instruction (str): The user-provided instruction/question description.
+            enum_type (Type[E]): The enum type to select from.
+            k (NonNegativeInt): The number of choices to select, 0 means all relevant. Defaults to 0.
+            **kwargs (Unpack[ValidateKwargs[List[E]]]): Additional keyword arguments for the LLM usage.
+
+        Returns:
+            Optional[List[E]]: The selected enum member(s), or None if validation fails.
+        """
+        from fabricatio_core.rust import json_parser
+
+        choices = list(enum_type)
+        prompt = TEMPLATE_MANAGER.render_template(
+            CONFIG.templates.make_enum_choice_template,
+            {
+                "options": [m.name for m in enum_type],
+                "enum_doc": enum_type.__doc__,
+                "k": k,
+                "instruction": instruction,
+            },
+        )
+        names = {c.name for c in choices}
+
+        logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
+
+        def _validate(response: str) -> List[E] | None:
+            q = json_parser.validate_set(response, elements_type=str, length=k)
+
+            if q is None:
+                return None
+
+            final_ret = [cho for cho in choices if cho.name in q]
+
+            if not final_ret or (k and len(final_ret) != k):
+                logger.error(f"Invalid enum choices: {q}")
+                return None
+
+            return final_ret
+
+        return await self.aask_validate(
+            question=prompt,
+            validator=_validate,
+            **kwargs,
+        )
+
     async def apick[T: WithBriefing](
         self,
         instruction: str,

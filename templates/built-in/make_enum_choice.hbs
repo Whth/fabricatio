@@ -1,0 +1,11 @@
+{{block (list_out_string options) "Available Enum Members"}}
+
+{{#if enum_doc}}{{block enum_doc "Enum Description"}}{{/if}}
+
+## Format Requirements
+- Return your selection as a JSON array of enum member names within a markdown code block only.
+- Each selected member MUST be from the provided `Available Enum Members`:
+- Response MUST be a valid JSON array containing only provided candidate names. Not their children!
+{{#if k}}- The array MUST contain EXACTLY {{k}} members{{/if}}
+
+{{block instruction "Vital Instructions"}}

@@ -1302,6 +1302,9 @@ class TemplateConfig:
     def make_choice_template(self) -> builtins.str:
         r"""The name of the make choice template which will be used to make a choice."""
     @property
+    def make_enum_choice_template(self) -> builtins.str:
+        r"""The name of the make enum choice template which will be used to make an enum choice."""
+    @property
     def make_judgment_template(self) -> builtins.str:
         r"""The name of the make judgment template which will be used to make a judgment."""
     @property
