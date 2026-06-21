@@ -410,6 +410,7 @@ class LLMScopedConfig(ScopedConfig):
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
         no_cache: Optional[bool] = None,
+        images: Optional[List[bytes]] = None,
         **_,
     ) -> LLMKwargs:
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
@@ -432,6 +433,7 @@ class LLMScopedConfig(ScopedConfig):
             ),
             no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
             or False,
+            images=images,
         )
 
     def _resolve_validation_params[T](

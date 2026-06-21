@@ -36,7 +36,7 @@ class LLMKwargs(RouteKwargs, total=False):
     """Configuration parameters for language model inference.
 
     These arguments control the behavior of large language model calls,
-    including generation parameters and caching options.
+    including generation parameters, caching options, and optional images.
     """
 
     stream: bool
@@ -45,6 +45,7 @@ class LLMKwargs(RouteKwargs, total=False):
     max_completion_tokens: Optional[int]
     presence_penalty: Optional[float]
     frequency_penalty: Optional[float]
+    images: Optional[List[bytes]]
 
 
 class ValidateKwargs[T](LLMKwargs, total=False):

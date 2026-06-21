@@ -1,8 +1,7 @@
 """A collection of utility functions for the fabricatio package."""
 
-from enum import StrEnum, IntEnum
-from functools import lru_cache
-from typing import Any, Dict, Iterable, Literal, Mapping, Optional, Sequence, overload, Type, Tuple, Iterator, Generator
+from enum import IntEnum, StrEnum
+from typing import Any, Dict, Generator, Iterable, Literal, Mapping, Optional, Sequence, Tuple, Type, overload
 
 from fabricatio_core.rust import extras_satisfied
 
