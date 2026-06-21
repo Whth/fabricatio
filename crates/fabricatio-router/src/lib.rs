@@ -10,10 +10,10 @@ use std::fs;
 use std::sync::Arc;
 use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
-use thryd::utils::analyze_identifier;
+use thryd::utils::{analyze_identifier, bytes_to_data_uri};
 use thryd::{
-    Completion, CompletionModel, CompletionTag, DeploymentIdentifier, DummyModel, EmbeddingModel,
-    EmbeddingRequest, EmbeddingTag, Embeddings, ModelTypeTag, Ranking, RerankerModel,
+    CompletionModel, CompletionTag, CompletionText, DeploymentIdentifier, DummyModel, Embedding,
+    EmbeddingModel, EmbeddingRequest, EmbeddingTag, ModelTypeTag, RankedDocuments, RerankerModel,
     RerankerRequest, RerankerTag, RetryConfig, Router as ThrydRouter, create_provider,
 };
 
@@ -46,7 +46,7 @@ impl Router {
         send_to: RouteGroupName,
         req: EmbeddingRequest,
         no_cache: bool,
-    ) -> PyResult<Embeddings> {
+    ) -> PyResult<Vec<Embedding>> {
         Self::embedding_inner(send_to, req, self.embedding_router.clone(), no_cache).await
     }
 
@@ -55,29 +55,29 @@ impl Router {
         req: EmbeddingRequest,
         r: Arc<ThrydRouter<EmbeddingTag>>,
         no_cache: bool,
-    ) -> PyResult<Embeddings> {
+    ) -> PyResult<Vec<Embedding>> {
         r.invoke(send_to.clone(), req, no_cache)
             .await
             .into_pyresult()
+            .map(|e| e.embeddings)
     }
-
     pub async fn rerank_inner(
         send_to: RouteGroupName,
         req: RerankerRequest,
         r: Arc<ThrydRouter<RerankerTag>>,
         no_cache: bool,
-    ) -> PyResult<Ranking> {
+    ) -> PyResult<RankedDocuments> {
         r.invoke(send_to.clone(), req, no_cache)
             .await
             .into_pyresult()
+            .map(|r| r.rankings)
     }
-
     pub async fn completion_batch_rs(
         &self,
         send_to: RouteGroupName,
         reqs: Vec<CompletionRequest>,
         no_cache: bool,
-    ) -> Vec<Option<Completion>> {
+    ) -> Vec<Option<String>> {
         Self::completion_batch_inner(send_to, reqs, self.completion_router.clone(), no_cache).await
     }
 
@@ -86,7 +86,7 @@ impl Router {
         reqs: Vec<CompletionRequest>,
         r: Arc<ThrydRouter<CompletionTag>>,
         no_cache: bool,
-    ) -> Vec<Option<Completion>> {
+    ) -> Vec<Option<String>> {
         join_all(
             reqs.into_iter()
                 .map(|req| r.invoke(send_to.clone(), req, no_cache)),
@@ -96,13 +96,13 @@ impl Router {
                 .into_iter()
                 .map(|res| {
                     if res.is_ok() {
-                        res.ok()
+                        res.ok().map(|c| c.content)
                     } else {
                         error!("Error in completion batch: {:?}", res);
                         None
                     }
                 })
-                .collect::<Vec<Option<Completion>>>()
+                .collect::<Vec<Option<String>>>()
         })
         .await
     }
@@ -111,7 +111,7 @@ impl Router {
         self,
         send_to: RouteGroupName,
         req: CompletionRequest,
-    ) -> PyResult<Completion> {
+    ) -> PyResult<String> {
         Self::completion_inner(send_to, req, self.completion_router.clone(), false).await
     }
     pub async fn completion_inner(
@@ -119,8 +119,11 @@ impl Router {
         req: CompletionRequest,
         r: Arc<ThrydRouter<CompletionTag>>,
         no_cache: bool,
-    ) -> PyResult<Completion> {
-        r.invoke(send_to, req, no_cache).await.into_pyresult()
+    ) -> PyResult<String> {
+        r.invoke(send_to, req, no_cache)
+            .await
+            .into_pyresult()
+            .map(|c| c.content)
     }
 }
 
@@ -132,24 +135,24 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false)
+    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = vec![])
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
-    /// Note: Although a 'stream' argument exists for protocol compatibility, this
-    /// implementation always aggregates the full response before returning.
-    /// It does not yield chunks asynchronously.
+    /// When `images` is non-empty, raw bytes are auto-detected for MIME type and
+    /// base64-encoded into data URIs for multimodal requests.
     ///
     /// Args:
     ///     send_to (str): The router group name.
     ///     message (str): The user prompt content.
-    ///     stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
+    ///     stream (bool): Logical flag for compatibility. Defaults to False.
     ///     top_p (Optional[float]): Nucleus sampling parameter. Defaults to 1.0 if None.
     ///     temperature (Optional[float]): Controls randomness. Defaults to 0.7 if None.
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
     ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+    ///     images (List[bytes]): Optional raw image bytes for multimodal requests. Defaults to empty.
     ///
     /// Returns:
     ///     str: The complete aggregated response content.
@@ -165,6 +168,7 @@ impl Router {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
         no_cache: bool,
+        images: Vec<Vec<u8>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
             message,
@@ -174,6 +178,7 @@ impl Router {
             max_completion_tokens,
             presence_penalty,
             frequency_penalty,
+            images: images.iter().map(|b| bytes_to_data_uri(b)).collect(),
         };
 
         let r = self.completion_router.clone();
@@ -188,25 +193,23 @@ impl Router {
         override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
         )
     )]
-    #[pyo3(signature = (send_to, messages,stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false)
+    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = vec![])
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
-    /// Note:
-    ///     Although a 'stream' argument exists for protocol compatibility, this
-    ///     implementation always aggregates the full response before returning.
-    ///     It does not yield chunks asynchronously.
+    /// When `images` is non-empty, all images are broadcast to every message.
     ///
     /// Args:
-    ///     send_to (RouteGroupName): The router group name to route the completion requests.
+    ///     send_to (str): The router group name.
     ///     messages (List[str]): A list of user prompt contents.
-    ///     stream (bool): Logical flag for compatibility. No performance difference. Defaults to False.
+    ///     stream (bool): Logical flag for compatibility. Defaults to False.
     ///     top_p (Optional[float]): Nucleus sampling parameter. Defaults to 1.0 if None.
     ///     temperature (Optional[float]): Controls randomness. Defaults to 0.7 if None.
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
     ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
+    ///     images (List[bytes]): Optional raw image bytes broadcast to all messages. Defaults to empty.
     ///
     /// Returns:
     ///     List[str | None]: A list of complete aggregated response contents. Failed requests return None.
@@ -222,22 +225,40 @@ impl Router {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
         no_cache: bool,
+        images: Vec<Vec<u8>>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let reqs = messages
-            .into_iter()
-            .map(|message| CompletionRequest {
-                message,
-                top_p,
-                temperature,
-                stream,
-                max_completion_tokens,
-                presence_penalty,
-                frequency_penalty,
-            })
-            .collect::<Vec<_>>();
-
+        let data_uris: Vec<String> = images.iter().map(|b| bytes_to_data_uri(b)).collect();
+        let reqs = if data_uris.is_empty() {
+            messages
+                .into_iter()
+                .map(|message| CompletionRequest {
+                    message,
+                    top_p,
+                    temperature,
+                    stream,
+                    max_completion_tokens,
+                    presence_penalty,
+                    frequency_penalty,
+                    images: vec![],
+                })
+                .collect::<Vec<_>>()
+        } else {
+            // All messages get the same image set
+            messages
+                .into_iter()
+                .map(|message| CompletionRequest {
+                    message,
+                    stream,
+                    top_p,
+                    temperature,
+                    max_completion_tokens,
+                    presence_penalty,
+                    frequency_penalty,
+                    images: data_uris.clone(),
+                })
+                .collect::<Vec<_>>()
+        };
         let r = self.completion_router.clone();
-
         future_into_py(python, async move {
             Ok(Self::completion_batch_inner(send_to, reqs, r, no_cache).await)
         })
@@ -422,7 +443,7 @@ impl Router {
         &self,
         group: RouteGroupName,
         model_identifier: DeploymentIdentifier,
-        responses: Vec<String>,
+        responses: Vec<CompletionText>,
     ) -> PyResult<()> {
         if self
             .completion_router
@@ -453,7 +474,7 @@ impl Router {
         &self,
         group: RouteGroupName,
         model_identifier: DeploymentIdentifier,
-        embeddings: Vec<Embeddings>,
+        embeddings: Vec<Vec<Embedding>>,
     ) -> PyResult<()> {
         if self
             .embedding_router
@@ -479,12 +500,11 @@ impl Router {
             .into_pyresult()?;
         Ok(())
     }
-
     pub fn add_or_update_dummy_reranker_model(
         &self,
         group: RouteGroupName,
         model_identifier: DeploymentIdentifier,
-        rankings: Vec<Ranking>,
+        rankings: Vec<RankedDocuments>,
     ) -> PyResult<()> {
         if self
             .reranker_router
