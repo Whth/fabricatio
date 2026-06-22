@@ -1,5 +1,5 @@
 {{!--
-  Cognitive distortion judgment template for process_event().
+  Cognitive distortion judgment template with DIAMONDS situational context.
 
   Variables:
     - top_bias: the most likely cognitive distortion name
@@ -8,8 +8,10 @@
     - emotion: current emotion name
     - emotion_intensity: formatted intensity
     - suffering_count: number of past traumas
+    - duty, adversity, deception, negativity, sociality: DIAMONDS dimension scores
 --}}
 Does this event trigger the cognitive distortion '{{top_bias}}' in the character?
 Event: {{event}}
 Character personality: N={{neuroticism}} (neuroticism), current emotion: {{emotion}} (intensity {{emotion_intensity}})
 Past traumas: {{suffering_count}}
+Situational context: Duty={{duty}} Adversity={{adversity}} Deception={{deception}} Negativity={{negativity}} Sociality={{sociality}}

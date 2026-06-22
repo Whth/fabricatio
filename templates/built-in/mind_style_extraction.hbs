@@ -1,0 +1,18 @@
+{{!--
+  Linguistic style extraction template.
+
+  Variables:
+    - character_name: the character's name
+    - dialogues: list of dialogue strings from the character
+--}}
+Analyze the linguistic style of {{character_name}} based on these dialogues:
+{{#each dialogues}}
+- {{this}}
+{{/each}}
+
+Describe:
+- Overall style tendencies (formal/informal, terse/verbose, etc.)
+- Preferred pronouns and self-references
+- Common modal verbs (must, should, might, etc.)
+- Common adjectives and descriptors
+- 2-3 exemplary utterances as style references

@@ -19,6 +19,10 @@
     - linguistic_preferences: style description
     - linguistic_pronouns: list of preferred pronouns
     - linguistic_modals: list of preferred modals
+    - has_situation: bool, DIAMONDS situation profile available
+    - top_situation_dimension: name of highest DIAMONDS dimension
+    - situation_adversity: adversity score (0-1)
+    - situation_negativity: negativity score (0-1)
 --}}
 {{#if personality_rules}}
 【Personality】
@@ -62,6 +66,17 @@ Describe these physical sensations in your response. Show, don't tell.
 {{#each sufferings}}
 - Lost: {{what_was_lost}}. Void: {{the_void}}. Changed: {{how_it_changed_me}}
 {{/each}}
+{{/if}}
+{{#if has_situation}}
+
+【Situation】
+Top situational dimension: {{top_situation_dimension}}
+{{#if situation_adversity}}
+High adversity ({{situation_adversity}}) — be defensive, cautious.
+{{/if}}
+{{#if situation_negativity}}
+High negativity ({{situation_negativity}}) — expect the worst.
+{{/if}}
 {{/if}}
 {{#if has_linguistic}}
 
