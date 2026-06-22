@@ -22,6 +22,7 @@ from fabricatio_character.models.mental import (
     MaslowLevel,
     MuscleTension,
     PersonalityFlag,
+    SituationDimension,
     SomaticState,
     VoiceQuality,
 )
@@ -276,6 +277,42 @@ class CharacterConfig:
         }
     )
     """Emotion keyword -> (high_intensity_body, low_intensity_body) mapping."""
+
+    # ── DIAMONDS ──
+    mind_diamonds_template: str = "built-in/mind_diamonds_analysis"
+    """Template for DIAMONDS 8-dim situation extraction."""
+
+    mind_diamonds_distortion_boost: Dict[SituationDimension, Dict[Distortion, float]] = field(
+        default_factory=lambda: {
+            SituationDimension.ADVERSITY: {Distortion.CATASTROPHIZING: 30.0},
+            SituationDimension.DECEPTION: {Distortion.BLACK_AND_WHITE: 25.0, Distortion.PERSONALIZATION: 15.0},
+            SituationDimension.NEGATIVITY: {Distortion.EMOTIONAL_REASONING: 25.0, Distortion.PERSONALIZATION: 15.0},
+            SituationDimension.DUTY: {Distortion.SHOULD_THINKING: 30.0},
+            SituationDimension.SOCIALITY: {Distortion.PERSONALIZATION: 20.0},
+        }
+    )
+    """DIAMONDS dimension -> {distortion: score_boost} mapping for rule_filter."""
+
+    mind_cbt_confidence_threshold: float = 70.0
+    """If rule_filter top distortion score > this, use rule result directly; else full LLM."""
+
+    # ── Suffering ──
+    mind_suffering_intensity_threshold: float = 80.0
+    """Emotion intensity above this triggers suffering creation."""
+
+    mind_suffering_template: str = "built-in/mind_suffering_analysis"
+    """Template for LLM-generated suffering narrative."""
+
+    # ── Linguistic Style ──
+    mind_style_extraction_template: str = "built-in/mind_style_extraction"
+    """Template for extracting linguistic style from dialogues."""
+
+    def age_shift_scale(self, age: int) -> float:
+        """Return personality shift scale based on age from config brackets."""
+        for upper, scale in self.mind_age_brackets:
+            if age < upper:
+                return scale
+        return 0.2
 
 
 character_config = CONFIG.load("character", CharacterConfig)

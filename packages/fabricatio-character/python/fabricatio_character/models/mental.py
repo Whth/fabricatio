@@ -85,6 +85,52 @@ class BigFiveDimension(StrEnum):
     NEUROTICISM = auto()
 
 
+class SituationDimension(StrEnum):
+    """DIAMONDS situational dimensions (Rauthmann et al., 2014)."""
+
+    DUTY = auto()
+    INTELLECT = auto()
+    ADVERSITY = auto()
+    MATING = auto()
+    POSITIVITY = auto()
+    NEGATIVITY = auto()
+    DECEPTION = auto()
+    SOCIALITY = auto()
+
+
+class SituationProfile(ProposedAble):
+    """8-dimensional situational classification per event.
+
+    Each dimension scored 0.0-1.0 by LLM extraction.
+    """
+
+    duty: float = Field(ge=0, le=1, default=0)
+    intellect: float = Field(ge=0, le=1, default=0)
+    adversity: float = Field(ge=0, le=1, default=0)
+    mating: float = Field(ge=0, le=1, default=0)
+    positivity: float = Field(ge=0, le=1, default=0)
+    negativity: float = Field(ge=0, le=1, default=0)
+    deception: float = Field(ge=0, le=1, default=0)
+    sociality: float = Field(ge=0, le=1, default=0)
+
+    def as_vector(self) -> list[float]:
+        return [
+            self.duty,
+            self.intellect,
+            self.adversity,
+            self.mating,
+            self.positivity,
+            self.negativity,
+            self.deception,
+            self.sociality,
+        ]
+
+    def top_dimension(self) -> SituationDimension:
+        dims = list(SituationDimension)
+        vals = self.as_vector()
+        return dims[vals.index(max(vals))]
+
+
 # ── Stable identity components ──
 
 
@@ -116,6 +162,22 @@ class BigFiveProfile(Base):
 
         return sqrt(sum((a - b) ** 2 for a, b in zip(self.as_vector(), other.as_vector(), strict=True)))
 
+    def personality_flag(self, flag: "PersonalityFlag") -> bool:
+        """Check a personality condition flag against this profile."""
+        from fabricatio_character.config import character_config
+
+        high = character_config.mind_personality_high
+        low = character_config.mind_personality_low
+        flag_map = {
+            PersonalityFlag.HIGH_NEUROTICISM: self.neuroticism > high,
+            PersonalityFlag.LOW_AGREEABLENESS: self.agreeableness < low,
+            PersonalityFlag.HIGH_EXTRAVERSION: self.extraversion > high,
+            PersonalityFlag.LOW_EXTRAVERSION: self.extraversion < low,
+            PersonalityFlag.HIGH_CONSCIENTIOUSNESS: self.conscientiousness > high,
+            PersonalityFlag.HIGH_OPENNESS: self.openness > high,
+        }
+        return flag_map.get(flag, False)
+
 
 class CognitiveDistortion(Base):
     """CBT cognitive distortion tendency weights for a character."""
@@ -140,8 +202,25 @@ class CognitiveDistortion(Base):
         scores: dict[str, float] = self.model_dump()
         return [Distortion(k) for k in sorted(scores, key=scores.get, reverse=True)[:n]]
 
+    def rule_filter(self, situation: "SituationProfile") -> dict[str, float]:
+        """Compute distortion scores boosted by DIAMONDS situational dimensions.
 
-class LinguisticStyle(Base):
+        Base = character tendency weight. Boost = dim_score * boost_value from config.
+        Returns dict with Distortion enum value strings as keys.
+        """
+        from fabricatio_character.config import character_config
+
+        scores: dict[str, float] = self.model_dump()
+        for dim_enum, distortion_boosts in character_config.mind_diamonds_distortion_boost.items():
+            dim_score = getattr(situation, dim_enum.value, 0.0)
+            if dim_score > 0:
+                for distortion, boost in distortion_boosts.items():
+                    key = distortion.value
+                    scores[key] = scores.get(key, 0.0) + dim_score * boost
+        return scores
+
+
+class LinguisticStyle(ProposedAble):
     """Decoupled language expression patterns. Extracted from character dialogues."""
 
     preferences: str = ""
@@ -152,6 +231,11 @@ class LinguisticStyle(Base):
 
     common_modals: List[str] = Field(default_factory=list)
     """Preferred modal verbs."""
+    common_adjectives: List[str] = Field(default_factory=list)
+    """Preferred adjectives and descriptors."""
+
+    style_references: List[str] = Field(default_factory=list)
+    """Exemplary utterances from the character for style reference."""
 
 
 # -- Volatile components --
@@ -219,11 +303,22 @@ class SomaticState(Base):
     voice: VoiceQuality = VoiceQuality.STEADY
     """Voice quality."""
 
+    @classmethod
+    def from_emotion(cls, emotion: "Emotion", intensity: float) -> "SomaticState":
+        """Create SomaticState from emotion type and intensity via config mapping."""
+        from fabricatio_character.config import character_config
+
+        entry = character_config.mind_emotion_somatic_map.get(emotion)
+        if entry is None:
+            return cls()
+        high_state, low_state = entry
+        return high_state if intensity > character_config.mind_emotion_intensity_high else low_state
+
 
 # ── Accumulated ──
 
 
-class QualitativeSuffering(Base):
+class QualitativeSuffering(ProposedAble):
     """Irreversible trauma that permanently reshapes character."""
 
     what_was_lost: str
@@ -280,6 +375,8 @@ class EmotionalState(Base):
 
     active_distortion: Optional[Distortion] = None
     """Currently activated cognitive distortion (per-event, volatile)."""
+    latest_situation: Optional["SituationProfile"] = None
+    """DIAMONDS profile from the latest event (volatile, for prompt injection)."""
 
 
 class NeedState(Base):
@@ -381,6 +478,19 @@ class EventImpact(ProposedAble):
 
     fulfills_need: Optional[MaslowLevel] = None
     """Need level fulfilled by the event."""
+    created_suffering: Optional["QualitativeSuffering"] = None
+    """Suffering created from high-intensity emotional events."""
+
+    situation: Optional["SituationProfile"] = None
+    """DIAMONDS situation profile from event analysis."""
+
+
+class DistortionAnalysis(ProposedAble):
+    """CBT distortion analysis output — used by LLM distortion judgment path."""
+
+    triggered_distortion: Optional[Distortion] = None
+    internal_monologue: str = ""
+    reasoning: str = ""
 
 
 class EventContext(Base):
@@ -439,6 +549,10 @@ class AsPromptData(Base):
     linguistic_preferences: str = ""
     linguistic_pronouns: list[str] | None = None
     linguistic_modals: list[str] | None = None
+    has_situation: bool = False
+    top_situation_dimension: str = ""
+    situation_adversity: float = 0.0
+    situation_negativity: float = 0.0
 
     def as_template_data(self) -> dict[str, str | float | bool | int | list | None]:
         """Convert to dict for TEMPLATE_MANAGER.render_template()."""
