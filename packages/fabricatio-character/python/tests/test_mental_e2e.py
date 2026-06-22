@@ -12,7 +12,6 @@ from fabricatio_character.models.mental import (
     CognitiveDistortion,
     Distortion,
     Emotion,
-    EmotionalState,
     EventImpact,
     MaslowLevel,
     MentalState,

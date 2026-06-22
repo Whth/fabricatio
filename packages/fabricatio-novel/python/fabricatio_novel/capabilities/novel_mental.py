@@ -12,7 +12,7 @@ Usage::
         pass
 """
 
-from typing import Dict, List, Unpack
+from typing import TYPE_CHECKING, Dict, List, Unpack
 
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
@@ -22,10 +22,12 @@ from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.models.plan import ChapterPlan
-from fabricatio_novel.models.scripting import ChapterSummary
+
+if TYPE_CHECKING:
+    from fabricatio_novel.models.draft import NovelDraft
+    from fabricatio_novel.models.plan import ChapterPlan
+    from fabricatio_novel.models.scripting import ChapterSummary
 
 
 class MentalComposeMixin(NovelCompose, UseMind):

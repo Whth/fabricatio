@@ -400,7 +400,7 @@ class LLMScopedConfig(ScopedConfig):
     llm_no_cache: Optional[bool] = None
     """Whether to disable caching for the LLM model."""
 
-    def _resolve_completion_params(
+    def _resolve_completion_params(  # noqa: PLR0913
         self,
         send_to: Optional[str] = None,
         stream: Optional[bool] = None,

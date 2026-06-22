@@ -28,7 +28,8 @@
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
 use crate::tracker::count_token;
 use crate::{
-    CompletionResponse, EmbeddingResponse, RerankerModel, RerankerRequest, RankingResponse, Result, UsageTracker,
+    CompletionResponse, EmbeddingResponse, RankingResponse, RerankerModel, RerankerRequest, Result,
+    UsageTracker,
 };
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};

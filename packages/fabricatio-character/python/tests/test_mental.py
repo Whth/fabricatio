@@ -3,10 +3,6 @@
 import json
 
 import pytest
-
-from fabricatio_mock import DUMMY_LLM_GROUP
-from fabricatio_mock.models.mock_router import pad_responses
-from fabricatio_mock.utils import setup_dummy_responses
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import (
@@ -30,6 +26,9 @@ from fabricatio_character.models.mental import (
     SomaticState,
     VoiceQuality,
 )
+from fabricatio_mock import DUMMY_LLM_GROUP
+from fabricatio_mock.models.mock_router import pad_responses
+from fabricatio_mock.utils import setup_dummy_responses
 
 
 class _TestMind(UseMind):
@@ -283,7 +282,7 @@ class TestAsPrompt:
         assert "catastrophizing" in _mind.as_prompt(state)
 
     def test_with_suffering(self) -> None:
-        state = _make_state(
+        _make_state(
             sufferings=[
                 QualitativeSuffering(
                     what_was_lost="trust", the_void="always suspicious", how_it_changed_me="became withdrawn"
@@ -389,7 +388,8 @@ def json_linguistic_style() -> str:
 class TestSituationProfile:
     def test_defaults(self) -> None:
         sp = SituationProfile()
-        assert sp.duty == 0.0 and sp.adversity == 0.0
+        assert sp.duty == 0.0
+        assert sp.adversity == 0.0
 
     def test_as_vector(self) -> None:
         assert len(SituationProfile(duty=0.5).as_vector()) == 8
@@ -417,13 +417,15 @@ class TestDistortionScoring:
         from fabricatio_character.utils import top_with_confidence
 
         top, conf = top_with_confidence({"catastrophizing": 74.0})
-        assert top == Distortion.CATASTROPHIZING and conf == 74.0
+        assert top == Distortion.CATASTROPHIZING
+        assert conf == 74.0
 
     def test_top_all_zero(self) -> None:
         from fabricatio_character.utils import top_with_confidence
 
         top, conf = top_with_confidence({"catastrophizing": 0.0})
-        assert top is None and conf == 0.0
+        assert top is None
+        assert conf == 0.0
 
     def test_is_high_confidence(self) -> None:
         from fabricatio_character.utils import is_high_confidence
