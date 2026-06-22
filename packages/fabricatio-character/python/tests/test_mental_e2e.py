@@ -78,12 +78,16 @@ def _daiyu_state() -> MentalState:
 
 
 class TestHamletScenario:
+    """End-to-end tests for Hamlet's mental state evolution."""
+
     def test_from_card_sets_name(self) -> None:
+        """Verify from_card extracts character name and default need level."""
         state = MentalState.from_card(_make_hamlet())
         assert state.mind.character_name == "Hamlet"
         assert state.needs.current_level == MaslowLevel.PHYSIOLOGICAL  # default
 
     def test_father_murder_event(self) -> None:
+        """Apply grief event and check emotion, distortion, and personality shift."""
         state = _hamlet_state()
         impact = EventImpact(
             threatens_need=MaslowLevel.ESTEEM,
@@ -101,6 +105,7 @@ class TestHamletScenario:
         assert state.mind.personality.neuroticism > 50.0
 
     def test_mother_remarriage_event(self) -> None:
+        """Apply sequential grief then disgust and verify cascading effects."""
         state = _hamlet_state()
 
         state = _mind.after_impact(
@@ -125,6 +130,7 @@ class TestHamletScenario:
         assert MaslowLevel.BELONGING not in state.needs.satisfied
 
     def test_build_prompt_after_trauma(self) -> None:
+        """Build prompt after trauma and verify psychological details present."""
         state = _hamlet_state()
         state = _mind.after_impact(
             EventImpact(
@@ -151,11 +157,15 @@ class TestHamletScenario:
 
 
 class TestDaiyuScenario:
+    """End-to-end tests for Lin Daiyu's mental state evolution."""
+
     def test_from_card_sets_name(self) -> None:
+        """Verify from_card extracts Daiyu's character name."""
         state = MentalState.from_card(_make_daiyu())
         assert state.mind.character_name == "Lin Daiyu"
 
     def test_baoyu_gives_old_handkerchief(self) -> None:
+        """Repeated belonging fulfillment raises need level above BELONGING."""
         state = _daiyu_state()
         for _ in range(3):
             state = _mind.after_impact(
@@ -167,6 +177,7 @@ class TestDaiyuScenario:
         assert state.needs.current_level > MaslowLevel.BELONGING
 
     def test_baoyu_marries_baochai(self) -> None:
+        """Belonging satisfaction then betrayal triggers emotional reasoning."""
         state = _daiyu_state()
         for _ in range(3):
             state = _mind.after_impact(
@@ -194,7 +205,10 @@ class TestDaiyuScenario:
 
 
 class TestMaslowDynamics:
+    """Tests for Maslow need-level threat drops and satisfaction rises."""
+
     def test_threat_drops_level(self) -> None:
+        """Threatening a satisfied need drops current level below it."""
         state = _make_state(
             needs=NeedState(
                 current_level=MaslowLevel.ESTEEM,
@@ -208,6 +222,7 @@ class TestMaslowDynamics:
         assert state.needs.current_level < MaslowLevel.SAFETY
 
     def test_satisfaction_accumulates_then_rises(self) -> None:
+        """Three fulfillment events accumulate and promote to next level."""
         state = _make_state(needs=NeedState(current_level=MaslowLevel.PHYSIOLOGICAL))
 
         state = _mind.after_impact(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL), state)

@@ -114,6 +114,7 @@ class SituationProfile(ProposedAble):
     sociality: float = Field(ge=0, le=1, default=0)
 
     def as_vector(self) -> list[float]:
+        """Return a flat vector of all 8 situation dimension scores."""
         return [
             self.duty,
             self.intellect,
@@ -126,6 +127,7 @@ class SituationProfile(ProposedAble):
         ]
 
     def top_dimension(self) -> SituationDimension:
+        """Return the highest-scoring SituationDimension."""
         dims = list(SituationDimension)
         vals = self.as_vector()
         return dims[vals.index(max(vals))]
