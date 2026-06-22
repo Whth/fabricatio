@@ -1,7 +1,7 @@
 """This module contains the capabilities for the novel."""
 
 from abc import ABC
-from typing import List, Optional, Unpack
+from typing import List, Optional, Tuple, Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCard
@@ -34,43 +34,55 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         logger.info(f"Starting novel generation for outline: {outline[:100]}...")
         okwargs = override_kwargs(kwargs, default=None)
 
-        # Step 1: Generate draft
-        logger.debug("Step 1: Generating novel draft from outline")
-        draft = ok(await self.create_draft(outline, language, **okwargs))
-        if not draft:
-            logger.warn("Failed to generate novel draft.")
+        result = await self.generate_draft_and_characters(outline, language, **okwargs)
+        if not result:
             return None
-        logger.info(f"Draft generated successfully: '{draft.title}' in {draft.language}")
+        draft, characters = result
 
-        # Step 2: Generate characters
-        logger.debug("Step 2: Generating character cards from draft")
-        characters: List[CharacterCard] = [
-            c for c in ok(await self.create_characters(draft, **okwargs)) if c is not None
-        ]
-        logger.info(f"Generated {len(characters)} valid character(s)")
-
-        # Step 3: Generate scripts
-        logger.debug("Step 3: Generating chapter scripts using draft and characters")
-        scripts = ok(await self.create_scripts(draft, characters, **okwargs))
-        chapter_plans = ChapterPlan.from_draft(draft, scripts)
-        if not chapter_plans:
-            logger.warn("No valid scripts were generated from the draft and characters.")
+        plans = await self.generate_plans(draft, characters, **okwargs)
+        if not plans:
             return None
-        logger.info(f"Successfully generated {len(chapter_plans)} script(s) for chapters")
 
-        # Step 4: Generate chapter contents
-        logger.debug("Step 4: Generating full chapter contents from scripts")
-        chapter_contents = await self.create_chapters(draft, chapter_plans, characters, chapter_guidance, **okwargs)
+        chapter_contents = await self.create_chapters(draft, plans, characters, chapter_guidance, **okwargs)
         if not chapter_contents:
             logger.warn("Chapter content generation returned no results.")
             return None
         logger.info(f"Generated {len(chapter_contents)} chapter content(s)")
 
-        # Step 5: Assemble final novel
-        logger.debug("Step 5: Assembling final novel from components")
-        novel = self.assemble_novel(draft, chapter_plans, chapter_contents, characters)
+        novel = self.assemble_novel(draft, plans, chapter_contents, characters)
         logger.info(f"Novel assembly complete: '{novel.title}', {len(novel.chapters)} chapters")
         return novel
+
+    async def generate_draft_and_characters(
+        self, outline: str, language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[NovelDraft]]
+    ) -> Optional[Tuple[NovelDraft, List[CharacterCard]]]:
+        """Steps 1-2: generate draft and characters."""
+        logger.debug("Step 1: Generating novel draft from outline")
+        draft = ok(await self.create_draft(outline, language, **kwargs))
+        if not draft:
+            logger.warn("Failed to generate novel draft.")
+            return None
+        logger.info(f"Draft generated successfully: '{draft.title}' in {draft.language}")
+
+        logger.debug("Step 2: Generating character cards from draft")
+        characters: List[CharacterCard] = [
+            c for c in ok(await self.create_characters(draft, **kwargs)) if c is not None
+        ]
+        logger.info(f"Generated {len(characters)} valid character(s)")
+        return draft, characters
+
+    async def generate_plans(
+        self, draft: NovelDraft, characters: List[CharacterCard], **kwargs: Unpack[ValidateKwargs[Script]]
+    ) -> Optional[List[ChapterPlan]]:
+        """Step 3: generate scripts and chapter plans."""
+        logger.debug("Step 3: Generating chapter scripts using draft and characters")
+        scripts = ok(await self.create_scripts(draft, characters, **kwargs))
+        chapter_plans = ChapterPlan.from_draft(draft, scripts)
+        if not chapter_plans:
+            logger.warn("No valid scripts were generated from the draft and characters.")
+            return None
+        logger.info(f"Successfully generated {len(chapter_plans)} script(s) for chapters")
+        return chapter_plans
 
     async def create_draft(
         self, outline: str, language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[NovelDraft]]

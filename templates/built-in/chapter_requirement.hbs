@@ -1,4 +1,7 @@
 {{block characters "Characters Info Board"}}
+{{#if character_mental_states}}
+{{block character_mental_states "Character Psychological States (write characters consistent with their current state)"}}
+{{/if}}
 {{block script "Chapter Script"}}
 Writing {{chapter_title}} of novel "{{novel_title}}".
 
