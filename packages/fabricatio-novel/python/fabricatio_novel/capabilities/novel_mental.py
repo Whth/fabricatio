@@ -176,12 +176,12 @@ def mental_states_context(states: Dict[str, "MentalState"]) -> str:
     """Render character mental states as concise prompt injection."""
     lines: List[str] = []
     for name, state in states.items():
-        mood = state.emotion.value if state.emotion else "neutral"
-        tension = f"tension={state.tension:.0f}" if state.tension else ""
+        mood = state.emotion.emotion  # StrEnum → already a str
+        tension = f"tension={state.emotion.intensity:.0f}" if state.emotion.intensity else ""
         parts = [f"{name}: mood={mood}"]
         if tension:
             parts.append(tension)
-        if state.active_distortion:
-            parts.append(f"distortion={state.active_distortion.value}")
+        if state.emotion.active_distortion:
+            parts.append(f"distortion={state.emotion.active_distortion}")
         lines.append(" | ".join(parts))
     return "\n".join(lines)
