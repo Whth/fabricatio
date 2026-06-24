@@ -98,10 +98,22 @@ An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDoc
 
 ```bash
 # Generate a novel from an outline
-fanvl w "In a world where dreams are currency..."
+fanvl w -o "In a world where dreams are currency..."
 
 # Generate with RAG writing style augmentation
-fanvl wr "In a world where dreams are currency..."
+fanvl wr -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
+
+# Generate with mental state tracking (character psychology)
+fanvl wm -o "In a world where dreams are currency..."
+
+# Generate with RAG + mental state tracking
+fanvl wrm -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
+
+# Generate with mental state tracking + illustrations
+fanvl wmi -o "In a world where dreams are currency..."
+
+# Generate with RAG + mental state tracking + illustrations
+fanvl wrmi -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
 
 # Store reference texts as writing style documents in LanceDB
 fanvl store-refs ./corpus/*.txt
