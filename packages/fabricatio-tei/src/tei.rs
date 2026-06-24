@@ -9,8 +9,8 @@ use std::sync::Arc;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 use thryd::provider::{HeaderMap, Provider, Url};
 use thryd::{
-    Embedding, EmbeddingModel, EmbeddingRequest, Embeddings, Model, ModelName, Ranking,
-    RerankerModel, RerankerRequest, ThrydError, async_trait,
+    Embedding, EmbeddingModel, EmbeddingRequest, EmbeddingResponse, Model, ModelName,
+    RankingResponse, RerankerModel, RerankerRequest, ThrydError, Usage, async_trait,
 };
 
 struct TEI {
@@ -69,8 +69,8 @@ impl Model for TEIModel {
 
 #[async_trait]
 impl EmbeddingModel for TEIModel {
-    async fn embedding(&self, request: EmbeddingRequest) -> thryd::Result<Embeddings> {
-        try_join_all(request.texts.into_iter().map(async move |text| {
+    async fn embedding(&self, request: EmbeddingRequest) -> thryd::Result<EmbeddingResponse> {
+        let embeddings = try_join_all(request.texts.into_iter().map(async move |text| {
             let r = self
                 .provider
                 .post(
@@ -84,17 +84,21 @@ impl EmbeddingModel for TEIModel {
             Ok(r)
         }))
         .await
-        .map_err(|e: Box<dyn Error + Send + Sync>| ThrydError::Router(e.to_string()))
+        .map_err(|e: Box<dyn Error + Send + Sync>| ThrydError::Router(e.to_string()))?;
+        Ok(EmbeddingResponse {
+            embeddings,
+            usage: Usage::default(),
+        })
     }
 }
 #[async_trait]
 impl RerankerModel for TEIModel {
-    async fn rerank(&self, request: RerankerRequest) -> thryd::Result<Ranking> {
+    async fn rerank(&self, request: RerankerRequest) -> thryd::Result<RankingResponse> {
         let req = TEIRerankRequest {
             query: request.query,
             texts: request.documents,
         };
-        let r = self
+        let rankings = self
             .provider
             .post(TEIRoute::Rerank.as_ref(), &to_value(req)?)
             .await?
@@ -105,7 +109,10 @@ impl RerankerModel for TEIModel {
             .map(|rank| (rank.index, rank.score))
             .collect();
 
-        Ok(r)
+        Ok(RankingResponse {
+            rankings,
+            usage: Usage::default(),
+        })
     }
 }
 
@@ -178,7 +185,7 @@ fn add_tei(name: String, url: String) -> PyResult<()> {
     Ok(())
 }
 
-pub(crate) fn register(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub(crate) fn register(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(add_tei, m)?)?;
     Ok(())
 }

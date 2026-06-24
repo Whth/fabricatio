@@ -152,6 +152,11 @@ eg example_name:
 stubgen name:
     @cargo run --package fabricatio-stubgen --bin fabricatio-stubgen --features {{ name }}
 
+alias mdev := maturin-dev
+
+maturin-dev name:
+    uv run --no-sync --directory {{ PACKAGES }}/fabricatio-{{ name }} maturin develop
+
 alias v := version
 alias r := release
 
