@@ -5,7 +5,7 @@ into the novel generation pipeline. Characters are seeded with mental states
 from their CharacterCard, and states evolve after each chapter.
 """
 
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional
+from typing import Any, ClassVar, List, Optional
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
@@ -15,11 +15,9 @@ from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
 from fabricatio_novel.capabilities.novel_mental_rag import NovelComposeMentalRAG
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig  # noqa: TC001
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import Script
-
-if TYPE_CHECKING:
-    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 
 
 class GenerateNovelMental(NovelComposeMental, Action):
