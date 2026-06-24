@@ -189,19 +189,20 @@ class UseMind(Propose, ABC):
         )
         ctx_data = ctx.as_template_data()
 
-        # 1. Which need does this event threaten?
-        threat_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_threat_analysis_template, ctx_data)
-        threat_future = self.aenum_choose(threat_prompt, MaslowLevel, k=1)
+        # 1. Judge if event threatens/fulfills any need (parallel)
+        threat_judge_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_threat_analysis_template, ctx_data)
+        threat_judge_future = self.ajudge(threat_judge_prompt)
 
-        # 2. Which need does this event fulfill?
-        fulfill_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_fulfill_analysis_template, ctx_data)
-        fulfill_future = self.aenum_choose(fulfill_prompt, MaslowLevel, k=1)
+        fulfill_judge_prompt = TEMPLATE_MANAGER.render_template(
+            character_config.mind_fulfill_analysis_template, ctx_data
+        )
+        fulfill_judge_future = self.ajudge(fulfill_judge_prompt)
 
-        # 3. DIAMONDS situation extraction (parallel with emotion analysis)
+        # 2. DIAMONDS situation extraction (parallel)
         diamonds_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_diamonds_template, ctx_data)
         diamonds_future = self.propose(SituationProfile, diamonds_prompt)
 
-        # 4. What emotion + intensity + personality shift?
+        # 3. What emotion + intensity + personality shift? (parallel)
         impact_prompt = TEMPLATE_MANAGER.render_template(
             character_config.mind_impact_analysis_template,
             {
@@ -216,9 +217,22 @@ class UseMind(Propose, ABC):
         )
         emotion_future = self.propose(EventImpact, impact_prompt)
 
-        threat_result, fulfill_result, diamonds, emotion_result = await gather(
-            threat_future, fulfill_future, diamonds_future, emotion_future
+        threat_judge, fulfill_judge, diamonds, emotion_result = await gather(
+            threat_judge_future, fulfill_judge_future, diamonds_future, emotion_future
         )
+
+        # 4. Select specific need level only if judge affirmed
+        from fabricatio_character.models.mental import MaslowLevel
+
+        threat_result = None
+        if threat_judge:
+            select_prompt = f"Which specific Maslow need level does this event THREATEN?\nEvent: {event}"
+            threat_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1)
+
+        fulfill_result = None
+        if fulfill_judge:
+            select_prompt = f"Which specific Maslow need level does this event FULFILL?\nEvent: {event}"
+            fulfill_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1)
 
         # 5. CBT distortion engine: rule_filter -> confidence check
         from fabricatio_character.utils import is_high_confidence, top_with_confidence
