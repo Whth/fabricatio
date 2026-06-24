@@ -222,7 +222,6 @@ class UseMind(Propose, ABC):
         )
 
         # 4. Select specific need level only if judge affirmed
-        from fabricatio_character.models.mental import MaslowLevel
 
         threat_result = None
         if threat_judge:
