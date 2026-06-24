@@ -554,10 +554,12 @@ class TestUponEventDiamonds:
         )
         setup_dummy_responses(
             *pad_responses(
-                _codeblock('["BELONGING"]'),
-                _codeblock('["ESTEEM"]'),
+                _codeblock("true"),  # threat ajudge
+                _codeblock("true"),  # fulfill ajudge
                 _codeblock(json_diamonds()),
                 _codeblock(json_event_impact(intensity=50)),
+                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
+                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
                 default=_codeblock("false"),
                 padding=30,
             )
@@ -579,10 +581,12 @@ class TestUponEventDiamonds:
         )
         setup_dummy_responses(
             *pad_responses(
-                _codeblock('["BELONGING"]'),
-                _codeblock('["ESTEEM"]'),
+                _codeblock("true"),  # threat ajudge
+                _codeblock("true"),  # fulfill ajudge
                 _codeblock(json_diamonds()),
                 _codeblock(json_event_impact(emotion="grief", intensity=95)),
+                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
+                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
                 _codeblock(json_suffering()),
                 default=_codeblock("false"),
                 padding=30,
@@ -604,11 +608,13 @@ class TestUponEventDiamonds:
         )
         setup_dummy_responses(
             *pad_responses(
-                _codeblock('["BELONGING"]'),
-                _codeblock('["ESTEEM"]'),
+                _codeblock("true"),  # threat ajudge
+                _codeblock("true"),  # fulfill ajudge
                 _codeblock(json_diamonds(adversity=0.1)),
                 _codeblock(json_event_impact(emotion="sadness", intensity=30)),
-                _codeblock("true"),
+                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
+                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
+                _codeblock("true"),  # bias ajudge
                 default=_codeblock("false"),
                 padding=30,
             )
