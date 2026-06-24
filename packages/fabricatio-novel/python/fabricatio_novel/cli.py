@@ -176,6 +176,204 @@ def write_novel(  # noqa: PLR0913
         _exit_on_error("❌ Failed to generate novel.")
 
 
+@app.command(name="wm")
+def write_novel_with_mental(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub", "--output", "-out", dir_okay=False, help="Output EPUB file path.", envvar="NOVEL_OUTPUT_PATH"
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English", "--lang", "-l", help="Language of the novel (e.g., 简体中文, English, jp).", envvar="NOVEL_LANGUAGE"
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+) -> None:
+    """Generate a novel with mental state tracking for character psychology."""
+    from fabricatio_novel.workflows.novel_mental import DebugNovelWithMentalWorkflow
+
+    mental_ns = "write_mental"
+    Role.with_bio(name="mental_writer").subscribe(
+        Event.quick_instantiate(mental_ns), DebugNovelWithMentalWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    typer.echo(f"Starting mental novel generation: '{outline_content[:30]}...'")
+
+    task = Task(name="Write novel with mental states").update_init_context(
+        novel_outline=outline_content,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+    )
+
+    result = task.delegate_blocking(mental_ns)
+
+    if result:
+        typer.secho(f"✅ Novel with mental states successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate novel with mental states.")
+
+
+@app.command(name="wrm")
+@cfg_on(["lancedb"])
+def write_novel_with_mental_rag(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    rag_query: str = typer.Option(
+        ...,
+        "--rag-query",
+        "-rq",
+        help="Writing style query for RAG retrieval (e.g. 'Hemingway terse prose style').",
+        envvar="NOVEL_RAG_QUERY",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub", "--output", "-out", dir_okay=False, help="Output EPUB file path.", envvar="NOVEL_OUTPUT_PATH"
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English", "--lang", "-l", help="Language of the novel (e.g., 简体中文, English, jp).", envvar="NOVEL_LANGUAGE"
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+    rag_limit: int = typer.Option(
+        5,
+        "--rag-limit",
+        "-rl",
+        help="Number of writing style documents to retrieve per prompt.",
+        envvar="NOVEL_RAG_LIMIT",
+    ),
+) -> None:
+    """Generate a novel with RAG writing styles + mental state tracking."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.novel_mental import DebugNovelWithMentalRAGWorkflow
+
+    mental_rag_ns = "write_mental_rag"
+    Role.with_bio(name="mental_rag_writer").subscribe(
+        Event.quick_instantiate(mental_rag_ns), DebugNovelWithMentalRAGWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    typer.echo(f"Starting RAG+Mental novel generation: '{outline_content[:30]}...'")
+    typer.echo(f"Writing style query: '{rag_query}'")
+
+    task = Task(name="Write novel with RAG+Mental").update_init_context(
+        novel_outline=outline_content,
+        writing_style_query=rag_query,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+    )
+
+    result = task.delegate_blocking(mental_rag_ns)
+
+    if result:
+        typer.secho(f"✅ Novel with RAG+Mental successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate novel with RAG+Mental.")
+
+
 @app.command(name="wr")
 @cfg_on(["lancedb"])
 def write_novel_with_rag(  # noqa: PLR0913
@@ -479,6 +677,202 @@ def write_illustrated_novel(  # noqa: PLR0913
         _exit_on_error("❌ Failed to generate illustrated novel.")
 
 
+@app.command(name="wmi")
+@cfg_on(["comfyui"])
+def write_mental_illustrated_novel(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub",
+        "--output",
+        "-out",
+        dir_okay=False,
+        help="Output EPUB file path.",
+        envvar="NOVEL_OUTPUT_PATH",
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English",
+        "--lang",
+        "-l",
+        help="Language of the novel (e.g., 简体中文, English, jp).",
+        envvar="NOVEL_LANGUAGE",
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+    image_root: Path = typer.Option(
+        "./illustrations",
+        "--image-root",
+        "-ir",
+        help="Root directory for saving generated illustration images.",
+        envvar="NOVEL_IMAGE_ROOT",
+    ),
+    workflow_template: Optional[Path] = typer.Option(
+        None,
+        "--workflow-template",
+        "-wt",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to ComfyUI API-format JSON workflow file (defaults to bundled demo).",
+        envvar="NOVEL_WORKFLOW_TEMPLATE",
+    ),
+    illustration_budget: int = typer.Option(
+        5,
+        "--budget",
+        "-b",
+        help="Total number of illustrations to generate across all chapters.",
+        envvar="NOVEL_ILLUSTRATION_BUDGET",
+    ),
+    illustration_language: str = typer.Option(
+        "en",
+        "--illust-lang",
+        help="Language for illustration prompt generation.",
+        envvar="NOVEL_ILLUSTRATION_LANGUAGE",
+    ),
+    illustration_guideline: str = typer.Option(
+        None,
+        "--illust-guideline",
+        "-ig",
+        help="Guideline for illustration paragraph selection (e.g. 'focus on action scenes').",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE",
+    ),
+    illustration_guideline_file: Path = typer.Option(
+        None,
+        "--illust-guideline-file",
+        "-igf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing illustration selection guidelines.",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE_FILE",
+    ),
+    illustration_prompt_guideline: str = typer.Option(
+        None,
+        "--illust-prompt-guideline",
+        "-ipg",
+        help="Guideline for image prompt wording (e.g. 'anime style, detailed background').",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE",
+    ),
+    illustration_prompt_guideline_file: Path = typer.Option(
+        None,
+        "--illust-prompt-guideline-file",
+        "-ipgf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing image prompt wording guidelines.",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
+    ),
+    comfyui_timeout: float = typer.Option(
+        None,
+        "--comfyui-timeout",
+        "-ct",
+        help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
+        envvar="NOVEL_COMFYUI_TIMEOUT",
+    ),
+) -> None:
+    """Generate a novel with mental state tracking + ComfyUI illustrations."""
+    from fabricatio_novel.workflows.novel_mental import DebugMentalIllustratedNovelWorkflow
+
+    mental_illus_ns = "write_mental_illustrated"
+    Role.with_bio(name="mental_illustrator").subscribe(
+        Event.quick_instantiate(mental_illus_ns), DebugMentalIllustratedNovelWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    illust_guideline_content = _resolve_text_or_file(
+        illustration_guideline,
+        illustration_guideline_file,
+        flag="illust-guideline",
+        file_desc="illustration guideline",
+        default=None,
+    )
+
+    illust_prompt_guideline_content = _resolve_text_or_file(
+        illustration_prompt_guideline,
+        illustration_prompt_guideline_file,
+        flag="illust-prompt-guideline",
+        file_desc="illustration prompt guideline",
+        default=None,
+    )
+
+    typer.echo(f"Starting Mental+Illustrated novel generation: '{outline_content[:30]}...'")
+
+    task = Task(name="Write mental illustrated novel").update_init_context(
+        novel_outline=outline_content,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        image_root=image_root,
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+        illustration_guideline=illust_guideline_content,
+        illustration_prompt_guideline=illust_prompt_guideline_content,
+        comfyui_timeout=comfyui_timeout,
+    )
+
+    result = task.delegate_blocking(mental_illus_ns)
+
+    if result:
+        typer.secho(f"✅ Mental illustrated novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate mental illustrated novel.")
+
+
 @app.command(name="wri")
 @cfg_on(["comfyui", "lancedb"])
 def write_rag_illustrated_novel(  # noqa: PLR0913
@@ -691,6 +1085,224 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         typer.secho(f"✅ RAG illustrated novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
     else:
         _exit_on_error("❌ Failed to generate RAG illustrated novel.")
+
+
+@app.command(name="wrmi")
+@cfg_on(["comfyui", "lancedb"])
+def write_rag_mental_illustrated_novel(  # noqa: PLR0913
+    outline: str = typer.Option(
+        None, "--outline", "-o", help="The novel's outline or premise.", envvar="NOVEL_OUTLINE"
+    ),
+    outline_file: Path = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing the novel outline.",
+        envvar="NOVEL_OUTLINE_FILE",
+    ),
+    rag_query: str = typer.Option(
+        ...,
+        "--rag-query",
+        "-rq",
+        help="Writing style query for RAG retrieval (e.g. 'Hemingway terse prose style').",
+        envvar="NOVEL_RAG_QUERY",
+    ),
+    output_path: Path = typer.Option(
+        "./novel.epub",
+        "--output",
+        "-out",
+        dir_okay=False,
+        help="Output EPUB file path.",
+        envvar="NOVEL_OUTPUT_PATH",
+    ),
+    font_file: Path = typer.Option(
+        None,
+        "--font",
+        "-f",
+        exists=True,
+        dir_okay=False,
+        help="Path to custom font file (TTF).",
+        envvar="NOVEL_FONT_FILE",
+    ),
+    cover_image: Path = typer.Option(
+        None,
+        "--cover",
+        "-c",
+        exists=True,
+        dir_okay=False,
+        help="Path to cover image (PNG/JPG/WEBP).",
+        envvar="NOVEL_COVER_IMAGE",
+    ),
+    language: str = typer.Option(
+        "English",
+        "--lang",
+        "-l",
+        help="Language of the novel (e.g., 简体中文, English, jp).",
+        envvar="NOVEL_LANGUAGE",
+    ),
+    chapter_guidance: str = typer.Option(
+        None, "--guidance", "-g", help="Guidelines for chapter generation.", envvar="NOVEL_CHAPTER_GUIDANCE"
+    ),
+    guidance_file: Path = typer.Option(
+        None,
+        "--guidance-file",
+        "-gf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing chapter generation guidelines.",
+        envvar="NOVEL_GUIDANCE_FILE",
+    ),
+    persist_dir: Path = typer.Option(
+        "./persist", "--persist-dir", help="Directory to save intermediate states.", envvar="NOVEL_PERSIST_DIR"
+    ),
+    rag_limit: int = typer.Option(
+        5,
+        "--rag-limit",
+        "-rl",
+        help="Number of writing style documents to retrieve per prompt.",
+        envvar="NOVEL_RAG_LIMIT",
+    ),
+    image_root: Path = typer.Option(
+        "./illustrations",
+        "--image-root",
+        "-ir",
+        help="Root directory for saving generated illustration images.",
+        envvar="NOVEL_IMAGE_ROOT",
+    ),
+    workflow_template: Optional[Path] = typer.Option(
+        None,
+        "--workflow-template",
+        "-wt",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to ComfyUI API-format JSON workflow file (defaults to bundled demo).",
+        envvar="NOVEL_WORKFLOW_TEMPLATE",
+    ),
+    illustration_budget: int = typer.Option(
+        5,
+        "--budget",
+        "-b",
+        help="Total number of illustrations to generate across all chapters.",
+        envvar="NOVEL_ILLUSTRATION_BUDGET",
+    ),
+    illustration_language: str = typer.Option(
+        "en",
+        "--illust-lang",
+        help="Language for illustration prompt generation.",
+        envvar="NOVEL_ILLUSTRATION_LANGUAGE",
+    ),
+    illustration_guideline: str = typer.Option(
+        None,
+        "--illust-guideline",
+        "-ig",
+        help="Guideline for illustration paragraph selection (e.g. 'focus on action scenes').",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE",
+    ),
+    illustration_guideline_file: Path = typer.Option(
+        None,
+        "--illust-guideline-file",
+        "-igf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing illustration selection guidelines.",
+        envvar="NOVEL_ILLUSTRATION_GUIDELINE_FILE",
+    ),
+    illustration_prompt_guideline: str = typer.Option(
+        None,
+        "--illust-prompt-guideline",
+        "-ipg",
+        help="Guideline for image prompt wording (e.g. 'anime style, detailed background').",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE",
+    ),
+    illustration_prompt_guideline_file: Path = typer.Option(
+        None,
+        "--illust-prompt-guideline-file",
+        "-ipgf",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        resolve_path=True,
+        help="Path to a text file containing image prompt wording guidelines.",
+        envvar="NOVEL_ILLUSTRATION_PROMPT_GUIDELINE_FILE",
+    ),
+    comfyui_timeout: float = typer.Option(
+        None,
+        "--comfyui-timeout",
+        "-ct",
+        help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
+        envvar="NOVEL_COMFYUI_TIMEOUT",
+    ),
+) -> None:
+    """Generate a RAG-augmented novel with mental state tracking + ComfyUI illustrations."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.novel_mental import DebugMentalRAGIllustratedNovelWorkflow
+
+    rag_mental_illus_ns = "write_rag_mental_illustrated"
+    Role.with_bio(name="rag_mental_illustrator").subscribe(
+        Event.quick_instantiate(rag_mental_illus_ns), DebugMentalRAGIllustratedNovelWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    illust_guideline_content = _resolve_text_or_file(
+        illustration_guideline,
+        illustration_guideline_file,
+        flag="illust-guideline",
+        file_desc="illustration guideline",
+        default=None,
+    )
+
+    illust_prompt_guideline_content = _resolve_text_or_file(
+        illustration_prompt_guideline,
+        illustration_prompt_guideline_file,
+        flag="illust-prompt-guideline",
+        file_desc="illustration prompt guideline",
+        default=None,
+    )
+
+    typer.echo(f"Starting RAG+Mental+Illustrated novel generation: '{outline_content[:30]}...'")
+    typer.echo(f"Writing style query: '{rag_query}'")
+
+    task = Task(name="Write RAG mental illustrated novel").update_init_context(
+        novel_outline=outline_content,
+        writing_style_query=rag_query,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        image_root=image_root,
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+        illustration_guideline=illust_guideline_content,
+        illustration_prompt_guideline=illust_prompt_guideline_content,
+        comfyui_timeout=comfyui_timeout,
+    )
+
+    result = task.delegate_blocking(rag_mental_illus_ns)
+
+    if result:
+        typer.secho(
+            f"✅ RAG+Mental+Illustrated novel successfully generated: {result}",
+            fg=typer.colors.GREEN,
+            bold=True,
+        )
+    else:
+        _exit_on_error("❌ Failed to generate RAG+Mental+Illustrated novel.")
 
 
 @app.command()
