@@ -17,11 +17,13 @@ from typing import TYPE_CHECKING, Dict, List, Unpack
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import MentalState
-from fabricatio_core import logger
+from fabricatio_character.utils import dump_card
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.novel import Novel
 
 if TYPE_CHECKING:
@@ -30,7 +32,7 @@ if TYPE_CHECKING:
     from fabricatio_novel.models.scripting import ChapterSummary
 
 
-class MentalComposeMixin(NovelCompose, UseMind):
+class NovelComposeMental(NovelCompose, UseMind):
     """Mixin that adds psychological state tracking to novel composition.
 
     Overrides compose_novel and create_chapters to seed, inject, and evolve
@@ -49,10 +51,6 @@ class MentalComposeMixin(NovelCompose, UseMind):
             states[card.name] = await self.seed_from(card.name, card.want, card.flaw)
         logger.info(f"Seeded mental states for {len(states)} character(s)")
         return states
-
-    def get_mental_state(self, states: Dict[str, "MentalState"], name: str) -> "MentalState | None":
-        """Retrieve a character's current mental state."""
-        return states.get(name)
 
     def character_system_prompt(self, states: Dict[str, MentalState], name: str) -> str:
         """Get the system prompt for a character based on their current mental state.
@@ -107,11 +105,6 @@ class MentalComposeMixin(NovelCompose, UseMind):
         """
         if not character_states:
             return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
-
-        from fabricatio_character.utils import dump_card
-        from fabricatio_core import TEMPLATE_MANAGER
-
-        from fabricatio_novel.config import novel_config
 
         character_prompt = dump_card(*characters)
         chapter_contents: List[str] = []
