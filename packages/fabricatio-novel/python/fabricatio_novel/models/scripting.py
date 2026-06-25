@@ -27,6 +27,21 @@ class Scene(PersistentAble, SketchedAble, Described):
     weight: float
     """Relative importance for word-count allocation within the script."""
 
+    location: str = ""
+    """Physical or virtual setting where this scene takes place (e.g. 'the inner side of classroom close to the window')."""
+
+    when: str = ""
+    """Temporal setting of the scene (e.g. 'the next morning', 'midnight', 'three days later')."""
+
+    characters_present: List[str] = Field(default_factory=list)
+    """Names of characters who appear in this scene."""
+
+    purpose: str = ""
+    """Narrative role of this scene."""
+
+    mood: str = ""
+    """Emotional atmosphere of the scene."""
+
     def append_prompt(self, prompt: str) -> Self:
         """Add a prompt to the scene.
 
