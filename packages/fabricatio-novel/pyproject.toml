@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-novel"
-version = "0.8.0"
+version = "0.8.1"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
