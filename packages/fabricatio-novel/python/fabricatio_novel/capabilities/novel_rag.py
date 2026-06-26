@@ -14,6 +14,7 @@ from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbRAG
 
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 from fabricatio_novel.models.plan import ChapterPlan
@@ -23,6 +24,23 @@ class NovelComposeRAG(
     LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig], NovelCompose, ABC
 ):
     """Novel composition capability extended with writing style RAG support."""
+
+    async def fetch_and_rerank(
+        self, query: str, config: WritingStyleFetchConfig, use_reranker: bool
+    ) -> List[WritingStyleDocument]:
+        """Fetch writing style documents, optionally reranking the results.
+
+        When use_reranker=True, embedding search fetches limit * rerank_scale_factor docs,
+        then the reranker filters down to the original limit.
+        """
+        if use_reranker:
+            scaled = config.model_copy(update={"limit": int(config.limit * novel_config.rerank_scale_factor)})
+            docs = list(ok(await self.afetch_document(query, scaled)))
+            if not docs:
+                return docs
+            reranked = ok(await self.arank_documents(query, docs))
+            return list(reranked)[: config.limit]
+        return list(ok(await self.afetch_document(query, config)))
 
     async def create_chapters(
         self,
@@ -38,19 +56,19 @@ class NovelComposeRAG(
         style references from LanceDB and injects them into script/scene prompts.
         """
         config = kwargs.pop("writing_style_fetch_config", WritingStyleFetchConfig.default())
+        use_reranker = kwargs.pop("use_reranker", False)
 
         for cp in chapter_plans:
-            # Script-level: fetch based on full script content → global_prompt
-            script_docs: List[WritingStyleDocument] = list(
-                ok(await self.afetch_document(cp.script.as_prompt(), config))
-            )
+            # Capture query before mutation — append_global_prompt changes as_prompt() output
+            script_query = cp.script.as_prompt()
+            script_docs = await self.fetch_and_rerank(script_query, config, use_reranker)
             for doc in script_docs:
                 cp.script.append_global_prompt(doc.as_prompt())
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
 
             # Scene-level: fetch per scene based on scene.description → scene.prompt
             for scene in cp.script.scenes:
-                scene_docs: List[WritingStyleDocument] = list(ok(await self.afetch_document(scene.description, config)))
+                scene_docs = await self.fetch_and_rerank(scene.description, config, use_reranker)
                 for doc in scene_docs:
                     scene.append_prompt(doc.as_prompt())
 
