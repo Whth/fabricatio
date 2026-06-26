@@ -338,6 +338,13 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
         help="Number of writing style documents to retrieve per prompt.",
         envvar="NOVEL_RAG_LIMIT",
     ),
+    use_reranker: bool = typer.Option(
+        False,
+        "--reranker",
+        "-rr",
+        help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
+        envvar="NOVEL_USE_RERANKER",
+    ),
 ) -> None:
     """Generate a novel with RAG writing styles + mental state tracking."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -364,6 +371,7 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        use_reranker=use_reranker,
     )
 
     result = task.delegate_blocking(mental_rag_ns)
@@ -446,6 +454,13 @@ def write_novel_with_rag(  # noqa: PLR0913
         help="Number of writing style documents to retrieve per prompt.",
         envvar="NOVEL_RAG_LIMIT",
     ),
+    use_reranker: bool = typer.Option(
+        False,
+        "--reranker",
+        "-rr",
+        help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
+        envvar="NOVEL_USE_RERANKER",
+    ),
 ) -> None:
     """Generate a novel with RAG writing style augmentation based on the provided outline."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -471,6 +486,7 @@ def write_novel_with_rag(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        use_reranker=use_reranker,
     )
 
     result = task.delegate_blocking(rag_ns)
@@ -954,6 +970,13 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         help="Number of writing style documents to retrieve per prompt.",
         envvar="NOVEL_RAG_LIMIT",
     ),
+    use_reranker: bool = typer.Option(
+        False,
+        "--reranker",
+        "-rr",
+        help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
+        envvar="NOVEL_USE_RERANKER",
+    ),
     image_root: Path = typer.Option(
         "./illustrations",
         "--image-root",
@@ -1070,7 +1093,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
-        image_root=image_root,
+        use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,
@@ -1167,6 +1190,13 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         "-rl",
         help="Number of writing style documents to retrieve per prompt.",
         envvar="NOVEL_RAG_LIMIT",
+    ),
+    use_reranker: bool = typer.Option(
+        False,
+        "--reranker",
+        "-rr",
+        help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
+        envvar="NOVEL_USE_RERANKER",
     ),
     image_root: Path = typer.Option(
         "./illustrations",
@@ -1284,7 +1314,7 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
-        image_root=image_root,
+        use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,
