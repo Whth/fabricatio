@@ -14,3 +14,4 @@ class NovelRAGKwargs[T](ValidateKwargs[T], total=False):
     """
 
     writing_style_fetch_config: Optional[WritingStyleFetchConfig]
+    use_reranker: bool

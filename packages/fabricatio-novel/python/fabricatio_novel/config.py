@@ -54,6 +54,14 @@ class NovelConfig:
     comfyui_timeout_per_image: float = 240.0
     """Timeout in seconds per image for ComfyUI generation. Total timeout = num_images * this value."""
 
+    rerank_scale_factor: float = 3.0
+    """Multiplier for embedding search limit when reranker is enabled.
+
+    When use_reranker=True, embedding search fetches limit * rerank_scale_factor docs,
+    then the reranker filters down to the original limit. Higher values give the reranker
+    more candidates to choose from but increase embedding search cost.
+    """
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 
