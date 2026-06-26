@@ -135,6 +135,9 @@ class GenerateChaptersFromScriptsWithMentalRAG(NovelComposeMentalRAG, Action):
     writing_style_fetch_config: Optional["WritingStyleFetchConfig"] = None
     """Optional fetch configuration override for writing style retrieval."""
 
+    use_reranker: bool = False
+    """When True, embedding search fetches limit * rerank_scale_factor docs, then reranks to limit."""
+
     output_key: str = "novel_chapter_contents"
     """Key under which the generated chapter contents will be stored in context."""
 
@@ -159,6 +162,7 @@ class GenerateChaptersFromScriptsWithMentalRAG(NovelComposeMentalRAG, Action):
             self.chapter_guidance,
             character_states,
             writing_style_fetch_config=self.writing_style_fetch_config,
+            use_reranker=self.use_reranker,
         )
         if not chapter_contents:
             logger.warn("RAG+Mental chapter content generation returned empty or None.")
