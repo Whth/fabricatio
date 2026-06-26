@@ -42,6 +42,11 @@ class Scene(PersistentAble, SketchedAble, Described):
     mood: str = ""
     """Emotional atmosphere of the scene."""
 
+    def bulk_append(self, prompts: List[str]) -> Self:
+        """Append multiple prompts to the scene in a single call, joined by newlines."""
+        self.append_prompt("\n" + "\n".join(prompts))
+        return self
+
     def append_prompt(self, prompt: str) -> Self:
         """Add a prompt to the scene.
 
