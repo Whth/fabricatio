@@ -33,8 +33,8 @@ class Scene(PersistentAble, SketchedAble, Described):
     when: str = ""
     """Temporal setting of the scene (e.g. 'the next morning', 'midnight', 'three days later')."""
 
-    characters_present: List[str] = Field(default_factory=list)
-    """Names of characters who appear in this scene."""
+    characters_present: Dict[str, str] = Field(default_factory=dict)
+    """Character names mapped to their detailed acting scripts in this scene (name → what they do/how they appear)."""
 
     purpose: str = ""
     """Narrative role of this scene."""

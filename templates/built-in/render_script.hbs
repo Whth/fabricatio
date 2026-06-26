@@ -1,7 +1,7 @@
 {{#if scenes}}
 {{#each scenes as |scene index|}}
 ---[{{#if scene.location}}{{scene.location}}{{/if}}{{#if scene.when}} | {{scene.when}}{{/if}}{{#if scene.purpose}} | {{scene.purpose}}{{/if}}{{#if scene.mood}} | {{scene.mood}}{{/if}}]---
-{{#if scene.characters_present}}(Characters: {{#each scene.characters_present}}{{this}}{{#unless @last}}, {{/unless}}{{/each}})
+{{#if scene.characters_present}}(Characters: {{#each scene.characters_present}}{{@key}}({{this}}){{#unless @last}}, {{/unless}}{{/each}})
 {{/if}}{{scene.narrative}}
 {{#if scene.prompt}}(Style: {{scene.prompt}})
 {{/if}}
