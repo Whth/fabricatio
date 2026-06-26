@@ -1,6 +1,7 @@
 """Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
 
 from abc import ABC
+from asyncio import gather
 from typing import List, Optional, Unpack
 
 from fabricatio_core.utils import cfg
@@ -67,10 +68,10 @@ class NovelComposeRAG(
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
 
             # Scene-level: fetch per scene based on scene.description → scene.prompt
-            for scene in cp.script.scenes:
-                scene_docs = await self.fetch_and_rerank(scene.description, config, use_reranker)
-                for doc in scene_docs:
-                    scene.append_prompt(doc.as_prompt())
-
+            scene_results = await gather(
+                *(self.fetch_and_rerank(scene.description, config, use_reranker) for scene in cp.script.scenes)
+            )
+            for scene, scene_docs in zip(cp.script.scenes, scene_results, strict=True):
+                scene.bulk_append([doc.as_prompt() for doc in scene_docs])
         # Delegate to NovelCompose.create_chapters for actual generation
         return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)

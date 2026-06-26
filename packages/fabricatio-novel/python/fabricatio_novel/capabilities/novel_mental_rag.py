@@ -5,6 +5,7 @@ chapters with mental state tracking (seed → inject → evolve per chapter).
 """
 
 from abc import ABC
+from asyncio import gather
 from typing import TYPE_CHECKING, Dict, List, Unpack
 
 from fabricatio_character.models.character import CharacterCard
@@ -24,8 +25,8 @@ if TYPE_CHECKING:
 
 
 class NovelComposeMentalRAG(
-    NovelComposeRAG,
     NovelComposeMental,
+    NovelComposeRAG,
     ABC,
 ):
     """Novel composition with both writing style RAG and mental state tracking.
@@ -64,10 +65,11 @@ class NovelComposeMentalRAG(
                 cp.script.append_global_prompt(doc.as_prompt())
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
 
-            for scene in cp.script.scenes:
-                scene_docs = await self.fetch_and_rerank(scene.description, config, use_reranker)
+            scene_results = await gather(
+                *(self.fetch_and_rerank(scene.description, config, use_reranker) for scene in cp.script.scenes)
+            )
+            for scene, scene_docs in zip(cp.script.scenes, scene_results, strict=True):
                 for doc in scene_docs:
                     scene.append_prompt(doc.as_prompt())
-
         # Mental generation — uses augmented scripts + mental states
         return await super().create_chapters(draft, chapter_plans, characters, guidance, character_states, **kwargs)
