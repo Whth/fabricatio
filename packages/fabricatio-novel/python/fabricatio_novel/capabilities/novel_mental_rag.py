@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING, Dict, List, Unpack
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import logger
-from fabricatio_core.utils import cfg, ok
+from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
-from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbRAG  # noqa: I001
 from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
+from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
-from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
+from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 from fabricatio_novel.models.plan import ChapterPlan
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class NovelComposeMentalRAG(
-    LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig],
+    NovelComposeRAG,
     NovelComposeMental,
     ABC,
 ):
@@ -53,18 +53,19 @@ class NovelComposeMentalRAG(
         2. Mental: seed/inject/evolve character mental states per chapter.
         """
         config = kwargs.pop("writing_style_fetch_config", WritingStyleFetchConfig.default())
+        use_reranker = kwargs.pop("use_reranker", False)
 
         # RAG injection — augments chapter_plans scripts in-place
         for cp in chapter_plans:
-            script_docs: List[WritingStyleDocument] = list(
-                ok(await self.afetch_document(cp.script.as_prompt(), config))
-            )
+            # Capture query before mutation — append_global_prompt changes as_prompt() output
+            script_query = cp.script.as_prompt()
+            script_docs = await self.fetch_and_rerank(script_query, config, use_reranker)
             for doc in script_docs:
                 cp.script.append_global_prompt(doc.as_prompt())
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
 
             for scene in cp.script.scenes:
-                scene_docs: List[WritingStyleDocument] = list(ok(await self.afetch_document(scene.description, config)))
+                scene_docs = await self.fetch_and_rerank(scene.description, config, use_reranker)
                 for doc in scene_docs:
                     scene.append_prompt(doc.as_prompt())
 
