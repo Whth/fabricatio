@@ -26,8 +26,6 @@ if TYPE_CHECKING:
         UploadResponse,
     )
     from fabricatio_comfyui.models.kwargs_types import (
-        GenerateBatchKwargs,
-        GenerateKwargs,
         PollKwargs,
         QueueKwargs,
         UploadKwargs,
@@ -51,49 +49,51 @@ class Comfyui:
     async def acomfyui_generate(
         self,
         workflow: "Dict[str, Any] | Workflow",
-        **kwargs: "Unpack[GenerateKwargs]",
+        *,
+        download_dir: "str | Path | None" = None,
+        timeout: float | None = None,
+        base_url: str | None = None,
     ) -> "ComfyuiExecutionResult": ...
 
     @overload
     async def acomfyui_generate(
         self,
         workflow: "List[Dict[str, Any] | Workflow]",
-        **kwargs: "Unpack[GenerateBatchKwargs]",
+        *,
+        download_dir: "list[str | Path | None] | None" = None,
+        timeout: float | None = None,
+        base_url: str | None = None,
     ) -> "List[ComfyuiExecutionResult]": ...
 
     async def acomfyui_generate(
         self,
         workflow: "Dict[str, Any] | Workflow | List[Dict[str, Any] | Workflow]",
-        **kwargs: Any,
+        *,
+        download_dir: "str | Path | None | list[str | Path | None]" = None,
+        timeout: float | None = None,
+        base_url: str | None = None,
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Execute one or more workflows: queue all, then poll all, then download."""
+        client = ComfyuiHTTPClient.create(base_url)
+        effective_timeout = timeout or comfyui_config.timeout
+
         if isinstance(workflow, list):
             # Phase 1: submit all (parallel HTTP)
-            responses: List[PromptResponse] = list(
-                await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf) for wf in workflow))
-            )
+            responses: List[PromptResponse] = list(await gather(*(client.queue_prompt(wf) for wf in workflow)))
             logger.info(f"Batch queued {len(responses)} ComfyUI prompts")
 
             # Phase 2: wait for all (parallel polling)
-
-            timeout = kwargs.get("timeout")
-            effective_timeout = timeout or comfyui_config.timeout
             results: List[ComfyuiExecutionResult] = list(
-                await gather(
-                    *(
-                        ComfyuiHTTPClient.create(None).wait_for_completion(r.prompt_id, timeout=effective_timeout)
-                        for r in responses
-                    )
-                )
+                await gather(*(client.wait_for_completion(r.prompt_id, timeout=effective_timeout) for r in responses))
             )
 
             # Phase 3: download if needed
-            download_dirs = kwargs.get("download_dirs")
-            if download_dirs:
+            if download_dir:
+                dirs = download_dir if isinstance(download_dir, list) else [download_dir] * len(results)
                 await gather(
                     *(
-                        ComfyuiHTTPClient.create(None).download_images(result, d)
-                        for result, d in zip(results, download_dirs, strict=True)
+                        client.download_images(result, d)
+                        for result, d in zip(results, dirs, strict=True)
                         if d is not None and result.succeeded
                     )
                 )
@@ -103,15 +103,11 @@ class Comfyui:
             return results
         # Single mode — inline queue+wait+download
 
-        download_dir = kwargs.get("download_dir")
-        timeout = kwargs.get("timeout")
-        effective_timeout = timeout or comfyui_config.timeout
-
-        resp = await ComfyuiHTTPClient.create(None).queue_prompt(workflow)
-        result = await ComfyuiHTTPClient.create(None).wait_for_completion(resp.prompt_id, timeout=effective_timeout)
+        resp = await client.queue_prompt(workflow)
+        result = await client.wait_for_completion(resp.prompt_id, timeout=effective_timeout)
 
         if download_dir is not None and result.succeeded:
-            await ComfyuiHTTPClient.create(None).download_images(result, download_dir)
+            await client.download_images(result, download_dir)
 
         if result.succeeded:
             logger.info(f"ComfyUI generation completed: {len(result.all_images)} images")

@@ -10,26 +10,19 @@ from typing import Optional, TypedDict
 
 
 class GenerateKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`ComfyuiClient.generate`.
+    """Keyword arguments for :meth:`ComfyuiClient.generate` (single and batch).
 
     Controls output destination and execution timeout.
     """
 
-    download_dir: Optional[str | Path]
-    """Directory to save downloaded images. ``None`` skips download."""
+    download_dir: Optional[str | Path | list[str | Path | None]]
+    """Download path(s). Single path for one workflow, list for batch. ``None`` skips download."""
 
     timeout: Optional[float]
     """Maximum seconds to wait for completion. ``None`` uses config default."""
 
-
-class GenerateBatchKwargs(TypedDict, total=False):
-    """Keyword arguments for batch ComfyUI generation."""
-
-    download_dirs: list[str | Path | None]
-    """Per-workflow download directories. ``None`` entries skip download."""
-
-    timeout: Optional[float]
-    """Maximum seconds to wait for completion."""
+    base_url: Optional[str]
+    """ComfyUI server base URL override. ``None`` uses config default."""
 
 
 class PollKwargs(TypedDict, total=False):
