@@ -638,6 +638,13 @@ def write_illustrated_novel(  # noqa: PLR0913
         help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
         envvar="NOVEL_COMFYUI_TIMEOUT",
     ),
+    comfyui_base_url: str = typer.Option(
+        None,
+        "--comfyui-base-url",
+        "-cb",
+        help="ComfyUI server base URL (default: http://localhost:8188).",
+        envvar="NOVEL_COMFYUI_BASE_URL",
+    ),
 ) -> None:
     """Generate an illustrated novel with ComfyUI-generated images embedded in the EPUB."""
     from fabricatio_novel.workflows.illustration import DebugIllustratedNovelWorkflow
@@ -683,6 +690,7 @@ def write_illustrated_novel(  # noqa: PLR0913
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
         comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
     )
 
     result = task.delegate_blocking(illus_ns)
@@ -834,6 +842,13 @@ def write_mental_illustrated_novel(  # noqa: PLR0913
         help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
         envvar="NOVEL_COMFYUI_TIMEOUT",
     ),
+    comfyui_base_url: str = typer.Option(
+        None,
+        "--comfyui-base-url",
+        "-cb",
+        help="ComfyUI server base URL (default: http://localhost:8188).",
+        envvar="NOVEL_COMFYUI_BASE_URL",
+    ),
 ) -> None:
     """Generate a novel with mental state tracking + ComfyUI illustrations."""
     from fabricatio_novel.workflows.novel_mental import DebugMentalIllustratedNovelWorkflow
@@ -879,6 +894,7 @@ def write_mental_illustrated_novel(  # noqa: PLR0913
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
         comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
     )
 
     result = task.delegate_blocking(mental_illus_ns)
@@ -1051,6 +1067,13 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
         envvar="NOVEL_COMFYUI_TIMEOUT",
     ),
+    comfyui_base_url: str = typer.Option(
+        None,
+        "--comfyui-base-url",
+        "-cb",
+        help="ComfyUI server base URL (default: http://localhost:8188).",
+        envvar="NOVEL_COMFYUI_BASE_URL",
+    ),
 ) -> None:
     """Generate a RAG-augmented novel with ComfyUI illustrations embedded in the EPUB."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -1092,6 +1115,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         novel_language=language,
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
+        image_root=image_root,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
         use_reranker=use_reranker,
         workflow_template=workflow_template,
@@ -1100,6 +1124,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
         comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
     )
 
     result = task.delegate_blocking(rag_illus_ns)
@@ -1272,6 +1297,13 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         help="Absolute ComfyUI timeout in seconds (default: budget * 120s per image from config).",
         envvar="NOVEL_COMFYUI_TIMEOUT",
     ),
+    comfyui_base_url: str = typer.Option(
+        None,
+        "--comfyui-base-url",
+        "-cb",
+        help="ComfyUI server base URL (default: http://localhost:8188).",
+        envvar="NOVEL_COMFYUI_BASE_URL",
+    ),
 ) -> None:
     """Generate a RAG-augmented novel with mental state tracking + ComfyUI illustrations."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -1313,6 +1345,7 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         novel_language=language,
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
+        image_root=image_root,
         writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
         use_reranker=use_reranker,
         workflow_template=workflow_template,
@@ -1321,6 +1354,7 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         illustration_guideline=illust_guideline_content,
         illustration_prompt_guideline=illust_prompt_guideline_content,
         comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
     )
 
     result = task.delegate_blocking(rag_mental_illus_ns)
