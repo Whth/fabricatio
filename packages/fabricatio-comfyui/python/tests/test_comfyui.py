@@ -619,7 +619,7 @@ async def test_generate_batch_flow(tmp_path: Path) -> None:
 
         results = await role.acomfyui_generate(
             workflows,
-            download_dirs=[str(tmp_path / f"ch{i}") for i in range(3)],
+            download_dir=[str(tmp_path / f"ch{i}") for i in range(3)],
         )
 
         assert len(results) == 3
