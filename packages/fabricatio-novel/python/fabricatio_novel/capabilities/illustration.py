@@ -28,6 +28,32 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class IllustrationOptions:
+    """User-facing configuration for the illustration pipeline."""
+
+    workflow_template: Optional[Path] = None
+    """Path to a ComfyUI API-format JSON workflow file. Defaults to bundled demo."""
+
+    budget: int = 5
+    """Total number of images to generate across all chapters."""
+
+    language: str = "en"
+    """Language for illustration prompt generation."""
+
+    guideline: Optional[str] = None
+    """Optional extra guideline for paragraph selection."""
+
+    prompt_guideline: Optional[str] = None
+    """Optional extra guideline for image prompt wording."""
+
+    comfyui_timeout: Optional[float] = None
+    """Absolute ComfyUI timeout in seconds. ``None`` uses budget-scaled default from config."""
+
+    comfyui_base_url: Optional[str] = None
+    """ComfyUI server base URL override. ``None`` uses config default (http://localhost:8188)."""
+
+
+@dataclass
 class IllustrationContext:
     """Shared state for the illustration pipeline, constant across all chapters."""
 
@@ -40,6 +66,9 @@ class IllustrationContext:
     base_looks: dict[str, str]
     comfyui_timeout_per_image: float
     """Per-image ComfyUI timeout in seconds. Multiply by chapter budget for total timeout."""
+
+    comfyui_base_url: Optional[str] = None
+    """ComfyUI server base URL override. ``None`` uses config default."""
 
 
 def _inject_images(paras: list[str], picks: dict[int, str], image_dir: Path) -> list[str]:
@@ -149,10 +178,9 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
     Usage:
         novel = await self.compose_novel(outline, language)
         novel = await self.inject_chapter_images(
-            novel, image_root, workflow_template,
-            budget=5,
-            guideline="High tension moments.",
-            prompt_guideline="Cinematic lighting, painterly style.",
+            novel, image_root,
+            IllustrationOptions(workflow_template=..., budget=5, guideline="High tension moments.",
+                               prompt_guideline="Cinematic lighting, painterly style."),
         )
         DumpNovel(novel=novel, output_path=..., image_root=image_root).execute()
     """
@@ -185,47 +213,43 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         self,
         novel: Novel,
         image_root: Path,
-        workflow_template: Optional[Path] = None,
-        budget: int = 5,
-        language: str = "en",
-        guideline: Optional[str] = None,
-        prompt_guideline: Optional[str] = None,
-        comfyui_timeout: Optional[float] = None,
+        opts: IllustrationOptions | None = None,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Novel:
         """Two-phase image injection pipeline."""
-        if budget <= 0:
+        opts = opts or IllustrationOptions()
+        if opts.budget <= 0:
             logger.info("Illustration budget is 0, skipping.")
             return novel
 
-        logger.info(f"Phase 1: Allocating budget={budget} across {len(novel.chapters)} chapters")
+        logger.info(f"Phase 1: Allocating budget={opts.budget} across {len(novel.chapters)} chapters")
 
         # Render guidelines from templates
         rendered_guideline = (
             TEMPLATE_MANAGER.render_template(
                 novel_config.illustration_selection_guideline_template,
-                {"guideline": guideline, "language": language},
+                {"guideline": opts.guideline, "language": opts.language},
             )
-            if guideline
+            if opts.guideline
             else None
         )
         rendered_prompt_guideline = (
             TEMPLATE_MANAGER.render_template(
                 novel_config.image_prompt_guideline_template,
-                {"prompt_guideline": prompt_guideline, "language": language},
+                {"prompt_guideline": opts.prompt_guideline, "language": opts.language},
             )
-            if prompt_guideline
+            if opts.prompt_guideline
             else None
         )
 
         # Generate base physical appearances for character consistency
-        base_looks = await self._generate_base_looks(novel, language)
+        base_looks = await self._generate_base_looks(novel, opts.language)
 
         # Phase 1: allocate budget across chapters
         budget_map = await self._allocate_budget(
             novel,
-            budget,
-            language,
+            opts.budget,
+            opts.language,
             rendered_guideline,
             **kwargs,
         )
@@ -234,17 +258,22 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
             return novel
 
         # Phase 2: per-chapter illustration (parallel)
-        base_wf = Workflow.from_file(workflow_template) if workflow_template else Workflow.default()
-        per_image = comfyui_timeout / budget if comfyui_timeout is not None else novel_config.comfyui_timeout_per_image
+        base_wf = Workflow.from_file(opts.workflow_template) if opts.workflow_template else Workflow.default()
+        per_image = (
+            opts.comfyui_timeout / opts.budget
+            if opts.comfyui_timeout is not None
+            else novel_config.comfyui_timeout_per_image
+        )
         ctx = IllustrationContext(
             novel=novel,
             image_root=image_root,
             base_wf=base_wf,
-            language=language,
+            language=opts.language,
             guideline=rendered_guideline,
             prompt_guideline=rendered_prompt_guideline,
             base_looks=base_looks,
             comfyui_timeout_per_image=per_image,
+            comfyui_base_url=opts.comfyui_base_url,
         )
         chapter_tasks = [
             self._illustrate_chapter(ctx, chapter, budget_map.get(chapter.chapter_index, 0), **kwargs)
@@ -400,7 +429,9 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
         comfyui_timeout = len(workflows) * ctx.comfyui_timeout_per_image
         download_dirs = [str(save_dir)] * len(workflows)
-        results = await self.acomfyui_generate(workflows, download_dirs=download_dirs, timeout=comfyui_timeout)
+        results = await self.acomfyui_generate(
+            workflows, download_dir=download_dirs, timeout=comfyui_timeout, base_url=ctx.comfyui_base_url
+        )
 
         work.process_results(gen_indices, filtered_prompts, results)
 
