@@ -31,6 +31,11 @@ class NovelConfig:
     writing_styles_table_name: str = "writing_styles"
     """table name for storing writing style documents in LanceDB."""
 
+    enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
+    """template used to render enriched documents as prompts (content only, no metadata)."""
+    enriched_table_name: str = "enriched_chunks"
+    """table name for storing LLM-enriched text chunks in LanceDB."""
+
     allocate_image_budget_template: str = "built-in/allocate_image_budget"
     """template used to allocate image budget across chapters."""
 
