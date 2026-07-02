@@ -15,6 +15,15 @@ class DiffConfig:
     diff_template: str = "built-in/diff"
     """Template string for diff output."""
 
+    hashline_diff_template: str = "built-in/hashline_diff"
+    """Template for the LLM-driven hashline edit loop (self-correcting)."""
+
+    hashline_judge_template: str = "built-in/hashline_judge"
+    """Template for the YES/NO satisfaction judge inside the hashline edit loop."""
+
+    hashline_diff_max_iterations: int = 5
+    """Maximum LLM iterations for the hashline edit loop before giving up."""
+
 
 diff_config = CONFIG.load("diff", DiffConfig)
 
