@@ -1454,4 +1454,96 @@ def store_reference_texts(
         _exit_on_error("❌ Failed to store writing style reference texts.")
 
 
+@app.command(name="enrich-refs")
+@cfg_on(["lancedb"])
+def store_enriched_texts(
+    patterns: list[str] = typer.Argument(
+        ...,
+        help="File paths and/or glob patterns to enrich and ingest (e.g. 'corpus/*.txt').",
+    ),
+    enrich_guideline: str = typer.Option(
+        "",
+        "--enrich-guideline",
+        "-eg",
+        help="Guidance passed to the LLM for QA-pair generation (e.g. 'Extract world-building facts').",
+    ),
+    chunk_guideline: str = typer.Option(
+        "",
+        "--chunk-guideline",
+        "-cg",
+        help="Guidance passed to the LLM for semantic splitting of source files (e.g. 'Split on scene boundaries').",
+    ),
+    chunk_max_size: int = typer.Option(5, "--chunk-max-size", "-cmx", help="Maximum mini-chunks per output chunk."),
+    chunk_min_size: int = typer.Option(2, "--chunk-min-size", "-cmn", help="Minimum mini-chunks per output chunk."),
+    mini_chunk_size: Optional[int] = typer.Option(
+        None,
+        "--mini-chunk-size",
+        "-mcs",
+        help="Mini-chunk character size (defaults to rag_config.mini_chunk_size).",
+    ),
+    ndim: Optional[int] = typer.Option(
+        None,
+        "--ndim",
+        "-nd",
+        help="Embedding vector dimensionality. Must match the embedding model's output dimension.",
+        envvar="FABRICATIO_EMBEDDING__NDIM",
+    ),
+    embedding_send_to: Optional[str] = typer.Option(
+        None,
+        "--send-to",
+        "-st",
+        help="Routing group for embedding requests.",
+        envvar="FABRICATIO_EMBEDDING__SEND_TO",
+    ),
+    batch_size: int = typer.Option(
+        10, "--batch-size", "-bs", help="Number of chunks per storage batch.", envvar="NOVEL_BATCH_SIZE"
+    ),
+    parallel_size: int = typer.Option(
+        10, "--parallel-size", "-ps", help="Number of worker sending embedding reqs.", envvar="NOVEL_PARALLEL_SIZE"
+    ),
+) -> None:
+    """Ingest text files as LLM-enriched QA chunks into the LanceDB vector store.
+
+    Each input file is read, semantically split via `PreciseChunkText.precise_chunk`,
+    fed chunk-by-chunk to `EnrichChunkTextNovel.enrich` to produce question-answer
+    pairs, and each pair is indexed as a separate `EnrichedDocument`. This is a
+    standalone operation — it does not trigger novel generation.
+    """
+    from fabricatio_novel.models.novel_enrich import EnrichedAddConfig
+    from fabricatio_novel.workflows.novel_enrich import StoreEnrichedTextsWorkflow
+
+    enrich_refs_ns = "enrich_refs"
+    Role.with_bio(name="enriched_ref_ingester").subscribe(
+        Event.quick_instantiate(enrich_refs_ns), StoreEnrichedTextsWorkflow
+    ).dispatch()
+
+    files = _collect_files(patterns)
+
+    typer.echo(f"Enriching and ingesting {len(files)} file(s)...")
+    for f in files:
+        typer.echo(f"  • {f}")
+
+    conf = EnrichedAddConfig.default()
+    conf.embedding_batch_size = batch_size
+    conf.embedding_parallel_size = parallel_size
+    task = Task(name="Store LLM-enriched QA chunks").update_init_context(
+        text_files=files,
+        enrich_guideline=enrich_guideline,
+        chunk_guideline=chunk_guideline,
+        chunk_max_size=chunk_max_size,
+        chunk_min_size=chunk_min_size,
+        mini_chunk_size=mini_chunk_size,
+        store_config=conf,
+        embedding_ndim=ndim,
+        embedding_send_to=embedding_send_to,
+    )
+
+    result = task.delegate_blocking(enrich_refs_ns)
+
+    if result is not None:
+        typer.secho(f"✅ Successfully stored {result} enriched QA chunk(s).", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to store enriched QA chunks.")
+
+
 __all__ = ["app"]
