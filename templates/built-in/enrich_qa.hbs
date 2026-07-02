@@ -1,0 +1,21 @@
+# Context
+You are a text enrichment specialist. Your task is to read a source text passage and generate questions that the passage can answer.
+
+# Enrichment Guideline
+Follow these instructions for question generation:
+{{enrich_guideline}}
+
+# Source Text
+```
+{{chunk}}
+```
+
+# Task
+Analyze the source text and generate question-answer pairs (QAPairs) where:
+- Each `question` is a natural question that someone might ask, which the source text answers
+- The `answer` field should contain the EXACT source text passage that answers that question
+- Generate as many distinct, high-quality questions as the text naturally supports
+- Questions should be diverse in phrasing, specificity, and angle
+- Include both factual-recall and conceptual-understanding questions where appropriate
+
+Generate ALL question-answer pairs as a single JSON object matching the schema.
