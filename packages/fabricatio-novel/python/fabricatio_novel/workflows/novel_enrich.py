@@ -7,7 +7,6 @@ from fabricatio_core import WorkFlow
 
 from fabricatio_novel.actions.enrich import StoreEnrichedTexts
 
-
 # ==============================
 # 📥 LLM-Enriched Reference Ingestion (Standalone)
 # ==============================
