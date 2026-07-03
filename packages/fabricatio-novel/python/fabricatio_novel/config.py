@@ -66,6 +66,10 @@ class NovelConfig:
     then the reranker filters down to the original limit. Higher values give the reranker
     more candidates to choose from but increase embedding search cost.
     """
+    refined_query_template: str = "built-in/refined_query"
+    """Template name used by `RAG.arefined_query` to expand a raw user writing-style query
+    into multiple semantically-diverse queries before LanceDB retrieval. Override via
+    `WritingStyleFetchConfig.refine_query_template` per call."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)
