@@ -345,6 +345,27 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
         help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
         envvar="NOVEL_USE_RERANKER",
     ),
+    use_refined_query: bool = typer.Option(
+        False,
+        "--use-refined-query",
+        "-urq",
+        help="Refine the RAG query via LLM into multiple semantically-diverse variants before retrieval.",
+        envvar="NOVEL_USE_REFINED_QUERY",
+    ),
+    refined_query_count: int = typer.Option(
+        3,
+        "--refined-query-count",
+        "-rqc",
+        help="Number of refined query variants to produce when --use-refined-query is set.",
+        envvar="NOVEL_REFINED_QUERY_COUNT",
+    ),
+    refine_query_template: str = typer.Option(
+        "built-in/refined_query",
+        "--refine-query-template",
+        "-rqt",
+        help="Template name used for LLM-based query refinement. Override to use a custom template.",
+        envvar="NOVEL_REFINE_QUERY_TEMPLATE",
+    ),
 ) -> None:
     """Generate a novel with RAG writing styles + mental state tracking."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -360,6 +381,8 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
 
     typer.echo(f"Starting RAG+Mental novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
+    if use_refined_query:
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
 
     task = Task(name="Write novel with RAG+Mental").update_init_context(
         novel_outline=outline_content,
@@ -370,7 +393,12 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
         novel_language=language,
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
-        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+            use_refined_query=use_refined_query,
+            refined_query_count=refined_query_count,
+            refine_query_template=refine_query_template,
+        ),
         use_reranker=use_reranker,
     )
 
@@ -461,6 +489,27 @@ def write_novel_with_rag(  # noqa: PLR0913
         help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
         envvar="NOVEL_USE_RERANKER",
     ),
+    use_refined_query: bool = typer.Option(
+        False,
+        "--use-refined-query",
+        "-urq",
+        help="Refine the RAG query via LLM into multiple semantically-diverse variants before retrieval.",
+        envvar="NOVEL_USE_REFINED_QUERY",
+    ),
+    refined_query_count: int = typer.Option(
+        3,
+        "--refined-query-count",
+        "-rqc",
+        help="Number of refined query variants to produce when --use-refined-query is set.",
+        envvar="NOVEL_REFINED_QUERY_COUNT",
+    ),
+    refine_query_template: str = typer.Option(
+        "built-in/refined_query",
+        "--refine-query-template",
+        "-rqt",
+        help="Template name used for LLM-based query refinement. Override to use a custom template.",
+        envvar="NOVEL_REFINE_QUERY_TEMPLATE",
+    ),
 ) -> None:
     """Generate a novel with RAG writing style augmentation based on the provided outline."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -475,6 +524,8 @@ def write_novel_with_rag(  # noqa: PLR0913
 
     typer.echo(f"Starting RAG novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
+    if use_refined_query:
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
 
     task = Task(name="Write novel with RAG").update_init_context(
         novel_outline=outline_content,
@@ -485,7 +536,12 @@ def write_novel_with_rag(  # noqa: PLR0913
         novel_language=language,
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
-        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+            use_refined_query=use_refined_query,
+            refined_query_count=refined_query_count,
+            refine_query_template=refine_query_template,
+        ),
         use_reranker=use_reranker,
     )
 
@@ -993,6 +1049,27 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
         envvar="NOVEL_USE_RERANKER",
     ),
+    use_refined_query: bool = typer.Option(
+        False,
+        "--use-refined-query",
+        "-urq",
+        help="Refine the RAG query via LLM into multiple semantically-diverse variants before retrieval.",
+        envvar="NOVEL_USE_REFINED_QUERY",
+    ),
+    refined_query_count: int = typer.Option(
+        3,
+        "--refined-query-count",
+        "-rqc",
+        help="Number of refined query variants to produce when --use-refined-query is set.",
+        envvar="NOVEL_REFINED_QUERY_COUNT",
+    ),
+    refine_query_template: str = typer.Option(
+        "built-in/refined_query",
+        "--refine-query-template",
+        "-rqt",
+        help="Template name used for LLM-based query refinement. Override to use a custom template.",
+        envvar="NOVEL_REFINE_QUERY_TEMPLATE",
+    ),
     image_root: Path = typer.Option(
         "./illustrations",
         "--image-root",
@@ -1105,6 +1182,8 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
 
     typer.echo(f"Starting RAG + illustrated novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
+    if use_refined_query:
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
 
     task = Task(name="Write RAG illustrated novel").update_init_context(
         novel_outline=outline_content,
@@ -1116,7 +1195,12 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         image_root=image_root,
-        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+            use_refined_query=use_refined_query,
+            refined_query_count=refined_query_count,
+            refine_query_template=refine_query_template,
+        ),
         use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
@@ -1222,6 +1306,27 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         "-rr",
         help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
         envvar="NOVEL_USE_RERANKER",
+    ),
+    use_refined_query: bool = typer.Option(
+        False,
+        "--use-refined-query",
+        "-urq",
+        help="Refine the RAG query via LLM into multiple semantically-diverse variants before retrieval.",
+        envvar="NOVEL_USE_REFINED_QUERY",
+    ),
+    refined_query_count: int = typer.Option(
+        3,
+        "--refined-query-count",
+        "-rqc",
+        help="Number of refined query variants to produce when --use-refined-query is set.",
+        envvar="NOVEL_REFINED_QUERY_COUNT",
+    ),
+    refine_query_template: str = typer.Option(
+        "built-in/refined_query",
+        "--refine-query-template",
+        "-rqt",
+        help="Template name used for LLM-based query refinement. Override to use a custom template.",
+        envvar="NOVEL_REFINE_QUERY_TEMPLATE",
     ),
     image_root: Path = typer.Option(
         "./illustrations",
@@ -1335,6 +1440,8 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
 
     typer.echo(f"Starting RAG+Mental+Illustrated novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
+    if use_refined_query:
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
 
     task = Task(name="Write RAG mental illustrated novel").update_init_context(
         novel_outline=outline_content,
@@ -1346,7 +1453,12 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         chapter_guidance=guidance_content,
         persist_dir=persist_dir,
         image_root=image_root,
-        writing_style_fetch_config=WritingStyleFetchConfig(limit=rag_limit),
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+            use_refined_query=use_refined_query,
+            refined_query_count=refined_query_count,
+            refine_query_template=refine_query_template,
+        ),
         use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
@@ -1456,7 +1568,7 @@ def store_reference_texts(
 
 @app.command(name="enrich-refs")
 @cfg_on(["lancedb"])
-def store_enriched_texts(
+def store_enriched_texts(  # noqa: PLR0913
     patterns: list[str] = typer.Argument(
         ...,
         help="File paths and/or glob patterns to enrich and ingest (e.g. 'corpus/*.txt').",
