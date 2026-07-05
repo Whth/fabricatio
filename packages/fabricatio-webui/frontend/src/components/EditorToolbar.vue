@@ -67,7 +67,7 @@ function cancelEditName() {
           @blur="saveName"
           @keydown.enter="saveName"
           @keydown.escape="cancelEditName"
-          @focus="$event.target.select()"
+          @focus="($event.target as HTMLInputElement).select()"
           ref="nameInputRef"
         />
         <span v-else class="name-display">{{ workflowName }}</span>

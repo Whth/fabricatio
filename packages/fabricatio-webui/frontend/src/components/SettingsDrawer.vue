@@ -8,6 +8,7 @@ import {
   Save,
   RotateCcw,
 } from '@lucide/vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 defineProps<{
   show: boolean
@@ -26,9 +27,34 @@ function onKeyDown(e: KeyboardEvent) {
   }
 }
 
-import { onMounted, onUnmounted } from 'vue'
 onMounted(() => document.addEventListener('keydown', onKeyDown))
 onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
+
+const gridSnap = ref(localStorage.getItem('workflow:gridsnap') !== 'false')
+const autosave = ref(localStorage.getItem('workflow:autosave') !== 'false')
+const maxHistory = ref(Number(localStorage.getItem('workflow:maxHistory') || 50))
+
+function copyServerUrl() {
+  navigator.clipboard.writeText('http://127.0.0.1:9846')
+}
+
+function onGridSnapChange(e: Event) {
+  const v = (e.target as HTMLInputElement).checked
+  gridSnap.value = v
+  localStorage.setItem('workflow:gridsnap', String(v))
+}
+
+function onAutosaveChange(e: Event) {
+  const v = (e.target as HTMLInputElement).checked
+  autosave.value = v
+  localStorage.setItem('workflow:autosave', String(v))
+}
+
+function onMaxHistoryChange(e: Event) {
+  const v = Number((e.target as HTMLInputElement).value) || 50
+  maxHistory.value = v
+  localStorage.setItem('workflow:maxHistory', String(v))
+}
 </script>
 
 <template>
@@ -58,10 +84,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
               <button class="btn btn-sm" @click="ws.disconnect(); ws.connect()">
                 <RotateCcw :size="12" /> Reconnect now
               </button>
-              <button
-                class="btn btn-sm"
-                @click="navigator.clipboard.writeText('http://127.0.0.1:9846')"
-              >
+              <button class="btn btn-sm" @click="copyServerUrl">
                 Copy server URL
               </button>
             </div>
@@ -82,13 +105,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
               <label>
                 <input
                   type="checkbox"
-                  :checked="localStorage.getItem('workflow:gridsnap') !== 'false'"
-                  @change="
-                    localStorage.setItem(
-                      'workflow:gridsnap',
-                      String(($event.target as HTMLInputElement).checked),
-                    )
-                  "
+                  :checked="gridSnap"
+                  @change="onGridSnapChange"
                 />
               </label>
             </div>
@@ -97,13 +115,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
               <label>
                 <input
                   type="checkbox"
-                  :checked="localStorage.getItem('workflow:autosave') !== 'false'"
-                  @change="
-                    localStorage.setItem(
-                      'workflow:autosave',
-                      String(($event.target as HTMLInputElement).checked),
-                    )
-                  "
+                  :checked="autosave"
+                  @change="onAutosaveChange"
                 />
               </label>
             </div>
@@ -112,13 +125,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
               <input
                 type="number"
                 class="s-input"
-                :value="Number(localStorage.getItem('workflow:maxHistory') || 50)"
-                @change="
-                  localStorage.setItem(
-                    'workflow:maxHistory',
-                    ($event.target as HTMLInputElement).value,
-                  )
-                "
+                :value="maxHistory"
+                @change="onMaxHistoryChange"
                 min="10"
                 max="200"
                 style="width: 64px"
