@@ -140,14 +140,14 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
 - [x] Use `stubgen` feat and `cfg_attr` to make the stub generation as an opt-in for all mixed packages.
 - [x] Use `Thryd` impl to move some requests to rust side
     - [x] All core LLM operations already routed through `rust.router_usage`
-- [ ] Add Texts-based skill system, as a subpackage
-    - [ ] Skill YAML/JSON schema + loader + directory scanner
-    - [ ] Wire into Role + validation + example skill file + tests
+- [x] Add Texts-based skill system, as a subpackage
+    - [x] Skill YAML/JSON schema + loader + directory scanner
+    - [x] Wire into Role + validation + example skill file + tests
 - [x] Port build workflow to `Justfile`
 - [x] `thryd::Router` use concurrent safe impl
 - [x] Extract `Router` from `fabricatio-core` into standalone `fabricatio-router` crate
 - [x] Replace parser with native rust impl
-- [ ] Better memory impl
+- [x] Better memory impl
 - [x] RAG package refactor, move rerank and embedding to `thryd`
     - [x] Add Reranker support in `thryd`
     - [x] TEI as `Provider` in thryd (RerankerModel for OpenAI-compat: wontfix — OpenAI doesn't support rerankers)
