@@ -1,3 +1,4 @@
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 // ── Node Registry ────────────────────────────────────────────────────────────
@@ -118,33 +119,47 @@ pub enum ExecutionState {
 pub enum WsMessage {
     ExecutionStart {
         execution_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     NodeStart {
         execution_id: String,
         node_id: String,
         node_type: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     NodeDone {
         execution_id: String,
         node_id: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         output: Option<serde_json::Value>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     NodeError {
         execution_id: String,
         node_id: String,
         error: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        traceback: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     NodeOutput {
         execution_id: String,
         node_id: String,
         output_key: String,
         data: serde_json::Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     LlmToken {
         execution_id: String,
         node_id: String,
         token: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     ExecutionDone {
         execution_id: String,
@@ -152,11 +167,36 @@ pub enum WsMessage {
         result: Option<serde_json::Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        timestamp: Option<String>,
     },
     Status {
         queue_length: usize,
         running_count: usize,
     },
+}
+
+impl WsMessage {
+    /// Inject `timestamp = Some(Utc::now().to_rfc3339())` into every variant
+    /// that carries a timestamp field.  Idempotent — keeps an existing timestamp.
+    pub fn with_timestamp(mut self) -> Self {
+        let now = Utc::now().to_rfc3339();
+        match &mut self {
+            Self::ExecutionStart { timestamp, .. }
+            | Self::NodeStart { timestamp, .. }
+            | Self::NodeDone { timestamp, .. }
+            | Self::NodeError { timestamp, .. }
+            | Self::NodeOutput { timestamp, .. }
+            | Self::LlmToken { timestamp, .. }
+            | Self::ExecutionDone { timestamp, .. } => {
+                if timestamp.is_none() {
+                    *timestamp = Some(now);
+                }
+            }
+            Self::Status { .. } => {}
+        }
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

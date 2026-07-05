@@ -10,14 +10,26 @@ use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 
 use pyo3_stub_gen::derive::*;
 
-fn create_router(state: Arc<AppState>, frontend_dir: PathBuf) -> Router {
+fn create_router(
+    state: Arc<AppState>,
+    frontend_dir: PathBuf,
+    allowed_origins: Vec<String>,
+) -> Router {
     let static_files =
         ServeDir::new(&frontend_dir).fallback(ServeFile::new(frontend_dir.join("index.html")));
+
+    let cors = if allowed_origins.is_empty() {
+        CorsLayer::permissive()
+    } else {
+        CorsLayer::new().allow_origin(AllowOrigin::list(
+            allowed_origins.iter().filter_map(|o| o.parse().ok()),
+        ))
+    };
 
     Router::new()
         .route("/api/nodes", get(api::get_nodes))
@@ -35,7 +47,7 @@ fn create_router(state: Arc<AppState>, frontend_dir: PathBuf) -> Router {
         .route("/api/history", get(api::get_history))
         .route("/ws", get(ws::ws_handler))
         .fallback_service(static_files)
-        .layer(CorsLayer::permissive())
+        .layer(cors)
         .with_state(state)
 }
 
@@ -52,6 +64,7 @@ fn start_service<'a>(
     data_dir: PathBuf,
     addr: String,
     node_registry_json: String,
+    allowed_origins: Vec<String>,
 ) -> PyResult<Bound<'a, PyAny>> {
     let registry: Vec<NodeTypeDefinition> = serde_json::from_str(&node_registry_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -61,7 +74,7 @@ fn start_service<'a>(
         *reg = registry;
     }
 
-    let app = create_router(state, frontend_dir);
+    let app = create_router(state, frontend_dir, allowed_origins);
     info!("Server running on {addr}");
 
     future_into_py(py, async move {

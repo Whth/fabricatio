@@ -18,6 +18,18 @@ export const useExecutionStore = defineStore('execution', () => {
   const queueLength = ref(0)
   const runningCount = ref(0)
 
+  // ── Phase 8 additions ─────────────────────────────────────────────────────
+  const nodeOutputs = ref<Record<string, Record<string, unknown>>>({})
+  const nodeTimings = ref<Record<string, { startedAt: number; endedAt: number }>>({})
+  const tokenBuffer = ref<Record<string, string>>({})
+
+  const currentStreamingNode = computed(() => {
+    const running = Object.keys(nodeStatuses.value).filter(
+      (id) => nodeStatuses.value[id] === 'running',
+    )
+    return running.find((id) => tokenBuffer.value[id] !== undefined) ?? null
+  })
+
   function handleWSMessage(msg: WSMessage) {
     const notifications = useNotificationsStore()
 
@@ -25,7 +37,6 @@ export const useExecutionStore = defineStore('execution', () => {
       case 'execution_start':
         executionId.value = msg.execution_id
         executionState.value = 'running'
-        notifications.info('Execution started', `Execution ${msg.execution_id.slice(0, 8)}...`)
         break
 
       case 'node_start':
@@ -34,12 +45,34 @@ export const useExecutionStore = defineStore('execution', () => {
           ...nodeStatuses.value,
           [msg.node_id]: 'running',
         }
+        nodeTimings.value = {
+          ...nodeTimings.value,
+          [msg.node_id]: { startedAt: Date.now(), endedAt: 0 },
+        }
         break
 
       case 'node_done':
         nodeStatuses.value = {
           ...nodeStatuses.value,
           [msg.node_id]: 'done',
+        }
+        if (msg.output !== undefined) {
+          nodeOutputs.value = {
+            ...nodeOutputs.value,
+            [msg.node_id]: {
+              ...(nodeOutputs.value[msg.node_id] || {}),
+              _result: msg.output,
+            },
+          }
+        }
+        if (nodeTimings.value[msg.node_id]) {
+          nodeTimings.value = {
+            ...nodeTimings.value,
+            [msg.node_id]: {
+              ...nodeTimings.value[msg.node_id],
+              endedAt: Date.now(),
+            },
+          }
         }
         executingNodeId.value = null
         break
@@ -57,23 +90,43 @@ export const useExecutionStore = defineStore('execution', () => {
             traceback: msg.traceback,
           },
         ]
+        if (nodeTimings.value[msg.node_id]) {
+          nodeTimings.value = {
+            ...nodeTimings.value,
+            [msg.node_id]: {
+              ...nodeTimings.value[msg.node_id],
+              endedAt: Date.now(),
+            },
+          }
+        }
         executingNodeId.value = null
         notifications.error(`Node error: ${msg.node_id}`, msg.error.slice(0, 100))
         break
 
       case 'node_output':
-        // handled externally
+        nodeOutputs.value = {
+          ...nodeOutputs.value,
+          [msg.node_id]: {
+            ...(nodeOutputs.value[msg.node_id] || {}),
+            [msg.output_key]: msg.data,
+          },
+        }
         break
 
       case 'llm_token':
-        // handled externally
+        tokenBuffer.value = {
+          ...tokenBuffer.value,
+          [msg.node_id]: (tokenBuffer.value[msg.node_id] || '') + msg.token,
+        }
         break
 
       case 'execution_done':
-        executionState.value = 'completed'
-        result.value = msg.result
+        executionState.value = msg.error ? 'failed' : 'completed'
+        if (msg.result) result.value = msg.result
+        if (msg.error) {
+          notifications.error('Execution failed', msg.error.slice(0, 100))
+        }
         executingNodeId.value = null
-        notifications.success('Execution completed', 'Workflow finished successfully')
         break
 
       case 'status':
@@ -88,6 +141,7 @@ export const useExecutionStore = defineStore('execution', () => {
     const wfStore = useWorkflowStore()
 
     try {
+      reset()
       const workflow = wfStore.toJSON()
       const { execution_id } = await api.execute({ workflow })
       executionId.value = execution_id
@@ -121,6 +175,9 @@ export const useExecutionStore = defineStore('execution', () => {
     nodeStatuses.value = {}
     errors.value = []
     result.value = null
+    nodeOutputs.value = {}
+    nodeTimings.value = {}
+    tokenBuffer.value = {}
   }
 
   const isRunning = computed(() => executionState.value === 'running')
@@ -135,6 +192,10 @@ export const useExecutionStore = defineStore('execution', () => {
     result,
     queueLength,
     runningCount,
+    nodeOutputs,
+    nodeTimings,
+    tokenBuffer,
+    currentStreamingNode,
     handleWSMessage,
     queuePrompt,
     interrupt,

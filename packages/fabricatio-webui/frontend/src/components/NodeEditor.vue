@@ -85,18 +85,36 @@ function onPaneClick() {
   wfStore.selectNode(null)
 }
 
+function onNodeDragStop(ev: { node: { id: string; position: { x: number; y: number } } }) {
+  wfStore.pushSnapshot()
+}
+
 // Keyboard shortcuts
 function handleKeyDown(ev: KeyboardEvent) {
-  // Delete selected nodes
-  if (ev.key === 'Delete' || ev.key === 'Backspace') {
-    // Don't delete if typing in an input
-    if (
-      (ev.target as HTMLElement).tagName === 'INPUT' ||
-      (ev.target as HTMLElement).tagName === 'TEXTAREA'
-    ) {
-      return
-    }
+  // Don't intercept when typing in inputs
+  if (
+    (ev.target as HTMLElement).tagName === 'INPUT' ||
+    (ev.target as HTMLElement).tagName === 'TEXTAREA'
+  ) {
+    return
+  }
 
+  // Ctrl+D / Cmd+D — duplicate selected
+  if ((ev.ctrlKey || ev.metaKey) && ev.key === 'd') {
+    ev.preventDefault()
+    const sel = getSelectedNodes.value
+    for (const n of sel) {
+      const data = n.data as unknown as FabricatioNodeData
+      if (!data) continue
+      const typeDef = wfStore.nodeTypes.find((t) => t.type === data.nodeType)
+      if (!typeDef) continue
+      wfStore.addNode(typeDef, { x: n.position.x + 40, y: n.position.y + 40 })
+    }
+    return
+  }
+
+  // Delete / Backspace — remove selected nodes
+  if (ev.key === 'Delete' || ev.key === 'Backspace') {
     const selectedNodes = getSelectedNodes.value
     const selectedEdges = getSelectedEdges.value
     if (selectedNodes.length > 0 || selectedEdges.length > 0) {
@@ -217,6 +235,7 @@ function onDrop(ev: DragEvent) {
       fit-view-on-init
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
+      @node-drag-stop="onNodeDragStop"
     >
       <Background :gap="16" :size="1" pattern-color="#30363d" />
       <Controls position="bottom-left" />

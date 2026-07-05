@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import type { NodeTypeDefinition } from '@/types/api'
 import {
-  Package,
   Search,
   X,
   ChevronRight,
@@ -14,40 +13,90 @@ import {
   Folder,
   Link,
   Settings,
+  Star,
+  GripVertical,
 } from '@lucide/vue'
-
-const props = defineProps<{
-  visible: boolean
-}>()
-
-const emit = defineEmits<{
-  'update:visible': [value: boolean]
-}>()
-
-const CATEGORY_CONFIG: Record<string, { icon: typeof MessageSquare; color: string }> = {
-  llm: { icon: MessageSquare, color: '#a371f7' },
-  novel: { icon: BookOpen, color: '#3fb950' },
-  comfyui: { icon: Palette, color: '#f778ba' },
-  rag: { icon: Search, color: '#d2a8ff' },
-  io: { icon: Folder, color: '#79c0ff' },
-  data: { icon: Link, color: '#ffa657' },
-  general: { icon: Settings, color: '#8b949e' },
-}
+import { categoryColor } from '@/utils/categoryColors'
 
 const wfStore = useWorkflowStore()
-const search = ref('')
-const collapsed = ref<Record<string, boolean>>({})
-const hoveredItem = ref<NodeTypeDefinition | null>(null)
-const hoverPos = ref<{ x: number; y: number } | null>(null)
-const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+import { usePaletteShortcuts } from '@/composables/usePaletteShortcuts'
+// ── Category config (icons + colour keys) ───────────────────────────────────
+const CATEGORY_ICON: Record<string, typeof MessageSquare> = {
+  llm: MessageSquare,
+  novel: BookOpen,
+  comfyui: Palette,
+  rag: Search,
+  io: Folder,
+  data: Link,
+  general: Settings,
+}
 
-onMounted(async () => {
+function categoryIcon(cat: string) {
+  return CATEGORY_ICON[cat] || Settings
+}
+
+// ── Favourites (localStorage) ───────────────────────────────────────────────
+const FAV_KEY = 'node-palette:favorites'
+
+function loadFavorites(): Set<string> {
   try {
-    await wfStore.loadNodeTypes()
+    const raw = localStorage.getItem(FAV_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
   } catch {
-    /* API will be available at runtime */
+    return new Set()
   }
-})
+}
+
+const favorites = ref<Set<string>>(loadFavorites())
+
+function persistFavorites() {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favorites.value]))
+}
+
+function toggleFavorite(nt: NodeTypeDefinition) {
+  const s = new Set(favorites.value)
+  if (s.has(nt.type)) s.delete(nt.type)
+  else s.add(nt.type)
+  favorites.value = s
+  persistFavorites()
+}
+
+// ── Collapse (localStorage) ─────────────────────────────────────────────────
+const COLLAPSE_KEY = 'node-palette:collapsed'
+
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+const collapsed = ref<Record<string, boolean>>(loadCollapsed())
+
+function persistCollapsed() {
+  localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed.value))
+}
+
+function toggleCategory(cat: string) {
+  collapsed.value = { ...collapsed.value, [cat]: !collapsed.value[cat] }
+  persistCollapsed()
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+const search = ref('')
+const searchInput = ref<HTMLInputElement | null>(null)
+
+function focusSearch() {
+  searchInput.value?.focus()
+}
+usePaletteShortcuts(focusSearch)
+
+function clearSearch() {
+  search.value = ''
+  searchInput.value?.focus()
+}
 
 const filteredTypes = computed<NodeTypeDefinition[]>(() => {
   const q = search.value.toLowerCase().trim()
@@ -56,10 +105,13 @@ const filteredTypes = computed<NodeTypeDefinition[]>(() => {
     (nt) =>
       nt.title.toLowerCase().includes(q) ||
       nt.type.toLowerCase().includes(q) ||
-      nt.category.toLowerCase().includes(q),
+      nt.category.toLowerCase().includes(q) ||
+      nt.description.toLowerCase().includes(q) ||
+      (nt.capabilities || []).some((c) => c.toLowerCase().includes(q)),
   )
 })
 
+// ── Grouping ────────────────────────────────────────────────────────────────
 const groupedByCategory = computed(() => {
   const groups: Record<string, NodeTypeDefinition[]> = {}
   for (const nt of filteredTypes.value) {
@@ -70,12 +122,12 @@ const groupedByCategory = computed(() => {
   return groups
 })
 
+const categoryOrder = Object.keys(CATEGORY_ICON)
+
 const sortedCategories = computed(() => {
   return Object.keys(groupedByCategory.value).sort((a, b) => {
-    // Keep original order from CATEGORY_CONFIG, then alphabetical
-    const order = Object.keys(CATEGORY_CONFIG)
-    const aIdx = order.indexOf(a)
-    const bIdx = order.indexOf(b)
+    const aIdx = categoryOrder.indexOf(a)
+    const bIdx = categoryOrder.indexOf(b)
     if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
     if (aIdx !== -1) return -1
     if (bIdx !== -1) return 1
@@ -83,29 +135,21 @@ const sortedCategories = computed(() => {
   })
 })
 
-function toggleCategory(cat: string) {
-  collapsed.value = {
-    ...collapsed.value,
-    [cat]: !collapsed.value[cat],
-  }
-}
+const favItems = computed(() => {
+  return filteredTypes.value.filter((nt) => favorites.value.has(nt.type))
+})
 
-function getCategoryConfig(category: string) {
-  return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.general
-}
-
-function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
-  if (!ev.dataTransfer) return
-  ev.dataTransfer.setData('application/fabricatio-node-type', JSON.stringify(nodeType))
-  ev.dataTransfer.effectAllowed = 'copy'
-}
+// ── Hover preview ───────────────────────────────────────────────────────────
+const hoveredItem = ref<NodeTypeDefinition | null>(null)
+const hoverPos = ref<{ x: number; y: number } | null>(null)
+const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 function onItemEnter(e: MouseEvent, nt: NodeTypeDefinition) {
   if (hoverTimeout.value) clearTimeout(hoverTimeout.value)
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   hoverTimeout.value = setTimeout(() => {
     hoveredItem.value = nt
-    hoverPos.value = { x: rect.right + 4, y: rect.top }
+    hoverPos.value = { x: rect.right + 8, y: rect.top }
   }, 200)
 }
 
@@ -118,105 +162,133 @@ function onItemLeave() {
   hoverPos.value = null
 }
 
-function close() {
-  emit('update:visible', false)
-  search.value = ''
+// ── Actions ─────────────────────────────────────────────────────────────────
+function onClickInsert(nt: NodeTypeDefinition) {
+  const canvas = document.querySelector('.vue-flow') as HTMLElement | null
+  const cx = canvas ? canvas.clientWidth / 2 : 400
+  const cy = canvas ? canvas.clientHeight / 2 : 300
+  wfStore.addNode(nt, { x: cx - 80, y: cy - 40 })
 }
 
-// Reset hovered item when panel closes
-watch(
-  () => props.visible,
-  (v) => {
-    if (!v) {
-      hoveredItem.value = null
-      if (hoverTimeout.value) {
-        clearTimeout(hoverTimeout.value)
-        hoverTimeout.value = null
-      }
-    }
-  },
-)
+function onDragStart(ev: DragEvent, nodeType: NodeTypeDefinition) {
+  if (!ev.dataTransfer) return
+  ev.dataTransfer.setData('application/fabricatio-node-type', JSON.stringify(nodeType))
+  ev.dataTransfer.effectAllowed = 'copy'
+}
+
+// ── Lifecycle ───────────────────────────────────────────────────────────────
+onMounted(async () => {
+  try {
+    await wfStore.loadNodeTypes()
+  } catch {
+    /* API will be available at runtime */
+  }
+})
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="palette-fade">
-      <div v-if="visible" class="palette-overlay" @click.self="close">
-        <Transition name="palette-slide">
-          <aside v-if="visible" class="node-palette">
-            <div class="palette-header">
-              <div class="header-content">
-                <Package :size="16" class="header-icon" />
-                <h3>Node Library</h3>
-              </div>
-              <span class="node-count">{{ filteredTypes.length }} nodes</span>
-            </div>
+  <aside class="node-palette">
+    <!-- Search -->
+    <div class="palette-search">
+      <Search :size="14" class="search-icon" />
+      <input
+        ref="searchInput"
+        v-model="search"
+        type="text"
+        placeholder="Search nodes…  ⌘K"
+        class="search-input"
+      />
+      <button v-if="search" class="search-clear" @click="clearSearch" title="Clear search">
+        <X :size="14" />
+      </button>
+    </div>
 
-            <div class="search-wrapper">
-              <Search :size="12" class="search-icon" />
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Search nodes..."
-                class="search-input"
-              />
-              <button v-if="search" class="search-clear" @click="search = ''">
-                <X :size="12" />
-              </button>
-            </div>
-
-            <div class="palette-list">
-              <div v-for="category in sortedCategories" :key="category" class="category-group">
-                <button
-                  class="category-header"
-                  @click="toggleCategory(category)"
-                  :style="{ '--category-color': getCategoryConfig(category).color }"
-                >
-                  <span class="category-toggle">
-                    <ChevronRight v-if="collapsed[category]" :size="12" />
-                    <ChevronDown v-else :size="12" />
-                  </span>
-                  <component
-                    :is="getCategoryConfig(category).icon"
-                    :size="14"
-                    class="category-icon"
-                  />
-                  <span class="category-label">{{ category }}</span>
-                  <span class="category-count">{{ groupedByCategory[category].length }}</span>
-                </button>
-
-                <div v-if="!collapsed[category]" class="category-items">
-                  <div
-                    v-for="nt in groupedByCategory[category]"
-                    :key="nt.type"
-                    class="palette-item"
-                    draggable="true"
-                    @dragstart="onDragStart($event, nt)"
-                    @mouseenter="onItemEnter($event, nt)"
-                    @mouseleave="onItemLeave"
-                  >
-                    <div class="item-content">
-                      <span class="item-title">{{ nt.type.split('.').pop() }}</span>
-                      <span v-if="nt.description" class="item-desc">{{ nt.description }}</span>
-                    </div>
-                    <span class="item-type">{{ nt.type.split('.').pop() }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="filteredTypes.length === 0" class="empty-state">
-                <Search :size="24" class="empty-icon" />
-                <span class="empty-text">No nodes match "{{ search }}"</span>
-                <button v-if="search" class="empty-clear" @click="search = ''">Clear search</button>
-              </div>
-            </div>
-          </aside>
-        </Transition>
+    <!-- Favourites -->
+    <div v-if="favItems.length > 0 && !search" class="category-section">
+      <button class="category-header" @click="toggleCategory('__fav__')">
+        <span class="category-toggle">
+          <ChevronRight v-if="collapsed['__fav__']" :size="12" />
+          <ChevronDown v-else :size="12" />
+        </span>
+        <Star :size="14" class="cat-icon-fav" />
+        <span class="category-label">Favorites</span>
+        <span class="category-count">{{ favItems.length }}</span>
+      </button>
+      <div v-if="!collapsed['__fav__']" class="category-items">
+        <button
+          v-for="nt in favItems"
+          :key="nt.type"
+          class="palette-item"
+          :style="{ '--cat-color': categoryColor(nt.category) }"
+          draggable="true"
+          @dragstart="onDragStart($event, nt)"
+          @click="onClickInsert(nt)"
+          @mouseenter="onItemEnter($event, nt)"
+          @mouseleave="onItemLeave"
+        >
+          <Star :size="12" class="item-fav" @click.stop="toggleFavorite(nt)" />
+          <GripVertical :size="12" class="item-grip" />
+          <span class="item-title">{{ nt.title }}</span>
+        </button>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
 
-  <!-- Hover info card (teleported to body, fixed positioning) -->
+    <!-- Categories -->
+    <template v-for="cat in sortedCategories" :key="cat">
+      <div class="category-section">
+        <button
+          class="category-header"
+          :style="{ '--cat-color': categoryColor(cat) }"
+          @click="toggleCategory(cat)"
+        >
+          <span class="category-toggle">
+            <ChevronRight v-if="collapsed[cat]" :size="12" />
+            <ChevronDown v-else :size="12" />
+          </span>
+          <component :is="categoryIcon(cat)" :size="14" class="cat-icon" />
+          <span class="category-label">{{ cat }}</span>
+          <span class="category-count">{{ groupedByCategory[cat].length }}</span>
+        </button>
+        <div v-if="!collapsed[cat]" class="category-items">
+          <button
+            v-for="nt in groupedByCategory[cat]"
+            :key="nt.type"
+            class="palette-item"
+            :style="{ '--cat-color': categoryColor(nt.category) }"
+            draggable="true"
+            @dragstart="onDragStart($event, nt)"
+            @click="onClickInsert(nt)"
+            @mouseenter="onItemEnter($event, nt)"
+            @mouseleave="onItemLeave"
+          >
+            <Star
+              :size="12"
+              class="item-fav"
+              :class="{ active: favorites.has(nt.type) }"
+              @click.stop="toggleFavorite(nt)"
+            />
+            <GripVertical :size="12" class="item-grip" />
+            <span class="item-title">{{ nt.title }}</span>
+            <span class="item-type">{{ nt.type.split('.').pop() }}</span>
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty state -->
+    <div v-if="filteredTypes.length === 0 && wfStore.nodeTypes.length > 0" class="empty-state">
+      <p>No nodes match "<strong>{{ search }}</strong>".</p>
+      <p class="empty-hint">Try a different search term or check the spelling.</p>
+      <button class="btn-clear" @click="clearSearch">Clear search</button>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="wfStore.nodeTypes.length === 0" class="empty-state">
+      <p>Loading node types…</p>
+    </div>
+  </aside>
+
+  <!-- Hover preview card -->
   <Teleport to="body">
     <div
       v-if="hoveredItem && hoverPos"
@@ -225,427 +297,268 @@ watch(
     >
       <div class="hover-title">{{ hoveredItem.title }}</div>
       <div v-if="hoveredItem.description" class="hover-desc">{{ hoveredItem.description }}</div>
-      <div
-        v-if="
-          (!hoveredItem.description || hoveredItem.description.trim() === '') &&
-          (!hoveredItem.input_ports || hoveredItem.input_ports.length === 0) &&
-          (!hoveredItem.output_ports || hoveredItem.output_ports.length === 0)
-        "
-        class="hover-empty"
-      >
-        No details available
-      </div>
-      <div v-if="hoveredItem.input_ports && hoveredItem.input_ports.length > 0" class="hover-ports">
-        <div class="hover-ports-label">Input Ports</div>
+      <div v-if="hoveredItem.input_ports.length" class="hover-ports">
+        <div class="hover-ports-label">Inputs</div>
         <div v-for="port in hoveredItem.input_ports" :key="port.name" class="hover-port">
           <span class="port-name">{{ port.name }}</span>
           <span class="port-sep">:</span>
           <span class="port-type">{{ port.type }}</span>
+          <span v-if="port.optional" class="port-opt">?</span>
         </div>
       </div>
-      <div
-        v-if="hoveredItem.output_ports && hoveredItem.output_ports.length > 0"
-        class="hover-ports"
-      >
-        <div class="hover-ports-label">Output Ports</div>
+      <div v-if="hoveredItem.output_ports.length" class="hover-ports">
+        <div class="hover-ports-label">Outputs</div>
         <div v-for="port in hoveredItem.output_ports" :key="port.name" class="hover-port">
           <span class="port-name">{{ port.name }}</span>
           <span class="port-sep">:</span>
           <span class="port-type">{{ port.type }}</span>
         </div>
       </div>
+      <div v-if="hoveredItem.capabilities.length" class="hover-caps">
+        <span v-for="cap in hoveredItem.capabilities" :key="cap" class="cap-tag">{{ cap }}</span>
+      </div>
     </div>
   </Teleport>
 </template>
 
 <style>
-/* Teleported content — not scoped since it renders outside component boundary */
-.palette-overlay {
-  position: fixed;
-  left: 40px;
-  top: 48px;
-  width: 280px;
-  bottom: 0;
-  z-index: 800;
-}
-
+/* ── Sidebar (global, no scoping needed) ── */
 .node-palette {
-  position: fixed;
-  left: 40px;
-  top: 48px;
-  bottom: 0;
-  width: 280px;
-  background: #161b22;
-  border-right: 1px solid #30363d;
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  background: var(--bg-1, #161b22);
+  border-right: 1px solid var(--border, #30363d);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 800;
-}
-
-.hover-card {
-  position: fixed;
-  z-index: 950;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  padding: 12px;
-  min-width: 200px;
-  max-width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
-.hover-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-  margin-bottom: 4px;
-}
-
-.hover-desc {
-  font-size: 12px;
-  color: #8b949e;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.hover-empty {
-  font-size: 12px;
-  color: #484f58;
-  font-style: italic;
-}
-
-.hover-ports {
-  margin-top: 6px;
-}
-
-.hover-ports-label {
-  font-size: 11px;
-  color: #58a6ff;
-  font-weight: 600;
-  margin-bottom: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.hover-port {
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.hover-port .port-name {
-  color: #e6edf3;
-}
-
-.hover-port .port-sep {
-  color: #484f58;
-  margin: 0 4px;
-}
-
-.hover-port .port-type {
-  color: #8b949e;
-}
-</style>
-
-<style scoped>
-/* ── Transitions ── */
-.palette-fade-enter-active,
-.palette-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.palette-fade-enter-from,
-.palette-fade-leave-to {
-  opacity: 0;
-}
-
-.palette-slide-enter-active {
-  transition: transform 0.2s ease;
-}
-
-.palette-slide-leave-active {
-  transition: transform 0.15s ease;
-}
-
-.palette-slide-enter-from,
-.palette-slide-leave-to {
-  transform: translateX(-100%);
-}
-
-/* ── Header ── */
-.palette-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid #30363d;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-icon {
-  display: inline-flex;
-  color: #8b949e;
-}
-
-.palette-header h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-}
-
-.node-count {
-  font-size: 10px;
-  color: #484f58;
-  padding: 2px 6px;
-  background: #21262d;
-  border-radius: 10px;
 }
 
 /* ── Search ── */
-.search-wrapper {
+.palette-search {
   position: relative;
-  padding: 10px 12px;
-  border-bottom: 1px solid #21262d;
+  padding: 8px;
+  border-bottom: 1px solid var(--border, #30363d);
 }
-
 .search-icon {
   position: absolute;
-  left: 20px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #484f58;
+  color: var(--fg-1, #8b949e);
   pointer-events: none;
-  display: inline-flex;
 }
-
 .search-input {
   width: 100%;
-  padding: 8px 32px 8px 28px;
-  border: 1px solid #30363d;
+  padding: 6px 28px 6px 28px;
+  border: 1px solid var(--border, #30363d);
   border-radius: 6px;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-0, #0d1117);
+  color: var(--fg-0, #e6edf3);
   font-size: 12px;
   outline: none;
   box-sizing: border-box;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
 }
-
 .search-input:focus {
-  border-color: #58a6ff;
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  border-color: var(--accent, #58a6ff);
 }
-
-.search-input::placeholder {
-  color: #484f58;
-}
-
 .search-clear {
   position: absolute;
-  right: 20px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #484f58;
+  color: var(--fg-1, #8b949e);
   cursor: pointer;
-  display: inline-flex;
-  padding: 4px;
-}
-
-.search-clear:hover {
-  color: #e6edf3;
-}
-
-/* ── List ── */
-.palette-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 6px 0;
-}
-
-/* ── Category ── */
-.category-group {
-  margin-bottom: 4px;
-}
-
-.category-header {
+  padding: 2px;
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+
+/* ── Category sections ── */
+.category-section {
+  border-bottom: 1px solid var(--border-soft, #21262d);
+}
+.category-header {
   width: 100%;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: none;
   border: none;
-  background: transparent;
-  color: #8b949e;
+  color: var(--fg-1, #8b949e);
+  cursor: pointer;
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  cursor: pointer;
-  text-align: left;
-  transition:
-    background 0.1s,
-    color 0.1s;
 }
-
 .category-header:hover {
-  background: rgba(88, 166, 255, 0.06);
-  color: #e6edf3;
+  background: var(--bg-2, #21262d);
+  color: var(--fg-0, #e6edf3);
 }
-
 .category-toggle {
-  width: 12px;
-  color: #484f58;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  width: 14px;
+  color: var(--fg-2, #484f58);
 }
-
-.category-icon {
-  display: inline-flex;
-  color: inherit;
+.cat-icon {
+  color: var(--cat-color, var(--fg-1));
 }
-
+.cat-icon-fav {
+  color: var(--warn, #d29922);
+}
 .category-label {
   flex: 1;
-  font-weight: 600;
-  color: inherit;
+  text-align: left;
 }
-
 .category-count {
   font-size: 10px;
-  color: #484f58;
-  padding: 1px 5px;
-  background: #21262d;
+  color: var(--fg-2, #484f58);
+  background: var(--bg-3, #30363d);
+  padding: 1px 6px;
   border-radius: 8px;
 }
 
 /* ── Items ── */
 .category-items {
-  padding: 2px 0;
+  overflow: hidden;
 }
-
 .palette-item {
-  position: relative;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 8px 32px;
+  gap: 4px;
+  padding: 4px 8px 4px 20px;
+  background: none;
+  border: none;
+  color: var(--fg-0, #e6edf3);
   cursor: grab;
-  transition:
-    background 0.1s,
-    transform 0.1s;
-  border-left: 2px solid transparent;
+  font-size: 12px;
+  text-align: left;
 }
-
 .palette-item:hover {
-  background: rgba(88, 166, 255, 0.08);
-  border-left-color: #58a6ff;
+  background: var(--bg-2, #21262d);
 }
-
 .palette-item:active {
   cursor: grabbing;
-  background: rgba(88, 166, 255, 0.12);
 }
-
-.item-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.item-title {
-  font-size: 12px;
-  color: #e6edf3;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-desc {
-  font-size: 10px;
-  color: #8b949e;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-type {
-  font-size: 9px;
-  color: #484f58;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  padding: 1px 4px;
-  background: #21262d;
-  border-radius: 3px;
+.item-fav {
+  color: var(--fg-2, #484f58);
   flex-shrink: 0;
-  margin-left: 8px;
-  max-width: 100px;
+  cursor: pointer;
+}
+.item-fav:hover,
+.item-fav.active {
+  color: var(--warn, #d29922);
+}
+.item-grip {
+  color: var(--fg-2, #484f58);
+  flex-shrink: 0;
+  opacity: 0;
+}
+.palette-item:hover .item-grip {
+  opacity: 1;
+}
+.item-title {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.item-type {
+  font-size: 10px;
+  color: var(--fg-2, #484f58);
+  flex-shrink: 0;
 }
 
 /* ── Empty state ── */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px 16px;
+  padding: 24px 12px;
   text-align: center;
-}
-
-.empty-icon {
-  opacity: 0.5;
-  color: #484f58;
-}
-
-.empty-text {
-  color: #484f58;
+  color: var(--fg-1, #8b949e);
   font-size: 12px;
 }
-
-.empty-clear {
+.empty-state strong {
+  color: var(--fg-0, #e6edf3);
+}
+.empty-hint {
   margin-top: 4px;
-  background: none;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  color: #58a6ff;
   font-size: 11px;
+  color: var(--fg-2, #484f58);
+}
+.btn-clear {
+  margin-top: 10px;
+  padding: 4px 12px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 4px;
+  background: var(--bg-2, #21262d);
+  color: var(--fg-0, #e6edf3);
   cursor: pointer;
-  padding: 4px 8px;
+  font-size: 11px;
+}
+.btn-clear:hover {
+  background: var(--bg-3, #30363d);
 }
 
-.empty-clear:hover {
-  background: #21262d;
+/* ── Hover card ── */
+.hover-card {
+  position: fixed;
+  z-index: 9999;
+  max-width: 280px;
+  background: var(--bg-1, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  pointer-events: none;
 }
-
-/* Scrollbar */
-.palette-list::-webkit-scrollbar {
-  width: 6px;
+.hover-title {
+  font-weight: 600;
+  color: var(--fg-0, #e6edf3);
+  margin-bottom: 4px;
 }
-
-.palette-list::-webkit-scrollbar-track {
-  background: transparent;
+.hover-desc {
+  color: var(--fg-1, #8b949e);
+  margin-bottom: 6px;
+  line-height: 1.4;
 }
-
-.palette-list::-webkit-scrollbar-thumb {
-  background: #30363d;
+.hover-ports {
+  margin-bottom: 4px;
+}
+.hover-ports-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--fg-2, #484f58);
+  margin-bottom: 2px;
+}
+.hover-port {
+  display: flex;
+  gap: 4px;
+  padding: 1px 0;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.port-name { color: var(--accent, #58a6ff); }
+.port-sep { color: var(--fg-2, #484f58); }
+.port-type { color: var(--ok, #3fb950); }
+.port-opt { color: var(--fg-2, #484f58); font-size: 10px; }
+.hover-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.cap-tag {
+  font-size: 10px;
+  padding: 1px 5px;
   border-radius: 3px;
-}
-
-.palette-list::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
+  background: var(--bg-3, #30363d);
+  color: var(--fg-1, #8b949e);
 }
 </style>

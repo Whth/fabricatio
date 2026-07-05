@@ -3,7 +3,8 @@ import { Handle, Position } from '@vue-flow/core'
 import { computed } from 'vue'
 import { useExecutionStore } from '@/stores/execution'
 import { useWorkflowStore } from '@/stores/workflow'
-import { Clock, Zap, Check, X } from '@lucide/vue'
+import { Clock, Zap, Check, X, Loader } from '@lucide/vue'
+import { categoryColorPair } from '@/utils/categoryColors'
 
 const props = defineProps<{
   id: string
@@ -24,19 +25,10 @@ const wfStore = useWorkflowStore()
 
 const status = computed(() => execStore.nodeStatuses[props.data.nodeId] || 'idle')
 const isSelected = computed(() => wfStore.selectedNodeId === props.id)
-
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  llm: { bg: '#a371f7', text: '#ffffff' },
-  novel: { bg: '#3fb950', text: '#ffffff' },
-  comfyui: { bg: '#f778ba', text: '#ffffff' },
-  rag: { bg: '#d2a8ff', text: '#1e1e2e' },
-  io: { bg: '#79c0ff', text: '#1e1e2e' },
-  data: { bg: '#ffa657', text: '#1e1e2e' },
-  general: { bg: '#30363d', text: '#e6edf3' },
-}
+const streamToken = computed(() => execStore.tokenBuffer[props.data.nodeId] || '')
 
 function getCategoryColors(category: string) {
-  return CATEGORY_COLORS[category] || CATEGORY_COLORS.general
+  return categoryColorPair(category)
 }
 
 function getStatusIcon() {
@@ -48,20 +40,35 @@ function getStatusIcon() {
   }
   return icons[status.value]
 }
+
+function statusBorderColor(): string {
+  const map: Record<string, string> = {
+    idle: 'transparent',
+    queued: 'var(--cat-io, #79c0ff)',
+    running: 'var(--running, #d2a8ff)',
+    done: 'var(--ok, #3fb950)',
+    error: 'var(--err, #f85149)',
+  }
+  return map[status.value] || 'transparent'
+}
 </script>
 
 <template>
   <div
     :class="[
       'fabricatio-node',
-      `status-${status}`,
-      `category-${data.category}`,
-      { selected: isSelected },
+      { selected: isSelected, running: status === 'running' },
     ]"
+    :style="{ borderColor: statusBorderColor() }"
   >
     <!-- Status indicator -->
     <div v-if="status !== 'idle'" class="status-indicator" :class="`status-${status}`">
       <component v-if="getStatusIcon()" :is="getStatusIcon()" :size="12" class="status-icon" />
+    </div>
+
+    <!-- Running spinner badge -->
+    <div v-if="status === 'running'" class="running-badge">
+      <Loader :size="10" class="spin" />
     </div>
 
     <!-- Header -->
@@ -76,9 +83,13 @@ function getStatusIcon() {
       <span class="node-id">{{ data.nodeId }}</span>
     </div>
 
+    <!-- Streaming token preview -->
+    <div v-if="streamToken" class="stream-preview">
+      {{ streamToken.slice(-120) }}
+    </div>
+
     <!-- Body with ports -->
     <div class="node-body">
-      <!-- Input ports -->
       <div class="ports inputs">
         <div v-for="port in data.inputPorts" :key="port.name" class="port port-input">
           <Handle type="target" :position="Position.Left" :id="port.name" />
@@ -87,7 +98,6 @@ function getStatusIcon() {
         </div>
       </div>
 
-      <!-- Output ports -->
       <div class="ports outputs">
         <div v-for="port in data.outputPorts" :key="port.name" class="port port-output">
           <span class="port-name">{{ port.name }}</span>
@@ -119,90 +129,92 @@ function getStatusIcon() {
   font-size: 12px;
   color: #e6edf3;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.15s ease;
-}
-
-.fabricatio-node:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  border-color: #484f58;
+  transition: border-color 0.2s;
 }
 
 .fabricatio-node.selected {
-  border-color: #58a6ff;
-  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+  box-shadow: 0 0 0 1px #58a6ff, 0 2px 12px rgba(88, 166, 255, 0.2);
 }
 
-/* ── Status indicator ── */
+.fabricatio-node.running {
+  animation: node-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(210, 168, 255, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(210, 168, 255, 0.6); }
+}
+
 .status-indicator {
   position: absolute;
   top: -8px;
   right: -8px;
-  width: 20px;
-  height: 20px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
+  padding: 2px;
 }
 
-.status-indicator.status-running {
-  background: #58a6ff;
-  color: #ffffff;
-  animation: pulse 1.5s ease-in-out infinite;
-}
+.status-queued { background: var(--cat-io, #79c0ff); color: #1e1e2e; }
+.status-running { background: var(--running, #d2a8ff); color: #1e1e2e; }
+.status-done { background: var(--ok, #3fb950); color: #1e1e2e; }
+.status-error { background: var(--err, #f85149); color: #fff; }
 
-.status-indicator.status-done {
-  background: #3fb950;
-  color: #ffffff;
-}
+.status-icon { display: block; }
 
-.status-indicator.status-error {
-  background: #f85149;
-  color: #ffffff;
-}
-
-.status-indicator.status-queued {
-  background: #ffa657;
+.running-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: var(--running, #d2a8ff);
+  border-radius: 50%;
+  padding: 3px;
   color: #1e1e2e;
 }
 
-/* ── Header ── */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .node-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: 6px 6px 0 0;
+  gap: 4px;
 }
-
 .title {
   font-weight: 600;
-  font-size: 12px;
-  white-space: nowrap;
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 .node-id {
   font-size: 9px;
-  opacity: 0.7;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  opacity: 0.6;
+  flex-shrink: 0;
+  font-family: ui-monospace, monospace;
 }
 
-/* ── Body / ports ── */
+/* Streaming token preview */
+.stream-preview {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  color: var(--running, #d2a8ff);
+  background: rgba(210, 168, 255, 0.06);
+  border-bottom: 1px solid rgba(210, 168, 255, 0.1);
+  max-height: 48px;
+  overflow: hidden;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
 .node-body {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 6px 0;
 }
-
-.ports {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
+.ports { display: flex; flex-direction: column; gap: 2px; }
 .port {
   display: flex;
   align-items: center;
@@ -210,119 +222,27 @@ function getStatusIcon() {
   position: relative;
   height: 20px;
 }
+.port-input { padding-left: 6px; }
+.port-output { padding-right: 6px; justify-content: flex-end; }
+.port-name { font-size: 10px; color: #8b949e; }
+.port-optional { font-size: 9px; color: #484f58; }
 
-.port-input {
-  flex-direction: row;
-  padding-left: 16px;
-}
-
-.port-output {
-  flex-direction: row;
-  justify-content: flex-end;
-  padding-right: 16px;
-}
-
-.port-name {
-  font-size: 10px;
-  color: #8b949e;
-}
-
-.port-optional {
-  font-size: 9px;
-  color: #f0883e;
-  font-weight: 600;
-}
-
-/* ── Footer ── */
 .node-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 10px 8px;
+  gap: 3px;
+  padding: 4px 10px;
   border-top: 1px solid #30363d;
 }
-
 .cap-badge {
   font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(88, 166, 255, 0.12);
-  color: #58a6ff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #30363d;
+  color: #8b949e;
 }
-
 .cap-more {
   font-size: 9px;
   color: #484f58;
-  padding: 2px 4px;
-}
-
-/* ── Handle overrides ── */
-:deep(.vue-flow__handle) {
-  width: 10px;
-  height: 10px;
-  border: 2px solid #30363d;
-  background: #58a6ff;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-  transform-origin: center center;
-}
-
-:deep(.vue-flow__handle:hover) {
-  background: #79c0ff;
-  box-shadow: 0 0 0 2px rgba(121, 192, 255, 0.4);
-}
-
-:deep(.vue-flow__handle-connecting) {
-  background: #3fb950;
-}
-
-:deep(.vue-flow__handle-valid) {
-  background: #3fb950;
-}
-
-:deep(.vue-flow__handle-invalid) {
-  background: #da3633;
-  border-color: #f85149;
-  box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.4);
-}
-
-/* ── Status styles ── */
-.fabricatio-node.status-running {
-  border-color: #58a6ff;
-  animation: glow-blue 1.5s ease-in-out infinite;
-}
-
-.fabricatio-node.status-done {
-  border-color: #3fb950;
-}
-
-.fabricatio-node.status-error {
-  border-color: #f85149;
-}
-
-.fabricatio-node.status-queued {
-  border-color: #ffa657;
-}
-
-/* ── Animations ── */
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes glow-blue {
-  0%,
-  100% {
-    box-shadow: 0 0 8px 1px rgba(88, 166, 255, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 16px 3px rgba(88, 166, 255, 0.5);
-  }
 }
 </style>

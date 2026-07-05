@@ -129,6 +129,7 @@ impl AppState {
     }
 
     pub fn broadcast(&self, msg: &WsMessage) {
+        let msg = msg.clone().with_timestamp();
         if let Ok(sessions) = self.ws_sessions.read() {
             for (id, tx) in sessions.iter() {
                 if tx.send(msg.clone()).is_err() {

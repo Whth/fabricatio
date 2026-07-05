@@ -7,6 +7,7 @@ export interface PortDefinition {
   description?: string
 }
 
+/** Wire-format (snake_case) — matches Rust NodeTypeDefinition serde output. */
 export interface NodeTypeDefinition {
   type: string
   title: string
@@ -19,13 +20,41 @@ export interface NodeTypeDefinition {
   config_fields: PortDefinition[]
 }
 
+/** CamelCase UI representation of a node type, derived from the wire format. */
+export interface NodeTypeUIDef {
+  type: string
+  title: string
+  description: string
+  category: string
+  inputPorts: PortDefinition[]
+  outputPorts: PortDefinition[]
+  capabilities: string[]
+  ctxOverride: boolean
+  configFields: PortDefinition[]
+}
+
+/** Convert wire-format NodeTypeDefinition (snake_case) → UI-friendly (camelCase). */
+export function convertNodeType(nt: NodeTypeDefinition): NodeTypeUIDef {
+  return {
+    type: nt.type,
+    title: nt.title,
+    description: nt.description,
+    category: nt.category,
+    inputPorts: nt.input_ports,
+    outputPorts: nt.output_ports,
+    capabilities: nt.capabilities,
+    ctxOverride: nt.ctx_override,
+    configFields: nt.config_fields,
+  }
+}
+
 // ── Workflow JSON ────────────────────────────────────────────────────────────────
 
 export interface FabricatioNode {
   id: string
   type: string
   title?: string
-  pos: [number, number]
+  pos?: [number, number]
   inputs: Record<string, unknown>
   config: Record<string, unknown>
 }
@@ -63,34 +92,33 @@ export interface ExecutionRequest {
   task_input?: unknown
 }
 
+export type ExecutionState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+
 export interface ExecutionStatus {
   execution_id: string
-  state: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+  state: ExecutionState
   current_node?: string
-  started_at?: string
-  finished_at?: string
   error?: string
 }
 
 // ── WebSocket messages (server → client) ─────────────────────────────────────────
+// These match the Rust WsMessage enum exactly (serde tag="type", snake_case).
 
 export interface WSExecutionStart {
   type: 'execution_start'
   execution_id: string
-  timestamp: string
 }
 export interface WSNodeStart {
   type: 'node_start'
   execution_id: string
   node_id: string
   node_type: string
-  timestamp: string
 }
 export interface WSNodeDone {
   type: 'node_done'
   execution_id: string
   node_id: string
-  timestamp: string
+  output?: unknown
 }
 export interface WSNodeError {
   type: 'node_error'
@@ -116,7 +144,7 @@ export interface WSExecutionDone {
   type: 'execution_done'
   execution_id: string
   result?: unknown
-  timestamp: string
+  error?: string
 }
 export interface WSStatus {
   type: 'status'

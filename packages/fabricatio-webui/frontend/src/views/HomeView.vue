@@ -13,7 +13,7 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { api } from '@/api/client'
 import type { WorkflowMeta } from '@/types/api'
 import { FolderOpen, Save, Trash2, Play, LayoutGrid } from '@lucide/vue'
-import ActivityBar from '../components/ActivityBar.vue'
+import NotificationToast from '../components/NotificationToast.vue'
 
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
@@ -25,18 +25,12 @@ const editingName = ref('')
 const isSaving = ref(false)
 const isLoading = ref(false)
 const showGallery = ref(false)
-const activePanel = ref<string | null>(null)
 const savedWorkflows = ref<
   Array<{ id: string; name: string; nodeCount: number; meta?: WorkflowMeta }>
 >([])
 
 const hasNodes = computed(() => wfStore.nodes.length > 0)
 
-const nodePaletteVisible = computed(() => activePanel.value === 'nodes')
-
-function togglePanel(panel: string) {
-  activePanel.value = activePanel.value === panel ? null : panel
-}
 
 function startEditName() {
   editingName.value = wfStore.workflowName
@@ -251,11 +245,7 @@ async function handleExecute() {
 
     <!-- Main Content -->
     <div class="editor-content">
-      <ActivityBar :active-panel="activePanel" @toggle="togglePanel" />
-      <NodePalette
-        :visible="nodePaletteVisible"
-        @update:visible="activePanel = $event ? 'nodes' : null"
-      />
+      <NodePalette />
       <NodeEditor />
       <NodeConfigPanel v-if="wfStore.selectedNodeId" />
     </div>
@@ -272,6 +262,7 @@ async function handleExecute() {
       @update-tags="updateWorkflowTags"
     />
   </div>
+  <NotificationToast />
 </template>
 
 <style scoped>
