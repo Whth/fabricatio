@@ -4,6 +4,7 @@ Registers onto the shared ``app`` from :mod:`fabricatio_novel.cli`:
 
 - ``wi``  — :func:`write_illustrated_novel`
 - ``wmi`` — :func:`write_mental_illustrated_novel` (mental tracking + illustrations)
+- ``i``   — :func:`illustrate_novel` (illustrate from persisted file)
 """
 
 from pathlib import Path
@@ -264,3 +265,81 @@ def write_mental_illustrated_novel(  # noqa: PLR0913
         typer.secho(f"✅ Mental illustrated novel successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
     else:
         _exit_on_error("❌ Failed to generate mental illustrated novel.")
+
+
+_INPUT_FILE: typer.Option = typer.Option(
+    ...,
+    "--input",
+    "-i",
+    exists=True,
+    file_okay=True,
+    dir_okay=False,
+    resolve_path=True,
+    help="Path to a persisted Novel JSON file (output of `fanvl w` / `wm` / `wr` / `wrm` persist dir).",
+    envvar="NOVEL_ILLUSTRATE_INPUT",
+)
+
+
+@app.command(name="i")
+@cfg_on(["comfyui"])
+def illustrate_novel(  # noqa: PLR0913
+    input: Path = _INPUT_FILE,
+    output_path: Path = OUTPUT_PATH,
+    font_file: Path = FONT_FILE,
+    cover_image: Path = COVER_IMAGE,
+    persist_dir: Path = PERSIST_DIR,
+    image_root: Path = _IMAGE_ROOT,
+    workflow_template: Optional[Path] = _WORKFLOW_TEMPLATE,
+    illustration_budget: int = _ILLUST_BUDGET,
+    illustration_language: str = _ILLUST_LANG,
+    illustration_guideline: str = _ILLUST_GUIDELINE,
+    illustration_guideline_file: Path = _ILLUST_GUIDELINE_FILE,
+    illustration_prompt_guideline: str = _ILLUST_PROMPT_GUIDELINE,
+    illustration_prompt_guideline_file: Path = _ILLUST_PROMPT_GUIDELINE_FILE,
+    comfyui_timeout: float = _COMFYUI_TIMEOUT,
+    comfyui_base_url: str = _COMFYUI_BASE_URL,
+) -> None:
+    """Illustrate an already-written novel loaded from a persisted Novel JSON file."""
+    from fabricatio_novel.workflows.illustration import IllustrateLoadedNovelWorkflow
+
+    illus_ns = "illustrate_loaded"
+    Role.with_bio(name="illustrator_loader").subscribe(
+        Event.quick_instantiate(illus_ns), IllustrateLoadedNovelWorkflow
+    ).dispatch()
+
+    typer.echo(f"Loading Novel from {input}")
+
+    task = Task(name="Illustrate loaded novel").update_init_context(
+        load_path=input.as_posix(),
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        persist_dir=persist_dir,
+        image_root=image_root,
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+        illustration_guideline=_resolve_text_or_file(
+            illustration_guideline,
+            illustration_guideline_file,
+            flag="illust-guideline",
+            file_desc="illustration guideline",
+            default=None,
+        ),
+        illustration_prompt_guideline=_resolve_text_or_file(
+            illustration_prompt_guideline,
+            illustration_prompt_guideline_file,
+            flag="illust-prompt-guideline",
+            file_desc="illustration prompt guideline",
+            default=None,
+        ),
+        comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
+    )
+
+    result = task.delegate_blocking(illus_ns)
+
+    if result:
+        typer.secho(f"✅ Illustrated novel successfully exported: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to illustrate loaded novel.")

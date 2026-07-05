@@ -10,6 +10,29 @@ from fabricatio_novel.capabilities.illustration import IllustratedNovelCompose, 
 from fabricatio_novel.models.novel import Novel
 
 
+class LoadNovelFromPersistent(Action):
+    """Load a persisted Novel from disk and inject it into the workflow context.
+
+    Used as the first step of :class:`~fabricatio_novel.workflows.illustration.IllustrateLoadedNovelWorkflow`.
+    Reads ``Novel.from_persistent(load_path)`` and writes the resulting object
+    into the context under ``output_key`` so downstream ``ctx_override`` actions
+    (``IllustrateNovel.novel``, ``DumpNovel.novel``) pick it up.
+    """
+
+    load_path: Optional[Path] = None
+    """Path to the persisted Novel JSON file."""
+
+    output_key: str = "novel"
+    """Context key under which the loaded Novel is stored."""
+
+    ctx_override: ClassVar[bool] = True
+
+    async def _execute(self, *_: Any, **__: Any) -> Novel:
+        novel = Novel.from_persistent(ok(self.load_path, "LoadNovelFromPersistent requires `load_path`"))
+        logger.info(f"Loaded novel '{novel.title}' from {self.load_path}")
+        return novel
+
+
 class IllustrateNovel(IllustratedNovelCompose, Action):
     """Enrich a novel with LLM-selected and ComfyUI-generated illustrations.
 

@@ -9,7 +9,7 @@ cfg(feats=["workflows"])
 from fabricatio_actions.actions.output import PersistentAll
 from fabricatio_core import WorkFlow
 
-from fabricatio_novel.actions.illustration import IllustrateNovel
+from fabricatio_novel.actions.illustration import IllustrateNovel, LoadNovelFromPersistent
 from fabricatio_novel.actions.novel import (
     AssembleNovelFromComponents,
     DumpNovel,
@@ -77,6 +77,22 @@ IllustrateOnlyWorkflow = WorkFlow(
     ),
 )
 """Use when a Novel is already generated — only run illustration + dump."""
+
+
+# ==============================
+# 🎨📂 Illustrate-Loaded-Novel Pipeline (load from persisted JSON, then illustrate)
+# ==============================
+IllustrateLoadedNovelWorkflow = WorkFlow(
+    name="IllustrateLoadedNovelWorkflow",
+    description="Load a Novel from a persisted JSON file, illustrate it, and dump to EPUB.",
+    steps=(
+        LoadNovelFromPersistent,
+        IllustrateNovel,
+        DumpNovel().to_task_output(),
+        PersistentAll,
+    ),
+)
+"""Use when a Novel JSON file already exists on disk — only run load → illustrate → dump."""
 
 
 # ==============================
