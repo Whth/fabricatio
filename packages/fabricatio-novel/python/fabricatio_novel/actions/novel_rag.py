@@ -73,9 +73,7 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
 
     ctx_override: ClassVar[bool] = True
 
-    async def _execute(
-        self, *_: Any, **cxt: Any
-    ) -> List[str] | List[str | None] | None:
+    async def _execute(self, *_: Any, **cxt: Any) -> List[str] | List[str | None] | None:
         """Generate chapters with RAG-augmented writing style injection."""
         draft = ok(self.novel_draft)
         scripts = ok(self.novel_scripts)
@@ -99,19 +97,13 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
             # `override_kwargs` keeps every key, even None — drop the unset ones
             # so they don't shadow the config's own defaults.
             overrides = {k: v for k, v in overrides.items() if v is not None}
-            rag_config = (
-                WritingStyleFetchConfig(**overrides)
-                if overrides
-                else WritingStyleFetchConfig.default()
-            )
+            rag_config = WritingStyleFetchConfig(**overrides) if overrides else WritingStyleFetchConfig.default()
         if self.writing_style_query:
             logger.info(
                 f"Writing style query '{self.writing_style_query[:80]}' (refined={rag_config.use_refined_query})"
             )
 
-        logger.info(
-            f"Generating {len(chapter_plans)} RAG-augmented chapter contents for '{draft.title}'."
-        )
+        logger.info(f"Generating {len(chapter_plans)} RAG-augmented chapter contents for '{draft.title}'.")
         chapter_contents = await self.create_chapters(
             draft,
             chapter_plans,
@@ -124,9 +116,7 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
         if not chapter_contents:
             logger.warn("RAG chapter content generation returned empty or None.")
             return None
-        logger.info(
-            f"Successfully generated {len(chapter_contents)} RAG chapter content(s)."
-        )
+        logger.info(f"Successfully generated {len(chapter_contents)} RAG chapter content(s).")
         return chapter_contents
 
 
