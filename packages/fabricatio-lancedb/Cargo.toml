@@ -17,9 +17,9 @@ error-mapping = { workspace = true, features = [
 ] }
 pyo3-stub-gen = "0.23.0"
 strum = { version = "0.28.0", features = ["derive"] }
-lancedb = { version = "0.30.0", default-features = false }
+lancedb = { version = "0.31.0", default-features = false }
 pythonize = "0.29.0"
-uuid = { version = "1.23.3", features = ["v7"] }
+uuid = { version = "1.23.4", features = ["v7"] }
 cached = "2.0.2"
 serde_json = { version = "1.0.150", default-features = false }
 arrow-array = { version = "58.3.0", default-features = false }

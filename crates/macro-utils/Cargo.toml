@@ -1,13 +1,13 @@
 [package]
 name = "macro-utils"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-quote = "1.0.45"
-syn = "2.0.117"
+quote = "1.0.46"
+syn = "2.0.118"
 
 
 [lib]
