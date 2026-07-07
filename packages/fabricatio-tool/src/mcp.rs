@@ -343,7 +343,7 @@ impl MCPManager {
             Ok(result
                 .content
                 .into_iter()
-                .map(|v| v.raw.as_text().map(|t| t.text.clone()).unwrap_or_default())
+                .map(|v| v.as_text().map(|t| t.text.clone()).unwrap_or_default())
                 .collect::<Vec<String>>())
         })
     }
