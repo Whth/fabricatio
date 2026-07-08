@@ -63,8 +63,12 @@ class TestEnrichInheritance:
         assert StoreEnrichedTexts.ctx_override is True
 
     def test_action_exposes_output_key(self) -> None:
-        """`output_key` defaults to `"stored_count"` (mirrors `StoreWritingStyleTexts`)."""
-        assert StoreEnrichedTexts.output_key == "stored_count"
+        """`output_key` defaults to `"stored_count"` (mirrors `StoreWritingStyleTexts`).
+
+        Pydantic v2's metaclass blocks class-level attribute access on declared
+        fields, so we read the default from `__pydantic_fields__` directly.
+        """
+        assert StoreEnrichedTexts.model_fields["output_key"].default == "stored_count"
 
     def test_action_inherits_capability_and_action(self) -> None:
         """`StoreEnrichedTexts` inherits the enrichment capability and `Action`."""
@@ -147,10 +151,43 @@ class TestQaPairsToChunks:
 
 
 def _make_action_with_mocked_storage(monkeypatch: pytest.MonkeyPatch) -> StoreEnrichedTexts:
-    """Build a `StoreEnrichedTexts` instance and mock storage calls on it."""
+    """Build a `StoreEnrichedTexts` instance and mock storage + chunking calls on it.
+
+    `_execute` runs three phases: `precise_chunk` (LLM chunking) → `enrich`
+    (LLM QA generation) → `add_document` + `rebuild_index` (storage). The
+    `TestStoreEnrichedTextsExecute` and `TestStoreEnrichedTextsEnrichPatched`
+    groups only intend to exercise the second and third phases — they each
+    install exactly one `EnrichmentResult` mock and the chunking phase would
+    otherwise consume it (or fail noisily on a non-int response). Mocking
+    `precise_chunk` to a one-chunk-per-file passthrough keeps those tests
+    focused on the enrich → storage contract.
+
+    Routing notes:
+      * `llm_send_to = DUMMY_LLM_GROUP` so the dummy router feeds the action;
+        a bare `Action()` otherwise falls back to `CONFIG.llm.send_to`
+        (a real provider group) and bypasses the mock.
+      * `llm_no_cache = True` so prior runs' cached responses don't leak in
+        (mirrors `LLMTestRole`'s default behaviour).
+
+    Pydantic v2 disallows assigning arbitrary instance attributes (e.g.
+    `action.add_document = AsyncMock(...)` raises `"object has no field"`),
+    so we use `object.__setattr__` to install the mocks directly in the
+    instance's `__dict__`. This shadows the inherited class methods for
+    the lifetime of the test instance.
+    """
+    from fabricatio_mock import DUMMY_LLM_GROUP
+
     action = StoreEnrichedTexts()
-    action.add_document = AsyncMock(return_value=None)  # type: ignore[method-assign]
-    action.rebuild_index = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    action.llm_send_to = DUMMY_LLM_GROUP
+    action.llm_no_cache = True
+
+    async def _fake_precise_chunk(guideline: str, texts, **_kwargs):  # noqa: ANN001, ANN202
+        """One chunk per input text — passes each file through untouched."""
+        return [[t] for t in texts]
+
+    object.__setattr__(action, "precise_chunk", _fake_precise_chunk)
+    object.__setattr__(action, "add_document", AsyncMock(return_value=None))
+    object.__setattr__(action, "rebuild_index", AsyncMock(return_value=None))
     return action
 
 
