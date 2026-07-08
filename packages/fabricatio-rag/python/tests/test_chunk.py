@@ -8,7 +8,7 @@ contract end-to-end via the `fabricatio_mock` router.
 
 import inspect
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Union
 from unittest.mock import patch
 
 import pytest
@@ -44,7 +44,7 @@ def stub_precise_chunk_template(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 
     TEMPLATE_MANAGER.add_store(test_dir, rediscovery=True)
 
-    name = "test/test_precise_chunk"
+    name = "test_precise_chunk"
     monkeypatch.setattr(rag_config, "precise_chunk_template", name)
     return name
 
@@ -72,7 +72,8 @@ class TestPreciseChunkDispatch:
         """Concrete impl signature accepts `str | List[str]`."""
         sig = inspect.signature(PreciseChunkText.precise_chunk)
         text_param = sig.parameters["text"]
-        assert text_param.annotation == "str | List[str]"
+        # `str | List[str]` is normalized to `Union[str, List[str]]` by `inspect`.
+        assert text_param.annotation == Union[str, List[str]]
 
     @pytest.mark.asyncio
     async def test_str_input_returns_list_of_strings(

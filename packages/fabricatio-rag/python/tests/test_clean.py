@@ -6,6 +6,7 @@ self-correcting LLM loop. These tests exercise the loop end-to-end via the
 `fabricatio-diff/tests/test_hashline_edit.py`.
 """
 
+import dataclasses
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,8 +16,7 @@ from fabricatio_diff.config import diff_config
 from fabricatio_diff.rust import format_hashes
 from fabricatio_diff.utils import HashlineDelimiters
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock.utils import code_block, install_router_usage
 from fabricatio_rag.capabilities.clean import CleanText
 
 
@@ -46,7 +46,13 @@ CONTENT:
 
 @pytest.fixture
 def stub_hashline_templates(tmp_path: Path) -> tuple[str, str]:
-    """Install stub .hbs templates under `test/*` and return their names."""
+    """Install stub .hbs templates and return their discoverable names.
+
+    Returns:
+        A tuple of (diff_template_name, judge_template_name). Names are the
+        bare filenames (handlebars registers templates by path relative to
+        the store dir, with the suffix stripped).
+    """
     test_dir = tmp_path / "templates"
     test_dir.mkdir()
     (test_dir / "test_hashline_diff.hbs").write_text(_STUB_HASHLINE_DIFF_TEMPLATE)
@@ -55,7 +61,7 @@ def stub_hashline_templates(tmp_path: Path) -> tuple[str, str]:
     from fabricatio_core import TEMPLATE_MANAGER
 
     TEMPLATE_MANAGER.add_store(test_dir, rediscovery=True)
-    return "test/test_hashline_diff", "test/test_hashline_judge"
+    return "test_hashline_diff", "test_hashline_judge"
 
 
 @pytest.fixture
@@ -63,11 +69,22 @@ def with_stub_templates(
     stub_hashline_templates: tuple[str, str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[str, str]:
-    """Patch `diff_config` to reference the stub templates and clamp iteration count."""
+    """Patch the `diff_config` consumed by `hashline_edit` to use stub templates.
+
+    `DiffConfig` is frozen, so we build a new instance via `dataclasses.replace`
+    and swap the module-level binding in `fabricatio_diff.capabilities.hashline_edit`
+    for the duration of the test. The `monkeypatch` undoes the swap on teardown.
+    """
+    from fabricatio_diff.capabilities import hashline_edit as he_mod
+
     diff_name, judge_name = stub_hashline_templates
-    monkeypatch.setattr(diff_config, "hashline_diff_template", diff_name)
-    monkeypatch.setattr(diff_config, "hashline_judge_template", judge_name)
-    monkeypatch.setattr(diff_config, "hashline_diff_max_iterations", 3)
+    new_cfg = dataclasses.replace(
+        diff_config,
+        hashline_diff_template=diff_name,
+        hashline_judge_template=judge_name,
+        hashline_diff_max_iterations=3,
+    )
+    monkeypatch.setattr(he_mod, "diff_config", new_cfg)
     return diff_name, judge_name
 
 
@@ -122,8 +139,8 @@ class TestCleanDelegatesToHashlineDiff:
         llm_response = (
             f"{HashlineDelimiters.SET_LEFT.value} {anchor_2}\nBETA_CLEAN\n{HashlineDelimiters.SET_RIGHT.value}"
         )
-        # 1 edit emission + 1 judge YES = 2 router calls
-        with install_router_usage(*return_router_usage(llm_response, "YES")):
+        # 1 edit emission + 1 judge true = 2 router calls
+        with install_router_usage(llm_response, code_block("true", "json")):
             result = await role.clean("rename line2 to BETA_CLEAN", source)
 
         assert isinstance(result, str)
@@ -139,7 +156,7 @@ class TestCleanDelegatesToHashlineDiff:
         source = "x\ny"
         anchor = format_hashes(source).split("\n")[1].split("|")[0]
         resp = f"{HashlineDelimiters.SET_LEFT.value} {anchor}\nY\n{HashlineDelimiters.SET_RIGHT.value}"
-        with install_router_usage(*return_router_usage(resp, "YES")):
+        with install_router_usage(resp, code_block("true", "json")):
             result = await role.clean("rename line2", source)
 
         assert isinstance(result, str)
@@ -154,9 +171,11 @@ class TestCleanDelegatesToHashlineDiff:
         source = "x\ny"
         anchor = format_hashes(source).split("\n")[1].split("|")[0]
         resp = f"{HashlineDelimiters.SET_LEFT.value} {anchor}\nY\n{HashlineDelimiters.SET_RIGHT.value}"
-        # max_iterations=3 → 3 emit + 3 judge NO = 6 calls
+        # max_iterations=3 → 3 emit + 3 judge false = 6 calls
         with (
-            install_router_usage(*return_router_usage(resp, "NO", resp, "NO", resp, "NO")),
+            install_router_usage(
+                resp, code_block("false", "json"), resp, code_block("false", "json"), resp, code_block("false", "json")
+            ),
             pytest.raises(HashlineEditExhaustedError),
         ):
             await role.clean("any requirement", source)
@@ -250,11 +269,17 @@ class TestCleanTextEndToEnd:
         role: CleanTextTestRole,
         with_stub_templates: tuple[str, str],
     ) -> None:
-        """LLM replaces a noisy line with an empty string — surrounding content preserved."""
+        r"""LLM removes a noisy line via a hashline edit — surrounding content preserved.
+
+        Note: the set_line parser requires at least one newline in the body, so we
+        emit `\\\\n` (an empty body with a trailing newline) — `apply_set_line` with
+        an empty `new_text` collapses the targeted line.
+        """
         source = "header\n<b>noisy</b>\nfooter"
         anchor = format_hashes(source).split("\n")[1].split("|")[0]
-        resp = f"{HashlineDelimiters.SET_LEFT.value} {anchor}\n{HashlineDelimiters.SET_RIGHT.value}"
-        with install_router_usage(*return_router_usage(resp, "YES")):
+        # Body is `\\n` → parser captures an empty `new_text` → apply collapses the line.
+        resp = f"{HashlineDelimiters.SET_LEFT.value} {anchor}\n\n{HashlineDelimiters.SET_RIGHT.value}"
+        with install_router_usage(resp, code_block("true", "json")):
             result = await role.clean("remove all markup", source)
 
         assert isinstance(result, str)
