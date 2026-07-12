@@ -196,7 +196,7 @@ pub struct Agent {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
 #[pyclass(from_py_object)]
-enum AgentVariant {
+pub enum AgentVariant {
     Tiny,
     Smol,
     Task,

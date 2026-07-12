@@ -3,7 +3,7 @@
 extern crate core;
 
 use cfg_if::cfg_if;
-use fabricatio_config::Config;
+use fabricatio_config::{AgentVariant, Config};
 use fabricatio_constants::*;
 use fabricatio_logger::{Logger, init_logger};
 
@@ -43,6 +43,7 @@ cfg_if!(
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
+    m.add_class::<AgentVariant>()?;
     m.add_class::<Config>()?;
     init_logger(
         fabricatio_config::CONFIG.debug.log_level.as_str(),

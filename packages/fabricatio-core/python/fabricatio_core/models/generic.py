@@ -25,7 +25,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, AgentVariant, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
 
@@ -411,11 +411,15 @@ class LLMScopedConfig(ScopedConfig):
         frequency_penalty: Optional[float] = None,
         no_cache: Optional[bool] = None,
         images: Optional[List[bytes]] = None,
+        agent: Optional[AgentVariant] = None,
         **_,
     ) -> LLMKwargs:
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
         return LLMKwargs(
-            send_to=ok(send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"),
+            send_to=ok(
+                send_to or self.llm_send_to or CONFIG.resolve_llm_variant(agent) if agent else CONFIG.llm.send_to,
+                "`send_to` is not specified at any where!",
+            ),
             stream=first_available((stream, self.llm_stream, CONFIG.llm.stream), raise_exception=False) or False,
             top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
             temperature=first_available(
