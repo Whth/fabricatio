@@ -143,6 +143,7 @@ class NovelComposeRAG(
             # Capture query before mutation — append_global_prompt changes as_prompt() output
             script_query = cp.script.as_prompt()
             script_docs = await self._fetch_multi_query(_queries_for(script_query), config, use_reranker)
+            cp.script.append_global_prompt("Below is some writing style docs that you MUST imitate.")
             for doc in script_docs:
                 cp.script.append_global_prompt(doc.as_prompt())
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
