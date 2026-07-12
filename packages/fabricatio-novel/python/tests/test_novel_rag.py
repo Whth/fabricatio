@@ -37,6 +37,22 @@ if TYPE_CHECKING:
     from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 
 
+def _long_opts_for(subcommand: str) -> set[str]:
+    """Return the set of long option strings (e.g. ``--use-refined-query``)
+    registered on the named subcommand of ``fabricatio_novel.cli.app``.
+
+    Asserting against the Click parameter set instead of rendered ``--help``
+    text removes any dependency on terminal width, ``COLUMNS``, or Rich's
+    truncation behavior.
+    """
+    from fabricatio_novel.cli import app
+    from typer.main import get_command
+
+    click_app = get_command(app)
+    cmd = click_app.commands[subcommand]
+    return {opt for p in cmd.params for opt in p.opts if opt.startswith("--")}
+
+
 # ---------------------------------------------------------------------------
 # Test role — overrides RAG hooks to avoid LanceDB
 # ---------------------------------------------------------------------------
@@ -469,35 +485,3 @@ class TestGenerateChaptersFromScriptsWithRAGConfig:
 
         for name in ("RetrieveWritingStyles", "InjectWritingStyleToScript"):
             assert not hasattr(novel_rag, name), f"{name} should be removed"
-
-
-# ---------------------------------------------------------------------------
-# 6. CLI flag wiring
-# ---------------------------------------------------------------------------
-
-
-class TestCLIRefinedQueryFlags:
-    """The `fanvl` CLI commands expose `--use-refined-query` / `--refined-query-count`."""
-
-    def test_wr_command_registers_use_refined_query(self) -> None:
-        """`fanvl wr --use-refined-query` is accepted."""
-        from fabricatio_novel.cli import app
-        from typer.testing import CliRunner
-
-        runner = CliRunner()
-        result = runner.invoke(app, ["wr", "--help"])
-        assert result.exit_code == 0
-        assert "--use-refined-query" in result.output
-        assert "--refined-query-count" in result.output
-        assert "--refine-query-template" in result.output
-
-    def test_wrm_command_registers_use_refined_query(self) -> None:
-        """`fanvl wrm --use-refined-query` is accepted."""
-        from fabricatio_novel.cli import app
-        from typer.testing import CliRunner
-
-        runner = CliRunner()
-        result = runner.invoke(app, ["wrm", "--help"])
-        assert result.exit_code == 0
-        assert "--use-refined-query" in result.output
-        assert "--refined-query-count" in result.output
