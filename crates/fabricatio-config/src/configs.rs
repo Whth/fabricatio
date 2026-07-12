@@ -177,6 +177,33 @@ pub struct ProviderConfig {
     pub base_url: Option<String>,
 }
 
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass(from_py_object, get_all)]
+pub struct Agent {
+    pub tiny: Option<String>,
+    pub smol: Option<String>,
+    pub task: Option<String>,
+    pub slow: Option<String>,
+    pub plan: Option<String>,
+}
+
+/// Named slots in [`Agent`] that select which configured model name is used for a given role or task profile.
+///
+/// Each variant maps to one optional field on [`Agent`] (e.g. [`AgentVariant::Tiny`]
+/// ↔ `Agent.tiny`). The string value stored in that field names the model the
+/// caller should route to; a `None` value means the slot is unconfigured.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
+#[pyclass(from_py_object)]
+enum AgentVariant {
+    Tiny,
+    Smol,
+    Task,
+    Slow,
+    Plan,
+}
+
 /// Configuration for a specific deployment.
 ///
 /// Defines the identity, grouping, and rate limits for a deployed service instance.
@@ -286,6 +313,8 @@ pub struct Config {
     #[pyo3(get)]
     pub llm: LLMConfig,
 
+    #[pyo3(get)]
+    pub agent: Agent,
     /// Debug settings containing log level and verbosity.
     #[pyo3(get)]
     pub debug: DebugConfig,
@@ -318,6 +347,22 @@ pub struct Config {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl Config {
+    /// Look up the configured model name for the requested agent slot.
+    ///
+    /// Returns the string from [`Agent`] that corresponds to `preferred` (e.g.
+    /// `self.agent.tiny` for [`AgentVariant::Tiny`]), or `None` when the slot
+    /// has not been configured. No fallback resolution is performed — the caller
+    /// decides what to do when the preferred slot is unset.
+    fn resolve_llm_variant(&self, preferred: AgentVariant) -> Option<&String> {
+        match preferred {
+            AgentVariant::Tiny => self.agent.tiny.as_ref(),
+            AgentVariant::Smol => self.agent.smol.as_ref(),
+            AgentVariant::Task => self.agent.task.as_ref(),
+            AgentVariant::Slow => self.agent.slow.as_ref(),
+            AgentVariant::Plan => self.agent.plan.as_ref(),
+        }
+    }
+
     /// Load configuration data for a given section name and instantiate a Python class
     ///
     /// This method performs configuration loading with the following behavior:

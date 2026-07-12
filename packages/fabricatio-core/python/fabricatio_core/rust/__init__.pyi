@@ -15,6 +15,8 @@ __all__ = [
     "GENERIC_BLOCK_TYPE",
     "ROUTER",
     "TEMPLATE_MANAGER",
+    "Agent",
+    "AgentVariant",
     "CodeBlockParser",
     "CodeSnippet",
     "CodeSnippetParser",
@@ -88,6 +90,19 @@ logger: Logger
 python_parser: CodeBlockParser
 router_usage: RouterUsage
 snippet_parser: CodeSnippetParser
+
+@typing.final
+class Agent:
+    @property
+    def tiny(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def smol(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def task(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def slow(self) -> typing.Optional[builtins.str]: ...
+    @property
+    def plan(self) -> typing.Optional[builtins.str]: ...
 
 @typing.final
 class CodeBlockParser:
@@ -185,6 +200,8 @@ class Config:
     def llm(self) -> LLMConfig:
         r"""Language Learning Model settings with validation rules."""
     @property
+    def agent(self) -> Agent: ...
+    @property
     def debug(self) -> DebugConfig:
         r"""Debug settings containing log level and verbosity."""
     @property
@@ -202,6 +219,14 @@ class Config:
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
+    def resolve_llm_variant(self, preferred: AgentVariant) -> typing.Optional[builtins.str]:
+        r"""Look up the configured model name for the requested agent slot.
+
+        Returns the string from [`Agent`] that corresponds to `preferred` (e.g.
+        `self.agent.tiny` for [`AgentVariant::Tiny`]), or `None` when the slot
+        has not been configured. No fallback resolution is performed — the caller
+        decides what to do when the preferred slot is unset.
+        """
     def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
 
@@ -645,11 +670,11 @@ class Router:
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
         no_cache: builtins.bool = False,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Sequence[typing.Sequence[builtins.int]] = [],
     ) -> typing.Awaitable[str]:
         r"""Sends a completion request to the specified group and returns the full response.
 
-        When ``images`` is non-empty, raw bytes are auto-detected for MIME type and
+        When `images` is non-empty, raw bytes are auto-detected for MIME type and
         base64-encoded into data URIs for multimodal requests.
 
         Args:
@@ -678,11 +703,11 @@ class Router:
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
         no_cache: builtins.bool = False,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Sequence[typing.Sequence[builtins.int]] = [],
     ) -> typing.Awaitable[typing.List[str | None]]:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
-        When ``images`` is non-empty, all images are broadcast to every message.
+        When `images` is non-empty, all images are broadcast to every message.
 
         Args:
             send_to (str): The router group name.
@@ -863,7 +888,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[str]: ...
     @typing.overload
     def ask(
@@ -877,7 +902,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[str]]: ...
     @typing.overload
     def ask(
@@ -891,7 +916,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
     @typing.overload
     def mapping_kv(
@@ -910,7 +935,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
     @typing.overload
     def mapping_kv(
@@ -929,7 +954,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
     @typing.overload
     def mapping_kv(
@@ -948,7 +973,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.Dict[_K, _V]], typing.List[typing.Optional[typing.Dict[_K, _V]]]]
     ]: ...
@@ -968,7 +993,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
     @typing.overload
     def listing_v(
@@ -986,7 +1011,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
     @typing.overload
     def listing_v(
@@ -1004,7 +1029,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[_V]], typing.List[typing.Optional[typing.List[_V]]]]
     ]: ...
@@ -1022,7 +1047,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
     @typing.overload
     def generic_string(
@@ -1038,7 +1063,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
     @typing.overload
     def generic_string(
@@ -1054,7 +1079,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_string(
@@ -1071,7 +1096,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
     @typing.overload
     def code_string(
@@ -1088,7 +1113,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
     @typing.overload
     def code_string(
@@ -1105,7 +1130,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
     @typing.overload
     def code_snippets(
@@ -1122,7 +1147,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
     @typing.overload
     def code_snippets(
@@ -1139,7 +1164,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
     @typing.overload
     def code_snippets(
@@ -1156,7 +1181,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[CodeSnippet]], typing.List[typing.Optional[typing.List[CodeSnippet]]]]
     ]: ...
@@ -1176,7 +1201,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[bool]]: ...
     @typing.overload
     def judging(
@@ -1194,7 +1219,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
     @typing.overload
     def judging(
@@ -1212,7 +1237,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
     @typing.overload
     def choosing(
@@ -1230,7 +1255,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
     @typing.overload
     def choosing(
@@ -1248,7 +1273,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
     @typing.overload
     def choosing(
@@ -1266,7 +1291,7 @@ class RouterUsage:
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
         no_cache: bool,
-        images: typing.Optional[typing.List[bytes]] = None,
+        images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
         typing.Union[typing.Optional[typing.List[int]], typing.List[typing.Optional[typing.List[int]]]]
     ]: ...
@@ -1532,6 +1557,21 @@ class TextCapturer:
         Note:
             - If `right_delimiter` is not provided, it defaults to `left_delimiter`.
         """
+
+@typing.final
+class AgentVariant(enum.Enum):
+    r"""Named slots in [`Agent`] that select which configured model name is used for a given role or task profile.
+
+    Each variant maps to one optional field on [`Agent`] (e.g. [`AgentVariant::Tiny`]
+    ↔ `Agent.tiny`). The string value stored in that field names the model the
+    caller should route to; a `None` value means the slot is unconfigured.
+    """
+
+    Tiny = ...
+    Smol = ...
+    Task = ...
+    Slow = ...
+    Plan = ...
 
 @typing.final
 class ProviderType(enum.Enum):
