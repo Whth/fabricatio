@@ -43,6 +43,14 @@ class Propose(UseLLM, ABC):
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
 
+    @overload
+    async def propose[M: ProposedAble](
+        self,
+        cls: Type[M],
+        prompt: List[str] | str,
+        **kwargs: Unpack[ValidateKwargs[M]],
+    ) -> None | M | List[Optional[M]] | List[M]: ...
+
     async def propose[M: ProposedAble](
         self,
         cls: Type[M],

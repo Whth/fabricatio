@@ -8,7 +8,8 @@ from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.rust import AgentVariant
+from fabricatio_core.utils import ok, override_kwargs, fallback_kwargs
 
 from fabricatio_judge.models.judgement import JudgeMent
 
@@ -35,7 +36,7 @@ class EvidentlyJudge(Propose, ABC):
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> List[JudgeMent] | List[JudgeMent | None] | JudgeMent | None:
         """Judge the evidence and make a final decision."""
-        return await self.propose(JudgeMent, prompt, **kwargs)
+        return await self.propose(JudgeMent, prompt, **fallback_kwargs(kwargs, agent=AgentVariant.Tiny))
 
 
 class VoteLLMConfig(ScopedConfig):
