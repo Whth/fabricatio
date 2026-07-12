@@ -363,6 +363,18 @@ impl Config {
         }
     }
 
+    /// Configure the LLM variant to use.
+    #[pyo3(signature=(kind, target = None))]
+    fn configure_llm_variant(&mut self, kind: AgentVariant, target: Option<String>) {
+        match kind {
+            AgentVariant::Tiny => self.agent.tiny = target,
+            AgentVariant::Smol => self.agent.smol = target,
+            AgentVariant::Task => self.agent.task = target,
+            AgentVariant::Slow => self.agent.slow = target,
+            AgentVariant::Plan => self.agent.plan = target,
+        }
+    }
+
     /// Load configuration data for a given section name and instantiate a Python class
     ///
     /// This method performs configuration loading with the following behavior:

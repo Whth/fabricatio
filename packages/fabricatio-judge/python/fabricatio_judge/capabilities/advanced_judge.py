@@ -9,7 +9,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import AgentVariant
-from fabricatio_core.utils import ok, override_kwargs, fallback_kwargs
+from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
 
 from fabricatio_judge.models.judgement import JudgeMent
 

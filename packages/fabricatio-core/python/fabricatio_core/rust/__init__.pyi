@@ -227,6 +227,8 @@ class Config:
         has not been configured. No fallback resolution is performed — the caller
         decides what to do when the preferred slot is unset.
         """
+    def configure_llm_variant(self, kind: AgentVariant, target: typing.Optional[builtins.str] = None) -> None:
+        r"""Configure the LLM variant to use."""
     def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
 
