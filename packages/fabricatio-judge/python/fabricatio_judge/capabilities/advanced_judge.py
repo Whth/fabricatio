@@ -36,7 +36,7 @@ class EvidentlyJudge(Propose, ABC):
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> List[JudgeMent] | List[JudgeMent | None] | JudgeMent | None:
         """Judge the evidence and make a final decision."""
-        return await self.propose(JudgeMent, prompt, **fallback_kwargs(kwargs, agent=AgentVariant.Tiny))
+        return await self.propose(JudgeMent, prompt, **fallback_kwargs(kwargs, send_to=AgentVariant.Tiny.to_str()))
 
 
 class VoteLLMConfig(ScopedConfig):

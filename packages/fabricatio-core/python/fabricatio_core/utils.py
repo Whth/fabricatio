@@ -1,23 +1,41 @@
 """A collection of utility functions for the fabricatio package."""
 
 from enum import IntEnum, StrEnum
-from typing import Any, Dict, Generator, Iterable, Literal, Mapping, Optional, Sequence, Tuple, Type, overload
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Iterable,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    overload,
+    TypedDict,
+    Unpack,
+    cast,
+)
 
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import extras_satisfied
 
 
-def override_kwargs(kwargs: Mapping[str, Any], **overrides) -> Dict[str, Any]:
+def override_kwargs[T: TypedDict](kwargs: T, **overrides: Unpack[T]) -> T:
     """Override the values in kwargs with the provided overrides."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update(overrides)
-    return new_kwargs
+    return cast("T", new_kwargs)
 
 
-def fallback_kwargs(kwargs: Mapping[str, Any], **fallbacks) -> Dict[str, Any]:
+@overload
+def fallback_kwargs[T: ValidateKwargs](kwargs: T, **fallbacks: Unpack[T]) -> T: ...
+def fallback_kwargs[T: TypedDict](kwargs: T, **fallbacks: Unpack[T]) -> T:
     """Fallback the values in kwargs with the provided fallbacks."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in fallbacks.items() if k not in new_kwargs})
-    return new_kwargs
+    return cast("T", new_kwargs)
 
 
 def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
