@@ -115,6 +115,16 @@ class UseLLM(LLMScopedConfig, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> List[Optional[T]]: ...
 
+    @overload
+    async def aask_validate[T](
+        self,
+        question: str | List[str],
+        validator: Callable[[str], T | None],
+        default: Optional[T] = None,
+        max_validations: PositiveInt = 3,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None | T | List[Optional[T]] | List[T]: ...
+
     async def aask_validate[T](
         self,
         question: str | List[str],

@@ -11,6 +11,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::str::FromStr;
+use strum::{Display, EnumString};
 use thryd::tracker::Quota;
 use thryd::{DeploymentIdentifier, ProviderName, ProviderType, RouteGroupName};
 use validator::Validate;
@@ -193,7 +195,7 @@ pub struct Agent {
 /// Each variant maps to one optional field on [`Agent`] (e.g. [`AgentVariant::Tiny`]
 /// ↔ `Agent.tiny`). The string value stored in that field names the model the
 /// caller should route to; a `None` value means the slot is unconfigured.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Display, EnumString)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
 #[pyclass(from_py_object)]
 pub enum AgentVariant {
@@ -202,6 +204,21 @@ pub enum AgentVariant {
     Task,
     Slow,
     Plan,
+}
+
+#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
+#[pymethods]
+impl AgentVariant {
+    /// Return the string representation of the variant.
+    pub fn to_str(&self) -> String {
+        self.to_string()
+    }
+
+    /// Create a variant from a string.
+    #[staticmethod]
+    pub fn create_from_str(s: &str) -> Option<Self> {
+        Self::from_str(s).ok()
+    }
 }
 
 /// Configuration for a specific deployment.
@@ -353,7 +370,11 @@ impl Config {
     /// `self.agent.tiny` for [`AgentVariant::Tiny`]), or `None` when the slot
     /// has not been configured. No fallback resolution is performed — the caller
     /// decides what to do when the preferred slot is unset.
-    fn resolve_llm_variant(&self, preferred: AgentVariant) -> Option<&String> {
+    fn resolve_llm_variant(&self, preferred: Option<AgentVariant>) -> Option<&String> {
+        if preferred.is_none() {
+            return None;
+        }
+        let preferred = preferred.unwrap();
         match preferred {
             AgentVariant::Tiny => self.agent.tiny.as_ref(),
             AgentVariant::Smol => self.agent.smol.as_ref(),

@@ -2,8 +2,6 @@
 
 from typing import Dict, List, Optional, Type, TypedDict
 
-from fabricatio_core.rust import AgentVariant
-
 
 class RouteKwargs(TypedDict, total=False):
     """Configuration parameters for routing operations.
@@ -41,7 +39,6 @@ class LLMKwargs(RouteKwargs, total=False):
     including generation parameters, caching options, and optional images.
     """
 
-    agent: AgentVariant
     stream: bool
     temperature: Optional[float]
     top_p: Optional[float]

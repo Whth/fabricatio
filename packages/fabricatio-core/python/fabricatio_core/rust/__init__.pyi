@@ -9,7 +9,6 @@ import typing
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
 _V = typing.TypeVar("_V")
-
 __all__ = [
     "CONFIG",
     "GENERIC_BLOCK_TYPE",
@@ -219,7 +218,7 @@ class Config:
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
-    def resolve_llm_variant(self, preferred: AgentVariant) -> typing.Optional[builtins.str]:
+    def resolve_llm_variant(self, preferred: typing.Optional[AgentVariant]) -> typing.Optional[builtins.str]:
         r"""Look up the configured model name for the requested agent slot.
 
         Returns the string from [`Agent`] that corresponds to `preferred` (e.g.
@@ -1574,6 +1573,12 @@ class AgentVariant(enum.Enum):
     Task = ...
     Slow = ...
     Plan = ...
+
+    def to_str(self) -> builtins.str:
+        r"""Return the string representation of the variant."""
+    @staticmethod
+    def create_from_str(s: builtins.str) -> typing.Optional[AgentVariant]:
+        r"""Create a variant from a string."""
 
 @typing.final
 class ProviderType(enum.Enum):

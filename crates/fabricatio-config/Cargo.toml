@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-config"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 readme = "README.md"
 
@@ -21,6 +21,7 @@ macro-utils = { path = "../macro-utils" }
 dotenvy = "0.15.7"
 figment = { version = "0.10.19", features = ["env", "toml"] }
 validator = { version = "0.20.0", features = ["derive"] }
+strum = { version = "0.28.0", default-features = false }
 
 thryd = { path = "../thryd", features = ["pyo3"] }
 
