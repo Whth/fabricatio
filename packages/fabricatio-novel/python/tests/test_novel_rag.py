@@ -37,22 +37,6 @@ if TYPE_CHECKING:
     from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 
 
-def _long_opts_for(subcommand: str) -> set[str]:
-    """Return the set of long option strings (e.g. ``--use-refined-query``)
-    registered on the named subcommand of ``fabricatio_novel.cli.app``.
-
-    Asserting against the Click parameter set instead of rendered ``--help``
-    text removes any dependency on terminal width, ``COLUMNS``, or Rich's
-    truncation behavior.
-    """
-    from fabricatio_novel.cli import app
-    from typer.main import get_command
-
-    click_app = get_command(app)
-    cmd = click_app.commands[subcommand]
-    return {opt for p in cmd.params for opt in p.opts if opt.startswith("--")}
-
-
 # ---------------------------------------------------------------------------
 # Test role — overrides RAG hooks to avoid LanceDB
 # ---------------------------------------------------------------------------
