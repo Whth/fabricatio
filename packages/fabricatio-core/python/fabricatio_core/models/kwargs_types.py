@@ -10,7 +10,6 @@ class RouteKwargs(TypedDict, total=False):
     such as the number of attempts to make before giving up.
     """
 
-    send_to: str
     no_cache: bool
 
 
@@ -21,6 +20,9 @@ class EmbeddingKwargs(RouteKwargs, total=False):
     to vector representations.
     """
 
+    send_to: str
+    """Router group name used for embedding requests. Free-form string."""
+
     ndim: int
 
 
@@ -30,6 +32,9 @@ class RerankerKwargs(RouteKwargs, total=False):
     These arguments control the behavior of reranking models,
     such as the number of attempts to make before giving up.
     """
+
+    send_to: str
+    """Router group name used for reranking requests. Free-form string."""
 
 
 class LLMKwargs(RouteKwargs, total=False):

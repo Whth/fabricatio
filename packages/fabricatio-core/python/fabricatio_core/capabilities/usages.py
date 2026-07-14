@@ -15,7 +15,7 @@ import traceback
 from abc import ABC
 from asyncio import gather
 from enum import IntEnum, StrEnum
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Unpack, overload
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Unpack, cast, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt, ValidationError
@@ -45,6 +45,7 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[str]: ...
 
@@ -52,6 +53,7 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> str: ...
 
@@ -59,12 +61,14 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aask(
         self,
         question: str | List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> str | List[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
         Args:
             question (str | List[str]): The question or list of questions to ask the model.
+            send_to: the completion model group to use
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -72,8 +76,8 @@ class UseLLM(LLMScopedConfig, ABC):
                 or a list of strings if input is a list of strings.
         """
         kw = self._resolve_completion_params(**kwargs)
-
-        return await rust.router_usage.ask(question=question, **kw)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
+        return await rust.router_usage.ask(question=question, send_to=resolved_send_to, **kw)
 
     @overload
     async def aask_validate[T](
@@ -82,6 +86,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> T: ...
 
@@ -92,6 +97,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[T]: ...
 
@@ -102,6 +108,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> Optional[T]: ...
 
@@ -112,6 +119,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[Optional[T]]: ...
 
@@ -122,6 +130,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> None | T | List[Optional[T]] | List[T]: ...
 
@@ -131,6 +140,7 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: Optional[T] = None,
         max_validations: PositiveInt = 3,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> None | T | List[Optional[T]] | List[T]:
         """Asynchronously asks a question and validates the response using a given validator.
@@ -140,6 +150,7 @@ class UseLLM(LLMScopedConfig, ABC):
             validator (Callable[[str], T | None]): A function to validate the response.
             default (T | None): Default value to return if validation fails. Defaults to None.
             max_validations (PositiveInt): Maximum number of validation attempts. Defaults to 3.
+            send_to: the completion model group to use
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -150,7 +161,9 @@ class UseLLM(LLMScopedConfig, ABC):
             _kw = kwargs
             for lap in range(max_validations):
                 try:
-                    if (validated := validator(response := await self.aask(question=q, **_kw))) is not None:
+                    if (
+                        validated := validator(response := await self.aask(question=q, send_to=send_to, **_kw))
+                    ) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
                 except ValidationError as e:
@@ -172,6 +185,7 @@ class UseLLM(LLMScopedConfig, ABC):
         key_type: Type[K],
         value_type: Type[V],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> Optional[Dict[K, V]]: ...
 
@@ -182,6 +196,7 @@ class UseLLM(LLMScopedConfig, ABC):
         key_type: Type[K],
         value_type: Type[V],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> List[Optional[Dict[K, V]]] | None: ...
 
@@ -191,6 +206,7 @@ class UseLLM(LLMScopedConfig, ABC):
         key_type: Type[K],
         value_type: Type[V],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> None | Dict[K, V] | List[Optional[Dict[K, V]]]:
         """Asynchronously maps a requirement to a key-value dictionary via LLM.
@@ -202,15 +218,19 @@ class UseLLM(LLMScopedConfig, ABC):
             key_type: The type of the keys in the mapping (String or Int).
             value_type: The type of the values in the mapping (String, Int, or Float).
             k: The number of key-value pairs to generate, 0 means infinite. Defaults to 0.
+            send_to: the completion model group to use
             **kwargs: Additional keyword arguments for LLM configuration and validation.
 
         Returns:
             Optional[Dict] for single requirement, List[Optional[Dict]] for batch.
         """
         params = self._resolve_mapping_kv_params(key_type=key_type, value_type=value_type, **kwargs)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
+
         return await rust.router_usage.mapping_kv(
             requirement=requirement,
             k=k,
+            send_to=resolved_send_to,
             **params,
         )
 
@@ -220,6 +240,7 @@ class UseLLM(LLMScopedConfig, ABC):
         requirement: str,
         value_type: Type[T],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> List[T] | None: ...
 
@@ -229,6 +250,7 @@ class UseLLM(LLMScopedConfig, ABC):
         requirement: List[str],
         value_type: Type[T],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> List[List[T] | None] | None: ...
 
@@ -237,6 +259,7 @@ class UseLLM(LLMScopedConfig, ABC):
         requirement: str | List[str],
         value_type: Type[T],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> List[T] | List[List[T] | None] | None:
         """Asynchronously generates a list of values based on a given requirement.
@@ -245,19 +268,27 @@ class UseLLM(LLMScopedConfig, ABC):
             requirement (str | List[str]): The requirement for the list.
             value_type (Type[T]): The type of list elements (str, int, float, bool). Defaults to str.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             List[T] | List[List[T] | None] | None: The validated response as a list of values.
         """
         params = self._resolve_listing_v_params(value_type=value_type, **kwargs)
-        return await rust.router_usage.listing_v(requirement=requirement, k=k, **params)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
+        return await rust.router_usage.listing_v(requirement=requirement, k=k, send_to=resolved_send_to, **params)
 
-    async def apathstr(self, requirement: str, **kwargs: Unpack[ChooseKwargs[str]]) -> Optional[List[str]]:
+    async def apathstr(
+        self,
+        requirement: str,
+        send_to: Optional[str] = None,
+        **kwargs: Unpack[ChooseKwargs[str]],
+    ) -> Optional[List[str]]:
         """Asynchronously generates a list of path strings based on a given requirement.
 
         Args:
             requirement (str): The requirement for the list of paths.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -269,14 +300,21 @@ class UseLLM(LLMScopedConfig, ABC):
                 {"requirement": requirement},
             ),
             value_type=str,
+            send_to=send_to,
             **kwargs,
         )
 
-    async def awhich_pathstr(self, requirement: str, **kwargs: Unpack[ValidateKwargs[List[str]]]) -> Optional[str]:
+    async def awhich_pathstr(
+        self,
+        requirement: str,
+        send_to: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
+    ) -> Optional[str]:
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
             requirement (str): The requirement for the path.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -285,6 +323,7 @@ class UseLLM(LLMScopedConfig, ABC):
         if paths := await self.apathstr(
             requirement,
             k=1,
+            send_to=send_to,
             **kwargs,
         ):
             return paths.pop()
@@ -295,6 +334,7 @@ class UseLLM(LLMScopedConfig, ABC):
     async def ageneric_string(
         self,
         requirement: str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]: ...
 
@@ -302,53 +342,74 @@ class UseLLM(LLMScopedConfig, ABC):
     async def ageneric_string(
         self,
         requirement: List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[List[Optional[str]]]: ...
 
     async def ageneric_string(
         self,
         requirement: str | List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> None | str | List[str | None]:
         """Asynchronously generates a generic string based on a given requirement.
 
         Args:
             requirement (str): The requirement for the string.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Optional[str]: The generated string.
         """
-        return await rust.router_usage.generic_string(
-            requirement=requirement, **self._resolve_validation_params(**kwargs)
-        )
+        params = self._resolve_validation_params(**kwargs)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
+        return await rust.router_usage.generic_string(requirement=requirement, send_to=resolved_send_to, **params)
 
     @overload
     async def acode_string(
-        self, requirement: str, code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
+        self,
+        requirement: str,
+        code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]: ...
 
     @overload
     async def acode_string(
-        self, requirement: List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
+        self,
+        requirement: List[str],
+        code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[Optional[str]]: ...
 
     async def acode_string(
-        self, requirement: str | List[str], code_language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[str]]
+        self,
+        requirement: str | List[str],
+        code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> None | str | List[str | None]:
         """Asynchronously generates code strings based on given requirements and code language.
 
         Args:
             requirement (str | List[str]): The requirement(s) for generating code strings.
             code_language (str): The programming language for the generated code.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs[str]]): Additional keyword arguments for the LLM usage.
 
         Returns:
             None | str | List[str | None]: The generated code string(s). Returns a single string if requirement
             is a string, or a list of strings/None values if requirement is a list.
         """
+        params = self._resolve_validation_params(**kwargs)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
         return await rust.router_usage.code_string(
-            requirement=requirement, code_language=code_language, **self._resolve_validation_params(**kwargs)
+            requirement=requirement,
+            code_language=code_language,
+            send_to=resolved_send_to,
+            **params,
         )
 
     @overload
@@ -356,6 +417,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         requirement: str,
         code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
     ) -> Optional[List[CodeSnippet]]: ...
 
@@ -364,6 +426,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         requirement: List[str],
         code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
     ) -> List[List[CodeSnippet] | None] | None: ...
 
@@ -371,6 +434,7 @@ class UseLLM(LLMScopedConfig, ABC):
         self,
         requirement: str | List[str],
         code_language: Optional[str] = None,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
     ) -> None | List[CodeSnippet] | List[List[CodeSnippet] | None]:
         """Asynchronously generates code snippets based on given requirements and code language.
@@ -378,6 +442,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Args:
             requirement (str | List[str]): The requirement(s) for generating code snippets.
             code_language (Optional[str]): The programming language for the generated code. Defaults to None.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs[List[CodeSnippet]]]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -385,8 +450,13 @@ class UseLLM(LLMScopedConfig, ABC):
             Returns a list of CodeSnippet objects if requirement is a string, or a list of lists of
             CodeSnippet objects or None if requirement is a list.
         """
+        params = self._resolve_validation_params(**kwargs)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
         return await rust.router_usage.code_snippets(
-            requirement=requirement, code_language=code_language, **self._resolve_validation_params(**kwargs)
+            requirement=requirement,
+            code_language=code_language,
+            send_to=resolved_send_to,
+            **params,
         )
 
     async def achoose[T: WithBriefing](
@@ -395,6 +465,7 @@ class UseLLM(LLMScopedConfig, ABC):
         choices: List[T],
         k: NonNegativeInt = 0,
         is_included_fn: Optional[Callable[[Set[str], T], bool]] = None,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> Optional[List[T]]:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
@@ -404,6 +475,7 @@ class UseLLM(LLMScopedConfig, ABC):
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
             k (NonNegativeInt): The number of choices to select, 0 means infinite. Defaults to 0.
             is_included_fn (Optional[Callable[[Set[str],T], bool]] = None): A function to check whether a choice is included in the query.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -444,10 +516,14 @@ class UseLLM(LLMScopedConfig, ABC):
 
             return final_ret
 
-        return await self.aask_validate(
-            question=prompt,
-            validator=_validate,
-            **kwargs,
+        return cast(
+            "List[T]",
+            await self.aask_validate(
+                question=prompt,
+                validator=_validate,
+                send_to=send_to,
+                **kwargs,
+            ),
         )
 
     async def aenum_choose[E: (StrEnum, IntEnum)](
@@ -455,6 +531,7 @@ class UseLLM(LLMScopedConfig, ABC):
         instruction: str,
         enum_type: Type[E],
         k: NonNegativeInt = 0,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[E]]],
     ) -> Optional[List[E]]:
         """Asynchronously selects enum members from the given enum type based on the instruction.
@@ -467,6 +544,7 @@ class UseLLM(LLMScopedConfig, ABC):
             instruction (str): The user-provided instruction/question description.
             enum_type (Type[E]): The enum type to select from.
             k (NonNegativeInt): The number of choices to select, 0 means all relevant. Defaults to 0.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs[List[E]]]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -502,16 +580,21 @@ class UseLLM(LLMScopedConfig, ABC):
 
             return final_ret
 
-        return await self.aask_validate(
-            question=prompt,
-            validator=_validate,
-            **kwargs,
+        return cast(
+            "List[E]",
+            await self.aask_validate(
+                question=prompt,
+                validator=_validate,
+                send_to=send_to,
+                **kwargs,
+            ),
         )
 
     async def apick[T: WithBriefing](
         self,
         instruction: str,
         choices: List[T],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
@@ -519,6 +602,7 @@ class UseLLM(LLMScopedConfig, ABC):
         Args:
             instruction (str): The user-provided instruction/question description.
             choices (List[T]): A list of candidate options, requiring elements to have `name` and `briefing` fields.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -532,6 +616,7 @@ class UseLLM(LLMScopedConfig, ABC):
                 instruction=instruction,
                 choices=choices,
                 k=1,
+                send_to=send_to,
                 **kwargs,
             ),
         )[0]
@@ -542,6 +627,7 @@ class UseLLM(LLMScopedConfig, ABC):
         prompt: str,
         affirm_case: str = "",
         deny_case: str = "",
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
     ) -> Optional[bool]: ...
 
@@ -551,6 +637,7 @@ class UseLLM(LLMScopedConfig, ABC):
         prompt: List[str],
         affirm_case: str = "",
         deny_case: str = "",
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
     ) -> List[Optional[bool]] | None: ...
 
@@ -559,6 +646,7 @@ class UseLLM(LLMScopedConfig, ABC):
         prompt: str | List[str],
         affirm_case: str = "",
         deny_case: str = "",
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
     ) -> Optional[bool] | List[Optional[bool]]:
         """Asynchronously judges a prompt using AI validation.
@@ -567,16 +655,20 @@ class UseLLM(LLMScopedConfig, ABC):
             prompt (str): The input prompt to be judged.
             affirm_case (str): The affirmative case for the AI model. Defaults to an empty string.
             deny_case (str): The negative case for the AI model. Defaults to an empty string.
+            send_to (Optional[str]): The group name of which the requests will be sent.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             bool: The judgment result (True or False) based on the AI's response.
         """
+        params = self._resolve_validation_params(**kwargs)
+        resolved_send_to = self._resolve_completion_send_to(send_to=send_to)
         return await rust.router_usage.judging(
             requirement=prompt,
             affirm_case=affirm_case,
             deny_case=deny_case,
-            **self._resolve_validation_params(**kwargs),
+            send_to=resolved_send_to,
+            **params,
         )
 
 

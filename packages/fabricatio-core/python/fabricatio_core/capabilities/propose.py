@@ -16,6 +16,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> List[Optional[M]]: ...
 
@@ -24,6 +25,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: List[str],
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> List[M]: ...
 
@@ -32,6 +34,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Optional[M]: ...
 
@@ -40,6 +43,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
 
@@ -48,6 +52,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: List[str] | str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> None | M | List[Optional[M]] | List[M]: ...
 
@@ -55,6 +60,7 @@ class Propose(UseLLM, ABC):
         self,
         cls: Type[M],
         prompt: List[str] | str,
+        send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> None | M | List[Optional[M]] | List[M]:
         """Asynchronously proposes a task based on a given prompt and parameters.
@@ -62,6 +68,7 @@ class Propose(UseLLM, ABC):
         Parameters:
             cls: The class type of the task to be proposed.
             prompt: The prompt text for proposing a task, which is a string that must be provided.
+            send_to: the completion model group to use
             **kwargs: The keyword arguments for the LLM (Large Language Model) usage.
 
         Returns:
@@ -70,5 +77,5 @@ class Propose(UseLLM, ABC):
         return await self.aask_validate(
             question=cls.create_json_prompt(prompt),
             validator=cls.instantiate_from_string,
-            **kwargs,
+            send_to=send_to**kwargs,
         )

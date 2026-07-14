@@ -400,9 +400,19 @@ class LLMScopedConfig(ScopedConfig):
     llm_no_cache: Optional[bool] = None
     """Whether to disable caching for the LLM model."""
 
-    def _resolve_completion_params(  # noqa: PLR0913
+    def _resolve_completion_send_to(
         self,
         send_to: Optional[str] = None,
+    ) -> str:
+        raw = ok(
+            send_to or self.llm_send_to or CONFIG.llm.send_to,
+            "`send_to` is not specified at any where!",
+        )
+
+        return CONFIG.resolve_llm_variant(raw) or raw
+
+    def _resolve_completion_params(
+        self,
         stream: Optional[bool] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
@@ -413,28 +423,8 @@ class LLMScopedConfig(ScopedConfig):
         images: Optional[List[bytes]] = None,
         **_,
     ) -> LLMKwargs:
-        """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG.
-
-        Precedence for ``send_to`` (highest first):
-          1. The variant slot in ``CONFIG.agent`` — only consulted when
-             ``send_to`` names a known variant AND that variant's slot is
-             configured. A capability uses this to declare its own default
-             via ``fallback_kwargs(..., send_to=AgentVariant.X.to_str())``
-             without forcing the variant name string into the router when no
-             model is bound to that slot.
-          2. Caller-supplied ``send_to`` in kwargs (used verbatim when it
-             is not a variant name).
-          3. ``self.llm_send_to`` (per-class override).
-          4. ``CONFIG.llm.send_to`` (global default).
-
-        If none of the layers provide a value, an error is raised.
-        """
-        resolved_send_to = ok(
-            send_to or self.llm_send_to or CONFIG.llm.send_to, "`send_to` is not specified at any where!"
-        )
-
+        """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
         return LLMKwargs(
-            send_to=CONFIG.resolve_llm_variant(resolved_send_to) or resolved_send_to,
             stream=first_available((stream, self.llm_stream, CONFIG.llm.stream), raise_exception=False) or False,
             top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
             temperature=first_available(
@@ -546,7 +536,8 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: str) -> str: ...
-
+    @overload
+    def create_json_prompt(self, requirement: str | List[str]) -> str | List[str]: ...
     @classmethod
     def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
         """Create the prompt for creating a JSON object with given requirement.

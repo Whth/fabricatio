@@ -2,6 +2,8 @@
 
 from enum import IntEnum, StrEnum
 from typing import (
+    Any,
+    Dict,
     Generator,
     Iterable,
     Literal,
@@ -9,17 +11,20 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    TypedDict,
     Unpack,
     cast,
     overload,
 )
 
-from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import extras_satisfied
 
 
-def override_kwargs[T: TypedDict](kwargs: T, **overrides: Unpack[T]) -> T:
+@overload
+def override_kwargs[T: ValidateKwargs](kwargs: T, **overrides: Unpack[T]) -> T: ...
+@overload
+def override_kwargs[T: LLMKwargs](kwargs: T, **overrides: Unpack[T]) -> T: ...
+def override_kwargs[T: Dict[str, Any]](kwargs: T, **overrides: Unpack[T]) -> T:
     """Override the values in kwargs with the provided overrides."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update(overrides)
@@ -28,7 +33,7 @@ def override_kwargs[T: TypedDict](kwargs: T, **overrides: Unpack[T]) -> T:
 
 @overload
 def fallback_kwargs[T: ValidateKwargs](kwargs: T, **fallbacks: Unpack[T]) -> T: ...
-def fallback_kwargs[T: TypedDict](kwargs: T, **fallbacks: Unpack[T]) -> T:
+def fallback_kwargs[T: Dict[str, Any]](kwargs: T, **fallbacks: Unpack[T]) -> T:
     """Fallback the values in kwargs with the provided fallbacks."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in fallbacks.items() if k not in new_kwargs})
