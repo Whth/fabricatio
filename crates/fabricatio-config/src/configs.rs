@@ -1,4 +1,4 @@
-use fabricatio_constants::{TEMPLATES, TEMPLATES_DIRNAME};
+use fabricatio_constants::{TEMPLATES, TEMPLATES_DIRNAME, agent_variant};
 use macro_utils::TemplateDefault;
 use pyo3::prelude::*;
 
@@ -6,13 +6,12 @@ use crate::secstr::SecretStr;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 
+use pyo3::exceptions::PyValueError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
-use std::str::FromStr;
-use strum::{Display, EnumString};
 use thryd::tracker::Quota;
 use thryd::{DeploymentIdentifier, ProviderName, ProviderType, RouteGroupName};
 use validator::Validate;
@@ -190,37 +189,6 @@ pub struct Agent {
     pub plan: Option<String>,
 }
 
-/// Named slots in [`Agent`] that select which configured model name is used for a given role or task profile.
-///
-/// Each variant maps to one optional field on [`Agent`] (e.g. [`AgentVariant::Tiny`]
-/// ↔ `Agent.tiny`). The string value stored in that field names the model the
-/// caller should route to; a `None` value means the slot is unconfigured.
-#[derive(Debug, Clone, Display, EnumString)]
-#[cfg_attr(feature = "stubgen", gen_stub_pyclass_enum)]
-#[pyclass(from_py_object)]
-pub enum AgentVariant {
-    Tiny,
-    Smol,
-    Task,
-    Slow,
-    Plan,
-}
-
-#[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
-#[pymethods]
-impl AgentVariant {
-    /// Return the string representation of the variant.
-    pub fn to_str(&self) -> String {
-        self.to_string()
-    }
-
-    /// Create a variant from a string.
-    #[staticmethod]
-    pub fn create_from_str(s: &str) -> Option<Self> {
-        Self::from_str(s).ok()
-    }
-}
-
 /// Configuration for a specific deployment.
 ///
 /// Defines the identity, grouping, and rate limits for a deployed service instance.
@@ -370,30 +338,32 @@ impl Config {
     /// `self.agent.tiny` for [`AgentVariant::Tiny`]), or `None` when the slot
     /// has not been configured. No fallback resolution is performed — the caller
     /// decides what to do when the preferred slot is unset.
-    fn resolve_llm_variant(&self, preferred: Option<AgentVariant>) -> Option<&String> {
-        if preferred.is_none() {
-            return None;
-        }
-        let preferred = preferred.unwrap();
-        match preferred {
-            AgentVariant::Tiny => self.agent.tiny.as_ref(),
-            AgentVariant::Smol => self.agent.smol.as_ref(),
-            AgentVariant::Task => self.agent.task.as_ref(),
-            AgentVariant::Slow => self.agent.slow.as_ref(),
-            AgentVariant::Plan => self.agent.plan.as_ref(),
+    fn resolve_llm_variant(&self, preferred: Option<&str>) -> Option<&String> {
+        match preferred? {
+            agent_variant::TINY => self.agent.tiny.as_ref(),
+            agent_variant::SMOL => self.agent.smol.as_ref(),
+            agent_variant::TASK => self.agent.task.as_ref(),
+            agent_variant::SLOW => self.agent.slow.as_ref(),
+            agent_variant::PLAN => self.agent.plan.as_ref(),
+            _ => None,
         }
     }
 
     /// Configure the LLM variant to use.
     #[pyo3(signature=(kind, target = None))]
-    fn configure_llm_variant(&mut self, kind: AgentVariant, target: Option<String>) {
+    fn configure_llm_variant(&mut self, kind: &str, target: Option<String>) -> PyResult<()> {
         match kind {
-            AgentVariant::Tiny => self.agent.tiny = target,
-            AgentVariant::Smol => self.agent.smol = target,
-            AgentVariant::Task => self.agent.task = target,
-            AgentVariant::Slow => self.agent.slow = target,
-            AgentVariant::Plan => self.agent.plan = target,
+            agent_variant::TINY => self.agent.tiny = target,
+            agent_variant::SMOL => self.agent.smol = target,
+            agent_variant::TASK => self.agent.task = target,
+            agent_variant::SLOW => self.agent.slow = target,
+            agent_variant::PLAN => self.agent.plan = target,
+            _ => Err(PyValueError::new_err(format!(
+                "Invalid agent variant: {kind}"
+            )))?,
         }
+
+        Ok(())
     }
 
     /// Load configuration data for a given section name and instantiate a Python class

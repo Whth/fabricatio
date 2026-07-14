@@ -9,13 +9,18 @@ import typing
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
 _V = typing.TypeVar("_V")
+
 __all__ = [
     "CONFIG",
     "GENERIC_BLOCK_TYPE",
+    "PLAN",
     "ROUTER",
+    "SLOW",
+    "SMOL",
+    "TASK",
     "TEMPLATE_MANAGER",
+    "TINY",
     "Agent",
-    "AgentVariant",
     "CodeBlockParser",
     "CodeSnippet",
     "CodeSnippetParser",
@@ -81,8 +86,13 @@ __all__ = [
 
 CONFIG: Config
 GENERIC_BLOCK_TYPE: builtins.str
+PLAN: builtins.str
 ROUTER: Router
+SLOW: builtins.str
+SMOL: builtins.str
+TASK: builtins.str
 TEMPLATE_MANAGER: TemplateManager
+TINY: builtins.str
 generic_parser: GenericBlockParser
 json_parser: JsonParser
 logger: Logger
@@ -218,7 +228,7 @@ class Config:
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
-    def resolve_llm_variant(self, preferred: typing.Optional[AgentVariant]) -> typing.Optional[builtins.str]:
+    def resolve_llm_variant(self, preferred: typing.Optional[builtins.str]) -> typing.Optional[builtins.str]:
         r"""Look up the configured model name for the requested agent slot.
 
         Returns the string from [`Agent`] that corresponds to `preferred` (e.g.
@@ -226,7 +236,7 @@ class Config:
         has not been configured. No fallback resolution is performed — the caller
         decides what to do when the preferred slot is unset.
         """
-    def configure_llm_variant(self, kind: AgentVariant, target: typing.Optional[builtins.str] = None) -> None:
+    def configure_llm_variant(self, kind: builtins.str, target: typing.Optional[builtins.str] = None) -> None:
         r"""Configure the LLM variant to use."""
     def load(self, name: str, config_cls: typing.Type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
@@ -671,7 +681,7 @@ class Router:
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
         no_cache: builtins.bool = False,
-        images: typing.Sequence[typing.Sequence[builtins.int]] = [],
+        images: list[bytes] | None = None,
     ) -> typing.Awaitable[str]:
         r"""Sends a completion request to the specified group and returns the full response.
 
@@ -704,7 +714,7 @@ class Router:
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
         no_cache: builtins.bool = False,
-        images: typing.Sequence[typing.Sequence[builtins.int]] = [],
+        images: list[bytes] | None = None,
     ) -> typing.Awaitable[typing.List[str | None]]:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
@@ -1558,27 +1568,6 @@ class TextCapturer:
         Note:
             - If `right_delimiter` is not provided, it defaults to `left_delimiter`.
         """
-
-@typing.final
-class AgentVariant(enum.Enum):
-    r"""Named slots in [`Agent`] that select which configured model name is used for a given role or task profile.
-
-    Each variant maps to one optional field on [`Agent`] (e.g. [`AgentVariant::Tiny`]
-    ↔ `Agent.tiny`). The string value stored in that field names the model the
-    caller should route to; a `None` value means the slot is unconfigured.
-    """
-
-    Tiny = ...
-    Smol = ...
-    Task = ...
-    Slow = ...
-    Plan = ...
-
-    def to_str(self) -> builtins.str:
-        r"""Return the string representation of the variant."""
-    @staticmethod
-    def create_from_str(s: builtins.str) -> typing.Optional[AgentVariant]:
-        r"""Create a variant from a string."""
 
 @typing.final
 class ProviderType(enum.Enum):

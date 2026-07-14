@@ -134,7 +134,7 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = vec![])
+    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
@@ -167,7 +167,7 @@ impl Router {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
         no_cache: bool,
-        images: Vec<Vec<u8>>,
+        #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
             message,
@@ -177,7 +177,11 @@ impl Router {
             max_completion_tokens,
             presence_penalty,
             frequency_penalty,
-            images: images.iter().map(|b| bytes_to_data_uri(b)).collect(),
+            images: images
+                .unwrap_or_default()
+                .iter()
+                .map(|b| bytes_to_data_uri(b))
+                .collect(),
         };
 
         let r = self.completion_router.clone();
@@ -192,7 +196,7 @@ impl Router {
         override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
         )
     )]
-    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = vec![])
+    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = None)
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
@@ -224,9 +228,13 @@ impl Router {
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
         no_cache: bool,
-        images: Vec<Vec<u8>>,
+        #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let data_uris: Vec<String> = images.iter().map(|b| bytes_to_data_uri(b)).collect();
+        let data_uris: Vec<String> = images
+            .unwrap_or_default()
+            .iter()
+            .map(|b| bytes_to_data_uri(b))
+            .collect();
         let reqs = if data_uris.is_empty() {
             messages
                 .into_iter()

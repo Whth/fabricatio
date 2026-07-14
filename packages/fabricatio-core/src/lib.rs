@@ -3,7 +3,7 @@
 extern crate core;
 
 use cfg_if::cfg_if;
-use fabricatio_config::{AgentVariant, Config};
+use fabricatio_config::Config;
 use fabricatio_constants::*;
 use fabricatio_logger::{Logger, init_logger};
 
@@ -30,6 +30,11 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", LOGGER_VARNAME, Logger);
         module_variable!("fabricatio_core.rust", CONFIG_VARNAME, Config);
         module_variable!("fabricatio_core.rust", ROUTER_VARNAME, fabricatio_router::Router);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::TINY_VARNAME, &str);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::SMOL_VARNAME, &str);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::TASK_VARNAME, &str);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::SLOW_VARNAME, &str);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::PLAN_VARNAME, &str);
         define_stub_info_gatherer!(stub_info);
 
 
@@ -43,7 +48,6 @@ cfg_if!(
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SecretStr>()?;
-    m.add_class::<AgentVariant>()?;
     m.add_class::<Config>()?;
     init_logger(
         fabricatio_config::CONFIG.debug.log_level.as_str(),
@@ -58,9 +62,14 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let r = init_router_from_config()?;
     m.add(ROUTER_VARNAME, r.clone())?;
     m.add(CONFIG_VARNAME, fabricatio_config::CONFIG.clone())?;
+    m.add(agent_variant_varnames::TINY_VARNAME, agent_variant::TINY)?;
+    m.add(agent_variant_varnames::SMOL_VARNAME, agent_variant::SMOL)?;
+    m.add(agent_variant_varnames::TASK_VARNAME, agent_variant::TASK)?;
+    m.add(agent_variant_varnames::SLOW_VARNAME, agent_variant::SLOW)?;
+    m.add(agent_variant_varnames::PLAN_VARNAME, agent_variant::PLAN)?;
 
-    m.add(LOGGER_VARNAME, Logger)?;
     router_usage::register(python, m, r)?;
+    m.add(LOGGER_VARNAME, Logger)?;
     language::register(python, m)?;
     templates::register(python, m)?;
     hash::register(python, m)?;

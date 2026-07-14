@@ -32,7 +32,7 @@ struct CompletionParams {
     presence_penalty: Option<f32>,
     frequency_penalty: Option<f32>,
     no_cache: bool,
-    images: Vec<Vec<u8>>,
+    images: Option<Vec<Vec<u8>>>,
 }
 
 #[derive(Clone)]
@@ -100,7 +100,13 @@ impl CompletionParams {
             max_completion_tokens: self.max_completion_tokens,
             presence_penalty: self.presence_penalty,
             frequency_penalty: self.frequency_penalty,
-            images: self.images.iter().map(|b| bytes_to_data_uri(b)).collect(),
+            images: self
+                .images
+                .clone()
+                .unwrap_or_default()
+                .iter()
+                .map(|b| bytes_to_data_uri(b))
+                .collect(),
         }
     }
 }
@@ -419,7 +425,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         let question = extract_batch(&question)?;
         match question {
@@ -499,7 +505,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
 
         let key_type = ValueType::from_type(key_type)?;
@@ -560,7 +566,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         let default = default.map(|d| d.unbind());
 
@@ -613,7 +619,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         future_into_py(python, async move {
             let rendered = requirement
@@ -655,7 +661,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         future_into_py(python, async move {
             let rendered = requirement
@@ -697,7 +703,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         future_into_py(python, async move {
             let rendered = requirement
@@ -740,7 +746,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         future_into_py(python, async move {
             let rendered = requirement
@@ -785,7 +791,7 @@ impl RouterUsage {
             presence_penalty,
             frequency_penalty,
             no_cache,
-            images: images.unwrap_or_default(),
+            images,
         };
         future_into_py(python, async move {
             let result = slf

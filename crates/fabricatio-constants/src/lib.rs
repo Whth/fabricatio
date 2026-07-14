@@ -91,3 +91,19 @@ pub const PY_SOURCE_KEY: &str = "py_source";
 
 pub const ROUTER_VARNAME: &str = "ROUTER";
 pub const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
+
+pub mod agent_variant {
+    pub const TINY: &str = "tiny";
+    pub const SMOL: &str = "smol";
+    pub const TASK: &str = "task";
+    pub const SLOW: &str = "slow";
+    pub const PLAN: &str = "plan";
+}
+
+pub mod agent_variant_varnames {
+    pub const TINY_VARNAME: &str = "TINY";
+    pub const SMOL_VARNAME: &str = "SMOL";
+    pub const TASK_VARNAME: &str = "TASK";
+    pub const SLOW_VARNAME: &str = "SLOW";
+    pub const PLAN_VARNAME: &str = "PLAN";
+}
