@@ -92,11 +92,30 @@ pub const PY_SOURCE_KEY: &str = "py_source";
 pub const ROUTER_VARNAME: &str = "ROUTER";
 pub const TEMPLATE_MANAGER_VARNAME: &str = "TEMPLATE_MANAGER";
 
+/// Named identifiers for the tiered model variants used by the LLM router.
+///
+/// Each constant is the string key the router looks up in `CONFIG.llm` to pick a
+/// concrete model for a class of jobs. Variants are ordered roughly by capability
+/// (and cost) so callers can pick the cheapest variant that still fits the task.
 pub mod agent_variant {
+    /// The smallest, fastest, and cheapest model — reserved for trivial jobs
+    /// like classification, yes/no checks, regex extraction, and short rewrites.
     pub const TINY: &str = "tiny";
+
+    /// A lightweight model for simple, low-context work that exceeds `TINY`'s scope
+    /// but still does not warrant a reasoning-heavy model.
     pub const SMOL: &str = "smol";
+
+    /// The default workhorse model for routine tasks such as drafting, summarizing,
+    /// structured extraction, and standard tool-augmented turns.
     pub const TASK: &str = "task";
+
+    /// A larger, higher-quality model intended for harder reasoning, long-context
+    /// comprehension, and outputs that demand accuracy over latency.
     pub const SLOW: &str = "slow";
+
+    /// The strongest model available — used for planning, multi-step strategy,
+    /// complex synthesis, and any job where quality is the only acceptable outcome.
     pub const PLAN: &str = "plan";
 }
 
