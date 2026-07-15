@@ -10,7 +10,7 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import detect_language
+from fabricatio_core.rust import PLAN, SLOW, SMOL, TASK, detect_language
 from fabricatio_core.utils import ok, override_kwargs
 
 from fabricatio_novel.config import novel_config
@@ -85,7 +85,11 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         return chapter_plans
 
     async def create_draft(
-        self, outline: str, language: Optional[str] = None, **kwargs: Unpack[ValidateKwargs[NovelDraft]]
+        self,
+        outline: str,
+        language: Optional[str] = None,
+        send_to: str | None = PLAN,
+        **kwargs: Unpack[ValidateKwargs[NovelDraft]],
     ) -> NovelDraft | None:
         """Generate a draft for the novel based on the provided outline."""
         logger.debug(f"Creating draft with outline: {outline[:200]}...")
@@ -98,7 +102,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         )
         logger.debug(f"Rendered draft prompt:\n{prompt}")
 
-        result = await self.propose(NovelDraft, prompt, **kwargs)
+        result = await self.propose(NovelDraft, prompt, send_to=send_to, **kwargs)
         if result:
             logger.info(f"Draft created successfully: '{result.title}' ({result.expected_word_count} words)")
         else:
@@ -136,7 +140,11 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         return result
 
     async def create_scripts(
-        self, draft: NovelDraft, characters: List[CharacterCard], **kwargs: Unpack[ValidateKwargs[Script]]
+        self,
+        draft: NovelDraft,
+        characters: List[CharacterCard],
+        send_to: str | None = SLOW,
+        **kwargs: Unpack[ValidateKwargs[Script]],
     ) -> List[Script] | List[Script | None] | None:
         """Generate chapter scripts based on draft and characters."""
         logger.debug(f"Generating {len(draft.chapters)} chapter scripts for '{draft.title}'")
@@ -167,7 +175,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         script_requirement = TEMPLATE_MANAGER.render_template(novel_config.script_requirement_template, script_prompts)
         logger.debug(f"Script requirement template rendered (length: {len(script_requirement)})")
 
-        return await self.propose(Script, script_requirement, **kwargs)
+        return await self.propose(Script, script_requirement, send_to=send_to, **kwargs)
 
     async def create_chapters(
         self,
@@ -175,6 +183,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         chapter_plans: List[ChapterPlan],
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters sequentially with rolling summary context.
@@ -213,7 +222,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
 
             # 2. Generate chapter content
-            raw_chapter = ok(await self.aask(rendered, **kwargs))
+            raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
             if not raw_chapter:
                 logger.warn(f"Failed to generate content for {cp.formatted_chapter_title}")
                 chapter_contents.append("")
@@ -242,6 +251,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         chapter_content: str,
         language: str,
         previous_summary: Optional["ChapterSummary"] = None,
+        send_to: str | None = SMOL,
         **kwargs: Unpack[ValidateKwargs[ChapterSummary]],
     ) -> Optional["ChapterSummary"]:
         """Generate a structured summary of a chapter for cross-chapter context tracking.
@@ -266,7 +276,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "previous_summary": previous_summary.as_prompt() if previous_summary else None,
             },
         )
-        return await self.propose(ChapterSummary, prompt, **kwargs)
+        return await self.propose(ChapterSummary, prompt, send_to=send_to, **kwargs)
 
     @staticmethod
     def assemble_novel(

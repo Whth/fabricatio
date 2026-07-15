@@ -17,6 +17,7 @@ from fabricatio_comfyui.capabilities.comfyui import Comfyui
 from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import SMOL, TINY
 
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
@@ -367,7 +368,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         logger.debug(f"Chapter {chapter.chapter_index} stage1 prompt:\n{select_rendered}")
 
         selected_indices: Optional[list[int]] = await self.alist_v(
-            select_rendered, value_type=int, k=chapter_budget, **kwargs
+            select_rendered, value_type=int, k=chapter_budget, send_to=TINY, **kwargs
         )
         if not selected_indices:
             logger.warn(f"Chapter {chapter.chapter_index}: LLM selected no paragraphs for illustration")
@@ -420,7 +421,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
 
         # Stage 2: Generate image prompts -> LLM batch -> ComfyUI
         prompt_rendereds = work.render_prompts(needs_gen)
-        image_prompts = await self.aask(prompt_rendereds)
+        image_prompts = await self.aask(prompt_rendereds, send_to=SMOL)
 
         workflows, gen_indices, filtered_prompts = work.collect_workflows(needs_gen, image_prompts)
         if not workflows:
