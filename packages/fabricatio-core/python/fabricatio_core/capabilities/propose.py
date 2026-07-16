@@ -77,5 +77,6 @@ class Propose(UseLLM, ABC):
         return await self.aask_validate(
             question=cls.create_json_prompt(prompt),
             validator=cls.instantiate_from_string,
-            send_to=send_to**kwargs,
+            send_to=send_to,
+            **kwargs,
         )

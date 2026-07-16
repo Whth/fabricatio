@@ -143,7 +143,9 @@ class NovelComposeRAG(
             # Capture query before mutation — append_global_prompt changes as_prompt() output
             script_query = cp.script.as_prompt()
             script_docs = await self._fetch_multi_query(_queries_for(script_query), config, use_reranker)
-            cp.script.append_global_prompt("Below is some writing style docs that you MUST imitate.")
+            cp.script.append_global_prompt(
+                "Below is some writing style QA docs that you MUST imitate to achieve the best quality"
+            )
             for doc in script_docs:
                 cp.script.append_global_prompt(doc.as_prompt())
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
@@ -154,6 +156,9 @@ class NovelComposeRAG(
                 *(self._fetch_multi_query(qs, config, use_reranker) for qs in scene_query_lists)
             )
             for scene, scene_docs in zip(cp.script.scenes, scene_results, strict=True):
+                scene.append_prompt(
+                    "Below is some writing style QA docs that you MUST imitate to achieve the best quality"
+                )
                 scene.bulk_append([doc.as_prompt() for doc in scene_docs])
         # Delegate to NovelCompose.create_chapters for actual generation
         return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
