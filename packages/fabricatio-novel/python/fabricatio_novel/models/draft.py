@@ -24,6 +24,18 @@ class ChapterDraft(Titled):
     weight: float
     """The weight of the chapter. higher values means more words count allocation."""
 
+    writing_constrain: str = ""
+    """
+    Per-chapter writing constraints that the downstream chapter writer MUST honor.
+    Cover: stylistic requirements (POV, tense, register, tone), must-include elements
+    (motifs, callbacks, items, lore reveals), must-avoid elements (POV shifts, clichés,
+    anachronisms, content that contradicts earlier chapters), structural limits
+    (max dialogue ratio, paragraph length, scene count), and any user-mandated
+    directives the LLM must respect when drafting this chapter.
+    Goal: Lock down every user/stylistic directive so the generated chapter stays
+    faithful to the outline and brief — the writer is NOT free to deviate from these.
+    """
+
 
 class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
     """A draft representing a novel, including its title, genre, characters, chapters, and synopsis."""

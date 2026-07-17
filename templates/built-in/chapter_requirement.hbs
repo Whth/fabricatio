@@ -18,6 +18,8 @@ Writing {{chapter_title}} of novel "{{novel_title}}".
 
 {{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
 You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
+{{#if writing_constrain}}{{block writing_constrain "Chapter Writing Constraints (MUST honor — these override any default)"}}
+You MUST follow every directive in `Chapter Writing Constraints` for THIS chapter. The chapter writer is NOT free to deviate from it. Treat the constraints as hard requirements: cover every must-include, avoid every must-avoid, respect every structural limit, and obey every user-mandated directive. Constraints take precedence over generic prose quality — when in doubt, follow the constraint.{{/if}}
 You MUST use "{{ language }}" as the writen language.
 output Body paragraphs only, joined with a blank line. Do not include any other text. (like explanation or paragraph title, etc.)
 You MUST output content meet the expected word cont constrain, that is, output at least {{ expected_word_count }} words.

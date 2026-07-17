@@ -212,6 +212,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "characters": character_prompt,
                 "language": draft.language,
                 "guidance": guidance,
+                "writing_constrain": cp.draft.writing_constrain,
                 "expected_word_count": cp.expected_word_count,
                 "chapter_title": cp.formatted_chapter_title,
                 "novel_title": draft.title,

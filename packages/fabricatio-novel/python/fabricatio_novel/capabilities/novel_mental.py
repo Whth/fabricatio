@@ -120,6 +120,7 @@ class NovelComposeMental(NovelCompose, UseMind):
                 "character_mental_states": mental_states_context(character_states),
                 "language": draft.language,
                 "guidance": guidance,
+                "writing_constrain": cp.draft.writing_constrain,
                 "expected_word_count": cp.expected_word_count,
                 "chapter_title": cp.formatted_chapter_title,
                 "novel_title": draft.title,
