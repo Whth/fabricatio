@@ -39,10 +39,8 @@ __all__ = ["ComfyuiHTTPClient"]
 class ComfyuiHTTPClient:
     """Async HTTP client for the ComfyUI REST API.
 
-    Manages an ``httpx.AsyncClient`` connection pool.  Use as an async
-    context manager or call :meth:`open` / :meth:`close` manually.
-
-    Always instantiate via :meth:`create`; direct construction is internal.
+    Manages an ``httpx.AsyncClient`` connection pool.  Always instantiate via
+    :meth:`create`; direct construction is internal.
     """
 
     source: httpx.AsyncClient

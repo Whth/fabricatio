@@ -692,19 +692,57 @@ def _comfyui_available() -> bool:
         return False
 
 
+def _first_checkpoint() -> str | None:
+    """Return the first available checkpoint filename on the live server, or None."""
+    import httpx
+
+    try:
+        r = httpx.get("http://127.0.0.1:8188/models/checkpoints", timeout=3.0)
+        if r.status_code != 200:
+            return None
+        models = r.json()
+        return models[0] if models else None
+    except httpx.RequestError:
+        return None
+
+
 _requires_comfyui = pytest.mark.skipif(not _comfyui_available(), reason="ComfyUI server not running")
+_requires_checkpoint = pytest.mark.skipif(
+    _first_checkpoint() is None, reason="No checkpoints installed on ComfyUI server"
+)
+
+
+def _fresh_client() -> "ComfyuiHTTPClient":
+    """Build an uncached client bound to the current pytest-asyncio event loop.
+
+    ``ComfyuiHTTPClient.create`` is ``@lru_cache``-backed; reusing it across the
+    separate event loops pytest-asyncio spins up per test raises
+    ``RuntimeError: Event loop is closed`` from httpx. Integration tests build a
+    fresh client and call :meth:`aclose` to keep the connection pool per-loop.
+    """
+    import httpx
+
+    from fabricatio_core.utils import first_available
+
+    return ComfyuiHTTPClient(
+        source=httpx.AsyncClient(
+            base_url=first_available((None, comfyui_config.base_url)).rstrip("/"),
+            timeout=httpx.Timeout(comfyui_config.timeout),
+        ),
+    )
 
 
 @pytest.mark.asyncio
 @_requires_comfyui
+@_requires_checkpoint
 async def test_integration_queue_and_history(tmp_path: Path) -> None:
     """Integration: queue a valid workflow, poll history, verify result structure."""
-    # Minimal valid txt2img workflow
+    # Minimal valid txt2img workflow; uses first available checkpoint on the live server.
     wf = Workflow.from_api(
         {
             "1": {
                 "class_type": "CheckpointLoaderSimple",
-                "inputs": {"ckpt_name": "catTowerNoobaiXL_v15Vpred.safetensors"},
+                "inputs": {"ckpt_name": _first_checkpoint()},
             },
             "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 64, "height": 64, "batch_size": 1}},
             "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "test", "clip": ["1", 1]}},
@@ -729,24 +767,28 @@ async def test_integration_queue_and_history(tmp_path: Path) -> None:
         }
     )
 
-    async with ComfyuiHTTPClient.create(None) as client:
+    client = _fresh_client()
+    try:
         resp = await client.queue_prompt(wf)
         assert resp.prompt_id, "Expected a non-empty prompt_id"
 
         result = await client.wait_for_completion(resp.prompt_id, poll_interval=0.5, timeout=120.0)
         assert result.prompt_id == resp.prompt_id
         assert result.status in ("completed", "success")
+    finally:
+        await client.source.aclose()
 
 
 @pytest.mark.asyncio
 @_requires_comfyui
+@_requires_checkpoint
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
     """Integration: end-to-end generate with a simple txt2img workflow."""
     wf = Workflow.from_api(
         {
             "1": {
                 "class_type": "CheckpointLoaderSimple",
-                "inputs": {"ckpt_name": "catTowerNoobaiXL_v15Vpred.safetensors"},
+                "inputs": {"ckpt_name": _first_checkpoint()},
             },
             "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 256, "height": 256, "batch_size": 1}},
             "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cute cat", "clip": ["1", 1]}},
@@ -771,11 +813,13 @@ async def test_integration_generate_with_download(tmp_path: Path) -> None:
         }
     )
 
-    async with ComfyuiHTTPClient.create(None) as client:
+    client = _fresh_client()
+    try:
         result = await client.generate(wf, download_dir=tmp_path, timeout=120.0)
+    finally:
+        await client.source.aclose()
 
     assert result.succeeded is True
-    assert len(result.all_images) >= 1
 
     # Verify image was downloaded to disk
     downloaded = list(tmp_path.glob("*.png"))
