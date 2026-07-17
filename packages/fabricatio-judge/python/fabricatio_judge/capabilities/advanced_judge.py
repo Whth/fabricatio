@@ -9,7 +9,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TINY
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
 
 from fabricatio_judge.models.judgement import JudgeMent
 
@@ -21,25 +21,25 @@ class EvidentlyJudge(Propose, ABC):
     async def evidently_judge(
         self,
         prompt: str,
-        send_to: str = TINY,
+        send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> Optional[JudgeMent]: ...
     @overload
     async def evidently_judge(
         self,
         prompt: List[str],
-        send_to: str = TINY,
+        send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> Optional[List[JudgeMent] | List[JudgeMent | None]]: ...
 
     async def evidently_judge(
         self,
         prompt: str | List[str],
-        send_to: str = TINY,
+        send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> List[JudgeMent] | List[JudgeMent | None] | JudgeMent | None:
         """Judge the evidence and make a final decision."""
-        return await self.propose(JudgeMent, prompt, send_to=send_to, **kwargs)
+        return await self.propose(JudgeMent, prompt, send_to=send_to, **fallback_kwargs(kwargs, send_to=TINY))
 
 
 class VoteLLMConfig(ScopedConfig):

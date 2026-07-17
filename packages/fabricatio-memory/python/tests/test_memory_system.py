@@ -17,7 +17,7 @@ def memory_service(tmp_path_factory: pytest.TempPathFactory) -> MemoryService:
 @pytest.fixture
 def store(memory_service: MemoryService) -> MemoryStore:
     """Fixture to create a MemoryStore instance."""
-    return memory_service.get_store(uuid.uuid7().hex)
+    return memory_service.get_store(uuid.uuid4().hex)
 
 
 @pytest.mark.parametrize(

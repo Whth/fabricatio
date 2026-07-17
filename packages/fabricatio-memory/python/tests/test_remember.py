@@ -62,7 +62,7 @@ def role(shared_temp_dir: Path) -> RememberRole:
     Returns:
         RememberRole: RememberRole instance
     """
-    return RememberRole(memory_store_name=uuid.uuid7().hex).mount_memory_store()
+    return RememberRole(memory_store_name=uuid.uuid4().hex).mount_memory_store()
 
 
 @pytest.mark.parametrize(
