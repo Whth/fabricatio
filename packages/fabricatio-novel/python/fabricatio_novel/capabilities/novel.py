@@ -263,6 +263,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             language: The language of the novel.
             previous_summary: The previous chapter's summary, used as starting-state reference.
                 For the first chapter this is None.
+            send_to: The model group to use to get the summerization
             **kwargs: Additional keyword arguments for LLM usage.
 
         Returns:

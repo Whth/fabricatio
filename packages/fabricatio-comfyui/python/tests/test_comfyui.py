@@ -721,7 +721,6 @@ def _fresh_client() -> "ComfyuiHTTPClient":
     fresh client and call :meth:`aclose` to keep the connection pool per-loop.
     """
     import httpx
-
     from fabricatio_core.utils import first_available
 
     return ComfyuiHTTPClient(
