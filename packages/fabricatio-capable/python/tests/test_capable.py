@@ -95,7 +95,12 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: S
         )
         assert isinstance(results, list)
         assert len(results) == 3
-        for actual, expected in zip(results, desires, strict=False):
+        # asyncio.gather processes the per-item LLM calls concurrently; the
+        # dummy mock's LIFO response queue does not preserve submission order
+        # under concurrent access, so match by content.
+        actual_by_issue = {r.issue_to_judge: r for r in results}
+        for expected in desires:
+            actual = actual_by_issue[expected.issue_to_judge]
             assert actual is not None
             assert actual.model_dump_json() == expected.model_dump_json()
             assert bool(actual) == expected.final_judgement
