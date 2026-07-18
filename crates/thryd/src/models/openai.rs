@@ -34,7 +34,7 @@ use async_openai::types::chat::{
     ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestMessageContentPartText,
     ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContentPart,
     CreateChatCompletionRequest, CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
-    CreateChatCompletionStreamResponse, ImageUrl,
+    CreateChatCompletionStreamResponse, ImageUrl, ReasoningEffort,
 };
 
 use crate::{CompletionResponse, EmbeddingResponse, RankedDocuments, RankingResponse, ThrydError};
@@ -293,6 +293,7 @@ impl Model for OpenaiModel {
 impl CompletionModel for OpenaiModel {
     async fn completion(&self, request: CompletionRequest) -> crate::Result<CompletionResponse> {
         let stream = request.stream;
+        let effort_str = request.effort.clone();
         let user_msg = if request.images.is_empty() {
             ChatCompletionRequestUserMessageArgs::default()
                 .content(request.message)
@@ -319,12 +320,17 @@ impl CompletionModel for OpenaiModel {
                 .build()?
                 .into()
         };
+        let reasoning_effort: Option<ReasoningEffort> = effort_str
+            .as_ref()
+            .and_then(|s| serde_json::from_value(serde_json::Value::String(s.clone())).ok());
+        let reasoning_effort_is_some = reasoning_effort.is_some();
         let request = CreateChatCompletionRequest {
             top_p: request.top_p,
             temperature: request.temperature,
             max_completion_tokens: request.max_completion_tokens,
             presence_penalty: request.presence_penalty,
             frequency_penalty: request.frequency_penalty,
+            reasoning_effort,
             ..CreateChatCompletionRequestArgs::default()
                 .model(self.model_name())
                 .stream(request.stream)
@@ -332,7 +338,15 @@ impl CompletionModel for OpenaiModel {
                 .build()?
         };
 
-        let v = to_value(request)?;
+        let mut v = to_value(request)?;
+        // Fallback: if enum conversion failed but a raw effort string was provided,
+        // inject it directly into the serialized JSON (for compatible providers with
+        // non-standard effort values)
+        if !reasoning_effort_is_some {
+            if let Some(s) = &effort_str {
+                v["reasoning_effort"] = serde_json::Value::String(s.clone());
+            }
+        }
         trace!("Completion request: {v:?}",);
         if stream {
             let response = self

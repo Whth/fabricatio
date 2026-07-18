@@ -145,6 +145,12 @@ pub struct CompletionRequest {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub images: Vec<String>,
+
+    /// Reasoning effort for models that support it (e.g. o1, o3).
+    /// Must be one of `"low"`, `"medium"`, `"high"`, `"xhigh"`, `"minimal"`, or `None`.
+    /// Non-standard strings (e.g. `"ultra"`) are forwarded verbatim to compatible providers.
+    /// `None` uses provider default.
+    pub effort: Option<String>,
 }
 
 /// Request payload for reranking documents against a query.

@@ -45,6 +45,7 @@ class LLMKwargs(RouteKwargs, total=False):
     """
 
     stream: bool
+    effort: Optional[str]
     temperature: Optional[float]
     top_p: Optional[float]
     max_completion_tokens: Optional[int]

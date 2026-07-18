@@ -400,6 +400,9 @@ class LLMScopedConfig(ScopedConfig):
     llm_no_cache: Optional[bool] = None
     """Whether to disable caching for the LLM model."""
 
+    llm_effort: Optional[str] = None
+    """The reasoning effort level for models that support it (e.g. o1, o3)."""
+
     def _resolve_completion_send_to(
         self,
         send_to: Optional[str] = None,
@@ -419,7 +422,7 @@ class LLMScopedConfig(ScopedConfig):
             "`send_to` is not specified at any where!",
         )
 
-    def _resolve_completion_params(
+    def _resolve_completion_params(  # noqa: PLR0913
         self,
         stream: Optional[bool] = None,
         temperature: Optional[float] = None,
@@ -427,6 +430,7 @@ class LLMScopedConfig(ScopedConfig):
         max_completion_tokens: Optional[int] = None,
         presence_penalty: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
+        effort: Optional[str] = None,
         no_cache: Optional[bool] = None,
         images: Optional[List[bytes]] = None,
         **_,
@@ -448,6 +452,7 @@ class LLMScopedConfig(ScopedConfig):
             frequency_penalty=first_available(
                 (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False
             ),
+            effort=first_available((effort, self.llm_effort, CONFIG.llm.effort), raise_exception=False),
             no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
             or False,
             images=images,

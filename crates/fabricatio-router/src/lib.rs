@@ -134,7 +134,7 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = None)
+    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, images = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
@@ -150,6 +150,7 @@ impl Router {
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+    ///     effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
     ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
     ///     images (List[bytes]): Optional raw image bytes for multimodal requests. Defaults to empty.
     ///
@@ -166,6 +167,7 @@ impl Router {
         max_completion_tokens: Option<u32>,
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
+        effort: Option<String>,
         no_cache: bool,
         #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
@@ -177,6 +179,7 @@ impl Router {
             max_completion_tokens,
             presence_penalty,
             frequency_penalty,
+            effort,
             images: images
                 .unwrap_or_default()
                 .iter()
@@ -190,13 +193,7 @@ impl Router {
             Self::completion_inner(send_to, req, r, no_cache).await
         })
     }
-
-    #[allow(clippy::too_many_arguments)]
-    #[gen_stub(
-        override_return_type(type_repr = "typing.Awaitable[typing.List[str|None]]", imports = ("typing",)
-        )
-    )]
-    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, no_cache = false, images = None)
+    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, images = None)
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
@@ -211,6 +208,7 @@ impl Router {
     ///     max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+    ///     effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
     ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
     ///     images (List[bytes]): Optional raw image bytes broadcast to all messages. Defaults to empty.
     ///
@@ -227,6 +225,7 @@ impl Router {
         max_completion_tokens: Option<u32>,
         presence_penalty: Option<f32>,
         frequency_penalty: Option<f32>,
+        effort: Option<String>,
         no_cache: bool,
         #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
@@ -246,6 +245,7 @@ impl Router {
                     max_completion_tokens,
                     presence_penalty,
                     frequency_penalty,
+                    effort: effort.clone(),
                     images: vec![],
                 })
                 .collect::<Vec<_>>()
@@ -261,6 +261,7 @@ impl Router {
                     max_completion_tokens,
                     presence_penalty,
                     frequency_penalty,
+                    effort: effort.clone(),
                     images: data_uris.clone(),
                 })
                 .collect::<Vec<_>>()

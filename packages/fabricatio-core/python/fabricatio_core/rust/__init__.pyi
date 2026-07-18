@@ -632,6 +632,9 @@ class LLMConfig:
     def presence_penalty(self) -> typing.Optional[builtins.float]: ...
     @property
     def frequency_penalty(self) -> typing.Optional[builtins.float]: ...
+    @property
+    def effort(self) -> typing.Optional[builtins.str]:
+        r"""Reasoning effort for models that support it."""
 
 @typing.final
 class Logger:
@@ -680,6 +683,7 @@ class Router:
         max_completion_tokens: typing.Optional[builtins.int] = None,
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
+        effort: typing.Optional[builtins.str] = None,
         no_cache: builtins.bool = False,
         images: list[bytes] | None = None,
     ) -> typing.Awaitable[str]:
@@ -697,6 +701,7 @@ class Router:
             max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+            effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
             no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
             images (List[bytes]): Optional raw image bytes for multimodal requests. Defaults to empty.
 
@@ -713,9 +718,10 @@ class Router:
         max_completion_tokens: typing.Optional[builtins.int] = None,
         presence_penalty: typing.Optional[builtins.float] = None,
         frequency_penalty: typing.Optional[builtins.float] = None,
+        effort: typing.Optional[builtins.str] = None,
         no_cache: builtins.bool = False,
         images: list[bytes] | None = None,
-    ) -> typing.Awaitable[typing.List[str | None]]:
+    ) -> typing.Any:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
         When `images` is non-empty, all images are broadcast to every message.
@@ -729,6 +735,7 @@ class Router:
             max_completion_tokens (Optional[int]): Maximum tokens to generate. Defaults to 2048 if None.
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
+            effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
             no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
             images (List[bytes]): Optional raw image bytes broadcast to all messages. Defaults to empty.
 
@@ -898,6 +905,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[str]: ...
@@ -912,6 +920,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[str]]: ...
@@ -926,6 +935,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
@@ -945,6 +955,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
@@ -964,6 +975,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
@@ -983,6 +995,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
@@ -1003,6 +1016,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
@@ -1021,6 +1035,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
@@ -1039,6 +1054,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
@@ -1057,6 +1073,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
@@ -1073,6 +1090,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
@@ -1089,6 +1107,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
@@ -1106,6 +1125,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[str]]: ...
@@ -1123,6 +1143,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
@@ -1140,6 +1161,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
@@ -1157,6 +1179,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
@@ -1174,6 +1197,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
@@ -1191,6 +1215,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[
@@ -1211,6 +1236,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[bool]]: ...
@@ -1229,6 +1255,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
@@ -1247,6 +1274,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
@@ -1265,6 +1293,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
@@ -1283,6 +1312,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
@@ -1301,6 +1331,7 @@ class RouterUsage:
         max_completion_tokens: typing.Optional[int],
         presence_penalty: typing.Optional[float],
         frequency_penalty: typing.Optional[float],
+        effort: typing.Optional[str],
         no_cache: bool,
         images: typing.Optional[typing.Sequence[bytes]] = None,
     ) -> typing.Awaitable[

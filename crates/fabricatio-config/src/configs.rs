@@ -52,6 +52,9 @@ pub struct LLMConfig {
     #[validate(range(min = -2.0, max = 2.0, message = "frequency_penalty must be between -2.0 and 2.0"
     ))]
     pub frequency_penalty: Option<f32>,
+
+    /// Reasoning effort for models that support it.
+    pub effort: Option<String>,
 }
 
 /// Embedding configuration structure
