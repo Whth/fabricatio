@@ -220,22 +220,17 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "all_chapters_titles": draft.all_chapters_titles,
                 "previous_summary": previous_summary.as_prompt() if previous_summary else None,
             }
-            rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
+            rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
 
             # 2. Generate chapter content
             raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
-            if not raw_chapter:
-                logger.warn(f"Failed to generate content for {cp.formatted_chapter_title}")
-                chapter_contents.append("")
-                continue
 
-            raw_text = raw_chapter[0]
-            chapter_contents.append(raw_text)
-            logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_text)} chars)")
+            chapter_contents.append(raw_chapter)
+            logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_chapter)} chars)")
 
             # 3. Summarize chapter for next iteration's context
             previous_summary = await self.summarize_chapter(
-                cp.formatted_chapter_title, raw_text, draft.language, previous_summary, **kwargs
+                cp.formatted_chapter_title, raw_chapter, draft.language, previous_summary, **kwargs
             )
             if previous_summary:
                 logger.debug(

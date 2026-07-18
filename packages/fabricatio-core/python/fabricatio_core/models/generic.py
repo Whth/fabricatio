@@ -404,12 +404,20 @@ class LLMScopedConfig(ScopedConfig):
         self,
         send_to: Optional[str] = None,
     ) -> str:
-        raw = ok(
-            send_to or self.llm_send_to or CONFIG.llm.send_to,
+        """Resolve ``send_to`` to a router group name with variant-slot precedence.
+
+        Precedence (highest first): ``send_to``, ``self.llm_send_to``,
+        ``CONFIG.llm.send_to``. The first non-None candidate is selected.
+        If that candidate names a configured variant slot
+        (``CONFIG.resolve_llm_variant`` returns a model), the configured model
+        is used. Otherwise the candidate is returned as a literal group name.
+        An unconfigured variant name yields ``None`` so the resolver falls
+        through to the next candidate.
+        """
+        return first_available(
+            (CONFIG.resolve_llm_variant(c) for c in (send_to, self.llm_send_to, CONFIG.llm.send_to)),
             "`send_to` is not specified at any where!",
         )
-
-        return CONFIG.resolve_llm_variant(raw) or raw
 
     def _resolve_completion_params(
         self,

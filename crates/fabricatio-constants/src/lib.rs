@@ -117,6 +117,10 @@ pub mod agent_variant {
     /// The strongest model available — used for planning, multi-step strategy,
     /// complex synthesis, and any job where quality is the only acceptable outcome.
     pub const PLAN: &str = "plan";
+
+    pub fn is_agent_variant(variant: &str) -> bool {
+        variant == TINY || variant == SMOL || variant == TASK || variant == SLOW || variant == PLAN
+    }
 }
 
 pub mod agent_variant_varnames {

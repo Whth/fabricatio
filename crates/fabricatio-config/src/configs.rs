@@ -6,11 +6,13 @@ use crate::secstr::SecretStr;
 use pyo3_stub_gen::derive::*;
 use pythonize::pythonize;
 
+use fabricatio_constants::agent_variant::is_agent_variant;
 use pyo3::exceptions::PyValueError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::ops::Not;
 use std::path::PathBuf;
 use thryd::tracker::Quota;
 use thryd::{DeploymentIdentifier, ProviderName, ProviderType, RouteGroupName};
@@ -338,14 +340,17 @@ impl Config {
     /// `self.agent.tiny` for [`AgentVariant::Tiny`]), or `None` when the slot
     /// has not been configured. No fallback resolution is performed — the caller
     /// decides what to do when the preferred slot is unset.
-    fn resolve_llm_variant(&self, preferred: Option<&str>) -> Option<&String> {
-        match preferred? {
-            agent_variant::TINY => self.agent.tiny.as_ref(),
-            agent_variant::SMOL => self.agent.smol.as_ref(),
-            agent_variant::TASK => self.agent.task.as_ref(),
-            agent_variant::SLOW => self.agent.slow.as_ref(),
-            agent_variant::PLAN => self.agent.plan.as_ref(),
-            _ => None,
+    fn resolve_llm_variant(&self, preferred: Option<&str>) -> Option<String> {
+        match preferred {
+            Some(agent_variant::TINY) => self.agent.tiny.clone(),
+            Some(agent_variant::SMOL) => self.agent.smol.clone(),
+            Some(agent_variant::TASK) => self.agent.task.clone(),
+            Some(agent_variant::SLOW) => self.agent.slow.clone(),
+            Some(agent_variant::PLAN) => self.agent.plan.clone(),
+            None => None,
+            Some(variant) => is_agent_variant(variant)
+                .not()
+                .then_some(variant.to_string()),
         }
     }
 
