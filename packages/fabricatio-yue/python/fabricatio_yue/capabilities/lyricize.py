@@ -6,7 +6,7 @@ from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok
 
 from fabricatio_yue.capabilities.genre import SelectGenre
 from fabricatio_yue.config import yue_config
@@ -60,7 +60,7 @@ class Lyricize(Propose, SelectGenre):
             Song | None | List[Song | None]: Generated lyrics as Song object, list of Song objects, or None based on input type
         """
         logger.debug(f"Lyricizing requirements: {requirement}")
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         async def lyricize_single(req: str) -> Song | None:
             """Generate a song with lyrics based on a single requirement.

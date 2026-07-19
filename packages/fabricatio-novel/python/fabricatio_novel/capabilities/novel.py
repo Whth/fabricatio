@@ -11,7 +11,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import PLAN, SLOW, SMOL, TASK, detect_language
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
@@ -32,7 +32,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
     ) -> Novel | None:
         """Main novel composition pipeline."""
         logger.info(f"Starting novel generation for outline: {outline[:100]}...")
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         result = await self.generate_draft_and_characters(outline, language, **okwargs)
         if not result:

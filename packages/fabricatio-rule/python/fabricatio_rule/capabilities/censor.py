@@ -11,7 +11,7 @@ from fabricatio_capabilities.models.generic import ProposedUpdateAble
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import SketchedAble
-from fabricatio_core.utils import override_kwargs
+from fabricatio_core.utils import no_default
 from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_improve.models.improve import Improvement
 
@@ -43,7 +43,7 @@ class Censor(Correct, Check, ABC):
         Note:
             This method first checks the object against the ruleset and then corrects it if necessary.
         """
-        imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
+        imp = await self.check_obj(obj, ruleset, **no_default(kwargs))
         if imp is None:
             return None
         if not imp:
@@ -68,7 +68,7 @@ class Censor(Correct, Check, ABC):
         Note:
             This method first checks the string against the ruleset and then corrects it if necessary.
         """
-        imp = await self.check_string(input_text, ruleset, **override_kwargs(kwargs, default=None))
+        imp = await self.check_string(input_text, ruleset, **no_default(kwargs))
         if imp is None:
             logger.warn(f"Censor failed for string:\n{input_text}")
             return None
@@ -96,7 +96,7 @@ class Censor(Correct, Check, ABC):
         Note:
             This method first checks the object against the ruleset and then corrects it in-place if necessary.
         """
-        imp = await self.check_obj(obj, ruleset, **override_kwargs(kwargs, default=None))
+        imp = await self.check_obj(obj, ruleset, **no_default(kwargs))
         if imp is None:
             logger.warn(f"Censor failed for `{obj.__class__.__name__}`")
             return None

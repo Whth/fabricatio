@@ -9,7 +9,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language
-from fabricatio_core.utils import override_kwargs
+from fabricatio_core.utils import no_default
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 
@@ -51,7 +51,7 @@ class Check(EvidentlyJudge, Propose, ABC):
                 ),
                 value_type=str,
                 k=rule_count,
-                **override_kwargs(kwargs, default=None),
+                **no_default(kwargs),
             )
             if rule_count > 1
             else [ruleset_requirement]
@@ -74,7 +74,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         ruleset_patch = await self.propose(
             RuleSetMetadata,
             f"{ruleset_requirement}\n\nYou should use `{detect_language(ruleset_requirement)}`!",
-            **override_kwargs(kwargs, default=None),
+            **no_default(kwargs),
         )
 
         if ruleset_patch is None:
@@ -108,7 +108,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         if judge := await self.evidently_judge(
             f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `{rule.name}` provided above?"
             f"should I take some measure to fix that violation? true for I do need, false for I don't need.",
-            **override_kwargs(kwargs, default=None),
+            **no_default(kwargs),
         ):
             logger.info(f"Rule `{rule.name}` violated: \n{judge.display()}")
             return await self.propose(

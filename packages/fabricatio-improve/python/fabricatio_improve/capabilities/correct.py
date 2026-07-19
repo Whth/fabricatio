@@ -13,7 +13,7 @@ from fabricatio_core.models.kwargs_types import (
     ValidateKwargs,
 )
 from fabricatio_core.rust import TEMPLATE_MANAGER
-from fabricatio_core.utils import fallback_kwargs, ok, override_kwargs
+from fabricatio_core.utils import fallback_kwargs, no_default, ok
 
 from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
@@ -168,7 +168,7 @@ class Correct(Rating, ABC):
         """
         if not improvement.decided():
             logger.info(f"Improvement {improvement.focused_on} not decided, start deciding...")
-            improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
+            improvement = await self.decide_improvement(improvement, **no_default(kwargs))
 
         total = len(improvement.problem_solutions)
         for idx, ps in enumerate(improvement.problem_solutions):
@@ -200,7 +200,7 @@ class Correct(Rating, ABC):
         if not improvement.decided():
             logger.info(f"Improvement {improvement.focused_on} not decided, start deciding...")
 
-            improvement = await self.decide_improvement(improvement, **override_kwargs(kwargs, default=None))
+            improvement = await self.decide_improvement(improvement, **no_default(kwargs))
 
         for ps in improvement.problem_solutions:
             fixed_string = await self.fix_troubled_string(input_text, ps, reference, **kwargs)

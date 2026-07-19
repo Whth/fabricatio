@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Unpack
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER
-from fabricatio_core.utils import override_kwargs
+from fabricatio_core.utils import no_default
 
 from fabricatio_tool.capabilities.use_tool import UseTool
 from fabricatio_tool.config import tool_config
@@ -84,7 +84,7 @@ class Handle(UseTool, ABC):
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
-        okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
+        okwargs = ChooseKwargs(**no_default(kwargs))
 
         return await self.handle_fine_grind(
             request,

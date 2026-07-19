@@ -20,7 +20,7 @@ from fabricatio_character.models.mental import MentalState
 from fabricatio_character.utils import dump_card
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
@@ -70,7 +70,7 @@ class NovelComposeMental(NovelCompose, UseMind):
         **kwargs: Unpack[ValidateKwargs[Novel]],
     ) -> "Novel | None":
         """Novel composition pipeline with mental state integration."""
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         result = await super().generate_draft_and_characters(outline, language, **okwargs)
         if not result:

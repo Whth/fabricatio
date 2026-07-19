@@ -10,7 +10,7 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER, json_parser
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok, override_kwargs
 from more_itertools import flatten, windowed
 from pydantic import Field, NonNegativeInt, PositiveInt, create_model
 
@@ -78,7 +78,7 @@ class Rating(Propose, ABC):
                 )
                 for t in to_rate
             ],
-            **override_kwargs(kwargs, default=None),
+            **no_default(kwargs),
         )
         default = kwargs.get("default")
         if isinstance(res, list):
@@ -134,7 +134,7 @@ class Rating(Propose, ABC):
         """
         manual = (
             manual
-            or await self.draft_rating_manual(topic, criteria, **override_kwargs(kwargs, default=None))
+            or await self.draft_rating_manual(topic, criteria, **no_default(kwargs))
             or dict(zip(criteria, criteria, strict=True))
         )
 
@@ -359,11 +359,11 @@ class Rating(Propose, ABC):
         Returns:
             List[float]: A list of composite scores for the items.
         """
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         criteria = ok(
             criteria
-            or (await self.draft_rating_criteria(topic, **override_kwargs(kwargs, default=None)) if approx else None)
+            or (await self.draft_rating_criteria(topic, **no_default(kwargs)) if approx else None)
             or await self.draft_rating_criteria_from_examples(topic, to_rate, **okwargs)
         )
         weights = ok(weights or await self.drafting_rating_weights_klee(topic, criteria, **okwargs))

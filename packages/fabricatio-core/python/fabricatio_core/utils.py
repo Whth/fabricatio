@@ -40,6 +40,17 @@ def fallback_kwargs[T: Dict[str, Any]](kwargs: T, **fallbacks: Unpack[T]) -> T:
     return cast("T", new_kwargs)
 
 
+def change_default[T, N](kwargs: ValidateKwargs[T], default: N) -> ValidateKwargs[N]:
+    """Set the ``default`` field of ``kwargs`` in place to ``default`` and return the same mapping typed as ``ValidateKwargs[N]``."""
+    kwargs["default"] = default
+    return cast("ValidateKwargs[N]", kwargs)
+
+
+def no_default[T](kwargs: ValidateKwargs[T]) -> ValidateKwargs[None]:
+    """Set the ``default`` field of ``kwargs`` to ``None`` and return the mapping typed as ``ValidateKwargs[None]``."""
+    return change_default(kwargs, default=None)
+
+
 def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     """Check if a value is None and raise a ValueError with the provided message if it is.
 

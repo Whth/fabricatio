@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
-from fabricatio_core.utils import override_kwargs
+from fabricatio_core.utils import no_default
 
 from fabricatio_tool.capabilities.handle import Handle
 from fabricatio_tool.models.collector import ResultCollector
@@ -38,7 +38,7 @@ class HandleTask(Handle, ABC):
         Returns:
             An optional ResultCollector instance containing the results of task execution.
         """
-        okwargs = ChooseKwargs(**override_kwargs(kwargs, default=None))
+        okwargs = ChooseKwargs(**no_default(kwargs))
         return await self.handle_fine_grind(
             f"{task.dependencies_prompt}\n\n\n{task.briefing}",
             data,

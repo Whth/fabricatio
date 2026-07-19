@@ -9,7 +9,7 @@ from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok
 
 from fabricatio_improve.config import improve_config
 from fabricatio_improve.models.improve import Improvement
@@ -68,7 +68,7 @@ class Review(Rating, Propose, ABC):
             Improvement: A review result containing identified problems and proposed solutions,
                 with a reference to the original text.
         """
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         criteria = ok(
             criteria

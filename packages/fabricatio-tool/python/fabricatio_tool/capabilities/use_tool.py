@@ -10,7 +10,7 @@ from fabricatio_core import logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ChooseKwargs
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok
 from pydantic import Field
 
 from fabricatio_tool.models.tool import Tool, ToolBox
@@ -119,6 +119,4 @@ class UseTool(UseLLM, ToolConfig, ABC):
         Returns:
             List[Tool]: A list of tools gathered based on the provided request.
         """
-        return await self.gather_tools_fine_grind(
-            request, ChooseKwargs(**override_kwargs(kwargs, default=None)), kwargs
-        )
+        return await self.gather_tools_fine_grind(request, ChooseKwargs(**no_default(kwargs)), kwargs)

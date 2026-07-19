@@ -6,7 +6,7 @@ from typing import List, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import no_default, ok, override_kwargs
 
 from fabricatio_anki.config import anki_config
 from fabricatio_anki.models.deck import Deck, Model, ModelMetaData
@@ -40,7 +40,7 @@ class GenerateDeck(Propose):
         Returns:
             A Deck object containing metadata and models
         """
-        ov_kwargs = override_kwargs(kwargs, default=None)
+        ov_kwargs = no_default(kwargs)
 
         metadata = await self.propose(
             ModelMetaData,
@@ -252,7 +252,7 @@ class GenerateDeck(Propose):
         Returns:
             A single Template instance or None
         """
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         # Generate template name
         name_rendered = TEMPLATE_MANAGER.render_template(
@@ -284,7 +284,7 @@ class GenerateDeck(Propose):
         Returns:
             A list of Template instances or None
         """
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         # Generate template names
         name_rendered = TEMPLATE_MANAGER.render_template(
@@ -337,7 +337,7 @@ class GenerateDeck(Propose):
         else:
             raise ValueError("requirement must be a string or a list of strings")
 
-        okwargs = override_kwargs(kwargs, default=None)
+        okwargs = no_default(kwargs)
 
         source_code = ok(await self.acode_string(rendered, "html", **okwargs))
         if not source_code:
