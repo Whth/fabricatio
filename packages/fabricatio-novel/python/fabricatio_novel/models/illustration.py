@@ -7,11 +7,11 @@ image-generation prompt).
 """
 
 from enum import StrEnum
+from math import sqrt
 from typing import Tuple
 
-from pydantic import Field
-
 from fabricatio_core.models.generic import ProposedAble
+from pydantic import Field
 
 
 class FrameAspect(StrEnum):
@@ -58,6 +58,20 @@ class FrameAspect(StrEnum):
                 return 16, 9
             case FrameAspect.ULTRAWIDE:
                 return 21, 9
+
+    def to_dimensions(self, megapixels: float) -> Tuple[int, int]:
+        """Return aligned literal pixel dimensions for ``megapixels``.
+
+        Derives width and height from this member's hard-coded ratio, rounds
+        both dimensions to ComfyUI's 8-pixel alignment, and enforces a
+        64-pixel minimum on each axis.
+        """
+        ratio_width, ratio_height = self.ratio
+        height = sqrt(megapixels * 1_000_000 * ratio_height / ratio_width)
+        width = height * ratio_width / ratio_height
+        width_rounded = round(width / 8) * 8
+        height_rounded = round(height / 8) * 8
+        return max(64, width_rounded), max(64, height_rounded)
 
 
 class IllustrationConstrain(ProposedAble):

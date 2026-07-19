@@ -1,13 +1,9 @@
 """Tests for the illustration pipeline models and helpers."""
 
 import pytest
-from fabricatio_comfyui.models.workflow import Node, Workflow
-from fabricatio_novel.capabilities.illustration import (
-    _apply_constrain_to_workflow,
-    _megapixels_to_dimensions,
-)
+from fabricatio_comfyui.models.workflow import Workflow
+from fabricatio_novel.capabilities.illustration import _apply_constrain_to_workflow
 from fabricatio_novel.models.illustration import FrameAspect, IllustrationConstrain
-
 
 # ---------------------------------------------------------------------------
 # FrameAspect enum
@@ -64,7 +60,7 @@ class TestIllustrationConstrain:
         assert c.prompt == "best quality, 1girl, silver hair"
 
     def test_default_megapixels(self) -> None:
-        """megapixels defaults to 1.0 when omitted."""
+        """Megapixels defaults to 1.0 when omitted."""
         c = IllustrationConstrain(aspect_ratio=FrameAspect.SQUARE, prompt="x")
         assert c.megapixels == 1.0
 
@@ -88,33 +84,31 @@ class TestIllustrationConstrain:
 
 
 # ---------------------------------------------------------------------------
-# _megapixels_to_dimensions helper
+# FrameAspect.to_dimensions
 # ---------------------------------------------------------------------------
 
 
-class TestMegapixelsToDimensions:
-    """Tests for the literal-dimension fallback helper."""
+class TestFrameAspectDimensions:
+    """Tests for enum-owned literal pixel dimension calculation."""
 
     def test_widescreen_one_megapixel(self) -> None:
-        """1.0 MP at 16:9 produces dims near 1332x748, both multiples of 8."""
-        w, h = _megapixels_to_dimensions(1.0, (16, 9))
+        """1.0 MP at widescreen produces aligned dimensions near 1332x748."""
+        w, h = FrameAspect.WIDESCREEN.to_dimensions(1.0)
         assert w % 8 == 0
         assert h % 8 == 0
-        # 16:9 at 1MP: w*h=1_000_000, w/h=16/9 -> w=sqrt(1_000_000*16/9)=1333.3
         assert 1328 <= w <= 1340
         assert 744 <= h <= 752
 
     def test_square_two_megapixel(self) -> None:
-        """2.0 MP at 1:1 produces 1416x1416 (or thereabouts, multiples of 8)."""
-        w, h = _megapixels_to_dimensions(2.0, (1, 1))
+        """2.0 MP at square produces equal, aligned dimensions near 1416px."""
+        w, h = FrameAspect.SQUARE.to_dimensions(2.0)
         assert w == h
         assert w % 8 == 0
-        # sqrt(2_000_000) = 1414.2 -> 1416
         assert 1412 <= w <= 1420
 
     def test_minimum_dim_floor(self) -> None:
-        """Zero or very small megapixels still produce at least 64x64."""
-        w, h = _megapixels_to_dimensions(0.001, (1, 1))
+        """Very small megapixel targets still produce at least 64x64."""
+        w, h = FrameAspect.SQUARE.to_dimensions(0.001)
         assert w >= 64
         assert h >= 64
 
@@ -173,7 +167,8 @@ class TestApplyConstrainToWorkflow:
         latent = wf.by_type("EmptyLatentImage")[0]
         # Literal dims derived from 3:4 ratio at 1.7MP, both multiples of 8
         w, h = latent.inputs["width"], latent.inputs["height"]
-        assert isinstance(w, int) and isinstance(h, int)
+        assert isinstance(w, int)
+        assert isinstance(h, int)
         assert w % 8 == 0
         assert h % 8 == 0
         # 3:4 ratio preserved (w/h == 0.75)
