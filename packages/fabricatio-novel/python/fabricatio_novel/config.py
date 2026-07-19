@@ -48,6 +48,11 @@ class NovelConfig:
     generate_image_prompt_template: str = "built-in/generate_image_prompt"
     """template used to generate image prompt for a single paragraph (stage 2 of two-stage pipeline)."""
 
+    illustration_constrain_template: str = "built-in/illustration_constrain"
+    """template used to propose an :class:`IllustrationConstrain` (frame
+    proportion + image-generation prompt) for a single paragraph (stage 2 of
+    the two-stage pipeline)."""
+
     character_base_look_template: str = "built-in/character_base_look"
     """template used to distill character look into permanent physical traits only."""
     illustration_selection_guideline_template: str = "built-in/illustration_selection_guideline"

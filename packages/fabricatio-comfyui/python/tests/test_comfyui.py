@@ -217,6 +217,47 @@ class TestWorkflow:
         assert node.inputs["width"] == 1024
         assert node.inputs["height"] == 768
 
+    def test_set_chart_proportion_updates_selector(self) -> None:
+        """set_chart_proportion updates ResolutionSelector inputs."""
+        wf = Workflow.from_api(self.DEMO_JSON)
+        wf.set_chart_proportion(aspect_ratio="16:9 (Landscape Standard)", megapixels=2.0, multiple=16)
+        node = wf.get("79")
+        assert node.inputs["aspect_ratio"] == "16:9 (Landscape Standard)"
+        assert node.inputs["megapixels"] == 2.0
+        assert node.inputs["multiple"] == 16
+        # EmptyLatentImage node refs to ResolutionSelector must be preserved
+        assert wf.get("49").inputs["width"] == ["79", 0]
+        assert wf.get("49").inputs["height"] == ["79", 1]
+
+    def test_set_chart_proportion_partial(self) -> None:
+        """set_chart_proportion only updates provided parameters."""
+        wf = Workflow.from_api(self.DEMO_JSON)
+        original_megapixels = wf.get("79").inputs["megapixels"]
+        wf.set_chart_proportion(aspect_ratio="1:1")
+        node = wf.get("79")
+        assert node.inputs["aspect_ratio"] == "1:1"
+        assert node.inputs["megapixels"] == original_megapixels
+        assert "multiple" not in node.inputs
+
+    def test_set_chart_proportion_by_node_id(self) -> None:
+        """set_chart_proportion with explicit node_id."""
+        wf = Workflow.from_api(self.DEMO_JSON)
+        wf.set_chart_proportion(aspect_ratio="3:2", node_id="79")
+        assert wf.get("79").inputs["aspect_ratio"] == "3:2"
+
+    def test_set_chart_proportion_wrong_type_raises(self) -> None:
+        """set_chart_proportion with node_id that is not a ResolutionSelector."""
+        wf = Workflow.from_api(self.DEMO_JSON)
+        with pytest.raises(KeyError, match="not ResolutionSelector"):
+            wf.set_chart_proportion(aspect_ratio="1:1", node_id="42")
+
+    def test_set_chart_proportion_missing_raises(self) -> None:
+        """set_chart_proportion raises KeyError when no ResolutionSelector exists."""
+        wf = Workflow.new()
+        wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
+        with pytest.raises(KeyError, match="No ResolutionSelector"):
+            wf.set_chart_proportion(aspect_ratio="1:1")
+
     def test_node_connect(self) -> None:
         """Node.connect wires inputs to source node outputs."""
         wf = Workflow.new()

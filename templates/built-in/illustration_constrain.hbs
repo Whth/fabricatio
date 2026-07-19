@@ -1,0 +1,62 @@
+Propose a typed illustration for the following paragraph.
+
+The output MUST be a JSON object with three fields:
+- `aspect_ratio`: one of the eight ComfyUI `ResolutionSelector` aspect-ratio tokens — pick the one that best matches the visual composition of the scene. Valid values: "square", "photo", "portrait photo", "portrait standard", "standard", "widescreen portrait", "widescreen", "ultrawide".
+- `megapixels`: target resolution in megapixels — typically 1.0 to 2.5. Higher values for hero shots; lower for transitional filler scenes. Must be a positive number.
+- `prompt`: the image-generation prompt itself, written in ComfyUI tag format.
+
+**Novel:** {{novel_title}}
+
+**Chapter:** {{chapter_title}} (index {{chapter_index}})
+
+{{#if novel_synopsis}}
+**Story Synopsis:**
+{{novel_synopsis}}
+{{/if}}
+
+{{#if character_looks}}
+**Character Base Appearance (body, hair, eyes — MUST match exactly):**
+{{#each character_looks}}
+- **{{this.name}}**: {{this.look}}
+{{/each}}
+{{/if}}
+
+**Target Paragraph [{{paragraph_index}}]:**
+{{paragraph}}
+
+**Surrounding Context:**
+{{#if before_paragraphs}}
+Previous:
+{{#each before_paragraphs}}
+[this -{{this.offset}}] {{this.text}}
+{{/each}}
+{{/if}}
+{{#if after_paragraphs}}
+Following:
+{{#each after_paragraphs}}
+[this +{{this.offset}}] {{this.text}}
+{{/each}}
+{{/if}}
+
+{{#if prompt_guideline}}
+**Prompt Style:**
+{{prompt_guideline}}
+{{/if}}
+
+**Output Rules for `prompt` field:**
+1. MUST start with: best quality,masterpiece,4k,highres,
+2. Use deepdanboruu tag format — short comma-separated phrases, NOT sentences (e.g. "1girl, silver hair, violet eyes, standing" not "a girl with silver hair is standing")
+3. Body descriptions MUST be accurate: use correct breast size (small/medium/large), hip width, body type (slim/athletic/curvy), age appearance — match the character's actual description
+4. Hair color/style, eye color, skin tone MUST exactly match Character Base Appearance
+5. Clothing and accessories are scene-dependent — infer from paragraph context
+6. Prioritize intimate/sexual scenes when the paragraph contains such content
+7. No repetition — each tag appears once. Keep concise and logically consistent
+8. Tags in {{language}}
+
+**Composition guidance for `aspect_ratio`:**
+- "portrait standard" / "portrait photo" — single character close-ups, dialogue beats, intimate moments
+- "standard" / "widescreen" — two-character scenes, action beats, environmental storytelling
+- "ultrawide" — panoramic establishing shots, crowd scenes, landscape emphasis
+- "square" — symbolic / portrait-framed compositions
+- "photo" / "widescreen portrait" — vintage photo feel or taller cinematic framing
+- "widescreen" — default fallback when nothing else fits

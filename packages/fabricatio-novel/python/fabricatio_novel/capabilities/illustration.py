@@ -3,7 +3,8 @@
 Three-phase pipeline:
     Phase 1: allocate image budget across chapters → {chapter_index: image_count}
     Phase 2: per chapter, select paragraphs to illustrate → [paragraph_index, ...]
-    Phase 3: per selected paragraph, generate image prompt with character context → image_prompt string
+    Phase 3: per selected paragraph, propose an ``IllustrationConstrain`` (frame
+              proportion + image-generation prompt) → ``IllustrationConstrain`` instance
 
 Then: ComfyUI generates images, <img> tags injected directly into raw text.
 """
@@ -18,9 +19,11 @@ from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import SMOL, TINY
+from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.illustration import IllustrationConstrain
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.rust import split_paragraphs
 
@@ -72,6 +75,32 @@ class IllustrationContext:
     """ComfyUI server base URL override. ``None`` uses config default."""
 
 
+@dataclass
+class CollectedConstrains:
+    """Stage-2 outputs that survived LLM filtering and pass to ComfyUI.
+
+    Built by :meth:`_ChapterIllustrator.collect_workflows` and consumed by
+    :meth:`_ChapterIllustrator.process_results` and ``acomfyui_generate``.
+
+    The three lists stay parallel: ``indices[i]`` corresponds to the paragraph
+    that ``constrains[i]`` describes and the ComfyUI job represented by
+    ``workflows[i]`` (and its result in the downstream ``results`` list).
+    """
+
+    workflows: list[Workflow]
+    """One ComfyUI :class:`Workflow` per generated image."""
+
+    indices: list[int]
+    """Paragraph indices (within ``chapter.content``) that produced the keeps."""
+
+    constrains: list[IllustrationConstrain]
+    """The validated ``IllustrationConstrain`` driving each ``workflows[i]``."""
+
+    def __bool__(self) -> bool:
+        """True when at least one constrain survived — gates downstream calls."""
+        return bool(self.workflows)
+
+
 def _inject_images(paras: list[str], picks: dict[int, str], image_dir: Path) -> list[str]:
     """Insert <img> tags after selected paragraphs. Returns modified list."""
     result = list(paras)
@@ -80,6 +109,23 @@ def _inject_images(paras: list[str], picks: dict[int, str], image_dir: Path) -> 
             epub_path = (image_dir / f"scene_{idx}.png").as_posix()
             result[idx] += f'\n<img src="{epub_path}" alt="{prompt[:80]}"/>'
     return result
+
+
+def _apply_constrain_to_workflow(wf: Workflow, constrain: IllustrationConstrain) -> None:
+    """Apply frame proportion + prompt to a workflow.
+
+    Tries ``set_chart_proportion`` (uses a ``ResolutionSelector`` node when
+    present); falls back to literal ``set_resolution`` for workflows that
+    drive ``EmptyLatentImage.width/height`` directly. The literal path is a
+    best-effort derivation from the typed aspect-ratio token + megapixels,
+    so a single ``IllustrationConstrain`` drives both ComfyUI layouts.
+    """
+    try:
+        wf.set_chart_proportion(aspect_ratio=constrain.aspect_ratio.value, megapixels=constrain.megapixels)
+    except KeyError:
+        width, height = constrain.aspect_ratio.to_dimensions(constrain.megapixels)
+        wf.set_resolution(width=width, height=height)
+    wf.set_positive_prompt(constrain.prompt)
 
 
 @dataclass
@@ -107,8 +153,8 @@ class _ChapterIllustrator:
                 needs_gen.append(idx)
         return needs_gen
 
-    def render_prompts(self, needs_gen: list[int]) -> list[str]:
-        """Build image prompt templates for paragraphs needing generation."""
+    def render_constrain_prompts(self, needs_gen: list[int]) -> list[str]:
+        """Build ``IllustrationConstrain`` proposal templates for paragraphs needing generation."""
         rendered: list[str] = []
         for idx in needs_gen:
             ctx_before = [{"offset": idx - i, "text": self.paras[i]} for i in range(max(0, idx - 2), idx)]
@@ -117,7 +163,7 @@ class _ChapterIllustrator:
             ]
             rendered.append(
                 TEMPLATE_MANAGER.render_template(
-                    novel_config.generate_image_prompt_template,
+                    novel_config.illustration_constrain_template,
                     {
                         "chapter_title": self.chapter.title,
                         "chapter_index": self.chapter.chapter_index,
@@ -137,28 +183,35 @@ class _ChapterIllustrator:
         return rendered
 
     def collect_workflows(
-        self, needs_gen: list[int], image_prompts: list[str]
-    ) -> tuple[list[Workflow], list[int], list[str]]:
-        """Filter empty prompts and build ComfyUI workflows."""
+        self, needs_gen: list[int], constrains: list[Optional[IllustrationConstrain]]
+    ) -> CollectedConstrains:
+        """Filter failed constrains and build ComfyUI workflows."""
         workflows: list[Workflow] = []
         gen_indices: list[int] = []
-        filtered_prompts: list[str] = []
-        for idx, prompt in zip(needs_gen, image_prompts, strict=True):
-            logger.debug(f"Chapter {self.chapter.chapter_index} para[{idx}] aask raw response: {prompt!r}")
-            if not prompt:
-                logger.warn(f"Chapter {self.chapter.chapter_index} para[{idx}]: LLM returned no image prompt")
+        filtered_constrains: list[IllustrationConstrain] = []
+        for idx, constrain in zip(needs_gen, constrains, strict=True):
+            if constrain is None:
+                logger.warn(f"Chapter {self.chapter.chapter_index} para[{idx}]: LLM returned no constrain")
                 continue
-            logger.debug(f"Chapter {self.chapter.chapter_index} para[{idx}] image prompt: {prompt}")
+            logger.debug(
+                f"Chapter {self.chapter.chapter_index} para[{idx}] constrain: "
+                f"aspect={constrain.aspect_ratio.value}, mp={constrain.megapixels}, "
+                f"prompt={constrain.prompt!r}"
+            )
             wf = Workflow.from_api(self.ctx.base_wf.to_api())
-            wf.set_positive_prompt(prompt)
+            _apply_constrain_to_workflow(wf, constrain)
             workflows.append(wf)
             gen_indices.append(idx)
-            filtered_prompts.append(prompt)
-        return workflows, gen_indices, filtered_prompts
+            filtered_constrains.append(constrain)
+        return CollectedConstrains(workflows=workflows, indices=gen_indices, constrains=filtered_constrains)
 
-    def process_results(self, gen_indices: list[int], filtered_prompts: list[str], results: list) -> None:
+    def process_results(
+        self,
+        kept: CollectedConstrains,
+        results: list,
+    ) -> None:
         """Rename generated images and track successful picks."""
-        for idx, prompt, result in zip(gen_indices, filtered_prompts, results, strict=True):
+        for idx, constrain, result in zip(kept.indices, kept.constrains, results, strict=True):
             if not result or not result.all_images:
                 logger.warn(f"Image generation failed for paragraph {idx}")
                 continue
@@ -169,7 +222,7 @@ class _ChapterIllustrator:
             target = self.save_dir / f"scene_{idx}.png"
             if src != target:
                 src.rename(target)
-            self.valid_picks[idx] = prompt
+            self.valid_picks[idx] = constrain.prompt
             logger.info(f"Illustrated paragraph {idx} in chapter {self.chapter.chapter_index}")
 
 
@@ -385,7 +438,7 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         chapter_budget: int,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> None:
-        """Two-stage illustration: 1) select paragraphs, 2) generate image prompt per paragraph."""
+        """Two-stage illustration: 1) select paragraphs, 2) propose IllustrationConstrain per paragraph."""
         paras = split_paragraphs(chapter.content)
         if not paras:
             logger.warn(f"Chapter {chapter.chapter_index} '{chapter.title}': no paragraphs found, skipping")
@@ -419,22 +472,28 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
                 chapter.content = "\n\n".join(_inject_images(paras, work.valid_picks, image_dir))
             return
 
-        # Stage 2: Generate image prompts -> LLM batch -> ComfyUI
-        prompt_rendereds = work.render_prompts(needs_gen)
-        image_prompts = await self.aask(prompt_rendereds, send_to=SMOL)
+        # Stage 2: Propose IllustrationConstrain per paragraph (frame proportion + prompt)
+        constrain_rendereds = work.render_constrain_prompts(needs_gen)
+        constrains: list[Optional[IllustrationConstrain]] = await self.propose(
+            IllustrationConstrain, constrain_rendereds, send_to=SMOL
+        )
+        constrains = ok(constrains) or []
 
-        workflows, gen_indices, filtered_prompts = work.collect_workflows(needs_gen, image_prompts)
-        if not workflows:
-            logger.warn(f"Chapter {chapter.chapter_index}: no valid prompts generated")
+        kept = work.collect_workflows(needs_gen, constrains)
+        if not kept:
+            logger.warn(f"Chapter {chapter.chapter_index}: no valid constrains generated")
             return
 
-        comfyui_timeout = len(workflows) * ctx.comfyui_timeout_per_image
-        download_dirs = [str(save_dir)] * len(workflows)
+        comfyui_timeout = len(kept.workflows) * ctx.comfyui_timeout_per_image
+        download_dirs = [str(save_dir)] * len(kept.workflows)
         results = await self.acomfyui_generate(
-            workflows, download_dir=download_dirs, timeout=comfyui_timeout, base_url=ctx.comfyui_base_url
+            kept.workflows,
+            download_dir=download_dirs,
+            timeout=comfyui_timeout,
+            base_url=ctx.comfyui_base_url,
         )
 
-        work.process_results(gen_indices, filtered_prompts, results)
+        work.process_results(kept, results)
 
         # Inject <img> tags into raw text
         if work.valid_picks:

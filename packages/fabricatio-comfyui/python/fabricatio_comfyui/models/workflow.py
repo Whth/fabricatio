@@ -308,6 +308,60 @@ class Workflow:
             node.set_input("height", height)
         return node
 
+    def set_chart_proportion(
+        self,
+        *,
+        aspect_ratio: str | None = None,
+        megapixels: float | None = None,
+        multiple: int | None = None,
+        node_id: str | None = None,
+    ) -> Node:
+        """Set the chart proportion on a ``ResolutionSelector`` node.
+
+        Updates the ``aspect_ratio``, ``megapixels``, and/or ``multiple`` inputs
+        on a :class:`Workflow`'s ``ResolutionSelector`` node.  Only the parameters
+        that are provided (not ``None``) get written — pass ``None`` to leave the
+        current value unchanged.
+
+        If no ``ResolutionSelector`` exists in the workflow, raises :class:`KeyError`
+        with a message pointing to :meth:`set_resolution` for literal dimension mode.
+
+        Args:
+            aspect_ratio: ComfyUI aspect ratio string e.g. ``"16:9 (Landscape Standard)"``.
+            megapixels: Target megapixels e.g. ``1.7`` (float).
+            multiple: Multiple constraint e.g. ``12`` (pixel alignment).
+            node_id: Explicit node ID.  If omitted, uses the first ``ResolutionSelector``.
+
+        Returns:
+            The matched :class:`Node`.
+
+        Raises:
+            KeyError: If no ``ResolutionSelector`` node exists and no *node_id* is given,
+                or *node_id* does not exist.
+        """
+        if node_id is not None:
+            node = self.node_map.get(node_id)
+            if node is None:
+                raise KeyError(f"Node {node_id!r} not found")
+            if node.type != "ResolutionSelector":
+                raise KeyError(f"Node {node_id!r} is {node.type!r}, not ResolutionSelector")
+        else:
+            matches = self.by_type("ResolutionSelector")
+            if not matches:
+                raise KeyError(
+                    "No ResolutionSelector node found in workflow. "
+                    "Use set_resolution() for literal dimensions, or add a ResolutionSelector node."
+                )
+            node = matches[0]
+
+        if aspect_ratio is not None:
+            node.set_input("aspect_ratio", aspect_ratio)
+        if megapixels is not None:
+            node.set_input("megapixels", megapixels)
+        if multiple is not None:
+            node.set_input("multiple", multiple)
+        return node
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
