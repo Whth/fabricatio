@@ -211,6 +211,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "script": cp.script.as_prompt(),
                 "characters": character_prompt,
                 "language": draft.language,
+                "global_writing_constraint": draft.global_writing_constraint,
                 "guidance": guidance,
                 "writing_constrain": cp.draft.writing_constrain,
                 "expected_word_count": cp.expected_word_count,

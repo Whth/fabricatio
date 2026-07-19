@@ -84,6 +84,7 @@ def novel_draft(
         chapters=[chapter_draft_intro, chapter_draft_middle, chapter_draft_finale],
         expected_word_count=4000,
         language="English",
+        global_writing_constraint="",
         sketch="",
     )
 
@@ -218,6 +219,7 @@ class TestNovelDraft:
             chapters=drafts,
             expected_word_count=1000,
             language="English",
+            global_writing_constraint="",
             sketch="",
         )
         counts = novel.chapter_expected_word_counts
@@ -238,6 +240,7 @@ class TestNovelDraft:
             chapters=[chapter_draft_intro, chapter_draft_middle, chapter_draft_finale],
             expected_word_count=4000,
             language="English",
+            global_writing_constraint="",
             sketch="",
         )
         # weights: [1.0, 2.0, 1.0], sum=4.0
@@ -262,6 +265,7 @@ class TestNovelDraft:
             character_descriptions=[],
             chapters=drafts,
             expected_word_count=100,
+            global_writing_constraint="",
             language="English",
             sketch="",
         )
@@ -798,6 +802,7 @@ class TestAssembleNovel:
                 ChapterDraft(title="End", synopsis=".", weight=1.0),
             ],
             expected_word_count=200,
+            global_writing_constraint="",
             language="English",
             sketch="",
         )
@@ -834,6 +839,7 @@ class TestAssembleNovel:
             chapters=[
                 ChapterDraft(title="A", synopsis=".", weight=1.0),
             ],
+            global_writing_constraint="",
             expected_word_count=500,
             language="English",
             sketch="",
@@ -934,6 +940,7 @@ class TestNovelCapabilities:
             chapters=[ChapterDraft(title="Ch1", synopsis="Hero starts.", weight=1.0)],
             expected_word_count=100,
             language="English",
+            global_writing_constraint="",
             sketch="",
         )
 
@@ -1153,6 +1160,7 @@ class TestCreateChaptersSequential:
                 ChapterDraft(title="End", synopsis="The hero triumphs.", weight=1.0),
             ],
             expected_word_count=300,
+            global_writing_constraint="",
             language="English",
             sketch="",
         )
@@ -1247,6 +1255,7 @@ class TestCreateChaptersSequential:
             chapters=[ChapterDraft(title="Solo", synopsis="Everything happens.", weight=1.0)],
             expected_word_count=100,
             language="English",
+            global_writing_constraint="",
             sketch="",
         )
         chapter_plans = ChapterPlan.from_draft(single_draft, [sample_script])

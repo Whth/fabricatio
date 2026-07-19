@@ -119,6 +119,7 @@ class NovelComposeMental(NovelCompose, UseMind):
                 "characters": character_prompt,
                 "character_mental_states": mental_states_context(character_states),
                 "language": draft.language,
+                "global_writing_constraint": draft.global_writing_constraint,
                 "guidance": guidance,
                 "writing_constrain": cp.draft.writing_constrain,
                 "expected_word_count": cp.expected_word_count,

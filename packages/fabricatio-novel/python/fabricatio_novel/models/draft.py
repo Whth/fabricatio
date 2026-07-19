@@ -5,7 +5,6 @@ from typing import Generator, List, Tuple
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
-
 from fabricatio_novel.utils import formated_title
 
 
@@ -60,6 +59,19 @@ class NovelDraft(SketchedAble, Titled, Language, PersistentAble, WordCount):
 
     expected_word_count: int
     """The expected word count of the novel."""
+    global_writing_constraint: str
+    """Global writing constraints that apply to EVERY chapter in the novel.
+
+    Cover: stylistic requirements (POV, tense, register, tone), must-include elements
+    (motifs, callbacks, items, lore reveals), must-avoid elements (POV shifts, clichés,
+    anachronisms, content that contradicts earlier chapters), structural limits
+    (max dialogue ratio, paragraph length, scene count), and any user-mandated
+    directives the LLM must respect when drafting every chapter.
+
+    Goal: Lock down every user/stylistic directive at the novel level so the chapter
+    writer stays faithful across ALL chapters. Per-chapter `writing_constrain` on
+    ChapterDraft can add or override, but must never contradict the global constraint.
+    """
 
     @property
     def total_chapters(self) -> int:

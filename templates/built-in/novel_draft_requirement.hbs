@@ -4,18 +4,20 @@
 Analyze the "Novel Outline" to:
 1. **Extract all explicit info** — names, places, times, numbers, events, relationships, world rules. Nothing omitted.
 2. **Logically complete missing parts** — infer motives, timelines, descriptions, relationships, systems — only from context, must be self-consistent.
-3. **Lock down per-chapter writing constraints** — for each chapter, decide the writing constraints that the chapter writer MUST honor so the final prose matches the outline and any user-supplied directives. Be opinionated and concrete.
+3. **Lock down writing constraints** — populate `global_writing_constraint` on the root object for novel-wide rules, then populate `writing_constrain` on each chapter for chapter-specific directives. Be opinionated and concrete.
 
 ## Steps
 1. **Extract**: List every concrete detail.
 2. **Complete**: Fill gaps using only justified inference. No guesswork.
-3. **Writing Constraints per Chapter**: For every chapter in `chapters`, populate `writing_constrain` with a directive string that covers:
-   - **Style**: POV (first/third/omniscient), tense, register (formal/casual/literary), tone (grim/lyrical/tense/whimsical).
-   - **Must-include**: motifs, callbacks to prior chapters, items, lore reveals, foreshadowing the chapter must plant or pay off.
-   - **Must-avoid**: POV shifts within the chapter, clichés, anachronisms, anything contradicting the novel synopsis or earlier chapters, content the user implicitly forbade.
-   - **Structural limits**: max dialogue ratio, target paragraph length, approximate scene count, chapter-open / chapter-close beats.
-   - **User-mandated directives**: any explicit instruction from the outline that the writer must respect (e.g. "this chapter ends on a cliffhanger", "the protagonist must not speak here", "introduce the city in full").
-   When the outline is silent, infer the most fitting constraints from genre, tone, and preceding chapters — do NOT leave the field empty or vague.
+3. **Writing Constraints**: 
+   - **Global (`global_writing_constraint` on root object)**: Novel-wide rules that every chapter must follow. POV, tense, register, tone, structural limits that apply uniformly. Be decisive — do not leave per-chapter fields carrying what should be global.
+   - **Per Chapter (`writing_constrain` on each chapter)**: Deviations, additions, or chapter-specific directives on top of the global constraint. Cover:
+      - **Style**: POV (first/third/omniscient), tense, register (formal/casual/literary), tone (grim/lyrical/tense/whimsical).
+      - **Must-include**: motifs, callbacks to prior chapters, items, lore reveals, foreshadowing the chapter must plant or pay off.
+      - **Must-avoid**: POV shifts within the chapter, clichés, anachronisms, anything contradicting the novel synopsis or earlier chapters, content the user implicitly forbade.
+      - **Structural limits**: max dialogue ratio, target paragraph length, approximate scene count, chapter-open / chapter-close beats.
+      - **User-mandated directives**: any explicit instruction from the outline that the writer must respect (e.g. "this chapter ends on a cliffhanger", "the protagonist must not speak here", "introduce the city in full").
+      When the outline is silent, infer the most fitting constraints from genre, tone, and preceding chapters — do NOT leave the field empty or vague.
 
 {{block outline "Novel Outline"}}
 

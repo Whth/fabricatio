@@ -146,6 +146,7 @@ def sample_draft() -> NovelDraft:
         chapters=[ChapterDraft(title="Ch1", synopsis="Hero starts.", weight=1.0)],
         expected_word_count=100,
         language="English",
+        global_writing_constraint="",
         sketch="",
     )
 
