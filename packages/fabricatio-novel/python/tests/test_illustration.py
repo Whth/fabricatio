@@ -1,5 +1,6 @@
 """Tests for the illustration pipeline models and helpers."""
 
+import pydantic
 import pytest
 from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_novel.capabilities.illustration import _apply_constrain_to_workflow
@@ -15,14 +16,14 @@ class TestFrameAspect:
 
     def test_all_values_verbatim(self) -> None:
         """Each FrameAspect value is the exact ComfyUI ResolutionSelector token."""
-        assert FrameAspect.SQUARE.value == "square"
-        assert FrameAspect.PHOTO.value == "photo"
-        assert FrameAspect.PORTRAIT_PHOTO.value == "portrait photo"
-        assert FrameAspect.PORTRAIT_STANDARD.value == "portrait standard"
-        assert FrameAspect.STANDARD.value == "standard"
-        assert FrameAspect.WIDESCREEN_PORTRAIT.value == "widescreen portrait"
-        assert FrameAspect.WIDESCREEN.value == "widescreen"
-        assert FrameAspect.ULTRAWIDE.value == "ultrawide"
+        assert FrameAspect.SQUARE.value == "1:1 (Square)"
+        assert FrameAspect.PHOTO.value == "3:2 (Photo)"
+        assert FrameAspect.PORTRAIT_PHOTO.value == "2:3 (Portrait Photo)"
+        assert FrameAspect.PORTRAIT_STANDARD.value == "3:4 (Portrait Standard)"
+        assert FrameAspect.STANDARD.value == "4:3 (Standard)"
+        assert FrameAspect.WIDESCREEN_PORTRAIT.value == "9:16 (Portrait Widescreen)"
+        assert FrameAspect.WIDESCREEN.value == "16:9 (Widescreen)"
+        assert FrameAspect.ULTRAWIDE.value == "21:9 (Ultrawide)"
 
     def test_ratio_method(self) -> None:
         """Each FrameAspect exposes a numeric (w, h) ratio for the literal-dimension fallback."""
@@ -30,7 +31,7 @@ class TestFrameAspect:
         assert FrameAspect.PHOTO.ratio == (3, 2)
         assert FrameAspect.PORTRAIT_PHOTO.ratio == (2, 3)
         assert FrameAspect.PORTRAIT_STANDARD.ratio == (3, 4)
-        assert FrameAspect.STANDARD.ratio == (5, 4)
+        assert FrameAspect.STANDARD.ratio == (4, 3)
         assert FrameAspect.WIDESCREEN_PORTRAIT.ratio == (9, 16)
         assert FrameAspect.WIDESCREEN.ratio == (16, 9)
         assert FrameAspect.ULTRAWIDE.ratio == (21, 9)
@@ -66,14 +67,14 @@ class TestIllustrationConstrain:
 
     def test_megapixels_must_be_non_negative(self) -> None:
         """Negative megapixels are rejected by pydantic."""
-        with pytest.raises(ValueError):
+        with pytest.raises(pydantic.ValidationError, match=r"greater than or equal to 0"):
             IllustrationConstrain(aspect_ratio=FrameAspect.SQUARE, megapixels=-0.5, prompt="x")
 
     def test_json_dump_uses_enum_value(self) -> None:
         """model_dump_json writes the enum's .value string (not the member name)."""
         c = IllustrationConstrain(aspect_ratio=FrameAspect.WIDESCREEN_PORTRAIT, megapixels=2.0, prompt="p")
         dumped = c.model_dump_json()
-        assert '"aspect_ratio":"widescreen portrait"' in dumped
+        assert '"aspect_ratio":"9:16 (Portrait Widescreen)"' in dumped
         assert "WIDESCREEN_PORTRAIT" not in dumped  # not the python name
 
     def test_json_schema_includes_enum_tokens(self) -> None:
@@ -124,7 +125,7 @@ def _wf_with_resolution_selector() -> Workflow:
     wf.add("CLIPTextEncode", inputs={"text": "old positive", "clip": ["fake", 1]})
     wf.add(
         "ResolutionSelector",
-        inputs={"aspect_ratio": "widescreen", "megapixels": 1.0},
+        inputs={"aspect_ratio": "16:9 (Widescreen)", "megapixels": 1.0},
     )
     wf.add(
         "EmptyLatentImage",
@@ -152,7 +153,7 @@ class TestApplyConstrainToWorkflow:
         )
         _apply_constrain_to_workflow(wf, constrain)
         selector = wf.by_type("ResolutionSelector")[0]
-        assert selector.inputs["aspect_ratio"] == "portrait standard"
+        assert selector.inputs["aspect_ratio"] == "3:4 (Portrait Standard)"
         assert selector.inputs["megapixels"] == 1.7
         clip = wf.by_type("CLIPTextEncode")[0]
         assert clip.inputs["text"] == "best quality"
@@ -176,3 +177,26 @@ class TestApplyConstrainToWorkflow:
         # Positive prompt still set on CLIPTextEncode
         clip = wf.by_type("CLIPTextEncode")[0]
         assert clip.inputs["text"] == "best quality"
+
+
+def test_frame_aspect_matches_resolution_selector_enum() -> None:
+    """FrameAspect values must exactly match the live ComfyUI server's enum.
+
+    Catches drift in both directions: a novel value the server rejects (LLM
+    will look right but ComfyUI will 400), and a server value the novel LLM
+    can't see (a new ratio silently unavailable). Skipped when comfyui isn't
+    installed (it's an optional novel[comfyui] extra).
+    """
+    pytest.importorskip("fabricatio_comfyui")
+    from fabricatio_comfyui.models.workflow import RESOLUTION_SELECTOR_ASPECT_RATIOS
+
+    novel_values = {m.value for m in FrameAspect}
+    server_values = set(RESOLUTION_SELECTOR_ASPECT_RATIOS)
+    missing_in_comfyui = novel_values - server_values
+    extra_in_comfyui = server_values - novel_values
+    assert novel_values == server_values, (
+        f"FrameAspect drift against live ResolutionSelector enum. "
+        f"Missing in comfyui (would cause server rejection): {missing_in_comfyui or '∅'}. "
+        f"Extra in comfyui (not modelled, hidden from the novel LLM): {extra_in_comfyui or '∅'}. "
+        f"Add/remove FrameAspect members to match the server's enum."
+    )

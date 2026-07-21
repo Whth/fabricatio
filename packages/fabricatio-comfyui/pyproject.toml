@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-comfyui"
-version = "0.3.3"
+version = "0.3.4"
 description = "ComfyUI API integration for Fabricatio"
 readme = "README.md"
 license = "MIT"

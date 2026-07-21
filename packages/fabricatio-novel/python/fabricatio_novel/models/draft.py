@@ -5,6 +5,7 @@ from typing import Generator, List, Tuple
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_core.models.generic import Language, SketchedAble, Titled
+
 from fabricatio_novel.utils import formated_title
 
 

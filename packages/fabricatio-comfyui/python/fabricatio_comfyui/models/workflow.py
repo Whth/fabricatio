@@ -14,6 +14,23 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = ["Node", "NodeRef", "Workflow"]
 
+# Valid `aspect_ratio` values for the ComfyUI `ResolutionSelector` custom node.
+# Source: the live server's enum (rejects unknown values with "Value not in list").
+# If your server ships a different ResolutionSelector version, edit this set or
+# bypass validation by writing the input directly via `node.set_input`.
+RESOLUTION_SELECTOR_ASPECT_RATIOS: frozenset[str] = frozenset(
+    {
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)",
+    }
+)
+
 
 # ------------------------------------------------------------------
 # Node reference — typed link between nodes
@@ -327,7 +344,8 @@ class Workflow:
         with a message pointing to :meth:`set_resolution` for literal dimension mode.
 
         Args:
-            aspect_ratio: ComfyUI aspect ratio string e.g. ``"16:9 (Landscape Standard)"``.
+            aspect_ratio: ComfyUI aspect ratio string, e.g. ``"16:9 (Widescreen)"``.
+                Must be one of :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`.
             megapixels: Target megapixels e.g. ``1.7`` (float).
             multiple: Multiple constraint e.g. ``12`` (pixel alignment).
             node_id: Explicit node ID.  If omitted, uses the first ``ResolutionSelector``.
@@ -338,6 +356,7 @@ class Workflow:
         Raises:
             KeyError: If no ``ResolutionSelector`` node exists and no *node_id* is given,
                 or *node_id* does not exist.
+            ValueError: If *aspect_ratio* is not in :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`.
         """
         if node_id is not None:
             node = self.node_map.get(node_id)
@@ -353,6 +372,12 @@ class Workflow:
                     "Use set_resolution() for literal dimensions, or add a ResolutionSelector node."
                 )
             node = matches[0]
+
+        if aspect_ratio is not None and aspect_ratio not in RESOLUTION_SELECTOR_ASPECT_RATIOS:
+            valid = ", ".join(sorted(RESOLUTION_SELECTOR_ASPECT_RATIOS, key=lambda s: float(s.split(":")[0])))
+            raise ValueError(
+                f"Invalid aspect_ratio {aspect_ratio!r}. Valid values for the current ResolutionSelector: {valid}."
+            )
 
         if aspect_ratio is not None:
             node.set_input("aspect_ratio", aspect_ratio)

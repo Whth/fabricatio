@@ -17,21 +17,24 @@ from pydantic import Field
 class FrameAspect(StrEnum):
     """Verbatim ComfyUI ``ResolutionSelector`` aspect-ratio tokens.
 
-    Each member's value is the exact string ComfyUI expects on the
-    ``aspect_ratio`` input of a ``ResolutionSelector`` node. Each member also
+    Each member's value is the exact string ComfyUI's ``ResolutionSelector``
+    custom node expects on the ``aspect_ratio`` input. Each member also
     exposes its numeric (width, height) ratio via :attr:`ratio`, used by the
     literal-dimension fallback path (workflows without a
     ``ResolutionSelector`` node).
+
+    Values are kept in lockstep with
+    :data:`fabricatio_comfyui.models.workflow.RESOLUTION_SELECTOR_ASPECT_RATIOS`.
     """
 
-    SQUARE = "square"
-    PHOTO = "photo"
-    PORTRAIT_PHOTO = "portrait photo"
-    PORTRAIT_STANDARD = "portrait standard"
-    STANDARD = "standard"
-    WIDESCREEN_PORTRAIT = "widescreen portrait"
-    WIDESCREEN = "widescreen"
-    ULTRAWIDE = "ultrawide"
+    SQUARE = "1:1 (Square)"
+    PORTRAIT_PHOTO = "2:3 (Portrait Photo)"
+    PHOTO = "3:2 (Photo)"
+    PORTRAIT_STANDARD = "3:4 (Portrait Standard)"
+    STANDARD = "4:3 (Standard)"
+    WIDESCREEN_PORTRAIT = "9:16 (Portrait Widescreen)"
+    WIDESCREEN = "16:9 (Widescreen)"
+    ULTRAWIDE = "21:9 (Ultrawide)"
 
     @property
     def ratio(self) -> Tuple[int, int]:
@@ -41,23 +44,7 @@ class FrameAspect(StrEnum):
         for workflows that drive ``EmptyLatentImage.width/height`` directly
         rather than through a ``ResolutionSelector`` node.
         """
-        match self:
-            case FrameAspect.SQUARE:
-                return 1, 1
-            case FrameAspect.PHOTO:
-                return 3, 2
-            case FrameAspect.PORTRAIT_PHOTO:
-                return 2, 3
-            case FrameAspect.PORTRAIT_STANDARD:
-                return 3, 4
-            case FrameAspect.STANDARD:
-                return 5, 4
-            case FrameAspect.WIDESCREEN_PORTRAIT:
-                return 9, 16
-            case FrameAspect.WIDESCREEN:
-                return 16, 9
-            case FrameAspect.ULTRAWIDE:
-                return 21, 9
+        return _FRAME_ASPECT_RATIOS[self.value]
 
     def to_dimensions(self, megapixels: float) -> Tuple[int, int]:
         """Return aligned literal pixel dimensions for ``megapixels``.
@@ -72,6 +59,18 @@ class FrameAspect(StrEnum):
         width_rounded = round(width / 8) * 8
         height_rounded = round(height / 8) * 8
         return max(64, width_rounded), max(64, height_rounded)
+
+
+_FRAME_ASPECT_RATIOS: dict[str, tuple[int, int]] = {
+    "1:1 (Square)": (1, 1),
+    "3:2 (Photo)": (3, 2),
+    "2:3 (Portrait Photo)": (2, 3),
+    "3:4 (Portrait Standard)": (3, 4),
+    "4:3 (Standard)": (4, 3),
+    "9:16 (Portrait Widescreen)": (9, 16),
+    "16:9 (Widescreen)": (16, 9),
+    "21:9 (Ultrawide)": (21, 9),
+}
 
 
 class IllustrationConstrain(ProposedAble):
