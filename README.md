@@ -169,7 +169,6 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] `Diff` dataclass with anchor and line-number fields
     - [x] `from_anchors()` and `from_line_range()` factory methods
     - [x] `apply()` with line_range and pattern matching modes + tests
-- [ ] Placeholder based multiple-agents edits
 - [x] Convert `fabricatio-rag` to a pure python package
     - [x] Extract lancedb impl into a seperate package
 - [x] `fabricatio-novel` support rag
@@ -186,7 +185,6 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [x] Rust crate: diff snapshot & apply — `SandboxSession` tracking all mutations, producing a unified diff, and
       optionally writing changes back to real FS
     - [x] Python bindings (PyO3) for `VirtualFS`, `SandboxSession`, overlay mounts
-    - [ ] Integration with `fabricatio-core` file I/O hooks so Actions transparently operate inside a sandbox
     - [x] Tests — Rust unit tests for VFS ops + overlay + diff/apply; Python binding smoke tests
 - [ ] Typst compilation
     - [ ] Integrate `typst-rs` or shell out to `typst compile` so `fabricatio-typst` Article model produces PDF output
@@ -197,10 +195,10 @@ leverages Rust for performance-critical tasks, Handlebars for templating, and Py
     - [ ] Integration tests with `fabricatio-lancedb` and `fabricatio-milvus` backends
     - [ ] Edge-case tests: empty corpus, duplicate documents, concurrent add/fetch
 - [ ] Character system completion
-    - [ ] Wire `CharacterCard` + `CharacterCompose` into `fabricatio-novel` chapter generation for consistency
+    - [x] Wire `CharacterCard` + `CharacterCompose` into `fabricatio-novel` chapter generation for consistency
     - [ ] Character relationship tracking (affinity graph, interaction history)
-    - [ ] Actions + workflows + tests for batch character generation and validation
-    - [ ] Mental model: Big Five + Maslow combined psychological state engine
+    - [x] Actions + workflows + tests for batch character generation and validation
+    - [x] Mental model: Big Five + Maslow combined psychological state engine
         - [ ] Data models: `BigFiveProfile` (5D float 0-100) + `MaslowLevel` enum + `MentalState` (merged personality +
           need + emotion + cognitive bias)
         - [ ] `BigFiveProfile.distance_to()` for personality similarity; `as_vector()` for serialization
