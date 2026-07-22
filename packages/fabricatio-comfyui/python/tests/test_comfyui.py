@@ -18,7 +18,12 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
-from fabricatio_comfyui.models.workflow import Node, Workflow
+from fabricatio_comfyui.models.workflow import (
+    RESOLUTION_SELECTOR_ASPECT_RATIOS,
+    FrameAspect,
+    Node,
+    Workflow,
+)
 
 # ======================================================================
 # Workflow tests
@@ -319,6 +324,74 @@ class TestWorkflow:
         """Workflow repr includes node count."""
         wf = Workflow.from_api(self.DEMO_JSON)
         assert "7 nodes" in repr(wf)
+
+
+# ======================================================================
+# FrameAspect tests (moved from fabricatio-novel)
+# ======================================================================
+
+
+class TestFrameAspect:
+    """Tests for the FrameAspect StrEnum — values must match ComfyUI tokens."""
+
+    def test_all_values_verbatim(self) -> None:
+        """Each FrameAspect value is the exact ComfyUI ResolutionSelector token."""
+        assert FrameAspect.SQUARE.value == "1:1 (Square)"
+        assert FrameAspect.PHOTO.value == "3:2 (Photo)"
+        assert FrameAspect.PORTRAIT_PHOTO.value == "2:3 (Portrait Photo)"
+        assert FrameAspect.PORTRAIT_STANDARD.value == "3:4 (Portrait Standard)"
+        assert FrameAspect.STANDARD.value == "4:3 (Standard)"
+        assert FrameAspect.WIDESCREEN_PORTRAIT.value == "9:16 (Portrait Widescreen)"
+        assert FrameAspect.WIDESCREEN.value == "16:9 (Widescreen)"
+        assert FrameAspect.ULTRAWIDE.value == "21:9 (Ultrawide)"
+
+    def test_ratio_method(self) -> None:
+        """Each FrameAspect exposes a numeric (w, h) ratio for the literal-dimension fallback."""
+        assert FrameAspect.SQUARE.ratio == (1, 1)
+        assert FrameAspect.PHOTO.ratio == (3, 2)
+        assert FrameAspect.PORTRAIT_PHOTO.ratio == (2, 3)
+        assert FrameAspect.PORTRAIT_STANDARD.ratio == (3, 4)
+        assert FrameAspect.STANDARD.ratio == (4, 3)
+        assert FrameAspect.WIDESCREEN_PORTRAIT.ratio == (9, 16)
+        assert FrameAspect.WIDESCREEN.ratio == (16, 9)
+        assert FrameAspect.ULTRAWIDE.ratio == (21, 9)
+
+    def test_member_count(self) -> None:
+        """Exactly 8 ComfyUI tokens exposed."""
+        assert len(FrameAspect) == 8
+
+    def test_matches_resolution_selector_enum(self) -> None:
+        """FrameAspect values exactly match RESOLUTION_SELECTOR_ASPECT_RATIOS."""
+        enum_values = {m.value for m in FrameAspect}
+        server_values = set(RESOLUTION_SELECTOR_ASPECT_RATIOS)
+        assert enum_values == server_values, (
+            f"FrameAspect mismatch: missing {enum_values - server_values}, extra {server_values - enum_values}"
+        )
+
+
+class TestFrameAspectDimensions:
+    """Tests for enum-owned literal pixel dimension calculation."""
+
+    def test_widescreen_one_megapixel(self) -> None:
+        """1.0 MP at widescreen produces aligned dimensions near 1332x748."""
+        w, h = FrameAspect.WIDESCREEN.to_dimensions(1.0)
+        assert w % 8 == 0
+        assert h % 8 == 0
+        assert 1328 <= w <= 1340
+        assert 744 <= h <= 752
+
+    def test_square_two_megapixel(self) -> None:
+        """2.0 MP at square produces equal, aligned dimensions near 1416px."""
+        w, h = FrameAspect.SQUARE.to_dimensions(2.0)
+        assert w == h
+        assert w % 8 == 0
+        assert 1412 <= w <= 1420
+
+    def test_minimum_dim_floor(self) -> None:
+        """Very small megapixel targets still produce at least 64x64."""
+        w, h = FrameAspect.SQUARE.to_dimensions(0.001)
+        assert w >= 64
+        assert h >= 64
 
 
 # ======================================================================

@@ -1,76 +1,13 @@
 """Models for the illustration pipeline.
 
-Provides :class:`FrameAspect` (the verbatim ComfyUI ``ResolutionSelector``
-aspect-ratio tokens) and :class:`IllustrationConstrain` (the typed result of
+Provides :class:`IllustrationConstrain` (the typed result of
 stage 2 of the illustration pipeline, holding both frame proportion and the
 image-generation prompt).
 """
 
-from enum import StrEnum
-from math import sqrt
-from typing import Tuple
-
+from fabricatio_comfyui.models.workflow import FrameAspect
 from fabricatio_core.models.generic import ProposedAble
 from pydantic import Field
-
-
-class FrameAspect(StrEnum):
-    """Verbatim ComfyUI ``ResolutionSelector`` aspect-ratio tokens.
-
-    Each member's value is the exact string ComfyUI's ``ResolutionSelector``
-    custom node expects on the ``aspect_ratio`` input. Each member also
-    exposes its numeric (width, height) ratio via :attr:`ratio`, used by the
-    literal-dimension fallback path (workflows without a
-    ``ResolutionSelector`` node).
-
-    Values are kept in lockstep with
-    :data:`fabricatio_comfyui.models.workflow.RESOLUTION_SELECTOR_ASPECT_RATIOS`.
-    """
-
-    SQUARE = "1:1 (Square)"
-    PORTRAIT_PHOTO = "2:3 (Portrait Photo)"
-    PHOTO = "3:2 (Photo)"
-    PORTRAIT_STANDARD = "3:4 (Portrait Standard)"
-    STANDARD = "4:3 (Standard)"
-    WIDESCREEN_PORTRAIT = "9:16 (Portrait Widescreen)"
-    WIDESCREEN = "16:9 (Widescreen)"
-    ULTRAWIDE = "21:9 (Ultrawide)"
-
-    @property
-    def ratio(self) -> Tuple[int, int]:
-        """Numeric (width, height) ratio for this aspect token.
-
-        Used to derive literal pixel dimensions from a target megapixel count
-        for workflows that drive ``EmptyLatentImage.width/height`` directly
-        rather than through a ``ResolutionSelector`` node.
-        """
-        return _FRAME_ASPECT_RATIOS[self.value]
-
-    def to_dimensions(self, megapixels: float) -> Tuple[int, int]:
-        """Return aligned literal pixel dimensions for ``megapixels``.
-
-        Derives width and height from this member's hard-coded ratio, rounds
-        both dimensions to ComfyUI's 8-pixel alignment, and enforces a
-        64-pixel minimum on each axis.
-        """
-        ratio_width, ratio_height = self.ratio
-        height = sqrt(megapixels * 1_000_000 * ratio_height / ratio_width)
-        width = height * ratio_width / ratio_height
-        width_rounded = round(width / 8) * 8
-        height_rounded = round(height / 8) * 8
-        return max(64, width_rounded), max(64, height_rounded)
-
-
-_FRAME_ASPECT_RATIOS: dict[str, tuple[int, int]] = {
-    "1:1 (Square)": (1, 1),
-    "3:2 (Photo)": (3, 2),
-    "2:3 (Portrait Photo)": (2, 3),
-    "3:4 (Portrait Standard)": (3, 4),
-    "4:3 (Standard)": (4, 3),
-    "9:16 (Portrait Widescreen)": (9, 16),
-    "16:9 (Widescreen)": (16, 9),
-    "21:9 (Ultrawide)": (21, 9),
-}
 
 
 class IllustrationConstrain(ProposedAble):

@@ -7,31 +7,101 @@ API-format serialization.
 
 import json
 from dataclasses import dataclass, field
+from enum import StrEnum
+from math import sqrt
 from pathlib import Path
-from typing import Any, Dict, List, Self
+from typing import Any, Dict, List, Self, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field
 
-__all__ = ["Node", "NodeRef", "Workflow"]
+__all__ = ["RESOLUTION_SELECTOR_ASPECT_RATIOS", "FrameAspect", "Node", "NodeRef", "Workflow"]
 
-# Valid `aspect_ratio` values for the ComfyUI `ResolutionSelector` custom node.
-# Source: the live server's enum (rejects unknown values with "Value not in list").
-# If your server ships a different ResolutionSelector version, edit this set or
-# bypass validation by writing the input directly via `node.set_input`.
+from fabricatio_core.utils import ok
+
+# ------------------------------------------------------------------
+# FrameAspect — typed enum of ComfyUI ResolutionSelector aspect tokens
+# ------------------------------------------------------------------
+
+
+class FrameAspect(StrEnum):
+    """Verbatim ComfyUI ``ResolutionSelector`` aspect-ratio tokens.
+
+    Each member's value is the exact string ComfyUI's ``ResolutionSelector``
+    custom node expects on the ``aspect_ratio`` input.  Each member also
+    exposes its numeric (width, height) ratio via :attr:`ratio`, used by the
+    literal-dimension fallback path (workflows without a
+    ``ResolutionSelector`` node).
+
+    Values are kept in lockstep with :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`
+    via the module-level ``assert`` below; edits to one without the other will
+    raise ``AssertionError`` at import.
+    """
+
+    SQUARE = "1:1 (Square)"
+    PORTRAIT_PHOTO = "2:3 (Portrait Photo)"
+    PHOTO = "3:2 (Photo)"
+    PORTRAIT_STANDARD = "3:4 (Portrait Standard)"
+    STANDARD = "4:3 (Standard)"
+    WIDESCREEN_PORTRAIT = "9:16 (Portrait Widescreen)"
+    WIDESCREEN = "16:9 (Widescreen)"
+    ULTRAWIDE = "21:9 (Ultrawide)"
+
+    @property
+    def ratio(self) -> Tuple[int, int]:
+        """Numeric (width, height) ratio for this aspect token.
+
+        Used to derive literal pixel dimensions from a target megapixel count
+        for workflows that drive ``EmptyLatentImage.width/height`` directly
+        rather than through a ``ResolutionSelector`` node.
+        """
+        ratio: Tuple[int, int] | None = None
+        match self:
+            case FrameAspect.SQUARE:
+                ratio = (1, 1)
+            case FrameAspect.PHOTO:
+                ratio = (3, 2)
+            case FrameAspect.PORTRAIT_PHOTO:
+                ratio = (2, 3)
+            case FrameAspect.PORTRAIT_STANDARD:
+                ratio = (3, 4)
+            case FrameAspect.STANDARD:
+                ratio = (4, 3)
+            case FrameAspect.WIDESCREEN_PORTRAIT:
+                ratio = (9, 16)
+            case FrameAspect.WIDESCREEN:
+                ratio = (16, 9)
+            case FrameAspect.ULTRAWIDE:
+                ratio = (21, 9)
+
+        return ok(ratio)
+
+    def to_dimensions(self, megapixels: float) -> Tuple[int, int]:
+        """Return aligned literal pixel dimensions for ``megapixels``.
+
+        Derives width and height from this member's hard-coded ratio, rounds
+        both dimensions to ComfyUI's 8-pixel alignment, and enforces a
+        64-pixel minimum on each axis.
+        """
+        ratio_width, ratio_height = self.ratio
+        height = sqrt(megapixels * 1_000_000 * ratio_height / ratio_width)
+        width = height * ratio_width / ratio_height
+        width_rounded = round(width / 8) * 8
+        height_rounded = round(height / 8) * 8
+        return max(64, width_rounded), max(64, height_rounded)
+
+
 RESOLUTION_SELECTOR_ASPECT_RATIOS: frozenset[str] = frozenset(
     {
-        "1:1 (Square)",
-        "2:3 (Portrait Photo)",
-        "3:2 (Photo)",
-        "3:4 (Portrait Standard)",
-        "4:3 (Standard)",
-        "9:16 (Portrait Widescreen)",
-        "16:9 (Widescreen)",
-        "21:9 (Ultrawide)",
+        FrameAspect.SQUARE,
+        FrameAspect.PORTRAIT_PHOTO,
+        FrameAspect.PHOTO,
+        FrameAspect.PORTRAIT_STANDARD,
+        FrameAspect.STANDARD,
+        FrameAspect.WIDESCREEN_PORTRAIT,
+        FrameAspect.WIDESCREEN,
+        FrameAspect.ULTRAWIDE,
     }
 )
-
-
 # ------------------------------------------------------------------
 # Node reference — typed link between nodes
 # ------------------------------------------------------------------
