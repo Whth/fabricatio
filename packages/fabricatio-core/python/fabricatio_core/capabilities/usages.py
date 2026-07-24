@@ -729,4 +729,6 @@ class UseReranker(RerankerScopedConfig, ABC):
             List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
         """
         kw = self._resolve_reranker_params(**kwargs)
+        if not query or not query.strip():
+            raise ValueError("`query` must be a non-empty string for rerank")
         return await rust.ROUTER.rerank(query=query, documents=documents, **kw)
