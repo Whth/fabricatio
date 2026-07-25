@@ -1,10 +1,13 @@
 """Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
 
+import asyncio
 from abc import ABC
 from typing import List, Optional, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import cfg
+
+from fabricatio_novel.models.scripting import Scene
 
 cfg(["lancedb"])
 from fabricatio_character.models.character import CharacterCard  # noqa: I001
@@ -89,25 +92,32 @@ class NovelComposeRAG(
     ) -> None:
         """Inject writing style documents into chapter scripts and scenes in-place.
 
-        For each chapter plan, fetches style docs using the script prompt as query,
-        appends them as global prompts. Then per scene, fetches using the scene
-        description, appends them as per-scene prompts. When `writing_style_requirement`
-        is non-empty, fetched docs are reranked against it.
+        All script-level and scene-level fetches run concurrently. Each closure
+        captures its query (before mutation) and target, fetches, then injects.
         """
         config = writing_style_fetch_config or WritingStyleFetchConfig.default()
 
-        for cp in chapter_plans:
-            # Capture query before mutation — append_global_prompt changes as_prompt() output
-            script_query = cp.script.as_prompt()
-            script_docs = await self._fetch_style_docs(script_query, config, writing_style_requirement)
-            cp.script.append_global_prompt(
-                "Below is some writing style QA docs that you should imitate to achieve the best quality, in chapter scope"
-            ).bulk_append_global_prompt([doc.as_prompt() for doc in script_docs])
-            logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
+        async def _inject_script(plan: ChapterPlan) -> None:
+            query = plan.script.as_prompt()  # capture before mutation
+            docs = await self._fetch_style_docs(query, config, writing_style_requirement)
+            if docs:
+                plan.script.append_global_prompt(
+                    "Below is some writing style QA docs that you should imitate to achieve the best quality, in chapter scope"
+                ).bulk_append_global_prompt([doc.as_prompt() for doc in docs])
+            logger.debug(f"Chapter {plan.chapter_index}: injected {len(docs)} script-level style(s)")
 
-            # Scene-level: fetch per scene based on scene.description
-            for scene in cp.script.scenes:
-                scene_docs = await self._fetch_style_docs(scene.description, config, writing_style_requirement)
-                scene.append_prompt(
+        async def _inject_scene(sc: Scene) -> None:
+            query = sc.description  # capture before mutation
+            docs = await self._fetch_style_docs(query, config, writing_style_requirement)
+            if docs:
+                sc.append_prompt(
                     "Below is some writing style QA docs that you MUST imitate in this scene to achieve the best quality, in scene scope"
-                ).bulk_append([doc.as_prompt() for doc in scene_docs])
+                ).bulk_append([doc.as_prompt() for doc in docs])
+
+        tasks = []
+        for cp in chapter_plans:
+            tasks.append(_inject_script(cp))
+            for scene in cp.script.scenes:
+                tasks.append(_inject_scene(scene))
+
+        await asyncio.gather(*tasks)
