@@ -171,6 +171,14 @@ def _make_doc(content: str) -> WritingStyleDocument:
     return WritingStyleDocument(content=content)
 
 
+def _fetch_query(original: str, rerank_query: Optional[str] = None) -> str:
+    """Mirror the query-building logic from ``_fetch_style_docs`` for test key setup."""
+    q = f"{original}\n\nNeed Some refined question to find QA docs related to the stuff above"
+    if rerank_query:
+        q += f"\nand below is the extra user constrain which is more prior to follow: {rerank_query}"
+    return q
+
+
 def _padded_responses() -> List[str]:
     """Build a padded response list for `install_router_usage`.
 
@@ -210,8 +218,8 @@ class TestCreateChapters:
         script_query = sample_script.as_prompt()
         scene_query = sample_script.scenes[0].description
         rag_role.docs_by_query = {
-            script_query: [_make_doc("style-1")],
-            scene_query: [_make_doc("scene-1")],
+            _fetch_query(script_query): [_make_doc("style-1")],
+            _fetch_query(scene_query): [_make_doc("scene-1")],
         }
         chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
         config = WritingStyleFetchConfig(limit=3)
@@ -225,8 +233,8 @@ class TestCreateChapters:
             )
 
         queries_used = [q for (_label, q, _limit) in rag_role.fetched_queries]
-        assert script_query in queries_used
-        assert scene_query in queries_used
+        assert any(script_query in q for q in queries_used)
+        assert any(scene_query in q for q in queries_used)
         # No reranking without writing_style_requirement
         assert rag_role.ranked_queries == []
 
@@ -241,9 +249,10 @@ class TestCreateChapters:
         """When `writing_style_requirement` is set, fetched docs are reranked against it."""
         script_query = sample_script.as_prompt()
         scene_query = sample_script.scenes[0].description
+        requirement = "Hemingway terse prose"
         rag_role.docs_by_query = {
-            script_query: [_make_doc("style-1"), _make_doc("style-2")],
-            scene_query: [_make_doc("scene-1")],
+            _fetch_query(script_query, requirement): [_make_doc("style-1"), _make_doc("style-2")],
+            _fetch_query(scene_query, requirement): [_make_doc("scene-1")],
         }
         chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
         config = WritingStyleFetchConfig(limit=2)
@@ -272,9 +281,10 @@ class TestCreateChapters:
         """Rerank path fetches limit * rerank_scale_factor docs, then reranks to limit."""
         script_query = sample_script.as_prompt()
         scene_query = sample_script.scenes[0].description
+        requirement = "test requirement"
         rag_role.docs_by_query = {
-            script_query: [_make_doc(f"d{i}") for i in range(10)],
-            scene_query: [_make_doc("s0")],
+            _fetch_query(script_query, requirement): [_make_doc(f"d{i}") for i in range(10)],
+            _fetch_query(scene_query, requirement): [_make_doc("s0")],
         }
         chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
         config = WritingStyleFetchConfig(limit=3)
@@ -303,9 +313,10 @@ class TestCreateChapters:
         """Whitespace-only `writing_style_requirement` skips reranking."""
         script_query = sample_script.as_prompt()
         scene_query = sample_script.scenes[0].description
+        requirement = "   "
         rag_role.docs_by_query = {
-            script_query: [_make_doc("style-1")],
-            scene_query: [_make_doc("scene-1")],
+            _fetch_query(script_query, requirement): [_make_doc("style-1")],
+            _fetch_query(scene_query, requirement): [_make_doc("scene-1")],
         }
         chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
         config = WritingStyleFetchConfig(limit=3)

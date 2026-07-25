@@ -15,7 +15,7 @@ def formated_title(idx: int, title: str) -> str:
     return f"Ch-{idx}: {title}"
 
 
-def last_paragraph(text: str, k: int = 8) -> str:
+def last_paragraph(text: str, k: int = 6) -> str:
     r"""Return the last non-empty paragraph of ``text``.
 
     Paragraphs are split on blank lines (LF or CRLF, optionally containing
@@ -27,7 +27,7 @@ def last_paragraph(text: str, k: int = 8) -> str:
     if not text or not text.strip():
         return ""
     paragraphs = [p.strip() for p in _BLANK_LINE_RE.split(text) if p.strip()]
-    return "\n".join(paragraphs[-k]) if paragraphs else ""
+    return "\n".join(paragraphs[-k:]) if paragraphs else ""
 
 
 __all__ = ["formated_title", "last_paragraph"]
