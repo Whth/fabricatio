@@ -5,7 +5,7 @@ from typing import Any, ClassVar, List, Optional, Type
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
-from fabricatio_core.utils import ok, override_kwargs
+from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
 from fabricatio_rag.actions.db import StoreTextFile
 
@@ -50,15 +50,6 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
     writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None
     """Optional fetch configuration override."""
 
-    use_refined_query: Optional[bool] = None
-    """Convenience override for `WritingStyleFetchConfig.use_refined_query`. Has no effect
-    when `writing_style_fetch_config` is supplied explicitly (use the config field instead).
-    Tri-state: None leaves the default (False); True/False toggles refinement on/off."""
-
-    refined_query_count: Optional[int] = None
-    """Convenience override for `WritingStyleFetchConfig.refined_query_count`. Ignored when
-    `writing_style_fetch_config` is supplied explicitly."""
-
     output_key: str = "novel_chapter_contents"
     """Key under which the generated chapter contents will be stored in context."""
 
@@ -72,22 +63,12 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
 
         chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
-        # Build config: explicit override > convenience overrides > default.
-        if self.writing_style_fetch_config is not None:
-            rag_config = self.writing_style_fetch_config
-        else:
-            # Collect only the convenience fields the caller explicitly set
-            # (non-None), then layer them on top of the default config so any
-            # unspecified field still uses its Pydantic default.
-            overrides = override_kwargs(
-                {},
-                use_refined_query=self.use_refined_query,
-                refined_query_count=self.refined_query_count,
-            )
-            # `override_kwargs` keeps every key, even None — drop the unset ones
-            # so they don't shadow the config's own defaults.
-            overrides = {k: v for k, v in overrides.items() if v is not None}
-            rag_config = WritingStyleFetchConfig(**overrides) if overrides else WritingStyleFetchConfig.default()
+        # Use explicit config override, or the default.
+        rag_config = (
+            self.writing_style_fetch_config
+            if self.writing_style_fetch_config is not None
+            else WritingStyleFetchConfig.default()
+        )
         if self.writing_style_requirement and self.writing_style_requirement.strip():
             logger.info(f"Writing style requirement: '{self.writing_style_requirement[:80]}'")
 

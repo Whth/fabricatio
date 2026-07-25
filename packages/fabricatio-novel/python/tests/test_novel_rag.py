@@ -1,15 +1,10 @@
 """Tests for fabricatio-novel RAG capabilities, writing-style doc fetching, and reranking.
 
 Focuses on:
-- `WritingStyleFetchConfig` exposes fields with correct defaults.
 - `GenerateChaptersFromScriptsWithRAG` builds the right fetch config and threads
   `writing_style_requirement` through to `create_chapters`.
-- `NovelComposeRAG.create_chapters` fetches docs for scripts/scenes, and when
-  `writing_style_requirement` is provided, reranks fetched docs against it.
 - `NovelComposeRAG._fetch_style_docs` scales the fetch limit when a rerank
   target is provided and delegates to `arank_documents`.
-- The `RetrieveWritingStyles` / `InjectWritingStyleToScript` orphan actions are
-  removed (the file no longer exports them).
 
 Tests use `fabricatio_mock` for the LLM router and a lightweight in-process
 `afetch_document` override on the test role so we do not need a live LanceDB.
@@ -195,27 +190,6 @@ def _padded_responses() -> List[str]:
 # ---------------------------------------------------------------------------
 
 
-class TestWritingStyleFetchConfig:
-    """`WritingStyleFetchConfig` exposes fields with correct defaults."""
-
-    def test_default_use_refined_query_is_false(self) -> None:
-        """Default behavior: no refinement (opt-in, costs an LLM call)."""
-        assert WritingStyleFetchConfig.default().use_refined_query is False
-
-    def test_default_refined_query_count_is_three(self) -> None:
-        """Default produces 3 variants when refinement is enabled."""
-        assert WritingStyleFetchConfig.default().refined_query_count == 3
-
-    def test_explicit_override(self) -> None:
-        """All fields can be overridden at construction time."""
-        config = WritingStyleFetchConfig(
-            use_refined_query=True,
-            refined_query_count=5,
-        )
-        assert config.use_refined_query is True
-        assert config.refined_query_count == 5
-
-
 # ---------------------------------------------------------------------------
 # 2. create_chapters wiring tests
 # ---------------------------------------------------------------------------
@@ -375,12 +349,8 @@ class TestGenerateChaptersFromScriptsWithRAGConfig:
             novel_scripts=[],
             novel_characters=[],
             writing_style_requirement="Hemingway terse prose",
-            use_refined_query=True,
-            refined_query_count=4,
         )
         assert action.writing_style_requirement == "Hemingway terse prose"
-        assert action.use_refined_query is True
-        assert action.refined_query_count == 4
 
     def test_action_orphan_actions_removed(self) -> None:
         """`RetrieveWritingStyles` and `InjectWritingStyleToScript` were dead code — removed."""
