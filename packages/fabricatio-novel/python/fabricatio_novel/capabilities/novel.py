@@ -18,6 +18,7 @@ from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import ChapterSummary, Script
+from fabricatio_novel.utils import last_paragraph
 
 
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
@@ -186,11 +187,14 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
-        """Generate chapters sequentially with rolling summary context.
+        """Generate chapters sequentially with rolling context.
 
         Each chapter is generated one at a time. After each chapter, a structured
-        summary is produced and passed to the next chapter's prompt to maintain
-        narrative continuity across the entire novel.
+        summary is produced and passed to the next chapter's prompt alongside the
+        last paragraph of the prior chapter (``previous_chapter_tail``, default-on
+        when non-empty) — the structured summary alone is too lossy to anchor
+        the next chapter's opening beat, so we also hand the writer the closing
+        paragraph of what came before.
         """
         logger.debug(f"Generating chapter contents sequentially for {len(chapter_plans)} script(s)")
         if not chapter_plans:
@@ -202,7 +206,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
         chapter_contents: List[str] = []
         previous_summary: Optional[ChapterSummary] = None
-
+        previous_chapter_tail: Optional[str] = None
         for i, cp in enumerate(chapter_plans):
             logger.debug(f"Generating chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
 
@@ -220,9 +224,10 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "novel_synopsis": draft.synopsis,
                 "all_chapters_titles": draft.all_chapters_titles,
                 "previous_summary": previous_summary.as_prompt() if previous_summary else None,
+                "previous_chapter_tail": previous_chapter_tail,
             }
-            rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
 
+            rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
             # 2. Generate chapter content
             raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
 
@@ -238,6 +243,8 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                     f"Chapter {i + 1} summarized: {len(previous_summary.key_events)} events, "
                     f"{len(previous_summary.unresolved_threads)} open threads"
                 )
+            # 4. Track last paragraph of the prior chapter for the next iteration's prompt
+            previous_chapter_tail = last_paragraph(raw_chapter)
 
         logger.info(f"Generated {len(chapter_contents)} chapter content(s) sequentially")
         return chapter_contents

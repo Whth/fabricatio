@@ -85,6 +85,10 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
         self.global_prompt += f"\n{prompt}"
         return self
 
+    def bulk_append_global_prompt(self, prompt: list[str]) -> Self:
+        self.global_prompt += "\n" + "\n".join(prompt)
+        return self
+
     @classmethod
     def with_raw_synosis(cls, synosis: str) -> Self:
         """Create a script with a single scene containing the synopsis as narrative."""

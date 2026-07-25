@@ -41,13 +41,6 @@ _RAG_QUERY: typer.Option = typer.Option(
     help="Writing style query for RAG retrieval (e.g. 'Hemingway terse prose style').",
     envvar="NOVEL_RAG_QUERY",
 )
-_REFINE_TEMPLATE: typer.Option = typer.Option(
-    "built-in/refined_query",
-    "--refine-query-template",
-    "-rqt",
-    help="Template name used for LLM-based query refinement. Override to use a custom template.",
-    envvar="NOVEL_REFINE_QUERY_TEMPLATE",
-)
 _REFINED_COUNT: typer.Option = typer.Option(
     3,
     "--refined-query-count",
@@ -61,13 +54,6 @@ _USE_REFINE: typer.Option = typer.Option(
     "-urq",
     help="Refine the RAG query via LLM into multiple semantically-diverse variants before retrieval.",
     envvar="NOVEL_USE_REFINED_QUERY",
-)
-_USE_RERANKER: typer.Option = typer.Option(
-    False,
-    "--reranker",
-    "-rr",
-    help="Enable reranker: fetches rag_limit * scale_factor docs, then reranks to rag_limit.",
-    envvar="NOVEL_USE_RERANKER",
 )
 
 
@@ -85,10 +71,8 @@ def write_novel_with_rag(  # noqa: PLR0913
     guidance_file: Path = GUIDANCE_FILE,
     persist_dir: Path = PERSIST_DIR,
     rag_limit: int = _RAG_LIMIT,
-    use_reranker: bool = _USE_RERANKER,
     use_refined_query: bool = _USE_REFINE,
     refined_query_count: int = _REFINED_COUNT,
-    refine_query_template: str = _REFINE_TEMPLATE,
 ) -> None:
     """Generate a novel with RAG writing style augmentation based on the provided outline."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -104,11 +88,11 @@ def write_novel_with_rag(  # noqa: PLR0913
     typer.echo(f"Starting RAG novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
     if use_refined_query:
-        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s)")
 
     task = Task(name="Write novel with RAG").update_init_context(
         novel_outline=outline_content,
-        writing_style_query=rag_query,
+        writing_style_requirement=rag_query,
         output_path=output_path,
         novel_font_file=font_file,
         cover_image=cover_image,
@@ -119,9 +103,7 @@ def write_novel_with_rag(  # noqa: PLR0913
             limit=rag_limit,
             use_refined_query=use_refined_query,
             refined_query_count=refined_query_count,
-            refine_query_template=refine_query_template,
         ),
-        use_reranker=use_reranker,
     )
 
     result = task.delegate_blocking(rag_ns)
@@ -146,10 +128,8 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
     guidance_file: Path = GUIDANCE_FILE,
     persist_dir: Path = PERSIST_DIR,
     rag_limit: int = _RAG_LIMIT,
-    use_reranker: bool = _USE_RERANKER,
     use_refined_query: bool = _USE_REFINE,
     refined_query_count: int = _REFINED_COUNT,
-    refine_query_template: str = _REFINE_TEMPLATE,
 ) -> None:
     """Generate a novel with RAG writing styles + mental state tracking."""
     from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
@@ -166,11 +146,11 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
     typer.echo(f"Starting RAG+Mental novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
     if use_refined_query:
-        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s)")
 
     task = Task(name="Write novel with RAG+Mental").update_init_context(
         novel_outline=outline_content,
-        writing_style_query=rag_query,
+        writing_style_requirement=rag_query,
         output_path=output_path,
         novel_font_file=font_file,
         cover_image=cover_image,
@@ -181,9 +161,7 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
             limit=rag_limit,
             use_refined_query=use_refined_query,
             refined_query_count=refined_query_count,
-            refine_query_template=refine_query_template,
         ),
-        use_reranker=use_reranker,
     )
 
     result = task.delegate_blocking(mental_rag_ns)

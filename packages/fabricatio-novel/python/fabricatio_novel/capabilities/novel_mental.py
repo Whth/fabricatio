@@ -25,6 +25,7 @@ from fabricatio_core.utils import no_default, ok
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.utils import last_paragraph
 
 if TYPE_CHECKING:
     from fabricatio_novel.models.draft import NovelDraft
@@ -101,7 +102,10 @@ class NovelComposeMental(NovelCompose, UseMind):
         """Generate chapters with mental state injection and evolution.
 
         Wraps base class create_chapters: injects mental states into prompt
-        context before each chapter, evolves states after each chapter summary.
+        context before each chapter, evolves states after each chapter summary,
+        and threads the last paragraph of the prior chapter
+        (``previous_chapter_tail``) alongside the rolling summary so the
+        next chapter opens off the prior chapter's closing beat.
         """
         if not character_states:
             return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
@@ -109,6 +113,7 @@ class NovelComposeMental(NovelCompose, UseMind):
         character_prompt = dump_card(*characters)
         chapter_contents: List[str] = []
         previous_summary: ChapterSummary | None = None
+        previous_chapter_tail: str | None = None
 
         for i, cp in enumerate(chapter_plans):
             logger.debug(f"Chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
@@ -128,6 +133,7 @@ class NovelComposeMental(NovelCompose, UseMind):
                 "novel_synopsis": draft.synopsis,
                 "all_chapters_titles": draft.all_chapters_titles,
                 "previous_summary": previous_summary.as_prompt() if previous_summary else None,
+                "previous_chapter_tail": previous_chapter_tail,
             }
             rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
 
@@ -146,7 +152,8 @@ class NovelComposeMental(NovelCompose, UseMind):
             previous_summary = await self.summarize_chapter(
                 cp.formatted_chapter_title, raw_text, draft.language, previous_summary, **kwargs
             )
-
+            # Track last paragraph of the prior chapter for the next iteration's prompt
+            previous_chapter_tail = last_paragraph(raw_text)
             # Evolve mental states
             if previous_summary:
                 char_events = build_character_events(previous_summary, character_states)

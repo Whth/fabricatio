@@ -16,7 +16,7 @@ from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
 from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import ChapterSummary, Scene, Script
-from fabricatio_novel.utils import formated_title
+from fabricatio_novel.utils import formated_title, last_paragraph
 
 # ---------------------------------------------------------------------------
 # Capability test role
@@ -162,6 +162,50 @@ class TestFormatedTitle:
         """Test formatting with a lengthy title."""
         title = "A Very Long Chapter Title That Goes On And On"
         assert formated_title(99, title) == f"Ch-99: {title}"
+
+    def test_last_paragraph_returns_last_block(self) -> None:
+        """last_paragraph returns the last non-empty paragraph split on blank lines."""
+        text = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
+        assert last_paragraph(text) == "Third paragraph."
+
+    def test_last_paragraph_strips_trailing_whitespace(self) -> None:
+        """last_paragraph strips surrounding whitespace from the returned paragraph."""
+        text = "First.\n\nLast paragraph.   \n\n"
+        assert last_paragraph(text) == "Last paragraph."
+
+    def test_last_paragraph_handles_single_paragraph(self) -> None:
+        """last_paragraph on a single-block text returns that block."""
+        assert last_paragraph("Only one block here.") == "Only one block here."
+
+    def test_last_paragraph_empty_input(self) -> None:
+        """last_paragraph returns empty string for empty or whitespace-only input."""
+        assert last_paragraph("") == ""
+        assert last_paragraph("   \n\n   \n  ") == ""
+
+    def test_last_paragraph_skips_trailing_empty_blocks(self) -> None:
+        """Trailing blank paragraphs after the last block do not change the result."""
+        text = "Alpha.\n\nBeta.\n\n\n\n"
+        assert last_paragraph(text) == "Beta."
+
+    def test_last_paragraph_handles_crlf_line_endings(self) -> None:
+        r"""CRLF (\r\n\r\n) is treated as a blank-line separator."""
+        text = "First paragraph.\r\n\r\nSecond paragraph.\r\n\r\nFinal paragraph."
+        assert last_paragraph(text) == "Final paragraph."
+
+    def test_last_paragraph_handles_mixed_line_endings(self) -> None:
+        """Mixed CRLF and LF separators between paragraphs are both recognised."""
+        text = "First paragraph.\r\n\r\nSecond paragraph.\n\nFinal paragraph."
+        assert last_paragraph(text) == "Final paragraph."
+
+    def test_last_paragraph_treats_whitespace_only_line_as_blank(self) -> None:
+        """A line containing only spaces/tabs still counts as a paragraph break."""
+        text = "First paragraph.\n   \nSecond paragraph.\n\t\nFinal paragraph."
+        assert last_paragraph(text) == "Final paragraph."
+
+    def test_last_paragraph_collapses_three_newline_runs(self) -> None:
+        """A 3-newline run between paragraphs doesn't leave a stray prefix on the next paragraph."""
+        text = "First.\n\n\nSecond.\n\n\nFinal."
+        assert last_paragraph(text) == "Final."
 
 
 # ---------------------------------------------------------------------------
@@ -1268,3 +1312,328 @@ class TestCreateChaptersSequential:
         assert len(result) == 1
         assert isinstance(result[0], str)
         assert len(result[0]) > 0
+
+
+# ---------------------------------------------------------------------------
+# Tests: chapter_requirement template renders previous_chapter_tail block
+# ---------------------------------------------------------------------------
+
+
+class TestChapterRequirementTemplateRendersTail:
+    """Test suite for the chapter_requirement template's tail continuity hook."""
+
+    @pytest.fixture
+    def base_ctx(self) -> dict:
+        """Minimal prompt context sufficient to render the chapter_requirement template."""
+        return {
+            "characters": "Hero: brave\nMage: wise",
+            "script": "Scene 1: the hero enters the forest.",
+            "chapter_title": "Ch-2: The Forest",
+            "novel_title": "Epic Tale",
+            "novel_synopsis": "A hero's journey.",
+            "all_chapters_titles": ["Ch-1: Awakening", "Ch-2: The Forest"],
+            "language": "English",
+            "expected_word_count": 1000,
+            "previous_summary": None,
+            "previous_chapter_tail": None,
+        }
+
+    def test_renders_tail_block_when_provided(self, base_ctx: dict) -> None:
+        """The template renders the closing-beat block when previous_chapter_tail is non-empty."""
+        from fabricatio_core import TEMPLATE_MANAGER
+        from fabricatio_novel.config import novel_config
+
+        base_ctx["previous_chapter_tail"] = "She walked into the mist and did not return."
+        rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
+
+        assert "Closing Beat" in rendered
+        assert "She walked into the mist and did not return." in rendered
+        assert "preserve continuity from it" in rendered
+        assert "do NOT repeat or paraphrase it verbatim" in rendered
+
+    def test_omits_tail_block_when_none(self, base_ctx: dict) -> None:
+        """The template omits the closing-beat block when previous_chapter_tail is None."""
+        from fabricatio_core import TEMPLATE_MANAGER
+        from fabricatio_novel.config import novel_config
+
+        rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
+
+        assert "Closing Beat" not in rendered
+
+    def test_omits_tail_block_when_empty_string(self, base_ctx: dict) -> None:
+        """The template omits the closing-beat block when previous_chapter_tail is an empty string."""
+        from fabricatio_core import TEMPLATE_MANAGER
+        from fabricatio_novel.config import novel_config
+
+        base_ctx["previous_chapter_tail"] = ""
+        rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
+
+        assert "Closing Beat" not in rendered
+
+
+# ---------------------------------------------------------------------------
+# Tests: previous_chapter_tail threaded from chapter N's output to chapter N+1's prompt
+# ---------------------------------------------------------------------------
+
+
+class TestPreviousChapterTailThreading:
+    """Flow-level test: chapter N's closing paragraph reaches chapter N+1's prompt.
+
+    Replaces `aask` and `summarize_chapter` on the role to record every prompt
+    sent to the LLM and return deterministic chapter text + summary. This
+    catches both extraction bugs (`last_paragraph` wrong) and loop-timing bugs
+    (e.g. the tail being computed from chapter N-1 instead of chapter N).
+    """
+
+    @pytest.fixture
+    def two_chapter_draft(self) -> NovelDraft:
+        """A 2-chapter draft — smallest case that exercises the chapter 1 -> 2 transition."""
+        return NovelDraft(
+            title="Tail Threading Test",
+            genre=["Fiction"],
+            synopsis="A short two-chapter story.",
+            character_descriptions=["A brave hero"],
+            chapters=[
+                ChapterDraft(title="Beginning", synopsis="The hero starts.", weight=1.0),
+                ChapterDraft(title="Middle", synopsis="The hero struggles.", weight=1.0),
+            ],
+            expected_word_count=200,
+            global_writing_constraint="",
+            language="English",
+            sketch="",
+        )
+
+    @pytest.fixture
+    def two_chapter_plans(self, two_chapter_draft: NovelDraft) -> list[ChapterPlan]:
+        """Pair the draft with a script per chapter."""
+        return ChapterPlan.from_draft(
+            two_chapter_draft, [Script.with_raw_synosis("setup"), Script.with_raw_synosis("middle")]
+        )
+
+    @pytest.fixture
+    def character(self) -> CharacterCard:
+        """A minimal character fixture local to this class.
+
+        Avoids the dependency on ``TestCreateChaptersSequential.sample_character``,
+        which is class-scoped.
+        """
+        return CharacterCard(
+            name="Hero",
+            description="A brave hero",
+            role="Protagonist",
+            look="Tall with brown hair",
+            act="Courageous and kind",
+            want="Save the world",
+            flaw="Too trusting",
+            sketch="",
+        )
+
+    @pytest.mark.asyncio
+    async def test_chapter1_tail_appears_in_chapter2_prompt(
+        self,
+        two_chapter_draft: NovelDraft,
+        two_chapter_plans: list[ChapterPlan],
+        character: CharacterCard,
+    ) -> None:
+        """Chapter 1's last paragraph must be present in chapter 2's prompt, absent from chapter 1's."""
+        role = NovelRole()
+
+        # Two deterministic chapter texts, each with a clearly-distinguishable final paragraph.
+        chapter1_text = (
+            "The hero opened the heavy door.\n\n"
+            "Dust swirled in the morning light.\n\n"
+            "She stepped into the unknown and the door slammed shut behind her."
+        )
+        chapter2_text = "She pressed forward into the darkness."
+        generated = [chapter1_text, chapter2_text]
+
+        # Deterministic summary — content doesn't matter for this test, only the
+        # fact that a summary is produced and threaded forward.
+        fixed_summary = ChapterSummary(
+            key_events=["hero opened the door"],
+            character_states={"Hero": "determined"},
+            emotional_arc="rising",
+            unresolved_threads=["what is in the dark?"],
+        )
+
+        captured_prompts: list[str] = []
+
+        async def fake_aask(question: str, *args: object, **kwargs: object) -> str:
+            """Capture the prompt and return the next canned chapter text."""
+            captured_prompts.append(question)
+            return generated[len(captured_prompts) - 1]
+
+        async def fake_summarize_chapter(
+            chapter_title: str,
+            chapter_content: str,
+            language: str,
+            *args: object,
+            **kwargs: object,
+        ) -> ChapterSummary:
+            """Return the fixed summary regardless of input."""
+            return fixed_summary
+
+        # Pydantic models reject direct instance attribute assignment; install the
+        # patched methods into the instance's `__dict__` directly so they shadow
+        # the inherited class methods for the lifetime of this test.
+        object.__setattr__(role, "aask", fake_aask)
+        object.__setattr__(role, "summarize_chapter", fake_summarize_chapter)
+
+        result = await role.create_chapters(two_chapter_draft, two_chapter_plans, [character])
+
+        assert result == [chapter1_text, chapter2_text]
+        assert len(captured_prompts) == 2
+
+        prompt1, prompt2 = captured_prompts
+
+        # Chapter 1's prompt: no previous chapter exists yet — tail MUST be absent.
+        assert "She stepped into the unknown and the door slammed shut behind her." not in prompt1
+        assert "Closing Beat" not in prompt1
+
+        # Chapter 2's prompt: BOTH the rolling summary AND the closing-paragraph
+        # tail are threaded forward — the user explicitly rejected replacing the
+        # summary with the tail; the new field is additive.
+        assert "hero opened the door" in prompt2
+        assert "Previous Chapter Context" in prompt2
+        # The closing paragraph of chapter 1 must also be threaded in.
+        assert "She stepped into the unknown and the door slammed shut behind her." in prompt2
+        assert "Closing Beat" in prompt2
+        assert "Previous Chapter Closing Beat" in prompt2
+
+
+class TestMentalPathPreviousChapterTailThreading:
+    """Flow-level test for the NovelComposeMental override.
+
+    ``NovelComposeMental.create_chapters`` re-implements the generation loop
+    (not a wrapper around the base class), so the tail-threading logic must
+    be verified independently of the base path. This test mirrors
+    ``TestPreviousChapterTailThreading`` but exercises the mental override.
+    """
+
+    @pytest.fixture
+    def two_chapter_draft(self) -> NovelDraft:
+        """A 2-chapter draft for the mental override flow test."""
+        return NovelDraft(
+            title="Mental Tail Threading Test",
+            genre=["Fiction"],
+            synopsis="A short two-chapter story.",
+            character_descriptions=["A brave hero"],
+            chapters=[
+                ChapterDraft(title="Beginning", synopsis="The hero starts.", weight=1.0),
+                ChapterDraft(title="Middle", synopsis="The hero struggles.", weight=1.0),
+            ],
+            expected_word_count=200,
+            global_writing_constraint="",
+            language="English",
+            sketch="",
+        )
+
+    @pytest.fixture
+    def two_chapter_plans(self, two_chapter_draft: NovelDraft) -> list[ChapterPlan]:
+        """Pair the mental-path draft with a script per chapter."""
+        return ChapterPlan.from_draft(
+            two_chapter_draft, [Script.with_raw_synosis("setup"), Script.with_raw_synosis("middle")]
+        )
+
+    @pytest.fixture
+    def character(self) -> CharacterCard:
+        """A minimal character for the mental-path flow test."""
+        return CharacterCard(
+            name="Hero",
+            description="A brave hero",
+            role="Protagonist",
+            look="Tall with brown hair",
+            act="Courageous and kind",
+            want="Save the world",
+            flaw="Too trusting",
+            sketch="",
+        )
+
+    @pytest.mark.asyncio
+    async def test_chapter1_tail_appears_in_chapter2_prompt_on_mental_path(
+        self,
+        two_chapter_draft: NovelDraft,
+        two_chapter_plans: list[ChapterPlan],
+        character: CharacterCard,
+    ) -> None:
+        """Mental override threads chapter 1's closing paragraph into chapter 2's prompt."""
+        from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
+
+        class TestMentalRole(LLMTestRole, NovelComposeMental):
+            """Combined role for testing the mental override end-to-end."""
+
+        role = TestMentalRole()
+
+        # Deterministic chapter texts with distinguishable final paragraphs.
+        chapter1_text = (
+            "The hero opened the heavy door.\n\nShe stepped into the unknown and the door slammed shut behind her."
+        )
+        chapter2_text = "She pressed forward into the darkness."
+        generated = [chapter1_text, chapter2_text]
+
+        # The summary's key_events don't contain the character name "Hero", so
+        # `build_character_events` produces an empty event map for this chapter
+        # and the mental branch skips `upon_event` / `after_impact` entirely.
+        # That keeps the test focused on prompt threading (the only contract
+        # the mental override needs to honour alongside the base path) without
+        # patching methods we don't actually exercise.
+        fixed_summary = ChapterSummary(
+            key_events=["an unseen event unfolded"],
+            character_states={"Hero": "determined"},
+            emotional_arc="rising",
+            unresolved_threads=["what is in the dark?"],
+        )
+
+        captured_prompts: list[str] = []
+
+        async def fake_aask(question: list[str], *args: object, **kwargs: object) -> list[str]:
+            """Capture the prompt and return the next canned chapter text as a list.
+
+            The mental override calls `aask` with a list-shaped prompt (because
+            the template is rendered with a single-element list `[prompt_ctx]`)
+            and expects a list back, then takes `[0]`. The base path passes a
+            bare string; this test exercises the mental path, so the contract
+            here is list-in, list-out.
+            """
+            captured_prompts.append(question[0])
+            return [generated[len(captured_prompts) - 1]]
+
+        async def fake_summarize_chapter(*args: object, **kwargs: object) -> ChapterSummary:
+            """Return the fixed summary regardless of input."""
+            return fixed_summary
+
+        # Pydantic models reject direct instance attribute assignment; install the
+        # patched methods via `object.__setattr__` so they shadow the inherited
+        # class methods for the lifetime of this test. We do NOT patch
+        # `upon_event` / `after_impact` — the test summary's key_events don't
+        # mention the character name, so `build_character_events` returns an
+        # empty event map and the mental branch never invokes them.
+        object.__setattr__(role, "aask", fake_aask)
+        object.__setattr__(role, "summarize_chapter", fake_summarize_chapter)
+
+        from fabricatio_character.models.mental import MentalState
+
+        # Seed the state via `from_card` so it has the required `mind` field.
+        # Content is irrelevant — we only need the mental branch in
+        # `create_chapters` to run (otherwise the override would delegate to the
+        # base class and we'd be testing the wrong path).
+        states: dict[str, MentalState] = {character.name: MentalState.from_card(character)}
+
+        result = await role.create_chapters(two_chapter_draft, two_chapter_plans, [character], character_states=states)
+
+        # The mental override calls `aask` with a list-shaped prompt and unwraps
+        # `[0]` to a string before appending, so `result` is `[chapter1_text, chapter2_text]`.
+        assert result == [chapter1_text, chapter2_text]
+        assert len(captured_prompts) == 2
+
+        prompt1, prompt2 = captured_prompts
+
+        # Chapter 1's prompt: no previous chapter exists yet — tail MUST be absent.
+        assert "She stepped into the unknown and the door slammed shut behind her." not in prompt1
+        assert "Closing Beat" not in prompt1
+        # Chapter 2's prompt: BOTH the rolling summary AND the closing-paragraph
+        # tail are threaded forward.
+        assert "an unseen event unfolded" in prompt2
+        assert "Previous Chapter Context" in prompt2
+        assert "She stepped into the unknown and the door slammed shut behind her." in prompt2
+        assert "Closing Beat" in prompt2

@@ -41,10 +41,8 @@ from fabricatio_novel.commands.illustration import (
 from fabricatio_novel.commands.rag import (
     _RAG_LIMIT,
     _RAG_QUERY,
-    _REFINE_TEMPLATE,
     _REFINED_COUNT,
     _USE_REFINE,
-    _USE_RERANKER,
 )
 
 
@@ -62,10 +60,8 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
     guidance_file: Path = GUIDANCE_FILE,
     persist_dir: Path = PERSIST_DIR,
     rag_limit: int = _RAG_LIMIT,
-    use_reranker: bool = _USE_RERANKER,
     use_refined_query: bool = _USE_REFINE,
     refined_query_count: int = _REFINED_COUNT,
-    refine_query_template: str = _REFINE_TEMPLATE,
     image_root: Path = _IMAGE_ROOT,
     workflow_template: Optional[Path] = _WORKFLOW_TEMPLATE,
     illustration_budget: int = _ILLUST_BUDGET,
@@ -108,11 +104,11 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
     typer.echo(f"Starting RAG + illustrated novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
     if use_refined_query:
-        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s)")
 
     task = Task(name="Write RAG illustrated novel").update_init_context(
         novel_outline=outline_content,
-        writing_style_query=rag_query,
+        writing_style_requirement=rag_query,
         output_path=output_path,
         novel_font_file=font_file,
         cover_image=cover_image,
@@ -124,9 +120,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
             limit=rag_limit,
             use_refined_query=use_refined_query,
             refined_query_count=refined_query_count,
-            refine_query_template=refine_query_template,
         ),
-        use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,
@@ -158,10 +152,8 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
     guidance_file: Path = GUIDANCE_FILE,
     persist_dir: Path = PERSIST_DIR,
     rag_limit: int = _RAG_LIMIT,
-    use_reranker: bool = _USE_RERANKER,
     use_refined_query: bool = _USE_REFINE,
     refined_query_count: int = _REFINED_COUNT,
-    refine_query_template: str = _REFINE_TEMPLATE,
     image_root: Path = _IMAGE_ROOT,
     workflow_template: Optional[Path] = _WORKFLOW_TEMPLATE,
     illustration_budget: int = _ILLUST_BUDGET,
@@ -204,11 +196,11 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
     typer.echo(f"Starting RAG+Mental+Illustrated novel generation: '{outline_content[:30]}...'")
     typer.echo(f"Writing style query: '{rag_query}'")
     if use_refined_query:
-        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s) via '{refine_query_template}'")
+        typer.echo(f"Query refinement enabled: {refined_query_count} variant(s)")
 
     task = Task(name="Write RAG mental illustrated novel").update_init_context(
         novel_outline=outline_content,
-        writing_style_query=rag_query,
+        writing_style_requirement=rag_query,
         output_path=output_path,
         novel_font_file=font_file,
         cover_image=cover_image,
@@ -220,9 +212,7 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
             limit=rag_limit,
             use_refined_query=use_refined_query,
             refined_query_count=refined_query_count,
-            refine_query_template=refine_query_template,
         ),
-        use_reranker=use_reranker,
         workflow_template=workflow_template,
         illustration_budget=illustration_budget,
         illustration_language=illustration_language,

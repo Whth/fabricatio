@@ -65,16 +65,13 @@ class NovelConfig:
     """Timeout in seconds per image for ComfyUI generation. Total timeout = num_images * this value."""
 
     rerank_scale_factor: float = 3.0
-    """Multiplier for embedding search limit when reranker is enabled.
+    """Multiplier for embedding search limit when a rerank target is provided.
 
-    When use_reranker=True, embedding search fetches limit * rerank_scale_factor docs,
-    then the reranker filters down to the original limit. Higher values give the reranker
-    more candidates to choose from but increase embedding search cost.
+    When `writing_style_requirement` is set, embedding search fetches
+    limit * rerank_scale_factor docs, then the reranker filters down to
+    the original limit. Higher values give the reranker more candidates
+    to choose from but increase embedding search cost.
     """
-    refined_query_template: str = "built-in/refined_query"
-    """Template name used by `RAG.arefined_query` to expand a raw user writing-style query
-    into multiple semantically-diverse queries before LanceDB retrieval. Override via
-    `WritingStyleFetchConfig.refine_query_template` per call."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)

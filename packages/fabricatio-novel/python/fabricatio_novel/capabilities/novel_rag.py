@@ -1,10 +1,10 @@
 """Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
 
 from abc import ABC
-from asyncio import gather
 from typing import List, Optional, Unpack
 
-from fabricatio_core.utils import cfg, fallback_kwargs
+from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
 from fabricatio_character.models.character import CharacterCard  # noqa: I001
@@ -17,7 +17,6 @@ from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, Lancedb
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.draft import NovelDraft
-from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 from fabricatio_novel.models.plan import ChapterPlan
 
 
@@ -26,75 +25,40 @@ class NovelComposeRAG(
 ):
     """Novel composition capability extended with writing style RAG support."""
 
-    async def fetch_and_rerank(
-        self, query: str, config: WritingStyleFetchConfig, use_reranker: bool
-    ) -> List[WritingStyleDocument]:
-        """Fetch writing style documents, optionally reranking the results.
-
-        When use_reranker=True, embedding search fetches limit * rerank_scale_factor docs,
-        then the reranker filters down to the original limit.
-        """
-        if use_reranker:
-            scaled = config.model_copy(update={"limit": int(config.limit * novel_config.rerank_scale_factor)})
-            docs = list(ok(await self.afetch_document(query, scaled)))
-            if not docs:
-                return docs
-            reranked = ok(await self.arank_documents(query, docs))
-            return list(reranked)[: config.limit]
-        return list(ok(await self.afetch_document(query, config)))
-
-    async def _fetch_multi_query(
+    async def _fetch_style_docs(
         self,
-        queries: List[str],
+        query: str,
         config: WritingStyleFetchConfig,
-        use_reranker: bool,
+        rerank_query: Optional[str] = None,
     ) -> List[WritingStyleDocument]:
-        """Fetch documents for each query variant, dedupe by content, optionally rerank.
+        """Fetch writing style docs and optionally rerank against `rerank_query`.
 
-        Used when `WritingStyleFetchConfig.use_refined_query=True` and the user has
-        supplied a `writing_style_query`: the LLM refines the raw query into N variants,
-        and each variant is searched independently. Results are merged (preserving the
-        best rank across variants) and optionally reranked against the raw query.
+        When `rerank_query` is provided and non-empty, the fetch limit is scaled
+        by `rerank_scale_factor` to give the reranker more candidates, then
+        results are reranked and sliced back to `config.limit`.
         """
+        q = f"{query}\n\nNeed Some refined question to find QA docs related to the stuff above"
+
+        if rerank_query:
+            q += f"\nand below is the extra user constrain which is more prior to follow: {rerank_query}"
+
+        queries = await self.arefined_query(q)
+
         if not queries:
             return []
-        seen: dict[str, WritingStyleDocument] = {}
-        per_query_results = await gather(*(self.fetch_and_rerank(q, config, use_reranker) for q in queries))
-        for docs in per_query_results:
-            for doc in docs:
-                if doc.content not in seen:
-                    seen[doc.content] = doc
-        merged = list(seen.values())
-        if use_reranker and len(merged) > config.limit:
-            reranked = ok(await self.arank_documents(queries[0], merged))
-            return list(reranked)[: config.limit]
-        return merged[: config.limit]
 
-    async def _refine_writing_style_query(
-        self,
-        writing_style_query: str,
-        config: WritingStyleFetchConfig,
-    ) -> List[str]:
-        """Refine a raw user writing-style query into N semantically-diverse variants.
+        if rerank_query and rerank_query.strip():
+            scaled_limit = int(config.limit * novel_config.rerank_scale_factor)
+            scaled_config = config.model_copy(update={"limit": scaled_limit})
+            docs = list(ok(await self.afetch_document(queries, scaled_config)))
+            if not docs:
+                return []
+            docs = docs[:scaled_limit]
+            ranked = ok(await self.arank_documents(rerank_query, docs))
+            return list(ranked)[: config.limit]
 
-        Returns the original query unchanged if `arefined_query` yields nothing usable,
-        so the caller always has at least one query to search with. Failures are logged
-        and treated as a no-op — refinement is a best-effort retrieval enhancement.
-        """
-        try:
-            refined = await self.arefined_query(
-                writing_style_query,
-                k=config.refined_query_count,
-            )
-        except Exception as exc:  # noqa: BLE001 — refinement is best-effort
-            logger.warn(f"Query refinement failed; falling back to raw query: {exc}")
-            return [writing_style_query]
-        refined_list = [q.strip() for q in (refined or []) if q and q.strip()]
-        if not refined_list:
-            logger.debug("Query refinement returned empty; using raw query")
-            return [writing_style_query]
-        logger.info(f"Refined writing-style query into {len(refined_list)} variant(s)")
-        return refined_list
+        docs = list(ok(await self.afetch_document(queries, config)))
+        return docs[: config.limit] if docs else []
 
     async def create_chapters(
         self,
@@ -102,63 +66,48 @@ class NovelComposeRAG(
         chapter_plans: List[ChapterPlan],
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
-        **kwargs: Unpack[NovelRAGKwargs[str]],
+        writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None,
+        writing_style_requirement: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters with writing style augmentation via RAG.
 
-        Between script generation and chapter generation, retrieves writing
-        style references from LanceDB and injects them into script/scene prompts.
-
-        When `writing_style_query` is provided AND
-        `WritingStyleFetchConfig.use_refined_query=True`, the raw query is refined
-        into multiple variants by the LLM and each variant is searched. Otherwise
-        retrieval uses the script-level and scene-level prompts as queries.
+        Fetches writing style references from LanceDB using script/scene prompts
+        as queries. When `writing_style_requirement` is provided, fetched docs
+        are reranked against it for relevance.
         """
-        # `fallback_kwargs` returns a merged view: caller-supplied values win,
-        # listed defaults fill any missing keys. The router discards unknown
-        # kwargs, so we can forward the merged dict straight to super().
-        merged = fallback_kwargs(
-            kwargs,
-            writing_style_fetch_config=WritingStyleFetchConfig.default(),
-            use_reranker=False,
-            writing_style_query=None,
-        )
-        config = merged["writing_style_fetch_config"]
-        use_reranker = merged["use_reranker"]
-        writing_style_query = merged["writing_style_query"]
-        kwargs = merged
-        # Pre-compute refined query variants ONCE for the whole batch when enabled.
-        # Both conditions are required: a raw user query AND opt-in refinement.
-        refined_queries: Optional[List[str]] = None
-        if config.use_refined_query and writing_style_query:
-            refined_queries = await self._refine_writing_style_query(writing_style_query, config)
+        await self.inject_docs(chapter_plans, writing_style_fetch_config, writing_style_requirement)
 
-        def _queries_for(base_query: str) -> List[str]:
-            """Return the query list to search for a given base (script or scene) query."""
-            if refined_queries is not None:
-                return refined_queries
-            return [base_query]
+        # Delegate to NovelCompose.create_chapters for actual generation
+        return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
+
+    async def inject_docs(
+        self,
+        chapter_plans: list[ChapterPlan],
+        writing_style_fetch_config: WritingStyleFetchConfig | None,
+        writing_style_requirement: str | None,
+    ) -> None:
+        """Inject writing style documents into chapter scripts and scenes in-place.
+
+        For each chapter plan, fetches style docs using the script prompt as query,
+        appends them as global prompts. Then per scene, fetches using the scene
+        description, appends them as per-scene prompts. When `writing_style_requirement`
+        is non-empty, fetched docs are reranked against it.
+        """
+        config = writing_style_fetch_config or WritingStyleFetchConfig.default()
 
         for cp in chapter_plans:
             # Capture query before mutation — append_global_prompt changes as_prompt() output
             script_query = cp.script.as_prompt()
-            script_docs = await self._fetch_multi_query(_queries_for(script_query), config, use_reranker)
+            script_docs = await self._fetch_style_docs(script_query, config, writing_style_requirement)
             cp.script.append_global_prompt(
-                "Below is some writing style QA docs that you MUST imitate to achieve the best quality"
-            )
-            for doc in script_docs:
-                cp.script.append_global_prompt(doc.as_prompt())
+                "Below is some writing style QA docs that you should imitate to achieve the best quality, in chapter scope"
+            ).bulk_append_global_prompt([doc.as_prompt() for doc in script_docs])
             logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
 
-            # Scene-level: fetch per scene based on scene.description → scene.prompt
-            scene_query_lists = [_queries_for(scene.description) for scene in cp.script.scenes]
-            scene_results = await gather(
-                *(self._fetch_multi_query(qs, config, use_reranker) for qs in scene_query_lists)
-            )
-            for scene, scene_docs in zip(cp.script.scenes, scene_results, strict=True):
+            # Scene-level: fetch per scene based on scene.description
+            for scene in cp.script.scenes:
+                scene_docs = await self._fetch_style_docs(scene.description, config, writing_style_requirement)
                 scene.append_prompt(
-                    "Below is some writing style QA docs that you MUST imitate to achieve the best quality"
-                )
-                scene.bulk_append([doc.as_prompt() for doc in scene_docs])
-        # Delegate to NovelCompose.create_chapters for actual generation
-        return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
+                    "Below is some writing style QA docs that you MUST imitate in this scene to achieve the best quality, in scene scope"
+                ).bulk_append([doc.as_prompt() for doc in scene_docs])

@@ -1,26 +1,28 @@
+**Novel Synopsis:**
+{{novel_synopsis}}
+**All Chapters:**
+{{ls all_chapters_titles}}
+{{#if global_writing_constraint}}{{block global_writing_constraint "Global Writing Constraints (MUST honor — applies to ALL chapters)"}}
+You MUST follow every directive in `Global Writing Constraints` for EVERY chapter. These are novel-level rules that the chapter writer is NOT free to deviate from. Treat them as hard requirements that apply across all chapters. Constraints take precedence over generic prose quality — when in doubt, follow the constraint.{{/if}}
+
 {{block characters "Characters Info Board"}}
 {{#if character_mental_states}}
 {{block character_mental_states "Character Psychological States (write characters consistent with their current state)"}}
 {{/if}}
 {{block script "Chapter Script"}}
 Writing {{chapter_title}} of novel "{{novel_title}}".
-
-**Novel Synopsis:**
-{{novel_synopsis}}
-
-**All Chapters:**
-{{ls all_chapters_titles}}
-
 {{#if previous_summary}}
 **Previous Chapter Context (for continuity — MUST maintain consistency with this):**
 {{previous_summary}}
+{{/if}}
+{{#if previous_chapter_tail}}
+{{block previous_chapter_tail "Last paragraph of the prior chapter"}}
+The chapter you writing now will put after this para, so you should make you chap be connected with this paragraph seamlessly, without contradictory.
 {{/if}}
 
 {{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
 You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
 
-{{#if global_writing_constraint}}{{block global_writing_constraint "Global Writing Constraints (MUST honor — applies to ALL chapters)"}}
-You MUST follow every directive in `Global Writing Constraints` for EVERY chapter. These are novel-level rules that the chapter writer is NOT free to deviate from. Treat them as hard requirements that apply across all chapters. Constraints take precedence over generic prose quality — when in doubt, follow the constraint.{{/if}}
 {{#if writing_constrain}}{{block writing_constrain "Chapter Writing Constraints (MUST honor — these override any default)"}}
 You MUST follow every directive in `Chapter Writing Constraints` for THIS chapter. The chapter writer is NOT free to deviate from it. Treat the constraints as hard requirements: cover every must-include, avoid every must-avoid, respect every structural limit, and obey every user-mandated directive. Constraints take precedence over generic prose quality — when in doubt, follow the constraint.{{/if}}
 You MUST use "{{ language }}" as the writen language.

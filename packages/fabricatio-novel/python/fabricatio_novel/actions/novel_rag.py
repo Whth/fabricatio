@@ -42,18 +42,13 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
 
     chapter_guidance: Optional[str] = None
     """Guidance for writing chapter."""
-    writing_style_query: Optional[str] = None
-    """Raw user writing-style intent. Used for both LanceDB retrieval (as the search
-    query) and, when `use_refined_query` is enabled on the fetch config, as the input
-    to LLM-driven query refinement."""
+    writing_style_requirement: Optional[str] = None
+    """Raw user writing-style requirement. Used as the rerank target for fetched
+    writing style documents — docs fetched from LanceDB are reranked against this
+    query when it is provided."""
 
     writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None
-    """Optional fetch configuration override. Set `use_refined_query=True` on it to
-    enable LLM-based query refinement; set `refined_query_count` to control how many
-    variants are produced."""
-
-    use_reranker: bool = False
-    """When True, embedding search fetches limit * rerank_scale_factor docs, then reranks to limit."""
+    """Optional fetch configuration override."""
 
     use_refined_query: Optional[bool] = None
     """Convenience override for `WritingStyleFetchConfig.use_refined_query`. Has no effect
@@ -63,10 +58,6 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
     refined_query_count: Optional[int] = None
     """Convenience override for `WritingStyleFetchConfig.refined_query_count`. Ignored when
     `writing_style_fetch_config` is supplied explicitly."""
-
-    refine_query_template: Optional[str] = None
-    """Convenience override for `WritingStyleFetchConfig.refine_query_template`. Ignored
-    when `writing_style_fetch_config` is supplied explicitly."""
 
     output_key: str = "novel_chapter_contents"
     """Key under which the generated chapter contents will be stored in context."""
@@ -92,16 +83,13 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
                 {},
                 use_refined_query=self.use_refined_query,
                 refined_query_count=self.refined_query_count,
-                refine_query_template=self.refine_query_template,
             )
             # `override_kwargs` keeps every key, even None — drop the unset ones
             # so they don't shadow the config's own defaults.
             overrides = {k: v for k, v in overrides.items() if v is not None}
             rag_config = WritingStyleFetchConfig(**overrides) if overrides else WritingStyleFetchConfig.default()
-        if self.writing_style_query:
-            logger.info(
-                f"Writing style query '{self.writing_style_query[:80]}' (refined={rag_config.use_refined_query})"
-            )
+        if self.writing_style_requirement and self.writing_style_requirement.strip():
+            logger.info(f"Writing style requirement: '{self.writing_style_requirement[:80]}'")
 
         logger.info(f"Generating {len(chapter_plans)} RAG-augmented chapter contents for '{draft.title}'.")
         chapter_contents = await self.create_chapters(
@@ -110,8 +98,7 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
             characters,
             self.chapter_guidance,
             writing_style_fetch_config=rag_config,
-            writing_style_query=self.writing_style_query,
-            use_reranker=self.use_reranker,
+            writing_style_requirement=self.writing_style_requirement,
         )
         if not chapter_contents:
             logger.warn("RAG chapter content generation returned empty or None.")

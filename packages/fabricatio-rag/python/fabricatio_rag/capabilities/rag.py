@@ -7,6 +7,7 @@ from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseReranker
 from fabricatio_core.models.generic import Base
 from fabricatio_core.models.kwargs_types import ListingKwargs, RerankerKwargs
+from fabricatio_core.rust import SMOL
 
 from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
@@ -47,12 +48,14 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
     async def arefined_query(
         self,
         question: List[str] | str,
+        send_to: str | None = SMOL,
         **kwargs: Unpack[ListingKwargs[str]],
     ) -> Optional[List[str]]:
         """Refines the given question using a template.
 
         Args:
             question (List[str] | str): The question to be refined.
+            send_to (str | None): Model group to use
             **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the refinement process.
 
         Returns:
@@ -64,6 +67,7 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
                 {"question": [question] if isinstance(question, str) else question},
             ),
             value_type=str,
+            send_to=send_to,
             **kwargs,
         )
 

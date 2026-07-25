@@ -5,18 +5,16 @@ chapters with mental state tracking (seed → inject → evolve per chapter).
 """
 
 from abc import ABC
-from asyncio import gather
-from typing import TYPE_CHECKING, Dict, List, Unpack
+from typing import TYPE_CHECKING, Dict, List, Optional, Unpack
 
 from fabricatio_character.models.character import CharacterCard
-from fabricatio_core import logger
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
 from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
 from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
 from fabricatio_novel.models.draft import NovelDraft
-from fabricatio_novel.models.kwargs_types import NovelRAGKwargs
 from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
 from fabricatio_novel.models.plan import ChapterPlan
 
@@ -46,30 +44,15 @@ class NovelComposeMentalRAG(
         characters: List[CharacterCard],
         guidance: str | None = None,
         character_states: Dict[str, "MentalState"] | None = None,
-        **kwargs: Unpack[NovelRAGKwargs[str]],
+        writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None,
+        writing_style_requirement: Optional[str] = None,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters with RAG style injection + mental state tracking.
 
         1. RAG: fetch writing style docs, inject into script/scene prompts.
         2. Mental: seed/inject/evolve character mental states per chapter.
         """
-        config = kwargs.pop("writing_style_fetch_config", WritingStyleFetchConfig.default())
-        use_reranker = kwargs.pop("use_reranker", False)
+        await self.inject_docs(chapter_plans, writing_style_fetch_config, writing_style_requirement)
 
-        # RAG injection — augments chapter_plans scripts in-place
-        for cp in chapter_plans:
-            # Capture query before mutation — append_global_prompt changes as_prompt() output
-            script_query = cp.script.as_prompt()
-            script_docs = await self.fetch_and_rerank(script_query, config, use_reranker)
-            for doc in script_docs:
-                cp.script.append_global_prompt(doc.as_prompt())
-            logger.debug(f"Chapter {cp.chapter_index}: injected {len(script_docs)} script-level style(s)")
-
-            scene_results = await gather(
-                *(self.fetch_and_rerank(scene.description, config, use_reranker) for scene in cp.script.scenes)
-            )
-            for scene, scene_docs in zip(cp.script.scenes, scene_results, strict=True):
-                for doc in scene_docs:
-                    scene.append_prompt(doc.as_prompt())
-        # Mental generation — uses augmented scripts + mental states
         return await super().create_chapters(draft, chapter_plans, characters, guidance, character_states, **kwargs)
