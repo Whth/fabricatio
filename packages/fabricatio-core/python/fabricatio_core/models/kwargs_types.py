@@ -25,6 +25,8 @@ class EmbeddingKwargs(RouteKwargs, total=False):
 
     ndim: int
 
+    max_batch_emb_size: int
+
 
 class RerankerKwargs(RouteKwargs, total=False):
     """Configuration parameters for text reranking operations.

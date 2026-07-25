@@ -1,8 +1,11 @@
 """A collection of utility functions for the fabricatio package."""
 
+import asyncio
 from enum import IntEnum, StrEnum
 from typing import (
     Any,
+    Callable,
+    Coroutine,
     Dict,
     Generator,
     Iterable,
@@ -229,6 +232,16 @@ def iter_enum(enum_type: Type[IntEnum]) -> Generator[Tuple[str, int], None, None
 def iter_enum(enum_type: Type[StrEnum] | Type[IntEnum]) -> Generator[Tuple[str, str] | Tuple[str, int], None, None]:
     """Iterates over an enum type and yields its members as tuples."""
     yield from ((k, v.value) for (k, v) in enum_type.__members__.items())
+
+
+async def chunked_batch_call[R](
+    q_seq: list[str], func: Callable[[list[str]], Coroutine[None, None, list[R]]], chunk_size: int = 10
+) -> list[R]:
+
+    cks = [q_seq[i : i + chunk_size] for i in range(0, len(q_seq), chunk_size)]
+
+    awa = await asyncio.gather(*[func(ck) for ck in cks])
+    return [item for sublist in awa for item in sublist]
 
 
 def wrap_in_block(string: str, title: str, style: str = "-") -> str:
