@@ -72,10 +72,8 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
             return [doc_model.from_raw(s) for s in searched]
 
         search_vec = await self.vectorize(query)
-        searched: List[List[D]] = await asyncio.gather(
-            *[table.search_document(v, limit=conf.limit) for v in search_vec]
-        )
-        return list(flatten(searched))
+        searched = await asyncio.gather(*[table.search_document(v, limit=conf.limit) for v in search_vec])
+        return [doc_model.from_raw(s) for s in flatten(searched)]
 
     async def rebuild_index(self, table_name: str | None = None) -> Self:
         """Rebuild the index of the given table."""
