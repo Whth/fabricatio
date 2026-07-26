@@ -440,11 +440,11 @@ impl ModelTypeTag for EmbeddingTag {
     fn breakdown_batch_response(response: Self::Response) -> Vec<Self::CacheVal> {
         response.embeddings
     }
-
     fn build_missed_batch_request(request: Self::Request, indices: &[&usize]) -> Self::Request {
         EmbeddingRequest {
             texts: indices.iter().map(|&&i| request.texts[i].clone()).collect(),
             ndim: request.ndim,
+            max_batch_emb_size: request.max_batch_emb_size,
         }
     }
 

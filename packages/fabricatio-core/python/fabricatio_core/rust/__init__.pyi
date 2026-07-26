@@ -309,6 +309,8 @@ class EmbeddingConfig:
     def no_cache(self) -> typing.Optional[builtins.bool]: ...
     @property
     def ndim(self) -> typing.Optional[builtins.int]: ...
+    @property
+    def max_batch_emb_size(self) -> typing.Optional[builtins.int]: ...
 
 @typing.final
 class EmitterConfig:
@@ -748,6 +750,7 @@ class Router:
         texts: typing.Sequence[builtins.str],
         ndim: builtins.int,
         no_cache: builtins.bool = False,
+        max_batch_emb_size: typing.Optional[builtins.int] = None,
     ) -> typing.Awaitable[typing.List[typing.List[float]]]:
         r"""Sends an embedding request to the specified group.
 
@@ -755,6 +758,8 @@ class Router:
             send_to (str): The router group name to route the embedding request.
             texts (List[str]): A list of text strings to generate embeddings for.
             ndim (int): The dimensionality of the output embeddings. Must match between search and store.
+            max_batch_emb_size (Optional[int]): Maximum texts per API call. When exceeded, the batch is
+                split into chunks and fanned out in parallel. Defaults to None (no chunking).
             no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
 
         Returns:

@@ -65,6 +65,7 @@ pub struct EmbeddingConfig {
     pub send_to: Option<String>,
     pub no_cache: Option<bool>,
     pub ndim: Option<u32>,
+    pub max_batch_emb_size: Option<usize>,
 }
 
 /// Reranker configuration structure

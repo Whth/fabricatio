@@ -282,11 +282,13 @@ impl Router {
     ///     send_to (str): The router group name to route the embedding request.
     ///     texts (List[str]): A list of text strings to generate embeddings for.
     ///     ndim (int): The dimensionality of the output embeddings. Must match between search and store.
+    ///     max_batch_emb_size (Optional[int]): Maximum texts per API call. When exceeded, the batch is
+    ///         split into chunks and fanned out in parallel. Defaults to None (no chunking).
     ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
     ///
     /// Returns:
     ///     List[List[float]]: A list of embedding vectors corresponding to the input texts.
-    #[pyo3(signature = (send_to, texts, ndim, no_cache = false))]
+    #[pyo3(signature = (send_to, texts, ndim, no_cache = false, max_batch_emb_size = None))]
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
@@ -294,11 +296,22 @@ impl Router {
         texts: Vec<String>,
         ndim: u32,
         no_cache: bool,
+        max_batch_emb_size: Option<usize>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let r = self.embedding_router.clone();
 
         future_into_py(python, async move {
-            Self::embedding_inner(send_to, EmbeddingRequest { texts, ndim }, r, no_cache).await
+            Self::embedding_inner(
+                send_to,
+                EmbeddingRequest {
+                    texts,
+                    ndim,
+                    max_batch_emb_size,
+                },
+                r,
+                no_cache,
+            )
+            .await
         })
     }
 

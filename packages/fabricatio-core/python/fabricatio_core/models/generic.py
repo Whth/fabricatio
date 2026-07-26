@@ -333,8 +333,17 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_ndim: Optional[int] = None
     """The dimensionality of the output embeddings. Must match between search and store."""
 
+    embedding_max_batch_emb_size: Optional[int] = None
+    """Maximum number of texts per batch. When exceeded, texts are chunked and fanned out in parallel.
+    Defaults to 10 when not set in config or kwargs."""
+
     def _resolve_embedding_params(
-        self, send_to: str | None = None, ndim: int | None = None, no_cache: bool | None = None, **_
+        self,
+        send_to: str | None = None,
+        ndim: int | None = None,
+        no_cache: bool | None = None,
+        max_batch_emb_size: int | None = None,
+        **_,
     ) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
@@ -346,6 +355,10 @@ class EmbeddingScopedConfig(ScopedConfig):
                 (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache), raise_exception=False
             )
             or False,
+            max_batch_emb_size=first_available(
+                (max_batch_emb_size, self.embedding_max_batch_emb_size, CONFIG.embedding.max_batch_emb_size, 10),
+                raise_exception=False,
+            ),
         )
 
 

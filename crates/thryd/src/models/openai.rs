@@ -41,7 +41,7 @@ use crate::{CompletionResponse, EmbeddingResponse, RankedDocuments, RankingRespo
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
-use futures::{StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, future::join_all};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 use std::sync::Arc;
@@ -222,6 +222,65 @@ impl OpenaiModel {
             }
         }
     }
+
+    /// Raw single-call embedding: sends one API request and returns the response.
+    /// Does NOT apply `max_batch_emb_size` chunking — use [`EmbeddingModel::embedding`] for that.
+    async fn embedding_one(
+        &self,
+        texts: Vec<String>,
+        ndim: u32,
+    ) -> crate::Result<EmbeddingResponse> {
+        let req = CreateEmbeddingRequestArgs::default()
+            .model(self.model_name())
+            .input(texts)
+            .dimensions(ndim)
+            .build()?;
+        let v = to_value(req)?;
+        let response = self
+            .provider
+            .post(OpenAiRoute::Embeddings.as_ref(), &v)
+            .await?;
+        let emb_response = self
+            .parse_response::<CreateEmbeddingResponse>(response, "embeddings")
+            .await?;
+        let usage = crate::model::Usage {
+            prompt_tokens: emb_response.usage.prompt_tokens,
+            completion_tokens: 0,
+            total_tokens: emb_response.usage.total_tokens,
+        };
+        let embeddings = emb_response
+            .data
+            .into_iter()
+            .map(|e| e.embedding)
+            .collect::<Vec<_>>();
+        Ok(EmbeddingResponse { embeddings, usage })
+    }
+}
+
+/// Split texts into chunks according to `max_batch_emb_size`.
+/// Returns a single-element vec when limit is `None`, `Some(0)`, or `texts.len() <= limit`.
+fn split_embedding_chunks(texts: &[String], limit: Option<usize>) -> Vec<Vec<String>> {
+    let limit = match limit {
+        Some(n) if n > 0 => n,
+        _ => return vec![texts.to_vec()],
+    };
+    if texts.len() <= limit {
+        return vec![texts.to_vec()];
+    }
+    texts.chunks(limit).map(|c| c.to_vec()).collect()
+}
+
+/// Merge multiple `EmbeddingResponse`s: concatenate embeddings, sum usage.
+fn merge_embedding_responses(responses: Vec<EmbeddingResponse>) -> EmbeddingResponse {
+    let mut embeddings = Vec::new();
+    let mut usage = crate::model::Usage::default();
+    for r in responses {
+        embeddings.extend(r.embeddings);
+        usage.prompt_tokens += r.usage.prompt_tokens;
+        usage.completion_tokens += r.usage.completion_tokens;
+        usage.total_tokens += r.usage.total_tokens;
+    }
+    EmbeddingResponse { embeddings, usage }
 }
 
 impl Model for OpenaiModel {
@@ -422,66 +481,26 @@ impl CompletionModel for OpenaiModel {
 /// # Embedding Implementation
 ///
 /// Implements [`EmbeddingModel`] for `OpenaiModel`, providing text vectorization
-/// through the OpenAI Embeddings API.
-///
-/// Generates vector embeddings for a list of input texts. Embeddings are
-/// returned as `Vec<Vec<f32>>` where each inner vector is the embedding
-/// for the corresponding input text in order.
-///
-/// # Example
-///
-/// ```ignore
-/// use thryd::{OpenaiModel, OpenaiCompatible, EmbeddingRequest};
-/// use secrecy::SecretString;
-/// use std::sync::Arc;
-///
-/// let provider = Arc::new(OpenaiCompatible::openai(api_key));
-/// let model = OpenaiModel::new("text-embedding-3-small".to_string(), provider);
-///
-/// let request = EmbeddingRequest {
-///     texts: vec![
-///         "Hello, world!".to_string(),
-///         "How are you?".to_string(),
-///     ],
-/// };
-///
-/// let embeddings = model.embedding(request).await?;
-/// assert_eq!(embeddings.len(), 2); // Two embeddings for two texts
-/// assert_eq!(embeddings[0].len(), 1536); // text-embedding-3-small uses 1536 dims
-/// ```
-///
-/// [`EmbeddingModel`]: crate::model::EmbeddingModel
+/// through the OpenAI Embeddings API. Supports native `max_batch_emb_size`
+/// chunking for large text batches.
 #[async_trait]
 impl EmbeddingModel for OpenaiModel {
     async fn embedding(&self, request: EmbeddingRequest) -> crate::Result<EmbeddingResponse> {
-        let request = CreateEmbeddingRequestArgs::default()
-            .model(self.model_name())
-            .input(request.texts)
-            .dimensions(request.ndim)
-            .build()?;
-
-        let v = to_value(request)?;
-        let response = self
-            .provider
-            .post(OpenAiRoute::Embeddings.as_ref(), &v)
-            .await?;
-        let emb_response = self
-            .parse_response::<CreateEmbeddingResponse>(response, "embeddings")
-            .await?;
-        let usage = crate::model::Usage {
-            prompt_tokens: emb_response.usage.prompt_tokens,
-            completion_tokens: 0,
-            total_tokens: emb_response.usage.total_tokens,
-        };
-        let embeddings = emb_response
-            .data
+        let chunks = split_embedding_chunks(&request.texts, request.max_batch_emb_size);
+        if chunks.len() == 1 {
+            return self
+                .embedding_one(chunks.into_iter().next().unwrap(), request.ndim)
+                .await;
+        }
+        let futures: Vec<_> = chunks
             .into_iter()
-            .map(|e| e.embedding)
-            .collect::<Vec<_>>();
-        Ok(EmbeddingResponse { embeddings, usage })
+            .map(|chunk| self.embedding_one(chunk, request.ndim))
+            .collect();
+        let results = join_all(futures).await;
+        let responses: crate::Result<Vec<_>> = results.into_iter().collect();
+        Ok(merge_embedding_responses(responses?))
     }
 }
-
 /// Request body for the reranks API endpoint.
 ///
 /// Sent as JSON to `POST /v1/reranks`. Follows the DashScope/OpenAI-compatible
@@ -596,5 +615,65 @@ impl RerankerModel for OpenaiModel {
             rankings: results,
             usage,
         })
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn split_passthrough_none() {
+        let texts: Vec<String> = (0..5).map(|i| format!("text{i}")).collect();
+        assert_eq!(split_embedding_chunks(&texts, None), vec![texts]);
+    }
+
+    #[test]
+    fn split_passthrough_zero() {
+        let texts: Vec<String> = vec!["a".into(), "b".into()];
+        assert_eq!(split_embedding_chunks(&texts, Some(0)), vec![texts]);
+    }
+
+    #[test]
+    fn split_passthrough_limit_gte_len() {
+        let texts: Vec<String> = vec!["a".into()];
+        assert_eq!(split_embedding_chunks(&texts, Some(10)), vec![texts]);
+    }
+
+    #[test]
+    fn split_chunks_five_into_two() {
+        let texts: Vec<String> = (0..5).map(|i| format!("text{i}")).collect();
+        let chunks = split_embedding_chunks(&texts, Some(2));
+        assert_eq!(chunks.len(), 3);
+        assert_eq!(chunks[0], vec!["text0", "text1"]);
+        assert_eq!(chunks[1], vec!["text2", "text3"]);
+        assert_eq!(chunks[2], vec!["text4"]);
+    }
+
+    #[test]
+    fn merge_two_responses() {
+        let r1 = EmbeddingResponse {
+            embeddings: vec![vec![0.1, 0.2], vec![0.3, 0.4]],
+            usage: crate::model::Usage {
+                prompt_tokens: 10,
+                completion_tokens: 3,
+                total_tokens: 13,
+            },
+        };
+        let r2 = EmbeddingResponse {
+            embeddings: vec![vec![0.5, 0.6]],
+            usage: crate::model::Usage {
+                prompt_tokens: 5,
+                completion_tokens: 2,
+                total_tokens: 7,
+            },
+        };
+        let merged = merge_embedding_responses(vec![r1, r2]);
+        assert_eq!(
+            merged.embeddings,
+            vec![vec![0.1, 0.2], vec![0.3, 0.4], vec![0.5, 0.6]]
+        );
+        assert_eq!(merged.usage.prompt_tokens, 15);
+        assert_eq!(merged.usage.completion_tokens, 5);
+        assert_eq!(merged.usage.total_tokens, 20);
     }
 }

@@ -654,6 +654,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["hello".into(), "world".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
             )
             .await
@@ -670,6 +671,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["hello".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
             )
             .await
@@ -700,6 +702,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["hello".into(), "hello".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
             )
             .await
@@ -738,6 +741,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["A".into(), "B".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
             )
             .await
@@ -754,6 +758,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["A".into(), "C".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
             )
             .await
@@ -787,6 +792,7 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["hello".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
                 true,
             )
@@ -801,12 +807,41 @@ mod tests {
                 EmbeddingRequest {
                     texts: vec!["hello".into()],
                     ndim: 3,
+                    max_batch_emb_size: None,
                 },
                 false,
             )
             .await
             .unwrap();
         assert_eq!(second.embeddings, vec![vec![0.1, 0.2, 0.3]]);
+    }
+    #[test]
+    fn test_build_missed_batch_request_preserves_max_batch_emb_size() {
+        let request = EmbeddingRequest {
+            texts: vec!["A".into(), "B".into(), "C".into(), "D".into()],
+            ndim: 3,
+            max_batch_emb_size: Some(2),
+        };
+        let indices: Vec<&usize> = vec![&0, &2, &3]; // miss "A", "C", "D"
+        let sub = EmbeddingTag::build_missed_batch_request(request, &indices);
+        assert_eq!(
+            sub.texts,
+            vec!["A".to_string(), "C".to_string(), "D".to_string()]
+        );
+        assert_eq!(sub.ndim, 3);
+        assert_eq!(sub.max_batch_emb_size, Some(2));
+    }
+
+    #[test]
+    fn test_build_missed_batch_request_preserves_max_batch_emb_size_none() {
+        let request = EmbeddingRequest {
+            texts: vec!["A".into(), "B".into()],
+            ndim: 3,
+            max_batch_emb_size: None,
+        };
+        let indices: Vec<&usize> = vec![&0];
+        let sub = EmbeddingTag::build_missed_batch_request(request, &indices);
+        assert_eq!(sub.max_batch_emb_size, None);
     }
 
     #[tokio::test]

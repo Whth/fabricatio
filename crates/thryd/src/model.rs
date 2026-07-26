@@ -48,8 +48,8 @@
 //! }
 //! ```
 
-use crate::SEPARATE;
 use crate::provider::Provider;
+use crate::SEPARATE;
 pub use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -84,14 +84,19 @@ pub struct Usage {
 ///         "jumps over the lazy dog".to_string(),
 ///     ],
 ///     ndim: 1536,
+///     max_batch_emb_size: None,
 /// };
-/// ```
 #[derive(Debug, Clone, Serialize)]
 pub struct EmbeddingRequest {
     /// The batch of text strings to encode into embeddings.
     /// Each string is encoded as a separate embedding vector.
     pub texts: Vec<String>,
     pub ndim: u32,
+    /// Maximum texts per batch. When set and `texts.len()` exceeds this,
+    /// the model splits into chunks and fans out API calls, then merges results.
+    /// Sub-requests carry `None` to prevent recursive splitting.
+    #[serde(skip)]
+    pub max_batch_emb_size: Option<usize>,
 }
 
 /// Request payload for generating text completions.

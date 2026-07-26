@@ -234,16 +234,6 @@ def iter_enum(enum_type: Type[StrEnum] | Type[IntEnum]) -> Generator[Tuple[str, 
     yield from ((k, v.value) for (k, v) in enum_type.__members__.items())
 
 
-async def chunked_batch_call[R](
-    q_seq: list[str], func: Callable[[list[str]], Coroutine[None, None, list[R]]], chunk_size: int = 10
-) -> list[R]:
-
-    cks = [q_seq[i : i + chunk_size] for i in range(0, len(q_seq), chunk_size)]
-
-    awa = await asyncio.gather(*[func(ck) for ck in cks])
-    return [item for sublist in awa for item in sublist]
-
-
 def wrap_in_block(string: str, title: str, style: str = "-") -> str:
     """Wraps a string in a block with a title.
 

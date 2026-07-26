@@ -31,7 +31,7 @@ from fabricatio_core.models.kwargs_types import (
     ValidateKwargs,
 )
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, CodeSnippet, logger
-from fabricatio_core.utils import chunked_batch_call, ok, override_kwargs
+from fabricatio_core.utils import ok, override_kwargs
 
 
 class UseLLM(LLMScopedConfig, ABC):
@@ -701,8 +701,6 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
         Returns:
             List[List[float]] | List[float]: The generated embeddings.
         """
-        max_batch_emb_size = kwargs.pop("max_batch_emb_size", 10)
-
         kw = self._resolve_embedding_params(**kwargs)
         is_text = False
 
@@ -710,10 +708,7 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
             input_text = [input_text]
             is_text = True
 
-        async def _emb(texts: list[str]) -> list[list[float]]:
-            return await rust.ROUTER.embedding(texts=texts, **kw)
-
-        res = await chunked_batch_call(input_text, _emb, max_batch_emb_size)
+        res = await rust.ROUTER.embedding(texts=input_text, **kw)
 
         return res[0] if is_text else res
 
