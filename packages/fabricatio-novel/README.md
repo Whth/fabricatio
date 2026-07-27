@@ -28,69 +28,73 @@ pip install fabricatio-novel[cli]
 
 Novel generation runs as a five-stage sequential pipeline driven by Handlebars templates.
 
-1. **Draft** — Outline text → `NovelDraft` (title, genre, synopsis, chapter list, character descriptions, language detection)
+1. **Draft** — Outline text → `NovelDraft` (title, genre, synopsis, chapter list, character descriptions, language
+   detection)
 2. **Characters** — `NovelDraft` → `CharacterCard[]` (one per described character)
-3. **Scripts** — `NovelDraft` + `CharacterCard[]` → `Script[]` (batched; each script is a list of `Scene` objects with per-scene prompts and global writing guidance)
-4. **Chapters** — `Script[]` + `CharacterCard[]` → raw chapter text (sequential; each chapter receives a rolling `ChapterSummary` from the previous chapter for narrative continuity)
+3. **Scripts** — `NovelDraft` + `CharacterCard[]` → `Script[]` (batched; each script is a list of `Scene` objects with
+   per-scene prompts and global writing guidance)
+4. **Chapters** — `Script[]` + `CharacterCard[]` → raw chapter text (sequential; each chapter receives a rolling
+   `ChapterSummary` from the previous chapter for narrative continuity)
 5. **Assembly** — Components assembled into a `Novel` object; `NovelBuilder` (Rust/PyO3) produces the EPUB
 
-An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDocument` entries and injects them into script-level `global_prompt` and scene-level `prompt` fields before chapter generation.
+An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDocument` entries and injects them into
+script-level `global_prompt` and scene-level `prompt` fields before chapter generation.
 
 ## Key Classes
 
 ### Models
 
-| Class | Description |
-|---|---|
-| `NovelDraft` | High-level novel plan: title, genre, synopsis, character descriptions, ordered `ChapterDraft` list, expected word count |
-| `ChapterDraft` | Per-chapter outline with title, detailed synopsis, and weight (for word-count allocation) |
-| `Script` | Sequence of `Scene` objects with a `global_prompt` for chapter-level writing guidance |
-| `Scene` | Basic narrative unit: narrative description, tone/style prompt, tags, weight |
-| `ChapterSummary` | Structured summary of a generated chapter — key events, character states, emotional arc, unresolved threads |
-| `ChapterPlan` | Bundles a `ChapterDraft`, its `Script`, and computed word count per chapter |
-| `Chapter` | Final chapter with XHTML content, zero-based index, and word count |
-| `Novel` | Collection of `Chapter` objects with aggregate word count, compliance ratio, and ``export_chapters_as_texts()`` for per-chapter text file export |
-| `WritingStyleDocument` | LanceDB-backed document for storing and retrieving writing style references |
-| `NovelConfig` | Frozen dataclass specifying built-in template names for all pipeline stages |
+| Class                  | Description                                                                                                                                      |
+|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NovelDraft`           | High-level novel plan: title, genre, synopsis, character descriptions, ordered `ChapterDraft` list, expected word count                          |
+| `ChapterDraft`         | Per-chapter outline with title, detailed synopsis, and weight (for word-count allocation)                                                        |
+| `Script`               | Sequence of `Scene` objects with a `global_prompt` for chapter-level writing guidance                                                            |
+| `Scene`                | Basic narrative unit: narrative description, tone/style prompt, tags, weight                                                                     |
+| `ChapterSummary`       | Structured summary of a generated chapter — key events, character states, emotional arc, unresolved threads                                      |
+| `ChapterPlan`          | Bundles a `ChapterDraft`, its `Script`, and computed word count per chapter                                                                      |
+| `Chapter`              | Final chapter with XHTML content, zero-based index, and word count                                                                               |
+| `Novel`                | Collection of `Chapter` objects with aggregate word count, compliance ratio, and ``export_chapters_as_texts()`` for per-chapter text file export |
+| `WritingStyleDocument` | LanceDB-backed document for storing and retrieving writing style references                                                                      |
+| `NovelConfig`          | Frozen dataclass specifying built-in template names for all pipeline stages                                                                      |
 
 ### Capabilities (Mixins)
 
-| Class | Description |
-|---|---|
-| `NovelCompose` | Full pipeline: `create_draft`, `create_characters`, `create_scripts`, `create_chapters`, `summarize_chapter`, `assemble_novel`, `compose_novel` |
-| `NovelComposeRAG` | Extends `NovelCompose` — fetches writing style docs from LanceDB and injects them into script/scene prompts before chapter generation |
+| Class             | Description                                                                                                                                     |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NovelCompose`    | Full pipeline: `create_draft`, `create_characters`, `create_scripts`, `create_chapters`, `summarize_chapter`, `assemble_novel`, `compose_novel` |
+| `NovelComposeRAG` | Extends `NovelCompose` — fetches writing style docs from LanceDB and injects them into script/scene prompts before chapter generation           |
 
 ### Actions (fabricatio-actions)
 
-| Class | Description |
-|---|---|
-| `GenerateNovelDraft` | Generate a `NovelDraft` from an outline |
-| `GenerateCharactersFromDraft` | Generate `CharacterCard` list from a draft |
-| `GenerateScriptsFromDraftsAndCharacters` | Generate `Script` list from draft + characters |
-| `GenerateChaptersFromScripts` | Generate chapter text sequentially from scripts + characters |
-| `AssembleNovelFromComponents` | Build final `Novel` from draft, plans, and chapter contents |
-| `ValidateNovel` | Validate chapter count, word count, and compliance ratio |
-| `GenerateNovel` | Run the full pipeline in one action |
-| `DumpNovel` | Serialize a `Novel` to disk as EPUB via `NovelBuilder` |
+| Class                                    | Description                                                  |
+|------------------------------------------|--------------------------------------------------------------|
+| `GenerateNovelDraft`                     | Generate a `NovelDraft` from an outline                      |
+| `GenerateCharactersFromDraft`            | Generate `CharacterCard` list from a draft                   |
+| `GenerateScriptsFromDraftsAndCharacters` | Generate `Script` list from draft + characters               |
+| `GenerateChaptersFromScripts`            | Generate chapter text sequentially from scripts + characters |
+| `AssembleNovelFromComponents`            | Build final `Novel` from draft, plans, and chapter contents  |
+| `ValidateNovel`                          | Validate chapter count, word count, and compliance ratio     |
+| `GenerateNovel`                          | Run the full pipeline in one action                          |
+| `DumpNovel`                              | Serialize a `Novel` to disk as EPUB via `NovelBuilder`       |
 
 ### Workflows (fabricatio-actions)
 
-| Workflow | Description |
-|---|---|
-| `WriteNovelWorkflow` | One-step outline → EPUB |
-| `DebugNovelWorkflow` | Step-by-step: draft → characters → scripts → chapters → validation → assembly → dump |
-| `GenerateOnlyCharactersWorkflow` | Draft → characters only, for iterating on character design |
-| `RewriteChaptersOnlyWorkflow` | Reuse existing scripts + characters to regenerate chapter prose |
-| `ValidatedNovelWorkflow` | Full pipeline with quality gates (min chapters, word count, compliance ratio) |
-| `RegenerateWithNewCharactersWorkflow` | A/B test character impact by re-running with fresh character generation |
-| `DumpOnlyWorkflow` | Export a pre-built `Novel` object to EPUB |
+| Workflow                              | Description                                                                          |
+|---------------------------------------|--------------------------------------------------------------------------------------|
+| `WriteNovelWorkflow`                  | One-step outline → EPUB                                                              |
+| `DebugNovelWorkflow`                  | Step-by-step: draft → characters → scripts → chapters → validation → assembly → dump |
+| `GenerateOnlyCharactersWorkflow`      | Draft → characters only, for iterating on character design                           |
+| `RewriteChaptersOnlyWorkflow`         | Reuse existing scripts + characters to regenerate chapter prose                      |
+| `ValidatedNovelWorkflow`              | Full pipeline with quality gates (min chapters, word count, compliance ratio)        |
+| `RegenerateWithNewCharactersWorkflow` | A/B test character impact by re-running with fresh character generation              |
+| `DumpOnlyWorkflow`                    | Export a pre-built `Novel` object to EPUB                                            |
 
 ### Rust / PyO3
 
-| Symbol | Description |
-|---|---|
-| `NovelBuilder` | Builder for EPUB 3.0 novels: set title/description/authors, add chapters (auto-XHTML), cover images, fonts, CSS, inline TOC, export to file |
-| `text_to_xhtml_paragraphs` | Convert plain text with newline-separated paragraphs to `<p>`-wrapped XHTML |
+| Symbol                     | Description                                                                                                                                 |
+|----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| `NovelBuilder`             | Builder for EPUB 3.0 novels: set title/description/authors, add chapters (auto-XHTML), cover images, fonts, CSS, inline TOC, export to file |
+| `text_to_xhtml_paragraphs` | Convert plain text with newline-separated paragraphs to `<p>`-wrapped XHTML                                                                 |
 
 ## Usage
 
@@ -156,7 +160,7 @@ from pathlib import Path
 from fabricatio_novel.models.novel import Novel
 
 # Export each chapter as chapter-{index}.txt with a metadata.json file.
-novel.export_chapters_as_texts("./novel-text")
+novel.dump_artifacts("./novel-text")
 # → ./novel-text/chapter-0.txt
 # → ./novel-text/chapter-1.txt
 # → ./novel-text/metadata.json
@@ -170,7 +174,8 @@ Each ``.txt`` file starts with the chapter title, a blank line, then the chapter
 - `fabricatio-core` — Core interfaces, template management, LLM capabilities
 - `fabricatio-character` — Character generation and card models
 - `pydantic` — Data validation via models
-- Optional: `fabricatio-lancedb` — Writing style RAG, `fabricatio-actions` — workflow support, `questionary` + `typer` — CLI
+- Optional: `fabricatio-lancedb` — Writing style RAG, `fabricatio-actions` — workflow support, `questionary` + `typer` —
+  CLI
 
 ## License
 

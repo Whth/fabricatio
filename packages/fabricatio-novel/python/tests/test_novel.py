@@ -14,7 +14,7 @@ from fabricatio_mock.models.mock_router import return_json_router_usage, return_
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
-from fabricatio_novel.models.novel import Chapter, Novel
+from fabricatio_novel.models.novel import Chapter, Novel, NovelExportMeta
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import ChapterSummary, Scene, Script
 from fabricatio_novel.utils import formated_title, last_paragraph
@@ -861,7 +861,7 @@ class TestAssembleNovel:
         ]
         contents = ["Once upon a time.", "The end."]
 
-        novel = NovelCompose.assemble_novel(draft, plans, contents)
+        novel = NovelCompose.assemble_novel(draft, plans, contents, [])
         assert novel.title == "My Novel"
         assert novel.synopsis == "A test."
         assert len(novel.chapters) == 2
@@ -1539,29 +1539,29 @@ class TestNovelExportTexts:
 
     def test_export_chapter_filenames(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Chapters are saved as chapter-{index}.txt."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)
         assert (tmp_path / "chapter-0.txt").exists()
         assert (tmp_path / "chapter-1.txt").exists()
         assert (tmp_path / "chapter-2.txt").exists()
 
-    def test_export_file_content_has_title_header(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
-        """Each file starts with the chapter title, blank line, then content."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+    def test_export_file_contains_raw_chapter_content(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
+        """Each file contains the raw chapter content without title prefix."""
+        three_chapter_novel.dump_artifacts(tmp_path)
         content = (tmp_path / "chapter-0.txt").read_text(encoding="utf-8")
-        assert content == "Chapter 1: The Beginning\n\n<p>Once upon a time there was a hero.</p>"
+        assert content == "<p>Once upon a time there was a hero.</p>"
         content1 = (tmp_path / "chapter-1.txt").read_text(encoding="utf-8")
-        assert content1 == "The Journey\n\nThe hero travels across the mountains."
+        assert content1 == "The hero travels across the mountains."
         content2 = (tmp_path / "chapter-2.txt").read_text(encoding="utf-8")
-        assert content2 == "Resolution\n\nThe hero defeats the villain."
+        assert content2 == "The hero defeats the villain."
 
     def test_export_metadata_json_exists(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """metadata.json is written alongside chapter files."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)
         assert (tmp_path / "metadata.json").is_file()
 
     def test_export_metadata_content(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """metadata.json contains novel title, synopsis, and chapter listing."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)
         import json
 
         meta = json.loads((tmp_path / "metadata.json").read_text(encoding="utf-8"))
@@ -1576,21 +1576,21 @@ class TestNovelExportTexts:
     def test_export_creates_output_directory(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Output directory is created when it does not exist."""
         nested = tmp_path / "sub" / "deep" / "dir"
-        three_chapter_novel.export_chapters_as_texts(nested)
+        three_chapter_novel.dump_artifacts(nested)
         assert nested.is_dir()
         assert (nested / "chapter-0.txt").exists()
         assert (nested / "metadata.json").exists()
 
     def test_export_existing_dir_no_error(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Calling on an existing directory does not raise."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
-        three_chapter_novel.export_chapters_as_texts(tmp_path)  # second call
+        three_chapter_novel.dump_artifacts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)  # second call
 
     def test_export_existing_files_not_deleted(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Unrelated files in the output directory are left untouched."""
         foreign = tmp_path / "readme.txt"
         foreign.write_text("keep me", encoding="utf-8")
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)
         assert foreign.read_text(encoding="utf-8") == "keep me"
 
     def test_export_unicode_titles_and_content(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
@@ -1610,38 +1610,91 @@ class TestNovelExportTexts:
             expected_word_count=5,
             sketch="",
         )
-        novel.export_chapters_as_texts(tmp_path)
+        novel.dump_artifacts(tmp_path)
         assert (tmp_path / "chapter-0.txt").exists()
         content = (tmp_path / "chapter-0.txt").read_text(encoding="utf-8")
-        assert content == "日本語の章\n\nこれはテストです。\n\n第二段落。"
+        assert content == "これはテストです。\n\n第二段落。"
         meta = json.loads((tmp_path / "metadata.json").read_text(encoding="utf-8"))
         assert meta["chapters"][0]["title"] == "日本語の章"
 
     def test_export_overwrite_on_second_call(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Calling again overwrites existing files with updated content."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
-        assert (tmp_path / "chapter-1.txt").read_text(encoding="utf-8") == (
-            "The Journey\n\nThe hero travels across the mountains."
-        )
+        three_chapter_novel.dump_artifacts(tmp_path)
+        assert (tmp_path / "chapter-1.txt").read_text(encoding="utf-8") == ("The hero travels across the mountains.")
         three_chapter_novel.chapters[1].content = "Updated content."
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
-        assert (tmp_path / "chapter-1.txt").read_text(encoding="utf-8") == ("The Journey\n\nUpdated content.")
+        three_chapter_novel.dump_artifacts(tmp_path)
+        assert (tmp_path / "chapter-1.txt").read_text(encoding="utf-8") == ("Updated content.")
 
     def test_export_returns_absolute_paths(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """Returned paths are absolute."""
-        paths = three_chapter_novel.export_chapters_as_texts(tmp_path)
+        paths = three_chapter_novel.dump_artifacts(tmp_path)
         assert all(p.is_absolute() for p in paths)
 
     def test_export_metadata_json_is_last_entry(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """metadata.json is the last path in the returned list."""
-        paths = three_chapter_novel.export_chapters_as_texts(tmp_path)
+        paths = three_chapter_novel.dump_artifacts(tmp_path)
         assert paths[-1].name == "metadata.json"
 
     def test_export_metadata_json_indented(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
         """metadata.json is formatted with human-readable indentation."""
-        three_chapter_novel.export_chapters_as_texts(tmp_path)
+        three_chapter_novel.dump_artifacts(tmp_path)
         text = (tmp_path / "metadata.json").read_text(encoding="utf-8")
         assert text.startswith("{\n")
+
+    def test_export_metadata_includes_characters_when_present(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
+        """metadata.json includes serialized character cards when Novel.characters is set."""
+        card = CharacterCard(
+            name="Hero",
+            role="Protagonist",
+            look="Tall and brave",
+            act="Fights dragons",
+            want="Save the kingdom",
+            flaw="Too reckless",
+        )
+        three_chapter_novel.characters = [card]
+        three_chapter_novel.dump_artifacts(tmp_path)
+        import json
+
+        meta = json.loads((tmp_path / "metadata.json").read_text(encoding="utf-8"))
+        assert "characters" in meta
+        assert len(meta["characters"]) == 1
+        assert meta["characters"][0] == {
+            "name": "Hero",
+            "role": "Protagonist",
+            "look": "Tall and brave",
+            "act": "Fights dragons",
+            "want": "Save the kingdom",
+            "flaw": "Too reckless",
+        }
+
+    def test_from_artifacts_roundtrip(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
+        """from_artifacts loads the metadata written by dump_artifacts."""
+        three_chapter_novel.dump_artifacts(tmp_path)
+        loaded = NovelExportMeta.from_artifacts(tmp_path)
+        assert loaded.title == "Test Novel"
+        assert loaded.synopsis == "A test."
+        assert loaded.chapter_count == 3
+        assert len(loaded.chapters) == 3
+        assert loaded.chapters[0].file == "chapter-0.txt"
+
+    def test_from_artifacts_nonexistent_dir(self, tmp_path: Path) -> None:
+        """from_artifacts raises FileNotFoundError for a directory without artifacts."""
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        with pytest.raises(FileNotFoundError):
+            NovelExportMeta.from_artifacts(empty)
+
+    def test_novel_from_artifacts_roundtrip(self, three_chapter_novel: Novel, tmp_path: Path) -> None:
+        """Novel.from_artifacts reconstructs the original Novel after dump_artifacts."""
+        three_chapter_novel.dump_artifacts(tmp_path)
+        restored = Novel.from_artifacts(tmp_path)
+        assert restored.title == three_chapter_novel.title
+        assert restored.synopsis == three_chapter_novel.synopsis
+        assert len(restored.chapters) == len(three_chapter_novel.chapters)
+        for rc, oc in zip(restored.chapters, three_chapter_novel.chapters, strict=True):
+            assert rc.title == oc.title
+            assert rc.content == oc.content
+            assert rc.chapter_index == oc.chapter_index
 
 
 class TestMentalPathPreviousChapterTailThreading:

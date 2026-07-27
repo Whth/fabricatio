@@ -288,7 +288,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         draft: NovelDraft,
         chapter_plans: List[ChapterPlan],
         chapter_contents: List[str],
-        characters: Optional[List[CharacterCard]] = None,
+        characters: List[CharacterCard],
     ) -> Novel:
         """Assemble the final novel from components."""
         logger.debug("Assembling final novel from draft, scripts, and chapter contents")

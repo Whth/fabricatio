@@ -1,17 +1,25 @@
 """This module contains the models for the novel."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Self
+from typing import TYPE_CHECKING, Any, Dict, List, Self
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import SketchedAble, Titled
 from fabricatio_core.rust import word_count
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.rust import text_to_xhtml_paragraphs
+
+# ── Artifact format constants ──
+CHAPTER_FILE_TEMPLATE = "chapter-{}.txt"
+"""Filename template for chapter text files. ``str.format(chapter_index)`` to use."""
+
+METADATA_FILE_NAME = "metadata.json"
+"""Filename for the metadata JSON file."""
+
 
 if TYPE_CHECKING:
     from fabricatio_novel.models.plan import ChapterPlan
@@ -42,6 +50,10 @@ class NovelExportMeta(BaseModel):
     """Number of chapters."""
     chapters: List[NovelExportChapterMeta]
     """Per-chapter metadata entries."""
+    expected_word_count: int
+    """Expected word count for the novel."""
+    characters: List[CharacterCard] = Field(default_factory=list)
+    """Character cards for this novel."""
 
     @classmethod
     def from_novel(cls, novel: "Novel") -> Self:
@@ -54,10 +66,12 @@ class NovelExportMeta(BaseModel):
                 NovelExportChapterMeta(
                     index=ch.chapter_index,
                     title=ch.title,
-                    file=f"chapter-{ch.chapter_index}.txt",
+                    file=CHAPTER_FILE_TEMPLATE.format(ch.chapter_index),
                 )
                 for ch in novel.chapters
             ],
+            expected_word_count=novel.expected_word_count,
+            characters=novel.characters,
         )
 
     @classmethod
@@ -73,6 +87,21 @@ class NovelExportMeta(BaseModel):
         p = Path(path)
         p.write_text(self.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8")
         return p.resolve()
+
+    @classmethod
+    def from_artifacts(cls, artifacts_dir: str | Path) -> Self:
+        """Load metadata from a previously exported artifacts directory.
+
+        Expects a ``metadata.json`` file written by :meth:`dump_artifacts`
+        inside *artifacts_dir*.
+
+        Args:
+            artifacts_dir: Directory containing exported novel artifacts.
+
+        Returns:
+            Parsed NovelExportMeta instance.
+        """
+        return cls.from_file(Path(artifacts_dir) / METADATA_FILE_NAME)
 
 
 class Chapter(SketchedAble, PersistentAble, Titled, WordCount):
@@ -124,7 +153,7 @@ class Novel(SketchedAble, PersistentAble, Titled, WordCount):
     """A summary of the novel's plot."""
     chapters: List[Chapter]
     """List of chapters in the novel."""
-    characters: Optional[List[CharacterCard]] = None
+    characters: List[CharacterCard] = Field(default_factory=list)
     """Character cards for this novel. Used by illustration pipeline to maintain visual consistency."""
 
     @property
@@ -137,14 +166,13 @@ class Novel(SketchedAble, PersistentAble, Titled, WordCount):
         """Calculate the compliance ratio of the novel's word count."""
         return self.exact_word_count / self.expected_word_count
 
-    def export_chapters_as_texts(self, output_dir: str | Path) -> List[Path]:
+    def dump_artifacts(self, output_dir: str | Path) -> List[Path]:
         """Export each chapter as a UTF-8 text file, plus a metadata.json.
 
-        Each chapter is saved as ``chapter-{index}.txt`` with the chapter title
-        on the first line, a blank line, then the chapter content.
+        Each chapter is saved as ``chapter-{index}.txt`` with the raw chapter content.
 
         A ``metadata.json`` file is written alongside containing the novel title,
-        synopsis, and chapter listing.
+        synopsis, chapter listing, and character cards (if set).
 
         Args:
             output_dir: Directory to write files into. Created if needed.
@@ -158,12 +186,48 @@ class Novel(SketchedAble, PersistentAble, Titled, WordCount):
         result: List[Path] = []
 
         for chapter in self.chapters:
-            path = output / f"chapter-{chapter.chapter_index}.txt"
-            path.write_text(f"{chapter.title}\n\n{chapter.content}", encoding="utf-8")
+            path = output / CHAPTER_FILE_TEMPLATE.format(chapter.chapter_index)
+            path.write_text(chapter.content, encoding="utf-8")
             result.append(path.resolve())
 
         meta = NovelExportMeta.from_novel(self)
-        meta_path = meta.save_to_file(output / "metadata.json")
+        meta_path = meta.save_to_file(output / METADATA_FILE_NAME)
         result.append(meta_path)
 
         return result
+
+    @classmethod
+    def from_artifacts(cls, artifact_dir: str | Path) -> Self:
+        """Reconstruct a Novel from a directory written by :meth:`dump_artifacts`.
+
+        Reads ``metadata.json`` and each ``chapter-{index}.txt`` file from
+        *artifact_dir* to rebuild the full Novel instance.
+
+        Args:
+            artifact_dir: Directory containing exported novel artifacts.
+
+        Returns:
+            Reconstructed Novel instance.
+        """
+        meta = NovelExportMeta.from_artifacts(artifact_dir)
+        base = Path(artifact_dir)
+
+        chapters: List[Chapter] = []
+        for ch_meta in meta.chapters:
+            raw = (base / ch_meta.file).read_text(encoding="utf-8")
+            chapters.append(
+                Chapter(
+                    title=ch_meta.title,
+                    content=raw,
+                    chapter_index=ch_meta.index,
+                    expected_word_count=word_count(raw),
+                )
+            )
+
+        return cls(
+            title=meta.title,
+            synopsis=meta.synopsis,
+            chapters=chapters,
+            expected_word_count=meta.expected_word_count,
+            characters=meta.characters,
+        )
