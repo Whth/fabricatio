@@ -86,6 +86,7 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
         return self
 
     def bulk_append_global_prompt(self, prompt: list[str]) -> Self:
+        """Append multiple prompt strings to ``self.global_prompt`` joined by newlines, then return self."""
         self.global_prompt += "\n" + "\n".join(prompt)
         return self
 

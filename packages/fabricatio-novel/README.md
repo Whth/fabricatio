@@ -49,7 +49,7 @@ An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDoc
 | `ChapterSummary` | Structured summary of a generated chapter — key events, character states, emotional arc, unresolved threads |
 | `ChapterPlan` | Bundles a `ChapterDraft`, its `Script`, and computed word count per chapter |
 | `Chapter` | Final chapter with XHTML content, zero-based index, and word count |
-| `Novel` | Collection of `Chapter` objects with aggregate word count and compliance ratio |
+| `Novel` | Collection of `Chapter` objects with aggregate word count, compliance ratio, and ``export_chapters_as_texts()`` for per-chapter text file export |
 | `WritingStyleDocument` | LanceDB-backed document for storing and retrieving writing style references |
 | `NovelConfig` | Frozen dataclass specifying built-in template names for all pipeline stages |
 
@@ -148,6 +148,22 @@ builder = (
 
 builder.export("output.epub")
 ```
+
+### Text Export
+
+```python
+from pathlib import Path
+from fabricatio_novel.models.novel import Novel
+
+# Export each chapter as chapter-{index}.txt with a metadata.json file.
+novel.export_chapters_as_texts("./novel-text")
+# → ./novel-text/chapter-0.txt
+# → ./novel-text/chapter-1.txt
+# → ./novel-text/metadata.json
+```
+
+Each ``.txt`` file starts with the chapter title, a blank line, then the chapter content.
+``metadata.json`` contains the novel title, synopsis, and chapter listing with filenames.
 
 ## Dependencies
 
