@@ -44,18 +44,18 @@ script-level `global_prompt` and scene-level `prompt` fields before chapter gene
 
 ### Models
 
-| Class                  | Description                                                                                                                                      |
-|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| `NovelDraft`           | High-level novel plan: title, genre, synopsis, character descriptions, ordered `ChapterDraft` list, expected word count                          |
-| `ChapterDraft`         | Per-chapter outline with title, detailed synopsis, and weight (for word-count allocation)                                                        |
-| `Script`               | Sequence of `Scene` objects with a `global_prompt` for chapter-level writing guidance                                                            |
-| `Scene`                | Basic narrative unit: narrative description, tone/style prompt, tags, weight                                                                     |
-| `ChapterSummary`       | Structured summary of a generated chapter — key events, character states, emotional arc, unresolved threads                                      |
-| `ChapterPlan`          | Bundles a `ChapterDraft`, its `Script`, and computed word count per chapter                                                                      |
-| `Chapter`              | Final chapter with XHTML content, zero-based index, and word count                                                                               |
-| `Novel`                | Collection of `Chapter` objects with aggregate word count, compliance ratio, and ``export_chapters_as_texts()`` for per-chapter text file export |
-| `WritingStyleDocument` | LanceDB-backed document for storing and retrieving writing style references                                                                      |
-| `NovelConfig`          | Frozen dataclass specifying built-in template names for all pipeline stages                                                                      |
+| Class                  | Description                                                                                                                                                                                        |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NovelDraft`           | High-level novel plan: title, genre, synopsis, character descriptions, ordered `ChapterDraft` list, expected word count                                                                            |
+| `ChapterDraft`         | Per-chapter outline with title, detailed synopsis, and weight (for word-count allocation)                                                                                                          |
+| `Script`               | Sequence of `Scene` objects with a `global_prompt` for chapter-level writing guidance                                                                                                              |
+| `Scene`                | Basic narrative unit: narrative description, tone/style prompt, tags, weight                                                                                                                       |
+| `ChapterSummary`       | Structured summary of a generated chapter — key events, character states, character knowledge, numerical stats, emotional arc, unresolved threads, resolved threads, established facts, last scene |
+| `ChapterPlan`          | Bundles a `ChapterDraft`, its `Script`, and computed word count per chapter                                                                                                                        |
+| `Chapter`              | Final chapter with XHTML content, zero-based index, and word count                                                                                                                                 |
+| `Novel`                | Collection of `Chapter` objects with aggregate word count, compliance ratio, and ``export_chapters_as_texts()`` for per-chapter text file export                                                   |
+| `WritingStyleDocument` | LanceDB-backed document for storing and retrieving writing style references                                                                                                                        |
+| `NovelConfig`          | Frozen dataclass specifying built-in template names for all pipeline stages                                                                                                                        |
 
 ### Capabilities (Mixins)
 

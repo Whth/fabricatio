@@ -12,8 +12,9 @@ You MUST follow every directive in `Global Writing Constraints` for EVERY chapte
 {{block script "Chapter Script"}}
 Writing {{chapter_title}} of novel "{{novel_title}}".
 {{#if previous_summary}}
-**Previous Chapter Context (for continuity — MUST maintain consistency with this):**
+**Previous Chapter Context (for continuity — binding constraints below):**
 {{previous_summary}}
+You MUST NOT contradict any `Established Facts` above; you MUST NOT re-open or re-foreshadow any thread in `Resolved Threads`; and you MUST advance or address at least one `Unresolved Thread` in this chapter. Treat the `Numerical Stats` and `Character Knowledge` as the current true state.
 {{/if}}
 {{#if previous_chapter_tail}}
 {{block previous_chapter_tail "Trailing Paragraphs of Previous Chapter"}}

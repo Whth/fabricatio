@@ -6,7 +6,7 @@ Together, these classes form a foundation for creating structured yet flexible n
 from typing import Any, ClassVar, Dict, List, Self
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
-from fabricatio_core.models.generic import Described, SketchedAble
+from fabricatio_core.models.generic import Base, Described, SketchedAble
 from pydantic import Field
 
 from fabricatio_novel.config import novel_config
@@ -96,6 +96,14 @@ class Script(SketchedAble, PersistentAble, AsPrompt):
         return cls(global_prompt="", scenes=[Scene.with_raw_description(synosis)])
 
 
+class NumericalStat(Base):
+    """Store num stats in the novel."""
+
+    desc: str
+    """simple desc of num record here"""
+    num: float | int
+
+
 class ChapterSummary(SketchedAble, AsPrompt):
     """Structured summary of a generated chapter for cross-chapter context tracking."""
 
@@ -108,11 +116,22 @@ class ChapterSummary(SketchedAble, AsPrompt):
     character_knowledge: Dict[str, List[str]] = Field(default_factory=dict)
     """Map of character name to list of facts/events they know or experienced up to this chapter."""
 
+    numerical_stat: List[NumericalStat] = Field(default_factory=list)
+    """All numerical stats that varies to maintain consistency across chapters. (count,size,attr,time,etc)"""
     emotional_arc: str = ""
     """The emotional trajectory and tone shift across this chapter."""
 
     unresolved_threads: List[str] = Field(default_factory=list)
     """Plot hooks, tensions, or questions that remain open for future chapters."""
+
+    resolved_threads: List[str] = Field(default_factory=list)
+    """Plot hooks or questions that were closed/concluded in or before this chapter. Never resurrect these in later chapters."""
+
+    established_facts: List[str] = Field(default_factory=list)
+    """World-level canon the novel must honor regardless of who is present (kingdom names, magic rules, treaties, geography, succession, etc.). Append-only; flag, never silently rewrite, a contradicted entry."""
+
+    last_scene: str = ""
+    """Last scene where the chapter ends"""
 
     rendering_template: ClassVar[str] = novel_config.chapter_summary_as_prompt_template
 

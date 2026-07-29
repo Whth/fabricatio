@@ -241,7 +241,8 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             if previous_summary:
                 logger.debug(
                     f"Chapter {i + 1} summarized: {len(previous_summary.key_events)} events, "
-                    f"{len(previous_summary.unresolved_threads)} open threads"
+                    f"{len(previous_summary.unresolved_threads)} open threads, "
+                    f"{len(previous_summary.numerical_stat)} numerical stats"
                 )
             # 4. Track last paragraph of the prior chapter for the next iteration's prompt
             previous_chapter_tail = last_paragraph(raw_chapter)

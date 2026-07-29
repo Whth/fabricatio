@@ -8,5 +8,19 @@ Character Knowledge:
 - {{@key}}: {{join this ", "}}
 {{/each}}
 {{/if}}
+{{#if numerical_stat}}
+Numerical Stats:
+{{#each numerical_stat}}
+- {{this.desc}}: {{this.num}}
+{{/each}}
+{{/if}}
 Emotional Arc: {{emotional_arc}}
+{{#if last_scene}}Last Scene: {{last_scene}}
+{{/if}}
+{{#if resolved_threads}}
+Resolved Threads (closed — do NOT re-open): {{ls resolved_threads}}
+{{/if}}
 Unresolved Threads: {{ls unresolved_threads}}
+{{#if established_facts}}
+Established Facts (canon — do NOT contradict): {{ls established_facts}}
+{{/if}}
