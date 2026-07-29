@@ -43,7 +43,7 @@ class NovelComposeRAG(
         q = f"{query}\n\nNeed Some refined question to find QA docs related to the stuff above"
 
         if rerank_query:
-            q += f"\nand below is the extra user constrain which is more prior to follow: {rerank_query}"
+            q += f"\nand below is the extra user constrain which is more prior to follow: \n{rerank_query}"
 
         queries = await self.arefined_query(q)
 

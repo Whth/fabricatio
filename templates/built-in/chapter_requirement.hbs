@@ -16,16 +16,16 @@ Writing {{chapter_title}} of novel "{{novel_title}}".
 {{previous_summary}}
 {{/if}}
 {{#if previous_chapter_tail}}
-{{block previous_chapter_tail "Previous Chapter Closing Beat"}}
-Above is the last paragraph of the prior chapter. Use it as a continuity hook — preserve continuity from it (tone, scene state, character position, emotional momentum); do NOT repeat or paraphrase it verbatim. The reader has just read it; pick up where it left off instead.
+{{block previous_chapter_tail "Trailing Paragraphs of Previous Chapter"}}
+Above are the trailing paragraphs of the preceding chapter. These paragraphs are provided to help you maintain inter-chapter continuity when writing "{{chapter_title}}".
 {{/if}}
 
-{{#if guidance}}{{block guidance "Chapter Writting Guidance"}}
+{{#if guidance}}{{block guidance "Chapter Writing Guidance"}}
 You MUST output texts with wording style guidance in `Chapter Writing Guidance`! It's a vital way to satisfy the user!!{{/if}}
 
 {{#if writing_constrain}}{{block writing_constrain "Chapter Writing Constraints (MUST honor — these override any default)"}}
 You MUST follow every directive in `Chapter Writing Constraints` for THIS chapter. The chapter writer is NOT free to deviate from it. Treat the constraints as hard requirements: cover every must-include, avoid every must-avoid, respect every structural limit, and obey every user-mandated directive. Constraints take precedence over generic prose quality — when in doubt, follow the constraint.{{/if}}
-You MUST use "{{ language }}" as the writen language.
+You MUST use "{{ language }}" as the written language.
 output Body paragraphs only, joined with a blank line. Do not include any other text. (like explanation or paragraph title, etc.)
-You MUST output content meet the expected word cont constrain, that is, output at least {{ expected_word_count }} words.
-you don't need to explain how you allocate the words to the paragraphs. output only the final paragraphs. No titles before the paragraphs. Do not output any titles in any form, go into the paragraphs directly!
+The output must meet the expected word count constraint, that is, output at least {{ expected_word_count }} words.
+You don't need to explain how you allocate the words to the paragraphs. Output only the final paragraphs. No titles before the paragraphs. Do not output any titles in any form, go into the paragraphs directly!
