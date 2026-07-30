@@ -41,7 +41,7 @@ use crate::{CompletionResponse, EmbeddingResponse, RankedDocuments, RankingRespo
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
-use futures::{StreamExt, TryStreamExt, future::join_all};
+use futures::{future::join_all, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 use std::sync::Arc;
@@ -241,7 +241,7 @@ impl OpenaiModel {
             .post(OpenAiRoute::Embeddings.as_ref(), &v)
             .await?;
         let emb_response = self
-            .parse_response::<CreateEmbeddingResponse>(response, "embeddings")
+            .parse_response::<CreateEmbeddingResponse>(response, OpenAiRoute::Embeddings.as_ref())
             .await?;
         let usage = crate::model::Usage {
             prompt_tokens: emb_response.usage.prompt_tokens,
@@ -453,7 +453,10 @@ impl CompletionModel for OpenaiModel {
                 .post(OpenAiRoute::ChatCompletions.as_ref(), &v)
                 .await?;
             let completion_response = self
-                .parse_response::<CreateChatCompletionResponse>(response, "chat/completions")
+                .parse_response::<CreateChatCompletionResponse>(
+                    response,
+                    OpenAiRoute::ChatCompletions.as_ref(),
+                )
                 .await?;
             let usage = completion_response
                 .usage
