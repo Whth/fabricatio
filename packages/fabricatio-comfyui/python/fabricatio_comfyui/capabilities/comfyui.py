@@ -1,14 +1,17 @@
 """ComfyUI capability mixin.
 
-Mix into a Role to gain ComfyUI interaction methods.  Clients are shared
-via :meth:`ComfyuiHTTPClient.create` (``@lru_cache``) — no per-instance state.
+Mix into a Role to gain ComfyUI interaction methods.  Each instance holds
+its own :class:`ComfyuiClientBase` (lazily created from
+:class:`ComfyuiHTTPClient`), so tests and alternate backends can inject a
+client through the ``comfyui_client`` constructor argument — no
+``@lru_cache`` global, no ``hasattr`` sniffing.
 
 Predicate-verb methods (``acomfyui_*``) follow the same naming convention as
 :class:`fabricatio_core.capabilities.usages.UseLLM` — ``a`` prefix + domain verb.
 """
 
 from asyncio import gather
-from typing import TYPE_CHECKING, Any, Dict, List, Unpack, overload
+from typing import TYPE_CHECKING, List, Unpack, overload
 
 from fabricatio_core.journal import logger
 
@@ -18,6 +21,7 @@ from fabricatio_comfyui.http_client import ComfyuiHTTPClient
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from fabricatio_comfyui.client_base import ComfyuiClientBase
     from fabricatio_comfyui.models.comfyui import (
         ComfyuiExecutionResult,
         HistoryEntry,
@@ -31,13 +35,38 @@ if TYPE_CHECKING:
         UploadKwargs,
         ViewImageKwargs,
     )
-    from fabricatio_comfyui.models.workflow import Workflow
+    from fabricatio_comfyui.models.workflow import Workflow, WorkflowDict
 
 __all__ = ["Comfyui"]
 
 
 class Comfyui:
-    """ComfyUI capability mixin — delegates to a pooled :class:`ComfyuiClient`."""
+    """ComfyUI capability mixin — owns a per-instance :class:`ComfyuiClientBase`.
+
+    The client is created lazily on first use from
+    :meth:`ComfyuiHTTPClient.create`.  Inject a custom client (e.g. a mock)
+    via the ``comfyui_client`` constructor argument.  Call :meth:`close` to
+    release the connection pool when the mixin is no longer needed.
+    """
+
+    _comfyui_client: "ComfyuiClientBase | None"
+
+    def __init__(self, comfyui_client: "ComfyuiClientBase | None" = None) -> None:
+        """Optionally inject a pre-built client; otherwise created lazily."""
+        self._comfyui_client = comfyui_client
+
+    @property
+    def comfyui_client(self) -> "ComfyuiClientBase":
+        """The lazily-created (or injected) :class:`ComfyuiClientBase`."""
+        if self._comfyui_client is None:
+            self._comfyui_client = ComfyuiHTTPClient.create()
+        return self._comfyui_client
+
+    async def close(self) -> None:
+        """Close the underlying client if this mixin owns one."""
+        if self._comfyui_client is not None:
+            await self._comfyui_client.aclose()
+            self._comfyui_client = None
 
     # ------------------------------------------------------------------
     # Predicate-verb API (acomfyui_*)
@@ -48,7 +77,7 @@ class Comfyui:
     @overload
     async def acomfyui_generate(
         self,
-        workflow: "Dict[str, Any] | Workflow",
+        workflow: "WorkflowDict | Workflow",
         *,
         download_dir: "str | Path | None" = None,
         timeout: float | None = None,
@@ -58,7 +87,7 @@ class Comfyui:
     @overload
     async def acomfyui_generate(
         self,
-        workflow: "List[Dict[str, Any] | Workflow]",
+        workflow: "List[WorkflowDict | Workflow]",
         *,
         download_dir: "list[str | Path | None] | None" = None,
         timeout: float | None = None,
@@ -67,16 +96,28 @@ class Comfyui:
 
     async def acomfyui_generate(
         self,
-        workflow: "Dict[str, Any] | Workflow | List[Dict[str, Any] | Workflow]",
+        workflow: "WorkflowDict | Workflow | List[WorkflowDict | Workflow]",
         *,
         download_dir: "str | Path | None | list[str | Path | None]" = None,
         timeout: float | None = None,
         base_url: str | None = None,
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Execute one or more workflows: queue all, then poll all, then download."""
-        client = ComfyuiHTTPClient.create(base_url)
         effective_timeout = timeout or comfyui_config.timeout
 
+        if base_url is not None:
+            async with ComfyuiHTTPClient.create(base_url) as client:
+                return await self._generate_with_client(client, workflow, download_dir, effective_timeout)
+        return await self._generate_with_client(self.comfyui_client, workflow, download_dir, effective_timeout)
+
+    async def _generate_with_client(
+        self,
+        client: "ComfyuiClientBase",
+        workflow: "WorkflowDict | Workflow | List[WorkflowDict | Workflow]",
+        download_dir: "str | Path | None | list[str | Path | None]",
+        effective_timeout: float,
+    ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
+        """Core generation logic — queue, poll, download — against *client*."""
         if isinstance(workflow, list):
             # Phase 1: submit all (parallel HTTP)
             responses: List[PromptResponse] = list(await gather(*(client.queue_prompt(wf) for wf in workflow)))
@@ -106,7 +147,7 @@ class Comfyui:
         resp = await client.queue_prompt(workflow)
         result = await client.wait_for_completion(resp.prompt_id, timeout=effective_timeout)
 
-        if download_dir is not None and result.succeeded:
+        if download_dir is not None and not isinstance(download_dir, list) and result.succeeded:
             await client.download_images(result, download_dir)
 
         if result.succeeded:
@@ -120,41 +161,40 @@ class Comfyui:
     @overload
     async def acomfyui_queue(
         self,
-        workflow: "Dict[str, Any] | Workflow",
+        workflow: "WorkflowDict | Workflow",
         **kwargs: "Unpack[QueueKwargs]",
     ) -> "PromptResponse": ...
 
     @overload
     async def acomfyui_queue(
         self,
-        workflow: "List[Dict[str, Any] | Workflow]",
+        workflow: "List[WorkflowDict | Workflow]",
         **kwargs: "Unpack[QueueKwargs]",
     ) -> "List[PromptResponse]": ...
 
     async def acomfyui_queue(
         self,
-        workflow: "Dict[str, Any] | Workflow | List[Dict[str, Any] | Workflow]",
+        workflow: "WorkflowDict | Workflow | List[WorkflowDict | Workflow]",
         **kwargs: "Unpack[QueueKwargs]",
     ) -> "PromptResponse | List[PromptResponse]":
         """Submit one or more workflows for execution without waiting."""
+        client = self.comfyui_client
         if isinstance(workflow, list):
-            results = list(
-                await gather(*(ComfyuiHTTPClient.create(None).queue_prompt(wf, **kwargs) for wf in workflow))
-            )
+            results = list(await gather(*(client.queue_prompt(wf, **kwargs) for wf in workflow)))
             for r in results:
                 logger.info(f"ComfyUI prompt queued: {r.prompt_id}")
             return results
-        resp = await ComfyuiHTTPClient.create(None).queue_prompt(workflow, **kwargs)
+        resp = await client.queue_prompt(workflow, **kwargs)
         logger.info(f"ComfyUI prompt queued: {resp.prompt_id}")
         return resp
 
     async def acomfyui_inspect_queue(self) -> "QueueInfo":
         """Fetch the current execution queue state."""
-        return await ComfyuiHTTPClient.create(None).get_queue_info()
+        return await self.comfyui_client.get_queue_info()
 
     async def acomfyui_history(self, prompt_id: str) -> "HistoryEntry | None":
         """Retrieve execution history for *prompt_id*."""
-        return await ComfyuiHTTPClient.create(None).get_history(prompt_id)
+        return await self.comfyui_client.get_history(prompt_id)
 
     # -- acomfyui_retrieve: single + batch --
 
@@ -178,11 +218,10 @@ class Comfyui:
         **kwargs: "Unpack[PollKwargs]",
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Poll until one or more prompt_ids complete."""
+        client = self.comfyui_client
         if isinstance(prompt_id, list):
-            return list(
-                await gather(*(ComfyuiHTTPClient.create(None).wait_for_completion(pid, **kwargs) for pid in prompt_id))
-            )
-        return await ComfyuiHTTPClient.create(None).wait_for_completion(prompt_id, **kwargs)
+            return list(await gather(*(client.wait_for_completion(pid, **kwargs) for pid in prompt_id)))
+        return await client.wait_for_completion(prompt_id, **kwargs)
 
     async def acomfyui_retrieve_image(
         self,
@@ -190,7 +229,7 @@ class Comfyui:
         **kwargs: "Unpack[ViewImageKwargs]",
     ) -> bytes:
         """Download a single generated image by filename."""
-        data = await ComfyuiHTTPClient.create(None).get_image(filename, **kwargs)
+        data = await self.comfyui_client.get_image(filename, **kwargs)
         logger.info(f"Downloaded image: {filename}")
         return data
 
@@ -200,67 +239,11 @@ class Comfyui:
         **kwargs: "Unpack[UploadKwargs]",
     ) -> "UploadResponse":
         """Upload an image to the server."""
-        resp = await ComfyuiHTTPClient.create(None).upload_image(image_path, **kwargs)
+        resp = await self.comfyui_client.upload_image(image_path, **kwargs)
         logger.info(f"Uploaded image -> {resp.name}")
         return resp
 
     async def acomfyui_interrupt(self) -> None:
         """Interrupt the currently running workflow."""
-        await ComfyuiHTTPClient.create(None).interrupt()
+        await self.comfyui_client.interrupt()
         logger.info("ComfyUI execution interrupted")
-
-    # ------------------------------------------------------------------
-    # Legacy aliases (deprecated — prefer acomfyui_* methods)
-    # ------------------------------------------------------------------
-
-    async def comfyui_generate(
-        self,
-        workflow: "Dict[str, Any] | Workflow | List[Dict[str, Any] | Workflow]",
-        **kwargs: Any,
-    ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
-        """Alias for :meth:`acomfyui_generate`."""
-        return await self.acomfyui_generate(workflow, **kwargs)
-
-    async def comfyui_queue_prompt(
-        self,
-        workflow: "Dict[str, Any] | Workflow | List[Dict[str, Any] | Workflow]",
-        **kwargs: "Unpack[QueueKwargs]",
-    ) -> "PromptResponse | List[PromptResponse]":
-        """Alias for :meth:`acomfyui_queue`."""
-        return await self.acomfyui_queue(workflow, **kwargs)
-
-    async def comfyui_get_queue_info(self) -> "QueueInfo":
-        """Alias for :meth:`acomfyui_inspect_queue`."""
-        return await self.acomfyui_inspect_queue()
-
-    async def comfyui_get_history(self, prompt_id: str) -> "HistoryEntry | None":
-        """Alias for :meth:`acomfyui_history`."""
-        return await self.acomfyui_history(prompt_id)
-
-    async def comfyui_wait_for_completion(
-        self,
-        prompt_id: "str | List[str]",
-        **kwargs: "Unpack[PollKwargs]",
-    ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
-        """Alias for :meth:`acomfyui_retrieve`."""
-        return await self.acomfyui_retrieve(prompt_id, **kwargs)
-
-    async def comfyui_get_image(
-        self,
-        filename: str,
-        **kwargs: "Unpack[ViewImageKwargs]",
-    ) -> bytes:
-        """Alias for :meth:`acomfyui_retrieve_image`."""
-        return await self.acomfyui_retrieve_image(filename, **kwargs)
-
-    async def comfyui_upload_image(
-        self,
-        image_path: "str | Path",
-        **kwargs: "Unpack[UploadKwargs]",
-    ) -> "UploadResponse":
-        """Alias for :meth:`acomfyui_upload`."""
-        return await self.acomfyui_upload(image_path, **kwargs)
-
-    async def comfyui_interrupt(self) -> None:
-        """Alias for :meth:`acomfyui_interrupt`."""
-        return await self.acomfyui_interrupt()
