@@ -6,18 +6,23 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-comfyui/week)](https://pepy.tech/projects/fabricatio-comfyui)
 
 Async ComfyUI API client for Fabricatio — submit workflow graphs, poll for
-completion, and download generated images. Built on `httpx` with persistent
-connection pooling and full Pydantic-typed API coverage.
+completion, and download generated images. Built on `httpx` with full
+Pydantic-typed API coverage.
 
 ## Architecture
 
-The package provides three integration layers, each building on the one below:
+The package is split into small, single-responsibility modules composed through
+nominal inheritance — no plugin dicts, no `hasattr`, no duck typing:
 
-| Layer      | Class                                        | Purpose                                                |
-|------------|----------------------------------------------|--------------------------------------------------------|
-| Client     | `ComfyuiClient`                              | Standalone async HTTP client with connection pooling   |
-| Capability | `Comfyui`                                    | Mixin that adds ComfyUI methods to a Fabricatio `Role` |
-| Action     | `ComfyuiGenerateImage`, `ComfyuiUploadImage` | Pluggable steps for Fabricatio `WorkFlow`              |
+| Layer      | Module / Class                                        | Purpose                                                |
+|------------|-------------------------------------------------------|--------------------------------------------------------|
+| Graph core | `WorkflowCore` (`models/workflow_core.py`)            | Graph container: CRUD, construction, serialization     |
+| Graph ops  | `LoaderOps` / `PromptOps` / `SamplerOps` / `ResolutionOps` (`models/workflow_ops.py`) | Typed node-family setters, composed into `Workflow` |
+| Workflow   | `Workflow` (`models/workflow.py`)                     | Thin composition: `WorkflowCore` + all `*Ops` ABCs    |
+| Client ABC | `ComfyuiClientBase` (`client_base.py`)                | Nominal HTTP client interface                          |
+| Client     | `ComfyuiHTTPClient` (`http_client.py`)                | Concrete `httpx`-backed implementation, `async with`   |
+| Capability | `Comfyui` (`capabilities/comfyui.py`)                 | Mixin: orchestration (queue → poll → download) + DI    |
+| Action     | `ComfyuiGenerateImage`, `ComfyuiUploadImage`          | Pluggable steps for Fabricatio `WorkFlow`              |
 
 Pre-built workflow templates (`Txt2Img`, `Txt2ImgWithDownload`) are also
 available as a quick starting point.
@@ -48,13 +53,12 @@ base_url = "http://127.0.0.1:8188"
 timeout = 300
 ```
 
-The config dataclass supports three fields:
+The config dataclass supports two fields:
 
 | Field       | Default                 | Description                                  |
 |-------------|-------------------------|----------------------------------------------|
 | `base_url`  | `http://127.0.0.1:8188` | ComfyUI server base URL                      |
 | `timeout`   | `300.0`                 | Request timeout in seconds                   |
-| `pool_size` | `10`                    | Max concurrent connections in the httpx pool |
 
 Access config at runtime: `from fabricatio_comfyui import comfyui_config`
 
@@ -62,17 +66,20 @@ Access config at runtime: `from fabricatio_comfyui import comfyui_config`
 
 ### Standalone client
 
-Use `ComfyuiClient` directly as an async context manager — no Fabricatio
+Use `ComfyuiHTTPClient` directly as an async context manager — no Fabricatio
 dependency beyond config:
 
 ```python
 import asyncio
-from fabricatio_comfyui import ComfyuiClient
+from fabricatio_comfyui import ComfyuiHTTPClient
 
 
 async def main() -> None:
-    async with ComfyuiClient.create(None) as client:
-        result = await client.generate(workflow, download_dir="./outputs")
+    async with ComfyuiHTTPClient.create() as client:
+        resp = await client.queue_prompt(workflow)
+        result = await client.wait_for_completion(resp.prompt_id)
+        if result.succeeded:
+            await client.download_images(result, "./outputs")
         for img in result.all_images:
             image_bytes = await client.get_image(img.filename)
 
@@ -146,15 +153,15 @@ from fabricatio_comfyui.workflows import Txt2Img, Txt2ImgWithDownload
 
 ## API Reference
 
-### ComfyuiClient / Comfyui capability
+### ComfyuiHTTPClient / Comfyui capability
 
-All methods are available on both `ComfyuiClient` and the `Comfyui` capability
-mixin (prefixed with `acomfyui_` on the mixin, following the `a`-prefix
-predicate-verb convention used by `UseLLM`).
+The HTTP client owns single REST endpoints only. The capability mixin owns
+orchestration (queue → poll → download). All capability methods are prefixed
+with `acomfyui_`, following the `a`-prefix predicate-verb convention used by
+`UseLLM`.
 
 | Client method                    | Capability method                      | Returns                  | Description                                    |
 |----------------------------------|----------------------------------------|--------------------------|------------------------------------------------|
-| `generate(workflow, …)`          | `acomfyui_generate(…)`                 | `ComfyuiExecutionResult` | Queue + wait + optionally download images      |
 | `queue_prompt(workflow)`         | `acomfyui_queue(…)`                    | `PromptResponse`         | Submit a workflow graph for execution          |
 | `get_queue_info()`               | `acomfyui_inspect_queue()`             | `QueueInfo`              | Fetch current queue status (running + pending) |
 | `get_history(prompt_id)`         | `acomfyui_history(prompt_id)`          | `HistoryEntry \| None`   | Retrieve execution history for a prompt        |
@@ -162,15 +169,15 @@ predicate-verb convention used by `UseLLM`).
 | `get_image(filename, …)`         | `acomfyui_retrieve_image(filename, …)` | `bytes`                  | Download a single generated image              |
 | `upload_image(image_path, …)`    | `acomfyui_upload(image_path, …)`       | `UploadResponse`         | Upload an image for img2img workflows          |
 | `interrupt()`                    | `acomfyui_interrupt()`                 | `None`                   | Interrupt the currently running workflow       |
-
-Legacy `comfyui_*` aliases are still available but deprecated.
+| `download_images(result, dir)`   | — (used internally by `acomfyui_generate`) | `None`                | Download all output images concurrently        |
+| —                                | `acomfyui_generate(…)`                 | `ComfyuiExecutionResult` | Queue + wait + optionally download images      |
 
 ### Actions
 
-| Class                  | Fields                                                 | Description                          |
-|------------------------|--------------------------------------------------------|--------------------------------------|
-| `ComfyuiGenerateImage` | `workflow`, `download_dir`, `poll_interval`, `timeout` | Queue a workflow and wait for images |
-| `ComfyuiUploadImage`   | `image_path`, `image_type`                             | Upload an image to the server        |
+| Class                  | Fields                               | Description                          |
+|------------------------|--------------------------------------|--------------------------------------|
+| `ComfyuiGenerateImage` | `workflow`, `download_dir`, `timeout` | Queue a workflow and wait for images |
+| `ComfyuiUploadImage`   | `image_path`, `image_type`           | Upload an image to the server        |
 
 ### Models
 
@@ -184,6 +191,14 @@ All API responses are deserialized into frozen Pydantic models. Key types:
 | `HistoryEntry`           | Execution history — `status`, per-node `outputs`        |
 | `QueueInfo`              | Queue state — `queue_running`, `queue_pending`          |
 | `UploadResponse`         | Upload result — `name`, `subfolder`, `type`             |
+
+### Workflow types (PEP 695)
+
+| Type alias     | Definition            | Description                                      |
+|----------------|-----------------------|--------------------------------------------------|
+| `NodeInputs`   | `dict[str, Any]`      | Per-node input map (literals + node refs)        |
+| `NodeApi`      | `dict[str, Any]`      | Per-node API dict (`class_type`, `inputs`, …)    |
+| `WorkflowDict` | `dict[str, NodeApi]`  | Full ComfyUI API-format workflow graph            |
 
 ## License
 
