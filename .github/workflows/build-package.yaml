@@ -118,7 +118,7 @@ jobs:
         with:
           github-token: ${{ secrets.PAT }}
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v9
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
       - name: Install nightly rust
