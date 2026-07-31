@@ -17,6 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Setup ruff
-        uses: astral-sh/ruff-action@v4
+        uses: astral-sh/ruff-action@v3
         with:
           github-token: ${{ secrets.PAT }}
