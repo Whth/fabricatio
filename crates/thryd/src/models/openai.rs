@@ -41,7 +41,7 @@ use crate::{CompletionResponse, EmbeddingResponse, RankedDocuments, RankingRespo
 use async_openai::types::embeddings::{CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
-use futures::{future::join_all, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, future::join_all};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 use std::sync::Arc;

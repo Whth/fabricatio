@@ -12,7 +12,7 @@ use pythonize::depythonize;
 
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use serde_json::Value;
+use serde_json::{Value, to_string};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 

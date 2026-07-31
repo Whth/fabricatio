@@ -1,13 +1,22 @@
+{{#if global_prompt}}
+{{block global_prompt "Chapter Scoped Requirement"}}
+you should follow the `Chapter Scoped Requirement`
+{{/if}}
+
+---
+
 {{#if scenes}}
 {{#each scenes as |scene index|}}
----[{{#if scene.location}}{{scene.location}}{{/if}}{{#if scene.when}} | {{scene.when}}{{/if}}{{#if scene.purpose}} | {{scene.purpose}}{{/if}}{{#if scene.mood}} | {{scene.mood}}{{/if}}]---
-{{#if scene.characters_present}}(Characters: {{#each scene.characters_present}}{{@key}}({{this}}){{#unless @last}}, {{/unless}}{{/each}})
-{{/if}}{{scene.narrative}}
-{{#if scene.prompt}}(Style: {{scene.prompt}})
+--- Scene-{{index}} ---
+
+{{#if scene.location}}{{scene.location}}{{/if}}{{#if scene.when}} | {{scene.when}}{{/if}}{{#if scene.purpose}} | {{scene.purpose}}{{/if}}{{#if scene.mood}} | {{scene.mood}}{{/if}}
+{{#if scene.characters_present}}Character Presence: {{#each scene.characters_present}}{{@key}}({{this}}){{#unless @last}}, {{/unless}}{{/each}}{{/if}}
+> Scene-{{index}} Narrative: {{scene.narrative}}
+{{#if scene.prompt}}
+{{#if global_prompt}}you should follow the `Scene Scoped Requirement` for Scene-{{index}} as a supplement to the `Chapter Scoped Requirement` — it only adds scene-specific detail for this scene and MUST NOT contradict the chapter scope{{else}}you should follow the `Scene Scoped Requirement` for Scene-{{index}}{{/if}}
+{{block scene.prompt "Scene Scoped Requirement"}}
 {{/if}}
 {{/each}}
 {{/if}}
 
-{{#if global_prompt}}
-Note that,{{global_prompt}}
-{{/if}}
+

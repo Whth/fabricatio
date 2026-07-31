@@ -21,7 +21,13 @@ handlebars_helper!(word_count: |v:String| wc(v.as_str()));
 
 handlebars_helper!(block: |v:Value,title:String| {
 
-    format!("{}\n",generic_block(title.as_str(),to_string(&v).unwrap_or_default().as_str()))
+
+    let content = match v{
+        Value::String(s) =>s,
+        _ => to_string(&v).expect("Can not be render as json obj")
+    };
+
+    format!("{}\n",generic_block(title.as_str(),content.as_str()))
 
 });
 
