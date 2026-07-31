@@ -161,6 +161,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
+      - name: Cache cargo target
+        id: cache-target
+        uses: actions/cache@v6
+        with:
+          path: target/release
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-
+
       - name: Upload to PyPI
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         run: |
