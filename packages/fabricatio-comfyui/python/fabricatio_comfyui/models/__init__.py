@@ -2,7 +2,6 @@
 
 from fabricatio_comfyui.models.comfyui import (
     ComfyuiExecutionResult,
-    ComfyuiNodeRef,
     ComfyuiOutputImage,
     HistoryEntry,
     HistoryNodeOutput,
@@ -22,15 +21,23 @@ from fabricatio_comfyui.models.kwargs_types import (
     UploadKwargs,
     ViewImageKwargs,
 )
+from fabricatio_comfyui.models.workflow_core import (
+    NodeApi,
+    NodeInputs,
+    NodeRef,
+    WorkflowDict,
+)
 
 __all__ = [
     "ComfyuiExecutionResult",
-    "ComfyuiNodeRef",
     "ComfyuiOutputImage",
     "GenerateKwargs",
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
+    "NodeApi",
+    "NodeInputs",
+    "NodeRef",
     "PollKwargs",
     "PromptRequest",
     "PromptResponse",
@@ -42,4 +49,5 @@ __all__ = [
     "UploadResponse",
     "ViewImageKwargs",
     "ViewImageParams",
+    "WorkflowDict",
 ]

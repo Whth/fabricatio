@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
     "ComfyuiExecutionResult",
-    "ComfyuiNodeRef",
     "ComfyuiOutputImage",
     "HistoryEntry",
     "HistoryNodeOutput",
@@ -23,31 +22,6 @@ __all__ = [
     "UploadResponse",
     "ViewImageParams",
 ]
-
-
-# ------------------------------------------------------------------
-# Workflow graph primitives
-# ------------------------------------------------------------------
-
-
-class ComfyuiNodeRef(BaseModel):
-    """Reference to another node's output in a workflow graph.
-
-    Used as a value in node inputs to wire nodes together.
-    Serialized to the ComfyUI API list format ``[node_id, output_index]``.
-    """
-
-    model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
-
-    node_id: str
-    """The source node ID."""
-
-    output_index: int = 0
-    """The output index on the source node (default 0)."""
-
-    def to_list(self) -> list[str | int]:
-        """Serialize to ``[node_id, output_index]``."""
-        return [self.node_id, self.output_index]
 
 
 # ------------------------------------------------------------------
