@@ -39,7 +39,7 @@ jobs:
       is_prerelease: ${{ steps.check_prerelease.outputs.IS_PRERELEASE }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Get current version from pyproject.toml
         id: get_version
         run: |
@@ -81,13 +81,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Packing templates
         run: |
           tar -czf templates.tar.gz templates
       - name: Create Release and upload assets
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
           name: ${{ needs.determine_changes.outputs.current_version }}
@@ -113,12 +113,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
-      - uses: extractions/setup-just@v3
+        uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
         with:
           github-token: ${{ secrets.PAT }}
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v9
         with:
           version: "latest"
       - name: Install nightly rust
@@ -129,7 +129,7 @@ jobs:
         with:
           repo-token: ${{ secrets.PAT }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         name: Setup Node.js
         continue-on-error: true
         with:
@@ -140,7 +140,7 @@ jobs:
 
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -152,7 +152,7 @@ jobs:
 
       - name: Cache cargo registry
         id: cache-registry
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -181,7 +181,7 @@ jobs:
 
       - name: Upload assets
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
           files: |
@@ -192,7 +192,7 @@ jobs:
       - name: Upload generic assets
         if: needs.determine_changes.outputs.version_changed == 'true' && github.event_name != 'pull_request'
         continue-on-error: true
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.determine_changes.outputs.current_version }}
           files: |
