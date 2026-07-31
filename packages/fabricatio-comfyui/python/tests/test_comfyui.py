@@ -11,7 +11,6 @@ from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import ComfyuiHTTPClient
 from fabricatio_comfyui.models.comfyui import (
     ComfyuiExecutionResult,
-    ComfyuiNodeRef,
     ComfyuiOutputImage,
     HistoryEntry,
     PromptResponse,
@@ -22,6 +21,7 @@ from fabricatio_comfyui.models.workflow import (
     RESOLUTION_SELECTOR_ASPECT_RATIOS,
     FrameAspect,
     Node,
+    NodeRef,
     Workflow,
 )
 
@@ -402,14 +402,14 @@ class TestFrameAspectDimensions:
 class TestModels:
     """Model unit tests."""
 
-    def test_node_ref_to_list(self) -> None:
+    def test_node_ref_to_api(self) -> None:
         """Convert node reference to ComfyUI link list."""
-        ref = ComfyuiNodeRef(node_id="3", output_index=0)
-        assert ref.to_list() == ["3", 0]
+        ref = NodeRef(node_id="3", output_index=0)
+        assert ref.to_api() == ["3", 0]
 
     def test_node_ref_default_index(self) -> None:
         """Node reference defaults to output index 0."""
-        ref = ComfyuiNodeRef(node_id="5")
+        ref = NodeRef(node_id="5")
         assert ref.output_index == 0
 
     def test_output_image_url_path(self) -> None:
@@ -518,7 +518,7 @@ class TestModels:
 
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
-    """End-to-end flow: queue prompt -> poll history -> download."""
+    """End-to-end flow via capability: queue prompt -> poll history -> download."""
     client = ComfyuiHTTPClient.create(None)
     workflow = {
         "3": {
@@ -526,10 +526,10 @@ async def test_generate_flow(tmp_path: Path) -> None:
             "inputs": {
                 "seed": 42,
                 "steps": 20,
-                "model": ComfyuiNodeRef(node_id="4").to_list(),
-                "positive": ComfyuiNodeRef(node_id="6").to_list(),
-                "negative": ComfyuiNodeRef(node_id="7").to_list(),
-                "latent_image": ComfyuiNodeRef(node_id="5").to_list(),
+                "model": NodeRef(node_id="4").to_api(),
+                "positive": NodeRef(node_id="6").to_api(),
+                "negative": NodeRef(node_id="7").to_api(),
+                "latent_image": NodeRef(node_id="5").to_api(),
             },
         },
     }
@@ -542,8 +542,8 @@ async def test_generate_flow(tmp_path: Path) -> None:
     }
 
     with (
-        patch.object(client, "post") as mock_post,
-        patch.object(client, "get") as mock_get,
+        patch.object(client, "_post") as mock_post,
+        patch.object(client, "_get") as mock_get,
         patch.object(client, "get_image") as mock_img,
     ):
         mock_post.return_value = {"prompt_id": "mock-uuid-123", "number": 1}
@@ -556,7 +556,8 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_get.side_effect = get_side_effect
         mock_img.return_value = b"fake-image-bytes"
 
-        result = await client.generate(workflow=workflow, download_dir=tmp_path)
+        role = Comfyui(comfyui_client=client)
+        result = await role.acomfyui_generate(workflow=workflow, download_dir=tmp_path)
 
         assert result.prompt_id == "mock-uuid-123"
         assert result.succeeded is True
@@ -572,7 +573,7 @@ async def test_generate_accepts_workflow() -> None:
 
     client = ComfyuiHTTPClient.create(None)
 
-    with patch.object(client, "post") as mock_post:
+    with patch.object(client, "_post") as mock_post:
         mock_post.return_value = {"prompt_id": "pid-1", "number": 1}
 
         await client.queue_prompt(wf)
@@ -584,13 +585,14 @@ async def test_generate_accepts_workflow() -> None:
 async def test_generate_timeout() -> None:
     """Verify timeout raises when polling fails to complete."""
     client = ComfyuiHTTPClient.create(None)
+    role = Comfyui(comfyui_client=client)
 
     with (
-        patch.object(client, "post", return_value={"prompt_id": "timeout-uuid"}),
-        patch.object(client, "get", return_value={}),
+        patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
+        patch.object(client, "_get", return_value={}),
         pytest.raises(TimeoutError),
     ):
-        await client.generate(
+        await role.acomfyui_generate(
             workflow={"3": {"class_type": "KSampler", "inputs": {}}},
             timeout=0.2,
         )
@@ -601,7 +603,7 @@ async def test_upload_image(tmp_path: Path) -> None:
     """Upload a local image file and verify the typed response."""
     client = ComfyuiHTTPClient.create(None)
 
-    with patch.object(client, "upload") as mock_upload:
+    with patch.object(client, "_upload") as mock_upload:
         mock_upload.return_value = {"name": "test.png", "subfolder": "input"}
 
         fake_img = tmp_path / "test.png"
@@ -618,7 +620,7 @@ async def test_queue_returns_typed() -> None:
     """queue_prompt returns a PromptResponse, not a raw dict."""
     client = ComfyuiHTTPClient.create(None)
 
-    with patch.object(client, "post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
+    with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
         resp = await client.queue_prompt({"1": {"class_type": "VAELoader", "inputs": {}}})
         assert isinstance(resp, PromptResponse)
         assert resp.prompt_id == "abc"
@@ -630,7 +632,7 @@ async def test_queue_accepts_workflow() -> None:
     client = ComfyuiHTTPClient.create(None)
     wf = Workflow.from_api({"1": {"class_type": "VAELoader", "inputs": {}}})
 
-    with patch.object(client, "post", return_value={"prompt_id": "abc", "number": 1}) as mock_post:
+    with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 1}) as mock_post:
         await client.queue_prompt(wf, front=True)
         call_json = mock_post.call_args.kwargs["json_data"]
         assert call_json["prompt"] == {"1": {"class_type": "VAELoader", "inputs": {}}}
@@ -649,7 +651,7 @@ async def test_get_history_returns_typed() -> None:
             "outputs": {"9": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}},
         }
     }
-    with patch.object(client, "get", return_value=raw):
+    with patch.object(client, "_get", return_value=raw):
         entry = await client.get_history("pid-1")
         assert isinstance(entry, HistoryEntry)
         assert entry.status.status_str == "completed"
@@ -660,7 +662,7 @@ async def test_get_history_missing() -> None:
     """get_history returns None for a nonexistent prompt id."""
     client = ComfyuiHTTPClient.create(None)
 
-    with patch.object(client, "get", return_value={}):
+    with patch.object(client, "_get", return_value={}):
         entry = await client.get_history("nonexistent")
         assert entry is None
 
@@ -671,7 +673,7 @@ async def test_queue_info_typed() -> None:
     client = ComfyuiHTTPClient.create(None)
 
     raw = {"queue_running": [], "queue_pending": [[1, "pid", {}, {}, []]]}
-    with patch.object(client, "get", return_value=raw):
+    with patch.object(client, "_get", return_value=raw):
         info = await client.get_queue_info()
         assert isinstance(info, QueueInfo)
         assert len(info.queue_pending) == 1
@@ -697,7 +699,7 @@ async def test_wait_for_completion_polling() -> None:
             "outputs": {},
         }
     }
-    with patch.object(client, "get", return_value=raw):
+    with patch.object(client, "_get", return_value=raw):
         result = await client.wait_for_completion("pid-1", poll_interval=0.01, timeout=5.0)
         assert result.prompt_id == "pid-1"
         assert result.status == "completed"
@@ -715,7 +717,8 @@ class _BatchRole(Comfyui):
 @pytest.mark.asyncio
 async def test_generate_batch_flow(tmp_path: Path) -> None:
     """Batch acomfyui_generate: queue 3 workflows, poll 3, download all."""
-    role = _BatchRole()
+    client = ComfyuiHTTPClient.create(None)
+    role = _BatchRole(comfyui_client=client)
     workflows = [{"3": {"class_type": "KSampler", "inputs": {"seed": i}}} for i in range(3)]
 
     mock_history: Dict[str, Any] = {
@@ -726,10 +729,9 @@ async def test_generate_batch_flow(tmp_path: Path) -> None:
         for i in range(3)
     }
 
-    client = ComfyuiHTTPClient.create(None)
     with (
-        patch.object(client, "post") as mock_post,
-        patch.object(client, "get") as mock_get,
+        patch.object(client, "_post") as mock_post,
+        patch.object(client, "_get") as mock_get,
         patch.object(client, "download_images") as mock_dl,
     ):
         mock_post.side_effect = [{"prompt_id": f"pid-{i}", "number": i} for i in range(3)]
@@ -758,11 +760,11 @@ async def test_generate_batch_flow(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_queue_batch() -> None:
     """Batch acomfyui_queue: submit 3 workflows, return 3 PromptResponse."""
-    role = _BatchRole()
+    client = ComfyuiHTTPClient.create(None)
+    role = _BatchRole(comfyui_client=client)
     workflows = [{"1": {"class_type": "VAELoader", "inputs": {}}} for _ in range(3)]
 
-    client = ComfyuiHTTPClient.create(None)
-    with patch.object(client, "post") as mock_post:
+    with patch.object(client, "_post") as mock_post:
         mock_post.side_effect = [{"prompt_id": f"pid-{i}", "number": i, "node_errors": {}} for i in range(3)]
         responses = await role.acomfyui_queue(workflows)
 
@@ -776,15 +778,15 @@ async def test_queue_batch() -> None:
 @pytest.mark.asyncio
 async def test_retrieve_batch() -> None:
     """Batch acomfyui_retrieve: poll 3 prompt_ids, return 3 results."""
-    role = _BatchRole()
-
     client = ComfyuiHTTPClient.create(None)
+    role = _BatchRole(comfyui_client=client)
+
     raw = {
         "pid-0": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
         "pid-2": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    with patch.object(client, "get") as mock_get:
+    with patch.object(client, "_get") as mock_get:
 
         async def get_side_effect(path: str, **_: Any) -> Any:
             if path.startswith("/history/"):
@@ -838,22 +840,13 @@ _requires_checkpoint = pytest.mark.skipif(
 
 
 def _fresh_client() -> "ComfyuiHTTPClient":
-    """Build an uncached client bound to the current pytest-asyncio event loop.
+    """Build a fresh client for the current pytest-asyncio event loop.
 
-    ``ComfyuiHTTPClient.create`` is ``@lru_cache``-backed; reusing it across the
-    separate event loops pytest-asyncio spins up per test raises
-    ``RuntimeError: Event loop is closed`` from httpx. Integration tests build a
-    fresh client and call :meth:`aclose` to keep the connection pool per-loop.
+    ``ComfyuiHTTPClient.create`` returns a new client (with its own connection
+    pool) on every call — no ``@lru_cache``.  Integration tests use ``async with``
+    to guarantee the pool is closed per-loop.
     """
-    import httpx
-    from fabricatio_core.utils import first_available
-
-    return ComfyuiHTTPClient(
-        source=httpx.AsyncClient(
-            base_url=first_available((None, comfyui_config.base_url)).rstrip("/"),
-            timeout=httpx.Timeout(comfyui_config.timeout),
-        ),
-    )
+    return ComfyuiHTTPClient.create(None)
 
 
 @pytest.mark.asyncio
@@ -891,16 +884,13 @@ async def test_integration_queue_and_history(tmp_path: Path) -> None:
         }
     )
 
-    client = _fresh_client()
-    try:
+    async with _fresh_client() as client:
         resp = await client.queue_prompt(wf)
         assert resp.prompt_id, "Expected a non-empty prompt_id"
 
         result = await client.wait_for_completion(resp.prompt_id, poll_interval=0.5, timeout=120.0)
         assert result.prompt_id == resp.prompt_id
         assert result.status in ("completed", "success")
-    finally:
-        await client.source.aclose()
 
 
 @pytest.mark.asyncio
@@ -938,10 +928,11 @@ async def test_integration_generate_with_download(tmp_path: Path) -> None:
     )
 
     client = _fresh_client()
+    role = Comfyui(comfyui_client=client)
     try:
-        result = await client.generate(wf, download_dir=tmp_path, timeout=120.0)
+        result = await role.acomfyui_generate(wf, download_dir=tmp_path, timeout=120.0)
     finally:
-        await client.source.aclose()
+        await client.aclose()
 
     assert result.succeeded is True
 
