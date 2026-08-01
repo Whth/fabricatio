@@ -25,24 +25,32 @@ const title = computed(() => wfStore.nodes.find((n) => n.id === props.nodeId)?.d
   width: 360px;
   max-height: 320px;
   background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
+  animation: fade-in var(--duration-fast) var(--ease-out);
 }
 .preview-header {
-  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
   background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--fg-1);
 }
 .preview-body {
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--sp-2);
   overflow: auto;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--fg-0);

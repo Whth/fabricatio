@@ -16,7 +16,6 @@ function onInput(e: Event) {
   if (widget.value === 'number') {
     emit('update:modelValue', el.value === '' ? null : Number(el.value))
   } else if (widget.value === 'json') {
-    // Emit the raw string; the executor JSON-parses config values.
     emit('update:modelValue', el.value)
   } else {
     emit('update:modelValue', el.value)
@@ -39,17 +38,27 @@ const stringValue = computed(() =>
 </script>
 
 <template>
-  <label class="node-widget">
+  <label class="node-widget" :class="{ disabled: disabled }">
     <span class="widget-label">{{ field.name }}</span>
-    <input
-      v-if="widget === 'toggle'"
-      type="checkbox"
-      :checked="Boolean(modelValue)"
-      :disabled="disabled"
-      @change="onToggle"
-    />
+
+    <!-- Toggle / Switch -->
+    <label v-if="widget === 'toggle'" class="toggle-switch">
+      <input
+        type="checkbox"
+        class="toggle-input"
+        :checked="Boolean(modelValue)"
+        :disabled="disabled"
+        @change="onToggle"
+      />
+      <span class="toggle-track">
+        <span class="toggle-thumb"></span>
+      </span>
+    </label>
+
+    <!-- Number -->
     <input
       v-else-if="widget === 'number'"
+      class="widget-ctrl"
       type="number"
       :value="stringValue"
       :step="field.step ?? 1"
@@ -58,18 +67,32 @@ const stringValue = computed(() =>
       :disabled="disabled"
       @input="onInput"
     />
-    <select v-else-if="widget === 'combo'" :value="String(modelValue ?? '')" :disabled="disabled" @change="onCombo">
+
+    <!-- Combo -->
+    <select
+      v-else-if="widget === 'combo'"
+      class="widget-ctrl widget-select"
+      :value="String(modelValue ?? '')"
+      :disabled="disabled"
+      @change="onCombo"
+    >
       <option v-for="opt in field.options ?? []" :key="opt" :value="opt">{{ opt }}</option>
     </select>
+
+    <!-- Textarea / JSON -->
     <textarea
       v-else-if="widget === 'textarea' || widget === 'json'"
+      class="widget-ctrl widget-textarea"
       :value="stringValue"
       rows="3"
       :disabled="disabled"
       @input="onInput"
     />
+
+    <!-- Text (default) -->
     <input
       v-else
+      class="widget-ctrl"
       type="text"
       :value="stringValue"
       :placeholder="field.placeholder"
@@ -80,33 +103,124 @@ const stringValue = computed(() =>
 </template>
 
 <style scoped>
+/* ── Widget row ──────────────────────────────────────────────────────────── */
 .node-widget {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 6px;
+  grid-template-columns: minmax(0, 80px) 1fr;
+  gap: var(--ctrl-gap);
   align-items: center;
-  font-size: 12px;
-  padding: 2px 0;
+  min-height: var(--ctrl-h);
 }
+
+.node-widget.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .widget-label {
   color: var(--fg-1);
+  font-size: var(--text-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.node-widget input,
-.node-widget select,
-.node-widget textarea {
-  background: var(--bg-1);
+
+/* ── Shared control base ─────────────────────────────────────────────────── */
+.widget-ctrl {
+  background: var(--bg-0);
   color: var(--fg-0);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--sp-1);
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  line-height: var(--leading-base);
   width: 100%;
   box-sizing: border-box;
+  height: var(--ctrl-h-sm);
+  transition: var(--transition-colors);
 }
-.node-widget textarea {
+
+.widget-ctrl:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 1px var(--accent);
+}
+
+.widget-ctrl:hover:not(:focus-visible) {
+  border-color: var(--border-mid);
+}
+
+.widget-ctrl:disabled {
+  cursor: not-allowed;
+}
+
+/* ── Select overrides ────────────────────────────────────────────────────── */
+.widget-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238895a7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 20px;
+  cursor: pointer;
+}
+
+/* ── Textarea overrides ──────────────────────────────────────────────────── */
+.widget-textarea {
+  height: auto;
+  min-height: calc(var(--ctrl-h-sm) * 2);
+  padding: 3px var(--sp-1);
   resize: vertical;
+  font-family: var(--font-mono);
+  line-height: var(--leading-tight);
 }
+
+/* ── Toggle switch ───────────────────────────────────────────────────────── */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  width: 30px;
+  height: 16px;
+  background: var(--bg-3);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast) var(--ease-out);
+  position: relative;
+}
+
+.toggle-input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle-input:focus-visible + .toggle-track {
+  box-shadow: var(--focus-ring);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--fg-0);
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-base) var(--ease-out);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(14px);
+}
+
+/* Disabled state handled by parent .disabled class */
 </style>
