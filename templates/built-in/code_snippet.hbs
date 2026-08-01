@@ -1,14 +1,15 @@
-{{block requirement "Requirement"}}
-You need to generate code that satisfy `Requirement` and the path where it should be written.
-{{#if code_language}}You MUST use {{code_language}}.{{/if}}
+You need to generate code that satisfies the `Requirement` below and the path where it should be written.
 Output format:
 1. Code should be wrapped with ">>>>>" and "<<<<<", they occupied one line each, all lines between will be treat as code and write to the path.
 2. Path to write the code should be placed above ">>>>>".
-{{#if code_language}}3. The code lang identifier should a suffix after ">>>>>" {{/if}}
+3. The code lang identifier should be a suffix after ">>>>>".
 
 e.g.
 
 <file path placeholder>
->>>>>{{#if code_language}}{{code_language}}{{else}}<language placeholder>{{/if}}
+>>>>><language placeholder>
 <code placeholder>
 <<<<<
+
+{{block requirement "Requirement"}}
+{{#if code_language}}You MUST use {{code_language}}.{{/if}}
