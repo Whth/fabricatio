@@ -44,20 +44,46 @@ fc-webui --addr 0.0.0.0:3000 --frontend-dir ./dist
 
 All functionality is exposed through the Rust-backed Python module `fabricatio_webui.rust`.
 
-### `start_service(frontend_dir, addr)`
+### `start_service(frontend_dir, data_dir, addr, node_registry_json, allowed_origins, submit_fn, cancel_fn, queue_snapshot_fn, history_snapshot_fn)`
 
 Starts an async HTTP server (axum + tokio) that serves static files from `frontend_dir` with SPA fallback (all unmatched routes serve `index.html`). CORS is permissive.
 
-| Parameter     | Type               | Description                              |
-|---------------|--------------------|------------------------------------------|
-| `frontend_dir`| `str \| PathLike`  | Directory containing the built frontend  |
-| `addr`        | `str`              | Bind address, e.g. `"127.0.0.1:9846"`   |
+| Parameter            | Type                | Description                                   |
+|----------------------|---------------------|-----------------------------------------------|
+| `frontend_dir`       | `str \| PathLike`   | Directory containing the built frontend       |
+| `data_dir`           | `str \| PathLike`   | Workflow persistence directory                |
+| `addr`               | `str`               | Bind address, e.g. `"127.0.0.1:9846"`        |
+| `node_registry_json` | `str`               | JSON array of node type definitions           |
+| `allowed_origins`    | `Sequence[str]`     | CORS allowed origins                          |
+| `submit_fn`          | `Callable`          | Worker: `submit(execution_id, workflow_json, task_input_json)` |
+| `cancel_fn`          | `Callable`          | Worker: `cancel_current() -> bool`            |
+| `queue_snapshot_fn`  | `Callable`          | Worker: `queue_snapshot() -> str` (JSON)      |
+| `history_snapshot_fn`| `Callable`          | Worker: `history_snapshot() -> str` (JSON)    |
+
+## Execution pipeline
+
+Submissions (`POST /api/execute` or a WS `submit` message) are forwarded to an in-process asyncio worker (`fabricatio_webui.worker.WorkflowWorker`). The worker instantiates `Action` nodes from the workflow graph, executes them in topological order, and streams `node_start` / `node_done` / `node_error` / `node_output` / `execution_done` events back over WebSocket. `POST /api/interrupt` cancels the running execution (`execution_done` with `cancelled: true`). Queue and history are owned by the worker and exposed via `GET /api/queue` and `GET /api/history`.
+
+The CLI wires everything together:
 
 ```python
-import asyncio
-from fabricatio_webui.rust import start_service
+# fc-webui — worker + server run on one event loop
+import asyncio, json
+from fabricatio_webui.registry import build_node_registry
+from fabricatio_webui.rust import rust_broadcast, start_service
+from fabricatio_webui.worker import WorkflowWorker
 
-asyncio.run(start_service("./www", "127.0.0.1:9846"))
+async def main() -> None:
+    worker = WorkflowWorker(rust_broadcast)
+    await asyncio.gather(
+        start_service("./www", "./workflows", "127.0.0.1:9846",
+                      json.dumps(build_node_registry()["node_types"]), [],
+                      worker.submit, worker.cancel_current,
+                      worker.queue_snapshot, worker.history_snapshot),
+        worker.run(),
+    )
+
+asyncio.run(main())
 ```
 
 ### Configuration
