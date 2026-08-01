@@ -245,13 +245,11 @@ class IllustratedNovelCompose(NovelCompose, Comfyui):
         if not novel.characters:
             return {}
 
-        prompts = [
-            TEMPLATE_MANAGER.render_template(
-                novel_config.character_base_look_template,
-                {"name": char.name, "look": char.look, "language": language},
-            )
-            for char in novel.characters
-        ]
+        prompts = TEMPLATE_MANAGER.render_template(
+            novel_config.character_base_look_template,
+            [{"name": char.name, "look": char.look, "language": language} for char in novel.characters],
+        )
+
         results = await self.aask(prompts)
 
         base_looks: dict[str, str] = {}
