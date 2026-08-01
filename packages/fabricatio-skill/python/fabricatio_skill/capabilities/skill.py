@@ -10,7 +10,7 @@ from pydantic import Field
 
 from fabricatio_skill.config import skill_config
 from fabricatio_skill.models.skill import get_skill_registry
-from fabricatio_skill.rust import get_skill
+from fabricatio_skill.rust import Skill, get_skill
 
 
 class UseSkill(UseLLM, ABC):
@@ -32,7 +32,7 @@ class UseSkill(UseLLM, ABC):
 
     # ── helpers ───────────────────────────────────────────────────────
 
-    def _resolve_skills(self, names: Optional[List[str]] = None) -> list:
+    def _resolve_skills(self, names: Optional[List[str]] = None) -> list[Skill]:
         """Return Skill objects from the registry.
 
         Args:
@@ -42,13 +42,13 @@ class UseSkill(UseLLM, ABC):
         return get_skill_registry().get_many(target)
 
     @property
-    def skills(self) -> list:
+    def skills(self) -> list[Skill]:
         """Convenience: resolve current skill_names to live Skill objects."""
         return self._resolve_skills()
 
     # ── Level 1: Register ─────────────────────────────────────────────
 
-    def add_skills(self, skills: list, names: Optional[List[str]] = None) -> Self:
+    def add_skills(self, skills: list[Skill], names: Optional[List[str]] = None) -> Self:
         """Register skills in the global registry and track their names here.
 
         Args:
@@ -72,7 +72,7 @@ class UseSkill(UseLLM, ABC):
         question: str,
         available: Optional[List[str]] = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> list:
+    ) -> list[Skill]:
         """Use LLM to select skills relevant to a question.
 
         Args:
@@ -114,7 +114,7 @@ class UseSkill(UseLLM, ABC):
     async def distill_skills(
         self,
         question: str,
-        skills: list,
+        skills: list[Skill],
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Use LLM to extract the essential parts of skills relevant to a question.
