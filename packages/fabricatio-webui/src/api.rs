@@ -1,9 +1,19 @@
-use crate::state::{AppState, QueueItem};
+use crate::state::AppState;
 use crate::types::*;
 use axum::Json;
 use axum::extract::{Path, State};
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// Call a Python worker snapshot/forwarding callable that returns a JSON string.
+fn call_json(f: &std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>, args: (&str, &str)) -> Option<serde_json::Value> {
+    let f = f.get()?;
+    pyo3::Python::attach(|py| {
+        let r = f.call1(py, (args.0, args.1)).ok()?;
+        let s: String = r.extract(py).ok()?;
+        serde_json::from_str(&s).ok()
+    })
+}
 
 /// GET /api/nodes — return all registered node type definitions.
 pub async fn get_nodes(State(state): State<Arc<AppState>>) -> Json<Vec<NodeTypeDefinition>> {
@@ -96,46 +106,53 @@ pub async fn delete_workflow(
 pub async fn submit_execution(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ExecutionRequest>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let execution_id = Uuid::new_v4().to_string();
+    let wf_json = serde_json::to_string(&req.workflow)
+        .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let task_json = req
+        .task_input
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| "null".to_string());
+    let submit = state.submit_fn.get().ok_or_else(|| {
+        (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            "worker not ready".into(),
+        )
+    })?;
+    let res = pyo3::Python::attach(|py| submit.call1(py, (execution_id.clone(), wf_json, task_json)));
+    if let Err(e) = res {
+        return Err((
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            format!("worker rejected submission: {e}"),
+        ));
+    }
+    Ok(Json(serde_json::json!({ "execution_id": execution_id })))
+}
 
-    let item = QueueItem {
-        execution_id: execution_id.clone(),
-        workflow: req.workflow,
-        task_input: req.task_input,
-    };
-
-    state.push_queue(item);
-
-    // Broadcast updated status
-    state.broadcast(&WsMessage::Status {
-        queue_length: state.queue_len(),
-        running_count: state.active_count(),
+/// POST /api/interrupt — cancel the running execution.
+pub async fn interrupt_execution(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let ok = pyo3::Python::attach(|py| {
+        state
+            .cancel_fn
+            .get()
+            .and_then(|f| f.call1(py, ()).ok())
+            .and_then(|r| r.extract::<bool>(py).ok())
+            .unwrap_or(false)
     });
-
-    Json(serde_json::json!({ "execution_id": execution_id }))
+    Json(serde_json::json!({ "ok": ok }))
 }
 
-/// POST /api/interrupt — cancel running execution (stub).
-pub async fn interrupt_execution() -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "ok": true, "message": "interrupt not yet implemented" }))
-}
-
-/// GET /api/queue — current queue status.
+/// GET /api/queue — current queue status (owned by the Python worker).
 pub async fn get_queue(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let queue = state.queue_snapshot();
-    let active = state
-        .active_executions
-        .read()
-        .map(|a| a.values().cloned().collect::<Vec<_>>())
-        .unwrap_or_default();
-    Json(serde_json::json!({
-        "queue": queue,
-        "active": active,
-    }))
+    let snap = call_json(&state.queue_snapshot_fn, ("", "")).unwrap_or_else(|| {
+        serde_json::json!({ "queue": [], "active": [] })
+    });
+    Json(snap)
 }
 
-/// GET /api/history — execution history.
-pub async fn get_history(State(state): State<Arc<AppState>>) -> Json<Vec<ExecutionStatus>> {
-    Json(state.history_snapshot())
+/// GET /api/history — execution history (owned by the Python worker).
+pub async fn get_history(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let snap = call_json(&state.history_snapshot_fn, ("", "")).unwrap_or_else(|| serde_json::json!([]));
+    Json(snap)
 }

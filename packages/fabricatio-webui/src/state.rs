@@ -1,24 +1,20 @@
 use crate::types::*;
 use fabricatio_logger::*;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::RwLock;
 use tokio::sync::mpsc;
 
-pub struct QueueItem {
-    pub execution_id: String,
-    pub workflow: WorkflowJson,
-    pub task_input: Option<serde_json::Value>,
-}
-
 pub struct AppState {
     pub node_registry: RwLock<Vec<NodeTypeDefinition>>,
-    pub queue: RwLock<VecDeque<QueueItem>>,
-    pub history: RwLock<Vec<ExecutionStatus>>,
-    pub active_executions: RwLock<HashMap<String, ExecutionStatus>>,
     pub ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
     pub workflows: RwLock<HashMap<String, WorkflowJson>>,
     data_dir: PathBuf,
+    // Python worker callables (set once at startup; never mutated afterwards)
+    pub submit_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
+    pub cancel_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
+    pub queue_snapshot_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
+    pub history_snapshot_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
 }
 
 impl AppState {
@@ -26,12 +22,13 @@ impl AppState {
         let workflows = Self::load_workflows_from_disk(&data_dir);
         Self {
             node_registry: RwLock::new(Vec::new()),
-            queue: RwLock::new(VecDeque::new()),
-            history: RwLock::new(Vec::new()),
-            active_executions: RwLock::new(HashMap::new()),
             ws_sessions: RwLock::new(HashMap::new()),
             workflows: RwLock::new(workflows),
             data_dir,
+            submit_fn: std::sync::OnceLock::new(),
+            cancel_fn: std::sync::OnceLock::new(),
+            queue_snapshot_fn: std::sync::OnceLock::new(),
+            history_snapshot_fn: std::sync::OnceLock::new(),
         }
     }
 
@@ -139,43 +136,8 @@ impl AppState {
         }
     }
 
-    // ── Queue ──────────────────────────────────────────────────────────────────
-
-    pub fn push_queue(&self, item: QueueItem) {
-        if let Ok(mut q) = self.queue.write() {
-            q.push_back(item);
-        }
-    }
-
-    pub fn pop_queue(&self) -> Option<QueueItem> {
-        self.queue.write().ok()?.pop_front()
-    }
-
-    pub fn queue_snapshot(&self) -> Vec<ExecutionStatus> {
-        self.queue
-            .read()
-            .map(|q| {
-                q.iter()
-                    .map(|item| ExecutionStatus {
-                        execution_id: item.execution_id.clone(),
-                        state: ExecutionState::Queued,
-                        current_node: None,
-                        error: None,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    pub fn history_snapshot(&self) -> Vec<ExecutionStatus> {
-        self.history.read().map(|h| h.clone()).unwrap_or_default()
-    }
-
-    pub fn active_count(&self) -> usize {
-        self.active_executions.read().map(|a| a.len()).unwrap_or(0)
-    }
-
-    pub fn queue_len(&self) -> usize {
-        self.queue.read().map(|q| q.len()).unwrap_or(0)
-    }
+    // ── Queue (owned by the Python WorkflowWorker) ────────────────────────────
+    // Queue/history/active-state live in Python; the Rust side only forwards
+    // submissions and snapshots through the callables set in `start_service`.
 }
+

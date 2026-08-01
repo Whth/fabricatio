@@ -122,6 +122,8 @@ pub struct ExecutionRequest {
     pub task_input: Option<serde_json::Value>,
 }
 
+// Wire protocol types for /api/history; constructed by the Python worker.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionStatus {
     pub execution_id: String,
@@ -132,6 +134,7 @@ pub struct ExecutionStatus {
     pub error: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionState {

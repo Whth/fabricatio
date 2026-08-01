@@ -1,4 +1,4 @@
-use crate::state::{AppState, QueueItem};
+use crate::state::AppState;
 use crate::types::*;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{State, WebSocketUpgrade};
@@ -33,7 +33,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         }
     });
 
-    // Reader task: parse incoming WsSubmit messages
+    // Reader task: parse incoming WsSubmit messages and forward to the Python worker
     let state_clone = Arc::clone(&state);
     let sid = session_id.clone();
     let mut recv_task = tokio::spawn(async move {
@@ -42,17 +42,27 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 Message::Text(text) => {
                     if let Ok(submit) = serde_json::from_str::<WsSubmit>(&text) {
                         let execution_id = Uuid::new_v4().to_string();
-                        let item = QueueItem {
-                            execution_id: execution_id.clone(),
-                            workflow: submit.workflow,
-                            task_input: submit.task_input,
+                        let wf_json = match serde_json::to_string(&submit.workflow) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                fabricatio_logger::warn!("WS {sid}: cannot serialize workflow: {e}");
+                                continue;
+                            }
                         };
-                        state_clone.push_queue(item);
-                        state_clone.broadcast(&WsMessage::Status {
-                            queue_length: state_clone.queue_len(),
-                            running_count: state_clone.active_count(),
-                        });
-                        fabricatio_logger::info!("WS {sid} queued execution {execution_id}");
+                        let task_json = submit
+                            .task_input
+                            .map(|v| v.to_string())
+                            .unwrap_or_else(|| "null".to_string());
+                        if let Some(submit_fn) = state_clone.submit_fn.get() {
+                            let res = pyo3::Python::attach(|py| {
+                                submit_fn.call1(py, (execution_id.clone(), wf_json, task_json))
+                            });
+                            if let Err(e) = res {
+                                fabricatio_logger::warn!("WS {sid}: submit rejected: {e}");
+                            } else {
+                                fabricatio_logger::info!("WS {sid} queued execution {execution_id}");
+                            }
+                        }
                     }
                 }
                 Message::Close(_) => break,
