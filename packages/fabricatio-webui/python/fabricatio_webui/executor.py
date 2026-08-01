@@ -4,13 +4,14 @@ Parses workflow JSON, instantiates Action nodes, topologically sorts them,
 and executes in order while streaming lifecycle events via a callback.
 """
 
+import json
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
-from pydantic import FieldInfo
+from pydantic.fields import FieldInfo
 
 # ---------------------------------------------------------------------------
 # Workflow JSON shape helpers
@@ -19,6 +20,17 @@ from pydantic import FieldInfo
 
 def _norm_node_id(raw: Any) -> str:
     return str(raw)
+
+
+def _preview(value: Any, limit: int = 4000) -> str:
+    """Render *value* as a short string for WS preview payloads."""
+    try:
+        text = json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:  # noqa: BLE001
+        text = str(value)
+    if len(text) > limit:
+        return text[:limit] + "..."
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +254,7 @@ class WorkflowExecutor:
                     "node_id": node_id,
                     "node_type": type_name,
                     "output_key": output_key,
+                    "output": _preview(result),
                 },
             )
             await self._emit(
@@ -250,6 +263,7 @@ class WorkflowExecutor:
                     "node_id": node_id,
                     "node_type": type_name,
                     "output_key": output_key,
+                    "output": _preview(result),
                 },
             )
 
