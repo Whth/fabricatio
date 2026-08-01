@@ -61,3 +61,7 @@ def main(
         )
 
     asyncio.run(_wrapper())
+
+
+if __name__ == "__main__":
+    app()
