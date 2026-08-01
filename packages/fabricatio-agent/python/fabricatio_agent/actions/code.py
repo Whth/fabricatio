@@ -35,6 +35,7 @@ class WriteCode(Action, Agent):
         )
 
         for c in c_seq:
+            logger.debug(f"WriteCode: write_to={c.write_to!r} language={c.language!r} source_len={len(c.source)}")
             c.write()
 
         return c_seq
