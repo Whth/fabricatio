@@ -49,6 +49,11 @@ pub struct NodeTypeDefinition {
     pub capabilities: Vec<String>,
     pub ctx_override: bool,
     pub config_fields: Vec<PortDefinition>,
+    /// 8-hex content fingerprint from the Python registry (registry.py
+    /// `build_node_registry`), used for change detection. Absent when the
+    /// registry did not provide it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<String>,
 }
 
 // ── Workflow JSON ────────────────────────────────────────────────────────────
@@ -245,6 +250,28 @@ pub struct WsSubmit {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn node_type_definition_schema_version_round_trips() {
+        let raw = r#"{"type":"Foo","title":"Foo","description":"","category":"general",
+            "input_ports":[],"output_ports":[],"capabilities":[],
+            "ctx_override":false,"config_fields":[],"schema_version":"a1b2c3d4"}"#;
+        let n: NodeTypeDefinition = serde_json::from_str(raw).unwrap();
+        assert_eq!(n.schema_version.as_deref(), Some("a1b2c3d4"));
+        let s = serde_json::to_string(&n).unwrap();
+        assert!(s.contains(r#""schema_version":"a1b2c3d4""#));
+    }
+
+    #[test]
+    fn node_type_definition_schema_version_absent_defaults_none_and_is_skipped() {
+        let raw = r#"{"type":"Foo","title":"Foo","description":"","category":"general",
+            "input_ports":[],"output_ports":[],"capabilities":[],
+            "ctx_override":false,"config_fields":[]}"#;
+        let n: NodeTypeDefinition = serde_json::from_str(raw).unwrap();
+        assert!(n.schema_version.is_none());
+        let s = serde_json::to_string(&n).unwrap();
+        assert!(!s.contains("schema_version"));
+    }
 
     #[test]
     fn legacy_workflow_round_trip_defaults_format_version_zero() {
