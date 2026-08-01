@@ -20,7 +20,7 @@ from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from pydantic import Field, PositiveInt
 
-from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
+from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG, CitationSearchConfig
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSection, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
@@ -223,10 +223,12 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
         await self.clued_search(
             search_req,
             cm,
-            refinery_kwargs=self.query_model,
-            expand_multiplier=self.search_increment_multiplier,
-            base_accepted=self.ref_limit,
-            result_per_query=self.result_per_query,
+            config=CitationSearchConfig(
+                refinery_kwargs=self.query_model,
+                expand_multiplier=self.search_increment_multiplier,
+                base_accepted=self.ref_limit,
+                result_per_query=self.result_per_query,
+            ),
         )
 
 
@@ -268,10 +270,12 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
             await self.clued_search(
                 req,
                 cm,
-                refinery_kwargs=self.ref_q_model,
-                expand_multiplier=self.search_increment_multiplier,
-                base_accepted=self.ref_limit,
-                result_per_query=self.ref_per_q,
+                config=CitationSearchConfig(
+                    refinery_kwargs=self.ref_q_model,
+                    expand_multiplier=self.search_increment_multiplier,
+                    base_accepted=self.ref_limit,
+                    result_per_query=self.ref_per_q,
+                ),
             )
 
             ret = await self.aask(f"{cm.as_prompt()}\n{self.req}\n{req}")

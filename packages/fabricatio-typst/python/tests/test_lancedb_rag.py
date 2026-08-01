@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, List
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG
+from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG, CitationSearchConfig
 from fabricatio_typst.models.article_rag import ArticleChunk, CitationManager
 
 if TYPE_CHECKING:
@@ -287,9 +287,7 @@ class TestCitationLancedbRAG:
         result = await role.clued_search(
             requirement="Find papers about neural networks.",
             cm=cm,
-            max_capacity=10,
-            max_round=2,
-            base_accepted=5,
+            config=CitationSearchConfig(max_capacity=10, max_round=2, base_accepted=5),
         )
 
         assert isinstance(result, CitationManager)
@@ -319,9 +317,7 @@ class TestCitationLancedbRAG:
         result = await role.clued_search(
             requirement="Find more papers.",
             cm=cm,
-            max_capacity=10,
-            max_round=1,
-            base_accepted=5,
+            config=CitationSearchConfig(max_capacity=10, max_round=1, base_accepted=5),
         )
 
         keys_after = result.get_dedup_key_set()
@@ -337,9 +333,7 @@ class TestCitationLancedbRAG:
         result = await role.clued_search(
             requirement="Find papers.",
             cm=cm,
-            max_capacity=3,
-            max_round=2,
-            base_accepted=20,
+            config=CitationSearchConfig(max_capacity=3, max_round=2, base_accepted=20),
         )
 
         assert len(result.article_chunks) <= 3
@@ -354,9 +348,7 @@ class TestCitationLancedbRAG:
         result = await role.clued_search(
             requirement="Initial search.",
             cm=cm,
-            max_capacity=5,
-            max_round=1,
-            base_accepted=5,
+            config=CitationSearchConfig(max_capacity=5, max_round=1, base_accepted=5),
         )
 
         assert len(result.article_chunks) > 0
