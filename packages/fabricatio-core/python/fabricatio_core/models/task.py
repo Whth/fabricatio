@@ -50,11 +50,11 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
 
-    _extra_init_context: Dict = PrivateAttr(default_factory=dict)
+    _extra_init_context: Dict[str, Any] = PrivateAttr(default_factory=dict)
     """Extra initialization context for the task, which is designed to override the one of the Workflow."""
 
     @property
-    def extra_init_context(self) -> Dict:
+    def extra_init_context(self) -> Dict[str, Any]:
         """Extra initialization context for the task, which is designed to override the one of the Workflow."""
         return self._extra_init_context
 
