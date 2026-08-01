@@ -6,12 +6,17 @@ import NotificationToast from '@/components/NotificationToast.vue'
 import NodeOutputPreview from '@/components/canvas/NodeOutputPreview.vue'
 import { useOutputPreview, outputPreview } from '@/composables/useOutputPreview'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useExecutionStore } from '@/stores/execution'
+import { useWebSocket } from '@/composables/useWebSocket'
 import { onMounted } from 'vue'
 
 const wfStore = useWorkflowStore()
+const execStore = useExecutionStore()
+const { subscribe } = useWebSocket()
 
 onMounted(() => {
   if (wfStore.nodeTypes.length === 0) wfStore.loadNodeTypes()
+  subscribe((msg) => execStore.handleWSMessage(msg))
 })
 </script>
 

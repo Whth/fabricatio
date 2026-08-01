@@ -136,6 +136,19 @@ export const useExecutionStore = defineStore('execution', () => {
           notifications.error('Execution failed', msg.error.slice(0, 100))
         }
         executingNodeId.value = null
+        // A terminal event invalidates nodes still marked running (cancelled/failed mid-flight).
+        const staleRunning = Object.entries(nodeStatuses.value)
+          .filter(([, s]) => s === 'running')
+          .map(([id]) => id)
+        if (staleRunning.length > 0) {
+          const next = { ...nodeStatuses.value }
+          for (const id of staleRunning) delete next[id]
+          nodeStatuses.value = next
+          const wf = useWorkflowStore()
+          for (const n of wf.nodes) {
+            if (n.data.status === 'running') delete n.data.status
+          }
+        }
         break
 
       case 'status':
