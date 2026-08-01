@@ -131,7 +131,7 @@ class MyRAGRole(SomeBaseRole, LancedbRAG[MyDoc, LancedbAddRAGConfig, LancedbFetc
     pass
 
 async def run():
-    role = MyRAGRole()
+    role = MyRAGRole(name="my-rag-role")
     # Add a document — handles embedding batching internally
     await role.add_document(
         MyDoc(content="Semantic search with LanceDB and Fabricatio.", title="Intro"),

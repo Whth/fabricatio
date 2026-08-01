@@ -1030,7 +1030,7 @@ Generate Anki flashcards from CSV question banks.
     ns = "generate_deck"
     ns2 = "topic_analyze"
     (
-        Role.with_bio()
+        Role.with_bio(name="deck-generator")
         .subscribe(Event.quick_instantiate(ns), WorkFlow(steps=(DeckGen().to_task_output(),)))
         .subscribe(
             Event.quick_instantiate(ns2),

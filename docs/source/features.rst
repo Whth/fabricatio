@@ -75,7 +75,7 @@ Roles in Fabricatio register workflows to handle specific events, creating a fle
 
 .. code-block:: python
 
-   role = Role.with_bio().subscribe(
+   role = Role.with_bio(name="features-demo").subscribe(
        Event.quick_instantiate("process"),  # Matches "process::*::pending"
        WorkFlow(name="data_processor", steps=(Validate, Process, Store))
    ).dispatch()

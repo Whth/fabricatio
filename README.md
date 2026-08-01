@@ -322,7 +322,7 @@ class Hello(Action):
 
 
 # Create the role and register the workflow.
-(Role()
+(Role(name="talker")
  .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,)))
  .dispatch())
 

@@ -6,7 +6,7 @@ from fabricatio.models import Song
 from fabricatio_core.utils import ok
 
 (
-    Role.with_bio()
+    Role.with_bio(name="composer")
     .subscribe(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(Compose().to_task_output(),)))
     .dispatch()
 )

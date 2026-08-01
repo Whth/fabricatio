@@ -611,7 +611,7 @@ How roles register and handle skills.
 
     from fabricatio import Role, Event, WorkFlow
 
-    role = Role.with_bio() \
+    role = Role.with_bio(name="greeter") \
         .subscribe(Event.quick_instantiate("greet"), WorkFlow(
             name="greet",
             steps=(HelloAction,)

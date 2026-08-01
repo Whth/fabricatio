@@ -43,7 +43,7 @@ class DeckGen(Action, GenerateDeck):
 
 
 (
-    Role.with_bio()
+    Role.with_bio(name="deck-generator")
     .subscribe(Event.quick_instantiate(ns := "generate_deck"), WorkFlow(steps=(DeckGen().to_task_output(),)))
     .subscribe(
         Event.quick_instantiate(ns2 := "topic_analyze"),

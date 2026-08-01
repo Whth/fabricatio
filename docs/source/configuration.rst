@@ -67,7 +67,7 @@ Create a simple test script:
         async def _execute(self, **_) -> str:
             return "Fabricatio is working!"
 
-    role = Role.with_bio().subscribe(
+    role = Role.with_bio(name="config-demo").subscribe(
         Event.quick_instantiate("test"),
         WorkFlow(name="test", steps=(TestAction,))
     ).dispatch()
@@ -95,6 +95,7 @@ Here's a complete example using configuration:
     # Create role with custom LLM configuration
     role = Role.new(
         {},
+        name="config-demo",
         config={
             "llm": {"temperature": 0.7},
             "debug": {"log_level": "DEBUG"}

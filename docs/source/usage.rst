@@ -37,7 +37,7 @@ Here's a simple "Hello World" example:
 
 
    # Create the role and register the workflow.
-   Role.with_bio().subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,))).dispatch()
+   Role.with_bio(name="talker").subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Hello,))).dispatch()
 
 
    # Make a task and delegate it to the workflow registered above.
@@ -62,7 +62,7 @@ For asynchronous execution:
            return "Hello fabricatio!"
 
    async def main() -> None:
-       role = Role.with_bio().subscribe(
+       role = Role.with_bio(name="talker").subscribe(
            Event.quick_instantiate("talk"),
            WorkFlow(name="talk", steps=(Hello,))
        ).dispatch()

@@ -39,7 +39,7 @@ class TranslatorRole(Role, Translate):
     """Role with translation capability."""
 
 async def main() -> None:
-    role = TranslatorRole()
+    role = TranslatorRole(name="translator")
 
     # Single text
     result = await role.translate("Hello, world.", target_language="fr")

@@ -86,7 +86,7 @@ class MyRole(Propose, Tagging):
 
 
 async def main():
-    role = MyRole()
+    role = MyRole(name="tagger")
 
     # Tag a single string
     tags = await role.tagging("Python is a high-level programming language.")
