@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Unpack
 
 from fabricatio_comfyui.capabilities.comfyui import Comfyui
+from fabricatio_comfyui.models import ComfyuiExecutionResult
 from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -208,7 +209,7 @@ class _ChapterIllustrator:
     def process_results(
         self,
         kept: CollectedConstrains,
-        results: list,
+        results: list[ComfyuiExecutionResult],
     ) -> None:
         """Rename generated images and track successful picks."""
         for idx, constrain, result in zip(kept.indices, kept.constrains, results, strict=True):
