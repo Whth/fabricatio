@@ -4,6 +4,11 @@ Output format:
 2. Path to write the code should be placed above ">>>>>".
 3. The code lang identifier should be a suffix after ">>>>>".
 
+Expected result:
+- Every file you generate is delivered as its own ">>>>>" ... "<<<<<" block.
+- The path above ">>>>>" is a plain relative path (e.g. src/hello.py), without quotes, colons, angle brackets, or other special characters.
+- The code between the fences must be complete and syntactically valid; it will be written to the path as-is.
+
 e.g.
 
 <file path placeholder>
