@@ -28,6 +28,39 @@ def _state_tag(state: str) -> str:
     }[state]
 
 
+def _sanitize_result(value: Any, limit: int = 4000, cap: int = 100_000) -> Any:
+    """Recursively trim an execution result so WS frames stay small.
+
+    Strings longer than ``limit`` chars are preview-truncated using the same
+    convention the executor applies to node_done/node_output; non-string
+    leaves that serialize to more than ``limit`` bytes, and containers that
+    still serialize to more than ``cap`` bytes after cleaning, are replaced
+    with a short placeholder. ``cap`` sits well below the ~1 MiB WS frame
+    ceiling that killed clients with a 20 MB node output.
+    """
+    from fabricatio_webui.executor import _preview
+
+    if isinstance(value, str):
+        return _preview(value, limit) if len(value) > limit else value
+    if isinstance(value, dict):
+        cleaned = {key: _sanitize_result(item, limit, cap) for key, item in value.items()}
+    elif isinstance(value, (list, tuple)):
+        cleaned = [_sanitize_result(item, limit, cap) for item in value]
+    else:
+        try:
+            if len(orjson.dumps(value)) > limit:
+                return f"[truncated: {type(value).__name__}]"
+        except TypeError:
+            pass
+        return value
+    try:
+        if len(orjson.dumps(cleaned)) > cap:
+            return f"[truncated: {type(value).__name__}]"
+    except TypeError:
+        pass
+    return cleaned
+
+
 class WorkflowWorker:
     """Owns the execution queue and runs one workflow at a time."""
 
@@ -153,10 +186,11 @@ class WorkflowWorker:
             )
             return
 
-        self._record(execution_id, "ok", None)
+        safe_result = _sanitize_result(result)
+        self._record(execution_id, "ok", None, result=safe_result)
         self._send(
             "execution_done",
-            {"execution_id": execution_id, "cancelled": False, "result": result, "error": None},
+            {"execution_id": execution_id, "cancelled": False, "result": safe_result, "error": None},
         )
 
     def _event_cb(self, execution_id: str) -> Callable[[str, Dict[str, Any]], Any]:
@@ -199,13 +233,16 @@ class WorkflowWorker:
 
         return cb
 
-    def _record(self, execution_id: str, state: str, error: Optional[str]) -> None:
+    def _record(
+        self, execution_id: str, state: str, error: Optional[str], result: Optional[Any] = None
+    ) -> None:
         self._history.append(
             {
                 "execution_id": execution_id,
                 "state": _state_tag(state),
                 "current_node": None,
                 "error": error,
+                "result": result,
             }
         )
         if len(self._history) > self._history_max:

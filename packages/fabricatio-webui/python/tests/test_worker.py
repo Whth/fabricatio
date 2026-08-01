@@ -19,6 +19,15 @@ class FakeStep(Action):
         return self.value
 
 
+class HugeListStep(Action):
+    """Test action that returns a large non-string result."""
+
+    output_key: str = "big_list"
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return list(range(30_000))
+
+
 class SlowStep(Action):
     """Test action that blocks until cancelled."""
 
@@ -129,6 +138,49 @@ async def test_malformed_workflow_yields_error_without_killing_worker() -> None:
     assert "e4" in ids
     err = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "e3")
     assert err["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_huge_result_is_truncated_in_done_and_history() -> None:
+    """Oversized results are preview-truncated in both broadcast and history."""
+    events: List[Dict[str, Any]] = []
+
+    def broadcast(payload: str) -> None:
+        events.append(json.loads(payload))
+
+    worker = WorkflowWorker(broadcast)
+    loop_task = await _run_worker(worker)
+
+    raw = "x" * 5000
+    wf = json.dumps(
+        {
+            "nodes": [
+                {"id": "n1", "type": "FakeStep", "inputs": {}, "config": {"value": raw}},
+                {"id": "n2", "type": "HugeListStep", "inputs": {}, "config": {}},
+            ],
+            "edges": [],
+        }
+    )
+    worker.submit("e6", wf, "null")
+    await asyncio.sleep(0.1)
+    loop_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await loop_task
+
+    done = next(e for e in events if e["type"] == "execution_done")
+    result = done["result"]
+    # Long string value: preview-truncated (not the raw 5000-char payload).
+    assert result["fake_result"] != raw
+    assert len(result["fake_result"]) == 4000
+    assert result["fake_result"].endswith("...")
+    assert raw not in json.dumps(done)
+    # Huge non-string value: replaced with a short placeholder.
+    assert result["big_list"] == "[truncated: list]"
+
+    history = json.loads(worker.history_snapshot())
+    entry = next(h for h in history if h["execution_id"] == "e6" and h["state"] == "completed")
+    assert entry["result"] == result
+    assert raw not in json.dumps(history)
 
 
 @pytest.mark.asyncio
