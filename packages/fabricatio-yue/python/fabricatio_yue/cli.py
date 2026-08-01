@@ -28,7 +28,9 @@ def compose(
     from fabricatio_yue.actions.compose import Compose
 
     ns = "compose"
-    Role.with_bio().subscribe(Event.quick_instantiate(ns), WorkFlow(steps=(Compose().to_task_output(),))).dispatch()
+    Role.with_bio(name="composer").subscribe(
+        Event.quick_instantiate(ns), WorkFlow(steps=(Compose().to_task_output(),))
+    ).dispatch()
 
     ok(
         Task(name="compose song")
