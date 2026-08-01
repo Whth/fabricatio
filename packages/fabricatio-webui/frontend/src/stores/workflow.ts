@@ -16,6 +16,10 @@ export interface FabricatioNodeData {
   inputs: Record<string, unknown>
   config: Record<string, unknown>
   nodeId: string
+  /** Numeric wire schema_version; 1 = current generation. */
+  schemaVersion?: number
+  /** Execution status mirror (running/done/error), set by the execution store. */
+  status?: string
 }
 
 export interface WorkflowNode {
@@ -172,6 +176,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
         inputs: {},
         config: {},
         nodeId: id,
+        schemaVersion: 1,
       },
     }
     pushSnapshot()
@@ -241,6 +246,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   function toJSON(): WorkflowJSON {
     return {
       version: '1.0',
+      format_version: 1,
       name: workflowName.value,
       nodes: nodes.value.map((n) => ({
         id: n.id,
@@ -249,6 +255,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
         pos: [n.position?.x ?? 0, n.position?.y ?? 0],
         inputs: n.data?.inputs ?? {},
         config: n.data?.config ?? {},
+        schema_version: n.data?.schemaVersion ?? 1,
       })),
       edges: edges.value.map((e) => ({
         id: e.id,
@@ -265,6 +272,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
   async function fromJSON(wf: WorkflowJSON) {
     workflowName.value = wf.name || 'Untitled Workflow'
     loadedMeta.value = wf.meta
+
+    if (wf.format_version === undefined || wf.format_version === 0) {
+      console.warn('Migrating legacy workflow (format_version 0/missing) — server will upgrade on execution')
+    }
 
     if (nodeTypes.value.length === 0) {
       await loadNodeTypes()
@@ -289,6 +300,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
           inputs: n.inputs ?? {},
           config: n.config ?? {},
           nodeId: n.id,
+          schemaVersion: n.schema_version ?? 1,
         },
       }
     })

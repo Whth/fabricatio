@@ -3,11 +3,15 @@ import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { PortDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useExecutionStore } from '@/stores/execution'
 import { categoryColor } from '@/utils/categoryColors'
+import { useOutputPreview } from '@/composables/useOutputPreview'
 import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ id: string; data: any }>()
 const wfStore = useWorkflowStore()
+const execStore = useExecutionStore()
+const { show } = useOutputPreview()
 
 const node = computed(() => wfStore.nodes.find((n) => n.id === props.id))
 
@@ -27,6 +31,10 @@ function fieldValue(f: PortDefinition): unknown {
 
 function updateField(f: PortDefinition, value: unknown) {
   wfStore.setNodeConfig(props.id, f.name, value)
+}
+
+function hasOutput(key: string): boolean {
+  return execStore.nodeOutputs[props.id]?.[key] !== undefined
 }
 </script>
 
@@ -63,6 +71,12 @@ function updateField(f: PortDefinition, value: unknown) {
       <div class="port-col outputs">
         <div v-for="p in data.outputPorts" :key="p.name" class="port-row">
           <span class="port-name">{{ p.name }}</span>
+          <button
+            v-if="hasOutput(p.name)"
+            class="output-dot"
+            :title="`Preview ${p.name}`"
+            @click.stop="show(props.id, p.name, $event)"
+          ></button>
           <Handle :id="p.name" type="source" :position="Position.Right" class="port-handle" />
         </div>
       </div>
@@ -130,6 +144,19 @@ function updateField(f: PortDefinition, value: unknown) {
 }
 .wired-field {
   color: var(--fg-2);
+}
+.output-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ok);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.output-dot:hover {
+  transform: scale(1.3);
 }
 .status-pulse {
   width: 8px;

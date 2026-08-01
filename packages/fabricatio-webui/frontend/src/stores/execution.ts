@@ -30,6 +30,12 @@ export const useExecutionStore = defineStore('execution', () => {
     return running.find((id) => tokenBuffer.value[id] !== undefined) ?? null
   })
 
+  function mirrorNodeStatus(nodeId: string, status: NodeStatus) {
+    const wf = useWorkflowStore()
+    const n = wf.nodes.find((x) => x.id === nodeId)
+    if (n) n.data.status = status
+  }
+
   function handleWSMessage(msg: WSMessage) {
     const notifications = useNotificationsStore()
 
@@ -45,6 +51,7 @@ export const useExecutionStore = defineStore('execution', () => {
           ...nodeStatuses.value,
           [msg.node_id]: 'running',
         }
+        mirrorNodeStatus(msg.node_id, 'running')
         nodeTimings.value = {
           ...nodeTimings.value,
           [msg.node_id]: { startedAt: Date.now(), endedAt: 0 },
@@ -56,6 +63,7 @@ export const useExecutionStore = defineStore('execution', () => {
           ...nodeStatuses.value,
           [msg.node_id]: 'done',
         }
+        mirrorNodeStatus(msg.node_id, 'done')
         if (msg.output !== undefined) {
           nodeOutputs.value = {
             ...nodeOutputs.value,
@@ -82,6 +90,7 @@ export const useExecutionStore = defineStore('execution', () => {
           ...nodeStatuses.value,
           [msg.node_id]: 'error',
         }
+        mirrorNodeStatus(msg.node_id, 'error')
         errors.value = [
           ...errors.value,
           {
@@ -121,7 +130,7 @@ export const useExecutionStore = defineStore('execution', () => {
         break
 
       case 'execution_done':
-        executionState.value = msg.error ? 'failed' : 'completed'
+        executionState.value = msg.error ? 'failed' : msg.cancelled ? 'idle' : 'completed'
         if (msg.result) result.value = msg.result
         if (msg.error) {
           notifications.error('Execution failed', msg.error.slice(0, 100))
@@ -178,6 +187,8 @@ export const useExecutionStore = defineStore('execution', () => {
     nodeOutputs.value = {}
     nodeTimings.value = {}
     tokenBuffer.value = {}
+    const wf = useWorkflowStore()
+    for (const n of wf.nodes) delete n.data.status
   }
 
   const isRunning = computed(() => executionState.value === 'running')
