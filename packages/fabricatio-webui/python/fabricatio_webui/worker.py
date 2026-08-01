@@ -119,6 +119,13 @@ class WorkflowWorker:
         self._record(execution_id, "running", None)
         self._send("execution_start", {"execution_id": execution_id, "timestamp": None})
 
+        # Migrate legacy workflow formats (format_version 0) before execution.
+        from fabricatio_webui.registry import _worker_registry, migrate_workflow
+
+        wf, summary = migrate_workflow(wf, _worker_registry())
+        if summary != "no changes":
+            logger.info(f"Worker: {execution_id} workflow migrated: {summary}")
+
         from fabricatio_webui.executor import WorkflowExecutor
 
         executor = WorkflowExecutor.new(wf, self._event_cb(execution_id))

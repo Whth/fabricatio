@@ -29,7 +29,7 @@ def _preview(value: Any, limit: int = 4000) -> str:
     except Exception:  # noqa: BLE001
         text = str(value)
     if len(text) > limit:
-        return text[:limit] + "..."
+        return text[: max(0, limit - 3)] + "..."
     return text
 
 

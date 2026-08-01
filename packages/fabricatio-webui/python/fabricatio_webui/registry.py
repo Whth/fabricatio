@@ -5,9 +5,12 @@ suitable for frontend rendering as a ComfyUI-style node palette.
 """
 
 import contextlib
+import hashlib
+import json
 from collections import deque
+from functools import cache
 from pathlib import Path
-from typing import Any, Dict, List, Set, Type, Union, get_args, get_origin
+from typing import Any, Dict, List, Literal, Set, Type, Union, get_args, get_origin
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
@@ -100,6 +103,9 @@ def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
                 return f"List[{inner_str}]"
             return "List"
 
+        if origin_name == "Literal":
+            return "Literal"
+
         # generic aliases e.g. Task[T]
         return origin_name
 
@@ -112,6 +118,49 @@ def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
         return str(ann)
 
     return str(ann)
+
+
+def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:  # noqa: C901, PLR0911
+    """Map a field annotation to a frontend widget hint (see spec §2.3).
+
+    Returns ``{"widget": ...}`` plus optional constraints. The port's own
+    ``default`` field carries the value; hints only describe the control.
+    """
+    origin = get_origin(ann)
+    args = get_args(ann) if origin is not None else ()
+
+    # Optional[T] -> T, required=False
+    if origin is Union and len(args) == 2 and type(None) in args:
+        inner = next(a for a in args if a is not type(None))
+        hint = _widget_hint(inner, has_default, default)
+        hint["required"] = False
+        return hint
+
+    if origin is Literal:
+        return {"widget": "combo", "options": list(args)}
+
+    if origin is not None and getattr(origin, "__name__", "") in ("list", "List"):
+        return {"widget": "text", "separator": ","}
+
+    if origin is not None and getattr(origin, "__name__", "") in ("dict", "Dict"):
+        return {"widget": "json"}
+
+    if isinstance(ann, type):
+        if issubclass(ann, bool):
+            return {"widget": "toggle"}
+        if issubclass(ann, int):
+            return {"widget": "number", "step": 1}
+        if issubclass(ann, float):
+            return {"widget": "number", "step": 0.1}
+        if issubclass(ann, Path):
+            return {"widget": "text", "placeholder": "/path/to/file"}
+        if issubclass(ann, str):
+            if has_default and isinstance(default, str) and len(default) > 120:
+                return {"widget": "textarea"}
+            return {"widget": "text"}
+
+    # Anything else / unresolvable
+    return {"widget": "json"}
 
 
 def _annotation_to_schema(ann: Any) -> Dict[str, Any]:
@@ -220,6 +269,9 @@ def _extract_input_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
         # Always set optional (required by Rust PortDefinition)
         schema.setdefault("optional", has_default)
 
+        # Widget hint for the inline editor
+        schema.update(_widget_hint(ann, has_default, field_info.default))
+
         ports.append(schema)
 
     return ports
@@ -311,17 +363,66 @@ def build_node_registry() -> Dict[str, Any]:
                 "title": first_line or cls.__name__,
                 "description": doc,
                 "category": _derive_category(cls),
-                "input_ports": _extract_input_ports(cls),
+                "input_ports": (input_ports := _extract_input_ports(cls)),
                 "output_ports": _extract_output_ports(cls),
                 "capabilities": _extract_capabilities(cls),
                 "ctx_override": getattr(cls, "ctx_override", False),
-                "config_fields": [],
+                "config_fields": list(input_ports),
             }
+            # Content hash for change detection; the wire node field
+            # ``schema_version`` is a numeric generation marker, not this hash.
+            entry["schema_version"] = hashlib.sha1(json.dumps(entry, sort_keys=True, default=str).encode()).hexdigest()[  # noqa: S324
+                :8
+            ]
             node_types.append(entry)
         except Exception:  # noqa: BLE001
             logger.warn(f"Failed to introspect Action subclass {cls.__name__!r}; skipping.")
 
+    node_types_json = json.dumps(node_types, sort_keys=True, default=str)
     return {
         "version": "1.0",
+        "registry_version": hashlib.sha1(node_types_json.encode()).hexdigest()[:8],  # noqa: S324
         "node_types": node_types,
     }
+
+
+@cache
+def _worker_registry() -> Dict[str, Any]:
+    """Return a cached registry for the execution worker (built once)."""
+    return build_node_registry()
+
+
+def migrate_workflow(wf: Dict[str, Any], registry: Dict[str, Any]) -> tuple[Dict[str, Any], str]:
+    """Upgrade a legacy workflow dict to the current format.
+
+    Returns ``(workflow, summary)`` where *summary* describes what changed.
+    Never mutates the input dict — the workflow is rebuilt. Idempotent: a
+    current-format workflow is returned with summary ``"no changes"``.
+    """
+    changes: List[str] = []
+    wf = dict(wf)
+    if wf.get("format_version", 0) < 1:
+        wf["format_version"] = 1
+        changes.append("format_version -> 1")
+
+    by_type = {n["type"]: n for n in registry.get("node_types", [])}
+    nodes: List[Dict[str, Any]] = []
+    for raw_node in wf.get("nodes", []):
+        node = dict(raw_node)
+        node.setdefault("inputs", {})
+        node.setdefault("config", {})
+        if node.get("schema_version", 0) < 1:
+            node["schema_version"] = 1 if node.get("type") in by_type else 0
+            changes.append(f"node {node.get('id', '?')} schema_version pinned")
+        nodes.append(node)
+    wf["nodes"] = nodes
+
+    edges: List[Dict[str, Any]] = []
+    for raw_edge in wf.get("edges", []):
+        edge = dict(raw_edge)
+        edge.setdefault("source_handle", "default")
+        edge.setdefault("target_handle", "default")
+        edges.append(edge)
+    wf["edges"] = edges
+    wf.setdefault("init_context", {})
+    return wf, ", ".join(changes) or "no changes"
