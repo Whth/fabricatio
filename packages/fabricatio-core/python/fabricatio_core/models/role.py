@@ -9,7 +9,6 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.generic import ScopedConfig, WithBriefing
 from fabricatio_core.rust import Event
-from fabricatio_core.utils import first_available
 
 type RoleName = str
 type EventPattern = str
@@ -41,31 +40,29 @@ class Role(WithBriefing):
         cls,
         subscriptions: Dict[EventPattern, WorkFlow],
         /,
-        name: Optional[RoleName] = None,
+        name: RoleName,
         description: str = "",
         dispatch_on_init: bool = False,
         **kwargs: Unpack[TypedDict],
     ) -> Self:
         """Create a new Role."""
-        real_name = first_available((name, cls.__name__))
-
-        self = cls(name=real_name, description=description, subscriptions=subscriptions, **kwargs)
+        self = cls(name=name, description=description, subscriptions=subscriptions, **kwargs)
 
         return self.dispatch() if dispatch_on_init else self
 
     @classmethod
     def with_bio(
         cls,
-        name: Optional[RoleName] = None,
+        name: RoleName,
         description: str = "",
     ) -> Self:
         """Create a new Role with a bio."""
         return cls.new({}, name=name, description=description)
 
     @classmethod
-    def with_subscriptions(cls, subscriptions: Dict[EventPattern, WorkFlow]) -> Self:
+    def with_subscriptions(cls, subscriptions: Dict[EventPattern, WorkFlow], name: RoleName) -> Self:
         """Create a new Role with subscription specified only."""
-        return cls.new(subscriptions)
+        return cls.new(subscriptions, name=name)
 
     @property
     def briefing(self) -> str:
