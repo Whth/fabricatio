@@ -98,7 +98,7 @@ class GenerateDeckRole(LLMTestRole, GenerateDeck):
 @pytest.fixture
 def role() -> GenerateDeckRole:
     """Create a GenerateDeckRole instance for testing."""
-    return GenerateDeckRole()
+    return GenerateDeckRole(name="generate-deck")
 
 
 @pytest.mark.parametrize(

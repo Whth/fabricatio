@@ -37,7 +37,7 @@ def check_role() -> CheckRole:
     Returns:
         CheckRole: CheckRole instance
     """
-    return CheckRole()
+    return CheckRole(name="check")
 
 
 @pytest.fixture

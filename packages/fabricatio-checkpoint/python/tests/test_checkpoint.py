@@ -29,7 +29,7 @@ def setup_tmp_stores_root(tmp_path_factory: pytest.TempPathFactory) -> None:
 @pytest.fixture
 def role(tmp_worktree_dir: Path, setup_tmp_stores_root: None) -> CheckpointRole:
     """Create a test role."""
-    return CheckpointRole(worktree_dir=tmp_worktree_dir).mount_checkpoint_store()
+    return CheckpointRole(name="checkpoint", worktree_dir=tmp_worktree_dir).mount_checkpoint_store()
 
 
 def test_save(role: CheckpointRole, tmp_worktree_dir: Path) -> None:

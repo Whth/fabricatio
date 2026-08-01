@@ -33,7 +33,7 @@ def role_with_llm() -> LLMTestRole:
     Returns:
         Ready-to-use LLMRole instance
     """
-    return LLMTestRole()
+    return LLMTestRole(name="llm-test")
 
 
 @pytest.mark.parametrize("ret_value", ["Hi", "Hello"])

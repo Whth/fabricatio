@@ -17,7 +17,7 @@ class ReviewerRole(LLMTestRole, Review):
 @pytest.fixture
 def role() -> ReviewerRole:
     """Create a ReviewerRole instance."""
-    return ReviewerRole()
+    return ReviewerRole(name="review-extended")
 
 
 @pytest.fixture

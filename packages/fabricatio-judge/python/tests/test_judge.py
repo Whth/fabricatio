@@ -54,7 +54,7 @@ def role() -> JudgeRole:
     Returns:
         JudgeRole: JudgeRole instance
     """
-    return JudgeRole()
+    return JudgeRole(name="judge")
 
 
 @pytest.mark.parametrize(
@@ -116,7 +116,7 @@ def vote_role() -> VoteJudgeRole:
     Returns:
         VoteJudgeRole: VoteJudgeRole instance
     """
-    return VoteJudgeRole()
+    return VoteJudgeRole(name="vote-judge")
 
 
 # Helper to generate a mock router returning specific judgments

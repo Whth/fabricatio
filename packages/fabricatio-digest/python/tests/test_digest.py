@@ -30,7 +30,7 @@ def digest_role() -> DigestRole:
     Returns:
         DigestRole: DigestRole instance
     """
-    return DigestRole()
+    return DigestRole(name="digest")
 
 
 @pytest.fixture

@@ -45,7 +45,7 @@ def role() -> DiffEditRole:
     Returns:
         DiffEditRole: DiffEditRole instance
     """
-    return DiffEditRole()
+    return DiffEditRole(name="diff-edit")
 
 
 @pytest.mark.parametrize(

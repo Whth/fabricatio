@@ -34,7 +34,7 @@ def mock_router(ret_value: SketchedAble) -> list[str]:
 @pytest.fixture(autouse=True)
 def role() -> ProposeTestRole:
     """Fixture to create a role with propose capability."""
-    return ProposeTestRole()
+    return ProposeTestRole(name="propose")
 
 
 @pytest.mark.parametrize("ret_value", [Task(name="test"), MockModel(attr1="test", attr2=1, attr=["test"])])

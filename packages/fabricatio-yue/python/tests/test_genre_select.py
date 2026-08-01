@@ -35,7 +35,7 @@ def role() -> SelectGenreRole:
     Returns:
         An instance of SelectGenreRole for testing purposes.
     """
-    return SelectGenreRole()
+    return SelectGenreRole(name="select-genre")
 
 
 @pytest.mark.parametrize(

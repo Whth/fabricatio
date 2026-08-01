@@ -98,7 +98,7 @@ class CleanTextTestRole(LLMTestRole, CleanText):
 @pytest.fixture
 def role() -> CleanTextTestRole:
     """A fresh CleanTextTestRole per test."""
-    return CleanTextTestRole()
+    return CleanTextTestRole(name="clean-text")
 
 
 # ─── 1. HashlineEdit inheritance smoke test ────────────────────────────

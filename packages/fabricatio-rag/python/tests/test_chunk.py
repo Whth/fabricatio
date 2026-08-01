@@ -59,7 +59,7 @@ class PreciseChunkTestRole(LLMTestRole, PreciseChunkText):
 @pytest.fixture
 def role() -> PreciseChunkTestRole:
     """A fresh PreciseChunkTestRole per test."""
-    return PreciseChunkTestRole()
+    return PreciseChunkTestRole(name="precise-chunk")
 
 
 # ─── 1. Dispatch contract ──────────────────────────────────────────────

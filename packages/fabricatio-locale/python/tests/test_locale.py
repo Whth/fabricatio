@@ -15,7 +15,7 @@ class LocalizeRole(LLMTestRole, Localize):
 @pytest.fixture
 def role() -> LocalizeRole:
     """Create a LocalizeRole instance for testing."""
-    return LocalizeRole()
+    return LocalizeRole(name="localize")
 
 
 @pytest.mark.parametrize(

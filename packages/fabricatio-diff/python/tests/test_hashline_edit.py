@@ -101,7 +101,7 @@ class HashlineEditRole(LLMTestRole, HashlineEdit):
 @pytest.fixture
 def role() -> HashlineEditRole:
     """Build a fresh `HashlineEditRole` for each test."""
-    return HashlineEditRole()
+    return HashlineEditRole(name="hashline-edit")
 
 
 # ─── 1. Programmatic wrappers ─────────────────────────────────────────────

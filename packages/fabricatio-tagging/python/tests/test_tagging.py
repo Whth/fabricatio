@@ -22,7 +22,7 @@ def role() -> TaggingRole:
     Returns:
         TaggingRole: TaggingRole instance
     """
-    return TaggingRole()
+    return TaggingRole(name="tagging")
 
 
 @pytest.fixture

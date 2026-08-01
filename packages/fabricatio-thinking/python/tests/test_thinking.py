@@ -16,7 +16,7 @@ class ThinkingRole(LLMTestRole, Thinking):
 @pytest.fixture
 def role() -> ThinkingRole:
     """Create a ThinkingRole instance for testing."""
-    return ThinkingRole()
+    return ThinkingRole(name="thinking")
 
 
 @pytest.fixture

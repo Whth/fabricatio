@@ -22,7 +22,7 @@ def responses(ret_value: str) -> list[str]:
 @pytest.fixture
 def role() -> CorrectRole:
     """Fixture to create a ReviewerRole instance."""
-    return CorrectRole()
+    return CorrectRole(name="correct")
 
 
 @pytest.mark.parametrize(

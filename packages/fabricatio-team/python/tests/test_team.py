@@ -15,7 +15,7 @@ class TeamRole(LLMTestRole, Cooperate):
 @pytest.fixture
 def team_role() -> TeamRole:
     """Create a TeamRole instance for testing."""
-    return TeamRole()
+    return TeamRole(name="team")
 
 
 # ---------------------------------------------------------------------------

@@ -120,7 +120,7 @@ class _RAGTestRole(LLMTestRole, NovelComposeRAG):
 @pytest.fixture
 def rag_role() -> _RAGTestRole:
     """Fresh `_RAGTestRole` per test."""
-    return _RAGTestRole()
+    return _RAGTestRole(name="novel-rag-test")
 
 
 @pytest.fixture

@@ -96,8 +96,7 @@ class TestCensor:
     @pytest.fixture
     def role(self) -> CensorRole:
         """Create a CensorRole instance."""
-        return CensorRole()
-        return CensorRole()
+        return CensorRole(name="censor")
 
     @pytest.mark.asyncio
     async def test_censor_string_no_improvements(self, role: CensorRole) -> None:

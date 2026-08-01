@@ -14,7 +14,7 @@ class TranslateRole(LLMTestRole, Translate):
 @pytest.fixture
 def role() -> TranslateRole:
     """Create a TranslateRole instance for testing."""
-    return TranslateRole()
+    return TranslateRole(name="translate")
 
 
 @pytest.mark.parametrize(

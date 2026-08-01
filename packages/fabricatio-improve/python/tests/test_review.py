@@ -23,7 +23,7 @@ def responses(ret_value: SketchedAble) -> list[str]:
 @pytest.fixture
 def role() -> ReviewerRole:
     """Fixture to instantiate a ReviewerRole object for testing."""
-    return ReviewerRole()
+    return ReviewerRole(name="review")
 
 
 @pytest.mark.parametrize(

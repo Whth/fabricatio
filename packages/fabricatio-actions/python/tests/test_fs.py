@@ -202,7 +202,7 @@ class TestSmartReadText:
         Returns:
             SmartReadRole: SmartReadRole instance
         """
-        return SmartReadRole()
+        return SmartReadRole(name="smart-read")
 
     @pytest.fixture
     def sample_task(self) -> Task[str]:
@@ -254,7 +254,7 @@ class TestSmartDumpText:
         Returns:
             SmartDumpRole: SmartDumpRole instance
         """
-        return SmartDumpRole()
+        return SmartDumpRole(name="smart-dump")
 
     @pytest.fixture
     def sample_task(self) -> Task[str]:

@@ -16,7 +16,7 @@ class CorrectRole(LLMTestRole, Correct):
 @pytest.fixture
 def role() -> CorrectRole:
     """Create a CorrectRole instance."""
-    return CorrectRole()
+    return CorrectRole(name="correct-extended")
 
 
 @pytest.fixture

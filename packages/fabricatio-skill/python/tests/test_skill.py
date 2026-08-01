@@ -149,7 +149,7 @@ class TestUseSkill:
 
     def test_add_skills(self) -> None:
         """Test adding skills to the role."""
-        role = SkillRole()
+        role = SkillRole(name="skill")
         skills = [
             Skill(name="a", description="A", tags=[], content="content a", path="a.md"),
             Skill(name="b", description="B", tags=[], content="content b", path="b.md"),
@@ -159,7 +159,7 @@ class TestUseSkill:
 
     def test_add_skills_filtered(self) -> None:
         """Test adding skills with name filter."""
-        role = SkillRole()
+        role = SkillRole(name="skill")
         skills = [
             Skill(name="a", description="A", tags=[], content="content a", path="a.md"),
             Skill(name="b", description="B", tags=[], content="content b", path="b.md"),
@@ -170,7 +170,7 @@ class TestUseSkill:
 
     def test_add_skills_chaining(self) -> None:
         """Test method chaining."""
-        role = SkillRole()
+        role = SkillRole(name="skill")
         s1 = [Skill(name="a", description="", tags=[], content="", path="a.md")]
         s2 = [Skill(name="b", description="", tags=[], content="", path="b.md")]
 
@@ -181,7 +181,7 @@ class TestUseSkill:
     @pytest.mark.asyncio
     async def test_use_skill_no_skills(self) -> None:
         """Test use_skill with no skills loaded proceeds without context."""
-        role = SkillRole()
+        role = SkillRole(name="skill")
         role.mock_llm_response("plain answer")
 
         result = await role.use_skill("What is Python?")
@@ -190,7 +190,7 @@ class TestUseSkill:
     @pytest.mark.asyncio
     async def test_use_skill_forced_names(self) -> None:
         """Test use_skill with forced skill names and no distill."""
-        role = SkillRole()
+        role = SkillRole(name="skill")
         role.add_skills(
             [
                 Skill(

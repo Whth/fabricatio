@@ -155,7 +155,7 @@ class TestCharacterCompose:
     @pytest.fixture
     def role(self) -> CharacterRole:
         """Create a CharacterRole instance."""
-        return CharacterRole()
+        return CharacterRole(name="character")
 
     @pytest.mark.asyncio
     async def test_compose_characters_single_string(self, role: CharacterRole) -> None:

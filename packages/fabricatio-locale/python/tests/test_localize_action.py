@@ -52,6 +52,7 @@ async def test_localize_po_file_action(tmp_path: Path) -> None:
     responses = return_generic_router_usage("Bonjour", "Monde")
     with install_router_usage(*responses):
         action = LocalizePoFileRole(
+            name="localize-po",
             pofile=str(po_file),
             target_lang="fr",
             output_path=str(output_file),
@@ -77,6 +78,7 @@ async def test_localize_po_file_overwrites_input(tmp_path: Path) -> None:
     responses = return_generic_router_usage("Hola")
     with install_router_usage(*responses):
         action = LocalizePoFileRole(
+            name="localize-po",
             pofile=str(po_file),
             target_lang="es",
             output_path=None,
@@ -100,6 +102,7 @@ async def test_localize_po_file_preserves_ids(tmp_path: Path) -> None:
     responses = return_generic_router_usage("Guten Tag", "Auf Wiedersehen")
     with install_router_usage(*responses):
         action = LocalizePoFileRole(
+            name="localize-po",
             pofile=str(po_file),
             target_lang="de",
             output_path=str(output_file),

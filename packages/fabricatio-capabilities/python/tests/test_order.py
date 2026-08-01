@@ -60,7 +60,7 @@ def role() -> OrderingRole:
     Returns:
         OrderingRole: OrderingRole instance
     """
-    return OrderingRole()
+    return OrderingRole(name="ordering")
 
 
 @pytest.mark.parametrize(

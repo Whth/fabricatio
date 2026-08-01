@@ -146,7 +146,7 @@ def sample_docs() -> list[StoreDocument]:
 @pytest.fixture
 async def rag_role(svc: VectorStoreService) -> RAGTestImpl:
     """Create a RAGTestImpl with an initialised vector store table."""
-    role = RAGTestImpl()
+    role = RAGTestImpl(name="rag-test")
     await role._ensure_table(svc)
     return role
 
@@ -425,7 +425,7 @@ class TestVectorize:
 
     async def test_vectorize_single(self) -> None:
         """Vectorize returns a list of floats for a single string input."""
-        role = EmbeddingTestRole()
+        role = EmbeddingTestRole(name="embedding-test")
         embedding = [0.1, 0.2, 0.3, 0.4]
         with install_dummy_embeddings(embedding):
             result = await role.vectorize("hello world", send_to="embedding", ndim=NDIM)
@@ -434,7 +434,7 @@ class TestVectorize:
 
     async def test_vectorize_batch(self) -> None:
         """Vectorize returns a list of floats per individual text call."""
-        role = EmbeddingTestRole()
+        role = EmbeddingTestRole(name="embedding-test")
         e1, e2 = [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]
         with install_dummy_embeddings(e1, e2):
             r1 = await role.vectorize("doc-a", send_to="embedding", ndim=NDIM)
