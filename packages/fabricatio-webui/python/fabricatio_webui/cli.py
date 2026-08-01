@@ -3,8 +3,8 @@
 from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
+import asyncio
 import json
-from asyncio import run
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +12,8 @@ from typer import Option, Typer
 
 from fabricatio_webui.config import webui_config
 from fabricatio_webui.registry import build_node_registry
-from fabricatio_webui.rust import start_service
+from fabricatio_webui.rust import rust_broadcast, start_service
+from fabricatio_webui.worker import WorkflowWorker
 
 app = Typer()
 
@@ -41,12 +42,20 @@ def main(
     resolved_frontend = str(frontend_dir or webui_config.frontend_dir or _default_www())
 
     async def _wrapper() -> None:
-        await start_service(
-            resolved_frontend,
-            str(data_dir),
-            resolved_addr,
-            registry_json,
-            list(webui_config.allowed_origins),
+        worker = WorkflowWorker(rust_broadcast)
+        await asyncio.gather(
+            start_service(
+                resolved_frontend,
+                str(data_dir),
+                resolved_addr,
+                registry_json,
+                list(webui_config.allowed_origins),
+                worker.submit,
+                worker.cancel_current,
+                worker.queue_snapshot,
+                worker.history_snapshot,
+            ),
+            worker.run(),
         )
 
-    run(_wrapper())
+    asyncio.run(_wrapper())

@@ -1,7 +1,9 @@
-"""Thin async bridge callable from Rust via PyO3.
+"""Deprecated async bridge callable from Rust via PyO3.
 
-Provides an ``execute_workflow`` coroutine that the Rust service layer can
-schedule on Python's event loop, receiving events through a callback.
+Deprecated: execution now lives in :mod:`fabricatio_webui.worker`
+(``WorkflowWorker``), driven by the PyO3 callables passed into
+``start_service``. Kept for reference; ``execute_workflow`` is no longer
+used by the service.
 """
 
 from typing import Any, Callable, Coroutine, Dict
