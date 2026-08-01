@@ -46,8 +46,23 @@ class BlockingStep(Action):
     block_seconds: float = 5.0
 
     async def _execute(self, **cxt: Any) -> Any:
-        time.sleep(self.block_seconds)
+        time.sleep(self.block_seconds)  # noqa: ASYNC251 — deliberate blocking work for preemption tests
         return {"done": True}
+
+
+class ContextReadStep(Action):
+    """Test action that looks up named keys in its execution context.
+
+    Mirrors how ``Forward`` reads a value: ``cxt.get(self.original)`` where
+    ``cxt`` is the per-node context dict passed to ``_execute``.
+    """
+
+    output_key: str = "ctx_read"
+    keys: str = ""
+
+    async def _execute(self, **cxt: Any) -> Any:
+        wanted = [k.strip() for k in self.keys.split(",") if k.strip()]
+        return {k: cxt.get(k) for k in wanted}
 
 
 def _wf(node_id: str, node_type: str, config: Dict[str, Any]) -> str:
@@ -271,3 +286,75 @@ async def test_history_snapshot_contains_finished_execution() -> None:
 
     history = json.loads(worker.history_snapshot())
     assert any(h["execution_id"] == "e5" and h["state"] == "completed" for h in history)
+
+
+@pytest.mark.asyncio
+async def test_init_context_and_task_input_seed_executor_context() -> None:
+    """init_context and dict task_input resolve inside node executions and in the result."""
+    events: List[Dict[str, Any]] = []
+
+    def broadcast(payload: str) -> None:
+        events.append(json.loads(payload))
+
+    worker = WorkflowWorker(broadcast)
+    loop_task = await _run_worker(worker)
+
+    wf = json.dumps(
+        {
+            "nodes": [
+                {"id": "n1", "type": "ContextReadStep", "inputs": {}, "config": {"keys": "greeting,user"}},
+            ],
+            "edges": [],
+            "init_context": {"greeting": "hello-from-init", "user": "init-user"},
+        }
+    )
+    # task_input is a dict: overlaid on init_context, wins on conflict.
+    worker.submit("s1", wf, json.dumps({"user": "task-user"}))
+    await asyncio.sleep(0.05)
+    loop_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await loop_task
+
+    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "s1")
+    assert done["cancelled"] is False
+    assert done["error"] is None
+    result = done["result"]
+    # Node resolved both keys from the seeded context: init_context value for
+    # greeting, task_input (overlay) for user.
+    assert result["ctx_read"] == {"greeting": "hello-from-init", "user": "task-user"}
+    # Seeds are part of the returned result context too.
+    assert result["greeting"] == "hello-from-init"
+    assert result["user"] == "task-user"
+
+
+@pytest.mark.asyncio
+async def test_scalar_task_input_seeded_under_reserved_key() -> None:
+    """A non-dict task_input is seeded under the framework's reserved key."""
+    events: List[Dict[str, Any]] = []
+
+    def broadcast(payload: str) -> None:
+        events.append(json.loads(payload))
+
+    worker = WorkflowWorker(broadcast)
+    loop_task = await _run_worker(worker)
+
+    wf = json.dumps(
+        {
+            "nodes": [
+                {"id": "n1", "type": "ContextReadStep", "inputs": {}, "config": {"keys": "task_input"}},
+            ],
+            "edges": [],
+        }
+    )
+    worker.submit("s2", wf, json.dumps("plain-scalar"))
+    await asyncio.sleep(0.05)
+    loop_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await loop_task
+
+    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "s2")
+    assert done["cancelled"] is False
+    assert done["error"] is None
+    # The scalar lands under the framework's reserved INPUT_KEY ("task_input").
+    assert done["result"]["ctx_read"] == {"task_input": "plain-scalar"}
+    assert done["result"]["task_input"] == "plain-scalar"

@@ -111,6 +111,22 @@ class WorkflowWorker:
         self._loop.call_soon_threadsafe(self._current.cancel)
         return True
 
+    @staticmethod
+    def _parse_task_input(raw: Optional[str]) -> Any:
+        """Decode the ``task_input_json`` queue payload (``None`` when absent).
+
+        The Rust side always sends a JSON document (``"null"`` when the
+        caller supplied no task input). Malformed input is logged and treated
+        as absent rather than failing the whole execution.
+        """
+        if raw is None or raw.strip() in ("", "null"):
+            return None
+        try:
+            return orjson.loads(raw)
+        except Exception as exc:  # noqa: BLE001
+            logger.warn(f"Worker: unparseable task_input {raw[:200]!r}: {exc!r}; ignoring")
+            return None
+
     def queue_snapshot(self) -> str:
         """JSON: ``{"queue": [...], "active": [...]}``."""
         queued = [{"execution_id": it["execution_id"], "state": "queued"} for it in list(self._queue._queue)]
@@ -172,7 +188,8 @@ class WorkflowWorker:
 
         from fabricatio_webui.executor import WorkflowExecutor
 
-        executor = WorkflowExecutor.new(wf, self._event_cb(execution_id))
+        task_input = self._parse_task_input(item.get("task_input_json"))
+        executor = WorkflowExecutor.new(wf, self._event_cb(execution_id), task_input=task_input)
         try:
             result = await executor.execute()
         except asyncio.CancelledError:

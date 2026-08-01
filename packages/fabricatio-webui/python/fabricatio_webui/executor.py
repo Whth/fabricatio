@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from fabricatio_core.journal import logger
-from fabricatio_core.models.action import Action
+from fabricatio_core.models.action import INPUT_KEY, Action
 from pydantic.fields import FieldInfo
 
 # ---------------------------------------------------------------------------
@@ -106,18 +106,56 @@ class WorkflowExecutor:
     _instances: Dict[str, Action] = field(init=False, default_factory=dict)
     _execution_order: List[str] = field(init=False, default_factory=list)
     _context: Dict[str, Any] = field(init=False, default_factory=dict)
+    _seeded: Dict[str, Any] = field(init=False, default_factory=dict)
 
     @classmethod
     def new(
         cls,
         workflow_json: Dict[str, Any],
         event_callback: Callable[[str, Dict[str, Any]], Coroutine[Any, Any, None]],
+        task_input: Any = None,
     ) -> "WorkflowExecutor":
-        """Create a new executor from a workflow JSON descriptor."""
+        """Create a new executor from a workflow JSON descriptor.
+
+        ``task_input`` (the per-execution payload from ``ExecutionRequest``) is
+        seeded into the execution context: a dict is merged key-by-key, any
+        other JSON value is stored under the framework's reserved
+        ``INPUT_KEY`` (``"task_input"``). The workflow's ``init_context`` is
+        seeded first, then ``task_input`` is overlaid on top — on key
+        conflicts ``task_input`` wins, since it is the more specific,
+        per-call input. Seeded values are visible to every node and are part
+        of the returned result context.
+        """
         inst = cls()
         inst._wf = workflow_json
         inst._event = event_callback
+        inst._seed_context(task_input)
         return inst
+
+    def _seed_context(self, task_input: Any) -> None:
+        """Seed the execution context with ``init_context`` and ``task_input``.
+
+        The workflow's ``init_context`` dict is applied first (workflow-level
+        defaults), then ``task_input`` is overlaid on top. On key conflicts
+        ``task_input`` wins: it is the per-call payload while ``init_context``
+        is baked into the workflow file. A non-dict ``task_input`` (scalar,
+        list, …) is seeded under the framework's reserved ``INPUT_KEY``
+        (``"task_input"``), matching ``WorkFlow.task_input_key``.
+        """
+        init_context = self._wf.get("init_context")
+        if isinstance(init_context, dict):
+            self._seeded.update(init_context)
+        elif init_context:
+            logger.warn(f"init_context is not a dict; ignoring: {init_context!r}")
+
+        if isinstance(task_input, dict):
+            self._seeded.update(task_input)
+        elif task_input is not None:
+            self._seeded[INPUT_KEY] = task_input
+
+        # Seeds are part of the executor context: they appear in the final
+        # result and are resolvable as upstream values via edges.
+        self._context.update(self._seeded)
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -269,6 +307,12 @@ class WorkflowExecutor:
         try:
             # Resolve inputs from upstream nodes via edges
             cxt = await self._resolve_inputs(node_id)
+
+            # Seed values (init_context + task_input) are visible to every
+            # node, even without incoming edges (e.g. a Forward node looking
+            # up a key from init_context); explicit edge wiring wins on
+            # conflicts.
+            cxt = {**self._seeded, **cxt}
 
             # Apply ctx_override: copy context values into instance fields
             if instance.ctx_override:
