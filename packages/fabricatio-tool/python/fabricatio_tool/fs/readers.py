@@ -1,7 +1,7 @@
 """Filesystem readers for Fabricatio."""
 
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import orjson
 from fabricatio_core.journal import logger
@@ -24,7 +24,7 @@ def safe_text_read(path: Path | str) -> str:
         return ""
 
 
-def safe_json_read(path: Path | str) -> Dict:
+def safe_json_read(path: Path | str) -> Dict[str, Any]:
     """Safely read the JSON from a file.
 
     Args:
