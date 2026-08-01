@@ -2,7 +2,9 @@
 
 from fabricatio_core.utils import cfg
 
-cfg(feats=["cli"])
+# Pin the package name: under `python -m`, get_source_pkgname() resolves to
+# "__main__" (runpy), which would make the extras check fail spuriously.
+cfg(feats=["cli"], pkg_name="fabricatio-webui")
 import asyncio
 import json
 from pathlib import Path
