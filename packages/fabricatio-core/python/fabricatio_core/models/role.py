@@ -25,7 +25,7 @@ class Role(WithBriefing):
     """
 
     model_config = ConfigDict(use_attribute_docstrings=True)
-    name: RoleName = Field(default="")
+    name: RoleName
     """The name of the role."""
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
