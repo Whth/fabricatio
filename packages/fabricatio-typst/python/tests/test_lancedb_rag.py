@@ -280,7 +280,7 @@ class TestCitationLancedbRAG:
     @pytest.mark.asyncio
     async def test_clued_search_basic_flow(self, canned_chunks: List[ArticleChunk]) -> None:
         """clued_search runs the search loop with mocked afetch_document + arefined_query."""
-        role = MockCitationLancedbRAG()
+        role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks
         cm = CitationManager()
 
@@ -299,7 +299,7 @@ class TestCitationLancedbRAG:
     @pytest.mark.asyncio
     async def test_clued_search_client_side_dedup(self) -> None:
         """Chunks already in CitationManager are excluded after retrieval."""
-        role = MockDedupCitationLancedbRAG()
+        role = MockDedupCitationLancedbRAG(name="citation-rag")
 
         cm = CitationManager()
         cm.add_chunks(
@@ -330,7 +330,7 @@ class TestCitationLancedbRAG:
     @pytest.mark.asyncio
     async def test_clued_search_max_capacity(self, canned_chunks: List[ArticleChunk]) -> None:
         """When max_capacity is exceeded, chunks are truncated."""
-        role = MockCitationLancedbRAG()
+        role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks * 10
         cm = CitationManager()
 
@@ -347,7 +347,7 @@ class TestCitationLancedbRAG:
     @pytest.mark.asyncio
     async def test_clued_search_empty_citation_manager(self, canned_chunks: List[ArticleChunk]) -> None:
         """clued_search works starting from an empty CitationManager."""
-        role = MockCitationLancedbRAG()
+        role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks
         cm = CitationManager()
 
