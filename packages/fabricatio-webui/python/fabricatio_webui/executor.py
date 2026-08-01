@@ -83,8 +83,8 @@ class WorkflowExecutor:
             self._instantiate_nodes()
             self._topological_sort()
             await self._execute_all()
-        except Exception:
-            logger.exception("Workflow execution failed.")
+        except Exception as exc:
+            logger.error(f"Workflow execution failed: {exc!r}")
             await self._emit("execution_done", {"status": "error"})
             raise
 
@@ -147,12 +147,8 @@ class WorkflowExecutor:
 
             try:
                 instance = cls(**config)
-            except Exception:  # noqa: BLE001
-                logger.exception(
-                    "Failed to instantiate %r for node %r; skipping.",
-                    type_name,
-                    nid,
-                )
+            except Exception as exc:  # noqa: BLE001
+                logger.error(f"Failed to instantiate {type_name!r} for node {nid!r}: {exc!r}; skipping.")
                 continue
 
             # Respect node-level ctx_override if explicitly set.
@@ -231,12 +227,8 @@ class WorkflowExecutor:
                     if field_name in cxt:
                         try:
                             setattr(instance, field_name, cxt[field_name])
-                        except Exception:  # noqa: BLE001
-                            logger.debug(
-                                "Could not set field %r on %r from context.",
-                                field_name,
-                                type_name,
-                            )
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug(f"Could not set field {field_name!r} on {type_name!r} from context: {exc!r}")
 
             # Execute
             result = await instance._execute(**cxt)
@@ -268,11 +260,7 @@ class WorkflowExecutor:
             )
 
         except Exception as exc:
-            logger.exception(
-                "Node %r (%s) failed.",
-                node_id,
-                type_name,
-            )
+            logger.error(f"Node {node_id} ({type_name}) failed: {exc!r}")
             await self._emit(
                 "node_error",
                 {

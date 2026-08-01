@@ -145,7 +145,7 @@ class WorkflowWorker:
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
-            logger.exception(f"Worker: execution {execution_id} failed")
+            logger.error(f"Worker: execution {execution_id} failed: {exc!r}")
             self._record(execution_id, "failed", str(exc))
             self._send(
                 "execution_done",
