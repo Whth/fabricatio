@@ -26,7 +26,7 @@ body {
   cursor: pointer;
 }
 
-.vue-flow__node.selected > .fabricatio-node {
+.vue-flow__node.selected > .comfy-node {
   border-color: #58a6ff;
 }
 
