@@ -50,14 +50,25 @@ class WorkflowWorker:
     # ------------------------------------------------------------------
 
     def submit(self, execution_id: str, workflow_json: str, task_input_json: str) -> None:
-        """Enqueue an execution. Raises ``asyncio.QueueFull`` when full."""
+        """Enqueue an execution. Raises ``asyncio.QueueFull`` when full.
+
+        Called from the Rust tokio thread via PyO3, so the actual enqueue is
+        marshalled onto the event loop (``put_nowait`` is not thread-safe and
+        its waiter wake-up would be lost cross-thread).
+        """
         item: Dict[str, Any] = {
             "execution_id": execution_id,
             "workflow_json": workflow_json,
             "task_input_json": task_input_json,
         }
+        if self._queue.full():
+            raise asyncio.QueueFull
+        self._loop.call_soon_threadsafe(self._enqueue, item)
+
+    def _enqueue(self, item: Dict[str, Any]) -> None:
+        """Run on the event loop: push onto the queue and announce."""
         self._queue.put_nowait(item)
-        logger.info(f"Worker: queued execution {execution_id} (depth={self._queue.qsize()})")
+        logger.info(f"Worker: queued execution {item['execution_id']} (depth={self._queue.qsize()})")
         self._emit_status()
 
     def cancel_current(self) -> bool:
