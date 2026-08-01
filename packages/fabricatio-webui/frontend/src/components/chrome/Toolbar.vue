@@ -140,195 +140,300 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
     </div>
 
     <div class="toolbar-right">
-      <button class="btn btn-icon" title="Save workflow" @click="handleSave">
-        <Save :size="16" />
-      </button>
-
-      <div class="load-wrap">
-        <button class="btn btn-icon" title="Load workflow" @click="toggleLoad">
-          <FolderOpen :size="16" />
+      <!-- File group -->
+      <div class="toolbar-group">
+        <button class="btn btn-icon" title="Save workflow" @click="handleSave" :disabled="isSaving">
+          <Save :size="16" />
         </button>
-        <div v-if="loadOpen" class="load-menu" @mousedown.stop>
-          <div v-if="savedWorkflows.length === 0" class="load-empty">No saved workflows</div>
-          <div v-for="wf in savedWorkflows" :key="wf.id" class="load-item">
-            <button class="load-name" @click="loadWorkflowById(wf.id)">
-              {{ wf.name }}
-              <span class="load-count">{{ wf.nodeCount }} nodes</span>
-            </button>
-            <button class="load-delete" title="Delete workflow" @click="deleteWorkflowById(wf.id)">
-              <Trash2 :size="12" />
-            </button>
+
+        <div class="load-wrap">
+          <button class="btn btn-icon" title="Load workflow" @click="toggleLoad">
+            <FolderOpen :size="16" />
+          </button>
+          <div v-if="loadOpen" class="load-menu" @mousedown.stop>
+            <div v-if="savedWorkflows.length === 0" class="load-empty">No saved workflows</div>
+            <div v-for="wf in savedWorkflows" :key="wf.id" class="load-item">
+              <button class="load-name" @click="loadWorkflowById(wf.id)">
+                {{ wf.name }}
+                <span class="load-count">{{ wf.nodeCount }} nodes</span>
+              </button>
+              <button class="load-delete" title="Delete workflow" @click="deleteWorkflowById(wf.id)">
+                <Trash2 :size="12" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <button
-        v-if="execStore.isRunning"
-        class="btn btn-run stop"
-        title="Stop execution"
-        @click="handleStop"
-      >
-        <Square :size="14" /> Stop
-      </button>
-      <button v-else class="btn btn-run" title="Run workflow" @click="handleRun">
-        <Play :size="14" /> Run
-      </button>
+      <div class="toolbar-divider"></div>
 
-      <span v-if="execStore.queueLength > 0" class="queue-badge">{{ execStore.queueLength }}</span>
+      <!-- Execution group -->
+      <div class="toolbar-group">
+        <button
+          v-if="execStore.isRunning"
+          class="btn btn-run stop"
+          title="Stop execution"
+          @click="handleStop"
+        >
+          <Square :size="14" /> Stop
+        </button>
+        <button v-else class="btn btn-run" title="Run workflow" @click="handleRun">
+          <Play :size="14" /> Run
+        </button>
 
+        <span v-if="execStore.queueLength > 0" class="queue-badge">{{ execStore.queueLength }}</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Status -->
       <span class="ws-dot" :class="{ connected }" :title="connected ? 'Connected' : 'Disconnected'"></span>
     </div>
   </header>
 </template>
 
 <style scoped>
+/* ── Toolbar shell ───────────────────────────────────────────────────────── */
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 14px;
+  height: var(--toolbar-h);
+  padding: 0 var(--sp-3);
   background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+  user-select: none;
 }
+
+/* ── Left side ───────────────────────────────────────────────────────────── */
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   min-width: 0;
 }
+
 .logo-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
+  opacity: 0.85;
 }
+
 .workflow-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--fg-0);
   cursor: text;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: var(--transition-colors);
 }
+
+.workflow-name:hover {
+  color: var(--accent);
+}
+
 .name-input {
-  background: var(--bg-1);
+  background: var(--bg-0);
   border: 1px solid var(--accent);
   color: var(--fg-0);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--sp-1);
+  font-size: var(--text-md);
+  font-family: var(--font-sans);
+  height: var(--ctrl-h);
+  box-sizing: border-box;
+  min-width: 140px;
 }
+
+/* ── Right side ──────────────────────────────────────────────────────────── */
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-1);
 }
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 var(--sp-1);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--ctrl-gap);
   background: var(--bg-1);
   border: 1px solid var(--border);
   color: var(--fg-0);
-  border-radius: 4px;
-  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  height: var(--ctrl-h);
+  transition: var(--transition-colors);
 }
+
 .btn:hover {
   background: var(--bg-3);
+  border-color: var(--border-mid);
 }
+
+.btn:active {
+  background: var(--bg-4);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .btn-icon {
-  padding: 5px;
+  padding: var(--sp-1);
+  width: var(--ctrl-h);
+  justify-content: center;
 }
+
+/* ── Run / Stop ──────────────────────────────────────────────────────────── */
 .btn-run {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--fg-inv);
+  font-weight: var(--weight-medium);
+  padding: var(--sp-1) var(--sp-3);
 }
+
+.btn-run:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-run:active {
+  background: var(--accent-pressed);
+}
+
 .btn-run.stop {
   background: var(--err);
   border-color: var(--err);
 }
+
+.btn-run.stop:hover {
+  background: #d64d49;
+  border-color: #d64d49;
+}
+
+/* ── Load menu ───────────────────────────────────────────────────────────── */
 .load-wrap {
   position: relative;
 }
+
 .load-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--sp-1));
   z-index: 50;
   width: 260px;
   max-height: 320px;
   overflow-y: auto;
   background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fade-in var(--duration-fast) var(--ease-out);
 }
+
 .load-empty {
-  padding: 10px;
+  padding: var(--sp-3);
   color: var(--fg-2);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
+
 .load-item {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-soft);
 }
+
 .load-item:last-child {
   border-bottom: none;
 }
+
 .load-name {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 8px 10px;
+  gap: 1px;
+  padding: var(--sp-2);
   background: none;
   border: none;
   color: var(--fg-0);
   cursor: pointer;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  transition: var(--transition-colors);
 }
+
 .load-name:hover {
   background: var(--bg-3);
 }
+
 .load-count {
   color: var(--fg-2);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
+
 .load-delete {
   background: none;
   border: none;
   color: var(--fg-2);
   cursor: pointer;
-  padding: 8px;
+  padding: var(--sp-2);
+  transition: var(--transition-colors);
 }
+
 .load-delete:hover {
   color: var(--err);
 }
+
+/* ── Queue badge ─────────────────────────────────────────────────────────── */
 .queue-badge {
   background: var(--accent);
-  color: #fff;
-  border-radius: 10px;
+  color: var(--fg-inv);
+  border-radius: var(--radius-full);
   min-width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   padding: 0 5px;
 }
+
+/* ── WS status dot ───────────────────────────────────────────────────────── */
 .ws-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
   background: var(--err);
+  flex-shrink: 0;
+  transition: background var(--duration-slow) var(--ease-out);
 }
+
 .ws-dot.connected {
   background: var(--ok);
 }

@@ -42,10 +42,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: var(--bg-0);
 }
 .canvas-area {
   flex: 1;
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 </style>

@@ -304,11 +304,11 @@ function onDrop(ev: DragEvent) {
   position: relative;
   flex: 1;
   height: 100%;
-  background: #0d1117;
+  background: var(--bg-0);
 }
 
 .editor-canvas.drag-over {
-  background: #0f1318;
+  background: var(--bg-1);
 }
 
 /* ── Drop indicator ── */
@@ -318,8 +318,8 @@ function onDrop(ev: DragEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(88, 166, 255, 0.05);
-  border: 2px dashed rgba(88, 166, 255, 0.4);
+  background: var(--accent-subtle);
+  border: 2px dashed var(--accent-glow);
   pointer-events: none;
   z-index: 10;
 }
@@ -328,27 +328,27 @@ function onDrop(ev: DragEvent) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px 32px;
-  background: rgba(22, 27, 34, 0.9);
-  border-radius: 12px;
-  border: 1px solid rgba(88, 166, 255, 0.3);
+  gap: var(--sp-2);
+  padding: var(--sp-6) var(--sp-8);
+  background: var(--bg-1);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--accent-glow);
 }
 
 .drop-icon {
   font-size: 32px;
-  color: #58a6ff;
-  font-weight: 300;
+  color: var(--accent);
+  font-weight: var(--weight-normal);
 }
 
 .drop-text {
-  font-size: 14px;
-  color: #8b949e;
+  font-size: var(--text-md);
+  color: var(--fg-1);
 }
 
 .drop-text strong {
-  color: #e6edf3;
-  font-weight: 600;
+  color: var(--fg-0);
+  font-weight: var(--weight-semibold);
 }
 
 /* ── Empty state hint ── */
@@ -365,79 +365,80 @@ function onDrop(ev: DragEvent) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
 }
+
 .hint-icon {
-  opacity: 0.4;
-  color: #484f58;
+  opacity: 0.35;
+  color: var(--fg-2);
 }
 
 .hint-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #484f58;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--fg-2);
 }
 
 .hint-text {
-  font-size: 12px;
-  color: #30363d;
+  font-size: var(--text-sm);
+  color: var(--fg-3);
 }
 
 .hint-shortcut {
-  font-size: 11px;
-  color: #30363d;
-  margin-top: 8px;
+  font-size: var(--text-xs);
+  color: var(--fg-3);
+  margin-top: var(--sp-2);
 }
 
 .hint-shortcut kbd {
   display: inline-block;
-  padding: 2px 6px;
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 10px;
+  padding: 1px 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
 }
 
 /* ── Shortcuts hint ── */
 .shortcuts-hint {
   position: absolute;
-  bottom: 12px;
+  bottom: var(--sp-3);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
-  padding: 6px 12px;
-  background: rgba(22, 27, 34, 0.9);
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   pointer-events: none;
 }
 
 .shortcut {
-  font-size: 11px;
-  color: #8b949e;
+  font-size: var(--text-xs);
+  color: var(--fg-1);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .shortcut kbd {
   display: inline-block;
-  padding: 1px 4px;
-  background: #21262d;
-  border: 1px solid #30363d;
+  padding: 1px var(--sp-1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 3px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 10px;
-  color: #e6edf3;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--fg-0);
 }
 
 /* ── Transitions ── */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .fade-enter-from,
@@ -447,47 +448,49 @@ function onDrop(ev: DragEvent) {
 
 /* ── Vue Flow overrides ── */
 :deep(.vue-flow__background) {
-  background: #0d1117;
+  background: var(--bg-0);
 }
 
 :deep(.vue-flow__minimap) {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 :deep(.vue-flow__minimap svg) {
-  background: #161b22;
-  border-radius: 6px;
+  background: var(--bg-1);
+  border-radius: var(--radius-md);
 }
 
 :deep(.vue-flow__controls) {
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  background: #161b22;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-1);
+  overflow: hidden;
 }
 
 :deep(.vue-flow__controls-button) {
-  background: #161b22;
-  border-color: #30363d;
-  fill: #e6edf3;
+  background: var(--bg-1);
+  border-color: var(--border);
+  fill: var(--fg-1);
+  transition: var(--transition-colors);
 }
 
 :deep(.vue-flow__controls-button:hover) {
-  background: #1e1e2e;
+  background: var(--bg-3);
 }
 
 :deep(.vue-flow__edge-path) {
-  stroke: #30363d;
+  stroke: var(--border-mid);
   stroke-width: 2;
 }
 
 :deep(.vue-flow__edge.selected .vue-flow__edge-path) {
-  stroke: #58a6ff;
+  stroke: var(--accent);
 }
 
 :deep(.vue-flow__connection-line) {
-  stroke: #58a6ff;
+  stroke: var(--accent);
 }
 </style>
