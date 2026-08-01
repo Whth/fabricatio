@@ -46,6 +46,7 @@ _RAG_QUERY: typer.Option = typer.Option(
 @app.command(name="wr")
 @cfg_on(["lancedb"])
 def write_novel_with_rag(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     rag_query: str = _RAG_QUERY,
@@ -97,6 +98,7 @@ def write_novel_with_rag(  # noqa: PLR0913
 @app.command(name="wrm")
 @cfg_on(["lancedb"])
 def write_novel_with_mental_rag(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     rag_query: str = _RAG_QUERY,

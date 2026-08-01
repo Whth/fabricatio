@@ -114,6 +114,7 @@ _COMFYUI_BASE_URL: typer.Option = typer.Option(
 @app.command(name="wi")
 @cfg_on(["comfyui"])
 def write_illustrated_novel(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     output_path: Path = OUTPUT_PATH,
@@ -192,6 +193,7 @@ def write_illustrated_novel(  # noqa: PLR0913
 @app.command(name="wmi")
 @cfg_on(["comfyui"])
 def write_mental_illustrated_novel(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     output_path: Path = OUTPUT_PATH,
@@ -283,6 +285,7 @@ _INPUT_FILE: typer.Option = typer.Option(
 @app.command(name="i")
 @cfg_on(["comfyui"])
 def illustrate_novel(  # noqa: PLR0913
+    *,
     input: Path = _INPUT_FILE,
     output_path: Path = OUTPUT_PATH,
     font_file: Path = FONT_FILE,

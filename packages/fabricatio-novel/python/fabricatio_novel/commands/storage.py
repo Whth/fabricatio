@@ -103,6 +103,7 @@ def store_reference_texts(
 @app.command(name="enrich-refs")
 @cfg_on(["lancedb"])
 def store_enriched_texts(  # noqa: PLR0913
+    *,
     patterns: list[str] = typer.Argument(
         ...,
         help="File paths and/or glob patterns to enrich and ingest (e.g. 'corpus/*.txt').",

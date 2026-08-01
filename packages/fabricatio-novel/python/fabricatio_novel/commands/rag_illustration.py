@@ -47,6 +47,7 @@ from fabricatio_novel.commands.rag import (
 @app.command(name="wri")
 @cfg_on(["comfyui", "lancedb"])
 def write_rag_illustrated_novel(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     rag_query: str = _RAG_QUERY,
@@ -133,6 +134,7 @@ def write_rag_illustrated_novel(  # noqa: PLR0913
 @app.command(name="wrmi")
 @cfg_on(["comfyui", "lancedb"])
 def write_rag_mental_illustrated_novel(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     rag_query: str = _RAG_QUERY,

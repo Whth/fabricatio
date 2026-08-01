@@ -28,6 +28,7 @@ from fabricatio_novel.commands._options import (
 
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     output_path: Path = OUTPUT_PATH,
@@ -65,6 +66,7 @@ def write_novel(  # noqa: PLR0913
 
 @app.command(name="wm")
 def write_novel_with_mental(  # noqa: PLR0913
+    *,
     outline: str = OUTLINE,
     outline_file: Path = OUTLINE_FILE,
     output_path: Path = OUTPUT_PATH,
