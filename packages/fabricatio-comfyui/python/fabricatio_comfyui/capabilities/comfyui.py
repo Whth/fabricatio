@@ -98,7 +98,7 @@ class Comfyui:
         self,
         workflow: "WorkflowDict | Workflow | List[WorkflowDict | Workflow]",
         *,
-        download_dir: "str | Path | None | list[str | Path | None]" = None,
+        download_dir: "str | Path | list[str | Path | None] | None" = None,
         timeout: float | None = None,
         base_url: str | None = None,
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
@@ -114,7 +114,7 @@ class Comfyui:
         self,
         client: "ComfyuiClientBase",
         workflow: "WorkflowDict | Workflow | List[WorkflowDict | Workflow]",
-        download_dir: "str | Path | None | list[str | Path | None]",
+        download_dir: "str | Path | list[str | Path | None] | None",
         effective_timeout: float,
     ) -> "ComfyuiExecutionResult | List[ComfyuiExecutionResult]":
         """Core generation logic — queue, poll, download — against *client*."""

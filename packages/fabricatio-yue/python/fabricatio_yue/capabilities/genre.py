@@ -21,7 +21,7 @@ class SelectGenre(UseLLM):
         genre_classifier: str,
         genres: List[str],
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> None | List[str]:
+    ) -> List[str] | None:
         """Select genres for a single requirement.
 
         Args:
@@ -62,7 +62,7 @@ class SelectGenre(UseLLM):
         genre_classifier: str,
         genres: List[str],
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> None | List[str] | List[List[str] | None]:
+    ) -> List[str] | List[List[str] | None] | None:
         """Select appropriate music genres based on given requirements.
 
         This method uses template-based generation to select suitable genres from a provided
@@ -117,7 +117,7 @@ class SelectGenre(UseLLM):
         self,
         requirements: str,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> None | List[str]:
+    ) -> List[str] | None:
         """Gather genres for a single requirement.
 
         Args:
@@ -150,7 +150,7 @@ class SelectGenre(UseLLM):
         self,
         requirements: str | List[str],
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> None | List[str] | List[List[str] | None]:
+    ) -> List[str] | List[List[str] | None] | None:
         """Gather genres from all available genre categories based on requirements.
 
         This method iterates through all genre categories in the configuration and selects

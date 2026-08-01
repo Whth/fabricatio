@@ -472,7 +472,7 @@ class LLMScopedConfig(ScopedConfig):
         )
 
     def _resolve_validation_params[T](
-        self, default: None | T = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs]
+        self, default: T | None = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs]
     ) -> ValidateKwargs[T]:
         res = self._resolve_completion_params(**kwargs)
         return ValidateKwargs(default=default, max_validations=max_validations, **res)

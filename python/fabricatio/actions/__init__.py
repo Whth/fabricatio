@@ -67,7 +67,6 @@ if is_installed("fabricatio_actions"):
         "GatherAsList",
         "PersistentAll",
         "ReadText",
-        "ReadText",
         "RenderedDump",
         "RetrieveFromLatest",
         "RetrieveFromPersistent",

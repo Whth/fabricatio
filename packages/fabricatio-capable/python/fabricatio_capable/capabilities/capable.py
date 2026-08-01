@@ -58,7 +58,7 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
         request: str | List[str],
         toolboxes: Optional[Set[ToolBox]],
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> None | JudgeMent | List[JudgeMent] | List[JudgeMent | None]:
+    ) -> JudgeMent | List[JudgeMent] | List[JudgeMent | None] | None:
         """Processes a capability request using the provided toolboxes and additional arguments.
 
         Args:

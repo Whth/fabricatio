@@ -20,6 +20,6 @@ class Workspace:
         """Fork a worktree."""
         return fork(repo_path, to, branch_name, base_branch, exist_ok)
 
-    def commit(self, repo_path: str | Path, msg: str, files: None | List[str]) -> str:
+    def commit(self, repo_path: str | Path, msg: str, files: List[str] | None) -> str:
         """Commit staged changes."""
         return commit(repo_path, msg, files)

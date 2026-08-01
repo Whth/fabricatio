@@ -17,7 +17,7 @@ class CharacterCompose(Propose, ABC):
         self,
         requirements: str,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> None | CharacterCard:
+    ) -> CharacterCard | None:
         """Fetch a single character matching the requirement string, or None."""
 
     @overload
@@ -41,11 +41,11 @@ class CharacterCompose(Propose, ABC):
         self,
         requirements: str | list[str],
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> None | CharacterCard | List[CharacterCard | None] | List[CharacterCard]: ...
+    ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None: ...
     async def compose_characters(
         self,
         requirements: str | list[str],
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> None | CharacterCard | List[CharacterCard | None] | List[CharacterCard]:
+    ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None:
         """Delegate to propose() to resolve character(s) based on requirements."""
         return await self.propose(CharacterCard, requirements, **kwargs)

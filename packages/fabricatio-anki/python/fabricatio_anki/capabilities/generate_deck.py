@@ -315,7 +315,7 @@ class GenerateDeck(Propose):
         requirement: str | List[str],
         template_name: str,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> None | Side | List[Side | None]:
+    ) -> Side | List[Side | None] | None:
         """Generate one or more card sides using the specified template.
 
         Args:
@@ -379,7 +379,7 @@ class GenerateDeck(Propose):
 
     async def generate_front_side(
         self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Side]]
-    ) -> None | Side | List[Side | None]:
+    ) -> Side | List[Side | None] | None:
         """Generate one or more front sides for Anki cards.
 
         Args:
@@ -426,7 +426,7 @@ class GenerateDeck(Propose):
 
     async def generate_back_side(
         self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Side]]
-    ) -> None | Side | List[Side | None]:
+    ) -> Side | List[Side | None] | None:
         """Generate one or more back sides for Anki cards.
 
         Args:

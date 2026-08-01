@@ -38,7 +38,7 @@ class ChapterPlan(WordCount):
 
     @classmethod
     def with_try_script(
-        cls, draft: ChapterDraft, script: None | Script, expected_word_count: int, chapter_index: int
+        cls, draft: ChapterDraft, script: Script | None, expected_word_count: int, chapter_index: int
     ) -> Self:
         """Create a plan, falling back to a raw-synopsis script when script is None."""
         return cls.new(

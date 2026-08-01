@@ -77,7 +77,7 @@ class ResultCollector:
     @overload
     def take[T](self, key: List[str], desired: Optional[Type[T]] = None) -> List[T | None]: ...
 
-    def take[T](self, key: str | List[str], desired: Optional[Type[T]] = None) -> T | None | List[T | None]:
+    def take[T](self, key: str | List[str], desired: Optional[Type[T]] = None) -> T | List[T | None] | None:
         """Retrieve value(s) from the container by key(s) with optional type checking.
 
         This method retrieves a single value or multiple values from the container based on the provided key(s).

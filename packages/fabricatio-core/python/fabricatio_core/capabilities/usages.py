@@ -132,7 +132,7 @@ class UseLLM(LLMScopedConfig, ABC):
         max_validations: PositiveInt = 3,
         send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> None | T | List[Optional[T]] | List[T]: ...
+    ) -> T | List[Optional[T]] | List[T] | None: ...
 
     async def aask_validate[T](
         self,
@@ -142,7 +142,7 @@ class UseLLM(LLMScopedConfig, ABC):
         max_validations: PositiveInt = 3,
         send_to: Optional[str] = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> None | T | List[Optional[T]] | List[T]:
+    ) -> T | List[Optional[T]] | List[T] | None:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
@@ -208,7 +208,7 @@ class UseLLM(LLMScopedConfig, ABC):
         k: NonNegativeInt = 0,
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
-    ) -> None | Dict[K, V] | List[Optional[Dict[K, V]]]:
+    ) -> Dict[K, V] | List[Optional[Dict[K, V]]] | None:
         """Asynchronously maps a requirement to a key-value dictionary via LLM.
 
         Supports arbitrary key/value types through `key_type` and `value_type` parameters.
@@ -351,7 +351,7 @@ class UseLLM(LLMScopedConfig, ABC):
         requirement: str | List[str],
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str | List[str | None]:
+    ) -> str | List[str | None] | None:
         """Asynchronously generates a generic string based on a given requirement.
 
         Args:
@@ -390,7 +390,7 @@ class UseLLM(LLMScopedConfig, ABC):
         code_language: Optional[str] = None,
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str | List[str | None]:
+    ) -> str | List[str | None] | None:
         """Asynchronously generates code strings based on given requirements and code language.
 
         Args:
@@ -436,7 +436,7 @@ class UseLLM(LLMScopedConfig, ABC):
         code_language: Optional[str] = None,
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
-    ) -> None | List[CodeSnippet] | List[List[CodeSnippet] | None]:
+    ) -> List[CodeSnippet] | List[List[CodeSnippet] | None] | None:
         """Asynchronously generates code snippets based on given requirements and code language.
 
         Args:

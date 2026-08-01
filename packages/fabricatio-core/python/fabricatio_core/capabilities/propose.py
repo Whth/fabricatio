@@ -54,7 +54,7 @@ class Propose(UseLLM, ABC):
         prompt: List[str] | str,
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> None | M | List[Optional[M]] | List[M]: ...
+    ) -> M | List[Optional[M]] | List[M] | None: ...
 
     async def propose[M: ProposedAble](
         self,
@@ -62,7 +62,7 @@ class Propose(UseLLM, ABC):
         prompt: List[str] | str,
         send_to: Optional[str] = None,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> None | M | List[Optional[M]] | List[M]:
+    ) -> M | List[Optional[M]] | List[M] | None:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:

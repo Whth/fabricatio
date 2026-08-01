@@ -24,7 +24,7 @@ class SynthesizeData(UseLLM, ABC):
 
     async def generate_header(
         self, requirement: str | List[str], **kwargs: Unpack[ListingKwargs[str]]
-    ) -> None | List[str] | List[List[str] | None]:
+    ) -> List[str] | List[List[str] | None] | None:
         """Generate appropriate column headers based on the given requirement(s).
 
         Args:

@@ -49,7 +49,7 @@ class Lyricize(Propose, SelectGenre):
 
     async def lyricize(
         self, requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Song]]
-    ) -> Song | None | List[Song | None]:
+    ) -> Song | List[Song | None] | None:
         """Generate lyrics based on requirements.
 
         Args:

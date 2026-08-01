@@ -50,7 +50,7 @@ class Agent(
         top_k: int = 100,
         boost_recent: bool = True,
         **kwargs: Unpack[LLMKwargs],
-    ) -> None | List[Any]:
+    ) -> List[Any] | None:
         """Process and fulfill a request using various agent capabilities.
 
         Args:

@@ -112,7 +112,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
     async def create_characters(
         self, draft: NovelDraft, **kwargs: Unpack[ValidateKwargs[CharacterCard]]
-    ) -> None | List[CharacterCard] | List[CharacterCard | None]:
+    ) -> List[CharacterCard] | List[CharacterCard | None] | None:
         """Generate characters based on draft."""
         logger.debug(f"Generating characters for novel: '{draft.title}'")
         if not draft.character_descriptions:

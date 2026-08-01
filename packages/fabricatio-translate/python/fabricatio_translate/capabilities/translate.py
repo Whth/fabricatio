@@ -40,7 +40,7 @@ class Translate(UseLLM):
         target_language: str,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str: ...
+    ) -> str | None: ...
 
     @overload
     async def translate(
@@ -49,7 +49,7 @@ class Translate(UseLLM):
         target_language: str,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | List[str] | List[str | None]: ...
+    ) -> List[str] | List[str | None] | None: ...
 
     async def translate(
         self,
@@ -57,7 +57,7 @@ class Translate(UseLLM):
         target_language: str,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str | List[str] | List[str | None]:
+    ) -> str | List[str] | List[str | None] | None:
         """Translate the provided text into the target language.
 
         Args:
@@ -88,7 +88,7 @@ class Translate(UseLLM):
         chunk_size: int = 6000,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str: ...
+    ) -> str | None: ...
 
     @overload
     async def translate_chunked(
@@ -98,7 +98,7 @@ class Translate(UseLLM):
         chunk_size: int = 6000,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | List[str] | List[str | None]: ...
+    ) -> List[str] | List[str | None] | None: ...
 
     async def translate_chunked(
         self,
@@ -107,7 +107,7 @@ class Translate(UseLLM):
         chunk_size: int = 6000,
         specification: str = "",
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> None | str | List[str] | List[str | None]:
+    ) -> str | List[str] | List[str | None] | None:
         """Translate the provided text into the target language in a chunked manner.
 
         Args:

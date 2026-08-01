@@ -117,7 +117,7 @@ class Ordering(Rating):
 
     async def order(
         self, seq: List[str] | List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
-    ) -> None | List[str] | List[WithBriefing]:
+    ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence of either strings or WithBriefing objects based on a requirement.
 
         Args:
@@ -146,7 +146,7 @@ class Ordering(Rating):
 
     async def order_rated(
         self, seq: List[str] | List[WithBriefing], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> None | List[str] | List[WithBriefing]:
+    ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence based on composite scores calculated from their briefings or content.
 
         Args:
