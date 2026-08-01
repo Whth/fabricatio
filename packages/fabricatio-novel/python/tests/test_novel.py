@@ -1329,7 +1329,7 @@ class TestChapterRequirementTemplateRendersTail:
     """Test suite for the chapter_requirement template's tail continuity hook."""
 
     @pytest.fixture
-    def base_ctx(self) -> dict:
+    def base_ctx(self) -> dict[str, str | list[str] | int | None]:
         """Minimal prompt context sufficient to render the chapter_requirement template."""
         return {
             "characters": "Hero: brave\nMage: wise",
@@ -1344,7 +1344,7 @@ class TestChapterRequirementTemplateRendersTail:
             "previous_chapter_tail": None,
         }
 
-    def test_renders_tail_block_when_provided(self, base_ctx: dict) -> None:
+    def test_renders_tail_block_when_provided(self, base_ctx: dict[str, str | list[str] | int | None]) -> None:
         """The template renders the trailing-paragraphs block when previous_chapter_tail is non-empty."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config
@@ -1356,7 +1356,7 @@ class TestChapterRequirementTemplateRendersTail:
         assert "She walked into the mist and did not return." in rendered
         assert "maintain inter-chapter continuity" in rendered
 
-    def test_omits_tail_block_when_none(self, base_ctx: dict) -> None:
+    def test_omits_tail_block_when_none(self, base_ctx: dict[str, str | list[str] | int | None]) -> None:
         """The template omits the trailing-paragraphs block when previous_chapter_tail is None."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config
@@ -1365,7 +1365,7 @@ class TestChapterRequirementTemplateRendersTail:
 
         assert "Trailing Paragraphs of Previous Chapter" not in rendered
 
-    def test_omits_tail_block_when_empty_string(self, base_ctx: dict) -> None:
+    def test_omits_tail_block_when_empty_string(self, base_ctx: dict[str, str | list[str] | int | None]) -> None:
         """The template omits the trailing-paragraphs block when previous_chapter_tail is an empty string."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config

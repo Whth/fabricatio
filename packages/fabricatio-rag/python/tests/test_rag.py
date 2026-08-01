@@ -150,7 +150,7 @@ class _ConcreteSearchedDoc(SearchedDocumentModel[str]):
         """Create from raw data."""
         return cls(content=raw)
 
-    def _as_prompt_inner(self) -> dict:
+    def _as_prompt_inner(self) -> dict[str, str]:
         """Return content for prompt rendering."""
         return {"content": self.content}
 

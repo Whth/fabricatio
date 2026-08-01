@@ -92,7 +92,7 @@ def test_concurrent_reads_and_writes(shared_memory_service: MemoryService) -> No
     initial_id = store.add_memory("initial", 50, ["base"])
     store.write()
 
-    def reader_worker(results: list, errors: list) -> None:
+    def reader_worker(results: list[str], errors: list[OSError]) -> None:
         try:
             s = shared_memory_service.get_store(store_name)
             for _ in range(20):
@@ -103,7 +103,7 @@ def test_concurrent_reads_and_writes(shared_memory_service: MemoryService) -> No
         except OSError as e:
             errors.append(e)
 
-    def writer_worker(errors: list) -> None:
+    def writer_worker(errors: list[OSError]) -> None:
         try:
             s = shared_memory_service.get_store(store_name)
             for i in range(5):

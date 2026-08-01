@@ -34,7 +34,7 @@ class SimpleStoredDocument(StoredDocumentModel, SearchedDocumentModel, BaseModel
     metadata: dict[str, Any] = {}
 
     @classmethod
-    def from_sequence(cls, data: Sequence[dict]) -> list[Self]:
+    def from_sequence(cls, data: Sequence[dict[str, Any]]) -> list[Self]:
         """Construct instances from a sequence of dicts."""
         return [cls(**item) for item in data]
 

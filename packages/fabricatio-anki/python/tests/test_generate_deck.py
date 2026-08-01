@@ -1,6 +1,6 @@
 """Tests for the Anki deck generation capabilities."""
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import orjson
 import pytest
@@ -51,7 +51,7 @@ def _json_array(items: List[str]) -> str:
     return code_block(orjson.dumps(items).decode(), "json")
 
 
-def _json_obj(data: dict) -> str:
+def _json_obj(data: dict[str, Any]) -> str:
     """Serialize a dict to a JSON code block for propose."""
     return code_block(orjson.dumps(data).decode(), "json")
 

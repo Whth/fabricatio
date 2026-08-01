@@ -33,9 +33,9 @@ class _RAGTestRole(LLMTestRole, NovelComposeRAG):
     recorder so tests can assert on what was searched and ranked.
     """
 
-    _fetched_queries: list = PrivateAttr(default_factory=list)
-    _docs_by_query: dict = PrivateAttr(default_factory=dict)
-    _ranked_queries: list = PrivateAttr(default_factory=list)
+    _fetched_queries: list[tuple[str, str, int]] = PrivateAttr(default_factory=list)
+    _docs_by_query: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
+    _ranked_queries: list[str] = PrivateAttr(default_factory=list)
 
     def __init__(self, name: str = "rag-test") -> None:
         super().__init__(name=name)

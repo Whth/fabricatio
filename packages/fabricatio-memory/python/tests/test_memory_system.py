@@ -28,7 +28,7 @@ def store(memory_service: MemoryService) -> MemoryStore:
         ("Memory with high importance", 95, ["critical", "high-priority"]),
     ],
 )
-def test_add_and_get_memory(store: MemoryStore, content: str, importance: int, tags: list) -> None:
+def test_add_and_get_memory(store: MemoryStore, content: str, importance: int, tags: list[str]) -> None:
     """Test adding a memory and retrieving it by ID."""
     memory_id = store.add_memory(content, importance, tags)
     assert memory_id
@@ -60,8 +60,8 @@ def test_update_memory(
     updated_content: str,
     original_importance: int,
     updated_importance: int,
-    original_tags: list,
-    updated_tags: list,
+    original_tags: list[str],
+    updated_tags: list[str],
 ) -> None:
     """Test updating memory content, importance, and tags."""
     memory_id = store.add_memory(original_content, original_importance, original_tags)
@@ -86,7 +86,7 @@ def test_update_memory(
         ("Another content", 70, ["sample", "delete"]),
     ],
 )
-def test_delete_memory(store: MemoryStore, content: str, importance: int, tags: list) -> None:
+def test_delete_memory(store: MemoryStore, content: str, importance: int, tags: list[str]) -> None:
     """Test deleting a memory by its ID."""
     memory_id = store.add_memory(content, importance, tags)
     store.write()  # Persist before deletion
@@ -126,7 +126,7 @@ def test_delete_memory(store: MemoryStore, content: str, importance: int, tags: 
 )
 def test_search_memories(
     store: MemoryStore,
-    memories: list,
+    memories: list[tuple[str, int, list[str]]],
     query: str,
     expected_content_substring: str,
     top_k: int,
@@ -172,8 +172,8 @@ def test_search_memories(
 )
 def test_search_by_tags(
     store: MemoryStore,
-    memories: list,
-    search_tags: list,
+    memories: list[tuple[str, int, list[str]]],
+    search_tags: list[str],
     expected_count: int,
     expected_content_substring: str,
 ) -> None:
@@ -219,7 +219,7 @@ def test_search_by_tags(
     ],
 )
 def test_get_memories_by_importance(
-    store: MemoryStore, memories: list, min_importance: int, expected_count: int
+    store: MemoryStore, memories: list[tuple[str, int, list[str]]], min_importance: int, expected_count: int
 ) -> None:
     """Test retrieving memories by minimum importance threshold."""
     for content, importance, tags in memories:
@@ -255,7 +255,7 @@ def test_get_recent_memories(store: MemoryStore) -> None:
     ],
 )
 def test_get_frequently_accessed(
-    store: MemoryStore, content: str, importance: int, tags: list, access_count: int, top_k: int
+    store: MemoryStore, content: str, importance: int, tags: list[str], access_count: int, top_k: int
 ) -> None:
     """Test retrieving most frequently accessed memories."""
     freq_id = store.add_memory(content, importance, tags)
@@ -280,7 +280,7 @@ def test_get_frequently_accessed(
         ([], 0),
     ],
 )
-def test_count_memories(store: MemoryStore, memories: list, expected_count: int) -> None:
+def test_count_memories(store: MemoryStore, memories: list[tuple[str, int, list[str]]], expected_count: int) -> None:
     """Test counting total memories in the system."""
     for content, importance, tags in memories:
         store.add_memory(content, importance, tags)
@@ -296,7 +296,9 @@ def test_count_memories(store: MemoryStore, memories: list, expected_count: int)
         ([("Critical item", 100, ["critical"]), ("Normal item", 50, ["normal"])], (75, 75)),
     ],
 )
-def test_get_memory_stats(store: MemoryStore, memories: list, expected_avg_importance: tuple) -> None:
+def test_get_memory_stats(
+    store: MemoryStore, memories: list[tuple[str, int, list[str]]], expected_avg_importance: tuple[int, int]
+) -> None:
     """Test generating memory statistics."""
     for content, importance, tags in memories:
         store.add_memory(content, importance, tags)
