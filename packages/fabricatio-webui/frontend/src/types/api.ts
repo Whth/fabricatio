@@ -1,10 +1,20 @@
 // ── Node Registry ────────────────────────────────────────────────────────────────
 
+/** Wire-format port descriptor — matches Rust PortDefinition serde output. */
 export interface PortDefinition {
   name: string
   type: string
   optional: boolean
   description?: string
+  /** Widget hint emitted by the registry (toggle/number/combo/text/textarea/json). */
+  widget?: string
+  options?: string[]
+  default?: unknown
+  min?: number
+  max?: number
+  step?: number
+  placeholder?: string
+  separator?: string
 }
 
 /** Wire-format (snake_case) — matches Rust NodeTypeDefinition serde output. */
@@ -18,34 +28,8 @@ export interface NodeTypeDefinition {
   capabilities: string[]
   ctx_override: boolean
   config_fields: PortDefinition[]
-}
-
-/** CamelCase UI representation of a node type, derived from the wire format. */
-export interface NodeTypeUIDef {
-  type: string
-  title: string
-  description: string
-  category: string
-  inputPorts: PortDefinition[]
-  outputPorts: PortDefinition[]
-  capabilities: string[]
-  ctxOverride: boolean
-  configFields: PortDefinition[]
-}
-
-/** Convert wire-format NodeTypeDefinition (snake_case) → UI-friendly (camelCase). */
-export function convertNodeType(nt: NodeTypeDefinition): NodeTypeUIDef {
-  return {
-    type: nt.type,
-    title: nt.title,
-    description: nt.description,
-    category: nt.category,
-    inputPorts: nt.input_ports,
-    outputPorts: nt.output_ports,
-    capabilities: nt.capabilities,
-    ctxOverride: nt.ctx_override,
-    configFields: nt.config_fields,
-  }
+  /** 8-hex content fingerprint for change detection. NOT the wire node schema_version. */
+  schema_version?: string
 }
 
 // ── Workflow JSON ────────────────────────────────────────────────────────────────
@@ -57,6 +41,8 @@ export interface FabricatioNode {
   pos?: [number, number]
   inputs: Record<string, unknown>
   config: Record<string, unknown>
+  /** Numeric generation marker; 0 = legacy, 1 = current. */
+  schema_version?: number
 }
 
 export interface FabricatioEdge {
@@ -77,6 +63,7 @@ export interface WorkflowMeta {
 export interface WorkflowJSON {
   id?: string
   version: string
+  format_version?: number
   name?: string
   description?: string
   nodes: FabricatioNode[]
@@ -145,6 +132,7 @@ export interface WSExecutionDone {
   execution_id: string
   result?: unknown
   error?: string
+  cancelled?: boolean
 }
 export interface WSStatus {
   type: 'status'
