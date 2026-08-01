@@ -435,8 +435,9 @@ class LLMScopedConfig(ScopedConfig):
             "`send_to` is not specified at any where!",
         )
 
-    def _resolve_completion_params(  # noqa: PLR0913
+    def _resolve_completion_params(  # noqa: PLR0913, PLR0917
         self,
+        *,
         stream: Optional[bool] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
