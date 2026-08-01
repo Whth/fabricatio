@@ -5,11 +5,12 @@ use axum::extract::{Path, State};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Call a Python worker snapshot/forwarding callable that returns a JSON string.
-fn call_json(f: &std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>, args: (&str, &str)) -> Option<serde_json::Value> {
+/// Call a Python worker snapshot callable that returns a JSON string.
+/// Both snapshot callables (queue_snapshot, history_snapshot) take no args.
+fn call_json(f: &std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>) -> Option<serde_json::Value> {
     let f = f.get()?;
     pyo3::Python::attach(|py| {
-        let r = f.call1(py, (args.0, args.1)).ok()?;
+        let r = f.call0(py).ok()?;
         let s: String = r.extract(py).ok()?;
         serde_json::from_str(&s).ok()
     })
@@ -145,7 +146,7 @@ pub async fn interrupt_execution(State(state): State<Arc<AppState>>) -> Json<ser
 
 /// GET /api/queue — current queue status (owned by the Python worker).
 pub async fn get_queue(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let snap = call_json(&state.queue_snapshot_fn, ("", "")).unwrap_or_else(|| {
+    let snap = call_json(&state.queue_snapshot_fn).unwrap_or_else(|| {
         serde_json::json!({ "queue": [], "active": [] })
     });
     Json(snap)
@@ -153,6 +154,6 @@ pub async fn get_queue(State(state): State<Arc<AppState>>) -> Json<serde_json::V
 
 /// GET /api/history — execution history (owned by the Python worker).
 pub async fn get_history(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let snap = call_json(&state.history_snapshot_fn, ("", "")).unwrap_or_else(|| serde_json::json!([]));
+    let snap = call_json(&state.history_snapshot_fn).unwrap_or_else(|| serde_json::json!([]));
     Json(snap)
 }
