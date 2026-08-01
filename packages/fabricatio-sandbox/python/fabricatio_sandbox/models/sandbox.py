@@ -1,13 +1,8 @@
 """Data models for the sandbox subpackage."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from fabricatio_core.models.generic import Display
 
-if TYPE_CHECKING:
-    from fabricatio_sandbox.rust import SandboxSession
+from fabricatio_sandbox.rust import SandboxSession
 
 
 class SandboxResult(Display):

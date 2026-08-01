@@ -1,22 +1,15 @@
 """Sandbox capability — provides VFS-based isolated file operations for LLM agents."""
 
-from __future__ import annotations
-
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 
 from fabricatio_sandbox.config import sandbox_config
+from fabricatio_sandbox.models.sandbox import SandboxResult
 from fabricatio_sandbox.rust import SandboxSession
-
-if TYPE_CHECKING:
-    from typing import Unpack
-
-    from fabricatio_core.models.kwargs_types import ValidateKwargs
-
-    from fabricatio_sandbox.models.sandbox import SandboxResult
 
 
 class Sandbox(UseLLM, ABC):
@@ -67,8 +60,6 @@ class Sandbox(UseLLM, ABC):
         Returns:
             A :class:`SandboxResult` with the session, diffs, and applied flag.
         """
-        from fabricatio_sandbox.models.sandbox import SandboxResult
-
         session = self.create_session(mounts)
         session.write_text("source", source)
 
