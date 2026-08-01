@@ -4,7 +4,10 @@ Parses workflow JSON, instantiates Action nodes, topologically sorts them,
 and executes in order while streaming lifecycle events via a callback.
 """
 
+import asyncio
+import concurrent.futures
 import json
+import threading
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
@@ -31,6 +34,52 @@ def _preview(value: Any, limit: int = 4000) -> str:
     if len(text) > limit:
         return text[: max(0, limit - 3)] + "..."
     return text
+
+
+# ---------------------------------------------------------------------------
+# Node-body offloading (interrupt preemption)
+# ---------------------------------------------------------------------------
+
+
+class _NodeBodyExecutor:
+    """Runs each node body in a fresh daemon thread.
+
+    ``asyncio.to_thread`` / ``run_in_executor(None, ...)`` would use the loop's
+    default ThreadPoolExecutor, whose worker threads are *non-daemon* and are
+    joined at interpreter exit. A cancelled node that keeps running in the
+    background (see ``_run_node_body``) would therefore block process shutdown
+    until it finishes. Daemon threads are never joined, so an orphaned node
+    body simply dies with the interpreter.
+    """
+
+    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> "concurrent.futures.Future[Any]":
+        fut: "concurrent.futures.Future[Any]" = concurrent.futures.Future()
+
+        def runner() -> None:
+            try:
+                result = fn(*args, **kwargs)
+            except BaseException as exc:  # noqa: BLE001 — propagate everything (incl. CancelledError)
+                fut.set_exception(exc)
+            else:
+                fut.set_result(result)
+
+        threading.Thread(target=runner, name="webui-node-body", daemon=True).start()
+        return fut
+
+
+_NODE_BODY_EXECUTOR = _NodeBodyExecutor()
+
+
+def _run_node_body(instance: Action, cxt: Dict[str, Any]) -> Any:
+    """Run a node body to completion inside its own event loop in a worker thread.
+
+    The executor awaits this via ``run_in_executor``; when that await is
+    cancelled (interrupt), the worker's cancelled path fires immediately while
+    this thread keeps running — the orphaned node finishes its blocking work
+    (e.g. a sync read of a large file) and its result is discarded. Threads are
+    abandoned, never killed; they are daemon so they also die at shutdown.
+    """
+    return asyncio.run(instance._execute(**cxt))
 
 
 # ---------------------------------------------------------------------------
@@ -230,8 +279,18 @@ class WorkflowExecutor:
                         except Exception as exc:  # noqa: BLE001
                             logger.debug(f"Could not set field {field_name!r} on {type_name!r} from context: {exc!r}")
 
-            # Execute
-            result = await instance._execute(**cxt)
+            # Execute. The node body runs off-loop in a daemon worker thread
+            # (its own event loop), so blocking sync I/O (e.g. ReadText on a
+            # 20 MB file) never stalls this loop: the await below stays
+            # cancellable, and an interrupt is delivered here immediately while
+            # the orphaned thread finishes in the background (abandonment, not
+            # killing — see _run_node_body). Note: LLM calls (aask) are
+            # pyo3-asyncio awaitables that bind to the running loop at await
+            # time, so they work inside the thread's own loop; any action that
+            # instead captures the main loop's resources would not.
+            result = await asyncio.get_running_loop().run_in_executor(
+                _NODE_BODY_EXECUTOR, _run_node_body, instance, cxt
+            )
             output_key: str = (
                 instance.output_key
                 or getattr(instance, "output_key", "")

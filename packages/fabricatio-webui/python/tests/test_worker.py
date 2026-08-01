@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 from typing import Any, Dict, List
 
 import pytest
@@ -35,6 +36,17 @@ class SlowStep(Action):
 
     async def _execute(self, **cxt: Any) -> Any:
         await asyncio.sleep(3600)
+        return {"done": True}
+
+
+class BlockingStep(Action):
+    """Test action whose body does blocking sync work (never yields)."""
+
+    output_key: str = "blocking_result"
+    block_seconds: float = 5.0
+
+    async def _execute(self, **cxt: Any) -> Any:
+        time.sleep(self.block_seconds)
         return {"done": True}
 
 
@@ -111,6 +123,63 @@ async def test_interrupt_cancels_running_execution() -> None:
     done = next(e for e in events if e["type"] == "execution_done")
     assert done["execution_id"] == "e2"
     assert done["cancelled"] is True
+
+
+@pytest.mark.asyncio
+async def test_interrupt_preempts_blocking_node() -> None:
+    """A node doing blocking sync work is preempted by cancel; the loop moves on."""
+    events: List[Dict[str, Any]] = []
+
+    def broadcast(payload: str) -> None:
+        events.append(json.loads(payload))
+
+    worker = WorkflowWorker(broadcast)
+    loop_task = await _run_worker(worker)
+
+    worker.submit("b1", _wf("n1", "BlockingStep", {"block_seconds": 30}), "null")
+    await asyncio.sleep(0.1)  # let the node start its blocking work
+    assert worker.cancel_current() is True
+    await asyncio.sleep(0.1)  # CancelledError must be delivered at the await point
+    # worker loop survives and processes the next queued item
+    worker.submit("b2", _wf("n1", "FakeStep", {"value": "next"}), "null")
+    await asyncio.sleep(0.2)
+    loop_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await loop_task
+
+    done_b1 = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b1")
+    assert done_b1["cancelled"] is True
+    assert done_b1["result"] is None
+    done_b2 = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b2")
+    assert done_b2["cancelled"] is False
+    assert done_b2["error"] is None
+
+    history = json.loads(worker.history_snapshot())
+    assert any(h["execution_id"] == "b1" and h["state"] == "cancelled" for h in history)
+    assert any(h["execution_id"] == "b2" and h["state"] == "completed" for h in history)
+
+
+@pytest.mark.asyncio
+async def test_blocking_node_completes_normally() -> None:
+    """A short blocking node without interrupt still completes with its result."""
+    events: List[Dict[str, Any]] = []
+
+    def broadcast(payload: str) -> None:
+        events.append(json.loads(payload))
+
+    worker = WorkflowWorker(broadcast)
+    loop_task = await _run_worker(worker)
+
+    worker.submit("b3", _wf("n1", "BlockingStep", {"block_seconds": 0.2}), "null")
+    await asyncio.sleep(0.5)
+    loop_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await loop_task
+
+    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b3")
+    assert done["cancelled"] is False
+    assert done["result"] == {"blocking_result": {"done": True}}
+    assert done["error"] is None
 
 
 @pytest.mark.asyncio
