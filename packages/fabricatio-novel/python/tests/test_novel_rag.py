@@ -37,8 +37,8 @@ class _RAGTestRole(LLMTestRole, NovelComposeRAG):
     _docs_by_query: dict = PrivateAttr(default_factory=dict)
     _ranked_queries: list = PrivateAttr(default_factory=list)
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, name: str = "rag-test") -> None:
+        super().__init__(name=name)
         self._fetched_queries = []
         self._docs_by_query = {}
         self._ranked_queries = []
@@ -175,7 +175,7 @@ def _fetch_query(original: str, rerank_query: Optional[str] = None) -> str:
     """Mirror the query-building logic from ``_fetch_style_docs`` for test key setup."""
     q = f"{original}\n\nNeed Some refined question to find QA docs related to the stuff above"
     if rerank_query:
-        q += f"\nand below is the extra user constrain which is more prior to follow: {rerank_query}"
+        q += f"\nand below is the extra user constrain which is more prior to follow: \n{rerank_query}"
     return q
 
 

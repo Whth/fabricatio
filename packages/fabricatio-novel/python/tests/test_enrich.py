@@ -36,7 +36,7 @@ class _EnrichNovelTestRole(ProposeTestRole, EnrichChunkTextNovel):
 @pytest.fixture
 def role() -> _EnrichNovelTestRole:
     """Fresh `_EnrichNovelTestRole` per test."""
-    return _EnrichNovelTestRole()
+    return _EnrichNovelTestRole(name="enrich-test")
 
 
 # ─── 1. Inheritance smoke tests ──────────────────────────────────────────────────

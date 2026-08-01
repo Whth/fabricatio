@@ -136,7 +136,7 @@ def role() -> NovelRole:
     Returns:
         NovelRole: NovelRole instance
     """
-    return NovelRole()
+    return NovelRole(name="novel-capabilities")
 
 
 # ---------------------------------------------------------------------------
@@ -164,19 +164,19 @@ class TestFormatedTitle:
         title = "A Very Long Chapter Title That Goes On And On"
         assert formated_title(99, title) == f"Ch-99: {title}"
 
-    def test_last_paragraph_returns_last_block(self) -> None:
-        """last_paragraph returns the last non-empty paragraph split on blank lines."""
+    def test_last_paragraph_returns_trailing_paragraphs(self) -> None:
+        """last_paragraph returns the trailing paragraphs split on blank lines, ellipsis-prefixed."""
         text = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
-        assert last_paragraph(text) == "Third paragraph."
+        assert last_paragraph(text) == "(......)\nFirst paragraph.\nSecond paragraph.\nThird paragraph."
 
     def test_last_paragraph_strips_trailing_whitespace(self) -> None:
-        """last_paragraph strips surrounding whitespace from the returned paragraph."""
+        """last_paragraph strips surrounding whitespace from the returned paragraphs."""
         text = "First.\n\nLast paragraph.   \n\n"
-        assert last_paragraph(text) == "Last paragraph."
+        assert last_paragraph(text) == "(......)\nFirst.\nLast paragraph."
 
     def test_last_paragraph_handles_single_paragraph(self) -> None:
         """last_paragraph on a single-block text returns that block."""
-        assert last_paragraph("Only one block here.") == "Only one block here."
+        assert last_paragraph("Only one block here.") == "(......)\nOnly one block here."
 
     def test_last_paragraph_empty_input(self) -> None:
         """last_paragraph returns empty string for empty or whitespace-only input."""
@@ -186,27 +186,32 @@ class TestFormatedTitle:
     def test_last_paragraph_skips_trailing_empty_blocks(self) -> None:
         """Trailing blank paragraphs after the last block do not change the result."""
         text = "Alpha.\n\nBeta.\n\n\n\n"
-        assert last_paragraph(text) == "Beta."
+        assert last_paragraph(text) == "(......)\nAlpha.\nBeta."
 
     def test_last_paragraph_handles_crlf_line_endings(self) -> None:
         r"""CRLF (\r\n\r\n) is treated as a blank-line separator."""
         text = "First paragraph.\r\n\r\nSecond paragraph.\r\n\r\nFinal paragraph."
-        assert last_paragraph(text) == "Final paragraph."
+        assert last_paragraph(text) == "(......)\nFirst paragraph.\nSecond paragraph.\nFinal paragraph."
 
     def test_last_paragraph_handles_mixed_line_endings(self) -> None:
         """Mixed CRLF and LF separators between paragraphs are both recognised."""
         text = "First paragraph.\r\n\r\nSecond paragraph.\n\nFinal paragraph."
-        assert last_paragraph(text) == "Final paragraph."
+        assert last_paragraph(text) == "(......)\nFirst paragraph.\nSecond paragraph.\nFinal paragraph."
 
     def test_last_paragraph_treats_whitespace_only_line_as_blank(self) -> None:
         """A line containing only spaces/tabs still counts as a paragraph break."""
         text = "First paragraph.\n   \nSecond paragraph.\n\t\nFinal paragraph."
-        assert last_paragraph(text) == "Final paragraph."
+        assert last_paragraph(text) == "(......)\nFirst paragraph.\nSecond paragraph.\nFinal paragraph."
 
     def test_last_paragraph_collapses_three_newline_runs(self) -> None:
         """A 3-newline run between paragraphs doesn't leave a stray prefix on the next paragraph."""
         text = "First.\n\n\nSecond.\n\n\nFinal."
-        assert last_paragraph(text) == "Final."
+        assert last_paragraph(text) == "(......)\nFirst.\nSecond.\nFinal."
+
+    def test_last_paragraph_caps_at_k_paragraphs(self) -> None:
+        """Only the last k paragraphs are returned; the rest is elided behind the ellipsis."""
+        text = "\n\n".join(f"P{i}" for i in range(20))
+        assert last_paragraph(text, k=3) == "(......)\nP17\nP18\nP19"
 
 
 # ---------------------------------------------------------------------------
@@ -896,7 +901,7 @@ class TestAssembleNovel:
         ]
         contents = ["A chapter with enough words to test."]
 
-        novel = NovelCompose.assemble_novel(draft, plans, contents)
+        novel = NovelCompose.assemble_novel(draft, plans, contents, [])
         assert novel.chapters[0].expected_word_count == 500
         assert novel.expected_word_count == 500
 
@@ -1127,7 +1132,7 @@ class TestSummarizeChapter:
     @pytest.fixture
     def role(self) -> NovelRole:
         """Create a NovelRole instance for testing."""
-        return NovelRole()
+        return NovelRole(name="summarize-chapter")
 
     @pytest.fixture
     def sample_summary(self) -> ChapterSummary:
@@ -1242,7 +1247,7 @@ class TestCreateChaptersSequential:
     @pytest.fixture
     def role(self) -> NovelRole:
         """Create a NovelRole instance for sequential tests."""
-        return NovelRole()
+        return NovelRole(name="create-chapters-sequential")
 
     @pytest.mark.asyncio
     async def test_create_chapters_generates_all_chapters(
@@ -1340,36 +1345,35 @@ class TestChapterRequirementTemplateRendersTail:
         }
 
     def test_renders_tail_block_when_provided(self, base_ctx: dict) -> None:
-        """The template renders the closing-beat block when previous_chapter_tail is non-empty."""
+        """The template renders the trailing-paragraphs block when previous_chapter_tail is non-empty."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config
 
         base_ctx["previous_chapter_tail"] = "She walked into the mist and did not return."
         rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
 
-        assert "Closing Beat" in rendered
+        assert "Trailing Paragraphs of Previous Chapter" in rendered
         assert "She walked into the mist and did not return." in rendered
-        assert "preserve continuity from it" in rendered
-        assert "do NOT repeat or paraphrase it verbatim" in rendered
+        assert "maintain inter-chapter continuity" in rendered
 
     def test_omits_tail_block_when_none(self, base_ctx: dict) -> None:
-        """The template omits the closing-beat block when previous_chapter_tail is None."""
+        """The template omits the trailing-paragraphs block when previous_chapter_tail is None."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config
 
         rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
 
-        assert "Closing Beat" not in rendered
+        assert "Trailing Paragraphs of Previous Chapter" not in rendered
 
     def test_omits_tail_block_when_empty_string(self, base_ctx: dict) -> None:
-        """The template omits the closing-beat block when previous_chapter_tail is an empty string."""
+        """The template omits the trailing-paragraphs block when previous_chapter_tail is an empty string."""
         from fabricatio_core import TEMPLATE_MANAGER
         from fabricatio_novel.config import novel_config
 
         base_ctx["previous_chapter_tail"] = ""
         rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, base_ctx)
 
-        assert "Closing Beat" not in rendered
+        assert "Trailing Paragraphs of Previous Chapter" not in rendered
 
 
 # ---------------------------------------------------------------------------
@@ -1437,7 +1441,7 @@ class TestPreviousChapterTailThreading:
         character: CharacterCard,
     ) -> None:
         """Chapter 1's last paragraph must be present in chapter 2's prompt, absent from chapter 1's."""
-        role = NovelRole()
+        role = NovelRole(name="tail-threading")
 
         # Two deterministic chapter texts, each with a clearly-distinguishable final paragraph.
         chapter1_text = (
@@ -1489,7 +1493,7 @@ class TestPreviousChapterTailThreading:
 
         # Chapter 1's prompt: no previous chapter exists yet — tail MUST be absent.
         assert "She stepped into the unknown and the door slammed shut behind her." not in prompt1
-        assert "Closing Beat" not in prompt1
+        assert "Trailing Paragraphs of Previous Chapter" not in prompt1
 
         # Chapter 2's prompt: BOTH the rolling summary AND the closing-paragraph
         # tail are threaded forward — the user explicitly rejected replacing the
@@ -1498,8 +1502,7 @@ class TestPreviousChapterTailThreading:
         assert "Previous Chapter Context" in prompt2
         # The closing paragraph of chapter 1 must also be threaded in.
         assert "She stepped into the unknown and the door slammed shut behind her." in prompt2
-        assert "Closing Beat" in prompt2
-        assert "Previous Chapter Closing Beat" in prompt2
+        assert "Trailing Paragraphs of Previous Chapter" in prompt2
 
 
 # ---------------------------------------------------------------------------
@@ -1758,7 +1761,7 @@ class TestMentalPathPreviousChapterTailThreading:
         class TestMentalRole(LLMTestRole, NovelComposeMental):
             """Combined role for testing the mental override end-to-end."""
 
-        role = TestMentalRole()
+        role = TestMentalRole(name="mental-tail-threading")
 
         # Deterministic chapter texts with distinguishable final paragraphs.
         chapter1_text = (
@@ -1826,10 +1829,10 @@ class TestMentalPathPreviousChapterTailThreading:
 
         # Chapter 1's prompt: no previous chapter exists yet — tail MUST be absent.
         assert "She stepped into the unknown and the door slammed shut behind her." not in prompt1
-        assert "Closing Beat" not in prompt1
+        assert "Trailing Paragraphs of Previous Chapter" not in prompt1
         # Chapter 2's prompt: BOTH the rolling summary AND the closing-paragraph
         # tail are threaded forward.
         assert "an unseen event unfolded" in prompt2
         assert "Previous Chapter Context" in prompt2
         assert "She stepped into the unknown and the door slammed shut behind her." in prompt2
-        assert "Closing Beat" in prompt2
+        assert "Trailing Paragraphs of Previous Chapter" in prompt2

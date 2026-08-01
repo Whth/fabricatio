@@ -16,13 +16,15 @@ def formated_title(idx: int, title: str) -> str:
 
 
 def last_paragraph(text: str, k: int = 12) -> str:
-    r"""Return the last non-empty paragraph of ``text``.
+    r"""Return the trailing paragraphs of ``text``.
 
     Paragraphs are split on blank lines (LF or CRLF, optionally containing
     only spaces/tabs in between). When the text is empty or contains only
-    whitespace, an empty string is returned. Used to give the next-chapter
-    writer a focused continuity hook on the prior chapter's closing beat
-    without paying the cost of re-feeding the full chapter.
+    whitespace, an empty string is returned. Returns the last ``k`` paragraphs
+    joined with newlines and prefixed with ``(......)`` to signal that the
+    earlier text was elided. Used to give the next-chapter writer a focused
+    continuity hook on the prior chapter's closing beats without paying the
+    cost of re-feeding the full chapter.
     """
     if not text or not text.strip():
         return ""
