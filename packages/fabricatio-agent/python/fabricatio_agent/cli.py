@@ -140,7 +140,9 @@ def code(
     a coding task. If the task is complex, it will be broken down into smaller
     subtasks through the architect workflow.
     """
-    Team().join(Developer()).join(ProjectLeader()).join(TestEngineer()).join(DocumentationWriter()).inform().dispatch()
+    Team().join(Developer(name="developer")).join(ProjectLeader(name="project-leader")).join(
+        TestEngineer(name="test-engineer")
+    ).join(DocumentationWriter(name="documentation-writer")).inform().dispatch()
     task = Task(name="Write code", description=prompt).update_init_context(sequential_thinking=sequential_thinking)
     task.delegate_blocking(TaskType.Orchestrate)
 
