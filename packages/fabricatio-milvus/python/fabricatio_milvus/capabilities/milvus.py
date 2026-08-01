@@ -127,41 +127,18 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
 
         return doc_model.from_sequence(resp)
 
-    async def aretrieve(  # noqa: PLR0913
+    async def aretrieve(
         self,
         query: str | List[str],
-        document_model: Type[D],
-        max_accepted: int = 10,
-        collection_name: Optional[str] = None,
-        similarity_threshold: float = 0.37,
-        filter_expr: str = "",
-        tei_endpoint: Optional[str] = None,
-        reranker_threshold: Optional[float] = None,
-        result_per_query: Optional[int] = None,
+        config: FetchConfig[D] | None = None,
     ) -> List[D]:
         """Convenience method to vectorize a query, search Milvus, and return typed documents.
 
         Args:
             query: The query string(s) to search for.
-            document_model: The MilvusDataBase subclass to deserialize results into.
-            max_accepted: Maximum number of results to return.
-            collection_name: Override the target collection name.
-            similarity_threshold: Minimum similarity score for results.
-            filter_expr: Milvus filter expression.
-            tei_endpoint: Optional TEI endpoint for reranking.
-            reranker_threshold: Optional reranker threshold.
-            result_per_query: Optional number of results per individual query (overrides max_accepted per query).
+            config: Configuration for the fetch operation. If None, uses FetchConfig defaults.
 
         Returns:
             List of document instances of type D.
         """
-        conf = FetchConfig(
-            document_model=document_model,
-            collection_name=collection_name,
-            similarity_threshold=similarity_threshold,
-            result_per_query=result_per_query or max_accepted,
-            filter_expr=filter_expr,
-            tei_endpoint=tei_endpoint,
-            reranker_threshold=reranker_threshold or 0.7,
-        )
-        return await self.afetch_document(query, conf)
+        return await self.afetch_document(query, config or FetchConfig.default())

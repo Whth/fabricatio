@@ -8,7 +8,7 @@ from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
 
-from fabricatio_milvus.capabilities.milvus import AddConfig, MilvusRAG
+from fabricatio_milvus.capabilities.milvus import AddConfig, FetchConfig, MilvusRAG
 from fabricatio_milvus.config import milvus_config
 from fabricatio_milvus.models.milvus import MilvusClassicModel, MilvusDataBase
 
@@ -94,7 +94,11 @@ class MilvusRAGTalk(Action, MilvusRAG):
                 if user_say is None:
                     break
                 ret: List[MilvusClassicModel] = await self.aretrieve(
-                    user_say, document_model=MilvusClassicModel, collection_name=collection_name
+                    user_say,
+                    config=FetchConfig(
+                        document_model=MilvusClassicModel,
+                        collection_name=collection_name,
+                    ),
                 )
 
                 gpt_say = await self.aask(
