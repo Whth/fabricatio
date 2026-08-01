@@ -429,7 +429,7 @@ class CompileKwargs(TypedDict, total=False):
     format: str
     ppi: float
     pdf_standards: List[str]
-    sys_inputs: dict
+    sys_inputs: dict[str, str]
 
 
 def compile_typst_source(
