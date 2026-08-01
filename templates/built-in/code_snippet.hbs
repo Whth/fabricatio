@@ -6,8 +6,14 @@ Output format:
 
 Expected result:
 - Every file you generate is delivered as its own ">>>>>" ... "<<<<<" block.
-- The path above ">>>>>" is a plain relative path (e.g. src/hello.py), without quotes, colons, angle brackets, or other special characters.
+- The path above ">>>>>" is a plain path (e.g. src/hello.py), without quotes, colons, angle brackets, or other special characters (a colon is only allowed as the drive-letter separator of an absolute path).
 - The code between the fences must be complete and syntactically valid; it will be written to the path as-is.
+
+Behavior:
+- Writing is a complete overwrite: any existing file at the path is replaced entirely.
+- Parent directories of the path are created automatically when missing.
+- Both relative and absolute paths are supported.
+- You can create any number of code snippets at once, each as its own ">>>>>" ... "<<<<<" block.
 
 e.g.
 
