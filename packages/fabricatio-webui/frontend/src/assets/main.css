@@ -3,18 +3,27 @@
 @import '@vue-flow/minimap/dist/style.css';
 @import '@vue-flow/controls/dist/style.css';
 
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  background: #0d1117;
-  color: #e6edf3;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
   height: 100vh;
+  overflow: hidden;
 }
 
 /* ── Dark theme overrides for Vue Flow ── */
@@ -27,10 +36,11 @@ body {
 }
 
 .vue-flow__node.selected > .comfy-node {
-  border-color: #58a6ff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-glow);
 }
 
-/* Scrollbar styling */
+/* ── Scrollbar styling ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -41,10 +51,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #30363d;
-  border-radius: 3px;
+  background: var(--bg-3);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
+  background: var(--fg-2);
+}
+
+/* ── Focus-visible ring ──────────────────────────────────────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--accent-subtle);
+  color: var(--fg-0);
 }

@@ -1,47 +1,147 @@
 /* ── fabricatio-webui design tokens ── dark-only palette ──────────────────── */
 
 :root {
-  /* Backgrounds */
-  --bg-0: #0d1117;
-  --bg-1: #161b22;
-  --bg-2: #21262d;
-  --bg-3: #30363d;
+  /* ── Surfaces (layered elevation) ──────────────────────────────────────── */
+  --bg-0: #0b0f14;           /* canvas / root */
+  --bg-1: #141920;           /* nodes / cards */
+  --bg-2: #1a2028;           /* title bars / headers */
+  --bg-3: #222a33;           /* hover / selected / raised */
+  --bg-4: #2b3340;           /* pressed / active */
 
-  /* Foregrounds */
-  --fg-0: #e6edf3;
-  --fg-1: #8b949e;
-  --fg-2: #484f58;
-  --fg-3: #6e7681;
+  /* ── Foreground ────────────────────────────────────────────────────────── */
+  --fg-0: #e2e7ee;           /* primary text */
+  --fg-1: #8895a7;           /* secondary / muted text */
+  --fg-2: #56647a;           /* tertiary / disabled / hint */
+  --fg-3: #3c485a;           /* subtle / placeholder / ghost */
+  --fg-inv: #0b0f14;         /* text on accent */
 
-  /* Accent */
-  --accent: #58a6ff;
-  --accent-glow: rgba(88, 166, 255, 0.15);
+  /* ── Accent ────────────────────────────────────────────────────────────── */
+  --accent: #3b8cff;
+  --accent-hover: #589dff;
+  --accent-pressed: #2874d6;
+  --accent-glow: rgba(59, 140, 255, 0.12);
+  --accent-subtle: rgba(59, 140, 255, 0.08);
 
-  /* Status */
-  --ok: #3fb950;
-  --warn: #d29922;
-  --err: #f85149;
-  --running: #d2a8ff;
+  /* ── Semantic / status ─────────────────────────────────────────────────── */
+  --ok: #39ac5d;
+  --ok-subtle: rgba(57, 172, 93, 0.12);
+  --warn: #d49822;
+  --warn-subtle: rgba(212, 152, 34, 0.12);
+  --err: #e54844;
+  --err-subtle: rgba(229, 72, 68, 0.12);
+  --running: #a371f7;
+  --running-subtle: rgba(163, 113, 247, 0.12);
 
-  /* Borders */
-  --border: #30363d;
-  --border-soft: #21262d;
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --border: #222a33;
+  --border-mid: #2e3847;
+  --border-soft: #1a2028;
 
-  /* Category colours */
+  /* ── Category colours ──────────────────────────────────────────────────── */
   --cat-llm: #a371f7;
-  --cat-novel: #3fb950;
+  --cat-novel: #39ac5d;
   --cat-comfyui: #f778ba;
-  --cat-rag: #d2a8ff;
-  --cat-io: #79c0ff;
-  --cat-data: #ffa657;
-  --cat-character: #ec775c;
+  --cat-rag: #c084fc;
+  --cat-io: #3b8cff;
+  --cat-data: #f59e4b;
+  --cat-character: #e9755b;
   --cat-anki: #f0883e;
-  --cat-general: #8b949e;
+  --cat-general: #8895a7;
+
+  /* ── Spacing (4 px grid) ───────────────────────────────────────────────── */
+  --sp-0: 0;
+  --sp-px: 1px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+
+  --leading-tight: 1.25;
+  --leading-base: 1.45;
+  --leading-relaxed: 1.6;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Radii ─────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ───────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 12px var(--accent-glow);
+
+  /* ── Transitions ───────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-slow: 200ms;
+  --transition-colors: color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+  --transition-opacity: opacity var(--duration-fast) var(--ease-out);
+  --transition-transform: transform var(--duration-base) var(--ease-out);
+  --transition-shadow: box-shadow var(--duration-base) var(--ease-out);
+
+  /* ── Focus ─────────────────────────────────────────────────────────────── */
+  --focus-ring-color: var(--accent);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 1px;
+  --focus-ring: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+
+  /* ── Control sizing ────────────────────────────────────────────────────── */
+  --ctrl-h-sm: 22px;
+  --ctrl-h: 26px;
+  --ctrl-h-lg: 32px;
+  --ctrl-px: 8px;
+  --ctrl-gap: 6px;
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --toolbar-h: 40px;
+  --console-collapsed-h: 32px;
+  --console-expanded-max: 220px;
+  --node-min-w: 200px;
+  --node-max-w: 320px;
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────── */
 
 @keyframes node-pulse {
   0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

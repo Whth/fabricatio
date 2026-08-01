@@ -14,18 +14,4 @@ onMounted(() => {
 </template>
 
 <style>
-body {
-  margin: 0;
-  background: #0d1117;
-  color: #e6edf3;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-#app {
-  height: 100vh;
-  overflow: hidden;
-}
 </style>
