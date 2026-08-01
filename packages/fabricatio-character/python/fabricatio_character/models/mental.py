@@ -14,7 +14,7 @@ Complete psychological state model covering:
 """
 
 from enum import IntEnum, StrEnum, auto
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from fabricatio_core.models.generic import Base, ProposedAble
 from pydantic import Field
@@ -556,6 +556,6 @@ class AsPromptData(Base):
     situation_adversity: float = 0.0
     situation_negativity: float = 0.0
 
-    def as_template_data(self) -> dict[str, str | float | bool | int | list | None]:
+    def as_template_data(self) -> dict[str, str | float | bool | int | list[Any] | None]:
         """Convert to dict for TEMPLATE_MANAGER.render_template()."""
         return self.model_dump()
