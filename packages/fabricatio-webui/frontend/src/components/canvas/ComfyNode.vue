@@ -21,6 +21,28 @@ const incomingHandles = computed(() => {
   return handles
 })
 
+// The registry emits the same field set for inputPorts and configFields;
+// rendering both loops used to create duplicate Handle ids per field, which
+// made connections land on the wrong widget.  Widget rows below are the
+// single source of input handles; this defensive list covers any future
+// port that is not a config field.
+const extraInputPorts = computed(() =>
+  ((props.data.inputPorts ?? []) as PortDefinition[]).filter(
+    (p) => !((props.data.configFields ?? []) as PortDefinition[]).some((f) => f.name === p.name),
+  ),
+)
+
+/** Short "← source" label for a wired field (node title + port). */
+function wiredSource(field: string): string {
+  const edge = wfStore.edges.find(
+    (e) => e.target === props.id && (e.targetHandle ?? 'default') === field,
+  )
+  if (!edge) return 'unknown'
+  const sourceNode = wfStore.nodes.find((n) => n.id === edge.source)
+  const port = edge.sourceHandle && edge.sourceHandle !== 'default' ? `.${edge.sourceHandle}` : ''
+  return `${sourceNode?.data?.title ?? edge.source}${port}`
+}
+
 function fieldValue(f: PortDefinition): unknown {
   return (
     node.value?.data.config?.[f.name] ??
@@ -82,34 +104,35 @@ const statusLabel = computed(() => {
 
     <!-- Body -->
     <div v-if="!(collapsible && collapsed)" class="node-body">
-      <!-- Input ports -->
-      <div class="port-col inputs">
-        <div v-for="p in data.inputPorts" :key="p.name" class="port-row port-row-io">
-          <Handle
-            :id="p.name"
-            type="target"
-            :position="Position.Left"
-            class="port-handle"
-            :class="{ hollow: p.optional }"
-          />
-          <span class="port-name">{{ p.name }}</span>
-        </div>
-
-        <!-- Widget section -->
-        <template v-if="data.configFields?.length">
-          <div class="widget-divider"></div>
-          <div v-for="f in data.configFields" :key="f.name" class="port-row input">
-            <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle" />
-            <NodeWidget
-              v-if="!incomingHandles.has(f.name)"
-              :field="f"
-              :model-value="fieldValue(f)"
-              @update:model-value="updateField(f, $event)"
-            />
-            <span v-else class="wired-field">{{ f.name }}</span>
-          </div>
-        </template>
+    <!-- Connectable fields: every configurable field is an input port with
+         exactly one target handle (inputPorts ≡ configFields in the
+         registry; the bare-port rows used to duplicate handle ids). -->
+    <div class="port-col inputs">
+      <div v-for="f in data.configFields" :key="f.name" class="port-row input">
+        <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle" />
+        <NodeWidget
+          v-if="!incomingHandles.has(f.name)"
+          :field="f"
+          :model-value="fieldValue(f)"
+          @update:model-value="updateField(f, $event)"
+        />
+        <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
+          ← {{ wiredSource(f.name) }}
+        </span>
       </div>
+
+      <!-- Defensive: any input port the registry does not expose as a config field -->
+      <div v-for="p in extraInputPorts" :key="'extra-' + p.name" class="port-row port-row-io">
+        <Handle
+          :id="p.name"
+          type="target"
+          :position="Position.Left"
+          class="port-handle"
+          :class="{ hollow: p.optional }"
+        />
+        <span class="port-name">{{ p.name }}</span>
+      </div>
+    </div>
 
       <!-- Output ports -->
       <div class="port-col outputs">
@@ -144,7 +167,9 @@ const statusLabel = computed(() => {
   font-size: var(--text-sm);
   line-height: var(--leading-base);
   position: relative;
-  overflow: hidden;
+  /* Handles sit at the left/right edges (VueFlow translate(±50%, -50%));
+     clipping them here would eat their hit area and break connecting. */
+  overflow: visible;
   transition: border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out);
 }
@@ -307,7 +332,7 @@ const statusLabel = computed(() => {
   border-radius: var(--radius-full);
   border: 1px solid var(--accent);
   background: var(--accent);
-  transition: transform var(--duration-fast) var(--ease-out),
+  transition: scale var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
@@ -316,8 +341,12 @@ const statusLabel = computed(() => {
   border-color: var(--fg-2);
 }
 
+/* NOTE: never override `transform` here — VueFlow positions handles with
+   `transform: translate(±50%, -50%)`; replacing it (e.g. with
+   `transform: scale(...)`) makes handles jump and breaks their hit area.
+   The independent `scale` property composes with the translate instead. */
 .port-handle:hover {
-  transform: scale(1.35);
+  scale: 1.35;
   box-shadow: 0 0 6px var(--accent-glow);
 }
 
@@ -325,18 +354,15 @@ const statusLabel = computed(() => {
   box-shadow: 0 0 6px rgba(86, 100, 122, 0.3);
 }
 
-/* ── Widget divider ──────────────────────────────────────────────────────── */
-.widget-divider {
-  height: 1px;
-  background: var(--border-soft);
-  margin: var(--sp-1) 0;
-}
-
 /* ── Wired field ─────────────────────────────────────────────────────────── */
 .wired-field {
-  color: var(--fg-3);
+  color: var(--fg-2);
   font-size: var(--text-xs);
   font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
 }
 
 /* ── Output dot / preview trigger ────────────────────────────────────────── */

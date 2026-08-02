@@ -187,6 +187,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
     const id = `e_${connection.source}_${connection.sourceHandle}_${connection.target}_${connection.targetHandle}`
     if (edges.value.some((e) => e.id === id)) return
     pushSnapshot()
+    // One wire per field: a new connection into a target handle replaces the
+    // previous one, so a field's value source is always unambiguous.
+    const targetHandle = connection.targetHandle ?? 'default'
     const edge: WorkflowEdge = {
       id,
       source: connection.source,
@@ -195,7 +198,12 @@ export const useWorkflowStore = defineStore('workflow', () => {
       targetHandle: connection.targetHandle,
       type: 'smoothstep',
     }
-    edges.value = [...edges.value, edge]
+    edges.value = [
+      ...edges.value.filter(
+        (e) => !(e.target === connection.target && (e.targetHandle ?? 'default') === targetHandle),
+      ),
+      edge,
+    ]
   }
 
   function removeEdge(id: string) {
