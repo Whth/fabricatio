@@ -28,7 +28,6 @@ from pydantic.fields import FieldInfo
 
 # Task-scoped storage keys (namespaced away from user keys).
 _OUTPUTS_KEY = "__webui_node_outputs__"
-_FIELDS_KEY = "__webui_node_fields__"  # {node_id: {field: effective value}}
 _EXECUTION_ID_KEY = "__webui_execution_id__"
 _ERRORS_KEY = "__webui_errors__"
 
@@ -287,7 +286,6 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
 
 
 def _wired_value(
-    fields_store: Dict[str, Dict[str, Any]],
     outputs: Dict[str, Any],
     node_id: str,
     src_id: str,
@@ -296,17 +294,17 @@ def _wired_value(
 ) -> Tuple[bool, Any]:
     """Resolve one wired edge's runtime value.
 
-    ``source_handle`` prefixed with ``field:`` reads the source node's
-    recorded effective field value; anything else reads the node's output.
+    Sources are node outputs only — fields are targets.  ``field:``-prefixed
+    handles are legacy wire data the UI can no longer create; they are
+    rejected with a warning instead of silently wiring the node's output.
     Returns ``(found, value)``; missing sources warn and report ``False``.
     """
     if source_handle.startswith("field:"):
-        field_name = source_handle[len("field:") :]
-        src_fields = fields_store.get(src_id, {})
-        if field_name not in src_fields:
-            logger.warn(f"Node {node_id}: field {src_id!r}.{field_name!r} not recorded; skipping field {tgt_handle!r}.")
-            return False, None
-        return True, src_fields[field_name]
+        logger.warn(
+            f"Node {node_id}: field-source edge {src_id!r}.{source_handle!r} is unsupported "
+            f"(fields are inputs only); skipping field {tgt_handle!r}."
+        )
+        return False, None
     if src_id not in outputs:
         logger.warn(f"Node {node_id}: output of {src_id!r} not available; skipping field {tgt_handle!r}.")
         return False, None
@@ -318,8 +316,7 @@ def _instantiate_action(
     config: Dict[str, Any],
     wired: Tuple[Tuple[str, str, str], ...],
 ) -> Action:
-    """Instantiate a node's action, tolerating required fields that wired
-    edges supply at runtime.
+    """Instantiate a node's action, tolerating required-but-wired fields.
 
     Strict construction validates the config.  When it fails solely because
     required fields are missing from the config yet covered by incoming
@@ -341,7 +338,7 @@ def _instantiate_action(
         raise
 
 
-def _make_instrumented(  # noqa: C901
+def _make_instrumented(
     real_cls: Type[Action],
     node_id: str,
     wired: Tuple[Tuple[str, str, str], ...],
@@ -360,21 +357,17 @@ def _make_instrumented(  # noqa: C901
         async def _execute(self, *args: Any, **cxt: Any) -> Any:
             task = cxt.get(INPUT_KEY)
             outputs: Dict[str, Any] = {}
-            fields_store: Dict[str, Dict[str, Any]] = {}
             execution_id: Optional[str] = None
             if isinstance(task, Task):
                 outputs = task.extra_init_context.setdefault(_OUTPUTS_KEY, {})
-                fields_store = task.extra_init_context.setdefault(_FIELDS_KEY, {})
                 execution_id = task.extra_init_context.get(_EXECUTION_ID_KEY)
 
             # Wired edge values are explicit field assignments: applied
             # unconditionally (bodies read ``self.<field>``), regardless of
-            # ctx_override, and injected into the body context.  A source
-            # handle prefixed with "field:" resolves to the source node's
-            # recorded effective field value (manual config, its own wired
-            # input, or an init_context override) instead of its output.
+            # ctx_override, and injected into the body context.  The only
+            # sources are node outputs.
             for src_id, source_handle, tgt_handle in wired:
-                found, value = _wired_value(fields_store, outputs, node_id, src_id, source_handle, tgt_handle)
+                found, value = _wired_value(outputs, node_id, src_id, source_handle, tgt_handle)
                 if not found:
                     continue
                 cxt[tgt_handle] = value
@@ -383,13 +376,6 @@ def _make_instrumented(  # noqa: C901
                         setattr(self, tgt_handle, value)
                     except Exception as exc:  # noqa: BLE001
                         logger.debug(f"Could not set wired field {tgt_handle!r} on {class_name!r}: {exc!r}")
-
-            # Record effective field values (after wire-in, before the body)
-            # so field-source edges from this node forward what it takes in.
-            if isinstance(task, Task):
-                fields_store[node_id] = {
-                    name: getattr(self, name) for name in type(self).model_fields if hasattr(self, name)
-                }
 
             await _emit(
                 execution_id,
