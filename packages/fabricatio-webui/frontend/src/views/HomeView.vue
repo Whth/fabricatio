@@ -2,6 +2,7 @@
 import Toolbar from '@/components/chrome/Toolbar.vue'
 import NodeCanvas from '@/components/canvas/NodeCanvas.vue'
 import ExecutionConsole from '@/components/console/ExecutionConsole.vue'
+import SettingsSidebar from '@/components/chrome/SettingsSidebar.vue'
 import NotificationToast from '@/components/NotificationToast.vue'
 import NodeOutputPreview from '@/components/canvas/NodeOutputPreview.vue'
 import { useOutputPreview, outputPreview } from '@/composables/useOutputPreview'
@@ -31,6 +32,7 @@ onMounted(() => {
         :output-key="outputPreview.outputKey"
         :anchor="outputPreview.anchor"
       />
+      <SettingsSidebar />
     </div>
     <ExecutionConsole />
   </div>

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { Connection } from '@vue-flow/core'
 import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
 import { api } from '@/api/client'
+import { useUiStore } from '@/stores/ui'
 
 export interface FabricatioNodeData {
   title: string
@@ -46,7 +47,6 @@ interface HistorySnapshot {
 }
 
 const DRAFT_KEY = 'workflow:draft'
-const AUTOSAVE_KEY = 'workflow:autosave'
 const AUTO_SAVE_DEBOUNCE = 800
 
 export const useWorkflowStore = defineStore('workflow', () => {
@@ -129,20 +129,11 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
-  function isAutosaveEnabled(): boolean {
-    try {
-      const val = localStorage.getItem(AUTOSAVE_KEY)
-      return val === null || val === 'true'
-    } catch {
-      return true
-    }
-  }
-
   // ── Watcher: trigger autosave on relevant mutations ───────────────────────
   watch(
     [nodes, edges, workflowName],
     () => {
-      if (isAutosaveEnabled()) autosave()
+      if (useUiStore().settings.autosave) autosave()
     },
     { deep: true },
   )

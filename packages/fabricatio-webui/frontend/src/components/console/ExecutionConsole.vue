@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useExecutionStore } from '@/stores/execution'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useUiStore } from '@/stores/ui'
 import { Terminal, ChevronUp, ChevronDown, Square } from '@lucide/vue'
 
 const execStore = useExecutionStore()
 const wfStore = useWorkflowStore()
-const expanded = ref(false)
+const uiStore = useUiStore()
+
+/** Live expanded state — owned by the ui store so the palette/hotkeys can toggle it. */
+const expanded = computed({
+  get: () => uiStore.consoleExpanded,
+  set: (v: boolean) => {
+    uiStore.consoleExpanded = v
+  },
+})
 
 const nodeTitle = (id: string) => wfStore.nodes.find((n) => n.id === id)?.data.title ?? id
 
