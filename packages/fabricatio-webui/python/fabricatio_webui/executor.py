@@ -1,7 +1,12 @@
-"""Workflow executor for the fabricatio-webui ComfyUI-style workflow editor.
+"""Role/WorkFlow/Task execution for the fabricatio-webui board editor.
 
-Parses workflow JSON, instantiates Action nodes, topologically sorts them,
-and executes in order while streaming lifecycle events via a callback.
+Saved boards are built into fabricatio ``Role`` objects and dispatched onto
+the global EMITTER at startup and after every save/delete. Publishing a
+``Task`` routes it to every workflow whose subscription pattern matches the
+task's namespace — the real fabricatio execution model. Node lifecycle
+events stream through instrumented Action instances that wrap each node
+body; wired edge values are applied per execution from a task-scoped
+output store (instances are shared across tasks by framework design).
 """
 
 import asyncio
@@ -9,13 +14,26 @@ import concurrent.futures
 import json
 import threading
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple, Type
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
+import orjson
 from fabricatio_core.journal import logger
-from fabricatio_core.models.action import INPUT_KEY, Action
+from fabricatio_core.models.action import INPUT_KEY, Action, WorkFlow
+from fabricatio_core.models.role import Role
+from fabricatio_core.models.task import Task
 from pydantic.fields import FieldInfo
+
+# Task-scoped storage keys (namespaced away from user keys).
+_OUTPUTS_KEY = "__webui_node_outputs__"
+_EXECUTION_ID_KEY = "__webui_execution_id__"
+_ERRORS_KEY = "__webui_errors__"
+
+# Injected by the worker at startup; broadcasts WS JSON to Rust.
+_broadcast: Optional[Callable[[str], None]] = None
+
 
 # ---------------------------------------------------------------------------
 # Workflow JSON shape helpers
@@ -24,10 +42,6 @@ from pydantic.fields import FieldInfo
 
 def _norm_node_id(raw: Any) -> str:
     return str(raw)
-
-
-_MISSING = object()
-"""Sentinel distinguishing "no stored value" from a stored ``None``."""
 
 
 def _preview(value: Any, limit: int = 4000) -> str:
@@ -41,6 +55,16 @@ def _preview(value: Any, limit: int = 4000) -> str:
     return text
 
 
+def _registry_version() -> str:
+    """Fingerprint of the Action class universe, used to invalidate plans."""
+    try:
+        from fabricatio_webui.registry import _worker_registry
+
+        return _worker_registry().get("registry_version", "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 # ---------------------------------------------------------------------------
 # Node-body offloading (interrupt preemption)
 # ---------------------------------------------------------------------------
@@ -52,9 +76,9 @@ class _NodeBodyExecutor:
     ``asyncio.to_thread`` / ``run_in_executor(None, ...)`` would use the loop's
     default ThreadPoolExecutor, whose worker threads are *non-daemon* and are
     joined at interpreter exit. A cancelled node that keeps running in the
-    background (see ``_run_node_body``) would therefore block process shutdown
-    until it finishes. Daemon threads are never joined, so an orphaned node
-    body simply dies with the interpreter.
+    background would therefore block process shutdown until it finishes.
+    Daemon threads are never joined, so an orphaned node body simply dies
+    with the interpreter.
     """
 
     def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> "concurrent.futures.Future[Any]":
@@ -75,55 +99,9 @@ class _NodeBodyExecutor:
 _NODE_BODY_EXECUTOR = _NodeBodyExecutor()
 
 
-def _run_node_body(instance: Action, cxt: Dict[str, Any]) -> Any:
-    """Run a node body to completion inside its own event loop in a worker thread.
-
-    The executor awaits this via ``run_in_executor``; when that await is
-    cancelled (interrupt), the worker's cancelled path fires immediately while
-    this thread keeps running — the orphaned node finishes its blocking work
-    (e.g. a sync read of a large file) and its result is discarded. Threads are
-    abandoned, never killed; they are daemon so they also die at shutdown.
-    """
-    return asyncio.run(instance._execute(**cxt))
-
-
 # ---------------------------------------------------------------------------
-# Execution-plan compilation (cached)
+# Action/plan resolution helpers
 # ---------------------------------------------------------------------------
-#
-# The per-run pipeline — parse nodes/edges, resolve Action classes by name,
-# check configurability, topologically sort — is deterministic for a given
-# workflow and class universe.  It is compiled once per workflow and cached;
-# only Action *instances* are recreated per run (ctx_override and node bodies
-# mutate instance state, so instances are never shared).
-
-
-def _plan_key(wf: Dict[str, Any]) -> str:
-    """Canonical JSON of the plan-relevant parts of a workflow.
-
-    ``init_context`` and ``task_input`` do not affect the plan (they are
-    seeded into the runtime context per run), so they are excluded.
-    """
-    return json.dumps(
-        {"nodes": wf.get("nodes", []), "edges": wf.get("edges", [])},
-        sort_keys=True,
-        default=str,
-    )
-
-
-def _registry_version() -> str:
-    """Fingerprint of the Action class universe, used to invalidate plans.
-
-    Delegates to the registry's ``registry_version`` (sha1 over the full
-    node-type introspection); falls back to ``""`` when unavailable, in which
-    case plans are keyed on the workflow alone.
-    """
-    try:
-        from fabricatio_webui.registry import _worker_registry
-
-        return _worker_registry().get("registry_version", "")
-    except Exception:  # noqa: BLE001
-        return ""
 
 
 def _find_action_class(type_name: str) -> Optional[Type[Action]]:
@@ -179,14 +157,21 @@ def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> 
     return order
 
 
-def _resolve_output_key(instance: Action, node_id: str) -> str:
-    """The context key a node's result is stored under.
+def _class_output_key(cls: Type[Action]) -> str:
+    """Registry-style output port name for an Action class.
 
-    Mirrors the registry's output-port naming (``_extract_output_ports``):
-    ``output_key`` when set, else the class name lowercased.  A mismatch
-    here would silently kill every edge out of the node (port name on the
-    canvas vs. stored context key).
+    Mirrors ``registry._extract_output_ports``: ``output_key`` when set,
+    else the class name lowercased.
     """
+    return (
+        getattr(cls, "output_key", "")
+        or cls.model_fields.get("output_key", FieldInfo()).default
+        or cls.__name__.lower()
+    )
+
+
+def _resolve_output_key(instance: Action, node_id: str) -> str:
+    """The context key a node's result is stored under (per-node safe)."""
     return (
         instance.output_key
         or getattr(instance, "output_key", "")
@@ -196,36 +181,45 @@ def _resolve_output_key(instance: Action, node_id: str) -> str:
     )
 
 
-@dataclass(frozen=True)
-class _NodeSpec:
-    """Resolved per-node plan data: class + config.  Instances are per-run."""
+# ---------------------------------------------------------------------------
+# Execution-plan compilation (cached)
+# ---------------------------------------------------------------------------
 
+
+@dataclass(frozen=True)
+class _NodePlan:
     action_class: Type[Action]
     config: Dict[str, Any]
-    explicit_ctx_override: Optional[bool]
-    instantiable: bool
+    wired: Tuple[Tuple[str, str, str], ...]  # (source_id, source_handle, target_handle)
 
 
 @dataclass(frozen=True)
-class _CompiledPlan:
-    """Cached execution plan for one workflow graph."""
+class _WorkflowPlan:
+    nodes: Dict[str, _NodePlan]
+    order: Tuple[str, ...]
+    task_output_key: str
+    init_context: Dict[str, Any]
 
-    raw_nodes: Dict[str, Dict[str, Any]]
-    raw_edges: List[Dict[str, Any]]
-    specs: Dict[str, _NodeSpec]
-    execution_order: List[str]
+
+def _workflow_plan_key(wf: Dict[str, Any]) -> str:
+    """Canonical JSON of the plan-relevant parts of a workflow."""
+    return json.dumps(
+        {
+            "nodes": wf.get("nodes", []),
+            "edges": wf.get("edges", []),
+            "init_context": wf.get("init_context", {}),
+            "task_output_key": wf.get("task_output_key"),
+        },
+        sort_keys=True,
+        default=str,
+    )
 
 
 @lru_cache(maxsize=128)
-def _compile_plan(registry_version: str, plan_key: str) -> _CompiledPlan:
-    """Parse + resolve + topo-sort a workflow once, caching the result.
-
-    Also performs a throwaway instantiation per node to record whether the
-    config is valid, matching the original per-run behavior where
-    uninstantiable nodes are excluded from the graph.  Callers recreate
-    instances per run from specs.
-    """
+def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPlan:  # noqa: C901
+    """Parse + resolve + topo-sort one workflow graph, caching the result."""
     wf = json.loads(plan_key)
+
     raw_nodes: Dict[str, Dict[str, Any]] = {}
     for node in wf.get("nodes", []):
         nid = _norm_node_id(node.get("id", ""))
@@ -236,7 +230,17 @@ def _compile_plan(registry_version: str, plan_key: str) -> _CompiledPlan:
 
     raw_edges: List[Dict[str, Any]] = list(wf.get("edges", []))
 
-    specs: Dict[str, _NodeSpec] = {}
+    incoming: Dict[str, List[Tuple[str, str, str]]] = {nid: [] for nid in raw_nodes}
+    for edge in raw_edges:
+        src = _norm_node_id(edge.get("source", ""))
+        tgt = _norm_node_id(edge.get("target", ""))
+        if not src or not tgt or tgt not in raw_nodes:
+            continue
+        source_handle = edge.get("sourceHandle", "") or edge.get("source_handle", "")
+        target_handle = edge.get("targetHandle", "") or edge.get("target_handle", "")
+        incoming.setdefault(tgt, []).append((src, source_handle, target_handle))
+
+    nodes: Dict[str, _NodePlan] = {}
     instantiable: Set[str] = set()
     for nid, node in raw_nodes.items():
         type_name: str = node.get("type", "")
@@ -250,300 +254,270 @@ def _compile_plan(registry_version: str, plan_key: str) -> _CompiledPlan:
             continue
 
         config: Dict[str, Any] = dict(node.get("config", {}))
-        explicit_ctx_override: Optional[bool] = node.get("ctx_override") if "ctx_override" in node else None
 
         try:
             cls(**config)
         except Exception as exc:  # noqa: BLE001
             logger.error(f"Failed to instantiate {type_name!r} for node {nid!r}: {exc!r}; skipping.")
-            instantiable_now = False
-        else:
-            instantiable_now = True
+            continue
 
-        specs[nid] = _NodeSpec(cls, config, explicit_ctx_override, instantiable_now)
-        if instantiable_now:
-            instantiable.add(nid)
+        nodes[nid] = _NodePlan(cls, config, tuple(incoming.get(nid, [])))
+        instantiable.add(nid)
 
-    execution_order = _topological_order(instantiable, raw_edges)
-    return _CompiledPlan(raw_nodes, raw_edges, specs, execution_order)
+    order = tuple(_topological_order(instantiable, raw_edges))
+
+    default_output_key = ""
+    if order:
+        default_output_key = _class_output_key(nodes[order[-1]].action_class)
+
+    init_context = wf.get("init_context", {})
+    if not isinstance(init_context, dict):
+        logger.warn(f"init_context is not a dict; ignoring: {init_context!r}")
+        init_context = {}
+
+    task_output_key: str = wf.get("task_output_key") or default_output_key
+    return _WorkflowPlan(nodes, order, task_output_key, dict(init_context))
 
 
 # ---------------------------------------------------------------------------
-# WorkflowExecutor
+# Instrumented actions (node events + per-task wired resolution)
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class WorkflowExecutor:
-    """Executes a workflow graph described by JSON.
+def _make_instrumented(
+    real_cls: Type[Action],
+    node_id: str,
+    wired: Tuple[Tuple[str, str, str], ...],
+) -> Type[Action]:
+    """Create a per-node Action subclass that emits lifecycle events.
 
-    Parameters:
-        workflow_json: the workflow descriptor (``{"nodes": […], "edges":[…]}"``).
-        event_callback: ``async def(event_type: str, payload: dict)`` called on
-            lifecycle events.
+    The subclass is a real subclass of the node's Action class, so the
+    framework's ``act``/``serve`` machinery treats it as the node itself.
+    Wired edge values resolve from the task-scoped output store at execution
+    time (instances are shared across tasks by framework design).
+    """
+    body = real_cls._execute
+    class_name = real_cls.__name__
+
+    class _Instrumented(real_cls):  # type: ignore[misc, valid-type]
+        async def _execute(self, *args: Any, **cxt: Any) -> Any:
+            task = cxt.get(INPUT_KEY)
+            outputs: Dict[str, Any] = {}
+            execution_id: Optional[str] = None
+            if isinstance(task, Task):
+                outputs = task.extra_init_context.setdefault(_OUTPUTS_KEY, {})
+                execution_id = task.extra_init_context.get(_EXECUTION_ID_KEY)
+
+            # Wired edge values are explicit field assignments: applied
+            # unconditionally (bodies read ``self.<field>``), regardless of
+            # ctx_override, and injected into the body context.
+            for src_id, _source_handle, tgt_handle in wired:
+                if src_id not in outputs:
+                    logger.warn(f"Node {node_id}: output of {src_id!r} not available; skipping field {tgt_handle!r}.")
+                    continue
+                value = outputs[src_id]
+                cxt[tgt_handle] = value
+                if tgt_handle in type(self).model_fields:
+                    try:
+                        setattr(self, tgt_handle, value)
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug(f"Could not set wired field {tgt_handle!r} on {class_name!r}: {exc!r}")
+
+            await _emit(
+                execution_id,
+                "node_start",
+                {"node_id": node_id, "node_type": class_name},
+            )
+
+            def run_body() -> Any:
+                return asyncio.run(body(self, *args, **cxt))
+
+            try:
+                result = await asyncio.get_running_loop().run_in_executor(_NODE_BODY_EXECUTOR, run_body)
+            except Exception as exc:  # noqa: BLE001
+                logger.error(f"Node {node_id} ({class_name}) failed: {exc!r}")
+                if isinstance(task, Task):
+                    task.extra_init_context.setdefault(_ERRORS_KEY, []).append(str(exc))
+                await _emit(
+                    execution_id,
+                    "node_error",
+                    {"node_id": node_id, "node_type": class_name, "error": str(exc)},
+                )
+                raise
+
+            outputs[node_id] = result
+            output_key = _resolve_output_key(self, node_id)
+            payload = {
+                "node_id": node_id,
+                "node_type": class_name,
+                "output_key": output_key,
+                "output": _preview(result),
+            }
+            await _emit(execution_id, "node_done", payload)
+            await _emit(execution_id, "node_output", payload)
+            return result
+
+    _Instrumented.__name__ = class_name
+    _Instrumented.__qualname__ = class_name
+    return _Instrumented
+
+
+async def _emit(execution_id: Optional[str], event_type: str, payload: Dict[str, Any]) -> None:
+    """Broadcast a WS event through the injected rust_broadcast callable."""
+    if _broadcast is None:
+        return
+    msg: Dict[str, Any] = {"type": event_type, **payload}
+    if execution_id is not None:
+        msg["execution_id"] = execution_id
+    try:
+        _broadcast(orjson.dumps(msg).decode())
+    except Exception:  # noqa: BLE001
+        logger.warn(f"Broadcast failed for {event_type}")
+
+
+# ---------------------------------------------------------------------------
+# WorkFlow / Role construction
+# ---------------------------------------------------------------------------
+
+
+def _subscription_pattern(namespace: str) -> str:
+    """Derive the EMITTER subscription pattern from a plain namespace.
+
+    A task with ``send_to = ["write", "book"]`` publishes
+    ``write::book::<task_name>::Pending``; the wildcard pattern
+    ``write::book::*::Pending`` matches every task in that namespace.
+    """
+    ns = namespace.strip().strip(":")
+    if not ns:
+        return ""
+    return f"{ns}::*::Pending"
+
+
+def _workflow_class(output_key: str) -> Type[WorkFlow]:
+    """A WorkFlow subclass carrying the task output key (a ClassVar)."""
+    return type("WebuiWorkFlow", (WorkFlow,), {"task_output_key": output_key})
+
+
+def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
+    """Instantiate a WorkFlow from a plan (shared across tasks, per design)."""
+    instances: List[Action] = []
+    for node_id in plan.order:
+        node_plan = plan.nodes[node_id]
+        cls = _make_instrumented(node_plan.action_class, node_id, node_plan.wired)
+        try:
+            instance = cls(**node_plan.config)
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                f"Failed to instantiate {node_plan.action_class.__name__!r} for node {node_id!r}: {exc!r}; skipping."
+            )
+            continue
+        # Empty output_key actions still publish their result under the
+        # registry port name (class-lower) so context readers can find it.
+        if not instance.output_key:
+            instance.output_key = _class_output_key(node_plan.action_class)
+        instances.append(instance)
+
+    return _workflow_class(plan.task_output_key)(
+        name="webui-workflow",
+        steps=instances,
+        extra_init_context=dict(plan.init_context),
+    )
+
+
+def _build_role(role_name: str, subscriptions: Dict[str, WorkFlow], description: str = "") -> Role:
+    """Create a role and dispatch it onto the EMITTER."""
+    return Role.new(subscriptions, name=role_name, description=description).dispatch()
+
+
+# ---------------------------------------------------------------------------
+# Board → roles (the webui's dispatch registry)
+# ---------------------------------------------------------------------------
+
+
+def _load_boards(data_dir: Path) -> List[Dict[str, Any]]:
+    """Read + migrate all saved boards from the Rust-persisted store."""
+    from fabricatio_webui.registry import migrate_board
+
+    path = Path(data_dir) / "workflows.json"
+    try:
+        raw = orjson.loads(path.read_bytes())
+    except FileNotFoundError:
+        return []
+    except Exception as exc:  # noqa: BLE001
+        logger.warn(f"Failed to read {path}: {exc!r}")
+        return []
+
+    boards: List[Dict[str, Any]] = []
+    values = raw.values() if isinstance(raw, dict) else []
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        try:
+            boards.append(migrate_board(value))
+        except Exception as exc:  # noqa: BLE001
+            logger.warn(f"Failed to migrate a saved board: {exc!r}")
+    return boards
+
+
+def build_roles_from_boards(boards: List[Dict[str, Any]]) -> List[Role]:
+    """Compile every role in *boards* and dispatch it onto the EMITTER."""
+    roles: List[Role] = []
+    for board in boards:
+        for role_json in board.get("roles", []):
+            role_name = str(role_json.get("name", "")).strip()
+            if not role_name:
+                logger.warn("A board contains a role without a name; skipping.")
+                continue
+
+            subscriptions: Dict[str, WorkFlow] = {}
+            for wf_json in role_json.get("workflows", []):
+                try:
+                    plan = _compile_workflow_plan(_registry_version(), _workflow_plan_key(wf_json))
+                except Exception as exc:  # noqa: BLE001 — e.g. a cycle
+                    logger.error(
+                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} failed to compile: {exc!r}"
+                    )
+                    continue
+                pattern = _subscription_pattern(str(wf_json.get("namespace") or wf_json.get("name") or ""))
+                if not pattern:
+                    logger.warn(
+                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} has no namespace; not subscribable."
+                    )
+                    continue
+                subscriptions[pattern] = _build_workflow(plan)
+
+            if not subscriptions:
+                logger.warn(f"Role {role_name!r} has no subscribable workflows; skipping.")
+                continue
+
+            try:
+                roles.append(_build_role(role_name, subscriptions, str(role_json.get("description", ""))))
+            except Exception as exc:  # noqa: BLE001
+                logger.error(f"Failed to build role {role_name!r}: {exc!r}")
+    return roles
+
+
+class RoleRegistry:
+    """Owns the roles built from saved boards; re-dispatches on change.
+
+    Tracks every role this process has dispatched (module-level, so a fresh
+    registry instance — e.g. in tests — still undoes its predecessors).
     """
 
-    _wf: Dict[str, Any] = field(init=False)
-    _event: Callable[[str, Dict[str, Any]], Coroutine[Any, Any, None]] = field(init=False)
+    def __init__(self, data_dir: Path) -> None:
+        """Create the registry reading boards from ``data_dir``."""
+        self._data_dir = Path(data_dir)
 
-    # Parsed / resolved state
-    _raw_nodes: Dict[str, Dict[str, Any]] = field(init=False, default_factory=dict)
-    _raw_edges: List[Dict[str, Any]] = field(init=False, default_factory=list)
-    _instances: Dict[str, Action] = field(init=False, default_factory=dict)
-    _execution_order: List[str] = field(init=False, default_factory=list)
-    _context: Dict[str, Any] = field(init=False, default_factory=dict)
-    _seeded: Dict[str, Any] = field(init=False, default_factory=dict)
-    # Per-node results keyed by node id — edges resolve against this, so two
-    # nodes of the same class (same ``output_key``) never clobber each other.
-    _node_outputs: Dict[str, Any] = field(init=False, default_factory=dict)
-
-    @classmethod
-    def new(
-        cls,
-        workflow_json: Dict[str, Any],
-        event_callback: Callable[[str, Dict[str, Any]], Coroutine[Any, Any, None]],
-        task_input: Any = None,
-    ) -> "WorkflowExecutor":
-        """Create a new executor from a workflow JSON descriptor.
-
-        ``task_input`` (the per-execution payload from ``ExecutionRequest``) is
-        seeded into the execution context: a dict is merged key-by-key, any
-        other JSON value is stored under the framework's reserved
-        ``INPUT_KEY`` (``"task_input"``). The workflow's ``init_context`` is
-        seeded first, then ``task_input`` is overlaid on top — on key
-        conflicts ``task_input`` wins, since it is the more specific,
-        per-call input. Seeded values are visible to every node and are part
-        of the returned result context.
-        """
-        inst = cls()
-        inst._wf = workflow_json
-        inst._event = event_callback
-        inst._seed_context(task_input)
-        return inst
-
-    def _seed_context(self, task_input: Any) -> None:
-        """Seed the execution context with ``init_context`` and ``task_input``."""
-        init_context = self._wf.get("init_context")
-        if isinstance(init_context, dict):
-            self._seeded.update(init_context)
-        elif init_context:
-            logger.warn(f"init_context is not a dict; ignoring: {init_context!r}")
-
-        if isinstance(task_input, dict):
-            self._seeded.update(task_input)
-        elif task_input is not None:
-            self._seeded[INPUT_KEY] = task_input
-
-        self._context.update(self._seeded)
-
-    # ------------------------------------------------------------------
-    # Public entry point
-    # ------------------------------------------------------------------
-
-    async def execute(self) -> Dict[str, Any]:
-        """Execute the workflow and return the final context dictionary."""
-        await self._emit("execution_start", {"node_count": len(self._wf.get("nodes", []))})
-
-        try:
-            plan = _compile_plan(_registry_version(), _plan_key(self._wf))
-            self._raw_nodes = plan.raw_nodes
-            self._raw_edges = plan.raw_edges
-            self._execution_order = plan.execution_order
-            self._instantiate_from_plan(plan)
-            await self._execute_all()
-        except Exception as exc:
-            logger.error(f"Workflow execution failed: {exc!r}")
-            await self._emit("execution_done", {"status": "error"})
-            raise
-
-        await self._emit("execution_done", {"status": "ok"})
-        return dict(self._context)
-
-    # ------------------------------------------------------------------
-    # Instantiation (per run — instances are never shared between runs)
-    # ------------------------------------------------------------------
-
-    def _instantiate_from_plan(self, plan: "_CompiledPlan") -> None:
-        """Create fresh Action instances from a compiled plan.
-
-        The plan holds resolved classes and configs, but instances must be
-        recreated on every run: ``ctx_override`` and node bodies mutate
-        instance fields, so a cached instance would leak state across runs.
-        """
-        for nid, spec in plan.specs.items():
-            if not spec.instantiable:
-                continue
+    def rebuild(self) -> None:
+        """Undo-dispatch the current roles and re-dispatch from the store."""
+        for role in _DISPATCHED_ROLES:
             try:
-                instance = spec.action_class(**spec.config)
-            except Exception as exc:  # noqa: BLE001 — compile-time check passed; guard anyway
-                logger.error(
-                    f"Failed to instantiate {spec.action_class.__name__!r} for node {nid!r}: {exc!r}; skipping."
-                )
-                continue
-            if spec.explicit_ctx_override is not None:
-                instance.ctx_override = spec.explicit_ctx_override
-            self._instances[nid] = instance
+                role.undo_dispatch()
+            except Exception as exc:  # noqa: BLE001
+                logger.warn(f"Failed to undo dispatch of role {role.name!r}: {exc!r}")
+        _DISPATCHED_ROLES.clear()
+        _DISPATCHED_ROLES.extend(build_roles_from_boards(_load_boards(self._data_dir)))
+        logger.info(f"Dispatched {len(_DISPATCHED_ROLES)} role(s) from saved boards.")
 
-    # ------------------------------------------------------------------
-    # Execution
-    # ------------------------------------------------------------------
 
-    async def _execute_all(self) -> None:
-        """Execute all nodes in topological order."""
-        for nid in self._execution_order:
-            await self._execute_node(nid)
-
-    async def _execute_node(self, node_id: str) -> None:
-        """Execute a single node and store its result."""
-        instance = self._instances.get(node_id)
-        if instance is None:
-            return
-
-        type_name = type(instance).__name__
-        await self._emit(
-            "node_start",
-            {"node_id": node_id, "node_type": type_name},
-        )
-
-        try:
-            # Resolve inputs from upstream nodes via edges.  Wired handles are
-            # explicit field assignments: they are copied onto the instance
-            # unconditionally (bodies read ``self.<field>``), regardless of
-            # ctx_override.  ctx_override additionally copies context values
-            # into fields.
-            cxt, wired_handles = await self._resolve_inputs(node_id)
-
-            # Full fabricatio-style context: seeds + every output produced so
-            # far, so key-reading bodies (Forward, Gather, DumpText's
-            # ``text_key``, …) see upstream results the way ``WorkFlow.act``
-            # passes the shared context.  Explicit edge wiring wins on
-            # conflicts.
-            cxt = {**self._seeded, **self._context, **cxt}
-
-            for field_name in wired_handles:
-                if field_name in instance.model_fields:
-                    try:
-                        setattr(instance, field_name, cxt[field_name])
-                    except Exception as exc:  # noqa: BLE001
-                        logger.debug(f"Could not set wired field {field_name!r} on {type_name!r}: {exc!r}")
-
-            # Apply ctx_override: copy context values into instance fields
-            # (seeded values only — wired handles were already applied).
-            if instance.ctx_override:
-                for field_name in instance.model_fields:
-                    if field_name in cxt and field_name not in wired_handles:
-                        try:
-                            setattr(instance, field_name, cxt[field_name])
-                        except Exception as exc:  # noqa: BLE001
-                            logger.debug(f"Could not set field {field_name!r} on {type_name!r} from context: {exc!r}")
-
-            # Execute. The node body runs off-loop in a daemon worker thread
-            # (its own event loop), so blocking sync I/O (e.g. ReadText on a
-            # 20 MB file) never stalls this loop: the await below stays
-            # cancellable, and an interrupt is delivered here immediately while
-            # the orphaned thread finishes in the background (abandonment, not
-            # killing — see _run_node_body). Note: LLM calls (aask) are
-            # pyo3-asyncio awaitables that bind to the running loop at await
-            # time, so they work inside the thread's own loop; any action that
-            # instead captures the main loop's resources would not.
-            result = await asyncio.get_running_loop().run_in_executor(
-                _NODE_BODY_EXECUTOR, _run_node_body, instance, cxt
-            )
-            output_key: str = _resolve_output_key(instance, node_id)
-            self._context[output_key] = result
-            self._node_outputs[node_id] = result
-
-            await self._emit(
-                "node_done",
-                {
-                    "node_id": node_id,
-                    "node_type": type_name,
-                    "output_key": output_key,
-                    "output": _preview(result),
-                },
-            )
-            await self._emit(
-                "node_output",
-                {
-                    "node_id": node_id,
-                    "node_type": type_name,
-                    "output_key": output_key,
-                    "output": _preview(result),
-                },
-            )
-
-        except Exception as exc:
-            logger.error(f"Node {node_id} ({type_name}) failed: {exc!r}")
-            await self._emit(
-                "node_error",
-                {
-                    "node_id": node_id,
-                    "node_type": type_name,
-                    "error": str(exc),
-                },
-            )
-            raise
-
-    async def _resolve_inputs(self, node_id: str) -> Tuple[Dict[str, Any], Set[str]]:
-        """Build the context dict for *node_id* by reading upstream outputs.
-
-        Returns ``(cxt, wired)`` — *cxt* maps target handles to values, and
-        *wired* is the set of handles that actually received an edge value
-        (those are applied to instance fields unconditionally by the caller).
-        """
-        cxt: Dict[str, Any] = {}
-        wired: Set[str] = set()
-
-        for edge in self._raw_edges:
-            tgt = _norm_node_id(edge.get("target", ""))
-            if tgt != node_id:
-                continue
-
-            src = _norm_node_id(edge.get("source", ""))
-            # Support both camelCase (legacy) and snake_case (current) handle keys.
-            target_handle = edge.get("targetHandle", "") or edge.get("target_handle", "")
-            source_handle = edge.get("sourceHandle", "") or edge.get("source_handle", "")
-
-            if src not in self._instances:
-                logger.warn(f"Edge {edge.get('id', '?')}: source node {src!r} has no runnable instance; skipping.")
-                continue
-
-            src_instance = self._instances[src]
-            src_stored = _resolve_output_key(src_instance, src)
-
-            # Exact per-node output first (unique per node id); then the
-            # registry port name / output key in the shared context; then the
-            # literal source handle (legacy edges wired to seeded keys).
-            if src in self._node_outputs:
-                value = self._node_outputs[src]
-            else:
-                value = self._context.get(src_stored, _MISSING)
-                if value is _MISSING and source_handle and source_handle in self._context:
-                    value = self._context[source_handle]
-
-            if value is _MISSING:
-                logger.warn(
-                    f"Edge {edge.get('id', '?')}: output of {src!r} ({src_stored!r}) not found in context; skipping."
-                )
-                continue
-
-            handle = target_handle or src_stored
-            if handle in cxt:
-                logger.warn(
-                    f"Edge {edge.get('id', '?')}: multiple edges feed field {handle!r} of {node_id!r}; last one wins."
-                )
-            cxt[handle] = value
-            wired.add(handle)
-
-        return cxt, wired
-
-    # ------------------------------------------------------------------
-    # Event helpers
-    # ------------------------------------------------------------------
-
-    async def _emit(self, event_type: str, payload: Dict[str, Any]) -> None:
-        """Emit an event through the callback, swallowing callback errors."""
-        try:
-            await self._event(event_type, payload)
-        except Exception:  # noqa: BLE001
-            logger.warn(f"Event callback raised for event {event_type!r}; continuing.")
+_DISPATCHED_ROLES: List[Role] = []

@@ -44,7 +44,7 @@ def main(
     resolved_frontend = str(frontend_dir or webui_config.frontend_dir or _default_www())
 
     async def _wrapper() -> None:
-        worker = WorkflowWorker(rust_broadcast)
+        worker = WorkflowWorker(rust_broadcast, data_dir)
         await asyncio.gather(
             start_service(
                 resolved_frontend,

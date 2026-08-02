@@ -426,3 +426,46 @@ def migrate_workflow(wf: Dict[str, Any], registry: Dict[str, Any]) -> tuple[Dict
     wf["edges"] = edges
     wf.setdefault("init_context", {})
     return wf, ", ".join(changes) or "no changes"
+
+
+def migrate_board(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Upgrade a saved document to the board format (``format_version`` 2).
+
+    Legacy workflow documents (formats 0/1) become boards holding one role
+    with one workflow. Boards pass through unchanged. Mirrors the Rust-side
+    ``BoardJson::migrate_legacy`` used when loading the store.
+    """
+    raw = dict(raw)
+    if raw.get("format_version", 0) >= 2 or "roles" in raw:
+        raw["format_version"] = 2
+        raw.setdefault("roles", [])
+        raw.setdefault("actions", [])
+        return raw
+
+    name = str(raw.get("name") or "Untitled Board")
+    description = str(raw.get("description") or "")
+    workflow, _ = migrate_workflow(raw, _worker_registry())
+    return {
+        "version": "1.0",
+        "format_version": 2,
+        "name": name,
+        "description": description,
+        "roles": [
+            {
+                "name": name,
+                "description": description,
+                "workflows": [
+                    {
+                        "name": name,
+                        "namespace": name,
+                        "task_output_key": None,
+                        "nodes": workflow.get("nodes", []),
+                        "edges": workflow.get("edges", []),
+                        "init_context": workflow.get("init_context", {}),
+                    }
+                ],
+            }
+        ],
+        "actions": [],
+        "meta": raw.get("meta"),
+    }

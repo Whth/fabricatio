@@ -1,19 +1,32 @@
 """In-process asyncio worker that drains the execution queue.
 
-The Rust HTTP/WS layer forwards submissions into this worker via the
+The Rust HTTP/WS layer forwards task submissions into this worker via the
 ``submit`` callable; lifecycle events are broadcast back out through the
 ``rust_broadcast`` pyfunction (injected as ``broadcast``).
+
+Execution follows the real fabricatio model: saved boards are compiled into
+``Role`` objects and dispatched onto the global EMITTER (at startup and
+after every save/delete via ``rebuild_roles``); publishing a ``Task`` routes
+it to every workflow whose subscription pattern matches the task's
+namespace. Node lifecycle events stream from the instrumented actions in
+``fabricatio_webui.executor``.
 """
 
 import asyncio
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import orjson
+from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
+from fabricatio_core.models.task import Task
 
-_DONE_EVENT = "execution_done"
-_NODE_DONE = "node_done"
-_NODE_OUTPUT = "node_output"
+from fabricatio_webui.executor import (
+    _ERRORS_KEY,
+    _EXECUTION_ID_KEY,
+    RoleRegistry,
+)
+import fabricatio_webui.executor as _executor
 
 
 def _state_tag(state: str) -> str:
@@ -22,9 +35,8 @@ def _state_tag(state: str) -> str:
         "queued": "queued",
         "running": "running",
         "ok": "completed",
-        "error": "failed",
-        "failed": "failed",
         "cancelled": "cancelled",
+        "failed": "failed",
     }[state]
 
 
@@ -49,7 +61,7 @@ def _sanitize_result(value: Any, limit: int = 4000, cap: int = 100_000) -> Any:
     else:
         try:
             if len(orjson.dumps(value)) > limit:
-                return f"[truncated: {type(value).__name__}]"
+                return "[truncated]"
         except TypeError:
             pass
         return value
@@ -62,11 +74,12 @@ def _sanitize_result(value: Any, limit: int = 4000, cap: int = 100_000) -> Any:
 
 
 class WorkflowWorker:
-    """Owns the execution queue and runs one workflow at a time."""
+    """Owns the execution queue and runs one task at a time."""
 
     def __init__(
         self,
         broadcast: Callable[[str], None],
+        data_dir: str | Path,
         queue_max: int = 64,
         history_max: int = 256,
     ) -> None:
@@ -75,15 +88,21 @@ class WorkflowWorker:
         self._history: List[Dict[str, Any]] = []
         self._history_max = history_max
         self._current: Optional[asyncio.Task] = None
+        self._current_task: Optional[Task] = None
         self._broadcast = broadcast
         self._loop = asyncio.get_running_loop()
+        # Instrumented node bodies broadcast lifecycle events through this.
+        _executor._broadcast = broadcast
+        self._roles = RoleRegistry(Path(data_dir))
+        # Dispatch every saved board's roles before any task can arrive.
+        self._roles.rebuild()
 
     # ------------------------------------------------------------------
     # Called from Rust (sync, short, never awaits)
     # ------------------------------------------------------------------
 
-    def submit(self, execution_id: str, workflow_json: str, task_input_json: str) -> None:
-        """Enqueue an execution. Raises ``asyncio.QueueFull`` when full.
+    def submit(self, execution_id: str, task_json: str) -> None:
+        """Enqueue a task execution. Raises ``asyncio.QueueFull`` when full.
 
         Called from the Rust tokio thread via PyO3, so the actual enqueue is
         marshalled onto the event loop (``put_nowait`` is not thread-safe and
@@ -91,8 +110,7 @@ class WorkflowWorker:
         """
         item: Dict[str, Any] = {
             "execution_id": execution_id,
-            "workflow_json": workflow_json,
-            "task_input_json": task_input_json,
+            "task_json": task_json,
         }
         if self._queue.full():
             raise asyncio.QueueFull
@@ -104,32 +122,22 @@ class WorkflowWorker:
         logger.info(f"Worker: queued execution {item['execution_id']} (depth={self._queue.qsize()})")
         self._emit_status()
 
+    def rebuild_roles(self) -> None:
+        """Re-dispatch roles from saved boards (called by Rust after save/delete)."""
+        self._loop.call_soon_threadsafe(self._roles.rebuild)
+
     def cancel_current(self) -> bool:
-        """Cancel the running execution task. Safe to call from any thread."""
-        if self._current is None or self._current.done():
+        """Cancel the running task (``Task.cancel``). Safe from any thread."""
+        if self._current is None or self._current.done() or self._current_task is None:
             return False
-        self._loop.call_soon_threadsafe(self._current.cancel)
+        task = self._current_task
+        self._loop.call_soon_threadsafe(lambda: asyncio.ensure_future(task.cancel()))
         return True
-
-    @staticmethod
-    def _parse_task_input(raw: Optional[str]) -> Any:
-        """Decode the ``task_input_json`` queue payload (``None`` when absent).
-
-        The Rust side always sends a JSON document (``"null"`` when the
-        caller supplied no task input). Malformed input is logged and treated
-        as absent rather than failing the whole execution.
-        """
-        if raw is None or raw.strip() in ("", "null"):
-            return None
-        try:
-            return orjson.loads(raw)
-        except Exception as exc:  # noqa: BLE001
-            logger.warn(f"Worker: unparseable task_input {raw[:200]!r}: {exc!r}; ignoring")
-            return None
 
     def queue_snapshot(self) -> str:
         """JSON: ``{"queue": [...], "active": [...]}``."""
-        queued = [{"execution_id": it["execution_id"], "state": "queued"} for it in list(self._queue._queue)]
+        pending = getattr(self._queue, "_queue", ())
+        queued = [{"execution_id": it["execution_id"], "state": "queued"} for it in list(pending)]
         active: List[Dict[str, Any]] = []
         if self._current is not None and not self._current.done():
             active.append({"execution_id": self._current.get_name(), "state": "running"})
@@ -161,14 +169,29 @@ class WorkflowWorker:
                 )
             finally:
                 self._current = None
+                self._current_task = None
                 self._emit_status()
 
-    async def _execute_one(self, item: Dict[str, Any]) -> None:
+    async def _execute_one(self, item: Dict[str, Any]) -> None:  # noqa: C901
+        """Publish the submitted task and await its output."""
         execution_id = item["execution_id"]
         try:
-            wf = orjson.loads(item["workflow_json"])
+            raw_task = orjson.loads(item.get("task_json") or "{}")
+            if not isinstance(raw_task, dict):
+                raise ValueError(f"task payload must be a JSON object, got {type(raw_task).__name__}")
+            task = Task(
+                name=str(raw_task.get("name") or "untitled"),
+                description=str(raw_task.get("description") or ""),
+                goals=[str(g) for g in (raw_task.get("goals") or [])],
+                dependencies=[str(d) for d in (raw_task.get("dependencies") or [])],
+                send_to=[str(c) for c in (raw_task.get("send_to") or [])],
+            )
+            extra = raw_task.get("extra_init_context")
+            if isinstance(extra, dict):
+                task.extra_init_context.update(extra)
+            task.extra_init_context[_EXECUTION_ID_KEY] = execution_id
         except Exception as exc:  # noqa: BLE001
-            logger.warn(f"Worker: unparseable workflow for {execution_id}: {exc}")
+            logger.warn(f"Worker: unparseable task for {execution_id}: {exc}")
             self._record(execution_id, "failed", str(exc))
             self._send(
                 "execution_done",
@@ -176,82 +199,66 @@ class WorkflowWorker:
             )
             return
 
-        self._record(execution_id, "running", None)
+        namespace = "::".join(task.send_to)
+        self._current_task = task
+        self._record(execution_id, "running", None, task_name=task.name, namespace=namespace)
         self._send("execution_start", {"execution_id": execution_id, "timestamp": None})
 
-        # Migrate legacy workflow formats (format_version 0) before execution.
-        from fabricatio_webui.registry import _worker_registry, migrate_workflow
-
-        wf, summary = migrate_workflow(wf, _worker_registry())
-        if summary != "no changes":
-            logger.info(f"Worker: {execution_id} workflow migrated: {summary}")
-
-        from fabricatio_webui.executor import WorkflowExecutor
-
-        task_input = self._parse_task_input(item.get("task_input_json"))
-        executor = WorkflowExecutor.new(wf, self._event_cb(execution_id), task_input=task_input)
         try:
-            result = await executor.execute()
+            # Pure namespace dispatch: the EMITTER serves every workflow whose
+            # subscription pattern matches the task's namespace. Detect a
+            # non-matching namespace up front by counting matching handlers
+            # (TaskStatus is a pyo3 enum with identity-based equality, and
+            # pydantic copies the PrivateAttr default, so ``is_pending()`` is
+            # unreliable on fresh tasks).
+            task.publish()
+            parts = task.pending_label.split("::")
+            if not (EMITTER._gather_exact_handlers(parts) or EMITTER._gather_wildcard_handlers(parts)):
+                raise ValueError(f"No dispatched workflow matches namespace {namespace!r}")
+            result = await task.get_output()
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
             logger.error(f"Worker: execution {execution_id} failed: {exc!r}")
-            self._record(execution_id, "failed", str(exc))
+            self._record(execution_id, "failed", str(exc), task_name=task.name, namespace=namespace)
             self._send(
                 "execution_done",
                 {"execution_id": execution_id, "cancelled": False, "result": None, "error": str(exc)},
             )
             return
+        finally:
+            self._current_task = None
 
-        safe_result = _sanitize_result(result)
-        self._record(execution_id, "ok", None, result=safe_result)
-        self._send(
-            "execution_done",
-            {"execution_id": execution_id, "cancelled": False, "result": safe_result, "error": None},
-        )
-
-    def _event_cb(self, execution_id: str) -> Callable[[str, Dict[str, Any]], Any]:
-        async def cb(event_type: str, payload: Dict[str, Any]) -> None:
-            # The worker emits its own execution_start / execution_done markers
-            # (the executor's carry no execution_id and would duplicate ours).
-            if event_type in ("execution_start", _DONE_EVENT):
-                return
-            if event_type == _NODE_DONE:
-                self._send(
-                    "node_done",
-                    {
-                        "execution_id": execution_id,
-                        "node_id": payload.get("node_id"),
-                        "output": payload.get("output"),
-                    },
-                )
-            elif event_type == _NODE_OUTPUT:
-                self._send(
-                    "node_output",
-                    {
-                        "execution_id": execution_id,
-                        "node_id": payload.get("node_id"),
-                        "output_key": payload.get("output_key"),
-                        "data": payload.get("output"),
-                    },
-                )
-            elif event_type == "node_error":
-                self._send(
-                    "node_error",
-                    {
-                        "execution_id": execution_id,
-                        "node_id": payload.get("node_id"),
-                        "error": payload.get("error", "unknown error"),
-                        "traceback": payload.get("traceback"),
-                    },
-                )
-            else:  # node_start and anything else pass through
-                self._send(event_type, {"execution_id": execution_id, **payload})
-
-        return cb
+        if task.is_finished():
+            safe_result = _sanitize_result(result)
+            self._record(execution_id, "ok", None, result=safe_result, task_name=task.name, namespace=namespace)
+            self._send(
+                "execution_done",
+                {"execution_id": execution_id, "cancelled": False, "result": safe_result, "error": None},
+            )
+        elif task.is_cancelled():
+            self._record(execution_id, "cancelled", None, task_name=task.name, namespace=namespace)
+            self._send(
+                "execution_done",
+                {"execution_id": execution_id, "cancelled": True, "result": None, "error": None},
+            )
+        else:  # failed
+            errors = task.extra_init_context.get(_ERRORS_KEY) or []
+            message = f"Workflow failed: {'; '.join(str(e) for e in errors[-3:])}" if errors else "Workflow failed"
+            self._record(execution_id, "failed", message, task_name=task.name, namespace=namespace)
+            self._send(
+                "execution_done",
+                {"execution_id": execution_id, "cancelled": False, "result": None, "error": message},
+            )
 
     def _record(
-        self, execution_id: str, state: str, error: Optional[str], result: Optional[Any] = None
+        self,
+        execution_id: str,
+        state: str,
+        error: Optional[str],
+        result: Optional[Any] = None,
+        task_name: str = "",
+        namespace: str = "",
     ) -> None:
         self._history.append(
             {
@@ -260,6 +267,8 @@ class WorkflowWorker:
                 "current_node": None,
                 "error": error,
                 "result": result,
+                "task_name": task_name,
+                "namespace": namespace,
             }
         )
         if len(self._history) > self._history_max:

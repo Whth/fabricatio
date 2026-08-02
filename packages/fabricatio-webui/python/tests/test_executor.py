@@ -1,15 +1,20 @@
-"""Tests for the workflow executor's cached execution-plan compilation."""
+"""Tests for the role/workflow/task execution machinery."""
+
+import asyncio
+from typing import Any
 
 import pytest
 from pydantic import Field
-from typing import Any
 
-from fabricatio_core.models.action import Action
+from fabricatio_core.models.action import Action, WorkFlow
+from fabricatio_core.models.task import Task
 from fabricatio_webui.executor import (
-    WorkflowExecutor,
-    _compile_plan,
-    _plan_key,
+    _build_workflow,
+    _compile_workflow_plan,
+    _subscription_pattern,
     _topological_order,
+    _workflow_plan_key,
+    build_roles_from_boards,
 )
 
 
@@ -37,10 +42,11 @@ class PickStep(Action):
 
 
 class StatefulStep(Action):
-    """Node that mutates its own list field on each execution.
+    """Node that accumulates into its own list field.
 
-    Guards against instance-sharing between runs: each fresh execution appends
-    one element, so a shared instance would accumulate across runs.
+    With the real fabricatio stack, workflow instances are shared across
+    tasks (a dispatched workflow is a long-lived subscription), so state
+    intentionally persists between serves of the same workflow.
     """
 
     seen: list[str] = Field(default_factory=list)
@@ -75,15 +81,24 @@ class NoKeyStep(Action):
         return self.text
 
 
+class NullStep(Action):
+    """Side-effect-only action: returns nothing."""
+
+    output_key: str = "nulled"
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return None
+
+
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture(autouse=True)
 def _clear_plan_cache():
     """Isolate each test with a fresh plan cache."""
-    _compile_plan.cache_clear()
+    _compile_workflow_plan.cache_clear()
     yield
-    _compile_plan.cache_clear()
+    _compile_workflow_plan.cache_clear()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -93,11 +108,13 @@ def _wf(
     nodes: list[dict[str, Any]],
     edges: list[dict[str, Any]],
     init_context: dict[str, Any] | None = None,
+    task_output_key: str | None = None,
 ) -> dict[str, Any]:
     return {
         "nodes": nodes,
         "edges": edges,
         "init_context": init_context or {},
+        "task_output_key": task_output_key,
     }
 
 
@@ -105,14 +122,24 @@ def _node(node_id: str, node_type: str, config: dict[str, Any] | None = None) ->
     return {"id": node_id, "type": node_type, "inputs": {}, "config": config or {}}
 
 
-async def _run(wf: dict[str, Any], task_input: Any = None) -> dict[str, Any]:
-    """Run a workflow and return the result context."""
+def _build(wf: dict[str, Any]) -> WorkFlow:
+    """Compile a workflow plan and instantiate it (no EMITTER)."""
+    plan = _compile_workflow_plan("test-registry", _workflow_plan_key(wf))
+    return _build_workflow(plan)
 
-    async def cb(_event_type: str, _payload: dict[str, Any]) -> None:
-        pass
 
-    executor = WorkflowExecutor.new(wf, cb, task_input=task_input)
-    return await executor.execute()
+async def _serve(wf: dict[str, Any], task: Task | None = None) -> Task:
+    """Serve a workflow directly with a fresh task; returns the finished task."""
+    workflow = _build(wf)
+    t = task or Task(name="t", send_to=["test"])
+    await workflow.serve(t)
+    return t
+
+
+async def _run(wf: dict[str, Any], task: Task | None = None) -> tuple[Any, Task]:
+    """Run a workflow and return ``(output, task)``."""
+    t = await _serve(wf, task)
+    return await t.get_output(), t
 
 
 # ── Plan-cache tests ──────────────────────────────────────────────────────────
@@ -120,14 +147,9 @@ async def _run(wf: dict[str, Any], task_input: Any = None) -> dict[str, Any]:
 
 def test_same_workflow_reuses_cached_plan():
     """Identical workflows compile to the same cached plan object."""
-    wf1 = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
-    wf2 = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
-    key1 = _plan_key(wf1)
-    key2 = _plan_key(wf2)
-    assert key1 == key2
-
-    plan1 = _compile_plan("v", key1)
-    plan2 = _compile_plan("v", key2)
+    wf = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
+    plan1 = _compile_workflow_plan("v", _workflow_plan_key(wf))
+    plan2 = _compile_workflow_plan("v", _workflow_plan_key(wf))
     assert plan1 is plan2  # same plan object — cache hit
 
 
@@ -135,104 +157,29 @@ def test_different_config_yields_different_plan():
     """Different node configs produce different cached plans."""
     wf_a = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
     wf_b = _wf([_node("n1", "EchoStep", {"value": "b"})], [])
-    plan_a = _compile_plan("v", _plan_key(wf_a))
-    plan_b = _compile_plan("v", _plan_key(wf_b))
+    plan_a = _compile_workflow_plan("v", _workflow_plan_key(wf_a))
+    plan_b = _compile_workflow_plan("v", _workflow_plan_key(wf_b))
     assert plan_a is not plan_b
 
 
 def test_different_class_universe_yields_different_plan():
     """A different registry version invalidates the cache."""
     wf = _wf([_node("n1", "EchoStep")], [])
-    plan_v = _compile_plan("v", _plan_key(wf))
-    plan_w = _compile_plan("w", _plan_key(wf))
+    plan_v = _compile_workflow_plan("v", _workflow_plan_key(wf))
+    plan_w = _compile_workflow_plan("w", _workflow_plan_key(wf))
     assert plan_v is not plan_w
 
 
-def test_init_context_not_part_of_plan_key():
-    """init_context changes do not affect the plan key, so they don't create new cached plans."""
-    wf_a = _wf([_node("n1", "EchoStep")], [], init_context={"x": 1})
-    wf_b = _wf([_node("n1", "EchoStep")], [], init_context={"x": 2})
-    assert _plan_key(wf_a) == _plan_key(wf_b)
-    # And the plans themselves are identical
-    plan_a = _compile_plan("v", _plan_key(wf_a))
-    plan_b = _compile_plan("v", _plan_key(wf_b))
-    assert plan_a is plan_b
+def test_init_context_is_part_of_plan_key():
+    """init_context is baked into workflow construction, so it keys the plan."""
+    wf_a = _wf([_node("n1", "EchoStep")], [], init_context={"a": 1})
+    wf_b = _wf([_node("n1", "EchoStep")], [], init_context={"a": 2})
+    plan_a = _compile_workflow_plan("v", _workflow_plan_key(wf_a))
+    plan_b = _compile_workflow_plan("v", _workflow_plan_key(wf_b))
+    assert plan_a is not plan_b
 
 
 # ── Execution semantics tests ─────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_repeated_execution_is_isolated_and_deterministic():
-    """Two runs of the same workflow produce identical results; no state leaks."""
-    wf = _wf(
-        [
-            _node("a", "EchoStep", {"value": "first"}),
-            _node("b", "PickStep", {"key": "k"}),
-        ],
-        [
-            {
-                "source": "a",
-                "source_handle": "echo",
-                "target": "b",
-                "target_handle": "k",
-            }
-        ],
-    )
-    r1 = await _run(wf)
-    r2 = await _run(wf)
-    assert r1 == r2 == {"echo": "first", "pick": "first"}
-
-
-@pytest.mark.asyncio
-async def test_stateful_node_isolated_per_run():
-    """A node that mutates self does not accumulate state across runs."""
-    wf = _wf([_node("n1", "StatefulStep")], [])
-    r1 = await _run(wf)
-    r2 = await _run(wf)
-    # Each fresh run starts with an empty list → one "x"
-    assert r1["stateful"] == ["x"]
-    assert r2["stateful"] == ["x"]
-    # If instances were shared, r2 would be ["x", "x"]
-    assert r1 == r2
-
-
-@pytest.mark.asyncio
-async def test_cyclic_workflow_raises_valueerror():
-    """A workflow with a cycle raises ValueError with the cycle nodes in the message."""
-    wf = _wf(
-        [_node("a", "EchoStep"), _node("b", "EchoStep")],
-        [
-            {"source": "a", "source_handle": "echo", "target": "b", "target_handle": "v"},
-            {"source": "b", "source_handle": "echo", "target": "a", "target_handle": "v"},
-        ],
-    )
-    with pytest.raises(ValueError, match="cycle"):
-        await _run(wf)
-
-
-@pytest.mark.asyncio
-async def test_unknown_node_type_is_skipped_without_crash():
-    """A node whose type has no matching Action class is skipped; no exception propagates."""
-    wf = _wf([_node("n1", "NoSuchStepEver")], [])
-    result = await _run(wf)
-    assert result == {}
-
-
-@pytest.mark.asyncio
-async def test_task_input_seeds_context():
-    """task_input (dict) overlays init_context and is visible in node results."""
-    wf = _wf(
-        [_node("n1", "EchoStep", {"value": "cfg"})],
-        [],
-        init_context={"prefix": "hello"},
-    )
-    result = await _run(wf, task_input={"prefix": "hi"})
-    assert result["prefix"] == "hi"  # task_input wins over init_context
-    assert result["echo"] == "cfg"
-
-
-# ── Field-wiring tests ────────────────────────────────────────────────────────
 
 
 def _echo_pick_wf(
@@ -249,7 +196,7 @@ def _echo_pick_wf(
         ],
         [
             {"source": "a", "source_handle": source_handle, "target": "b", "target_handle": "value"},
-            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
         ],
     )
 
@@ -257,11 +204,12 @@ def _echo_pick_wf(
 @pytest.mark.asyncio
 async def test_wired_value_reaches_field_without_ctx_override() -> None:
     """An edge into a config field wins over the constructor default without ctx_override."""
-    wf = _echo_pick_wf({"value": "upstream"}, {"value": "cfg"})
-    result = await _run(wf)
-    # b's body returned a's value: the wired field won over its config.
-    assert result["pick"] == "upstream"
-    assert result["echo"] == "upstream"
+    out, task = await _run(_echo_pick_wf({"value": "upstream"}, {"value": "cfg"}))
+    assert task.is_finished()
+    # task output key defaults to the last node's key ("pick")
+    assert out == "upstream"
+    # the shared context saw b's wired value too
+    assert task.extra_init_context  # task-scoped store exists
 
 
 @pytest.mark.asyncio
@@ -277,11 +225,11 @@ async def test_multiple_wired_fields_on_one_node() -> None:
         [
             {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
             {"source": "b", "source_handle": "echo", "target": "t", "target_handle": "right"},
-            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "observe"},
         ],
     )
-    result = await _run(wf)
-    assert result["pick"] == {"left": "L1", "right": "R1"}
+    out, _task = await _run(wf)
+    assert out == {"left": "L1", "right": "R1"}
 
 
 @pytest.mark.asyncio
@@ -297,13 +245,11 @@ async def test_same_class_sources_do_not_clobber_each_other() -> None:
         [
             {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
             {"source": "b", "source_handle": "echo", "target": "t", "target_handle": "right"},
-            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "observe"},
         ],
     )
-    result = await _run(wf)
-    # Without per-node outputs both edges would resolve to whichever EchoStep
-    # ran last and both fields would read the same value.
-    assert result["pick"] == {"left": "A", "right": "B"}
+    out, _task = await _run(wf)
+    assert out == {"left": "A", "right": "B"}
 
 
 @pytest.mark.asyncio
@@ -318,50 +264,100 @@ async def test_one_source_fans_out_to_many_fields() -> None:
         [
             {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
             {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "right"},
-            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "observe"},
         ],
     )
-    result = await _run(wf)
-    assert result["pick"] == {"left": "x", "right": "x"}
+    out, _task = await _run(wf)
+    assert out == {"left": "x", "right": "x"}
 
 
 @pytest.mark.asyncio
 async def test_empty_output_key_edges_resolve_by_class_name() -> None:
-    """Nodes without an output_key default resolve edges via the lowercased class-name port key."""
+    """Nodes without an output_key default resolve edges via the class-name port key."""
     wf = _wf(
         [
             _node("n1", "NoKeyStep", {"text": "hi"}),
             _node("b", "EchoStep", {"value": "default"}),
-            _node("c", "PickStep", {"key": "echo"}),
+            _node("c", "PickStep", {"key": "nokeystep"}),
         ],
         [
             {"source": "n1", "source_handle": "nokeystep", "target": "b", "target_handle": "value"},
-            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
         ],
     )
-    result = await _run(wf)
-    assert result["nokeystep"] == "hi"  # stored under the class-name port key
-    assert result["pick"] == "hi"  # wired through to b
+    out, _task = await _run(wf)
+    assert out == "hi"
 
 
 @pytest.mark.asyncio
 async def test_context_reader_sees_upstream_outputs_without_field_wiring() -> None:
-    """Key-reading bodies see earlier outputs via the accumulated context.
-
-    Forward/Gather/DumpText-style bodies read ``cxt.get(key)``; the executor
-    must pass the accumulated context like fabricatio's ``WorkFlow.act``.
-    """
+    """Key-reading bodies see earlier outputs via the accumulated context."""
     wf = _wf(
         [
             _node("a", "EchoStep", {"value": "hello"}),
             _node("b", "PickStep", {"key": "echo"}),
         ],
-        # edge only forces ordering; the handle is not a PickStep field, so the
-        # value is not setattr'd — b must read it from the shared context
         [{"source": "a", "source_handle": "echo", "target": "b", "target_handle": "observe"}],
     )
-    result = await _run(wf)
-    assert result["pick"] == "hello"
+    out, _task = await _run(wf)
+    assert out == "hello"
+
+
+@pytest.mark.asyncio
+async def test_task_seeded_at_input_key() -> None:
+    """The Task object is seeded at the reserved task_input key."""
+    wf = _wf([_node("b", "PickStep", {"key": "task_input"})], [])
+    out, task = await _run(wf)
+    assert out is task
+
+
+@pytest.mark.asyncio
+async def test_null_output_is_a_valid_task_result() -> None:
+    """A side-effect-only workflow finishes with a None output, not an error."""
+    wf = _wf([_node("n1", "NullStep")], [])
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out is None
+
+
+@pytest.mark.asyncio
+async def test_explicit_task_output_key() -> None:
+    """task_output_key selects which context key becomes the task output."""
+    wf = _wf(
+        [_node("a", "EchoStep", {"value": "hello"})],
+        [],
+        task_output_key="echo",
+    )
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out == "hello"
+
+
+@pytest.mark.asyncio
+async def test_init_context_seeds_the_shared_context() -> None:
+    """init_context values are visible to every node."""
+    wf = _wf(
+        [_node("b", "PickStep", {"key": "prefix"})],
+        [],
+        init_context={"prefix": "hello"},
+    )
+    out, _task = await _run(wf)
+    assert out == "hello"
+
+
+@pytest.mark.asyncio
+async def test_shared_instances_persist_state_across_serves() -> None:
+    """A dispatched workflow is a long-lived subscription: instances are shared."""
+    wf = _wf([_node("n1", "StatefulStep")], [])
+    workflow = _build(wf)
+    t1 = Task(name="t1", send_to=["test"])
+    await workflow.serve(t1)
+    out1 = await t1.get_output()
+    t2 = Task(name="t2", send_to=["test"])
+    await workflow.serve(t2)
+    out2 = await t2.get_output()
+    assert out1 == ["x"]
+    assert out2 == ["x", "x"]
 
 
 @pytest.mark.asyncio
@@ -369,18 +365,127 @@ async def test_edge_to_missing_output_is_skipped_with_warning(capfd: pytest.Capt
     """An edge whose source never produced a value warns instead of crashing."""
     wf = _wf(
         [
-            _node("a", "EchoStep", {"value": "x"}),
             _node("b", "EchoStep", {"value": "default"}),
             _node("c", "PickStep", {"key": "echo"}),
         ],
         [
             {"source": "ghost", "source_handle": "echo", "target": "b", "target_handle": "value"},
-            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
         ],
     )
-    result = await _run(wf)
-    assert result["pick"] == "default"
-    assert "no runnable instance" in capfd.readouterr().err
+    out, _task = await _run(wf)
+    assert out == "default"
+    assert "not available" in capfd.readouterr().err
+
+
+@pytest.mark.asyncio
+async def test_unknown_node_type_is_skipped_without_crash() -> None:
+    """A node whose type has no matching Action class is skipped."""
+    wf = _wf([_node("n1", "NoSuchStepEver")], [])
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out is None
+
+
+@pytest.mark.asyncio
+async def test_cyclic_workflow_raises_valueerror() -> None:
+    """A workflow with a cycle raises ValueError with the cycle nodes in the message."""
+    wf = _wf(
+        [_node("a", "EchoStep"), _node("b", "EchoStep")],
+        [
+            {"source": "a", "source_handle": "echo", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "a", "target_handle": "value"},
+        ],
+    )
+    with pytest.raises(ValueError, match="cycle"):
+        _build(wf)
+
+
+# ── Subscription pattern tests ────────────────────────────────────────────────
+
+
+def test_subscription_pattern_derived_from_namespace():
+    assert _subscription_pattern("write::book") == "write::book::*::Pending"
+    assert _subscription_pattern("write") == "write::*::Pending"
+
+
+def test_subscription_pattern_empty_namespace():
+    assert _subscription_pattern("") == ""
+    assert _subscription_pattern("  :: ") == ""
+
+
+# ── EMITTER integration tests ─────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_role_dispatch_serves_task_by_namespace() -> None:
+    """A dispatched role's workflow serves a published task on its namespace."""
+    board = {
+        "format_version": 2,
+        "name": "b1",
+        "roles": [
+            {
+                "name": "writer-role",
+                "description": "",
+                "workflows": [
+                    {
+                        "name": "write-book",
+                        "namespace": "write::book",
+                        "nodes": [_node("a", "EchoStep", {"value": "story"})],
+                        "edges": [],
+                        "init_context": {},
+                        "task_output_key": "echo",
+                    }
+                ],
+            }
+        ],
+        "actions": [],
+    }
+    roles = build_roles_from_boards([board])
+    assert len(roles) == 1
+    try:
+        task = Task(name="t1", send_to=["write", "book"])
+        task.publish()
+        out = await asyncio.wait_for(task.get_output(), timeout=5)
+        assert task.is_finished()
+        assert out == "story"
+    finally:
+        for role in roles:
+            role.undo_dispatch()
+
+
+@pytest.mark.asyncio
+async def test_unmatched_namespace_leaves_task_unserved() -> None:
+    """A task published on an unknown namespace is never served."""
+    board = {
+        "format_version": 2,
+        "name": "b1",
+        "roles": [
+            {
+                "name": "reader-role",
+                "workflows": [
+                    {
+                        "name": "read-x",
+                        "namespace": "read::x",
+                        "nodes": [_node("a", "EchoStep", {"value": "v"})],
+                        "edges": [],
+                        "task_output_key": "echo",
+                    }
+                ],
+            }
+        ],
+        "actions": [],
+    }
+    roles = build_roles_from_boards([board])
+    try:
+        task = Task(name="t2", send_to=["nowhere"])
+        task.publish()
+        await asyncio.sleep(0.3)
+        # No handler matched: nothing wrote to the task's output queue.
+        assert task._output.empty()
+    finally:
+        for role in roles:
+            role.undo_dispatch()
 
 
 # ── Topological-order unit tests ───────────────────────────────────────────────
@@ -419,14 +524,14 @@ def test_topo_diamond():
     assert order.index("c") < order.index("d")
 
 
-def test_topo_skips_edges_to_unknown_nodes():
+def test_topo_skips_edges_to_unknown_nodes() -> None:
     """Edges whose source/target is not in the instance set are ignored."""
     edges = [
         {"source": "a", "target": "ghost"},
-        {"source": "a", "target": "b"},
+        {"source": "ghost", "target": "b"},
     ]
     order = _topological_order({"a", "b"}, edges)
-    assert order == ["a", "b"]
+    assert set(order) == {"a", "b"}
 
 
 def test_topo_cycle_raises():

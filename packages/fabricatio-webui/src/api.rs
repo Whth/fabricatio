@@ -42,23 +42,23 @@ pub async fn get_workflows(State(state): State<Arc<AppState>>) -> Json<serde_jso
     Json(serde_json::Value::Array(list))
 }
 
-/// GET /api/workflows/:id — get a single saved workflow.
+/// GET /api/workflows/:id — get a single saved board.
 pub async fn get_workflow(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<Json<WorkflowJson>, (axum::http::StatusCode, String)> {
+) -> Result<Json<BoardJson>, (axum::http::StatusCode, String)> {
     state.get_workflow(&id).map(Json).ok_or_else(|| {
         (
             axum::http::StatusCode::NOT_FOUND,
-            format!("workflow '{id}' not found"),
+            format!("board '{id}' not found"),
         )
     })
 }
 
-/// POST /api/workflows — save a workflow.
+/// POST /api/workflows — save a board.
 pub async fn save_workflow(
     State(state): State<Arc<AppState>>,
-    Json(mut wf): Json<WorkflowJson>,
+    Json(mut wf): Json<BoardJson>,
 ) -> Json<serde_json::Value> {
     let id = wf
         .name
@@ -66,7 +66,7 @@ pub async fn save_workflow(
         .filter(|n| !n.is_empty())
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    // Inject timestamps: preserve created_at if workflow already exists
+    // Inject timestamps: preserve created_at if the board already exists
     let now = chrono::Utc::now().to_rfc3339();
     let created_at = state
         .get_workflow(&id)
@@ -103,25 +103,21 @@ pub async fn delete_workflow(
     }
 }
 
-/// POST /api/execute — submit a workflow for execution.
+/// POST /api/execute — publish a task; dispatched roles serve it by namespace.
 pub async fn submit_execution(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ExecutionRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let execution_id = Uuid::new_v4().to_string();
-    let wf_json = serde_json::to_string(&req.workflow)
+    let task_json = serde_json::to_string(&req.task)
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let task_json = req
-        .task_input
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "null".to_string());
     let submit = state.submit_fn.get().ok_or_else(|| {
         (
             axum::http::StatusCode::SERVICE_UNAVAILABLE,
             "worker not ready".into(),
         )
     })?;
-    let res = pyo3::Python::attach(|py| submit.call1(py, (execution_id.clone(), wf_json, task_json)));
+    let res = pyo3::Python::attach(|py| submit.call1(py, (execution_id.clone(), task_json)));
     if let Err(e) = res {
         return Err((
             axum::http::StatusCode::SERVICE_UNAVAILABLE,

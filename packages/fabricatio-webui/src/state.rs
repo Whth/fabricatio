@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 pub struct AppState {
     pub node_registry: RwLock<Vec<NodeTypeDefinition>>,
     pub ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
-    pub workflows: RwLock<HashMap<String, WorkflowJson>>,
+    pub workflows: RwLock<HashMap<String, BoardJson>>,
     data_dir: PathBuf,
     // Python worker callables (set once at startup; never mutated afterwards)
     pub submit_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
@@ -32,23 +32,23 @@ impl AppState {
         }
     }
 
-    // ── Workflow CRUD ──────────────────────────────────────────────────────────
+    // ── Workflow CRUD (docs are boards, format_version 2) ─────────────────────
 
-    pub fn save_workflow(&self, id: String, wf: WorkflowJson) {
+    pub fn save_workflow(&self, id: String, wf: BoardJson) {
         if let Ok(mut wfs) = self.workflows.write() {
             wfs.insert(id, wf);
             Self::persist_to_disk(&self.data_dir, &wfs);
         }
     }
 
-    pub fn get_workflows(&self) -> Vec<(String, WorkflowJson)> {
+    pub fn get_workflows(&self) -> Vec<(String, BoardJson)> {
         self.workflows
             .read()
             .map(|wfs| wfs.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             .unwrap_or_default()
     }
 
-    pub fn get_workflow(&self, id: &str) -> Option<WorkflowJson> {
+    pub fn get_workflow(&self, id: &str) -> Option<BoardJson> {
         self.workflows.read().ok()?.get(id).cloned()
     }
 
@@ -71,13 +71,37 @@ impl AppState {
         data_dir.join("workflows.json")
     }
 
-    fn load_workflows_from_disk(data_dir: &std::path::Path) -> HashMap<String, WorkflowJson> {
+    fn load_workflows_from_disk(data_dir: &std::path::Path) -> HashMap<String, BoardJson> {
         let path = Self::workflows_file(data_dir);
         match std::fs::read_to_string(&path) {
-            Ok(content) => serde_json::from_str(&content).unwrap_or_else(|e| {
-                warn!("Failed to parse {}: {e}", path.display());
-                HashMap::new()
-            }),
+            Ok(content) => {
+                let raw: HashMap<String, serde_json::Value> =
+                    serde_json::from_str(&content).unwrap_or_else(|e| {
+                        warn!("Failed to parse {}: {e}", path.display());
+                        HashMap::new()
+                    });
+                raw.into_iter()
+                    .map(|(id, value)| {
+                        let migrated = BoardJson::migrate_legacy(value);
+                        let id_for_log = id.clone();
+                        (
+                            id,
+                            serde_json::from_value(migrated).unwrap_or_else(|e| {
+                                warn!("Failed to read board {id_for_log}: {e}");
+                                BoardJson {
+                                    version: "1.0".into(),
+                                    format_version: 2,
+                                    name: Some(id_for_log.clone()),
+                                    description: None,
+                                    roles: vec![],
+                                    actions: vec![],
+                                    meta: None,
+                                }
+                            }),
+                        )
+                    })
+                    .collect()
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => HashMap::new(),
             Err(e) => {
                 warn!("Failed to read {}: {e}", path.display());
@@ -86,7 +110,7 @@ impl AppState {
         }
     }
 
-    fn persist_to_disk(data_dir: &std::path::Path, workflows: &HashMap<String, WorkflowJson>) {
+    fn persist_to_disk(data_dir: &std::path::Path, workflows: &HashMap<String, BoardJson>) {
         let path = Self::workflows_file(data_dir);
         if let Err(e) = std::fs::create_dir_all(data_dir) {
             warn!("Failed to create {}: {e}", data_dir.display());

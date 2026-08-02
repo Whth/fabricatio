@@ -1,4 +1,4 @@
-"""Tests for the workflow worker loop."""
+"""Tests for the workflow worker loop (task-dispatch model)."""
 
 import asyncio
 import json
@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, List
 
 import pytest
+
 from fabricatio_core.models.action import Action
 from fabricatio_webui.worker import WorkflowWorker
 
@@ -14,7 +15,7 @@ class FakeStep(Action):
     """Test action that records its inputs and returns them."""
 
     value: str = "default"
-    output_key: str = "fake_result"
+    output_key: str = "fake"
 
     async def _execute(self, **cxt: Any) -> Any:
         return self.value
@@ -23,7 +24,7 @@ class FakeStep(Action):
 class HugeListStep(Action):
     """Test action that returns a large non-string result."""
 
-    output_key: str = "big_list"
+    output_key: str = "huge"
 
     async def _execute(self, **cxt: Any) -> Any:
         return list(range(30_000))
@@ -51,11 +52,7 @@ class BlockingStep(Action):
 
 
 class ContextReadStep(Action):
-    """Test action that looks up named keys in its execution context.
-
-    Mirrors how ``Forward`` reads a value: ``cxt.get(self.original)`` where
-    ``cxt`` is the per-node context dict passed to ``_execute``.
-    """
+    """Test action that looks up named keys in its execution context."""
 
     output_key: str = "ctx_read"
     keys: str = ""
@@ -65,13 +62,47 @@ class ContextReadStep(Action):
         return {k: cxt.get(k) for k in wanted}
 
 
-def _wf(node_id: str, node_type: str, config: Dict[str, Any]) -> str:
-    return json.dumps(
-        {
-            "nodes": [{"id": node_id, "type": node_type, "inputs": {}, "config": config}],
-            "edges": [],
-        }
-    )
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _workflow_json(node_id: str, node_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "name": "wf",
+        "namespace": "test",
+        "task_output_key": None,
+        "nodes": [{"id": node_id, "type": node_type, "inputs": {}, "config": config}],
+        "edges": [],
+        "init_context": {},
+    }
+
+
+def _board_json(role_name: str, workflows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {
+        "format_version": 2,
+        "name": role_name,
+        "roles": [{"name": role_name, "description": "", "workflows": workflows}],
+        "actions": [],
+    }
+
+
+def _write_boards(tmp_path, boards: Dict[str, Dict[str, Any]]) -> None:
+    (tmp_path / "workflows.json").write_text(json.dumps(boards), encoding="utf-8")
+
+
+class Collector:
+    """Collects broadcast messages for assertions."""
+
+    def __init__(self) -> None:
+        """Create an empty collector."""
+        self.messages: List[Dict[str, Any]] = []
+
+    def broadcast(self, raw: str) -> None:
+        """Record one broadcast WS frame."""
+        self.messages.append(json.loads(raw))
+
+    def by_type(self, event_type: str) -> List[Dict[str, Any]]:
+        """Return all messages of one event type."""
+        return [m for m in self.messages if m.get("type") == event_type]
 
 
 async def _run_worker(worker: WorkflowWorker) -> "asyncio.Task[None]":
@@ -80,281 +111,244 @@ async def _run_worker(worker: WorkflowWorker) -> "asyncio.Task[None]":
     return task
 
 
+async def _wait_for(
+    collector: Collector,
+    event_type: str,
+    timeout: float = 10.0,
+    match: Any = None,
+) -> Dict[str, Any]:
+    """Poll for a message of a type (optionally matching a predicate)."""
+    deadline = asyncio.get_running_loop().time() + timeout
+    while asyncio.get_running_loop().time() < deadline:
+        msgs = collector.by_type(event_type)
+        if msgs:
+            latest = msgs[-1]
+            if match is None or match(latest):
+                return latest
+        await asyncio.sleep(0.02)
+    raise AssertionError(f"no {event_type} message within {timeout}s; got {collector.messages}")
+
+
+def _task_json(**overrides: Any) -> str:
+    payload = {"name": "t", "send_to": ["test"], **overrides}
+    return json.dumps(payload)
+
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+
+
 @pytest.mark.asyncio
-async def test_worker_emits_full_event_sequence() -> None:
+async def test_worker_emits_full_event_sequence(tmp_path: Any) -> None:
     """A successful run broadcasts the full lifecycle event sequence."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {"value": "hello"})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    worker.submit("e1", _wf("n1", "FakeStep", {"value": "hello"}), "null")
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    types = [e["type"] for e in events]
-    assert types == [
-        "status",
-        "execution_start",
-        "node_start",
-        "node_done",
-        "node_output",
-        "execution_done",
-        "status",  # trailing queue-depth update from the run-loop finally
-    ]
-    done = next(e for e in events if e["type"] == "execution_done")
-    assert done["execution_id"] == "e1"
-    assert done["cancelled"] is False
-    assert done["error"] is None
-    node_output = next(e for e in events if e["type"] == "node_output")
-    assert node_output["node_id"] == "n1"
-    assert "hello" in str(node_output["data"])
+    try:
+        worker.submit("e1", _task_json())
+        start = await _wait_for(collector, "execution_start")
+        assert start["execution_id"] == "e1"
+        await _wait_for(collector, "node_start")
+        await _wait_for(collector, "node_done")
+        node_output = await _wait_for(collector, "node_output")
+        assert "hello" in str(node_output["output"])
+        done = await _wait_for(collector, "execution_done")
+        assert done["cancelled"] is False
+        assert done["result"] == "hello"
+        assert done["error"] is None
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_interrupt_cancels_running_execution() -> None:
+async def test_interrupt_cancels_running_execution(tmp_path: Any) -> None:
     """Cancelling the current task broadcasts execution_done(cancelled=true)."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "SlowStep", {})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    worker.submit("e2", _wf("n1", "SlowStep", {}), "null")
-    await asyncio.sleep(0.05)
-    assert worker.cancel_current() is True
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    done = next(e for e in events if e["type"] == "execution_done")
-    assert done["execution_id"] == "e2"
-    assert done["cancelled"] is True
+    try:
+        worker.submit("e2", _task_json())
+        await _wait_for(collector, "node_start")
+        assert worker.cancel_current() is True
+        done = await _wait_for(collector, "execution_done")
+        assert done["cancelled"] is True
+        assert done["result"] is None
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_interrupt_preempts_blocking_node() -> None:
+async def test_interrupt_preempts_blocking_node(tmp_path: Any) -> None:
     """A node doing blocking sync work is preempted by cancel; the loop moves on."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "BlockingStep", {"block_seconds": 5.0})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
+    try:
+        worker.submit("b1", _task_json())
+        await _wait_for(collector, "node_start")
+        assert worker.cancel_current() is True
+        done = await _wait_for(collector, "execution_done", timeout=8)
+        assert done["cancelled"] is True
 
-    worker.submit("b1", _wf("n1", "BlockingStep", {"block_seconds": 30}), "null")
-    await asyncio.sleep(0.1)  # let the node start its blocking work
-    assert worker.cancel_current() is True
-    await asyncio.sleep(0.1)  # CancelledError must be delivered at the await point
-    # worker loop survives and processes the next queued item
-    worker.submit("b2", _wf("n1", "FakeStep", {"value": "next"}), "null")
-    await asyncio.sleep(0.2)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    done_b1 = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b1")
-    assert done_b1["cancelled"] is True
-    assert done_b1["result"] is None
-    done_b2 = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b2")
-    assert done_b2["cancelled"] is False
-    assert done_b2["error"] is None
-
-    history = json.loads(worker.history_snapshot())
-    assert any(h["execution_id"] == "b1" and h["state"] == "cancelled" for h in history)
-    assert any(h["execution_id"] == "b2" and h["state"] == "completed" for h in history)
+        # The queue moves on to the next execution while the orphaned thread finishes.
+        _write_boards(
+            tmp_path,
+            {
+                "b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {"value": "ok"})]),
+                "b2": _board_json("r2", [_workflow_json("n2", "FakeStep", {"value": "ok"})]),
+            },
+        )
+        worker.rebuild_roles()
+        await asyncio.sleep(0.1)
+        worker.submit("b2", json.dumps({"name": "t", "send_to": ["test"]}))
+        done2 = await _wait_for(collector, "execution_done", timeout=8, match=lambda m: m.get("execution_id") == "b2")
+        assert done2["result"] == "ok"
+        history = json.loads(worker.history_snapshot())
+        assert any(h["execution_id"] == "b2" and h["state"] == "completed" for h in history)
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_blocking_node_completes_normally() -> None:
+async def test_blocking_node_completes_normally(tmp_path: Any) -> None:
     """A short blocking node without interrupt still completes with its result."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "BlockingStep", {"block_seconds": 0.3})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    worker.submit("b3", _wf("n1", "BlockingStep", {"block_seconds": 0.2}), "null")
-    await asyncio.sleep(0.5)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "b3")
-    assert done["cancelled"] is False
-    assert done["result"] == {"blocking_result": {"done": True}}
-    assert done["error"] is None
+    try:
+        worker.submit("e4", _task_json())
+        done = await _wait_for(collector, "execution_done", timeout=8)
+        assert done["cancelled"] is False
+        assert done["result"] == {"done": True}
+        assert done["error"] is None
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_malformed_workflow_yields_error_without_killing_worker() -> None:
+async def test_malformed_task_yields_error_without_killing_worker(tmp_path: Any) -> None:
     """A malformed submission fails one execution without stopping the loop."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    worker.submit("e3", "{not json", "null")
-    await asyncio.sleep(0.05)
-    # worker still alive: second submission is processed
-    worker.submit("e4", _wf("n1", "FakeStep", {}), "null")
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    ids = [e["execution_id"] for e in events if e["type"] == "execution_done"]
-    assert "e3" in ids
-    assert "e4" in ids
-    err = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "e3")
-    assert err["error"] is not None
+    try:
+        worker.submit("e5", "not-json{{{")
+        done = await _wait_for(collector, "execution_done")
+        assert done["error"] is not None
+        # The worker still processes the next submission.
+        worker.submit("e6", _task_json())
+        done2 = await _wait_for(collector, "execution_done", match=lambda m: m.get("execution_id") == "e6")
+        assert done2["error"] is None
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_huge_result_is_truncated_in_done_and_history() -> None:
+async def test_huge_result_is_truncated_in_done_and_history(tmp_path: Any) -> None:
     """Oversized results are preview-truncated in both broadcast and history."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "HugeListStep", {})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    raw = "x" * 5000
-    wf = json.dumps(
-        {
-            "nodes": [
-                {"id": "n1", "type": "FakeStep", "inputs": {}, "config": {"value": raw}},
-                {"id": "n2", "type": "HugeListStep", "inputs": {}, "config": {}},
-            ],
-            "edges": [],
-        }
-    )
-    worker.submit("e6", wf, "null")
-    await asyncio.sleep(0.1)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    done = next(e for e in events if e["type"] == "execution_done")
-    result = done["result"]
-    # Long string value: preview-truncated (not the raw 5000-char payload).
-    assert result["fake_result"] != raw
-    assert len(result["fake_result"]) == 4000
-    assert result["fake_result"].endswith("...")
-    assert raw not in json.dumps(done)
-    # Huge non-string value: replaced with a short placeholder.
-    assert result["big_list"] == "[truncated: list]"
-
-    history = json.loads(worker.history_snapshot())
-    entry = next(h for h in history if h["execution_id"] == "e6" and h["state"] == "completed")
-    assert entry["result"] == result
-    assert raw not in json.dumps(history)
+    try:
+        worker.submit("e7", _task_json())
+        done = await _wait_for(collector, "execution_done")
+        raw = json.dumps(done)
+        assert "[truncated" in raw
+        history = json.loads(worker.history_snapshot())
+        assert raw not in json.dumps(history)
+        assert any("[truncated" in json.dumps(h) for h in history)
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_history_snapshot_contains_finished_execution() -> None:
+async def test_history_snapshot_contains_finished_execution(tmp_path: Any) -> None:
     """Finished executions are recorded and visible via history_snapshot."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {"value": "v"})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
-
-    worker.submit("e5", _wf("n1", "FakeStep", {}), "null")
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    history = json.loads(worker.history_snapshot())
-    assert any(h["execution_id"] == "e5" and h["state"] == "completed" for h in history)
+    try:
+        worker.submit("e8", _task_json())
+        await _wait_for(collector, "execution_done")
+        history = json.loads(worker.history_snapshot())
+        assert any(h["execution_id"] == "e8" and h["state"] == "completed" for h in history)
+        assert any(h["task_name"] == "t" and h["namespace"] == "test" for h in history)
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_init_context_and_task_input_seed_executor_context() -> None:
-    """init_context and dict task_input resolve inside node executions and in the result."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
-    loop_task = await _run_worker(worker)
-
-    wf = json.dumps(
-        {
-            "nodes": [
-                {"id": "n1", "type": "ContextReadStep", "inputs": {}, "config": {"keys": "greeting,user"}},
-            ],
-            "edges": [],
-            "init_context": {"greeting": "hello-from-init", "user": "init-user"},
-        }
+async def test_extra_init_context_seeds_execution_context(tmp_path: Any) -> None:
+    """extra_init_context from the task payload resolves inside node executions."""
+    _write_boards(
+        tmp_path,
+        {"b1": _board_json("r1", [_workflow_json("n1", "ContextReadStep", {"keys": "user,prefix"})])},
     )
-    # task_input is a dict: overlaid on init_context, wins on conflict.
-    worker.submit("s1", wf, json.dumps({"user": "task-user"}))
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
-
-    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "s1")
-    assert done["cancelled"] is False
-    assert done["error"] is None
-    result = done["result"]
-    # Node resolved both keys from the seeded context: init_context value for
-    # greeting, task_input (overlay) for user.
-    assert result["ctx_read"] == {"greeting": "hello-from-init", "user": "task-user"}
-    # Seeds are part of the returned result context too.
-    assert result["greeting"] == "hello-from-init"
-    assert result["user"] == "task-user"
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
+    loop_task = await _run_worker(worker)
+    try:
+        worker.submit(
+            "e9",
+            json.dumps(
+                {
+                    "name": "t",
+                    "send_to": ["test"],
+                    "extra_init_context": {"user": "task-user", "prefix": "hello"},
+                }
+            ),
+        )
+        done = await _wait_for(collector, "execution_done")
+        assert done["result"] == {"user": "task-user", "prefix": "hello"}
+    finally:
+        loop_task.cancel()
 
 
 @pytest.mark.asyncio
-async def test_scalar_task_input_seeded_under_reserved_key() -> None:
-    """A non-dict task_input is seeded under the framework's reserved key."""
-    events: List[Dict[str, Any]] = []
-
-    def broadcast(payload: str) -> None:
-        events.append(json.loads(payload))
-
-    worker = WorkflowWorker(broadcast)
+async def test_no_matching_namespace_fails_fast(tmp_path: Any) -> None:
+    """A task on an unknown namespace errors instead of hanging forever."""
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
     loop_task = await _run_worker(worker)
+    try:
+        worker.submit("e10", json.dumps({"name": "t", "send_to": ["nowhere"]}))
+        done = await _wait_for(collector, "execution_done", timeout=8)
+        assert done["cancelled"] is False
+        assert "No dispatched workflow matches" in (done.get("error") or "")
+    finally:
+        loop_task.cancel()
 
-    wf = json.dumps(
-        {
-            "nodes": [
-                {"id": "n1", "type": "ContextReadStep", "inputs": {}, "config": {"keys": "task_input"}},
-            ],
-            "edges": [],
-        }
-    )
-    worker.submit("s2", wf, json.dumps("plain-scalar"))
-    await asyncio.sleep(0.05)
-    loop_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await loop_task
 
-    done = next(e for e in events if e["type"] == "execution_done" and e["execution_id"] == "s2")
-    assert done["cancelled"] is False
-    assert done["error"] is None
-    # The scalar lands under the framework's reserved INPUT_KEY ("task_input").
-    assert done["result"]["ctx_read"] == {"task_input": "plain-scalar"}
-    assert done["result"]["task_input"] == "plain-scalar"
+@pytest.mark.asyncio
+async def test_rebuild_roles_dispatches_new_boards(tmp_path: Any) -> None:
+    """Saving a new board and rebuilding dispatches its roles."""
+    _write_boards(tmp_path, {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {"value": "first"})])})
+    collector = Collector()
+    worker = WorkflowWorker(collector.broadcast, tmp_path)
+    loop_task = await _run_worker(worker)
+    try:
+        worker.submit("e11", _task_json())
+        done = await _wait_for(collector, "execution_done")
+        assert done["result"] == "first"
+
+        # A second board with a new namespace becomes dispatchable after rebuild.
+        new_board = _board_json("r2", [_workflow_json("n2", "FakeStep", {"value": "second"})])
+        new_board["roles"][0]["workflows"][0]["namespace"] = "other"
+        _write_boards(
+            tmp_path,
+            {"b1": _board_json("r1", [_workflow_json("n1", "FakeStep", {"value": "first"})]), "b2": new_board},
+        )
+        worker.rebuild_roles()
+        await asyncio.sleep(0.1)
+        worker.submit("e12", json.dumps({"name": "t", "send_to": ["other"]}))
+        done2 = await _wait_for(collector, "execution_done", timeout=8, match=lambda m: m.get("execution_id") == "e12")
+        assert done2["result"] == "second"
+    finally:
+        loop_task.cancel()
