@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { WSMessage } from '@/types/api'
+import type { TaskJSON, WSMessage } from '@/types/api'
 import { useWorkflowStore } from './workflow'
 import { useNotificationsStore } from './notifications'
 import { api } from '@/api/client'
@@ -158,14 +158,12 @@ export const useExecutionStore = defineStore('execution', () => {
     }
   }
 
-  async function queuePrompt() {
+  async function queuePrompt(task: TaskJSON) {
     const notifications = useNotificationsStore()
-    const wfStore = useWorkflowStore()
 
     try {
       reset()
-      const workflow = wfStore.toJSON()
-      const { execution_id } = await api.execute({ workflow })
+      const { execution_id } = await api.execute({ task })
       executionId.value = execution_id
       executionState.value = 'running'
     } catch (err) {

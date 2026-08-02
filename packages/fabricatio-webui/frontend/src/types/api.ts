@@ -32,7 +32,7 @@ export interface NodeTypeDefinition {
   schema_version?: string
 }
 
-// ── Workflow JSON ────────────────────────────────────────────────────────────────
+// ── Board JSON (format_version 2: role-driven documents) ──────────────────────
 
 export interface FabricatioNode {
   id: string
@@ -60,23 +60,71 @@ export interface WorkflowMeta {
   thumbnail?: string
 }
 
+/** One workflow inside a role: a graph plus its namespace subscription. */
 export interface WorkflowJSON {
+  id?: string
+  name?: string
+  /** Plain namespace ("write::book") — the subscription pattern is derived. */
+  namespace?: string
+  /** Context key extracted as the task output; defaults to the last node's key. */
+  task_output_key?: string
+  nodes: FabricatioNode[]
+  edges: FabricatioEdge[]
+  init_context: Record<string, unknown>
+}
+
+export interface RoleJSON {
+  name: string
+  description?: string
+  workflows: WorkflowJSON[]
+}
+
+/** A user-defined Action field (code-gen emits an Action subclass). */
+export interface ActionFieldJSON {
+  name: string
+  type: string
+  optional?: boolean
+  default?: unknown
+  widget?: string
+}
+
+/** A user-defined Action definition stored at board level. */
+export interface ActionDefJSON {
+  name: string
+  description?: string
+  fields: ActionFieldJSON[]
+  capabilities: string[]
+  output_key?: string
+  ctx_override?: boolean
+}
+
+/** Top-level saved document: a board holding roles and custom actions. */
+export interface BoardJSON {
   id?: string
   version: string
   format_version?: number
   name?: string
   description?: string
-  nodes: FabricatioNode[]
-  edges: FabricatioEdge[]
-  init_context: Record<string, unknown>
+  roles: RoleJSON[]
+  actions: ActionDefJSON[]
   meta?: WorkflowMeta
 }
 
 // ── Execution ────────────────────────────────────────────────────────────────────
 
+/** Task-shaped execution payload — pure namespace dispatch (format v2). */
+export interface TaskJSON {
+  name: string
+  description?: string
+  goals?: string[]
+  dependencies?: string[]
+  /** Namespace path components; matching workflows serve the task. */
+  send_to: string[]
+  extra_init_context?: Record<string, unknown>
+}
+
 export interface ExecutionRequest {
-  workflow: WorkflowJSON
-  task_input?: unknown
+  task: TaskJSON
 }
 
 export type ExecutionState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -86,6 +134,8 @@ export interface ExecutionStatus {
   state: ExecutionState
   current_node?: string
   error?: string
+  task_name?: string
+  namespace?: string
 }
 
 // ── WebSocket messages (server → client) ─────────────────────────────────────────

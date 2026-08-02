@@ -5,14 +5,14 @@ import { useAppActions } from '@/composables/useAppActions'
 import { X, BookOpen, RefreshCw, Trash2 } from '@lucide/vue'
 
 const ui = useUiStore()
-const { savedWorkflows, isLoadingWorkflows, refreshWorkflows, loadWorkflowById, deleteWorkflowById } =
+const { savedBoards, isLoadingBoards, refreshBoards, loadWorkflowById, deleteWorkflowById } =
   useAppActions()
 
 // Fetch the list every time the panel opens so it reflects server state.
 watch(
   () => ui.workflowsOpen,
   (open) => {
-    if (open) refreshWorkflows().catch(() => {})
+    if (open) refreshBoards().catch(() => {})
   },
 )
 
@@ -31,14 +31,14 @@ async function handleLoad(id: string) {
   <aside class="workflows-sidebar" :class="{ open: ui.workflowsOpen }">
     <div class="sidebar-header">
       <BookOpen :size="15" />
-      <span>Workflows</span>
+      <span>Boards</span>
       <button
         class="sidebar-icon"
         title="Refresh list"
-        :disabled="isLoadingWorkflows"
-        @click="refreshWorkflows().catch(() => {})"
+        :disabled="isLoadingBoards"
+        @click="refreshBoards().catch(() => {})"
       >
-        <RefreshCw :size="13" :class="{ spinning: isLoadingWorkflows }" />
+        <RefreshCw :size="13" :class="{ spinning: isLoadingBoards }" />
       </button>
       <button class="sidebar-close" title="Close workflows" @click="ui.workflowsOpen = false">
         <X :size="14" />
@@ -46,17 +46,17 @@ async function handleLoad(id: string) {
     </div>
 
     <div class="sidebar-body">
-      <div v-if="savedWorkflows.length === 0" class="workflows-empty">
-        <p>No saved workflows</p>
-        <p class="workflows-hint">Save the current workflow with Ctrl+S and it will appear here.</p>
+      <div v-if="savedBoards.length === 0" class="workflows-empty">
+        <p>No saved boards</p>
+        <p class="workflows-hint">Save the current board with Ctrl+S and it will appear here.</p>
       </div>
 
-      <div v-for="wf in savedWorkflows" :key="wf.id" class="workflow-item">
+      <div v-for="wf in savedBoards" :key="wf.id" class="workflow-item">
         <button class="workflow-open" :title="`Load ${wf.name}`" @click="handleLoad(wf.id)">
           <span class="workflow-name">{{ wf.name }}</span>
-          <span class="workflow-count">{{ wf.nodeCount }} nodes</span>
+          <span class="workflow-count">{{ wf.workflowCount }} workflow(s)</span>
         </button>
-        <button class="workflow-delete" title="Delete workflow" @click="deleteWorkflowById(wf.id)">
+        <button class="workflow-delete" title="Delete board" @click="deleteWorkflowById(wf.id)">
           <Trash2 :size="13" />
         </button>
       </div>

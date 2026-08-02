@@ -6,6 +6,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
@@ -17,6 +18,7 @@ import CommandPalette from '@/components/chrome/CommandPalette.vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
+const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
 const uiStore = useUiStore()
 
@@ -91,6 +93,11 @@ onConnectEnd((event) => {
 
 function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
+  // Double-click drills into the action layer (definition editor).
+  if (ev.event.detail === 2) {
+    const type = (ev.node.data as unknown as FabricatioNodeData)?.nodeType
+    if (type) boardStore.enterAction(type)
+  }
 }
 
 function onPaneClick() {

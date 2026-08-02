@@ -13,7 +13,7 @@ import type { NodeTypeDefinition } from '@/types/api'
 const wfStore = useWorkflowStore()
 const uiStore = useUiStore()
 const notifications = useNotificationsStore()
-const { saveWorkflow, runWorkflow, undo, redo, clearCanvas } = useAppActions()
+const { saveWorkflow, undo, redo, clearCanvas } = useAppActions()
 const { screenToFlowCoordinate } = useVueFlow()
 
 const query = ref('')
@@ -40,8 +40,8 @@ interface PaletteNode {
 }
 
 const actions: PaletteAction[] = [
-  { id: 'act-save', kind: 'action', label: 'Save workflow', hint: 'Ctrl+S', keywords: 'save persist store', icon: Save, run: () => saveWorkflow() },
-  { id: 'act-run', kind: 'action', label: 'Run workflow', hint: 'Ctrl+Enter', keywords: 'run execute start', icon: Play, run: () => runWorkflow() },
+  { id: 'act-save', kind: 'action', label: 'Save board', hint: 'Ctrl+S', keywords: 'save persist store', icon: Save, run: () => saveWorkflow() },
+  { id: 'act-run', kind: 'action', label: 'Run workflow', hint: 'Ctrl+Enter', keywords: 'run execute start', icon: Play, run: () => uiStore.openRunDialog('workflow') },
   { id: 'act-undo', kind: 'action', label: 'Undo', hint: 'Ctrl+Z', keywords: 'undo revert', icon: Undo2, run: () => undo() },
   { id: 'act-redo', kind: 'action', label: 'Redo', hint: 'Ctrl+Shift+Z', keywords: 'redo', icon: Redo2, run: () => redo() },
   { id: 'act-clear', kind: 'action', label: 'Clear canvas', hint: '', keywords: 'clear reset empty delete all', icon: Trash2, run: () => clearCanvas() },

@@ -1,6 +1,6 @@
 import type {
   NodeTypeDefinition,
-  WorkflowJSON,
+  BoardJSON,
   ExecutionRequest,
   ExecutionStatus,
 } from '@/types/api'
@@ -55,13 +55,13 @@ export const api = {
   getNodes: () =>
     request<NodeTypeDefinition[]>('GET', '/nodes', undefined, { loading: 'Loading node types...' }),
   getWorkflows: () =>
-    request<WorkflowJSON[]>('GET', '/workflows', undefined, { loading: 'Loading workflows...' }),
+    request<BoardJSON[]>('GET', '/workflows', undefined, { loading: 'Loading boards...' }),
   getWorkflow: (id: string) =>
-    request<WorkflowJSON>('GET', `/workflows/${encodeURIComponent(id)}`, undefined, {
-      loading: 'Loading workflow...',
+    request<BoardJSON>('GET', `/workflows/${encodeURIComponent(id)}`, undefined, {
+      loading: 'Loading board...',
     }),
-  saveWorkflow: (wf: WorkflowJSON) =>
-    request<{ id: string }>('POST', '/workflows', wf, { loading: 'Saving workflow...' }),
+  saveWorkflow: (wf: BoardJSON) =>
+    request<{ id: string }>('POST', '/workflows', wf, { loading: 'Saving board...' }),
   deleteWorkflow: (id: string) =>
     request<{ ok: boolean }>('DELETE', `/workflows/${encodeURIComponent(id)}`, undefined, {
       loading: 'Deleting workflow...',

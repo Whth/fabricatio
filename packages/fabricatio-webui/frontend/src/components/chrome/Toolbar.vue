@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
 import { BLUEPRINTS, type Blueprint } from '@/data/blueprints'
+import RunDialog from '@/components/chrome/RunDialog.vue'
 import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings, BookOpen } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
+const boardStore = useBoardStore()
 const execStore = useExecutionStore()
 const notifications = useNotificationsStore()
 const uiStore = useUiStore()
 const { connected } = useWebSocket()
 const {
   saveWorkflow,
-  runWorkflow,
   interruptWorkflow,
   isSaving,
-  savedWorkflows,
-  isLoadingWorkflows,
-  refreshWorkflows,
+  savedBoards,
+  isLoadingBoards,
+  refreshBoards,
   loadWorkflowById,
   deleteWorkflowById,
 } = useAppActions()
@@ -29,16 +31,27 @@ const {
 const isEditingName = ref(false)
 const editingName = ref('')
 const loadOpen = ref(false)
+const runDialogOpen = ref(false)
 const blueprints = BLUEPRINTS
 
+/** The name shown in the toolbar: board name on the board layer, workflow name inside. */
+const docName = computed(() =>
+  boardStore.layer === 'board' ? boardStore.board.name ?? 'Untitled Board' : wfStore.workflowName,
+)
+
 function startEditName() {
-  editingName.value = wfStore.workflowName
+  editingName.value = docName.value
   isEditingName.value = true
 }
 
 function saveName() {
   if (editingName.value.trim()) {
-    wfStore.workflowName = editingName.value.trim()
+    if (boardStore.layer === 'board') {
+      boardStore.board.name = editingName.value.trim()
+    } else {
+      wfStore.workflowName = editingName.value.trim()
+      boardStore.commitActiveWorkflow()
+    }
   }
   isEditingName.value = false
 }
@@ -52,12 +65,12 @@ async function handleSave() {
 }
 
 async function toggleLoad() {
-  if (isLoadingWorkflows.value) return
+  if (isLoadingBoards.value) return
   if (loadOpen.value) {
     loadOpen.value = false
     return
   }
-  await refreshWorkflows().catch(() => {
+  await refreshBoards().catch(() => {
     /* error already surfaced by the api client */
   })
   loadOpen.value = true
@@ -73,7 +86,7 @@ async function handleDeleteWorkflow(id: string) {
 }
 
 function handleRun() {
-  runWorkflow()
+  uiStore.openRunDialog(boardStore.layer === 'board' ? 'publish' : 'workflow')
 }
 
 function handleStop() {
@@ -82,19 +95,23 @@ function handleStop() {
 
 async function loadBlueprint(bp: Blueprint) {
   uiStore.blueprintOpen = false
-  if (wfStore.nodes.length > 0) {
-    const ok = window.confirm(`Replace the current workflow with the "${bp.name}" blueprint?`)
-    if (!ok) return
-  }
   const wf = bp.build()
-  wfStore.clear()
+  const role = boardStore.activeRole
+  if (!role) {
+    boardStore.addRole('Default Role')
+  }
+  boardStore.addWorkflow(wf.name ?? bp.name, wf.namespace ?? 'main')
+  const wfIndex = (boardStore.activeRole?.workflows.length ?? 1) - 1
+  boardStore.enterWorkflow(boardStore.activeRoleIndex, wfIndex)
   await wfStore.fromJSON(wf)
+  boardStore.commitActiveWorkflow()
   notifications.success('Blueprint loaded', `"${bp.name}" with ${wf.nodes.length} node(s)`)
 }
 
 function onKeyDown(ev: KeyboardEvent) {
   if (ev.key === 'Escape') {
     if (loadOpen.value) loadOpen.value = false
+    if (uiStore.runDialogOpen) uiStore.runDialogOpen = false
     if (isEditingName.value) cancelEditName()
   }
 }
@@ -107,7 +124,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   <header class="toolbar">
     <div class="toolbar-left">
       <img src="/logo.svg" alt="Fabricatio" class="logo-icon" />
-      <span v-if="!isEditingName" class="workflow-name" @dblclick="startEditName">{{ wfStore.workflowName }}</span>
+      <span v-if="!isEditingName" class="workflow-name" @dblclick="startEditName">{{ docName }}</span>
       <input
         v-else
         v-model="editingName"
@@ -122,22 +139,22 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
     <div class="toolbar-right">
       <!-- File group -->
       <div class="toolbar-group">
-        <button class="btn btn-icon" title="Save workflow" @click="handleSave" :disabled="isSaving">
+        <button class="btn btn-icon" title="Save board" @click="handleSave" :disabled="isSaving">
           <Save :size="16" />
         </button>
 
         <div class="load-wrap">
-          <button class="btn btn-icon" title="Load workflow" @click="toggleLoad">
+          <button class="btn btn-icon" title="Load board" @click="toggleLoad">
             <FolderOpen :size="16" />
           </button>
           <div v-if="loadOpen" class="load-menu" @mousedown.stop>
-            <div v-if="savedWorkflows.length === 0" class="load-empty">No saved workflows</div>
-            <div v-for="wf in savedWorkflows" :key="wf.id" class="load-item">
+            <div v-if="savedBoards.length === 0" class="load-empty">No saved boards</div>
+            <div v-for="wf in savedBoards" :key="wf.id" class="load-item">
               <button class="load-name" @click="handleLoadWorkflow(wf.id)">
                 {{ wf.name }}
-                <span class="load-count">{{ wf.nodeCount }} nodes</span>
+                <span class="load-count">{{ wf.workflowCount }} workflow(s)</span>
               </button>
-              <button class="load-delete" title="Delete workflow" @click="handleDeleteWorkflow(wf.id)">
+              <button class="load-delete" title="Delete board" @click="handleDeleteWorkflow(wf.id)">
                 <Trash2 :size="12" />
               </button>
             </div>
@@ -146,7 +163,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
         <button
           class="btn btn-icon"
-          title="Saved workflows"
+          title="Saved boards"
           :class="{ active: uiStore.workflowsOpen }"
           @click="uiStore.toggleWorkflows()"
         >
@@ -190,8 +207,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           <Square :size="14" /> Stop
         </button>
         <button v-else class="btn btn-run" title="Run workflow (Ctrl+Enter)" @click="handleRun">
-          <Play :size="14" /> Run
+          <Play :size="14" /> {{ boardStore.layer === 'board' ? 'Publish' : 'Run' }}
         </button>
+
+        <RunDialog
+          :open="uiStore.runDialogOpen"
+          :mode="uiStore.runDialogMode"
+          @close="uiStore.runDialogOpen = false"
+        />
 
         <span v-if="execStore.queueLength > 0" class="queue-badge">{{ execStore.queueLength }}</span>
       </div>

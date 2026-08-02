@@ -53,6 +53,9 @@ export const useUiStore = defineStore('ui', () => {
   const sidebarOpen = ref(false)
   const blueprintOpen = ref(false)
   const workflowsOpen = ref(false)
+  /** Run/publish task dialog (opened by toolbar, hotkeys, and palette). */
+  const runDialogOpen = ref(false)
+  const runDialogMode = ref<'workflow' | 'publish'>('workflow')
   /** Live console expanded state; initialised from settings. */
   const consoleExpanded = ref(settings.value.consoleDefaultOpen)
 
@@ -92,6 +95,11 @@ export const useUiStore = defineStore('ui', () => {
     workflowsOpen.value = !workflowsOpen.value
   }
 
+  function openRunDialog(mode: 'workflow' | 'publish' = 'workflow') {
+    runDialogMode.value = mode
+    runDialogOpen.value = true
+  }
+
   function toggleConsole() {
     consoleExpanded.value = !consoleExpanded.value
   }
@@ -102,6 +110,8 @@ export const useUiStore = defineStore('ui', () => {
     sidebarOpen,
     blueprintOpen,
     workflowsOpen,
+    runDialogOpen,
+    runDialogMode,
     consoleExpanded,
     setSetting,
     togglePalette,
@@ -109,6 +119,7 @@ export const useUiStore = defineStore('ui', () => {
     toggleSidebar,
     toggleBlueprint,
     toggleWorkflows,
+    openRunDialog,
     toggleConsole,
   }
 })

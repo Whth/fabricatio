@@ -44,6 +44,8 @@ interface HistorySnapshot {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   workflowName: string
+  workflowNamespace: string
+  taskOutputKey: string
 }
 
 const DRAFT_KEY = 'workflow:draft'
@@ -55,6 +57,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const nodeTypes = ref<NodeTypeDefinition[]>([])
   const selectedNodeId = ref<string | null>(null)
   const workflowName = ref('Untitled Workflow')
+  /** Plain namespace ("write::book") this workflow subscribes to. */
+  const workflowNamespace = ref('')
+  /** Context key extracted as the task output; '' = last node's key. */
+  const taskOutputKey = ref('')
   const nodeIdCounter = ref(0)
 
   // ── Undo / Redo ────────────────────────────────────────────────────────────
@@ -71,6 +77,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
       nodes: JSON.parse(JSON.stringify(nodes.value)),
       edges: JSON.parse(JSON.stringify(edges.value)),
       workflowName: workflowName.value,
+      workflowNamespace: workflowNamespace.value,
+      taskOutputKey: taskOutputKey.value,
     })
     if (history.value.length > maxHistory) {
       history.value.shift()
@@ -86,6 +94,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
     nodes.value = JSON.parse(JSON.stringify(snap.nodes))
     edges.value = JSON.parse(JSON.stringify(snap.edges))
     workflowName.value = snap.workflowName
+    workflowNamespace.value = snap.workflowNamespace
+    taskOutputKey.value = snap.taskOutputKey
   }
 
   function redo() {
@@ -107,6 +117,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
         nodes: nodes.value,
         edges: edges.value,
         workflowName: workflowName.value,
+        workflowNamespace: workflowNamespace.value,
+        taskOutputKey: taskOutputKey.value,
         nodeIdCounter: nodeIdCounter.value,
       }
       localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
@@ -121,6 +133,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
       nodes.value = data.nodes || []
       edges.value = data.edges || []
       workflowName.value = data.workflowName || 'Untitled Workflow'
+      workflowNamespace.value = data.workflowNamespace || ''
+      taskOutputKey.value = data.taskOutputKey || ''
       nodeIdCounter.value = data.nodeIdCounter || 0
       pushSnapshot()
       return true
@@ -239,14 +253,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
     node.data.inputs = { ...node.data.inputs, [key]: value }
   }
 
-  // ── Serialization ─────────────────────────────────────────────────────────
-  const loadedMeta = ref<import('@/types/api').WorkflowMeta | undefined>(undefined)
+  // ── Serialization (workflow-level; the board store owns the document) ───────
 
   function toJSON(): WorkflowJSON {
     return {
-      version: '1.0',
-      format_version: 1,
       name: workflowName.value,
+      namespace: workflowNamespace.value,
+      task_output_key: taskOutputKey.value || undefined,
       nodes: nodes.value.map((n) => ({
         id: n.id,
         type: n.data?.nodeType ?? 'unknown',
@@ -264,17 +277,13 @@ export const useWorkflowStore = defineStore('workflow', () => {
         target_handle: e.targetHandle || 'default',
       })),
       init_context: {},
-      meta: loadedMeta.value,
     }
   }
 
   async function fromJSON(wf: WorkflowJSON) {
     workflowName.value = wf.name || 'Untitled Workflow'
-    loadedMeta.value = wf.meta
-
-    if (wf.format_version === undefined || wf.format_version === 0) {
-      console.warn('Migrating legacy workflow (format_version 0/missing) — server will upgrade on execution')
-    }
+    workflowNamespace.value = wf.namespace || ''
+    taskOutputKey.value = wf.task_output_key || ''
 
     if (nodeTypes.value.length === 0) {
       await loadNodeTypes()
@@ -314,9 +323,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }))
 
     for (const n of nodes.value) {
-      const match = n.id.match(/_(\d+)$/)
+      const match = n.id.match(/_\d+$/)
       if (match) {
-        const num = parseInt(match[1], 10)
+        const num = parseInt(match[0].slice(1), 10)
         if (num >= nodeIdCounter.value) nodeIdCounter.value = num + 1
       }
     }
@@ -324,21 +333,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
     pushSnapshot()
   }
 
-  function setMetaTags(tags: string[]) {
-    if (!loadedMeta.value) {
-      loadedMeta.value = { tags }
-    } else {
-      loadedMeta.value.tags = tags
-    }
-  }
-
   function clear() {
     nodes.value = []
     edges.value = []
     selectedNodeId.value = null
     workflowName.value = 'Untitled Workflow'
+    workflowNamespace.value = ''
+    taskOutputKey.value = ''
     nodeIdCounter.value = 0
-    loadedMeta.value = undefined
     history.value = []
     historyIndex.value = -1
     localStorage.removeItem(DRAFT_KEY)
@@ -359,7 +361,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
     nodeTypes,
     selectedNodeId,
     workflowName,
-    loadedMeta,
+    workflowNamespace,
+    taskOutputKey,
     history,
     historyIndex,
     loadNodeTypes,
@@ -374,7 +377,6 @@ export const useWorkflowStore = defineStore('workflow', () => {
     toJSON,
     fromJSON,
     clear,
-    setMetaTags,
     selectedNode,
     undo,
     redo,

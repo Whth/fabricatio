@@ -12,14 +12,14 @@ onMounted(() => {
 
   // Global hotkeys (canvas-scoped ones register in NodeCanvas).
   const { register } = useHotkeys()
-  const { saveWorkflow, runWorkflow, undo, redo } = useAppActions()
+  const { saveWorkflow, undo, redo } = useAppActions()
   const uiStore = useUiStore()
   const offs = [
     register('mod+f', () => uiStore.togglePalette()),
     register('mod+s', saveWorkflow),
     register('mod+z', undo),
     register('mod+shift+z', redo),
-    register('mod+enter', runWorkflow),
+    register('mod+enter', () => uiStore.openRunDialog('workflow')),
   ]
   onUnmounted(() => offs.forEach((off) => off()))
 })

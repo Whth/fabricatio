@@ -17,15 +17,13 @@ export interface Blueprint {
   build: () => WorkflowJSON
 }
 
-function base(name: string, nodes: WorkflowJSON['nodes'], edges: WorkflowJSON['edges'], tags: string[]): WorkflowJSON {
+function base(name: string, nodes: WorkflowJSON['nodes'], edges: WorkflowJSON['edges']): WorkflowJSON {
   return {
-    version: '1.0',
-    format_version: 1,
     name,
+    namespace: 'main',
     nodes,
     edges,
     init_context: {},
-    meta: { tags },
   }
 }
 
@@ -36,7 +34,7 @@ export const BLUEPRINTS: Blueprint[] = [
     description: 'Empty canvas — start from scratch.',
     category: 'general',
     nodeCount: 0,
-    build: () => base('Untitled Workflow', [], [], ['blueprint']),
+    build: () => base('Untitled Workflow', [], []),
   },
   {
     id: 'read-text',
@@ -55,7 +53,7 @@ export const BLUEPRINTS: Blueprint[] = [
           config: { read_path: '' },
           schema_version: 1,
         },
-      ], [], ['blueprint', 'io']),
+      ], []),
   },
   {
     id: 'novel-draft',
@@ -74,7 +72,7 @@ export const BLUEPRINTS: Blueprint[] = [
           config: { novel_outline: '', novel_language: 'zh', chapter_guidance: '' },
           schema_version: 1,
         },
-      ], [], ['blueprint', 'novel']),
+      ], []),
   },
   {
     id: 'novel-illustrate',
@@ -117,7 +115,7 @@ export const BLUEPRINTS: Blueprint[] = [
           target: 'IllustrateNovel_2',
           target_handle: 'novel',
         },
-      ], ['blueprint', 'novel']),
+      ]),
   },
   {
     id: 'rag-ingest',
@@ -143,7 +141,7 @@ export const BLUEPRINTS: Blueprint[] = [
           },
           schema_version: 1,
         },
-      ], [], ['blueprint', 'rag']),
+      ], []),
   },
   {
     id: 'comfyui-image',
@@ -162,6 +160,6 @@ export const BLUEPRINTS: Blueprint[] = [
           config: { workflow: null, download_dir: '', timeout: 240 },
           schema_version: 1,
         },
-      ], [], ['blueprint', 'comfyui']),
+      ], []),
   },
 ]
