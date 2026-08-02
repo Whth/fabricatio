@@ -7,16 +7,25 @@ import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUiStore } from '@/stores/ui'
+import { useHotkeys } from '@/composables/useHotkeys'
 import type { FabricatioNodeData } from '@/stores/workflow'
 import { Crosshair } from '@lucide/vue'
 import ComfyNode from './ComfyNode.vue'
 import AddNodeMenu from './AddNodeMenu.vue'
+import CommandPalette from '@/components/chrome/CommandPalette.vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
 const notifications = useNotificationsStore()
+const uiStore = useUiStore()
 
 const menuPos = ref<{ x: number; y: number } | null>(null)
+const menuFlowPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
+// When the menu is dismissed by a right-button press, the browser fires
+// contextmenu on the pane right after — suppress it within this window so the
+// menu does not instantly reopen at the new cursor spot.
+let suppressContextMenuUntil = 0
 const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
@@ -93,13 +102,22 @@ function onNodeDragStop() {
 }
 
 // ── AddNodeMenu ──────────────────────────────────────────────────────────────
+// Menu is positioned in canvas-relative screen pixels (left/top CSS), while the
+// node it creates is placed in flow coordinates — they differ under pan/zoom.
 function openMenuAt(event: MouseEvent) {
-  const pos = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
-  menuPos.value = { x: pos.x, y: pos.y }
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  menuFlowPos.value = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  let x = event.clientX - rect.left
+  let y = event.clientY - rect.top
+  // Keep the 260px-wide menu inside the canvas when clicking near an edge.
+  if (x + 260 > rect.width) x = Math.max(0, rect.width - 260)
+  if (y + 340 > rect.height) y = Math.max(0, rect.height - 340)
+  menuPos.value = { x, y }
 }
 
 function onPaneContextMenu(event: MouseEvent) {
   event.preventDefault()
+  if (Date.now() < suppressContextMenuUntil) return
   openMenuAt(event)
 }
 
@@ -107,67 +125,60 @@ function onPaneDblClick(event: MouseEvent) {
   openMenuAt(event)
 }
 
-function onMenuAdd(t: NodeTypeDefinition, pos: { x: number; y: number }) {
-  wfStore.addNode(t, pos)
+function onMenuAdd(t: NodeTypeDefinition) {
+  wfStore.addNode(t, menuFlowPos.value)
   menuPos.value = null
   notifications.success(`Added ${t.title} node`)
 }
 
-// ── Keyboard shortcuts ───────────────────────────────────────────────────────
-function handleKeyDown(ev: KeyboardEvent) {
-  // Don't intercept when typing in inputs
-  if (
-    (ev.target as HTMLElement).tagName === 'INPUT' ||
-    (ev.target as HTMLElement).tagName === 'TEXTAREA'
-  ) {
-    return
-  }
+function onMenuClose() {
+  menuPos.value = null
+}
 
-  // Ctrl+D / Cmd+D — duplicate selected
-  if ((ev.ctrlKey || ev.metaKey) && ev.key === 'd') {
-    ev.preventDefault()
-    const sel = getSelectedNodes.value
-    for (const n of sel) {
-      const data = n.data as unknown as FabricatioNodeData
-      if (!data) continue
-      const typeDef = wfStore.nodeTypes.find((t) => t.type === data.nodeType)
-      if (!typeDef) continue
-      wfStore.addNode(typeDef, { x: n.position.x + 40, y: n.position.y + 40 })
-    }
-    return
-  }
+function onMenuCloseRight() {
+  menuPos.value = null
+  // Same gesture's contextmenu arrives within ~ms; 500ms is generous slack.
+  suppressContextMenuUntil = Date.now() + 500
+}
 
-  // Delete / Backspace — remove selected nodes
-  if (ev.key === 'Delete' || ev.key === 'Backspace') {
-    const selectedNodes = getSelectedNodes.value
-    const selectedEdges = getSelectedEdges.value
-    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
-      ev.preventDefault()
-      selectedNodes.forEach((node) => {
-        wfStore.removeNode(node.id)
-      })
-      selectedEdges.forEach((edge) => {
-        wfStore.removeEdge(edge.id)
-      })
-      const parts = []
-      if (selectedNodes.length > 0) parts.push(`${selectedNodes.length} node(s)`)
-      if (selectedEdges.length > 0) parts.push(`${selectedEdges.length} edge(s)`)
-      notifications.info(`Deleted ${parts.join(' and ')}`)
-    }
-  }
+// ── Keyboard shortcuts (central hotkey registry) ───────────────────────────
+const hotkeys = useHotkeys()
 
-  // Escape to deselect
-  if (ev.key === 'Escape') {
-    wfStore.selectNode(null)
+function onDelete() {
+  const selectedNodes = getSelectedNodes.value
+  const selectedEdges = getSelectedEdges.value
+  if (selectedNodes.length === 0 && selectedEdges.length === 0) return
+  selectedNodes.forEach((node) => {
+    wfStore.removeNode(node.id)
+  })
+  selectedEdges.forEach((edge) => {
+    wfStore.removeEdge(edge.id)
+  })
+  const parts = []
+  if (selectedNodes.length > 0) parts.push(`${selectedNodes.length} node(s)`)
+  if (selectedEdges.length > 0) parts.push(`${selectedEdges.length} edge(s)`)
+  notifications.info(`Deleted ${parts.join(' and ')}`)
+}
+
+function onDuplicate() {
+  const sel = getSelectedNodes.value
+  for (const n of sel) {
+    const data = n.data as unknown as FabricatioNodeData
+    if (!data) continue
+    const typeDef = wfStore.nodeTypes.find((t) => t.type === data.nodeType)
+    if (!typeDef) continue
+    wfStore.addNode(typeDef, { x: n.position.x + 40, y: n.position.y + 40 })
   }
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown)
+  const offs = [
+    hotkeys.register('delete', onDelete),
+    hotkeys.register('backspace', onDelete),
+    hotkeys.register('mod+d', onDuplicate),
+    hotkeys.register('escape', () => wfStore.selectNode(null)),
+  ]
+  onUnmounted(() => offs.forEach((off) => off()))
 })
 
 // ── Drag & drop from external palette (legacy) ───────────────────────────────
@@ -257,6 +268,8 @@ function onDrop(ev: DragEvent) {
       v-model:edges="wfStore.edges"
       :node-types="{ fabricatio: markRaw(ComfyNode) as any }"
       :default-edge-options="{ type: 'smoothstep', animated: false }"
+      :snap-to-grid="uiStore.settings.snapToGrid"
+      :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
       fit-view-on-init
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
@@ -267,18 +280,21 @@ function onDrop(ev: DragEvent) {
       <Background :gap="16" :size="1" pattern-color="#30363d" />
       <Controls position="bottom-left" />
       <MiniMap
+        v-if="uiStore.settings.showMinimap"
         position="bottom-right"
         :pannable="true"
         :zoomable="true"
         :node-stroke-color="(n: any) => (n.data?.category === 'llm' ? '#a371f7' : '#30363d')"
       />
+      <CommandPalette v-if="uiStore.paletteOpen" />
     </VueFlow>
 
     <AddNodeMenu
       v-if="menuPos"
       :position="menuPos"
       @add="onMenuAdd"
-      @close="menuPos = null"
+      @close="onMenuClose"
+      @closeRight="onMenuCloseRight"
     />
 
     <!-- Empty state hint -->
@@ -287,7 +303,7 @@ function onDrop(ev: DragEvent) {
         <Crosshair :size="48" class="hint-icon" />
         <span class="hint-title">Start building</span>
         <span class="hint-text">Right-click or double-click the canvas to add nodes</span>
-        <span class="hint-shortcut">Press <kbd>Del</kbd> to remove selected nodes</span>
+        <span class="hint-shortcut">Press <kbd>Del</kbd> to remove selected nodes &middot; <kbd>Ctrl+F</kbd> to search</span>
       </div>
     </div>
 

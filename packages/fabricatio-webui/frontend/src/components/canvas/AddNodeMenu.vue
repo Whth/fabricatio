@@ -1,12 +1,28 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import type { NodeTypeDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { categoryColor } from '@/utils/categoryColors'
 
 const props = defineProps<{ position: { x: number; y: number } }>()
-const emit = defineEmits<{ close: []; add: [typeDef: NodeTypeDefinition, position: { x: number; y: number }] }>()
+const emit = defineEmits<{ close: []; closeRight: []; add: [typeDef: NodeTypeDefinition] }>()
 const wfStore = useWorkflowStore()
+
+const rootEl = ref<HTMLElement | null>(null)
+
+// Close on any pointer press outside the menu. Capture phase: runs BEFORE the
+// VueFlow pane's own handlers, so the pane still receives the event — clicking
+// or dragging the canvas closes the menu AND pans/selects normally. A right
+// button press is followed by the browser's contextmenu event; the parent
+// suppresses that one event so the menu does not instantly reopen.
+function onDocPointerDown(ev: PointerEvent) {
+  if (rootEl.value?.contains(ev.target as Node)) return
+  if (ev.button === 2) emit('closeRight')
+  else emit('close')
+}
+
+onMounted(() => document.addEventListener('pointerdown', onDocPointerDown, true))
+onUnmounted(() => document.removeEventListener('pointerdown', onDocPointerDown, true))
 
 const query = ref('')
 const filtered = computed(() => {
@@ -26,18 +42,21 @@ const grouped = computed(() => {
 })
 
 function pick(t: NodeTypeDefinition) {
-  emit('add', t, props.position)
+  emit('add', t)
 }
 </script>
 
 <template>
-  <div class="add-node-menu" @mousedown.stop @contextmenu.prevent :style="{ left: position.x + 'px', top: position.y + 'px' }">
+  <!-- No backdrop: closing runs in the capture phase before VueFlow's pane
+       handlers, so the underlying click/drag still reaches the canvas. -->
+  <div ref="rootEl" class="add-node-menu" @mousedown.stop @contextmenu.prevent :style="{ left: position.x + 'px', top: position.y + 'px' }">
     <input
       v-model="query"
       ref="searchInput"
       placeholder="Search nodes..."
       class="menu-search"
       autofocus
+      @keydown.esc="emit('close')"
     />
     <div class="menu-list">
       <template v-for="(items, cat) in grouped" :key="cat">
