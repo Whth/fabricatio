@@ -181,3 +181,6 @@ Cargo.lock
 
 *~
 
+# agents-radar local deployment (cloned via mirror; keeps its own history upstream)
+/agents-radar/
+
