@@ -10,6 +10,7 @@ import json
 import threading
 from collections import deque
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from fabricatio_core.journal import logger
@@ -83,6 +84,170 @@ def _run_node_body(instance: Action, cxt: Dict[str, Any]) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# Execution-plan compilation (cached)
+# ---------------------------------------------------------------------------
+#
+# The per-run pipeline — parse nodes/edges, resolve Action classes by name,
+# check configurability, topologically sort — is deterministic for a given
+# workflow and class universe.  It is compiled once per workflow and cached;
+# only Action *instances* are recreated per run (ctx_override and node bodies
+# mutate instance state, so instances are never shared).
+
+
+def _plan_key(wf: Dict[str, Any]) -> str:
+    """Canonical JSON of the plan-relevant parts of a workflow.
+
+    ``init_context`` and ``task_input`` do not affect the plan (they are
+    seeded into the runtime context per run), so they are excluded.
+    """
+    return json.dumps(
+        {"nodes": wf.get("nodes", []), "edges": wf.get("edges", [])},
+        sort_keys=True,
+        default=str,
+    )
+
+
+def _registry_version() -> str:
+    """Fingerprint of the Action class universe, used to invalidate plans.
+
+    Delegates to the registry's ``registry_version`` (sha1 over the full
+    node-type introspection); falls back to ``""`` when unavailable, in which
+    case plans are keyed on the workflow alone.
+    """
+    try:
+        from fabricatio_webui.registry import _worker_registry
+
+        return _worker_registry().get("registry_version", "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _find_action_class(type_name: str) -> Optional[Type[Action]]:
+    """Locate an Action subclass by name, walking all known subclasses."""
+    queue: deque[Type[Action]] = deque(Action.__subclasses__())
+    seen: Set[Type[Action]] = set()
+
+    while queue:
+        cls = queue.popleft()
+        if cls in seen:
+            continue
+        seen.add(cls)
+
+        if cls.__name__ == type_name:
+            return cls
+
+        queue.extend(cls.__subclasses__())
+
+    return None
+
+
+def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> List[str]:
+    """Topologically sort nodes based on edges, detecting cycles (Kahn's)."""
+    in_degree: Dict[str, int] = dict.fromkeys(instances, 0)
+    adjacency: Dict[str, List[str]] = {nid: [] for nid in instances}
+
+    for edge in raw_edges:
+        src = _norm_node_id(edge.get("source", ""))
+        tgt = _norm_node_id(edge.get("target", ""))
+        if not src or not tgt:
+            continue
+        if src not in instances or tgt not in instances:
+            continue
+        adjacency.setdefault(src, []).append(tgt)
+        in_degree[tgt] = in_degree.get(tgt, 0) + 1
+
+    ready: deque[str] = deque(nid for nid, deg in in_degree.items() if deg == 0)
+    order: List[str] = []
+
+    while ready:
+        nid = ready.popleft()
+        order.append(nid)
+        for neighbor in adjacency.get(nid, []):
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                ready.append(neighbor)
+
+    if len(order) != len(instances):
+        remaining = sorted(set(instances) - set(order))
+        raise ValueError(f"Workflow contains a cycle. Unresolved nodes: {remaining}")
+
+    logger.info(f"Topological order: {' → '.join(order)}")
+    return order
+
+
+@dataclass(frozen=True)
+class _NodeSpec:
+    """Resolved per-node plan data: class + config.  Instances are per-run."""
+
+    action_class: Type[Action]
+    config: Dict[str, Any]
+    explicit_ctx_override: Optional[bool]
+    instantiable: bool
+
+
+@dataclass(frozen=True)
+class _CompiledPlan:
+    """Cached execution plan for one workflow graph."""
+
+    raw_nodes: Dict[str, Dict[str, Any]]
+    raw_edges: List[Dict[str, Any]]
+    specs: Dict[str, _NodeSpec]
+    execution_order: List[str]
+
+
+@lru_cache(maxsize=128)
+def _compile_plan(registry_version: str, plan_key: str) -> _CompiledPlan:
+    """Parse + resolve + topo-sort a workflow once, caching the result.
+
+    Also performs a throwaway instantiation per node to record whether the
+    config is valid, matching the original per-run behavior where
+    uninstantiable nodes are excluded from the graph.  Callers recreate
+    instances per run from specs.
+    """
+    wf = json.loads(plan_key)
+    raw_nodes: Dict[str, Dict[str, Any]] = {}
+    for node in wf.get("nodes", []):
+        nid = _norm_node_id(node.get("id", ""))
+        if not nid:
+            logger.warn(f"Skipping node without an id: {node!r}")
+            continue
+        raw_nodes[nid] = dict(node)
+
+    raw_edges: List[Dict[str, Any]] = list(wf.get("edges", []))
+
+    specs: Dict[str, _NodeSpec] = {}
+    instantiable: Set[str] = set()
+    for nid, node in raw_nodes.items():
+        type_name: str = node.get("type", "")
+        if not type_name:
+            logger.warn(f"Node {nid!r} has no type; skipping.")
+            continue
+
+        cls = _find_action_class(type_name)
+        if cls is None:
+            logger.warn(f"Action class {type_name!r} not found for node {nid!r}; skipping.")
+            continue
+
+        config: Dict[str, Any] = dict(node.get("config", {}))
+        explicit_ctx_override: Optional[bool] = node.get("ctx_override") if "ctx_override" in node else None
+
+        try:
+            cls(**config)
+        except Exception as exc:  # noqa: BLE001
+            logger.error(f"Failed to instantiate {type_name!r} for node {nid!r}: {exc!r}; skipping.")
+            instantiable_now = False
+        else:
+            instantiable_now = True
+
+        specs[nid] = _NodeSpec(cls, config, explicit_ctx_override, instantiable_now)
+        if instantiable_now:
+            instantiable.add(nid)
+
+    execution_order = _topological_order(instantiable, raw_edges)
+    return _CompiledPlan(raw_nodes, raw_edges, specs, execution_order)
+
+
+# ---------------------------------------------------------------------------
 # WorkflowExecutor
 # ---------------------------------------------------------------------------
 
@@ -92,7 +257,7 @@ class WorkflowExecutor:
     """Executes a workflow graph described by JSON.
 
     Parameters:
-        workflow_json: the workflow descriptor (``{"nodes": […], "edges": […]}"``).
+        workflow_json: the workflow descriptor (``{"nodes": […], "edges":[…]}"``).
         event_callback: ``async def(event_type: str, payload: dict)`` called on
             lifecycle events.
     """
@@ -133,15 +298,7 @@ class WorkflowExecutor:
         return inst
 
     def _seed_context(self, task_input: Any) -> None:
-        """Seed the execution context with ``init_context`` and ``task_input``.
-
-        The workflow's ``init_context`` dict is applied first (workflow-level
-        defaults), then ``task_input`` is overlaid on top. On key conflicts
-        ``task_input`` wins: it is the per-call payload while ``init_context``
-        is baked into the workflow file. A non-dict ``task_input`` (scalar,
-        list, …) is seeded under the framework's reserved ``INPUT_KEY``
-        (``"task_input"``), matching ``WorkFlow.task_input_key``.
-        """
+        """Seed the execution context with ``init_context`` and ``task_input``."""
         init_context = self._wf.get("init_context")
         if isinstance(init_context, dict):
             self._seeded.update(init_context)
@@ -153,8 +310,6 @@ class WorkflowExecutor:
         elif task_input is not None:
             self._seeded[INPUT_KEY] = task_input
 
-        # Seeds are part of the executor context: they appear in the final
-        # result and are resolvable as upstream values via edges.
         self._context.update(self._seeded)
 
     # ------------------------------------------------------------------
@@ -166,9 +321,11 @@ class WorkflowExecutor:
         await self._emit("execution_start", {"node_count": len(self._wf.get("nodes", []))})
 
         try:
-            self._parse_workflow()
-            self._instantiate_nodes()
-            self._topological_sort()
+            plan = _compile_plan(_registry_version(), _plan_key(self._wf))
+            self._raw_nodes = plan.raw_nodes
+            self._raw_edges = plan.raw_edges
+            self._execution_order = plan.execution_order
+            self._instantiate_from_plan(plan)
             await self._execute_all()
         except Exception as exc:
             logger.error(f"Workflow execution failed: {exc!r}")
@@ -179,109 +336,29 @@ class WorkflowExecutor:
         return dict(self._context)
 
     # ------------------------------------------------------------------
-    # Parsing
+    # Instantiation (per run — instances are never shared between runs)
     # ------------------------------------------------------------------
 
-    def _parse_workflow(self) -> None:
-        """Parse raw JSON into internal structures."""
-        raw_nodes: List[Dict[str, Any]] = self._wf.get("nodes", [])
-        self._raw_edges = list(self._wf.get("edges", []))
+    def _instantiate_from_plan(self, plan: "_CompiledPlan") -> None:
+        """Create fresh Action instances from a compiled plan.
 
-        for node in raw_nodes:
-            nid = _norm_node_id(node.get("id", ""))
-            if not nid:
-                logger.warn(f"Skipping node without an id: {node!r}")
+        The plan holds resolved classes and configs, but instances must be
+        recreated on every run: ``ctx_override`` and node bodies mutate
+        instance fields, so a cached instance would leak state across runs.
+        """
+        for nid, spec in plan.specs.items():
+            if not spec.instantiable:
                 continue
-            self._raw_nodes[nid] = dict(node)
-
-    # ------------------------------------------------------------------
-    # Instantiation
-    # ------------------------------------------------------------------
-
-    def _find_action_class(self, type_name: str) -> Optional[Type[Action]]:
-        """Locate an Action subclass by name, walking all known subclasses."""
-        queue: deque[Type[Action]] = deque(Action.__subclasses__())
-        seen: Set[Type[Action]] = set()
-
-        while queue:
-            cls = queue.popleft()
-            if cls in seen:
-                continue
-            seen.add(cls)
-
-            if cls.__name__ == type_name:
-                return cls
-
-            queue.extend(cls.__subclasses__())
-
-        return None
-
-    def _instantiate_nodes(self) -> None:
-        """Create Action instances for every node in the workflow."""
-        for nid, node in self._raw_nodes.items():
-            type_name: str = node.get("type", "")
-            if not type_name:
-                logger.warn(f"Node {nid!r} has no type; skipping.")
-                continue
-
-            cls = self._find_action_class(type_name)
-            if cls is None:
-                logger.warn(f"Action class {type_name!r} not found for node {nid!r}; skipping.")
-                continue
-
-            config: Dict[str, Any] = dict(node.get("config", {}))
-            override: bool = node.get("ctx_override", getattr(cls, "ctx_override", False))
-
             try:
-                instance = cls(**config)
-            except Exception as exc:  # noqa: BLE001
-                logger.error(f"Failed to instantiate {type_name!r} for node {nid!r}: {exc!r}; skipping.")
+                instance = spec.action_class(**spec.config)
+            except Exception as exc:  # noqa: BLE001 — compile-time check passed; guard anyway
+                logger.error(
+                    f"Failed to instantiate {spec.action_class.__name__!r} for node {nid!r}: {exc!r}; skipping."
+                )
                 continue
-
-            # Respect node-level ctx_override if explicitly set.
-            if "ctx_override" in node:
-                instance.ctx_override = override
-
+            if spec.explicit_ctx_override is not None:
+                instance.ctx_override = spec.explicit_ctx_override
             self._instances[nid] = instance
-
-    # ------------------------------------------------------------------
-    # Topological sort (Kahn's algorithm)
-    # ------------------------------------------------------------------
-
-    def _topological_sort(self) -> None:
-        """Topologically sort nodes based on edges, detecting cycles."""
-        # Build adjacency and in-degree maps
-        in_degree: Dict[str, int] = dict.fromkeys(self._instances, 0)
-        adjacency: Dict[str, List[str]] = {nid: [] for nid in self._instances}
-
-        for edge in self._raw_edges:
-            src = _norm_node_id(edge.get("source", ""))
-            tgt = _norm_node_id(edge.get("target", ""))
-            if not src or not tgt:
-                continue
-            if src not in self._instances or tgt not in self._instances:
-                continue
-            adjacency.setdefault(src, []).append(tgt)
-            in_degree[tgt] = in_degree.get(tgt, 0) + 1
-
-        # Kahn's algorithm
-        ready: deque[str] = deque(nid for nid, deg in in_degree.items() if deg == 0)
-        order: List[str] = []
-
-        while ready:
-            nid = ready.popleft()
-            order.append(nid)
-            for neighbor in adjacency.get(nid, []):
-                in_degree[neighbor] -= 1
-                if in_degree[neighbor] == 0:
-                    ready.append(neighbor)
-
-        if len(order) != len(self._instances):
-            remaining = set(self._instances) - set(order)
-            raise ValueError(f"Workflow contains a cycle. Unresolved nodes: {sorted(remaining)}")
-
-        self._execution_order = order
-        logger.info(f"Topological order: {' → '.join(order)}")
 
     # ------------------------------------------------------------------
     # Execution
@@ -384,8 +461,9 @@ class WorkflowExecutor:
                 continue
 
             src = _norm_node_id(edge.get("source", ""))
-            target_handle = edge.get("targetHandle", "")
-            source_handle = edge.get("sourceHandle", "")
+            # Support both camelCase (legacy) and snake_case (current) handle keys.
+            target_handle = edge.get("targetHandle", "") or edge.get("target_handle", "")
+            source_handle = edge.get("sourceHandle", "") or edge.get("source_handle", "")
 
             if src not in self._instances:
                 continue
