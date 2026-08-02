@@ -51,6 +51,30 @@ class StatefulStep(Action):
         return list(self.seen)
 
 
+class TwoFieldStep(Action):
+    """Node with two configurable fields; echoes both as a dict."""
+
+    left: str = "L0"
+    right: str = "R0"
+    output_key: str = "two"
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return {"left": self.left, "right": self.right}
+
+
+class NoKeyStep(Action):
+    """Action without an output_key default.
+
+    Its registry port name is the lowercased class name (``nokeystep``), so
+    edges must resolve to that key.
+    """
+
+    text: str = ""
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return self.text
+
+
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
 
@@ -206,6 +230,157 @@ async def test_task_input_seeds_context():
     result = await _run(wf, task_input={"prefix": "hi"})
     assert result["prefix"] == "hi"  # task_input wins over init_context
     assert result["echo"] == "cfg"
+
+
+# ── Field-wiring tests ────────────────────────────────────────────────────────
+
+
+def _echo_pick_wf(
+    source_config: dict[str, Any],
+    target_config: dict[str, Any],
+    source_handle: str = "echo",
+) -> dict[str, Any]:
+    """a(EchoStep) → b(EchoStep) → c(PickStep key=echo), observing b's value."""
+    return _wf(
+        [
+            _node("a", "EchoStep", source_config),
+            _node("b", "EchoStep", target_config),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "a", "source_handle": source_handle, "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_wired_value_reaches_field_without_ctx_override() -> None:
+    """An edge into a config field wins over the constructor default without ctx_override."""
+    wf = _echo_pick_wf({"value": "upstream"}, {"value": "cfg"})
+    result = await _run(wf)
+    # b's body returned a's value: the wired field won over its config.
+    assert result["pick"] == "upstream"
+    assert result["echo"] == "upstream"
+
+
+@pytest.mark.asyncio
+async def test_multiple_wired_fields_on_one_node() -> None:
+    """A node receives values into BOTH config fields via separate edges."""
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "L1"}),
+            _node("b", "EchoStep", {"value": "R1"}),
+            _node("t", "TwoFieldStep", {"left": "L0", "right": "R0"}),
+            _node("c", "PickStep", {"key": "two"}),
+        ],
+        [
+            {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
+            {"source": "b", "source_handle": "echo", "target": "t", "target_handle": "right"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+        ],
+    )
+    result = await _run(wf)
+    assert result["pick"] == {"left": "L1", "right": "R1"}
+
+
+@pytest.mark.asyncio
+async def test_same_class_sources_do_not_clobber_each_other() -> None:
+    """Two same-class sources keep distinct outputs; each edge resolves to its own."""
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "A"}),
+            _node("b", "EchoStep", {"value": "B"}),
+            _node("t", "TwoFieldStep"),
+            _node("c", "PickStep", {"key": "two"}),
+        ],
+        [
+            {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
+            {"source": "b", "source_handle": "echo", "target": "t", "target_handle": "right"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+        ],
+    )
+    result = await _run(wf)
+    # Without per-node outputs both edges would resolve to whichever EchoStep
+    # ran last and both fields would read the same value.
+    assert result["pick"] == {"left": "A", "right": "B"}
+
+
+@pytest.mark.asyncio
+async def test_one_source_fans_out_to_many_fields() -> None:
+    """A single node output can feed multiple fields of one target."""
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "x"}),
+            _node("t", "TwoFieldStep"),
+            _node("c", "PickStep", {"key": "two"}),
+        ],
+        [
+            {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "left"},
+            {"source": "a", "source_handle": "echo", "target": "t", "target_handle": "right"},
+            {"source": "t", "source_handle": "two", "target": "c", "target_handle": "two"},
+        ],
+    )
+    result = await _run(wf)
+    assert result["pick"] == {"left": "x", "right": "x"}
+
+
+@pytest.mark.asyncio
+async def test_empty_output_key_edges_resolve_by_class_name() -> None:
+    """Nodes without an output_key default resolve edges via the lowercased class-name port key."""
+    wf = _wf(
+        [
+            _node("n1", "NoKeyStep", {"text": "hi"}),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "n1", "source_handle": "nokeystep", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+        ],
+    )
+    result = await _run(wf)
+    assert result["nokeystep"] == "hi"  # stored under the class-name port key
+    assert result["pick"] == "hi"  # wired through to b
+
+
+@pytest.mark.asyncio
+async def test_context_reader_sees_upstream_outputs_without_field_wiring() -> None:
+    """Key-reading bodies see earlier outputs via the accumulated context.
+
+    Forward/Gather/DumpText-style bodies read ``cxt.get(key)``; the executor
+    must pass the accumulated context like fabricatio's ``WorkFlow.act``.
+    """
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "hello"}),
+            _node("b", "PickStep", {"key": "echo"}),
+        ],
+        # edge only forces ordering; the handle is not a PickStep field, so the
+        # value is not setattr'd — b must read it from the shared context
+        [{"source": "a", "source_handle": "echo", "target": "b", "target_handle": "observe"}],
+    )
+    result = await _run(wf)
+    assert result["pick"] == "hello"
+
+
+@pytest.mark.asyncio
+async def test_edge_to_missing_output_is_skipped_with_warning(capfd: pytest.CaptureFixture[str]) -> None:
+    """An edge whose source never produced a value warns instead of crashing."""
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "x"}),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "ghost", "source_handle": "echo", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "echo"},
+        ],
+    )
+    result = await _run(wf)
+    assert result["pick"] == "default"
+    assert "no runnable instance" in capfd.readouterr().err
 
 
 # ── Topological-order unit tests ───────────────────────────────────────────────

@@ -11,7 +11,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple, Type
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import INPUT_KEY, Action
@@ -24,6 +24,10 @@ from pydantic.fields import FieldInfo
 
 def _norm_node_id(raw: Any) -> str:
     return str(raw)
+
+
+_MISSING = object()
+"""Sentinel distinguishing "no stored value" from a stored ``None``."""
 
 
 def _preview(value: Any, limit: int = 4000) -> str:
@@ -175,6 +179,23 @@ def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> 
     return order
 
 
+def _resolve_output_key(instance: Action, node_id: str) -> str:
+    """The context key a node's result is stored under.
+
+    Mirrors the registry's output-port naming (``_extract_output_ports``):
+    ``output_key`` when set, else the class name lowercased.  A mismatch
+    here would silently kill every edge out of the node (port name on the
+    canvas vs. stored context key).
+    """
+    return (
+        instance.output_key
+        or getattr(instance, "output_key", "")
+        or instance.model_fields.get("output_key", FieldInfo()).default
+        or type(instance).__name__.lower()
+        or node_id
+    )
+
+
 @dataclass(frozen=True)
 class _NodeSpec:
     """Resolved per-node plan data: class + config.  Instances are per-run."""
@@ -272,6 +293,9 @@ class WorkflowExecutor:
     _execution_order: List[str] = field(init=False, default_factory=list)
     _context: Dict[str, Any] = field(init=False, default_factory=dict)
     _seeded: Dict[str, Any] = field(init=False, default_factory=dict)
+    # Per-node results keyed by node id — edges resolve against this, so two
+    # nodes of the same class (same ``output_key``) never clobber each other.
+    _node_outputs: Dict[str, Any] = field(init=False, default_factory=dict)
 
     @classmethod
     def new(
@@ -382,19 +406,32 @@ class WorkflowExecutor:
         )
 
         try:
-            # Resolve inputs from upstream nodes via edges
-            cxt = await self._resolve_inputs(node_id)
+            # Resolve inputs from upstream nodes via edges.  Wired handles are
+            # explicit field assignments: they are copied onto the instance
+            # unconditionally (bodies read ``self.<field>``), regardless of
+            # ctx_override.  ctx_override additionally copies context values
+            # into fields.
+            cxt, wired_handles = await self._resolve_inputs(node_id)
 
-            # Seed values (init_context + task_input) are visible to every
-            # node, even without incoming edges (e.g. a Forward node looking
-            # up a key from init_context); explicit edge wiring wins on
+            # Full fabricatio-style context: seeds + every output produced so
+            # far, so key-reading bodies (Forward, Gather, DumpText's
+            # ``text_key``, …) see upstream results the way ``WorkFlow.act``
+            # passes the shared context.  Explicit edge wiring wins on
             # conflicts.
-            cxt = {**self._seeded, **cxt}
+            cxt = {**self._seeded, **self._context, **cxt}
+
+            for field_name in wired_handles:
+                if field_name in instance.model_fields:
+                    try:
+                        setattr(instance, field_name, cxt[field_name])
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug(f"Could not set wired field {field_name!r} on {type_name!r}: {exc!r}")
 
             # Apply ctx_override: copy context values into instance fields
+            # (seeded values only — wired handles were already applied).
             if instance.ctx_override:
                 for field_name in instance.model_fields:
-                    if field_name in cxt:
+                    if field_name in cxt and field_name not in wired_handles:
                         try:
                             setattr(instance, field_name, cxt[field_name])
                         except Exception as exc:  # noqa: BLE001
@@ -412,13 +449,9 @@ class WorkflowExecutor:
             result = await asyncio.get_running_loop().run_in_executor(
                 _NODE_BODY_EXECUTOR, _run_node_body, instance, cxt
             )
-            output_key: str = (
-                instance.output_key
-                or getattr(instance, "output_key", "")
-                or instance.model_fields.get("output_key", FieldInfo()).default
-                or node_id
-            )
+            output_key: str = _resolve_output_key(instance, node_id)
             self._context[output_key] = result
+            self._node_outputs[node_id] = result
 
             await self._emit(
                 "node_done",
@@ -451,9 +484,15 @@ class WorkflowExecutor:
             )
             raise
 
-    async def _resolve_inputs(self, node_id: str) -> Dict[str, Any]:
-        """Build the context dict for *node_id* by reading upstream outputs."""
+    async def _resolve_inputs(self, node_id: str) -> Tuple[Dict[str, Any], Set[str]]:
+        """Build the context dict for *node_id* by reading upstream outputs.
+
+        Returns ``(cxt, wired)`` — *cxt* maps target handles to values, and
+        *wired* is the set of handles that actually received an edge value
+        (those are applied to instance fields unconditionally by the caller).
+        """
         cxt: Dict[str, Any] = {}
+        wired: Set[str] = set()
 
         for edge in self._raw_edges:
             tgt = _norm_node_id(edge.get("target", ""))
@@ -466,23 +505,37 @@ class WorkflowExecutor:
             source_handle = edge.get("sourceHandle", "") or edge.get("source_handle", "")
 
             if src not in self._instances:
+                logger.warn(f"Edge {edge.get('id', '?')}: source node {src!r} has no runnable instance; skipping.")
                 continue
 
             src_instance = self._instances[src]
-            src_output_key = (
-                source_handle
-                or src_instance.output_key
-                or getattr(src_instance, "output_key", "")
-                or src_instance.model_fields.get("output_key", FieldInfo()).default
-                or src
-            )
+            src_stored = _resolve_output_key(src_instance, src)
 
-            value = self._context.get(src_output_key)
-            if value is not None or src_output_key in self._context:
-                handle = target_handle or src_output_key
-                cxt[handle] = value
+            # Exact per-node output first (unique per node id); then the
+            # registry port name / output key in the shared context; then the
+            # literal source handle (legacy edges wired to seeded keys).
+            if src in self._node_outputs:
+                value = self._node_outputs[src]
+            else:
+                value = self._context.get(src_stored, _MISSING)
+                if value is _MISSING and source_handle and source_handle in self._context:
+                    value = self._context[source_handle]
 
-        return cxt
+            if value is _MISSING:
+                logger.warn(
+                    f"Edge {edge.get('id', '?')}: output of {src!r} ({src_stored!r}) not found in context; skipping."
+                )
+                continue
+
+            handle = target_handle or src_stored
+            if handle in cxt:
+                logger.warn(
+                    f"Edge {edge.get('id', '?')}: multiple edges feed field {handle!r} of {node_id!r}; last one wins."
+                )
+            cxt[handle] = value
+            wired.add(handle)
+
+        return cxt, wired
 
     # ------------------------------------------------------------------
     # Event helpers
