@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, markRaw } from 'vue'
+import { computed, ref, markRaw, onUnmounted } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import type { Node, NodeMouseEvent, Connection } from '@vue-flow/core'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useHotkeys } from '@/composables/useHotkeys'
 import RoleNode from './RoleNode.vue'
 import CodegenDialog from '@/components/board/CodegenDialog.vue'
 import BlueprintSidebar from '@/components/board/BlueprintSidebar.vue'
@@ -15,6 +16,26 @@ import { Plus, X } from '@lucide/vue'
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
 const wfStore = useWorkflowStore()
+
+// Board-layer clipboard hotkeys: copy the selected workflows, paste into the
+// role that owns the current selection (its card was last clicked).
+const { register } = useHotkeys()
+const hotkeyOffs = [
+  register('mod+c', () => {
+    if (!boardStore.copySelectedWorkflows()) return
+    const n = boardStore.copiedWorkflows.length
+    notifications.success('Copied', `${n} workflow(s) copied — click another role and paste (Ctrl+V)`)
+  }),
+  register('mod+v', () => {
+    const target = boardStore.selectedWorkflows.roleIndex
+    if (target === null) return
+    const n = boardStore.pasteWorkflows(target)
+    if (n > 0) {
+      notifications.success('Pasted', `${n} workflow(s) added to "${boardStore.board.roles[target]?.name}"`)
+    }
+  }),
+]
+onUnmounted(() => hotkeyOffs.forEach((off) => off()))
 
 // The board canvas: one node per role, laid out on a grid.
 const nodes = computed<Node[]>(() =>

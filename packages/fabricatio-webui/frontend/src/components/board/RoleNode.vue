@@ -2,10 +2,10 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { RoleJSON } from '@/types/api'
-import { useBoardStore } from '@/stores/board'
+import { useBoardStore, WF_REORDER_MIME } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { BLUEPRINT_MIME } from '@/data/blueprints'
-import { Plus, Trash2, Code2, Copy } from '@lucide/vue'
+import { Plus, Trash2, Code2, Copy, ClipboardPaste } from '@lucide/vue'
 
 const props = defineProps<{ id: string; data: any }>()
 
@@ -53,6 +53,136 @@ function onDrop(ev: DragEvent) {
       `"${wf.name}" added to "${role.value.name}" — double-click the role to edit it`,
     )
   }
+}
+
+// ── Chip drag-to-reorder ────────────────────────────────────────────────────
+
+/** Workflow index being dragged for reorder (null = none). */
+const dragFrom = ref<number | null>(null)
+/** Chip currently hovered as a reorder drop target. */
+const reorderTarget = ref<number | null>(null)
+/** True while hovering the empty chip-list area (drop appends at the end). */
+const dragTail = ref(false)
+
+function isReorderDrag(ev: DragEvent): boolean {
+  return !!ev.dataTransfer?.types.includes(WF_REORDER_MIME)
+}
+
+function onReorderStart(ev: DragEvent, i: number) {
+  // Never start a chip drag from interactive elements (copy button, popover).
+  if ((ev.target as HTMLElement).closest('button, .copy-menu')) {
+    ev.preventDefault()
+    return
+  }
+  const dt = ev.dataTransfer
+  if (!dt) return
+  dt.setData(WF_REORDER_MIME, `${index.value}:${i}`)
+  dt.effectAllowed = 'move'
+  dragFrom.value = i
+}
+
+function onReorderEnter(ev: DragEvent, i: number) {
+  if (!isReorderDrag(ev)) return
+  ev.stopPropagation()
+  dragTail.value = false
+  reorderTarget.value = i
+}
+
+function onReorderOver(ev: DragEvent, i: number) {
+  if (!isReorderDrag(ev)) return
+  ev.stopPropagation()
+  ev.preventDefault()
+  ev.dataTransfer!.dropEffect = 'move'
+}
+
+function onReorderLeave(ev: DragEvent) {
+  const el = ev.currentTarget as HTMLElement
+  if (el.contains(ev.relatedTarget as Node)) return
+  if (reorderTarget.value !== null) reorderTarget.value = null
+}
+
+function onReorderDrop(ev: DragEvent, target: number) {
+  const data = ev.dataTransfer?.getData(WF_REORDER_MIME)
+  if (!data) return // not a reorder drag — let it bubble (e.g. blueprint drop)
+  ev.stopPropagation()
+  ev.preventDefault()
+  const from = Number(data.split(':')[1])
+  reorderTarget.value = null
+  dragTail.value = false
+  dragFrom.value = null
+  if (Number.isFinite(from) && from !== target) boardStore.moveWorkflow(index.value, from, target)
+}
+
+function onReorderEnd() {
+  dragFrom.value = null
+  reorderTarget.value = null
+  dragTail.value = false
+}
+
+/** Drop at the tail: append the dragged workflow to the end of the list. */
+function onTailDrop(ev: DragEvent) {
+  const data = ev.dataTransfer?.getData(WF_REORDER_MIME)
+  if (!data) return
+  ev.stopPropagation()
+  ev.preventDefault()
+  const from = Number(data.split(':')[1])
+  dragTail.value = false
+  dragFrom.value = null
+  const len = role.value.workflows?.length ?? 0
+  if (Number.isFinite(from) && from !== len - 1) boardStore.moveWorkflow(index.value, from, len - 1)
+}
+
+function onTailEnter(ev: DragEvent) {
+  if (!isReorderDrag(ev)) return
+  dragTail.value = true
+  reorderTarget.value = null
+}
+
+function onTailOver(ev: DragEvent) {
+  if (!isReorderDrag(ev)) return
+  ev.preventDefault()
+  ev.dataTransfer!.dropEffect = 'move'
+}
+
+function onTailLeave(ev: DragEvent) {
+  const el = ev.currentTarget as HTMLElement
+  if (el.contains(ev.relatedTarget as Node)) return
+  dragTail.value = false
+}
+
+// ── Select → copy → paste ───────────────────────────────────────────────────
+
+const isSelected = (i: number) =>
+  boardStore.selectedWorkflows.roleIndex === index.value &&
+  boardStore.selectedWorkflows.indices.includes(i)
+
+const canCopy = computed(
+  () =>
+    boardStore.selectedWorkflows.roleIndex === index.value &&
+    boardStore.selectedWorkflows.indices.length > 0,
+)
+const canPaste = computed(() => boardStore.copiedWorkflows.length > 0)
+
+function onChipClick(i: number) {
+  boardStore.toggleWorkflowSelected(index.value, i)
+}
+
+/** Card background click: this role becomes the Ctrl+V paste target. */
+function selectRoleForPaste() {
+  boardStore.selectWorkflowRole(index.value)
+}
+
+function doCopySelected() {
+  if (!canCopy.value) return
+  boardStore.copySelectedWorkflows()
+  const n = boardStore.copiedWorkflows.length
+  notifications.success('Copied', `${n} workflow(s) copied — click another role and paste (Ctrl+V)`)
+}
+
+function doPaste() {
+  if (!canPaste.value) return
+  const n = boardStore.pasteWorkflows(index.value)
+  if (n > 0) notifications.success('Pasted', `${n} workflow(s) added to "${role.value.name}"`)
 }
 
 function patternOf(ns: string | undefined): string {
@@ -110,6 +240,7 @@ function remove() {
   <div
     class="role-node nodrag"
     :class="{ 'drag-over': dragOver }"
+    @click="selectRoleForPaste"
     @dblclick.stop="open"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
@@ -123,12 +254,31 @@ function remove() {
 
     <div v-if="role.description" class="role-desc">{{ role.description }}</div>
 
-    <div class="role-workflows">
+    <div
+      class="role-workflows"
+      :class="{ 'drag-tail': dragTail }"
+      @dragenter="onTailEnter"
+      @dragover="onTailOver"
+      @dragleave="onTailLeave"
+      @drop="onTailDrop"
+    >
       <div
         v-for="(wf, i) in role.workflows ?? []"
         :key="i"
         class="wf-chip"
+        :class="{
+          selected: isSelected(i),
+          'drag-target': reorderTarget === i,
+        }"
+        draggable="true"
         :title="patternOf(wf.namespace)"
+        @click.stop="onChipClick(i)"
+        @dragstart="onReorderStart($event, i)"
+        @dragenter="onReorderEnter($event, i)"
+        @dragover="onReorderOver($event, i)"
+        @dragleave="onReorderLeave($event)"
+        @drop="onReorderDrop($event, i)"
+        @dragend="onReorderEnd"
       >
         <div class="wf-row">
           <span class="wf-name">{{ wf.name ?? '(unnamed)' }}</span>
@@ -163,6 +313,24 @@ function remove() {
     <div class="role-actions">
       <button class="role-btn" title="Add workflow" @click.stop="addWorkflow">
         <Plus :size="13" />
+      </button>
+      <button
+        class="role-btn"
+        :class="{ disabled: !canCopy }"
+        :title="canCopy ? `Copy ${boardStore.selectedWorkflows.indices.length} selected workflow(s) (Ctrl+C)` : 'Select workflows, then copy (Ctrl+C)'"
+        :disabled="!canCopy"
+        @click.stop="doCopySelected"
+      >
+        <Copy :size="13" />
+      </button>
+      <button
+        class="role-btn"
+        :class="{ disabled: !canPaste }"
+        :title="canPaste ? `Paste ${boardStore.copiedWorkflows.length} workflow(s) here (Ctrl+V)` : 'Clipboard is empty — copy a workflow first'"
+        :disabled="!canPaste"
+        @click.stop="doPaste"
+      >
+        <ClipboardPaste :size="13" />
       </button>
       <button class="role-btn" title="Generate fabricatio code" @click.stop="showCode">
         <Code2 :size="13" />
@@ -244,6 +412,27 @@ function remove() {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   padding: var(--sp-1) var(--sp-2);
+  cursor: grab;
+  transition: var(--transition-colors), var(--transition-shadow);
+}
+
+.wf-chip:active {
+  cursor: grabbing;
+}
+
+.wf-chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.wf-chip.drag-target {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.role-workflows.drag-tail {
+  background: var(--accent-subtle);
+  border-radius: var(--radius-sm);
 }
 
 .wf-row {
@@ -389,6 +578,17 @@ function remove() {
 .role-btn:hover {
   background: var(--bg-3);
   color: var(--fg-0);
+}
+
+.role-btn:disabled,
+.role-btn.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.role-btn:disabled:hover {
+  background: transparent;
+  color: var(--fg-2);
 }
 
 .role-btn.danger:hover {

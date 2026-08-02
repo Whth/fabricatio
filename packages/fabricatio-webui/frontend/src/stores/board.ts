@@ -10,6 +10,15 @@ import { BLUEPRINTS } from '@/data/blueprints'
  */
 export type Layer = 'board' | 'workflow' | 'action'
 
+/** dataTransfer MIME type used when dragging a workflow chip to reorder it. */
+export const WF_REORDER_MIME = 'application/x-fab-wf-reorder'
+
+/** Selected workflows within one role (indices into role.workflows). */
+export interface WorkflowSelection {
+  roleIndex: number | null
+  indices: number[]
+}
+
 /** Convert a board-level action definition into a registry-style node type. */
 export function actionDefToNodeType(def: ActionDefJSON): NodeTypeDefinition {
   const port = (f: ActionDefJSON['fields'][number]): PortDefinition => ({
@@ -59,6 +68,14 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/** Dedupe a name against existing names: 'book' → 'book-2' → 'book-3'. */
+function uniqueName(names: Set<string>, base: string): string {
+  let name = base
+  let n = 2
+  while (names.has(name)) name = `${base}-${n++}`
+  return name
+}
+
 export const useBoardStore = defineStore('board', () => {
   const board = ref<BoardJSON>({
     version: '1.0',
@@ -76,6 +93,10 @@ export const useBoardStore = defineStore('board', () => {
   const actionDefName = ref<string | null>(null)
   /** Role index whose codegen dialog is open (null = closed). */
   const codegenRoleIndex = ref<number | null>(null)
+  /** Workflows selected on the board (per-role; roleIndex doubles as the Ctrl+V paste target). */
+  const selectedWorkflows = ref<WorkflowSelection>({ roleIndex: null, indices: [] })
+  /** Deep-cloned workflows on the board clipboard (persists until overwritten). */
+  const copiedWorkflows = ref<WorkflowJSON[]>([])
 
   const activeRole = computed<RoleJSON | null>(() => board.value.roles[activeRoleIndex.value] ?? null)
   const activeWorkflow = computed<WorkflowJSON | null>(
@@ -129,6 +150,7 @@ export const useBoardStore = defineStore('board', () => {
     }
     activeRoleIndex.value = Math.min(activeRoleIndex.value, board.value.roles.length - 1)
     activeWorkflowIndex.value = 0
+    clearWorkflowSelection()
   }
 
   /** Add a workflow to a specific role. Defaults to the active role; callers
@@ -148,6 +170,7 @@ export const useBoardStore = defineStore('board', () => {
       addWorkflow('Main', 'main')
     }
     activeWorkflowIndex.value = 0
+    if (selectedWorkflows.value.roleIndex === roleIndex) clearWorkflowSelection()
   }
 
   /** Commit the editor's current graph back into the active workflow. */
@@ -179,13 +202,77 @@ export const useBoardStore = defineStore('board', () => {
     // JSON round-trip: the board document is JSON by definition, and
     // structuredClone cannot clone Vue reactive proxies.
     const copy: WorkflowJSON = JSON.parse(JSON.stringify(wf))
-    const names = new Set(target.workflows.map((w) => w.name))
-    let name = copy.name
-    let n = 2
-    while (names.has(name)) name = `${copy.name}-${n++}`
-    copy.name = name
+    copy.name = uniqueName(new Set(target.workflows.map((w) => w.name ?? '')), copy.name ?? '')
     target.workflows.push(copy)
     return true
+  }
+
+  /** Move a workflow within its role (insert-before semantics). */
+  function moveWorkflow(roleIndex: number, from: number, to: number): boolean {
+    const role = board.value.roles[roleIndex]
+    const wfs = role?.workflows
+    if (!wfs || from === to) return false
+    if (from < 0 || from >= wfs.length || to < 0 || to >= wfs.length) return false
+    const [wf] = wfs.splice(from, 1)
+    wfs.splice(to, 0, wf)
+    return true
+  }
+
+  // ── Board clipboard (select → copy → paste) ───────────────────────────────
+
+  /** Toggle a workflow in the per-role selection; clicking another role's
+   *  workflow switches the selection to that role. */
+  function toggleWorkflowSelected(roleIndex: number, wfIndex: number) {
+    const sel = selectedWorkflows.value
+    if (sel.roleIndex !== roleIndex) {
+      selectedWorkflows.value = { roleIndex, indices: [wfIndex] }
+      return
+    }
+    const i = sel.indices.indexOf(wfIndex)
+    if (i >= 0) sel.indices.splice(i, 1)
+    else sel.indices.push(wfIndex)
+  }
+
+  /** Make a role the paste target without selecting any chip (card click). */
+  function selectWorkflowRole(roleIndex: number) {
+    selectedWorkflows.value = { roleIndex, indices: [] }
+  }
+
+  function clearWorkflowSelection() {
+    selectedWorkflows.value = { roleIndex: null, indices: [] }
+  }
+
+  /** Deep-copy the selected workflows onto the clipboard. Returns false when
+   *  nothing is selected. */
+  function copySelectedWorkflows(): boolean {
+    const sel = selectedWorkflows.value
+    const role = sel.roleIndex !== null ? board.value.roles[sel.roleIndex] : null
+    if (!role) return false
+    const wfs = sel.indices
+      .map((i) => role.workflows[i])
+      .filter((w): w is WorkflowJSON => !!w)
+    if (wfs.length === 0) return false
+    // JSON round-trip: the board document is JSON by definition, and
+    // structuredClone cannot clone Vue reactive proxies.
+    copiedWorkflows.value = JSON.parse(JSON.stringify(wfs))
+    return true
+  }
+
+  /** Paste the clipboard into a role; names are deduped in the target, the
+   *  namespace is kept (the role serves the same task pattern). The clipboard
+   *  persists, so one copy can paste into several roles. Returns the number
+   *  of workflows pasted (0 for an empty clipboard or missing role). */
+  function pasteWorkflows(targetRoleIndex: number): number {
+    const role = board.value.roles[targetRoleIndex]
+    if (!role || copiedWorkflows.value.length === 0) return 0
+    const copies: WorkflowJSON[] = JSON.parse(JSON.stringify(copiedWorkflows.value))
+    const names = new Set(role.workflows.map((w) => w.name ?? ''))
+    for (const wf of copies) {
+      wf.name = uniqueName(names, wf.name ?? '')
+      names.add(wf.name)
+      role.workflows.push(wf)
+    }
+    return copies.length
   }
 
   /** Add a package-predefined blueprint workflow (drag from the sidebar) to a
@@ -197,7 +284,7 @@ export const useBoardStore = defineStore('board', () => {
     const bp = BLUEPRINTS.find((b) => b.id === blueprintId)
     if (!role || !bp) return null
     const wf = bp.build()
-    const names = new Set(role.workflows.map((w) => w.name))
+    const names = new Set(role.workflows.map((w) => w.name ?? ''))
     let name = bp.name
     let n = 2
     while (names.has(name)) name = `${bp.name}-${n++}`
@@ -332,6 +419,14 @@ export const useBoardStore = defineStore('board', () => {
     removeWorkflow,
     copyWorkflow,
     addBlueprintWorkflow,
+    moveWorkflow,
+    selectedWorkflows,
+    copiedWorkflows,
+    toggleWorkflowSelected,
+    selectWorkflowRole,
+    clearWorkflowSelection,
+    copySelectedWorkflows,
+    pasteWorkflows,
     commitActiveWorkflow,
     upsertActionDef,
     removeActionDef,

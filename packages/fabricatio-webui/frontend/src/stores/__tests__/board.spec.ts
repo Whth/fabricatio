@@ -132,3 +132,100 @@ describe('board store blueprint drops', () => {
     expect(store.board.roles[1].workflows).toHaveLength(0)
   })
 })
+
+describe('board store reorder + clipboard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    // Mirror app boot: Default Role + Main workflow.
+    useBoardStore().clear()
+  })
+
+  it('moves a workflow within its role (insert-before)', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    ;['a', 'b', 'c', 'd'].forEach((n) => store.addWorkflow(n, n, 1))
+    expect(store.moveWorkflow(1, 0, 2)).toBe(true)
+    expect(store.board.roles[1].workflows.map((w) => w.name)).toEqual(['b', 'c', 'a', 'd'])
+    expect(store.moveWorkflow(1, 1, 3)).toBe(true)
+    expect(store.board.roles[1].workflows.map((w) => w.name)).toEqual(['b', 'a', 'd', 'c'])
+  })
+
+  it('refuses invalid reorder indices', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    ;['a', 'b', 'c'].forEach((n) => store.addWorkflow(n, n, 1))
+    expect(store.moveWorkflow(1, 0, 0)).toBe(false)
+    expect(store.moveWorkflow(1, -1, 2)).toBe(false)
+    expect(store.moveWorkflow(1, 0, 9)).toBe(false)
+    expect(store.moveWorkflow(99, 0, 1)).toBe(false)
+    expect(store.board.roles[1].workflows.map((w) => w.name)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('selects chips per role and switches on other-role clicks', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addRole('Reviewer')
+    store.addWorkflow('a', 'a', 1)
+    store.addWorkflow('b', 'b', 1)
+    store.addWorkflow('c', 'c', 2)
+    store.toggleWorkflowSelected(1, 0)
+    store.toggleWorkflowSelected(1, 1)
+    expect(store.selectedWorkflows.roleIndex).toBe(1)
+    expect(store.selectedWorkflows.indices).toEqual([0, 1])
+    store.toggleWorkflowSelected(1, 0)
+    expect(store.selectedWorkflows.indices).toEqual([1])
+    store.toggleWorkflowSelected(2, 0)
+    expect(store.selectedWorkflows.roleIndex).toBe(2)
+    expect(store.selectedWorkflows.indices).toEqual([0])
+  })
+
+  it('selectWorkflowRole sets the paste target without selecting chips', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addWorkflow('a', 'a', 1)
+    store.toggleWorkflowSelected(1, 0)
+    store.selectWorkflowRole(1)
+    expect(store.selectedWorkflows.roleIndex).toBe(1)
+    expect(store.selectedWorkflows.indices).toEqual([])
+  })
+
+  it('copies selected workflows as a deep clone', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addWorkflow('book', 'book', 1)
+    store.board.roles[1].workflows[0].nodes = [{ id: 'A', type: 'x' } as never]
+    store.toggleWorkflowSelected(1, 0)
+    expect(store.copySelectedWorkflows()).toBe(true)
+    expect(store.copiedWorkflows).toHaveLength(1)
+    store.copiedWorkflows[0].nodes[0].id = 'B'
+    expect(store.board.roles[1].workflows[0].nodes[0].id).toBe('A')
+  })
+
+  it('refuses to copy with nothing selected', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    expect(store.copySelectedWorkflows()).toBe(false)
+    expect(store.copiedWorkflows).toHaveLength(0)
+  })
+
+  it('pastes into a role with deduped names; clipboard persists', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addRole('Reviewer')
+    store.addWorkflow('book', 'book', 1)
+    store.toggleWorkflowSelected(1, 0)
+    store.copySelectedWorkflows()
+    expect(store.pasteWorkflows(2)).toBe(1)
+    expect(store.pasteWorkflows(2)).toBe(1)
+    expect(store.board.roles[2].workflows.map((w) => w.name)).toEqual(['book', 'book-2'])
+    expect(store.board.roles[1].workflows.map((w) => w.name)).toEqual(['book'])
+  })
+
+  it('pastes nothing with an empty clipboard or missing role', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    expect(store.pasteWorkflows(1)).toBe(0)
+    expect(store.pasteWorkflows(99)).toBe(0)
+    expect(store.board.roles[1].workflows).toHaveLength(0)
+  })
+})
