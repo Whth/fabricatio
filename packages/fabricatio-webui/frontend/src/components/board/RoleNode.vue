@@ -27,7 +27,7 @@ function open() {
 function addWorkflow() {
   const roleName = role.value.name.replace(/\s+/g, '-').toLowerCase() || 'role'
   const wfName = `${roleName}-${(role.value.workflows?.length ?? 0) + 1}`
-  boardStore.addWorkflow(wfName, wfName)
+  boardStore.addWorkflow(wfName, wfName, index.value)
   boardStore.enterWorkflow(index.value, (role.value.workflows?.length ?? 1) - 1)
   notifications.success('Workflow added', `"${wfName}" — edit its graph now`)
 }

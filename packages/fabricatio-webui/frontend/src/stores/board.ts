@@ -109,6 +109,7 @@ export const useBoardStore = defineStore('board', () => {
 
   function addRole(name: string, description = '') {
     board.value.roles.push({ name: name || `Role ${board.value.roles.length + 1}`, description, workflows: [] })
+    activeRoleIndex.value = board.value.roles.length - 1
   }
 
   function removeRole(index: number) {
@@ -120,14 +121,17 @@ export const useBoardStore = defineStore('board', () => {
     activeWorkflowIndex.value = 0
   }
 
-  function addWorkflow(name: string, namespace: string) {
-    const role = activeRole.value
+  /** Add a workflow to a specific role. Defaults to the active role; callers
+   *  that act on a visible role node MUST pass its index — activeRoleIndex is
+   *  a navigation cursor, not the role under the pointer. */
+  function addWorkflow(name: string, namespace: string, roleIndex = activeRoleIndex.value) {
+    const role = board.value.roles[roleIndex]
     if (!role) return
     role.workflows.push(newWorkflow(name || `Workflow ${role.workflows.length + 1}`, namespace))
   }
 
-  function removeWorkflow(index: number) {
-    const role = activeRole.value
+  function removeWorkflow(roleIndex: number, index: number) {
+    const role = board.value.roles[roleIndex]
     if (!role) return
     role.workflows.splice(index, 1)
     if (role.workflows.length === 0) {
