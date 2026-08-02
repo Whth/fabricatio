@@ -15,6 +15,8 @@ pub struct AppState {
     pub cancel_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
     pub queue_snapshot_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
     pub history_snapshot_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
+    /// Re-dispatch roles after a save/delete (no args).
+    pub rebuild_roles_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
 }
 
 impl AppState {
@@ -29,6 +31,7 @@ impl AppState {
             cancel_fn: std::sync::OnceLock::new(),
             queue_snapshot_fn: std::sync::OnceLock::new(),
             history_snapshot_fn: std::sync::OnceLock::new(),
+            rebuild_roles_fn: std::sync::OnceLock::new(),
         }
     }
 

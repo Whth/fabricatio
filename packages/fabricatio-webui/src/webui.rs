@@ -89,6 +89,7 @@ fn start_service<'a>(
     cancel_fn: Bound<'a, PyAny>,
     queue_snapshot_fn: Bound<'a, PyAny>,
     history_snapshot_fn: Bound<'a, PyAny>,
+    rebuild_roles_fn: Bound<'a, PyAny>,
 ) -> PyResult<Bound<'a, PyAny>> {
     let registry: Vec<NodeTypeDefinition> = serde_json::from_str(&node_registry_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -103,6 +104,7 @@ fn start_service<'a>(
     let _ = state.cancel_fn.set(cancel_fn.unbind());
     let _ = state.queue_snapshot_fn.set(queue_snapshot_fn.unbind());
     let _ = state.history_snapshot_fn.set(history_snapshot_fn.unbind());
+    let _ = state.rebuild_roles_fn.set(rebuild_roles_fn.unbind());
 
     let app = create_router(state, frontend_dir, allowed_origins);
     info!("Server running on {addr}");

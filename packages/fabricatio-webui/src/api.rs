@@ -55,7 +55,7 @@ pub async fn get_workflow(
     })
 }
 
-/// POST /api/workflows — save a board.
+/// POST /api/workflows — save a board, then re-dispatch roles.
 pub async fn save_workflow(
     State(state): State<Arc<AppState>>,
     Json(mut wf): Json<BoardJson>,
@@ -85,22 +85,32 @@ pub async fn save_workflow(
     });
 
     state.save_workflow(id.clone(), wf);
+    rebuild_roles(&state);
     Json(serde_json::json!({ "id": id }))
 }
 
-/// DELETE /api/workflows/:id — delete a saved workflow.
+/// DELETE /api/workflows/:id — delete a saved board, then re-dispatch roles.
 pub async fn delete_workflow(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     if state.delete_workflow(&id) {
+        rebuild_roles(&state);
         Ok(Json(serde_json::json!({ "ok": true })))
     } else {
         Err((
             axum::http::StatusCode::NOT_FOUND,
-            format!("workflow '{id}' not found"),
+            format!("board '{id}' not found"),
         ))
     }
+}
+
+/// Ask the Python worker to re-dispatch roles from the persisted store.
+fn rebuild_roles(state: &Arc<AppState>) {
+    let Some(rebuild) = state.rebuild_roles_fn.get() else {
+        return;
+    };
+    let _ = pyo3::Python::attach(|py| rebuild.call0(py));
 }
 
 /// POST /api/execute — publish a task; dispatched roles serve it by namespace.

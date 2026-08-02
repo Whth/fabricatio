@@ -56,6 +56,7 @@ def main(
                 worker.cancel_current,
                 worker.queue_snapshot,
                 worker.history_snapshot,
+                worker.rebuild_roles,
             ),
             worker.run(),
         )

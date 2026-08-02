@@ -15,7 +15,7 @@ def rust_broadcast(payload_json: builtins.str) -> None:
     Broadcast a serialized WsMessage to every connected WS session.
     """
 
-def start_service(frontend_dir: builtins.str | os.PathLike | pathlib.Path, data_dir: builtins.str | os.PathLike | pathlib.Path, addr: builtins.str, node_registry_json: builtins.str, allowed_origins: typing.Sequence[builtins.str], submit_fn: typing.Any, cancel_fn: typing.Any, queue_snapshot_fn: typing.Any, history_snapshot_fn: typing.Any) -> typing.Awaitable[None]:
+def start_service(frontend_dir: builtins.str | os.PathLike | pathlib.Path, data_dir: builtins.str | os.PathLike | pathlib.Path, addr: builtins.str, node_registry_json: builtins.str, allowed_origins: typing.Sequence[builtins.str], submit_fn: typing.Any, cancel_fn: typing.Any, queue_snapshot_fn: typing.Any, history_snapshot_fn: typing.Any, rebuild_roles_fn: typing.Any) -> typing.Awaitable[None]:
     r"""
     Starts the web UI service with the given frontend and data directories.
     
