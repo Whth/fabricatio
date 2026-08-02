@@ -125,8 +125,11 @@
   --toolbar-h: 40px;
   --console-collapsed-h: 32px;
   --console-expanded-max: 220px;
-  --node-min-w: 200px;
-  --node-max-w: 320px;
+  /* Fixed node width: identical for every node type. Shrink-to-fit was
+     unpredictable — `width: 100%` inputs contribute ~0 to max-content, so
+     a node with only manual fields collapsed to min-width while any wired
+     field (long unbreakable text) ballooned it to 2x. */
+  --node-w: 360px;
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────── */

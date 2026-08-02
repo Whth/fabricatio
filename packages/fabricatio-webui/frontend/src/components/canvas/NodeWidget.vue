@@ -39,7 +39,7 @@ const stringValue = computed(() =>
 
 <template>
   <label class="node-widget" :class="{ disabled: disabled }">
-    <span class="widget-label">{{ field.name }}</span>
+    <span class="widget-label" :title="field.name">{{ field.name }}</span>
 
     <!-- Toggle / Switch -->
     <label v-if="widget === 'toggle'" class="toggle-switch">
@@ -106,7 +106,11 @@ const stringValue = computed(() =>
 /* ── Widget row ──────────────────────────────────────────────────────────── */
 .node-widget {
   display: grid;
-  grid-template-columns: minmax(0, 80px) 1fr;
+  /* Label ~57% / control ~43%: long snake_case names (llm_max_completion_
+     tokens) fit without truncating at the old fixed 80px label column.
+     minmax(0, …) lets both tracks shrink; the full name is always one
+     tooltip away. */
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: var(--ctrl-gap);
   align-items: center;
   min-height: var(--ctrl-h);

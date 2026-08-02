@@ -32,11 +32,9 @@ const extraInputPorts = computed(() =>
   ),
 )
 
-/** Short "← source" label for a wired field (node title + port). */
+/** Full "← source" description for a wired field (node title + port). */
 function wiredSource(field: string): string {
-  const edge = wfStore.edges.find(
-    (e) => e.target === props.id && (e.targetHandle ?? 'default') === field,
-  )
+  const edge = edgeInto(field)
   if (!edge) return 'unknown'
   const sourceNode = wfStore.nodes.find((n) => n.id === edge.source)
   const port =
@@ -44,6 +42,28 @@ function wiredSource(field: string): string {
       ? `.${edge.sourceHandle}`
       : ''
   return `${sourceNode?.data?.title ?? edge.source}${port}`
+}
+
+/** The edge feeding this field, if any. */
+function edgeInto(field: string) {
+  return wfStore.edges.find(
+    (e) => e.target === props.id && (e.targetHandle ?? 'default') === field,
+  )
+}
+
+/** Short source-port name for the wired chip (e.g. `read_text`). */
+function wiredPort(field: string): string {
+  const edge = edgeInto(field)
+  if (!edge) return '?'
+  return edge.sourceHandle && edge.sourceHandle !== 'default'
+    ? edge.sourceHandle
+    : 'output'
+}
+
+/** Disconnect the edge feeding this field, restoring manual editing. */
+function unwire(field: string) {
+  const edge = edgeInto(field)
+  if (edge) wfStore.removeEdge(edge.id)
 }
 
 function fieldValue(f: PortDefinition): unknown {
@@ -123,7 +143,18 @@ const statusLabel = computed(() => {
           @update:model-value="updateField(f, $event)"
         />
         <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
-          {{ f.name }} ← {{ wiredSource(f.name) }}
+          <span class="wired-label">{{ f.name }}</span>
+          <span class="wired-controls">
+            <span class="wired-chip">← {{ wiredPort(f.name) }}</span>
+            <button
+              class="wired-unwire"
+              title="Disconnect this input"
+              @mousedown.stop
+              @click.stop="unwire(f.name)"
+            >
+              &times;
+            </button>
+          </span>
         </span>
       </div>
 
@@ -165,8 +196,7 @@ const statusLabel = computed(() => {
 <style scoped>
 /* ── Node container ──────────────────────────────────────────────────────── */
 .comfy-node {
-  min-width: var(--node-min-w);
-  max-width: var(--node-max-w);
+  width: var(--node-w);
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -308,6 +338,9 @@ const statusLabel = computed(() => {
 }
 
 .port-col.outputs {
+  /* Width to content only — the inputs column takes the rest of the node.
+     (flex: 1 here made every node split 50/50 and squeezed the inputs.) */
+  flex: 0 0 auto;
   align-items: flex-end;
 }
 
@@ -382,14 +415,68 @@ const statusLabel = computed(() => {
 }
 
 /* ── Wired field ─────────────────────────────────────────────────────────── */
+/* Same two-column grid as .node-widget so wired and manual rows align. */
 .wired-field {
-  color: var(--fg-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--ctrl-gap);
+  align-items: center;
+  min-width: 0;
+  user-select: none;
+}
+
+.wired-label {
+  color: var(--fg-1);
   font-size: var(--text-xs);
-  font-style: italic;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  user-select: none;
+}
+
+.wired-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wired-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  color: var(--accent-hover);
+  background: var(--accent-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.wired-unwire {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: var(--transition-colors);
+}
+
+.wired-unwire:hover {
+  color: var(--err);
+  background: var(--err-subtle);
 }
 
 /* ── Output dot / preview trigger ────────────────────────────────────────── */
