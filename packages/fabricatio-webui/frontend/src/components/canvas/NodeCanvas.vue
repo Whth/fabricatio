@@ -32,9 +32,6 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
 
-/** Field-source handles are namespaced so they never collide with output ports. */
-const FIELD_PREFIX = 'field:'
-
 /** True if wiring source → target would close a cycle (target already reaches source). */
 function wouldCreateCycle(source: string, target: string): boolean {
   const adjacency = new Map<string, string[]>()
@@ -80,12 +77,10 @@ const {
     }
     const sData = sourceNode.data as unknown as FabricatioNodeData
     const tData = targetNode.data as unknown as FabricatioNodeData
-    // Source side: an output port, or a field-source handle ("field:<name>") that
-    // emits the field's effective value (manual config or its own wired input).
+    // Source side: only action output ports are valid sources; fields are
+    // targets only, so a field's value always comes from an action output.
     const srcHandle = connection.sourceHandle ?? ''
-    const out = srcHandle.startsWith(FIELD_PREFIX)
-      ? sData?.configFields?.find((p) => p.name === srcHandle.slice(FIELD_PREFIX.length))
-      : sData?.outputPorts?.find((p: { name: string }) => p.name === srcHandle)
+    const out = sData?.outputPorts?.find((p: { name: string }) => p.name === srcHandle)
     const inp = tData?.inputPorts?.find((p: { name: string }) => p.name === connection.targetHandle)
     const cfg = tData?.configFields?.find((p: { name: string }) => p.name === connection.targetHandle)
     if (!out || (!inp && !cfg)) {
@@ -96,8 +91,7 @@ const {
     if (!out || !targetPort) return false
     const s = out.type
     const t = targetPort.type
-    // 'Any' and 'Union' are wildcards: the registry cannot enumerate union
-    // members, and field values are plain data parsed into the target.
+    // 'Any' and 'Union' are wildcards: the registry cannot enumerate union members.
     const compatible = s === 'Any' || s === 'Union' || t === 'Any' || t === 'Union' || s === t
     if (!compatible) lastConnectionError.value = `Type mismatch: ${s} → ${t}`
     if (!compatible) return false

@@ -41,7 +41,7 @@ function wiredSource(field: string): string {
   const sourceNode = wfStore.nodes.find((n) => n.id === edge.source)
   const port =
     edge.sourceHandle && edge.sourceHandle !== 'default'
-      ? `.${edge.sourceHandle.replace(/^field:/, '')}`
+      ? `.${edge.sourceHandle}`
       : ''
   return `${sourceNode?.data?.title ?? edge.source}${port}`
 }
@@ -108,12 +108,11 @@ const statusLabel = computed(() => {
     <!-- Body -->
     <div v-if="!(collapsible && collapsed)" class="node-body">
     <!-- Connectable fields: every configurable field is an input port with
-         its own target handle AND a hollow field-source handle on the same
-         row.  Dragging out of the source dot wires the field's effective
-         value (manual config or its own wired input) into another field.
-         Handles flow inline in the row (port-handle-inline) — VueFlow's
-         default left/right classes would stack every handle at the node's
-         vertical center. -->
+         its own target handle.  Fields are targets only — the only sources
+         are the node's output ports, so a field's value always comes from
+         an action output (or manual config).  Handles flow inline in the
+         row (port-handle-inline) — VueFlow's default left/right classes
+         would stack every handle at the node's vertical center. -->
     <div class="port-col inputs">
       <div v-for="f in data.configFields" :key="f.name" class="port-row input">
         <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle port-handle-inline" />
@@ -126,13 +125,6 @@ const statusLabel = computed(() => {
         <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
           {{ f.name }} ← {{ wiredSource(f.name) }}
         </span>
-        <Handle
-          :id="`field:${f.name}`"
-          type="source"
-          :position="Position.Right"
-          class="port-handle port-handle-inline field-source hollow"
-          :title="`Wire out ${f.name}`"
-        />
       </div>
 
       <!-- Defensive: any input port the registry does not expose as a config field -->
@@ -374,10 +366,6 @@ const statusLabel = computed(() => {
 .port-row.input .wired-field {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.field-source {
-  margin-left: var(--ctrl-gap);
 }
 
 /* NOTE: never override `transform` here — VueFlow positions handles with
