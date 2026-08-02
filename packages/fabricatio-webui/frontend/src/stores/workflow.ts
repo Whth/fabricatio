@@ -159,8 +159,36 @@ export const useWorkflowStore = defineStore('workflow', () => {
     return `${type}_${nodeIdCounter.value}`
   }
 
+  /** Refresh every node's registry-derived fields (ports, widgets, category)
+      from the live node registry. The registry is the source of truth;
+      stored snapshots (draft / board) only carry layout + config, so a stale
+      draft must not freeze old widget hints or port lists. */
+  function hydrateNodeDefs() {
+    const registry = new Map(nodeTypes.value.map((t) => [t.type, t]))
+    nodes.value = nodes.value.map((n) => {
+      const def = registry.get(n.data?.nodeType ?? '')
+      if (!def) return n
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          title: n.data?.title ?? def.title,
+          description: def.description,
+          category: def.category,
+          inputPorts: def.input_ports,
+          outputPorts: def.output_ports,
+          capabilities: def.capabilities,
+          configFields: def.config_fields,
+        },
+      }
+    })
+  }
+
   async function loadNodeTypes() {
     nodeTypes.value = await api.getNodes()
+    // restoreDraft() runs at store init, before the registry arrives;
+    // refresh the draft nodes' definitions now that it is live.
+    hydrateNodeDefs()
   }
 
   function addNode(typeDef: NodeTypeDefinition, position: { x: number; y: number }) {
