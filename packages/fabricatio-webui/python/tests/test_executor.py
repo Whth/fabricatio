@@ -1,7 +1,7 @@
 """Tests for the role/workflow/task execution machinery."""
 
 import asyncio
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from pydantic import Field
@@ -88,6 +88,27 @@ class NullStep(Action):
 
     async def _execute(self, **cxt: Any) -> Any:
         return None
+
+
+class OverrideStep(Action):
+    """Action with ctx_override: the framework seeds its fields from init_context."""
+
+    value: str = "default"
+    output_key: str = "ovr"
+    ctx_override: ClassVar[bool] = True
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return self.value
+
+
+class RequiredStep(Action):
+    """Action with a required field that has NO default — value must come from a wire."""
+
+    required_field: str
+    output_key: str = "req"
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return self.required_field
 
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
@@ -269,6 +290,134 @@ async def test_one_source_fans_out_to_many_fields() -> None:
     )
     out, _task = await _run(wf)
     assert out == {"left": "x", "right": "x"}
+
+
+# ── Field-source edges (drag out of a field) ──────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_field_source_edge_passes_manual_field_value() -> None:
+    """A field-source edge carries the source node's FIELD value, not its output."""
+    wf = _wf(
+        [
+            _node("a", "TwoFieldStep", {"left": "L0", "right": "R0"}),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "a", "source_handle": "field:left", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
+        ],
+    )
+    out, task = await _run(wf)
+    assert task.is_finished()
+    # a's output is a dict; the edge must carry the field value "L0" instead.
+    assert out == "L0"
+
+
+@pytest.mark.asyncio
+async def test_wired_required_field_without_default_is_kept() -> None:
+    """A required field with no default supplied by an edge instantiates leniently
+    and receives the wire value at runtime."""
+    wf = _wf(
+        [
+            _node("a", "EchoStep", {"value": "X"}),
+            _node("b", "RequiredStep", {}),
+            _node("c", "PickStep", {"key": "req"}),
+        ],
+        [
+            {"source": "a", "source_handle": "echo", "target": "b", "target_handle": "required_field"},
+            {"source": "b", "source_handle": "req", "target": "c", "target_handle": "observe"},
+        ],
+    )
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out == "X"
+
+
+@pytest.mark.asyncio
+async def test_unwired_required_field_without_default_still_skips() -> None:
+    """A required field with no default and no wire keeps the node-skip backstop."""
+    wf = _wf(
+        [
+            _node("a", "RequiredStep", {}),
+        ],
+        [],
+    )
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out is None
+
+
+@pytest.mark.asyncio
+async def test_field_source_passthrough_of_wired_value() -> None:
+    """A wired-in field emits its incoming value through a field-source edge."""
+    wf = _wf(
+        [
+            _node("x", "EchoStep", {"value": "X"}),
+            _node("a", "TwoFieldStep", {"left": "L0"}),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "x", "source_handle": "echo", "target": "a", "target_handle": "left"},
+            {"source": "a", "source_handle": "field:left", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
+        ],
+    )
+    out, _task = await _run(wf)
+    # a.left was wired from x, so the field-source edge forwards x's output.
+    assert out == "X"
+
+
+def test_field_source_edge_creates_topo_dependency() -> None:
+    """A field-source edge orders the source before the target regardless of list order."""
+    wf = _wf(
+        [_node("b", "EchoStep", {"value": "default"}), _node("a", "TwoFieldStep", {"left": "L0"})],
+        [
+            {"source": "a", "source_handle": "field:left", "target": "b", "target_handle": "value"},
+        ],
+    )
+    plan = _compile_workflow_plan("test-registry", _workflow_plan_key(wf))
+    assert list(plan.order).index("a") < list(plan.order).index("b")
+
+
+@pytest.mark.asyncio
+async def test_field_source_from_unresolved_node_skips_field() -> None:
+    """A field-source edge whose source never ran leaves the target at its default."""
+    wf = _wf(
+        [
+            _node("ghost", "NoSuchActionClass", {"text": "x"}),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "ghost", "source_handle": "field:text", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
+        ],
+    )
+    out, task = await _run(wf)
+    assert task.is_finished()
+    assert out == "default"
+
+
+@pytest.mark.asyncio
+async def test_field_record_includes_init_context_override() -> None:
+    """ctx_override actions record framework-applied init_context values as field sources."""
+    wf = _wf(
+        [
+            _node("a", "OverrideStep"),
+            _node("b", "EchoStep", {"value": "default"}),
+            _node("c", "PickStep", {"key": "echo"}),
+        ],
+        [
+            {"source": "a", "source_handle": "field:value", "target": "b", "target_handle": "value"},
+            {"source": "b", "source_handle": "echo", "target": "c", "target_handle": "observe"},
+        ],
+        init_context={"value": "seed"},
+    )
+    out, _task = await _run(wf)
+    assert out == "seed"
 
 
 @pytest.mark.asyncio
