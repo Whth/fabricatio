@@ -82,3 +82,53 @@ describe('board store role/workflow targeting', () => {
     expect(store.board.roles[2].workflows.map((w) => w.name)).toEqual(['book', 'book-2'])
   })
 })
+
+describe('board store blueprint drops', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    // Mirror app boot: Default Role + Main workflow.
+    useBoardStore().clear()
+  })
+
+  it('adds a predefined blueprint workflow to the explicit role', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    const wf = store.addBlueprintWorkflow('read-text', 1)
+    expect(wf).not.toBeNull()
+    expect(store.board.roles[1].workflows).toHaveLength(1)
+    expect(wf!.name).toBe('Read a Text File')
+    expect(wf!.namespace).toBe('read-a-text-file')
+    // Blueprint content is preserved (1 ReadText node).
+    expect(wf!.nodes).toHaveLength(1)
+    expect(wf!.nodes[0].type).toBe('ReadText')
+    expect(store.board.roles[0].workflows.map((w) => w.name)).toEqual(['Main'])
+  })
+
+  it('dedupes blueprint name and namespace within the target role', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addBlueprintWorkflow('read-text', 1)
+    store.addBlueprintWorkflow('read-text', 1)
+    const wfs = store.board.roles[1].workflows
+    expect(wfs.map((w) => w.name)).toEqual(['Read a Text File', 'Read a Text File-2'])
+    expect(wfs.map((w) => w.namespace)).toEqual(['read-a-text-file', 'read-a-text-file-2'])
+  })
+
+  it('builds a fresh document per drop', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    store.addBlueprintWorkflow('read-text', 1)
+    store.addBlueprintWorkflow('read-text', 1)
+    const [a, b] = store.board.roles[1].workflows
+    a.nodes[0].id = 'mutated'
+    expect(b.nodes[0].id).toBe('ReadText_1')
+  })
+
+  it('returns null for an unknown blueprint or missing role', () => {
+    const store = useBoardStore()
+    store.addRole('Writer')
+    expect(store.addBlueprintWorkflow('does-not-exist', 1)).toBeNull()
+    expect(store.addBlueprintWorkflow('read-text', 99)).toBeNull()
+    expect(store.board.roles[1].workflows).toHaveLength(0)
+  })
+})

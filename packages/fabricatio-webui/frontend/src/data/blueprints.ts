@@ -6,6 +6,9 @@
 
 import type { WorkflowJSON } from '@/types/api'
 
+/** dataTransfer MIME type used when dragging a blueprint onto a role. */
+export const BLUEPRINT_MIME = 'application/x-fab-blueprint'
+
 export interface Blueprint {
   id: string
   name: string

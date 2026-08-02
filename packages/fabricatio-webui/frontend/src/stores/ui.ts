@@ -53,6 +53,8 @@ export const useUiStore = defineStore('ui', () => {
   const sidebarOpen = ref(false)
   const blueprintOpen = ref(false)
   const workflowsOpen = ref(false)
+  /** Board-layer blueprint rail (predefined workflows, drag onto roles). */
+  const blueprintRailOpen = ref(true)
   /** Run/publish task dialog (opened by toolbar, hotkeys, and palette). */
   const runDialogOpen = ref(false)
   const runDialogMode = ref<'workflow' | 'publish'>('workflow')
@@ -95,6 +97,10 @@ export const useUiStore = defineStore('ui', () => {
     workflowsOpen.value = !workflowsOpen.value
   }
 
+  function toggleBlueprintRail() {
+    blueprintRailOpen.value = !blueprintRailOpen.value
+  }
+
   function openRunDialog(mode: 'workflow' | 'publish' = 'workflow') {
     runDialogMode.value = mode
     runDialogOpen.value = true
@@ -110,6 +116,7 @@ export const useUiStore = defineStore('ui', () => {
     sidebarOpen,
     blueprintOpen,
     workflowsOpen,
+    blueprintRailOpen,
     runDialogOpen,
     runDialogMode,
     consoleExpanded,
@@ -119,6 +126,7 @@ export const useUiStore = defineStore('ui', () => {
     toggleSidebar,
     toggleBlueprint,
     toggleWorkflows,
+    toggleBlueprintRail,
     openRunDialog,
     toggleConsole,
   }

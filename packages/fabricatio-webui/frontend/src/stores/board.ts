@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { ActionDefJSON, BoardJSON, NodeTypeDefinition, PortDefinition, RoleJSON, WorkflowJSON } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
+import { BLUEPRINTS } from '@/data/blueprints'
 
 /**
  * The board document: roles with their workflows, plus board-level custom
@@ -47,6 +48,15 @@ function newWorkflow(name: string, namespace: string): WorkflowJSON {
     edges: [],
     init_context: {},
   }
+}
+
+/** Turn a workflow name into a namespace pattern ('Read a Text File' → 'read-a-text-file'). */
+function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 export const useBoardStore = defineStore('board', () => {
@@ -178,6 +188,25 @@ export const useBoardStore = defineStore('board', () => {
     return true
   }
 
+  /** Add a package-predefined blueprint workflow (drag from the sidebar) to a
+   *  specific role. The name is deduped in the target role; the namespace is
+   *  the slugified deduped name so the role serves a unique task pattern.
+   *  Returns the new workflow, or null for an unknown blueprint or role. */
+  function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJSON | null {
+    const role = board.value.roles[roleIndex]
+    const bp = BLUEPRINTS.find((b) => b.id === blueprintId)
+    if (!role || !bp) return null
+    const wf = bp.build()
+    const names = new Set(role.workflows.map((w) => w.name))
+    let name = bp.name
+    let n = 2
+    while (names.has(name)) name = `${bp.name}-${n++}`
+    wf.name = name
+    wf.namespace = slugify(name)
+    role.workflows.push(wf)
+    return wf
+  }
+
   // ── Custom action definitions ─────────────────────────────────────────────
 
   /** Merge board-level custom action defs into the editor's node-type list. */
@@ -302,6 +331,7 @@ export const useBoardStore = defineStore('board', () => {
     addWorkflow,
     removeWorkflow,
     copyWorkflow,
+    addBlueprintWorkflow,
     commitActiveWorkflow,
     upsertActionDef,
     removeActionDef,

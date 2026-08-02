@@ -8,6 +8,7 @@ import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import RoleNode from './RoleNode.vue'
 import CodegenDialog from '@/components/board/CodegenDialog.vue'
+import BlueprintSidebar from '@/components/board/BlueprintSidebar.vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { Plus, X } from '@lucide/vue'
 
@@ -114,6 +115,9 @@ function onRoleCode(index: number) {
       :role-index="boardStore.codegenRoleIndex"
       @close="boardStore.codegenRoleIndex = null"
     />
+
+    <!-- Predefined workflows, draggable onto role nodes -->
+    <BlueprintSidebar />
   </div>
 </template>
 

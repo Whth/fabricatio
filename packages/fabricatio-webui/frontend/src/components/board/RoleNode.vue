@@ -4,6 +4,7 @@ import { Handle, Position } from '@vue-flow/core'
 import type { RoleJSON } from '@/types/api'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
+import { BLUEPRINT_MIME } from '@/data/blueprints'
 import { Plus, Trash2, Code2, Copy } from '@lucide/vue'
 
 const props = defineProps<{ id: string; data: any }>()
@@ -21,6 +22,38 @@ const copyMenuFor = ref<number | null>(null)
 const otherRoles = computed(() =>
   boardStore.board.roles.map((r, i) => ({ role: r, index: i })).filter((x) => x.index !== index.value),
 )
+
+/** Blueprint drag-over depth counter (dragenter/dragleave fire per child). */
+const dragDepth = ref(0)
+const dragOver = computed(() => dragDepth.value > 0)
+
+function onDragEnter(ev: DragEvent) {
+  if (ev.dataTransfer?.types.includes(BLUEPRINT_MIME)) dragDepth.value++
+}
+
+function onDragOver(ev: DragEvent) {
+  if (ev.dataTransfer?.types.includes(BLUEPRINT_MIME)) {
+    ev.preventDefault()
+    ev.dataTransfer.dropEffect = 'copy'
+  }
+}
+
+function onDragLeave() {
+  dragDepth.value = Math.max(0, dragDepth.value - 1)
+}
+
+function onDrop(ev: DragEvent) {
+  dragDepth.value = 0
+  const id = ev.dataTransfer?.getData(BLUEPRINT_MIME)
+  if (!id) return
+  const wf = boardStore.addBlueprintWorkflow(id, index.value)
+  if (wf) {
+    notifications.success(
+      'Workflow added',
+      `"${wf.name}" added to "${role.value.name}" — double-click the role to edit it`,
+    )
+  }
+}
 
 function patternOf(ns: string | undefined): string {
   const clean = (ns ?? '').trim().replace(/^:+|:+$/g, '')
@@ -74,7 +107,15 @@ function remove() {
 </script>
 
 <template>
-  <div class="role-node nodrag" @dblclick.stop="open">
+  <div
+    class="role-node nodrag"
+    :class="{ 'drag-over': dragOver }"
+    @dblclick.stop="open"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <div class="role-title">
       <span class="role-name">{{ role.name }}</span>
       <span class="role-count">{{ role.workflows?.length ?? 0 }} workflow(s)</span>
@@ -153,6 +194,11 @@ function remove() {
 .role-node:hover {
   border-color: var(--accent);
   box-shadow: var(--shadow-sm);
+}
+
+.role-node.drag-over {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
 }
 
 .role-title {
