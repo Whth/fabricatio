@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { RoleJSON } from '@/types/api'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
-import { Plus, Trash2, Code2 } from '@lucide/vue'
+import { Plus, Trash2, Code2, Copy } from '@lucide/vue'
 
 const props = defineProps<{ id: string; data: any }>()
 
@@ -13,6 +13,14 @@ const notifications = useNotificationsStore()
 
 const index = computed(() => props.data?.roleIndex as number)
 const role = computed<RoleJSON>(() => props.data?.role ?? { name: '?', workflows: [] })
+
+/** Workflow index whose copy-to-role menu is open (null = closed). */
+const copyMenuFor = ref<number | null>(null)
+
+/** Other roles, with their real board indices. */
+const otherRoles = computed(() =>
+  boardStore.board.roles.map((r, i) => ({ role: r, index: i })).filter((x) => x.index !== index.value),
+)
 
 function patternOf(ns: string | undefined): string {
   const clean = (ns ?? '').trim().replace(/^:+|:+$/g, '')
@@ -30,6 +38,28 @@ function addWorkflow() {
   boardStore.addWorkflow(wfName, wfName, index.value)
   notifications.success('Workflow added', `"${wfName}" — double-click the role to edit it`)
 }
+
+function toggleCopy(wfIndex: number) {
+  copyMenuFor.value = copyMenuFor.value === wfIndex ? null : wfIndex
+}
+
+function doCopy(wfIndex: number, targetIndex: number) {
+  const wf = role.value.workflows?.[wfIndex]
+  const ok = boardStore.copyWorkflow(index.value, wfIndex, targetIndex)
+  copyMenuFor.value = null
+  if (ok && wf) {
+    const target = boardStore.board.roles[targetIndex]
+    notifications.success('Workflow copied', `"${wf.name}" → "${target.name}"`)
+  }
+}
+
+/** Close the copy menu when clicking outside any workflow chip. */
+function onDocClick(ev: MouseEvent) {
+  if (copyMenuFor.value === null) return
+  if (!(ev.target as HTMLElement).closest('.wf-chip')) copyMenuFor.value = null
+}
+onMounted(() => document.addEventListener('click', onDocClick))
+onUnmounted(() => document.removeEventListener('click', onDocClick))
 
 function showCode() {
   boardStore.codegenRoleIndex = index.value
@@ -53,9 +83,38 @@ function remove() {
     <div v-if="role.description" class="role-desc">{{ role.description }}</div>
 
     <div class="role-workflows">
-      <div v-for="(wf, i) in role.workflows ?? []" :key="i" class="wf-chip" :title="patternOf(wf.namespace)">
-        <span class="wf-name">{{ wf.name ?? '(unnamed)' }}</span>
+      <div
+        v-for="(wf, i) in role.workflows ?? []"
+        :key="i"
+        class="wf-chip"
+        :title="patternOf(wf.namespace)"
+      >
+        <div class="wf-row">
+          <span class="wf-name">{{ wf.name ?? '(unnamed)' }}</span>
+          <button
+            class="wf-copy"
+            :class="{ open: copyMenuFor === i }"
+            title="Copy to another role"
+            @click.stop="toggleCopy(i)"
+            @dblclick.stop
+          >
+            <Copy :size="11" />
+          </button>
+        </div>
         <code class="wf-pattern">{{ patternOf(wf.namespace) }}</code>
+        <div v-if="copyMenuFor === i" class="copy-menu" @click.stop @dblclick.stop>
+          <div class="copy-menu-title">Copy to role</div>
+          <button
+            v-for="target in otherRoles"
+            :key="target.index"
+            class="copy-target"
+            @click="doCopy(i, target.index)"
+          >
+            <span class="copy-target-name">{{ target.role.name }}</span>
+            <span class="copy-target-count">{{ target.role.workflows?.length ?? 0 }}</span>
+          </button>
+          <div v-if="otherRoles.length === 0" class="copy-menu-empty">No other roles</div>
+        </div>
       </div>
       <div v-if="!role.workflows?.length" class="wf-empty">No workflows — double-click to edit, add one below.</div>
     </div>
@@ -131,6 +190,7 @@ function remove() {
 }
 
 .wf-chip {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -140,10 +200,109 @@ function remove() {
   padding: var(--sp-1) var(--sp-2);
 }
 
+.wf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
 .wf-name {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: var(--text-xs);
   color: var(--fg-0);
   font-weight: var(--weight-medium);
+}
+
+.wf-copy {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  color: var(--fg-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.wf-copy:hover,
+.wf-copy.open {
+  background: var(--bg-3);
+  color: var(--accent);
+}
+
+.copy-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 180px;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1);
+  box-shadow: var(--shadow-md);
+}
+
+.copy-menu-title {
+  font-size: var(--text-2xs);
+  color: var(--fg-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px var(--sp-1) 4px;
+}
+
+.copy-target {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px var(--sp-1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.copy-target:hover {
+  background: var(--bg-3);
+}
+
+.copy-target-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--fg-0);
+}
+
+.copy-target-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--text-2xs);
+  color: var(--fg-2);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 0 6px;
+}
+
+.copy-menu-empty {
+  font-size: var(--text-2xs);
+  color: var(--fg-2);
+  font-style: italic;
+  padding: 4px var(--sp-1);
 }
 
 .wf-pattern {

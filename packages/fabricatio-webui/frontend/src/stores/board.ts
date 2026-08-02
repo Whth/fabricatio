@@ -153,6 +153,31 @@ export const useBoardStore = defineStore('board', () => {
     wf.edges = saved.edges
   }
 
+  /** Clone a workflow from one role into another (deep copy). The namespace is
+   *  kept so the target role serves the same task pattern; the name is deduped
+   *  in the target. Returns false when either role/workflow is missing or the
+   *  target is the source role. */
+  function copyWorkflow(
+    sourceRoleIndex: number,
+    workflowIndex: number,
+    targetRoleIndex: number,
+  ): boolean {
+    const source = board.value.roles[sourceRoleIndex]
+    const target = board.value.roles[targetRoleIndex]
+    const wf = source?.workflows[workflowIndex]
+    if (!source || !target || !wf || sourceRoleIndex === targetRoleIndex) return false
+    // JSON round-trip: the board document is JSON by definition, and
+    // structuredClone cannot clone Vue reactive proxies.
+    const copy: WorkflowJSON = JSON.parse(JSON.stringify(wf))
+    const names = new Set(target.workflows.map((w) => w.name))
+    let name = copy.name
+    let n = 2
+    while (names.has(name)) name = `${copy.name}-${n++}`
+    copy.name = name
+    target.workflows.push(copy)
+    return true
+  }
+
   // ── Custom action definitions ─────────────────────────────────────────────
 
   /** Merge board-level custom action defs into the editor's node-type list. */
@@ -276,6 +301,7 @@ export const useBoardStore = defineStore('board', () => {
     removeRole,
     addWorkflow,
     removeWorkflow,
+    copyWorkflow,
     commitActiveWorkflow,
     upsertActionDef,
     removeActionDef,
