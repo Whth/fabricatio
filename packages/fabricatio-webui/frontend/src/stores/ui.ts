@@ -52,6 +52,7 @@ export const useUiStore = defineStore('ui', () => {
   const paletteOpen = ref(false)
   const sidebarOpen = ref(false)
   const blueprintOpen = ref(false)
+  const workflowsOpen = ref(false)
   /** Live console expanded state; initialised from settings. */
   const consoleExpanded = ref(settings.value.consoleDefaultOpen)
 
@@ -87,6 +88,10 @@ export const useUiStore = defineStore('ui', () => {
     blueprintOpen.value = !blueprintOpen.value
   }
 
+  function toggleWorkflows() {
+    workflowsOpen.value = !workflowsOpen.value
+  }
+
   function toggleConsole() {
     consoleExpanded.value = !consoleExpanded.value
   }
@@ -96,12 +101,14 @@ export const useUiStore = defineStore('ui', () => {
     paletteOpen,
     sidebarOpen,
     blueprintOpen,
+    workflowsOpen,
     consoleExpanded,
     setSetting,
     togglePalette,
     closePalette,
     toggleSidebar,
     toggleBlueprint,
+    toggleWorkflows,
     toggleConsole,
   }
 })

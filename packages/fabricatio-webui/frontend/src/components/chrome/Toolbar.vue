@@ -6,23 +6,29 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
-import { api } from '@/api/client'
-import type { WorkflowMeta } from '@/types/api'
 import { BLUEPRINTS, type Blueprint } from '@/data/blueprints'
-import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings } from '@lucide/vue'
+import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings, BookOpen } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
 const notifications = useNotificationsStore()
 const uiStore = useUiStore()
 const { connected } = useWebSocket()
-const { saveWorkflow, runWorkflow, interruptWorkflow, isSaving } = useAppActions()
+const {
+  saveWorkflow,
+  runWorkflow,
+  interruptWorkflow,
+  isSaving,
+  savedWorkflows,
+  isLoadingWorkflows,
+  refreshWorkflows,
+  loadWorkflowById,
+  deleteWorkflowById,
+} = useAppActions()
 
 const isEditingName = ref(false)
 const editingName = ref('')
 const loadOpen = ref(false)
-const isLoading = ref(false)
-const savedWorkflows = ref<Array<{ id: string; name: string; nodeCount: number; meta?: WorkflowMeta }>>([])
 const blueprints = BLUEPRINTS
 
 function startEditName() {
@@ -46,51 +52,24 @@ async function handleSave() {
 }
 
 async function toggleLoad() {
-  if (isLoading.value) return
+  if (isLoadingWorkflows.value) return
   if (loadOpen.value) {
     loadOpen.value = false
     return
   }
-  isLoading.value = true
-  try {
-    const workflows = await api.getWorkflows()
-    savedWorkflows.value = workflows.map((wf) => ({
-      id: wf.id ?? wf.name ?? crypto.randomUUID(),
-      name: wf.name ?? 'Untitled',
-      nodeCount: wf.nodes?.length ?? 0,
-      meta: wf.meta,
-    }))
-    loadOpen.value = true
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    notifications.error('Failed to load workflows', message)
-  } finally {
-    isLoading.value = false
-  }
+  await refreshWorkflows().catch(() => {
+    /* error already surfaced by the api client */
+  })
+  loadOpen.value = true
 }
 
-async function loadWorkflowById(id: string) {
+async function handleLoadWorkflow(id: string) {
   loadOpen.value = false
-  try {
-    const wf = await api.getWorkflow(id)
-    wfStore.clear()
-    await wfStore.fromJSON(wf)
-    notifications.success('Workflow loaded', `"${wf.name ?? id}" loaded with ${wf.nodes?.length ?? 0} nodes`)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    notifications.error('Failed to load workflow', message)
-  }
+  await loadWorkflowById(id)
 }
 
-async function deleteWorkflowById(id: string) {
-  try {
-    await api.deleteWorkflow(id)
-    savedWorkflows.value = savedWorkflows.value.filter((w) => w.id !== id)
-    notifications.success('Deleted')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    notifications.error('Failed to delete workflow', message)
-  }
+async function handleDeleteWorkflow(id: string) {
+  await deleteWorkflowById(id)
 }
 
 function handleRun() {
@@ -154,16 +133,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           <div v-if="loadOpen" class="load-menu" @mousedown.stop>
             <div v-if="savedWorkflows.length === 0" class="load-empty">No saved workflows</div>
             <div v-for="wf in savedWorkflows" :key="wf.id" class="load-item">
-              <button class="load-name" @click="loadWorkflowById(wf.id)">
+              <button class="load-name" @click="handleLoadWorkflow(wf.id)">
                 {{ wf.name }}
                 <span class="load-count">{{ wf.nodeCount }} nodes</span>
               </button>
-              <button class="load-delete" title="Delete workflow" @click="deleteWorkflowById(wf.id)">
+              <button class="load-delete" title="Delete workflow" @click="handleDeleteWorkflow(wf.id)">
                 <Trash2 :size="12" />
               </button>
             </div>
           </div>
         </div>
+
+        <button
+          class="btn btn-icon"
+          title="Saved workflows"
+          :class="{ active: uiStore.workflowsOpen }"
+          @click="uiStore.toggleWorkflows()"
+        >
+          <BookOpen :size="16" />
+        </button>
 
         <div class="bp-wrap">
           <button
