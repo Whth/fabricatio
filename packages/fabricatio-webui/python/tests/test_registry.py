@@ -1,11 +1,11 @@
 """Tests for registry widget hints, versions, and executor previews."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from fabricatio_core.models.action import Action
 from fabricatio_webui.executor import _preview
-from fabricatio_webui.registry import _widget_hint, build_node_registry, migrate_workflow
+from fabricatio_webui.registry import _type_to_port_type, _widget_hint, build_node_registry, migrate_workflow
 from pydantic import Field
 
 
@@ -44,6 +44,40 @@ def test_widget_hint_table() -> None:
     assert _widget_hint(Any, True, None)["widget"] == "json"
     optional = _widget_hint(Optional[str], True, None)
     assert optional["widget"] == "text"
+
+
+def test_widget_hint_pep604_unions() -> None:
+    """PEP 604 unions (X | None) unwrap like typing.Optional instead of
+    falling through to the JSON textarea catch-all."""
+    assert _widget_hint(str | None, True, None)["widget"] == "text"
+    assert _widget_hint(float | None, True, 0.5)["widget"] == "number"
+    assert _widget_hint(Optional[str | Path], True, None)["widget"] == "text"
+    assert _widget_hint(Optional[Literal["fast", "slow"]], True, "fast")["widget"] == "combo"
+
+
+def test_widget_hint_annotated_constraints() -> None:
+    """Annotated[float, Field(ge=..., le=...)] renders a bounded number input."""
+    hint = _widget_hint(Optional[Annotated[float, Field(ge=0.0, le=1.0)]], True, 0.5)
+    assert hint["widget"] == "number"
+    assert hint["min"] == 0.0
+    assert hint["max"] == 1.0
+
+
+def test_widget_hint_pydantic_constrained_types() -> None:
+    """Pydantic constrained types expose bounds directly in __metadata__."""
+    from pydantic import NonNegativeFloat, NonPositiveFloat
+
+    hint = _widget_hint(Optional[NonNegativeFloat], True, None)
+    assert hint["widget"] == "number"
+    assert hint["min"] == 0
+    assert _widget_hint(Optional[NonPositiveFloat], True, None)["max"] == 0
+
+
+def test_port_type_unwraps_pep604_and_annotated() -> None:
+    """Type strings unwrap optional/Annotated instead of leaking typing internals."""
+    assert _type_to_port_type(float | None) == "float?"
+    assert _type_to_port_type(Optional[str | Path]) == "Union"
+    assert _type_to_port_type(Optional[Annotated[float, Field(ge=0.0, le=1.0)]]) == "float?"
 
 
 def test_registry_entries_carry_schema_version_and_registry_version() -> None:

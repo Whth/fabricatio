@@ -10,7 +10,19 @@ import json
 from collections import deque
 from functools import cache
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Set, Type, Union, get_args, get_origin
+from types import UnionType
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    List,
+    Literal,
+    Set,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
@@ -92,10 +104,18 @@ def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
         if origin is type(None) or origin is None:
             return "None"
 
-        if origin_name == "Optional" or (origin is Union and len(args) == 2 and type(None) in args):
-            inner = next(a for a in args if a is not type(None))
-            inner_str = _type_to_port_type(inner)
-            return f"{inner_str}?"
+        if origin in (Union, UnionType) and args:
+            non_none = [a for a in args if a is not type(None)]
+            if len(non_none) == 1:
+                return f"{_type_to_port_type(non_none[0])}?"
+            if non_none:
+                # Multi-member union (e.g. str | Path): the registry cannot
+                # enumerate members — keep the wildcard so any output fits.
+                return "Union"
+            return "None"
+
+        if origin is Annotated and args:
+            return _type_to_port_type(args[0])
 
         if origin_name in ("list", "List"):
             if args:
@@ -129,11 +149,23 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:  
     origin = get_origin(ann)
     args = get_args(ann) if origin is not None else ()
 
-    # Optional[T] -> T, required=False
-    if origin is Union and len(args) == 2 and type(None) in args:
-        inner = next(a for a in args if a is not type(None))
-        hint = _widget_hint(inner, has_default, default)
-        hint["required"] = False
+    # Optional[T] / T | None -> T; multi-member unions -> first non-None member.
+    # Both typing.Union and PEP 604 (types.UnionType) must unwrap — the latter
+    # used to fall through to the JSON catch-all and render as a textarea.
+    if origin in (Union, UnionType) and args:
+        non_none = [a for a in args if a is not type(None)]
+        if non_none:
+            hint = _widget_hint(non_none[0], has_default, default)
+            if type(None) in args:
+                hint["required"] = False
+            return hint
+
+    # Annotated[T, Field(...)] -> T; pydantic moves Field() bounds into
+    # FieldInfo.metadata as annotated_types Ge/Le/Gt/Lt/MultipleOf objects.
+    if origin is Annotated and args:
+        hint = _widget_hint(args[0], has_default, default)
+        if hint.get("widget") == "number":
+            _apply_number_constraints(hint, ann)
         return hint
 
     if origin is Literal:
@@ -161,6 +193,31 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:  
 
     # Anything else / unresolvable
     return {"widget": "json"}
+
+
+def _apply_number_constraints(hint: Dict[str, Any], ann: Any) -> None:
+    """Copy numeric bounds from Annotated metadata into a hint.
+
+    Constraints arrive in two shapes: ``Annotated[float, Field(ge=…)]``
+    wraps a FieldInfo whose ``.metadata`` holds annotated_types objects,
+    while pydantic constrained types (``NonNegativeFloat`` = ``Annotated[
+    float, Ge(0)]``) put the Ge/Le/Gt/Lt/MultipleOf objects directly in
+    ``__metadata__``. The frontend number widget renders them as
+    min/max/step.
+    """
+    for meta in getattr(ann, "__metadata__", ()):
+        items = getattr(meta, "metadata", ()) if isinstance(meta, FieldInfo) else (meta,)
+        for c in items:
+            if hasattr(c, "ge") and "min" not in hint:
+                hint["min"] = c.ge
+            if hasattr(c, "gt") and "min" not in hint:
+                hint["min"] = c.gt
+            if hasattr(c, "le") and "max" not in hint:
+                hint["max"] = c.le
+            if hasattr(c, "lt") and "max" not in hint:
+                hint["max"] = c.lt
+            if hasattr(c, "multiple_of") and "step" not in hint:
+                hint["step"] = c.multiple_of
 
 
 def _annotation_to_schema(ann: Any) -> Dict[str, Any]:
