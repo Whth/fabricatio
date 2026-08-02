@@ -39,7 +39,10 @@ function wiredSource(field: string): string {
   )
   if (!edge) return 'unknown'
   const sourceNode = wfStore.nodes.find((n) => n.id === edge.source)
-  const port = edge.sourceHandle && edge.sourceHandle !== 'default' ? `.${edge.sourceHandle}` : ''
+  const port =
+    edge.sourceHandle && edge.sourceHandle !== 'default'
+      ? `.${edge.sourceHandle.replace(/^field:/, '')}`
+      : ''
   return `${sourceNode?.data?.title ?? edge.source}${port}`
 }
 
@@ -105,11 +108,15 @@ const statusLabel = computed(() => {
     <!-- Body -->
     <div v-if="!(collapsible && collapsed)" class="node-body">
     <!-- Connectable fields: every configurable field is an input port with
-         exactly one target handle (inputPorts ≡ configFields in the
-         registry; the bare-port rows used to duplicate handle ids). -->
+         its own target handle AND a hollow field-source handle on the same
+         row.  Dragging out of the source dot wires the field's effective
+         value (manual config or its own wired input) into another field.
+         Handles flow inline in the row (port-handle-inline) — VueFlow's
+         default left/right classes would stack every handle at the node's
+         vertical center. -->
     <div class="port-col inputs">
       <div v-for="f in data.configFields" :key="f.name" class="port-row input">
-        <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle" />
+        <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle port-handle-inline" />
         <NodeWidget
           v-if="!incomingHandles.has(f.name)"
           :field="f"
@@ -117,8 +124,15 @@ const statusLabel = computed(() => {
           @update:model-value="updateField(f, $event)"
         />
         <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
-          ← {{ wiredSource(f.name) }}
+          {{ f.name }} ← {{ wiredSource(f.name) }}
         </span>
+        <Handle
+          :id="`field:${f.name}`"
+          type="source"
+          :position="Position.Right"
+          class="port-handle port-handle-inline field-source hollow"
+          :title="`Wire out ${f.name}`"
+        />
       </div>
 
       <!-- Defensive: any input port the registry does not expose as a config field -->
@@ -339,6 +353,31 @@ const statusLabel = computed(() => {
 .port-handle.hollow {
   background: transparent;
   border-color: var(--fg-2);
+}
+
+/* Per-field handles sit inside their row, not at the node edge: VueFlow's
+   default left/right placement centers every handle of a side at the same
+   spot (top: 50%), so multi-field nodes would stack all dots on one point.
+   In-flow handles keep each dot on its own row; VueFlow measures the DOM
+   rects for edge routing, so wires follow the dots. */
+.port-row .port-handle-inline {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.port-row.input .node-widget,
+.port-row.input .wired-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-source {
+  margin-left: var(--ctrl-gap);
 }
 
 /* NOTE: never override `transform` here — VueFlow positions handles with

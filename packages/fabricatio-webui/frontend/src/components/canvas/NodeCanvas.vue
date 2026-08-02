@@ -32,6 +32,31 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
 
+/** Field-source handles are namespaced so they never collide with output ports. */
+const FIELD_PREFIX = 'field:'
+
+/** True if wiring source → target would close a cycle (target already reaches source). */
+function wouldCreateCycle(source: string, target: string): boolean {
+  const adjacency = new Map<string, string[]>()
+  for (const e of wfStore.edges) {
+    if (!adjacency.has(e.source)) adjacency.set(e.source, [])
+    adjacency.get(e.source)!.push(e.target)
+  }
+  const seen = new Set<string>([target])
+  const queue = [target]
+  while (queue.length > 0) {
+    const cur = queue.shift()!
+    for (const next of adjacency.get(cur) ?? []) {
+      if (next === source) return true
+      if (!seen.has(next)) {
+        seen.add(next)
+        queue.push(next)
+      }
+    }
+  }
+  return false
+}
+
 const {
   onConnect,
   screenToFlowCoordinate,
@@ -55,7 +80,12 @@ const {
     }
     const sData = sourceNode.data as unknown as FabricatioNodeData
     const tData = targetNode.data as unknown as FabricatioNodeData
-    const out = sData?.outputPorts?.find((p: { name: string }) => p.name === connection.sourceHandle)
+    // Source side: an output port, or a field-source handle ("field:<name>") that
+    // emits the field's effective value (manual config or its own wired input).
+    const srcHandle = connection.sourceHandle ?? ''
+    const out = srcHandle.startsWith(FIELD_PREFIX)
+      ? sData?.configFields?.find((p) => p.name === srcHandle.slice(FIELD_PREFIX.length))
+      : sData?.outputPorts?.find((p: { name: string }) => p.name === srcHandle)
     const inp = tData?.inputPorts?.find((p: { name: string }) => p.name === connection.targetHandle)
     const cfg = tData?.configFields?.find((p: { name: string }) => p.name === connection.targetHandle)
     if (!out || (!inp && !cfg)) {
@@ -66,9 +96,16 @@ const {
     if (!out || !targetPort) return false
     const s = out.type
     const t = targetPort.type
-    const compatible = s === 'Any' || t === 'Any' || s === t
+    // 'Any' and 'Union' are wildcards: the registry cannot enumerate union
+    // members, and field values are plain data parsed into the target.
+    const compatible = s === 'Any' || s === 'Union' || t === 'Any' || t === 'Union' || s === t
     if (!compatible) lastConnectionError.value = `Type mismatch: ${s} → ${t}`
-    return compatible
+    if (!compatible) return false
+    if (wouldCreateCycle(connection.source!, connection.target!)) {
+      lastConnectionError.value = 'Would create a cycle'
+      return false
+    }
+    return true
   },
 })
 
