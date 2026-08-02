@@ -28,6 +28,7 @@ from pydantic.fields import FieldInfo
 
 # Task-scoped storage keys (namespaced away from user keys).
 _OUTPUTS_KEY = "__webui_node_outputs__"
+_FIELDS_KEY = "__webui_node_fields__"  # {node_id: {field: effective value}}
 _EXECUTION_ID_KEY = "__webui_execution_id__"
 _ERRORS_KEY = "__webui_errors__"
 
@@ -254,14 +255,15 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
             continue
 
         config: Dict[str, Any] = dict(node.get("config", {}))
+        wired = tuple(incoming.get(nid, []))
 
         try:
-            cls(**config)
+            _instantiate_action(cls, config, wired)
         except Exception as exc:  # noqa: BLE001
             logger.error(f"Failed to instantiate {type_name!r} for node {nid!r}: {exc!r}; skipping.")
             continue
 
-        nodes[nid] = _NodePlan(cls, config, tuple(incoming.get(nid, [])))
+        nodes[nid] = _NodePlan(cls, config, wired)
         instantiable.add(nid)
 
     order = tuple(_topological_order(instantiable, raw_edges))
@@ -284,7 +286,62 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
 # ---------------------------------------------------------------------------
 
 
-def _make_instrumented(
+def _wired_value(
+    fields_store: Dict[str, Dict[str, Any]],
+    outputs: Dict[str, Any],
+    node_id: str,
+    src_id: str,
+    source_handle: str,
+    tgt_handle: str,
+) -> Tuple[bool, Any]:
+    """Resolve one wired edge's runtime value.
+
+    ``source_handle`` prefixed with ``field:`` reads the source node's
+    recorded effective field value; anything else reads the node's output.
+    Returns ``(found, value)``; missing sources warn and report ``False``.
+    """
+    if source_handle.startswith("field:"):
+        field_name = source_handle[len("field:") :]
+        src_fields = fields_store.get(src_id, {})
+        if field_name not in src_fields:
+            logger.warn(f"Node {node_id}: field {src_id!r}.{field_name!r} not recorded; skipping field {tgt_handle!r}.")
+            return False, None
+        return True, src_fields[field_name]
+    if src_id not in outputs:
+        logger.warn(f"Node {node_id}: output of {src_id!r} not available; skipping field {tgt_handle!r}.")
+        return False, None
+    return True, outputs[src_id]
+
+
+def _instantiate_action(
+    cls: Type[Action],
+    config: Dict[str, Any],
+    wired: Tuple[Tuple[str, str, str], ...],
+) -> Action:
+    """Instantiate a node's action, tolerating required fields that wired
+    edges supply at runtime.
+
+    Strict construction validates the config.  When it fails solely because
+    required fields are missing from the config yet covered by incoming
+    edges (their values are setattr'd in ``_execute`` before the body runs),
+    fall back to the non-validating ``model_construct`` — re-applying
+    ``model_post_init`` — instead of dropping the node from the plan.
+    """
+    try:
+        return cls(**config)
+    except Exception:
+        required_missing = {
+            name for name, field in cls.model_fields.items() if field.is_required() and name not in config
+        }
+        wired_targets = {tgt for _, _, tgt in wired}
+        if required_missing and required_missing <= wired_targets:
+            instance = cls.model_construct(**config)
+            instance.model_post_init(None)
+            return instance
+        raise
+
+
+def _make_instrumented(  # noqa: C901
     real_cls: Type[Action],
     node_id: str,
     wired: Tuple[Tuple[str, str, str], ...],
@@ -303,25 +360,36 @@ def _make_instrumented(
         async def _execute(self, *args: Any, **cxt: Any) -> Any:
             task = cxt.get(INPUT_KEY)
             outputs: Dict[str, Any] = {}
+            fields_store: Dict[str, Dict[str, Any]] = {}
             execution_id: Optional[str] = None
             if isinstance(task, Task):
                 outputs = task.extra_init_context.setdefault(_OUTPUTS_KEY, {})
+                fields_store = task.extra_init_context.setdefault(_FIELDS_KEY, {})
                 execution_id = task.extra_init_context.get(_EXECUTION_ID_KEY)
 
             # Wired edge values are explicit field assignments: applied
             # unconditionally (bodies read ``self.<field>``), regardless of
-            # ctx_override, and injected into the body context.
-            for src_id, _source_handle, tgt_handle in wired:
-                if src_id not in outputs:
-                    logger.warn(f"Node {node_id}: output of {src_id!r} not available; skipping field {tgt_handle!r}.")
+            # ctx_override, and injected into the body context.  A source
+            # handle prefixed with "field:" resolves to the source node's
+            # recorded effective field value (manual config, its own wired
+            # input, or an init_context override) instead of its output.
+            for src_id, source_handle, tgt_handle in wired:
+                found, value = _wired_value(fields_store, outputs, node_id, src_id, source_handle, tgt_handle)
+                if not found:
                     continue
-                value = outputs[src_id]
                 cxt[tgt_handle] = value
                 if tgt_handle in type(self).model_fields:
                     try:
                         setattr(self, tgt_handle, value)
                     except Exception as exc:  # noqa: BLE001
                         logger.debug(f"Could not set wired field {tgt_handle!r} on {class_name!r}: {exc!r}")
+
+            # Record effective field values (after wire-in, before the body)
+            # so field-source edges from this node forward what it takes in.
+            if isinstance(task, Task):
+                fields_store[node_id] = {
+                    name: getattr(self, name) for name in type(self).model_fields if hasattr(self, name)
+                }
 
             await _emit(
                 execution_id,
@@ -405,7 +473,7 @@ def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
         node_plan = plan.nodes[node_id]
         cls = _make_instrumented(node_plan.action_class, node_id, node_plan.wired)
         try:
-            instance = cls(**node_plan.config)
+            instance = _instantiate_action(cls, node_plan.config, node_plan.wired)
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 f"Failed to instantiate {node_plan.action_class.__name__!r} for node {node_id!r}: {exc!r}; skipping."
