@@ -3,22 +3,27 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useAppActions } from '@/composables/useAppActions'
 import { api } from '@/api/client'
 import type { WorkflowMeta } from '@/types/api'
-import { Play, Square, Save, FolderOpen, Trash2 } from '@lucide/vue'
+import { BLUEPRINTS, type Blueprint } from '@/data/blueprints'
+import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
 const notifications = useNotificationsStore()
+const uiStore = useUiStore()
 const { connected } = useWebSocket()
+const { saveWorkflow, runWorkflow, interruptWorkflow, isSaving } = useAppActions()
 
 const isEditingName = ref(false)
 const editingName = ref('')
-const isSaving = ref(false)
 const loadOpen = ref(false)
 const isLoading = ref(false)
 const savedWorkflows = ref<Array<{ id: string; name: string; nodeCount: number; meta?: WorkflowMeta }>>([])
+const blueprints = BLUEPRINTS
 
 function startEditName() {
   editingName.value = wfStore.workflowName
@@ -37,18 +42,7 @@ function cancelEditName() {
 }
 
 async function handleSave() {
-  if (isSaving.value) return
-  isSaving.value = true
-  try {
-    const workflow = wfStore.toJSON()
-    const result = await api.saveWorkflow(workflow)
-    notifications.success('Workflow saved', `"${result.id}" saved with ${workflow.nodes.length} nodes`)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    notifications.error('Failed to save workflow', message)
-  } finally {
-    isSaving.value = false
-  }
+  await saveWorkflow()
 }
 
 async function toggleLoad() {
@@ -100,16 +94,23 @@ async function deleteWorkflowById(id: string) {
 }
 
 function handleRun() {
-  if (execStore.isRunning) return
-  execStore.queuePrompt().catch(() => {
-    /* error already surfaced by the store */
-  })
+  runWorkflow()
 }
 
 function handleStop() {
-  execStore.interrupt().catch(() => {
-    /* error already surfaced by the store */
-  })
+  interruptWorkflow()
+}
+
+async function loadBlueprint(bp: Blueprint) {
+  uiStore.blueprintOpen = false
+  if (wfStore.nodes.length > 0) {
+    const ok = window.confirm(`Replace the current workflow with the "${bp.name}" blueprint?`)
+    if (!ok) return
+  }
+  const wf = bp.build()
+  wfStore.clear()
+  await wfStore.fromJSON(wf)
+  notifications.success('Blueprint loaded', `"${bp.name}" with ${wf.nodes.length} node(s)`)
 }
 
 function onKeyDown(ev: KeyboardEvent) {
@@ -163,6 +164,29 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
             </div>
           </div>
         </div>
+
+        <div class="bp-wrap">
+          <button
+            class="btn btn-icon"
+            title="Blueprint workspaces"
+            :class="{ active: uiStore.blueprintOpen }"
+            @click="uiStore.toggleBlueprint()"
+          >
+            <LayoutTemplate :size="16" />
+          </button>
+          <div v-if="uiStore.blueprintOpen" class="bp-menu" @mousedown.stop>
+            <div class="bp-empty" v-if="blueprints.length === 0">No blueprints</div>
+            <button v-for="bp in blueprints" :key="bp.id" class="bp-item" @click="loadBlueprint(bp)">
+              <span class="bp-title">{{ bp.name }}</span>
+              <span class="bp-desc">{{ bp.description }}</span>
+              <span class="bp-meta">{{ bp.nodeCount }} node(s)</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn btn-icon" title="Search nodes and commands (Ctrl+F)" @click="uiStore.togglePalette()">
+          <Search :size="16" />
+        </button>
       </div>
 
       <div class="toolbar-divider"></div>
@@ -177,7 +201,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         >
           <Square :size="14" /> Stop
         </button>
-        <button v-else class="btn btn-run" title="Run workflow" @click="handleRun">
+        <button v-else class="btn btn-run" title="Run workflow (Ctrl+Enter)" @click="handleRun">
           <Play :size="14" /> Run
         </button>
 
@@ -185,6 +209,18 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       </div>
 
       <div class="toolbar-divider"></div>
+
+      <!-- Settings -->
+      <div class="toolbar-group">
+        <button
+          class="btn btn-icon"
+          title="Frontend settings"
+          :class="{ active: uiStore.sidebarOpen }"
+          @click="uiStore.toggleSidebar()"
+        >
+          <Settings :size="16" />
+        </button>
+      </div>
 
       <!-- Status -->
       <span class="ws-dot" :class="{ connected }" :title="connected ? 'Connected' : 'Disconnected'"></span>
@@ -407,6 +443,79 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
 .load-delete:hover {
   color: var(--err);
+}
+
+/* ── Blueprint menu ──────────────────────────────────────────────────────── */
+.bp-wrap {
+  position: relative;
+}
+
+.btn.active {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bp-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--sp-1));
+  z-index: 50;
+  width: 300px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--bg-1);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fade-in var(--duration-fast) var(--ease-out);
+}
+
+.bp-empty {
+  padding: var(--sp-3);
+  color: var(--fg-2);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.bp-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--fg-0);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: var(--transition-colors);
+}
+
+.bp-item:last-child {
+  border-bottom: none;
+}
+
+.bp-item:hover {
+  background: var(--bg-3);
+}
+
+.bp-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.bp-desc {
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+}
+
+.bp-meta {
+  color: var(--fg-2);
+  font-size: var(--text-2xs);
 }
 
 /* ── Queue badge ─────────────────────────────────────────────────────────── */
