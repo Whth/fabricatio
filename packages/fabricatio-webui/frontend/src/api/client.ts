@@ -1,6 +1,7 @@
 import type {
   NodeTypeDefinition,
   BoardJSON,
+  BlueprintJSON,
   ExecutionRequest,
   ExecutionStatus,
 } from '@/types/api'
@@ -75,4 +76,6 @@ export const api = {
   getQueue: () => request<unknown[]>('GET', '/queue', undefined, { silent: true }),
   getHistory: () =>
     request<ExecutionStatus[]>('GET', '/history', undefined, { loading: 'Loading history...' }),
+  getBlueprints: () =>
+    request<BlueprintJSON[]>('GET', '/blueprints', undefined, { silent: true }),
 }

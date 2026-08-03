@@ -110,6 +110,17 @@ export interface BoardJSON {
   meta?: WorkflowMeta
 }
 
+// ── Blueprint catalog (served from /api/blueprints) ─────────────────────────────
+
+export interface BlueprintJSON {
+  id: string
+  name: string
+  description: string
+  category: string
+  node_count: number
+  workflow: WorkflowJSON
+}
+
 // ── Execution ────────────────────────────────────────────────────────────────────
 
 /** Task-shaped execution payload — pure namespace dispatch (format v2). */

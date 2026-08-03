@@ -6,7 +6,34 @@ describe('board store role/workflow targeting', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     // Mirror app boot: Default Role + Main workflow.
-    useBoardStore().clear()
+    const store = useBoardStore()
+    store.clear()
+    // Seed runtime blueprints (addBlueprintWorkflow reads from store.blueprints).
+    store.blueprints.push({
+      id: 'read-text',
+      name: 'Read a Text File',
+      description: 'Read content from a text file.',
+      category: 'io',
+      nodeCount: 1,
+      build: () => ({
+        name: 'Read a Text File',
+        namespace: 'read-a-text-file',
+        task_output_key: 'text',
+        nodes: [
+          {
+            id: 'ReadText_1',
+            type: 'ReadText',
+            title: 'ReadText',
+            pos: [60, 40],
+            inputs: {},
+            config: { read_path: '' },
+            schema_version: 1,
+          },
+        ],
+        edges: [],
+        init_context: {},
+      }),
+    })
   })
 
   it('selects a freshly added role', () => {
@@ -86,8 +113,26 @@ describe('board store role/workflow targeting', () => {
 describe('board store blueprint drops', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    // Mirror app boot: Default Role + Main workflow.
-    useBoardStore().clear()
+    const store = useBoardStore()
+    store.clear()
+    // Seed blueprints (addBlueprintWorkflow reads store.blueprints).
+    store.blueprints.push({
+      id: 'read-text',
+      name: 'Read a Text File',
+      description: '',
+      category: 'io',
+      nodeCount: 1,
+      build: () => ({
+        name: 'Read a Text File',
+        namespace: 'read-a-text-file',
+        task_output_key: 'text',
+        nodes: [
+          { id: 'ReadText_1', type: 'ReadText', title: 'ReadText', pos: [60, 40], inputs: {}, config: { read_path: '' }, schema_version: 1 },
+        ],
+        edges: [],
+        init_context: {},
+      }),
+    })
   })
 
   it('adds a predefined blueprint workflow to the explicit role', () => {

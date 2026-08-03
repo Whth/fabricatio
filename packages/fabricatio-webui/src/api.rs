@@ -26,6 +26,16 @@ pub async fn get_nodes(State(state): State<Arc<AppState>>) -> Json<Vec<NodeTypeD
     Json(registry)
 }
 
+/// GET /api/blueprints — return the package-defined blueprint catalog.
+pub async fn get_blueprints(State(state): State<Arc<AppState>>) -> Json<Vec<BlueprintJson>> {
+    let blueprints = state
+        .blueprints
+        .read()
+        .map(|b| b.clone())
+        .unwrap_or_default();
+    Json(blueprints)
+}
+
 /// GET /api/workflows — list saved workflows (with id).
 pub async fn get_workflows(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let wfs = state.get_workflows();

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
@@ -7,7 +8,7 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
-import { BLUEPRINTS, type Blueprint } from '@/data/blueprints'
+import { type Blueprint } from '@/data/blueprints'
 import RunDialog from '@/components/chrome/RunDialog.vue'
 import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings, BookOpen } from '@lucide/vue'
 
@@ -32,7 +33,7 @@ const isEditingName = ref(false)
 const editingName = ref('')
 const loadOpen = ref(false)
 const runDialogOpen = ref(false)
-const blueprints = BLUEPRINTS
+const { blueprints } = storeToRefs(boardStore)
 
 /** The name shown in the toolbar: board name on the board layer, workflow name inside. */
 const docName = computed(() =>

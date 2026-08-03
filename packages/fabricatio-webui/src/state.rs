@@ -7,6 +7,8 @@ use tokio::sync::mpsc;
 
 pub struct AppState {
     pub node_registry: RwLock<Vec<NodeTypeDefinition>>,
+    /// Package-defined blueprints offered by the board sidebar (baked at startup).
+    pub blueprints: RwLock<Vec<BlueprintJson>>,
     pub ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
     pub workflows: RwLock<HashMap<String, BoardJson>>,
     data_dir: PathBuf,
@@ -24,6 +26,7 @@ impl AppState {
         let workflows = Self::load_workflows_from_disk(&data_dir);
         Self {
             node_registry: RwLock::new(Vec::new()),
+            blueprints: RwLock::new(Vec::new()),
             ws_sessions: RwLock::new(HashMap::new()),
             workflows: RwLock::new(workflows),
             data_dir,

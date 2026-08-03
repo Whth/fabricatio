@@ -56,6 +56,19 @@ pub struct NodeTypeDefinition {
     pub schema_version: Option<String>,
 }
 
+/// One package-defined blueprint offered by the board sidebar (derived from
+/// the package `workflows` modules — see python/fabricatio_webui/blueprints.py).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlueprintJson {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub node_count: u32,
+    /// The workflow document dropped onto a role when this blueprint is used.
+    pub workflow: WorkflowJson,
+}
+
 // ── Board JSON (format_version 2: role-driven documents) ────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -12,6 +12,7 @@ from typing import Optional
 
 from typer import Option, Typer
 
+from fabricatio_webui.blueprints import build_blueprints
 from fabricatio_webui.config import webui_config
 from fabricatio_webui.registry import build_node_registry
 from fabricatio_webui.rust import rust_broadcast, start_service
@@ -36,6 +37,7 @@ def main(
     """Start the webui service."""
     registry = build_node_registry()
     registry_json = json.dumps(registry.get("node_types", []))
+    blueprints_json = json.dumps(build_blueprints().get("blueprints", []))
 
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -51,6 +53,7 @@ def main(
                 str(data_dir),
                 resolved_addr,
                 registry_json,
+                blueprints_json,
                 list(webui_config.allowed_origins),
                 worker.submit,
                 worker.cancel_current,

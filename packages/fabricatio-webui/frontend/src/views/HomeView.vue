@@ -21,8 +21,9 @@ const boardStore = useBoardStore()
 const execStore = useExecutionStore()
 const { subscribe } = useWebSocket()
 
-onMounted(() => {
-  boardStore.boot()
+onMounted(async () => {
+  await boardStore.boot()
+  boardStore.loadBlueprints()
   subscribe((msg) => execStore.handleWSMessage(msg))
 })
 

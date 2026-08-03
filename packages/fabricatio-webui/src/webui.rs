@@ -1,6 +1,6 @@
 use crate::api;
 use crate::state::AppState;
-use crate::types::{NodeTypeDefinition, WsMessage};
+use crate::types::{BlueprintJson, NodeTypeDefinition, WsMessage};
 use crate::ws;
 use axum::Router;
 use axum::routing::{get, post};
@@ -37,14 +37,9 @@ fn create_router(
 
     Router::new()
         .route("/api/nodes", get(api::get_nodes))
-        .route(
-            "/api/workflows",
-            get(api::get_workflows).post(api::save_workflow),
-        )
-        .route(
-            "/api/workflows/{id}",
-            get(api::get_workflow).delete(api::delete_workflow),
-        )
+        .route("/api/blueprints", get(api::get_blueprints))
+        .route("/api/workflows", get(api::get_workflows).post(api::save_workflow))
+        .route("/api/workflows/{id}", get(api::get_workflow).delete(api::delete_workflow))
         .route("/api/execute", post(api::submit_execution))
         .route("/api/interrupt", post(api::interrupt_execution))
         .route("/api/queue", get(api::get_queue))
@@ -84,6 +79,7 @@ fn start_service<'a>(
     data_dir: PathBuf,
     addr: String,
     node_registry_json: String,
+    blueprints_json: String,
     allowed_origins: Vec<String>,
     submit_fn: Bound<'a, PyAny>,
     cancel_fn: Bound<'a, PyAny>,
@@ -93,10 +89,15 @@ fn start_service<'a>(
 ) -> PyResult<Bound<'a, PyAny>> {
     let registry: Vec<NodeTypeDefinition> = serde_json::from_str(&node_registry_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+    let blueprints: Vec<BlueprintJson> = serde_json::from_str(&blueprints_json)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
     let state = Arc::new(AppState::new(data_dir));
     if let Ok(mut reg) = state.node_registry.write() {
         *reg = registry;
+    }
+    if let Ok(mut bp) = state.blueprints.write() {
+        *bp = blueprints;
     }
 
     let _ = STATE.set(Arc::clone(&state));

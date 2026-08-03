@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { ActionDefJSON, BoardJSON, NodeTypeDefinition, PortDefinition, RoleJSON, WorkflowJSON } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
-import { BLUEPRINTS } from '@/data/blueprints'
+import { blueprintFromJSON, type Blueprint } from '@/data/blueprints'
 
 /**
  * The board document: roles with their workflows, plus board-level custom
@@ -95,8 +95,19 @@ export const useBoardStore = defineStore('board', () => {
   const codegenRoleIndex = ref<number | null>(null)
   /** Workflows selected on the board (per-role; roleIndex doubles as the Ctrl+V paste target). */
   const selectedWorkflows = ref<WorkflowSelection>({ roleIndex: null, indices: [] })
-  /** Deep-cloned workflows on the board clipboard (persists until overwritten). */
   const copiedWorkflows = ref<WorkflowJSON[]>([])
+  /** Blueprints loaded from /api/blueprints (populated by loadBlueprints). */
+  const blueprints = ref<Blueprint[]>([])
+
+  async function loadBlueprints() {
+    try {
+      const { api } = await import('@/api/client')
+      const list = await api.getBlueprints()
+      blueprints.value = list.map(blueprintFromJSON)
+    } catch {
+      // Non-fatal: the sidebar will simply be empty.
+    }
+  }
 
   const activeRole = computed<RoleJSON | null>(() => board.value.roles[activeRoleIndex.value] ?? null)
   const activeWorkflow = computed<WorkflowJSON | null>(
@@ -281,7 +292,7 @@ export const useBoardStore = defineStore('board', () => {
    *  Returns the new workflow, or null for an unknown blueprint or role. */
   function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJSON | null {
     const role = board.value.roles[roleIndex]
-    const bp = BLUEPRINTS.find((b) => b.id === blueprintId)
+    const bp = blueprints.value.find((b) => b.id === blueprintId)
     if (!role || !bp) return null
     const wf = bp.build()
     const names = new Set(role.workflows.map((w) => w.name ?? ''))
@@ -390,6 +401,7 @@ export const useBoardStore = defineStore('board', () => {
       board.value.roles = [{ name: 'Default Role', description: '', workflows: [newWorkflow('Main', 'main')] }]
     }
     syncNodeTypes()
+    loadBlueprints()
     if (wf.nodes.length > 0) {
       // A restored draft is the active workflow being edited.
       commitActiveWorkflow()
@@ -434,6 +446,9 @@ export const useBoardStore = defineStore('board', () => {
     boot,
     toJSON,
     fromJSON,
+    blueprints,
+
+    loadBlueprints,
     clear,
   }
 })
