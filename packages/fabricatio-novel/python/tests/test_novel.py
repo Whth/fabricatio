@@ -1785,17 +1785,17 @@ class TestMentalPathPreviousChapterTailThreading:
 
         captured_prompts: list[str] = []
 
-        async def fake_aask(question: list[str], *args: object, **kwargs: object) -> list[str]:
-            """Capture the prompt and return the next canned chapter text as a list.
+        async def fake_aask(question: "str | list[str]", *args: object, **kwargs: object) -> str:
+            """Capture the prompt and return canned chapter text.
 
-            The mental override calls `aask` with a list-shaped prompt (because
-            the template is rendered with a single-element list `[prompt_ctx]`)
-            and expects a list back, then takes `[0]`. The base path passes a
-            bare string; this test exercises the mental path, so the contract
-            here is list-in, list-out.
+            After Q1, the base create_chapters passes a rendered string to aask,
+            so question is a str. The hook (mental path) is transparent — same str
+            flows through. The old mental code passed a list [rendered] and
+            extracted [0]; this mock handles both for backward-compat testing.
             """
-            captured_prompts.append(question[0])
-            return [generated[len(captured_prompts) - 1]]
+            prompt = question[0] if isinstance(question, list) else question
+            captured_prompts.append(prompt)
+            return generated[len(captured_prompts) - 1]
 
         async def fake_summarize_chapter(*args: object, **kwargs: object) -> ChapterSummary:
             """Return the fixed summary regardless of input."""

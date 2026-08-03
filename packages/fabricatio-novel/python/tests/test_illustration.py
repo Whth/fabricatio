@@ -3,7 +3,7 @@
 import pydantic
 import pytest
 from fabricatio_comfyui.models.workflow import FrameAspect, Workflow
-from fabricatio_novel.capabilities.illustration import _apply_constrain_to_workflow
+from fabricatio_comfyui.models.workflow_ops import apply_constrain_to_workflow
 from fabricatio_novel.models.illustration import IllustrationConstrain
 
 # ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ class TestApplyConstrainToWorkflow:
         constrain = IllustrationConstrain(
             aspect_ratio=FrameAspect.PORTRAIT_STANDARD, megapixels=1.7, prompt="best quality"
         )
-        _apply_constrain_to_workflow(wf, constrain)
+        apply_constrain_to_workflow(wf, constrain)
         selector = wf.by_type("ResolutionSelector")[0]
         assert selector.inputs["aspect_ratio"] == "3:4 (Portrait Standard)"
         assert selector.inputs["megapixels"] == 1.7
@@ -99,7 +99,7 @@ class TestApplyConstrainToWorkflow:
         constrain = IllustrationConstrain(
             aspect_ratio=FrameAspect.PORTRAIT_STANDARD, megapixels=1.7, prompt="best quality"
         )
-        _apply_constrain_to_workflow(wf, constrain)
+        apply_constrain_to_workflow(wf, constrain)
         latent = wf.by_type("EmptyLatentImage")[0]
         # Literal dims derived from 3:4 ratio at 1.7MP, both multiples of 8
         w, h = latent.inputs["width"], latent.inputs["height"]

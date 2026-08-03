@@ -1,8 +1,5 @@
-"""This module contains the capabilities for the novel."""
-
 from abc import ABC
-from typing import List, Optional, Tuple, Unpack
-
+from typing import Awaitable, Callable, List, Optional, Tuple, Unpack
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.utils import dump_card
@@ -185,6 +182,8 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
         send_to: str | None = TASK,
+        prompt_ctx_extend: Optional[Callable[[dict], dict]] = None,
+        after_summarize: Optional[Callable[[ChapterSummary], Awaitable[None]]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters sequentially with rolling context.
@@ -195,6 +194,13 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         when non-empty) — the structured summary alone is too lossy to anchor
         the next chapter's opening beat, so we also hand the writer the closing
         paragraph of what came before.
+
+        Args:
+            prompt_ctx_extend: Optional hook called after the base prompt context
+                is built, receiving the dict and returning a modified dict (e.g.
+                to inject mental-state fields into the context before rendering).
+            after_summarize: Optional async hook called after each chapter's
+                summary is generated (e.g. to evolve mental states).
         """
         logger.debug(f"Generating chapter contents sequentially for {len(chapter_plans)} script(s)")
         if not chapter_plans:
@@ -211,7 +217,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             logger.debug(f"Generating chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
 
             # 1. Build prompt context with cross-chapter information
-            prompt_ctx = {
+            prompt_ctx: dict = {
                 "script": cp.script.as_prompt(),
                 "characters": character_prompt,
                 "language": draft.language,
@@ -226,6 +232,10 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "previous_summary": previous_summary.as_prompt() if previous_summary else None,
                 "previous_chapter_tail": previous_chapter_tail,
             }
+
+            # 1b. Apply hook to extend/override context fields
+            if prompt_ctx_extend:
+                prompt_ctx = prompt_ctx_extend(prompt_ctx)
 
             rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
             # 2. Generate chapter content
@@ -244,6 +254,9 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                     f"{len(previous_summary.unresolved_threads)} open threads, "
                     f"{len(previous_summary.numerical_stat)} numerical stats"
                 )
+            # 3b. Call after-summarize hook
+            if after_summarize and previous_summary:
+                await after_summarize(previous_summary)
             # 4. Track last paragraph of the prior chapter for the next iteration's prompt
             previous_chapter_tail = last_paragraph(raw_chapter)
 

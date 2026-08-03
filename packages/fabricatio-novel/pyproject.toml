@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-novel"
-version = "0.11.6"
+version = "0.11.7"
 description = "An extension of fabricatio"
 readme = "README.md"
 license = "MIT"
@@ -32,12 +32,12 @@ dev = [
 [project.optional-dependencies]
 
 full = [
-    "fabricatio-novel[workflows,cli,rag]"
+    "fabricatio-novel[workflows,lancedb]",
 ]
 
 workflows = ["fabricatio-actions"]
 cli = [
-    "fabricatio-novel[workflows]",
+    "fabricatio-novel[workflows,lancedb]",
     "questionary>=2.1.0",
     "typer>=0.15.2",
 ]

@@ -136,7 +136,7 @@ def store_enriched_texts(  # noqa: PLR0913
     """Ingest text files as LLM-enriched QA chunks into the LanceDB vector store.
 
     Each input file is read, semantically split via `PreciseChunkText.precise_chunk`,
-    fed chunk-by-chunk to `EnrichChunkTextNovel.enrich` to produce question-answer
+    fed chunk-by-chunk to `EnrichChunkText.enrich` to produce question-answer
     pairs, and each pair is indexed as a separate `EnrichedDocument`. This is a
     standalone operation — it does not trigger novel generation.
     """

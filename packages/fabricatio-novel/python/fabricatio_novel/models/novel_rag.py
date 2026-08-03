@@ -2,7 +2,7 @@
 
 from typing import ClassVar, Type
 
-from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig
+from fabricatio_lancedb.capabilities.lancedb import LancedbFetchRAGConfig
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 from fabricatio_lancedb.rust import SearchedDocument, StoreDocument
 
@@ -19,7 +19,3 @@ class WritingStyleFetchConfig(LancedbFetchRAGConfig[WritingStyleDocument]):
     """Fetch configuration for writing style documents."""
 
     document_model: Type[WritingStyleDocument] = WritingStyleDocument
-
-
-class WritingStyleAddConfig(LancedbAddRAGConfig):
-    """Fetch configuration for writing style documents."""

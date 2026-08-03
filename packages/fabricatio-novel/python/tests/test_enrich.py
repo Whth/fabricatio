@@ -2,7 +2,7 @@
 
 Exercises the LLM-driven enrichment pipeline that backs `StoreEnrichedTexts`:
 
-- `EnrichChunkTextNovel` is a thin subclass — `enrich()` must still work end-to-end
+- `EnrichChunkText` is the base capability — `enrich()` must work end-to-end
   via `ProposeTestRole` + `install_router_usage`.
 - `_qa_pairs_to_chunks` must flatten `EnrichmentResult.qa_pairs` deterministically.
 - `StoreEnrichedTexts._execute` must read files, call `enrich`, and dispatch the
@@ -23,14 +23,14 @@ from fabricatio_novel.actions.enrich import (
     StoreEnrichedTexts,
     _qa_pairs_to_chunks,
 )
-from fabricatio_novel.capabilities.enrich import EnrichChunkTextNovel
+from fabricatio_rag.capabilities.enrich import EnrichChunkText
 from fabricatio_rag.models.qa import EnrichmentResult, QAPair
 
 # ─── Test role ──────────────────────────────────────────────────────────────────
 
 
-class _EnrichNovelTestRole(ProposeTestRole, EnrichChunkTextNovel):
-    """Concrete role combining `ProposeTestRole` and `EnrichChunkTextNovel`."""
+class _EnrichNovelTestRole(ProposeTestRole, EnrichChunkText):
+    """Concrete role combining `ProposeTestRole` and `EnrichChunkText`."""
 
 
 @pytest.fixture
@@ -43,20 +43,18 @@ def role() -> _EnrichNovelTestRole:
 
 
 class TestEnrichInheritance:
-    """`EnrichChunkTextNovel` and `StoreEnrichedTexts` shape and MRO."""
+    """`EnrichChunkText` and `StoreEnrichedTexts` shape and MRO."""
 
     def test_capability_inherits_enrich_verb(self) -> None:
-        """`EnrichChunkTextNovel` inherits `enrich()` from `EnrichChunkText`."""
-        assert hasattr(EnrichChunkTextNovel, "enrich")
-        assert "enrich" in EnrichChunkTextNovel.__dict__ or any(
-            "enrich" in cls.__dict__ for cls in EnrichChunkTextNovel.__mro__
-        )
+        """`EnrichChunkText` inherits `enrich()` from `EnrichChunkText`."""
+        assert hasattr(EnrichChunkText, "enrich")
+        assert "enrich" in EnrichChunkText.__dict__ or any("enrich" in cls.__dict__ for cls in EnrichChunkText.__mro__)
 
     def test_capability_inherits_use_llm(self) -> None:
-        """`EnrichChunkTextNovel` is LLM-driven, so it must inherit `UseLLM`."""
+        """`EnrichChunkText` is LLM-driven, so it must inherit `UseLLM`."""
         from fabricatio_core.capabilities.usages import UseLLM
 
-        assert issubclass(EnrichChunkTextNovel, UseLLM)
+        assert issubclass(EnrichChunkText, UseLLM)
 
     def test_action_has_ctx_override_true(self) -> None:
         """`StoreEnrichedTexts` follows project convention `ctx_override=True`."""
@@ -318,7 +316,7 @@ class TestStoreEnrichedTextsEnrichPatched:
             assert texts == ["content_0", "content_1", "content_2"]
             return [EnrichmentResult(qa_pairs=[])] * len(texts)
 
-        with patch.object(EnrichChunkTextNovel, "enrich", autospec=True, side_effect=_fake_enrich):
+        with patch.object(EnrichChunkText, "enrich", autospec=True, side_effect=_fake_enrich):
             stored = await action._execute()
 
         assert stored == 0

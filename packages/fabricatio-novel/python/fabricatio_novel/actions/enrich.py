@@ -2,9 +2,9 @@
 
 Mirrors `StoreWritingStyleTexts`: reads text files, processes them, and
 indexes the resulting documents under a dedicated LanceDB table. Here the
-processing step is `EnrichChunkTextNovel.enrich`, which produces
-question-answer pairs from each source file. Each pair is flattened into a
-short text string and stored as one `EnrichedDocument`.
+processing step is `EnrichChunkText.enrich`, which produces question-answer
+pairs from each source file. Each pair is flattened into a short text
+string and stored as one `EnrichedDocument`.
 """
 
 from abc import ABC
@@ -12,11 +12,14 @@ from pathlib import Path
 from typing import Any, ClassVar, Iterable, List, Optional
 
 from fabricatio_core import Action, logger
+from fabricatio_core.utils import cfg
+
+cfg(feats=["lancedb"])
 from fabricatio_lancedb.capabilities.lancedb import LancedbRAG
 from fabricatio_rag.capabilities.chunk import PreciseChunkText
+from fabricatio_rag.capabilities.enrich import EnrichChunkText
 from fabricatio_rag.models.qa import QAPair
 
-from fabricatio_novel.capabilities.enrich import EnrichChunkTextNovel
 from fabricatio_novel.models.novel_enrich import (
     EnrichedAddConfig,
     EnrichedDocument,
@@ -25,7 +28,7 @@ from fabricatio_novel.models.novel_enrich import (
 
 
 class EnrichedNovelComposeRAG(
-    EnrichChunkTextNovel,
+    EnrichChunkText,
     PreciseChunkText,
     LancedbRAG[EnrichedDocument, EnrichedAddConfig, EnrichedFetchConfig],
     ABC,
@@ -33,11 +36,11 @@ class EnrichedNovelComposeRAG(
     """MRO anchor combining enrichment, semantic chunking, and LanceDB storage.
 
     Pulls together:
-    - `EnrichChunkTextNovel.enrich` for QA-pair generation per chunk
+    - `EnrichChunkText.enrich` for QA-pair generation per chunk
     - `PreciseChunkText.precise_chunk` for LLM-guided semantic splitting of source files
       (each input file is split into coherent chunks before enrichment, since naive
       whole-file enrichment degrades on long texts)
-    - `LancedbRAG` for `add_document` / `rebuild_index` machinery over `EnrichedDocument`
+    - `LancedbRAG` for vector-indexed storage and retrieval
     """
 
 
@@ -49,15 +52,13 @@ def _qa_pairs_to_chunks(qa_pairs: Iterable[QAPair]) -> List[str]:
 class StoreEnrichedTexts(Action, EnrichedNovelComposeRAG, ABC):
     """Store LLM-enriched text chunks from files into LanceDB.
 
-    Each input file is read, semantically split into coherent chunks via
-    `PreciseChunkText.precise_chunk`, fed chunk-by-chunk to
-    `EnrichChunkTextNovel.enrich` to produce question-answer pairs, and each
-    pair is indexed as a separate `EnrichedDocument`. Document count is stored
-    under `output_key` (default `"stored_count"`).
+    Phase 1 — read and semantically split input files via `PreciseChunkText.precise_chunk`.
+    Phase 2 — feed each chunk to `EnrichChunkText.enrich` to produce question-answer pairs.
+    Phase 3 — index each pair as one `EnrichedDocument` row via LanceDB.
     """
 
     enrich_guideline: str = ""
-    """Guidance passed to `EnrichChunkTextNovel.enrich` for QA generation."""
+    """Guidance passed to `EnrichChunkText.enrich` for QA generation."""
 
     chunk_guideline: str = ""
     """Guidance passed to `PreciseChunkText.precise_chunk` for semantic splitting."""
@@ -92,7 +93,6 @@ class StoreEnrichedTexts(Action, EnrichedNovelComposeRAG, ABC):
         texts = [f.read_text(encoding="utf-8") for f in files]
 
         # Phase 1: semantic chunking via LLM-guided split points.
-        # precise_chunk returns List[List[str]] (one chunk-list per input text).
         per_file_chunks = await self.precise_chunk(
             self.chunk_guideline,
             texts,

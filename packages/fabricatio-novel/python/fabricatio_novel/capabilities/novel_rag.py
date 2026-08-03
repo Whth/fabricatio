@@ -11,7 +11,7 @@ from fabricatio_novel.models.scripting import Scene
 
 cfg(["lancedb"])
 from fabricatio_character.models.character import CharacterCard  # noqa: I001
-from fabricatio_core import logger
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
 
 from fabricatio_core.utils import ok
@@ -40,10 +40,10 @@ class NovelComposeRAG(
         by `rerank_scale_factor` to give the reranker more candidates, then
         results are reranked and sliced back to `config.limit`.
         """
-        q = f"{query}\n\nNeed Some refined question to find QA docs related to the stuff above"
-
-        if rerank_query:
-            q += f"\nand below is the extra user constrain which is more prior to follow: \n{rerank_query}"
+        q = TEMPLATE_MANAGER.render_template(
+            novel_config.writing_style_query_refine_template,
+            {"query": query, "rerank_query": rerank_query},
+        )
 
         queries = await self.arefined_query(q)
 
@@ -101,18 +101,20 @@ class NovelComposeRAG(
             query = plan.script.as_prompt()  # capture before mutation
             docs = await self._fetch_style_docs(query, config, writing_style_requirement)
             if docs:
-                plan.script.append_global_prompt(
-                    "Below is some writing style QA docs that you should imitate to achieve the best quality, in chapter scope"
-                ).bulk_append_global_prompt([doc.as_prompt() for doc in docs])
+                inject_sentence = TEMPLATE_MANAGER.render_template(
+                    novel_config.writing_style_inject_script_template, {}
+                )
+                plan.script.append_global_prompt(inject_sentence).bulk_append_global_prompt(
+                    [doc.as_prompt() for doc in docs]
+                )
             logger.debug(f"Chapter {plan.chapter_index}: injected {len(docs)} script-level style(s)")
 
         async def _inject_scene(sc: Scene) -> None:
             query = sc.description  # capture before mutation
             docs = await self._fetch_style_docs(query, config, writing_style_requirement)
             if docs:
-                sc.append_prompt(
-                    "Below is some writing style QA docs that you MUST imitate in this scene to achieve the best quality, in scene scope"
-                ).bulk_append([doc.as_prompt() for doc in docs])
+                inject_sentence = TEMPLATE_MANAGER.render_template(novel_config.writing_style_inject_scene_template, {})
+                sc.append_prompt(inject_sentence).bulk_append([doc.as_prompt() for doc in docs])
 
         tasks = []
         for cp in chapter_plans:

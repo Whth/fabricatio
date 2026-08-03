@@ -22,6 +22,7 @@ nominal inheritance — no duck typing, no attribute sniffing.
 """
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from fabricatio_comfyui.models.workflow_core import (
     RESOLUTION_SELECTOR_ASPECT_RATIOS,
@@ -253,3 +254,27 @@ class ResolutionOps(WorkflowAccess, ABC):
         if multiple is not None:
             node.set_input("multiple", multiple)
         return node
+
+
+# ------------------------------------------------------------------
+# IllustrationConstrain helper — lives here so it can use ResolutionOps/PromptOps
+# ------------------------------------------------------------------
+
+if TYPE_CHECKING:
+    from fabricatio_comfyui.models.workflow import Workflow
+    from fabricatio_novel.models.illustration import IllustrationConstrain
+
+
+def apply_constrain_to_workflow(wf: "Workflow", constrain: "IllustrationConstrain") -> None:
+    """Apply frame proportion + prompt from an :class:`IllustrationConstrain` to a workflow.
+
+    Tries :meth:`ResolutionOps.set_chart_proportion` first (uses a
+    ``ResolutionSelector`` node when present); falls back to literal
+    ``set_resolution`` for workflows that drive ``EmptyLatentImage`` directly.
+    """
+    try:
+        wf.set_chart_proportion(aspect_ratio=constrain.aspect_ratio.value, megapixels=constrain.megapixels)
+    except KeyError:
+        width, height = constrain.aspect_ratio.to_dimensions(constrain.megapixels)
+        wf.set_resolution(width=width, height=height)
+    wf.set_positive_prompt(constrain.prompt)

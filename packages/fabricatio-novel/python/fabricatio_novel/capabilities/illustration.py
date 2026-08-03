@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Optional, Unpack
 
 from fabricatio_comfyui.capabilities.comfyui import Comfyui
 from fabricatio_comfyui.models import ComfyuiExecutionResult
+from fabricatio_comfyui.models.workflow_ops import apply_constrain_to_workflow
 from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -112,23 +113,6 @@ def _inject_images(paras: list[str], picks: dict[int, str], image_dir: Path) -> 
     return result
 
 
-def _apply_constrain_to_workflow(wf: Workflow, constrain: IllustrationConstrain) -> None:
-    """Apply frame proportion + prompt to a workflow.
-
-    Tries ``set_chart_proportion`` (uses a ``ResolutionSelector`` node when
-    present); falls back to literal ``set_resolution`` for workflows that
-    drive ``EmptyLatentImage.width/height`` directly. The literal path is a
-    best-effort derivation from the typed aspect-ratio token + megapixels,
-    so a single ``IllustrationConstrain`` drives both ComfyUI layouts.
-    """
-    try:
-        wf.set_chart_proportion(aspect_ratio=constrain.aspect_ratio.value, megapixels=constrain.megapixels)
-    except KeyError:
-        width, height = constrain.aspect_ratio.to_dimensions(constrain.megapixels)
-        wf.set_resolution(width=width, height=height)
-    wf.set_positive_prompt(constrain.prompt)
-
-
 @dataclass
 class _ChapterIllustrator:
     """Working state for illustrating a single chapter."""
@@ -200,7 +184,7 @@ class _ChapterIllustrator:
                 f"prompt={constrain.prompt!r}"
             )
             wf = Workflow.from_api(self.ctx.base_wf.to_api())
-            _apply_constrain_to_workflow(wf, constrain)
+            apply_constrain_to_workflow(wf, constrain)
             workflows.append(wf)
             gen_indices.append(idx)
             filtered_constrains.append(constrain)

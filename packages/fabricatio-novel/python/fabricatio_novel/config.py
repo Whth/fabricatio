@@ -26,6 +26,12 @@ class NovelConfig:
     """template used to render chapter summarization prompts for cross-chapter context tracking."""
     writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
     """template used to render writing style documents as prompts (content only, no metadata)."""
+    writing_style_query_refine_template: str = "built-in/writing_style_query_refine"
+    """template used to build the query refinement input for writing style retrieval."""
+    writing_style_inject_script_template: str = "built-in/writing_style_inject_script"
+    """template used to render the script-scope writing style injection sentence."""
+    writing_style_inject_scene_template: str = "built-in/writing_style_inject_scene"
+    """template used to render the scene-scope writing style injection sentence."""
     chapter_summary_as_prompt_template: str = "built-in/chapter_summary_as_prompt"
     """template used to render chapter summaries as prompts (content only, no metadata)."""
     writing_styles_table_name: str = "writing_styles"
@@ -39,14 +45,8 @@ class NovelConfig:
     allocate_image_budget_template: str = "built-in/allocate_image_budget"
     """template used to allocate image budget across chapters."""
 
-    select_illustrations_template: str = "built-in/select_illustrations"
-    """template used to select paragraphs for illustration (legacy single-stage)."""
-
     select_paragraphs_template: str = "built-in/select_paragraphs_for_illustration"
     """template used to select which paragraphs to illustrate (stage 1 of two-stage pipeline)."""
-
-    generate_image_prompt_template: str = "built-in/generate_image_prompt"
-    """template used to generate image prompt for a single paragraph (stage 2 of two-stage pipeline)."""
 
     illustration_constrain_template: str = "built-in/illustration_constrain"
     """template used to propose an :class:`IllustrationConstrain` (frame

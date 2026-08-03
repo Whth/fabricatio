@@ -12,20 +12,18 @@ Usage::
         pass
 """
 
-from typing import TYPE_CHECKING, Dict, List, Unpack
+from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List, Optional, Unpack
 
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import MentalState
-from fabricatio_character.utils import dump_card
-from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.utils import no_default, ok
+from fabricatio_core.rust import TASK
+from fabricatio_core.utils import no_default
 
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.utils import last_paragraph
 
 if TYPE_CHECKING:
     from fabricatio_novel.models.draft import NovelDraft
@@ -84,7 +82,9 @@ class NovelComposeMental(NovelCompose, UseMind):
         if not plans:
             return None
 
-        chapters = await self.create_chapters(draft, plans, characters, chapter_guidance, character_states, **okwargs)
+        chapters = await self.create_chapters(
+            draft, plans, characters, chapter_guidance, character_states=character_states, **okwargs
+        )
         if not chapters:
             return None
 
@@ -95,8 +95,11 @@ class NovelComposeMental(NovelCompose, UseMind):
         draft: "NovelDraft",
         chapter_plans: "List[ChapterPlan]",
         characters: "List[CharacterCard]",
-        guidance: str | None = None,
-        character_states: Dict[str, "MentalState"] | None = None,
+        guidance: Optional[str] = None,
+        send_to: Optional[str] = TASK,
+        prompt_ctx_extend: Optional[Callable[[dict], dict]] = None,
+        after_summarize: Optional[Callable[["ChapterSummary"], Awaitable[None]]] = None,
+        character_states: Optional[Dict[str, MentalState]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters with mental state injection and evolution.
@@ -108,67 +111,42 @@ class NovelComposeMental(NovelCompose, UseMind):
         next chapter opens off the prior chapter's closing beat.
         """
         if not character_states:
-            return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
-
-        character_prompt = dump_card(*characters)
-        chapter_contents: List[str] = []
-        previous_summary: ChapterSummary | None = None
-        previous_chapter_tail: str | None = None
-
-        for i, cp in enumerate(chapter_plans):
-            logger.debug(f"Chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
-
-            # Build prompt with mental states injected
-            prompt_ctx = {
-                "script": cp.script.as_prompt(),
-                "characters": character_prompt,
-                "character_mental_states": mental_states_context(character_states),
-                "language": draft.language,
-                "global_writing_constraint": draft.global_writing_constraint,
-                "guidance": guidance,
-                "writing_constrain": cp.draft.writing_constrain,
-                "expected_word_count": cp.expected_word_count,
-                "chapter_title": cp.formatted_chapter_title,
-                "novel_title": draft.title,
-                "novel_synopsis": draft.synopsis,
-                "all_chapters_titles": draft.all_chapters_titles,
-                "previous_summary": previous_summary.as_prompt() if previous_summary else None,
-                "previous_chapter_tail": previous_chapter_tail,
-            }
-            rendered = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, [prompt_ctx])
-
-            # Generate chapter
-            raw_chapter = ok(await self.aask(rendered, **kwargs))
-            if not raw_chapter:
-                logger.warn(f"Failed to generate {cp.formatted_chapter_title}")
-                chapter_contents.append("")
-                continue
-
-            raw_text = raw_chapter[0]
-            chapter_contents.append(raw_text)
-            logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_text)} chars)")
-
-            # Summarize (reuse base)
-            previous_summary = await self.summarize_chapter(
-                cp.formatted_chapter_title, raw_text, draft.language, previous_summary, **kwargs
+            return await super().create_chapters(
+                draft,
+                chapter_plans,
+                characters,
+                guidance=guidance,
+                send_to=send_to,
+                prompt_ctx_extend=prompt_ctx_extend,
+                after_summarize=after_summarize,
+                **kwargs,
             )
-            # Track last paragraph of the prior chapter for the next iteration's prompt
-            previous_chapter_tail = last_paragraph(raw_text)
-            # Evolve mental states
-            if previous_summary:
-                char_events = build_character_events(previous_summary, character_states)
-                for name, state in list(character_states.items()):
-                    event = char_events.get(name, "")
-                    if event:
-                        impact = await self.upon_event(event, state)
-                        character_states[name] = self.after_impact(impact, state)
-                logger.debug(f"Chapter {i + 1}: evolved mental states for {len(character_states)} character(s)")
 
-        logger.info(f"Generated {len(chapter_contents)} chapter(s) with mental states")
-        return chapter_contents
+        async def after_summarize_hook(summary: "ChapterSummary") -> None:
+            """Evolve mental states after each chapter's summary is generated."""
+            char_events = build_character_events(summary, character_states)
+            for name, state in list(character_states.items()):
+                event = char_events.get(name, "")
+                if event:
+                    impact = await self.upon_event(event, state)
+                    character_states[name] = self.after_impact(impact, state)
+            logger.debug(f"Evolved mental states for {len(character_states)} character(s)")
 
+        def prompt_ctx_extend_inner(prompt_ctx: dict) -> dict:
+            """Inject mental states into prompt context before rendering."""
+            prompt_ctx["character_mental_states"] = mental_states_context(character_states)
+            return prompt_ctx
 
-# ── Pure helpers (no self — stateless) ──
+        return await super().create_chapters(
+            draft,
+            chapter_plans,
+            characters,
+            guidance=guidance,
+            send_to=send_to,
+            prompt_ctx_extend=prompt_ctx_extend_inner,
+            after_summarize=after_summarize_hook,
+            **kwargs,
+        )
 
 
 def build_character_events(summary: "ChapterSummary", states: Dict[str, "MentalState"]) -> Dict[str, str]:

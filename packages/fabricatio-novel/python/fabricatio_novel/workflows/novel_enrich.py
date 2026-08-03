@@ -1,8 +1,6 @@
 """Enrichment workflows for `fabricatio-novel`."""
 
-from fabricatio_core.utils import cfg
-
-cfg(feats=["workflows"])
+dcfg(feats=["workflows", "lancedb"])
 from fabricatio_core import WorkFlow
 
 from fabricatio_novel.actions.enrich import StoreEnrichedTexts
