@@ -91,6 +91,9 @@ function onRoleCode(index: number) {
 
 <template>
   <div class="board-canvas" @contextmenu.prevent>
+    <!-- Predefined workflows, draggable onto role nodes. Must come BEFORE
+         VueFlow in DOM order so the flex row puts the rail on the left. -->
+    <BlueprintSidebar />
     <VueFlow
       :nodes="nodes"
       :node-types="{ role: markRaw(RoleNode) as any }"
@@ -136,9 +139,6 @@ function onRoleCode(index: number) {
       :role-index="boardStore.codegenRoleIndex"
       @close="boardStore.codegenRoleIndex = null"
     />
-
-    <!-- Predefined workflows, draggable onto role nodes -->
-    <BlueprintSidebar />
   </div>
 </template>
 
@@ -146,6 +146,17 @@ function onRoleCode(index: number) {
 .board-canvas {
   position: absolute;
   inset: 0;
+  /* Side-by-side layout: BlueprintSidebar rail + VueFlow canvas.
+     The rail is a static sibling AFTER VueFlow; without flex the
+     100%-height .vue-flow div pushes it below the fold. */
+  display: flex;
+  flex-direction: row;
+}
+
+/* The canvas takes the remaining width beside the fixed-width rail. */
+.board-canvas :deep(.vue-flow) {
+  flex: 1;
+  min-width: 0;
 }
 
 .add-role-menu {
