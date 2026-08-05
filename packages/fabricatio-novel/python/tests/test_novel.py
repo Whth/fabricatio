@@ -1701,12 +1701,14 @@ class TestNovelExportTexts:
 
 
 class TestMentalPathPreviousChapterTailThreading:
-    """Flow-level test for the NovelComposeMental override.
+    """Flow-level test for the NovelComposeMental hooks.
 
-    ``NovelComposeMental.create_chapters`` re-implements the generation loop
-    (not a wrapper around the base class), so the tail-threading logic must
-    be verified independently of the base path. This test mirrors
-    ``TestPreviousChapterTailThreading`` but exercises the mental override.
+    ``NovelComposeMental`` overrides the chapter hooks (prepare_chapter_prompt /
+    after_chapter_summarize) on the base loop rather than re-implementing
+    ``create_chapters``, so tail-threading is verified through the base path
+    with mental states threaded via a caller-owned ``MentalChapterContext``.
+    This test mirrors ``TestPreviousChapterTailThreading`` but exercises the
+    mental hook path.
     """
 
     @pytest.fixture
@@ -1811,14 +1813,16 @@ class TestMentalPathPreviousChapterTailThreading:
         object.__setattr__(role, "summarize_chapter", fake_summarize_chapter)
 
         from fabricatio_character.models.mental import MentalState
+        from fabricatio_novel.capabilities.novel_mental import MentalChapterContext
 
         # Seed the state via `from_card` so it has the required `mind` field.
-        # Content is irrelevant — we only need the mental branch in
-        # `create_chapters` to run (otherwise the override would delegate to the
-        # base class and we'd be testing the wrong path).
-        states: dict[str, MentalState] = {character.name: MentalState.from_card(character)}
+        # Content is irrelevant — we only need the mental hooks in
+        # `create_chapters` to run (otherwise they'd be no-ops and we'd be
+        # testing the wrong path). The context is caller-owned: the capability
+        # itself stays stateless.
+        context = MentalChapterContext(character_states={character.name: MentalState.from_card(character)})
 
-        result = await role.create_chapters(two_chapter_draft, two_chapter_plans, [character], character_states=states)
+        result = await role.create_chapters(two_chapter_draft, two_chapter_plans, [character], context=context)
 
         # The mental override calls `aask` with a list-shaped prompt and unwraps
         # `[0]` to a string before appending, so `result` is `[chapter1_text, chapter2_text]`.
@@ -1836,3 +1840,160 @@ class TestMentalPathPreviousChapterTailThreading:
         assert "Previous Chapter Context" in prompt2
         assert "She stepped into the unknown and the door slammed shut behind her." in prompt2
         assert "Trailing Paragraphs of Previous Chapter" in prompt2
+
+
+# ---------------------------------------------------------------------------
+# Tests: ChapterContext derived views (single source of truth, no duplicates)
+# ---------------------------------------------------------------------------
+
+
+class TestChapterContextDerivedViews:
+    """The chapter views are plain methods over the (index, item) tuple lists.
+
+    ``chapter_plan()`` / ``previous_summary()`` / ``previous_chapter_tail()`` /
+    ``current_summary()`` must resolve correctly at EVERY loop position —
+    including the state inside ``after_chapter_summarize``, where the current
+    chapter's summary is already appended. Each view accepts an explicit
+    chapter index (default -1) so hooks can inspect ANY chapter; lookups go
+    through the tuple indices, so a failed summary never shifts anything.
+    """
+
+    @pytest.fixture
+    def two_chapter_draft(self) -> NovelDraft:
+        """A 2-chapter draft for the derived-view contract test."""
+        return NovelDraft(
+            title="Context Views Test",
+            genre=["Fiction"],
+            synopsis="A short two-chapter story.",
+            character_descriptions=["A brave hero"],
+            chapters=[
+                ChapterDraft(title="Beginning", synopsis="The hero starts.", weight=1.0),
+                ChapterDraft(title="Middle", synopsis="The hero struggles.", weight=1.0),
+            ],
+            expected_word_count=200,
+            global_writing_constraint="",
+            language="English",
+            sketch="",
+        )
+
+    @pytest.fixture
+    def two_chapter_plans(self, two_chapter_draft: NovelDraft) -> list[ChapterPlan]:
+        """Pair the draft with a script per chapter."""
+        return ChapterPlan.from_draft(
+            two_chapter_draft, [Script.with_raw_synosis("setup"), Script.with_raw_synosis("middle")]
+        )
+
+    def test_views_follow_channel_history(
+        self,
+        two_chapter_draft: NovelDraft,
+        two_chapter_plans: list[ChapterPlan],
+    ) -> None:
+        """Views match the tuple history at every loop position."""
+        from fabricatio_novel.models.chapter_context import ChapterContext
+        from fabricatio_novel.models.scripting import ChapterSummary
+        from fabricatio_novel.utils import last_paragraph
+
+        chapter1_text = (
+            "The hero opened the heavy door.\n\nShe stepped into the unknown and the door slammed shut behind her."
+        )
+        chapter2_text = "She pressed forward into the darkness."
+
+        ctx = ChapterContext(draft=two_chapter_draft, chapter_plans=two_chapter_plans, characters=[])
+        assert ctx.chapter_count() == 2
+        assert ctx.chapter_index() == 0
+
+        # prepare_chapter_prompt for chapter 0: current plan visible; nothing
+        # previous/current yet; an explicit index reaches the other plan.
+        assert ctx.chapter_plan() is two_chapter_plans[0]
+        assert ctx.chapter_plan(1) is two_chapter_plans[1]
+        assert ctx.previous_summary() is None
+        assert ctx.previous_chapter_tail() is None
+        assert ctx.current_summary() is None
+
+        # The loop records the summary via add_summary(0, summary1) BEFORE
+        # firing after_chapter_summarize: the CURRENT summary resolves via the
+        # tuple index, while the tail stays None (chapter 0's content not yet
+        # recorded — it lands at the end of the iteration).
+        summary1 = ChapterSummary(key_events=["the hero started"], character_states={"Hero": "determined"})
+        ctx.add_summary(0, summary1)
+        assert ctx.current_summary() is summary1
+        assert ctx.previous_summary() is summary1  # most recently completed
+
+        ctx.add_content(0, chapter1_text)
+        assert ctx.chapter_index() == 1
+
+        # prepare_chapter_prompt for chapter 1: chapter 1's plan; chapter 0's
+        # summary AND closing paragraphs are now the previous views; the
+        # current summary must NOT leak chapter 0's (index discriminator).
+        assert ctx.chapter_plan() is two_chapter_plans[1]
+        assert ctx.previous_summary() is summary1
+        assert ctx.previous_summary(0) is summary1  # explicit index reaches ch. 0
+        assert ctx.previous_chapter_tail() == last_paragraph(chapter1_text)
+        assert ctx.current_summary() is None
+
+        # After chapter 1's summary lands: current = summary2; explicit
+        # indices reach both summaries independently.
+        summary2 = ChapterSummary(key_events=["the hero struggled"], character_states={"Hero": "tired"})
+        ctx.add_summary(1, summary2)
+        assert ctx.current_summary() is summary2
+        assert ctx.current_summary(0) is summary1
+        assert ctx.previous_summary(1) is summary2
+        ctx.add_content(1, chapter2_text)
+        assert ctx.chapter_index() == 2
+
+    def test_skipped_summary_keeps_rolling_context(
+        self,
+        two_chapter_draft: NovelDraft,
+        two_chapter_plans: list[ChapterPlan],
+    ) -> None:
+        """A chapter whose summarize step failed leaves no tuple.
+
+        The views fall back to the last completed summary, and the index
+        discriminator must not mistake it for the current one.
+        """
+        from fabricatio_novel.models.chapter_context import ChapterContext
+        from fabricatio_novel.models.scripting import ChapterSummary
+
+        chapter1_text = "The hero opened the heavy door.\n\nShe stepped into the unknown."
+        chapter2_text = "She pressed forward."
+
+        ctx = ChapterContext(draft=two_chapter_draft, chapter_plans=two_chapter_plans, characters=[])
+        # Chapter 0 generated, but its summarize step returned None.
+        ctx.add_content(0, chapter1_text)
+        assert ctx.chapter_index() == 1
+        assert ctx.previous_summary() is None
+        assert ctx.previous_summary(0) is None  # no summary for ch. 0
+        assert ctx.current_summary() is None
+
+        # Chapter 1 succeeds: (1, summary1) — tagged with the current index → current.
+        summary1 = ChapterSummary(key_events=["the hero pressed forward"])
+        ctx.add_summary(1, summary1)
+        assert ctx.current_summary() is summary1
+        ctx.add_content(1, chapter2_text)
+
+        # prepare of chapter 2: rolling context = chapter 1's summary; no
+        # summary for the current chapter.
+        assert ctx.chapter_index() == 2
+        assert ctx.previous_summary() is summary1
+        assert ctx.current_summary() is None
+
+    def test_bare_construction_has_empty_views(self) -> None:
+        """A channel constructed before the loop starts has empty views."""
+        from fabricatio_novel.models.chapter_context import ChapterContext
+        from fabricatio_novel.models.scripting import ChapterSummary
+
+        ctx = ChapterContext()
+        assert ctx.chapter_index() == 0
+        assert ctx.chapter_count() is None
+        assert ctx.chapter_plan() is None
+        assert ctx.previous_summary() is None
+        assert ctx.previous_chapter_tail() is None
+        assert ctx.current_summary() is None
+        assert ctx.chapter_summaries == []
+        assert ctx.chapter_contents == []
+        # Setters are chainable and return the channel itself.
+        assert ctx.set_guidance("a nudge") is ctx
+        assert ctx.guidance == "a nudge"
+        assert ctx.add_summary(0, ChapterSummary(key_events=["e"])).add_content(0, "text") is ctx
+        assert ctx.chapter_index() == 1
+        assert ctx.contents() == ["text"]

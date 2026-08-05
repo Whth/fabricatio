@@ -2,7 +2,8 @@
 
 Focuses on:
 - `GenerateChaptersFromScriptsWithRAG` builds the right fetch config and threads
-  `writing_style_requirement` through to `create_chapters`.
+  `writing_style_requirement` through a `RAGChapterContext` channel into the
+  per-chapter `prepare_chapter_prompt` hook.
 - `NovelComposeRAG._fetch_style_docs` scales the fetch limit when a rerank
   target is provided and delegates to `arank_documents`.
 
@@ -17,7 +18,8 @@ from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_router_usage
 from fabricatio_mock.utils import install_router_usage
-from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
+from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG, RAGChapterContext
+from fabricatio_novel.models.chapter_context import ChapterContext
 from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
 from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.plan import ChapterPlan
@@ -204,7 +206,7 @@ def _padded_responses() -> List[str]:
 
 
 class TestCreateChapters:
-    """`create_chapters` fetches docs for scripts/scenes and optionally reranks."""
+    """`create_chapters` fetches docs for the current chapter's script/scenes and optionally reranks."""
 
     @pytest.mark.asyncio
     async def test_fetches_docs_for_script_and_scenes(
@@ -229,7 +231,7 @@ class TestCreateChapters:
                 sample_draft,
                 chapter_plans,
                 [sample_character],
-                writing_style_fetch_config=config,
+                context=RAGChapterContext(writing_style_fetch_config=config),
             )
 
         queries_used = [q for (_label, q, _limit) in rag_role.fetched_queries]
@@ -262,8 +264,10 @@ class TestCreateChapters:
                 sample_draft,
                 chapter_plans,
                 [sample_character],
-                writing_style_fetch_config=config,
-                writing_style_requirement="Hemingway terse prose",
+                context=RAGChapterContext(
+                    writing_style_fetch_config=config,
+                    writing_style_requirement="Hemingway terse prose",
+                ),
             )
 
         # Both script and scene fetches should trigger rerank
@@ -294,8 +298,10 @@ class TestCreateChapters:
                 sample_draft,
                 chapter_plans,
                 [sample_character],
-                writing_style_fetch_config=config,
-                writing_style_requirement="test requirement",
+                context=RAGChapterContext(
+                    writing_style_fetch_config=config,
+                    writing_style_requirement="test requirement",
+                ),
             )
 
         # The fetch limit should be scaled: 3 * 3.0 = 9
@@ -326,12 +332,71 @@ class TestCreateChapters:
                 sample_draft,
                 chapter_plans,
                 [sample_character],
-                writing_style_fetch_config=config,
-                writing_style_requirement="   ",
+                context=RAGChapterContext(
+                    writing_style_fetch_config=config,
+                    writing_style_requirement="   ",
+                ),
             )
 
         # Reranking should be skipped for whitespace-only requirement
         assert rag_role.ranked_queries == []
+
+
+# ---------------------------------------------------------------------------
+# 2b. Chapter prompt hook tests (RAGChapterContext channel)
+# ---------------------------------------------------------------------------
+
+
+class TestRAGChannelHook:
+    """The RAG injection lives on `prepare_chapter_prompt` over the caller-owned channel."""
+
+    @pytest.mark.asyncio
+    async def test_injects_docs_into_current_chapter_plan(
+        self,
+        rag_role: _RAGTestRole,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+    ) -> None:
+        """RAG hook fetches docs for the current chapter and appends them to its script/scenes in-place."""
+        chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
+        plan = chapter_plans[0]
+        rag_role.docs_by_query = {
+            _fetch_query(plan.script.as_prompt()): [_make_doc("style-1")],
+            _fetch_query(plan.script.scenes[0].description): [_make_doc("scene-1")],
+        }
+        ctx = (
+            RAGChapterContext(writing_style_fetch_config=WritingStyleFetchConfig(limit=3))
+            .set_draft(sample_draft)
+            .set_chapter_plans(chapter_plans)
+            .set_characters([sample_character])
+        )
+
+        with install_router_usage(*_padded_responses()):
+            await rag_role.prepare_chapter_prompt(ctx)
+
+        assert "style-1" in plan.script.global_prompt
+        assert "scene-1" in plan.script.scenes[0].prompt
+
+    @pytest.mark.asyncio
+    async def test_skips_fetch_without_rag_context(
+        self,
+        rag_role: _RAGTestRole,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+    ) -> None:
+        """A plain (non-RAG) channel means the hook delegates without fetching or mutating."""
+        chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
+        plan = chapter_plans[0]
+        ctx = (
+            ChapterContext().set_draft(sample_draft).set_chapter_plans(chapter_plans).set_characters([sample_character])
+        )
+
+        await rag_role.prepare_chapter_prompt(ctx)
+
+        assert rag_role.fetched_queries == []
+        assert plan.script.global_prompt == ""
 
 
 # ---------------------------------------------------------------------------
