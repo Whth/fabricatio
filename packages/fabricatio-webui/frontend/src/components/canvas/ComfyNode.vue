@@ -130,9 +130,11 @@ const statusLabel = computed(() => {
     <!-- Connectable fields: every configurable field is an input port with
          its own target handle.  Fields are targets only — the only sources
          are the node's output ports, so a field's value always comes from
-         an action output (or manual config).  Handles flow inline in the
-         row (port-handle-inline) — VueFlow's default left/right classes
-         would stack every handle at the node's vertical center. -->
+         an action output (or manual config).  All handles (config fields,
+         extra ports, and outputs) flow inline in their row
+         (port-handle-inline) — VueFlow's default left/right classes would
+         stack every handle of a side at the node's vertical center and
+         route wires to that point instead of to the row. -->
     <div class="port-col inputs">
       <div v-for="f in data.configFields" :key="f.name" class="port-row input">
         <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle port-handle-inline" />
@@ -164,7 +166,7 @@ const statusLabel = computed(() => {
           :id="p.name"
           type="target"
           :position="Position.Left"
-          class="port-handle"
+          class="port-handle port-handle-inline"
           :class="{ hollow: p.optional }"
         />
         <span class="port-name">{{ p.name }}</span>
@@ -181,7 +183,7 @@ const statusLabel = computed(() => {
             :title="`Preview ${p.name}`"
             @click.stop="show(props.id, p.name, $event)"
           ></button>
-          <Handle :id="p.name" type="source" :position="Position.Right" class="port-handle" />
+          <Handle :id="p.name" type="source" :position="Position.Right" class="port-handle port-handle-inline" />
         </div>
       </div>
     </div>
@@ -380,11 +382,14 @@ const statusLabel = computed(() => {
   border-color: var(--fg-2);
 }
 
-/* Per-field handles sit inside their row, not at the node edge: VueFlow's
-   default left/right placement centers every handle of a side at the same
-   spot (top: 50%), so multi-field nodes would stack all dots on one point.
-   In-flow handles keep each dot on its own row; VueFlow measures the DOM
-   rects for edge routing, so wires follow the dots. */
+/* All handles (config fields, extra ports, outputs) sit inside their row,
+   not at the node edge: VueFlow's default left/right placement centers
+   every handle of a side at the same spot (top: 50%), so multi-field
+   nodes would stack all dots on one point and route every wire of a side
+   to that single point.  In-flow handles keep each dot on its own row;
+   VueFlow measures the DOM rects for edge routing, so wires follow the
+   dots exactly (absolute handles measured ~12-15px off from their
+   rendered spot after layout settles). */
 .port-row .port-handle-inline {
   position: relative;
   top: auto;
