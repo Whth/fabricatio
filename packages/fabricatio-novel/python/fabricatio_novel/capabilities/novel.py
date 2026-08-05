@@ -182,8 +182,6 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
         send_to: str | None = TASK,
-        prompt_ctx_extend: Optional[Callable[[dict], dict]] = None,
-        after_summarize: Optional[Callable[[ChapterSummary], Awaitable[None]]] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters sequentially with rolling context.
@@ -194,13 +192,6 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         when non-empty) — the structured summary alone is too lossy to anchor
         the next chapter's opening beat, so we also hand the writer the closing
         paragraph of what came before.
-
-        Args:
-            prompt_ctx_extend: Optional hook called after the base prompt context
-                is built, receiving the dict and returning a modified dict (e.g.
-                to inject mental-state fields into the context before rendering).
-            after_summarize: Optional async hook called after each chapter's
-                summary is generated (e.g. to evolve mental states).
         """
         logger.debug(f"Generating chapter contents sequentially for {len(chapter_plans)} script(s)")
         if not chapter_plans:
@@ -233,10 +224,6 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                 "previous_chapter_tail": previous_chapter_tail,
             }
 
-            # 1b. Apply hook to extend/override context fields
-            if prompt_ctx_extend:
-                prompt_ctx = prompt_ctx_extend(prompt_ctx)
-
             rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
             # 2. Generate chapter content
             raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
@@ -254,9 +241,6 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
                     f"{len(previous_summary.unresolved_threads)} open threads, "
                     f"{len(previous_summary.numerical_stat)} numerical stats"
                 )
-            # 3b. Call after-summarize hook
-            if after_summarize and previous_summary:
-                await after_summarize(previous_summary)
             # 4. Track last paragraph of the prior chapter for the next iteration's prompt
             previous_chapter_tail = last_paragraph(raw_chapter)
 
