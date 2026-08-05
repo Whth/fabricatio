@@ -6,36 +6,51 @@ and states evolve after each chapter via LLM event analysis.
 
 Usage::
 
-    from fabricatio_novel.capabilities.novel_mental import MentalComposeMixin
+    from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
 
-    class MyComposer(MentalComposeMixin):
+    class MyComposer(NovelComposeMental):
         pass
 """
 
-from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List, Optional, Unpack
+from typing import TYPE_CHECKING, Any, Dict, List, Unpack
 
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import MentalState
 from fabricatio_core import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TASK
 from fabricatio_core.utils import no_default
+from pydantic import Field
 
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.models.chapter_context import ChapterContext
 from fabricatio_novel.models.novel import Novel
 
 if TYPE_CHECKING:
-    from fabricatio_novel.models.draft import NovelDraft
-    from fabricatio_novel.models.plan import ChapterPlan
     from fabricatio_novel.models.scripting import ChapterSummary
+
+
+class MentalChapterContext(ChapterContext):
+    """Chapter context extended with per-run character mental states.
+
+    The caller (``compose_novel`` / action ``_execute``) seeds it and passes it
+    as ``context`` to :meth:`NovelCompose.create_chapters`; the mental hooks
+    mutate ``character_states`` in place, so the caller observes the evolution
+    without any instance state on the capability.
+    """
+
+    character_states: Dict[str, MentalState] = Field(default_factory=dict)
+    """Current mental state per character name, evolved after each chapter."""
 
 
 class NovelComposeMental(NovelCompose, UseMind):
     """Mixin that adds psychological state tracking to novel composition.
 
-    Overrides compose_novel and create_chapters to seed, inject, and evolve
-    character mental states. Reuses all base class methods via super().
+    Seeding happens in :meth:`compose_novel`, the caller-owned
+    :class:`MentalChapterContext` carries the states through the base
+    ``create_chapters`` loop, and the hooks (:meth:`extra_chapter_prompt_vars` /
+    :meth:`after_chapter_summarize`) inject and evolve them. The capability
+    itself stays stateless between runs.
     """
 
     # ── Public API ──
@@ -52,14 +67,19 @@ class NovelComposeMental(NovelCompose, UseMind):
         return states
 
     def character_system_prompt(self, states: Dict[str, MentalState], name: str) -> str:
-        """Get the system prompt for a character based on their current mental state.
-
-        Returns empty string if character not found.
-        """
+        """Get the system prompt for a character based on their current mental state."""
         state = states.get(name)
         return self.as_prompt(state) if state else ""
 
     # ── Pipeline overrides ──
+
+    async def build_chapter_context(self, characters: List[CharacterCard]) -> MentalChapterContext:
+        """Build the caller-owned chapter context for a run (seeds mental states).
+
+        Overridable seam — combined mixins (e.g. ``NovelComposeMentalRAG``)
+        override it to return their own context subclass carrying extra fields.
+        """
+        return MentalChapterContext(character_states=await self.seed_mental_states(characters))
 
     async def compose_novel(
         self,
@@ -76,77 +96,41 @@ class NovelComposeMental(NovelCompose, UseMind):
             return None
         draft, characters = result
 
-        character_states = await self.seed_mental_states(characters)
+        context = await self.build_chapter_context(characters)
 
         plans = await super().generate_plans(draft, characters, **okwargs)
         if not plans:
             return None
 
-        chapters = await self.create_chapters(
-            draft, plans, characters, chapter_guidance, character_states=character_states, **okwargs
-        )
+        chapters = await self.create_chapters(draft, plans, characters, chapter_guidance, context=context, **okwargs)
         if not chapters:
             return None
 
         return self.assemble_novel(draft, plans, chapters, characters)
 
-    async def create_chapters(
-        self,
-        draft: "NovelDraft",
-        chapter_plans: "List[ChapterPlan]",
-        characters: "List[CharacterCard]",
-        guidance: Optional[str] = None,
-        send_to: Optional[str] = TASK,
-        prompt_ctx_extend: Optional[Callable[[dict], dict]] = None,
-        after_summarize: Optional[Callable[["ChapterSummary"], Awaitable[None]]] = None,
-        character_states: Optional[Dict[str, MentalState]] = None,
-        **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[str]:
-        """Generate chapters with mental state injection and evolution.
+    # ── Chapter hooks ──
 
-        Wraps base class create_chapters: injects mental states into prompt
-        context before each chapter, evolves states after each chapter summary,
-        and threads the last paragraph of the prior chapter
-        (``previous_chapter_tail``) alongside the rolling summary so the
-        next chapter opens off the prior chapter's closing beat.
-        """
-        if not character_states:
-            return await super().create_chapters(
-                draft,
-                chapter_plans,
-                characters,
-                guidance=guidance,
-                send_to=send_to,
-                prompt_ctx_extend=prompt_ctx_extend,
-                after_summarize=after_summarize,
-                **kwargs,
-            )
+    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
+        """Contribute current mental states to the chapter prompt template vars."""
+        if isinstance(ctx, MentalChapterContext) and ctx.character_states:
+            return {"character_mental_states": mental_states_context(ctx.character_states)}
+        return {}
 
-        async def after_summarize_hook(summary: "ChapterSummary") -> None:
-            """Evolve mental states after each chapter's summary is generated."""
-            char_events = build_character_events(summary, character_states)
-            for name, state in list(character_states.items()):
-                event = char_events.get(name, "")
-                if event:
-                    impact = await self.upon_event(event, state)
-                    character_states[name] = self.after_impact(impact, state)
-            logger.debug(f"Evolved mental states for {len(character_states)} character(s)")
-
-        def prompt_ctx_extend_inner(prompt_ctx: dict) -> dict:
-            """Inject mental states into prompt context before rendering."""
-            prompt_ctx["character_mental_states"] = mental_states_context(character_states)
-            return prompt_ctx
-
-        return await super().create_chapters(
-            draft,
-            chapter_plans,
-            characters,
-            guidance=guidance,
-            send_to=send_to,
-            prompt_ctx_extend=prompt_ctx_extend_inner,
-            after_summarize=after_summarize_hook,
-            **kwargs,
-        )
+    async def after_chapter_summarize(self, ctx: ChapterContext) -> None:
+        """Evolve character mental states after each chapter summary."""
+        if not isinstance(ctx, MentalChapterContext):
+            return
+        states = ctx.character_states
+        summary = ctx.current_summary()
+        if not states or summary is None:
+            return
+        char_events = build_character_events(summary, states)
+        for name, state in list(states.items()):
+            event = char_events.get(name, "")
+            if event:
+                impact = await self.upon_event(event, state)
+                states[name] = self.after_impact(impact, state)
+        logger.debug(f"Evolved mental states for {len(states)} character(s)")
 
 
 def build_character_events(summary: "ChapterSummary", states: Dict[str, "MentalState"]) -> Dict[str, str]:
