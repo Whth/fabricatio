@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
@@ -8,9 +7,8 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
-import { type Blueprint } from '@/data/blueprints'
 import RunDialog from '@/components/chrome/RunDialog.vue'
-import { Play, Square, Save, FolderOpen, Trash2, LayoutTemplate, Search, Settings, BookOpen } from '@lucide/vue'
+import { Play, Square, Save, FolderOpen, Trash2, Search, Settings, BookOpen } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
 const boardStore = useBoardStore()
@@ -33,7 +31,6 @@ const isEditingName = ref(false)
 const editingName = ref('')
 const loadOpen = ref(false)
 const runDialogOpen = ref(false)
-const { blueprints } = storeToRefs(boardStore)
 
 /** The name shown in the toolbar: board name on the board layer, workflow name inside. */
 const docName = computed(() =>
@@ -92,21 +89,6 @@ function handleRun() {
 
 function handleStop() {
   interruptWorkflow()
-}
-
-async function loadBlueprint(bp: Blueprint) {
-  uiStore.blueprintOpen = false
-  const wf = bp.build()
-  const role = boardStore.activeRole
-  if (!role) {
-    boardStore.addRole('Default Role')
-  }
-  boardStore.addWorkflow(wf.name ?? bp.name, wf.namespace ?? 'main')
-  const wfIndex = (boardStore.activeRole?.workflows.length ?? 1) - 1
-  boardStore.enterWorkflow(boardStore.activeRoleIndex, wfIndex)
-  await wfStore.fromJSON(wf)
-  boardStore.commitActiveWorkflow()
-  notifications.success('Blueprint loaded', `"${bp.name}" with ${wf.nodes.length} node(s)`)
 }
 
 function onKeyDown(ev: KeyboardEvent) {
@@ -170,25 +152,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         >
           <BookOpen :size="16" />
         </button>
-
-        <div class="bp-wrap">
-          <button
-            class="btn btn-icon"
-            title="Blueprint workspaces"
-            :class="{ active: uiStore.blueprintOpen }"
-            @click="uiStore.toggleBlueprint()"
-          >
-            <LayoutTemplate :size="16" />
-          </button>
-          <div v-if="uiStore.blueprintOpen" class="bp-menu" @mousedown.stop>
-            <div class="bp-empty" v-if="blueprints.length === 0">No blueprints</div>
-            <button v-for="bp in blueprints" :key="bp.id" class="bp-item" @click="loadBlueprint(bp)">
-              <span class="bp-title">{{ bp.name }}</span>
-              <span class="bp-desc">{{ bp.description }}</span>
-              <span class="bp-meta">{{ bp.nodeCount }} node(s)</span>
-            </button>
-          </div>
-        </div>
 
         <button class="btn btn-icon" title="Search nodes and commands (Ctrl+F)" @click="uiStore.togglePalette()">
           <Search :size="16" />
@@ -457,77 +420,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   color: var(--err);
 }
 
-/* ── Blueprint menu ──────────────────────────────────────────────────────── */
-.bp-wrap {
-  position: relative;
-}
-
+/* ── Active state ────────────────────────────────────────────────────────── */
 .btn.active {
   background: var(--bg-3);
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.bp-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + var(--sp-1));
-  z-index: 50;
-  width: 300px;
-  max-height: 380px;
-  overflow-y: auto;
-  background: var(--bg-1);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  animation: fade-in var(--duration-fast) var(--ease-out);
-}
-
-.bp-empty {
-  padding: var(--sp-3);
-  color: var(--fg-2);
-  text-align: center;
-  font-size: var(--text-sm);
-}
-
-.bp-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  width: 100%;
-  padding: var(--sp-2) var(--sp-3);
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border-soft);
-  color: var(--fg-0);
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-sans);
-  transition: var(--transition-colors);
-}
-
-.bp-item:last-child {
-  border-bottom: none;
-}
-
-.bp-item:hover {
-  background: var(--bg-3);
-}
-
-.bp-title {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-}
-
-.bp-desc {
-  color: var(--fg-1);
-  font-size: var(--text-xs);
-}
-
-.bp-meta {
-  color: var(--fg-2);
-  font-size: var(--text-2xs);
 }
 
 /* ── Queue badge ─────────────────────────────────────────────────────────── */
