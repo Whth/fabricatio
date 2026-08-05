@@ -50,7 +50,7 @@ function onDrop(ev: DragEvent) {
   if (wf) {
     notifications.success(
       'Workflow added',
-      `"${wf.name}" added to "${role.value.name}" — double-click the role to edit it`,
+      `"${wf.name}" added to "${role.value.name}" — double-click the role or its chip to edit it`,
     )
   }
 }
@@ -195,6 +195,11 @@ function open() {
   boardStore.enterWorkflow(index.value, 0)
 }
 
+/** Double-click a workflow chip to open that specific workflow. */
+function openWorkflow(i: number) {
+  boardStore.enterWorkflow(index.value, i)
+}
+
 function addWorkflow() {
   const roleName = role.value.name.replace(/\s+/g, '-').toLowerCase() || 'role'
   const wfName = `${roleName}-${(role.value.workflows?.length ?? 0) + 1}`
@@ -273,6 +278,7 @@ function remove() {
         draggable="true"
         :title="patternOf(wf.namespace)"
         @click.stop="onChipClick(i)"
+        @dblclick.stop="openWorkflow(i)"
         @dragstart="onReorderStart($event, i)"
         @dragenter="onReorderEnter($event, i)"
         @dragover="onReorderOver($event, i)"

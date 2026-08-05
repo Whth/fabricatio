@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useBoardStore } from '../board'
+import { useWorkflowStore } from '../workflow'
+import type { NodeTypeDefinition } from '@/types/api'
 
 describe('board store role/workflow targeting', () => {
   beforeEach(() => {
@@ -176,6 +178,24 @@ describe('board store blueprint drops', () => {
     expect(store.addBlueprintWorkflow('read-text', 99)).toBeNull()
     expect(store.board.roles[1].workflows).toHaveLength(0)
   })
+
+  it('replaces the lone empty Main placeholder so the drop becomes workflow 0', () => {
+    const store = useBoardStore()
+    const wf = store.addBlueprintWorkflow('read-text', 0)
+    expect(wf?.name).toBe('Read a Text File')
+    expect(store.board.roles[0].workflows.map((w) => w.name)).toEqual(['Read a Text File'])
+    expect(store.board.roles[0].workflows[0].nodes).toHaveLength(1)
+  })
+
+  it('appends when the first workflow is not an empty Main placeholder', () => {
+    const store = useBoardStore()
+    store.board.roles[0].workflows[0].nodes = [{ id: 'A', type: 'fabricatio' } as never]
+    store.addBlueprintWorkflow('read-text', 0)
+    expect(store.board.roles[0].workflows.map((w) => w.name)).toEqual([
+      'Main',
+      'Read a Text File',
+    ])
+  })
 })
 
 describe('board store reorder + clipboard', () => {
@@ -272,5 +292,45 @@ describe('board store reorder + clipboard', () => {
     expect(store.pasteWorkflows(1)).toBe(0)
     expect(store.pasteWorkflows(99)).toBe(0)
     expect(store.board.roles[1].workflows).toHaveLength(0)
+  })
+})
+
+describe('board store boot', () => {
+  it('does not commit a restored draft into the board nor force the workflow layer', async () => {
+    setActivePinia(createPinia())
+    // Seed a draft BEFORE the workflow store is created (restoreDraft runs at
+    // store init and reads localStorage).
+    localStorage.setItem(
+      'workflow:draft',
+      JSON.stringify({
+        nodes: [
+          {
+            id: 'ReadText_1',
+            type: 'fabricatio',
+            position: { x: 60, y: 120 },
+            data: { title: 'ReadText', nodeType: 'ReadText' },
+          },
+        ],
+        edges: [],
+        workflowName: 'demo-wf',
+        workflowNamespace: 'demo::wf',
+        taskOutputKey: '',
+        nodeIdCounter: 1,
+      }),
+    )
+    const wf = useWorkflowStore()
+    // Skip the registry network call by pre-populating nodeTypes.
+    wf.nodeTypes.push({ type: 'ReadText' } as unknown as NodeTypeDefinition)
+    expect(wf.nodes).toHaveLength(1) // draft restored into the editor
+
+    const store = useBoardStore()
+    await store.boot()
+
+    // The board document stays pristine: Main at index 0, no draft content.
+    expect(store.board.roles[0].workflows.map((w) => w.name)).toEqual(['Main'])
+    expect(store.board.roles[0].workflows[0].nodes).toHaveLength(0)
+    // Boot does not force the workflow layer.
+    expect(store.layer).toBe('board')
+    localStorage.removeItem('workflow:draft')
   })
 })

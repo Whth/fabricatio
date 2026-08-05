@@ -286,24 +286,34 @@ export const useBoardStore = defineStore('board', () => {
     return copies.length
   }
 
-  /** Add a package-predefined blueprint workflow (drag from the sidebar) to a
-   *  specific role. The name is deduped in the target role; the namespace is
-   *  the slugified deduped name so the role serves a unique task pattern.
-   *  Returns the new workflow, or null for an unknown blueprint or role. */
-  function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJSON | null {
-    const role = board.value.roles[roleIndex]
-    const bp = blueprints.value.find((b) => b.id === blueprintId)
-    if (!role || !bp) return null
-    const wf = bp.build()
-    const names = new Set(role.workflows.map((w) => w.name ?? ''))
-    let name = bp.name
-    let n = 2
-    while (names.has(name)) name = `${bp.name}-${n++}`
-    wf.name = name
-    wf.namespace = slugify(name)
+/** Add a package-predefined blueprint workflow (drag from the sidebar) to a
+ *  specific role. The name is deduped in the target role; the namespace is
+ *  the slugified deduped name so the role serves a unique task pattern.
+ *  A lone empty "Main" placeholder is replaced so the blueprint becomes
+ *  workflow 0 — role double-click (which opens index 0) then lands on it.
+ *  Returns the new workflow, or null for an unknown blueprint or role. */
+function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJSON | null {
+  const role = board.value.roles[roleIndex]
+  const bp = blueprints.value.find((b) => b.id === blueprintId)
+  if (!role || !bp) return null
+  const wf = bp.build()
+  const names = new Set(role.workflows.map((w) => w.name ?? ''))
+  let name = bp.name
+  let n = 2
+  while (names.has(name)) name = `${bp.name}-${n++}`
+  wf.name = name
+  wf.namespace = slugify(name)
+  const onlyPlaceholder =
+    role.workflows.length === 1 &&
+    role.workflows[0].name === 'Main' &&
+    (role.workflows[0].nodes?.length ?? 0) === 0
+  if (onlyPlaceholder) {
+    role.workflows[0] = wf
+  } else {
     role.workflows.push(wf)
-    return wf
   }
+  return wf
+}
 
   // ── Custom action definitions ─────────────────────────────────────────────
 
@@ -393,7 +403,13 @@ export const useBoardStore = defineStore('board', () => {
     syncNodeTypes()
   }
 
-  /** App boot: default board + restore the workflow draft into it. */
+  /** App boot: default board + keep the editor's restored draft in place.
+   *  The draft is an editor-session artifact (autosave/crash recovery), NOT a
+   *  board document member: committing it into workflow 0 at boot let a stale
+   *  draft masquerade as every role's first workflow (role double-click opens
+   *  index 0) and force-opened the workflow layer on a single-node workflow.
+   *  Opening any workflow (enterWorkflow / syncActiveWorkflow) supersedes the
+   *  draft; it is never committed into the board here. */
   async function boot() {
     const wf = useWorkflowStore()
     if (wf.nodeTypes.length === 0) await wf.loadNodeTypes()
@@ -402,11 +418,6 @@ export const useBoardStore = defineStore('board', () => {
     }
     syncNodeTypes()
     loadBlueprints()
-    if (wf.nodes.length > 0) {
-      // A restored draft is the active workflow being edited.
-      commitActiveWorkflow()
-      layer.value = 'workflow'
-    }
   }
 
   return {
