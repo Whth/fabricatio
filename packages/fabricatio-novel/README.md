@@ -37,8 +37,9 @@ Novel generation runs as a five-stage sequential pipeline driven by Handlebars t
    `ChapterSummary` from the previous chapter for narrative continuity)
 5. **Assembly** — Components assembled into a `Novel` object; `NovelBuilder` (Rust/PyO3) produces the EPUB
 
-An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDocument` entries and injects them into
-script-level `global_prompt` and scene-level `prompt` fields before chapter generation.
+An optional RAG variant (`NovelComposeRAG`) queries LanceDB for `WritingStyleDocument` entries per chapter (via the
+`prepare_chapter_prompt` hook, configured through a caller-owned `RAGChapterContext` channel) and injects them into the
+chapter prompt — script-level `global_prompt` and scene-level `prompt` fields.
 
 ## Key Classes
 
@@ -62,7 +63,7 @@ script-level `global_prompt` and scene-level `prompt` fields before chapter gene
 | Class             | Description                                                                                                                                     |
 |-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 | `NovelCompose`    | Full pipeline: `create_draft`, `create_characters`, `create_scripts`, `create_chapters`, `summarize_chapter`, `assemble_novel`, `compose_novel` |
-| `NovelComposeRAG` | Extends `NovelCompose` — fetches writing style docs from LanceDB and injects them into script/scene prompts before chapter generation           |
+| `NovelComposeRAG` | Extends `NovelCompose` — fetches writing style docs from LanceDB per chapter via the `prepare_chapter_prompt` hook over a `RAGChapterContext` channel |
 
 ### Actions (fabricatio-actions)
 
