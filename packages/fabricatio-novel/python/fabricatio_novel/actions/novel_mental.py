@@ -11,8 +11,8 @@ from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import Action, logger
 from fabricatio_core.utils import ok
 
-from fabricatio_novel.capabilities.novel_mental import NovelComposeMental
-from fabricatio_novel.capabilities.novel_mental_rag import NovelComposeMentalRAG
+from fabricatio_novel.capabilities.novel_mental import MentalChapterContext, NovelComposeMental
+from fabricatio_novel.capabilities.novel_mental_rag import MentalRAGChapterContext, NovelComposeMentalRAG
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig  # noqa: TC001
@@ -75,15 +75,15 @@ class GenerateChaptersFromScriptsWithMental(NovelComposeMental, Action):
         scripts = ok(self.novel_scripts)
         characters = ok(self.novel_characters)
 
-        # Seed mental states from character cards
-        character_states = await self.seed_mental_states(characters)
-        logger.info(f"Seeded mental states for {len(character_states)} character(s)")
+        # Seed mental states from character cards into the caller-owned context
+        context = MentalChapterContext(character_states=await self.seed_mental_states(characters))
+        logger.info(f"Seeded mental states for {len(context.character_states)} character(s)")
 
         chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
         logger.info(f"Generating {len(chapter_plans)} chapter contents with mental states for '{draft.title}'.")
         chapter_contents = await self.create_chapters(
-            draft, chapter_plans, characters, self.chapter_guidance, character_states
+            draft, chapter_plans, characters, self.chapter_guidance, context=context
         )
         if not chapter_contents:
             logger.warn("Mental chapter content generation returned empty or None.")
@@ -116,8 +116,10 @@ class GenerateNovelMentalRAG(NovelComposeMentalRAG, Action):
 class GenerateChaptersFromScriptsWithMentalRAG(NovelComposeMentalRAG, Action):
     """Generate chapters with RAG writing style injection + mental state tracking.
 
-    Seeds mental states, does RAG style injection into scripts, then generates
-    chapters with both augmented styles and psychological context.
+    Seeds mental states and the RAG fetch config into a combined
+    ``MentalRAGChapterContext`` channel; the RAG ``prepare_chapter_prompt``
+    and mental ``extra_chapter_prompt_vars`` hooks then compose on the base
+    loop — style docs per chapter plus psychological context.
     """
 
     novel_draft: Optional[NovelDraft] = None
@@ -145,9 +147,12 @@ class GenerateChaptersFromScriptsWithMentalRAG(NovelComposeMentalRAG, Action):
         scripts = ok(self.novel_scripts)
         characters = ok(self.novel_characters)
 
-        # Seed mental states from character cards
-        character_states = await self.seed_mental_states(characters)
-        logger.info(f"Seeded mental states for {len(character_states)} character(s)")
+        # Seed mental states + RAG config into the caller-owned combined channel
+        context = MentalRAGChapterContext(
+            character_states=await self.seed_mental_states(characters),
+            writing_style_fetch_config=self.writing_style_fetch_config,
+        )
+        logger.info(f"Seeded mental states for {len(context.character_states)} character(s)")
 
         chapter_plans = ChapterPlan.from_draft(draft, scripts)
 
@@ -157,8 +162,7 @@ class GenerateChaptersFromScriptsWithMentalRAG(NovelComposeMentalRAG, Action):
             chapter_plans,
             characters,
             self.chapter_guidance,
-            character_states,
-            writing_style_fetch_config=self.writing_style_fetch_config,
+            context=context,
         )
         if not chapter_contents:
             logger.warn("RAG+Mental chapter content generation returned empty or None.")

@@ -9,7 +9,7 @@ from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig
 from fabricatio_rag.actions.db import StoreTextFile
 
-from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG
+from fabricatio_novel.capabilities.novel_rag import NovelComposeRAG, RAGChapterContext
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel_rag import (
     WritingStyleDocument,
@@ -23,10 +23,11 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
     """Generate chapter contents from scripts with RAG writing style augmentation.
 
     Mirrors GenerateChaptersFromScripts but inherits NovelComposeRAG so that
-    create_chapters() applies script-level and scene-level style injection
-    before generating prose. The `writing_style_query` is the raw user intent
-    (e.g. "Hemingway terse prose style") and is used for LanceDB retrieval
-    — enable `use_refined_query` on the fetch config (or the
+    create_chapters() fetches writing style docs per chapter (via the
+    prepare_chapter_prompt hook, configured through a RAGChapterContext
+    channel) before generating prose. The `writing_style_query` is the raw user
+    intent (e.g. "Hemingway terse prose style") and is used for LanceDB
+    retrieval — enable `use_refined_query` on the fetch config (or the
     `WritingStyleFetchConfig` instance) to expand it into multiple semantically
     diverse queries via the LLM before search.
     """
@@ -78,8 +79,10 @@ class GenerateChaptersFromScriptsWithRAG(NovelComposeRAG, Action):
             chapter_plans,
             characters,
             self.chapter_guidance,
-            writing_style_fetch_config=rag_config,
-            writing_style_requirement=self.writing_style_requirement,
+            context=RAGChapterContext(
+                writing_style_fetch_config=rag_config,
+                writing_style_requirement=self.writing_style_requirement,
+            ),
         )
         if not chapter_contents:
             logger.warn("RAG chapter content generation returned empty or None.")
