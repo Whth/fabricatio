@@ -1,26 +1,49 @@
-"""Novel RAG capabilities combining novel composition with retrieval-augmented generation."""
+"""Novel RAG capabilities combining novel composition with retrieval-augmented generation.
+
+The writing style RAG injection lives on the chapter prompt hook: the caller
+builds a :class:`RAGChapterContext` (config + rerank target) and passes it as
+``context`` to ``create_chapters``; :meth:`NovelComposeRAG.prepare_chapter_prompt`
+fetches style docs for the CURRENT chapter and appends them to its
+script/scene prompts in-place, then delegates to the base implementation so
+sibling mixins (e.g. mental states) still contribute via
+``extra_chapter_prompt_vars``. The capability itself stays stateless — all
+per-run configuration threads through the caller-owned channel.
+"""
 
 import asyncio
 from abc import ABC
-from typing import List, Optional, Unpack
+from typing import List, Optional
 
-from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import cfg
 
 from fabricatio_novel.models.scripting import Scene
 
 cfg(["lancedb"])
-from fabricatio_character.models.character import CharacterCard  # noqa: I001
-from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core import TEMPLATE_MANAGER, logger  # noqa: I001
+from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.chapter_context import ChapterContext
 from fabricatio_novel.models.novel_rag import WritingStyleDocument, WritingStyleFetchConfig
+from fabricatio_novel.models.plan import ChapterPlan
 
 from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbRAG
 
-from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.draft import NovelDraft
-from fabricatio_novel.models.plan import ChapterPlan
+
+class RAGChapterContext(ChapterContext):
+    """Chapter context extended with per-run writing style RAG configuration.
+
+    The caller builds it (optionally combined with other mixins, e.g.
+    ``MentalRAGChapterContext``) and passes it as ``context`` to
+    :meth:`NovelCompose.create_chapters`; the RAG prompt hook reads the
+    config fields to fetch style docs for each chapter.
+    """
+
+    writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None
+    """Optional fetch configuration override for writing style retrieval."""
+
+    writing_style_requirement: Optional[str] = None
+    """Optional rerank target for fetched style docs (None = no reranking)."""
 
 
 class NovelComposeRAG(
@@ -63,41 +86,37 @@ class NovelComposeRAG(
         docs = list(ok(await self.afetch_document(queries, config)))
         return docs[: config.limit] if docs else []
 
-    async def create_chapters(
-        self,
-        draft: NovelDraft,
-        chapter_plans: List[ChapterPlan],
-        characters: List[CharacterCard],
-        guidance: Optional[str] = None,
-        writing_style_fetch_config: Optional[WritingStyleFetchConfig] = None,
-        writing_style_requirement: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[str]:
-        """Generate chapters with writing style augmentation via RAG.
+    async def prepare_chapter_prompt(self, ctx: ChapterContext) -> str:
+        """Hook: inject writing style docs for the current chapter, then delegate.
 
-        Fetches writing style references from LanceDB using script/scene prompts
-        as queries. When `writing_style_requirement` is provided, fetched docs
-        are reranked against it for relevance.
+        Fetches style references for the current chapter's script and scenes
+        (fetch config + rerank target read from the caller-owned
+        :class:`RAGChapterContext`) and appends them to the plan's
+        script/scene prompts in-place, so they flow into the rendered
+        ``{{script}}`` block. Then delegates to the base implementation so
+        sibling mixins (e.g. mental states) still contribute via
+        :meth:`extra_chapter_prompt_vars`.
         """
-        await self.inject_docs(chapter_plans, writing_style_fetch_config, writing_style_requirement)
+        if isinstance(ctx, RAGChapterContext):
+            plan = ctx.chapter_plan()
+            if plan is not None:
+                config = ctx.writing_style_fetch_config or WritingStyleFetchConfig.default()
+                await self._inject_style_docs(plan, config, ctx.writing_style_requirement)
+        return await super().prepare_chapter_prompt(ctx)
 
-        # Delegate to NovelCompose.create_chapters for actual generation
-        return await super().create_chapters(draft, chapter_plans, characters, guidance, **kwargs)
-
-    async def inject_docs(
+    async def _inject_style_docs(
         self,
-        chapter_plans: list[ChapterPlan],
-        writing_style_fetch_config: WritingStyleFetchConfig | None,
-        writing_style_requirement: str | None,
+        plan: ChapterPlan,
+        config: WritingStyleFetchConfig,
+        writing_style_requirement: Optional[str],
     ) -> None:
-        """Inject writing style documents into chapter scripts and scenes in-place.
+        """Fetch writing style docs for one chapter's script and scenes and inject them in-place.
 
-        All script-level and scene-level fetches run concurrently. Each closure
+        The script-level and scene-level fetches run concurrently. Each closure
         captures its query (before mutation) and target, fetches, then injects.
         """
-        config = writing_style_fetch_config or WritingStyleFetchConfig.default()
 
-        async def _inject_script(plan: ChapterPlan) -> None:
+        async def _inject_script() -> None:
             query = plan.script.as_prompt()  # capture before mutation
             docs = await self._fetch_style_docs(query, config, writing_style_requirement)
             if docs:
@@ -116,10 +135,4 @@ class NovelComposeRAG(
                 inject_sentence = TEMPLATE_MANAGER.render_template(novel_config.writing_style_inject_scene_template, {})
                 sc.append_prompt(inject_sentence).bulk_append([doc.as_prompt() for doc in docs])
 
-        tasks = []
-        for cp in chapter_plans:
-            tasks.append(_inject_script(cp))
-            for scene in cp.script.scenes:
-                tasks.append(_inject_scene(scene))
-
-        await asyncio.gather(*tasks)
+        await asyncio.gather(_inject_script(), *(_inject_scene(sc) for sc in plan.script.scenes))
