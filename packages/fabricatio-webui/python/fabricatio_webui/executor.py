@@ -26,6 +26,8 @@ from fabricatio_core.models.role import Role
 from fabricatio_core.models.task import Task
 from pydantic.fields import FieldInfo
 
+from fabricatio_webui.registry import CONTEXT_PORT_NAME
+
 # Task-scoped storage keys (namespaced away from user keys).
 _OUTPUTS_KEY = "__webui_node_outputs__"
 _EXECUTION_ID_KEY = "__webui_execution_id__"
@@ -365,8 +367,14 @@ def _make_instrumented(
             # Wired edge values are explicit field assignments: applied
             # unconditionally (bodies read ``self.<field>``), regardless of
             # ctx_override, and injected into the body context.  The only
-            # sources are node outputs.
+            # sources are node outputs.  The CONTEXT_PORT_NAME handle is a
+            # display-only wire (whole-context dataflow drawn by the
+            # blueprint generator): the framework already passes the shared
+            # context, so injecting the predecessor's output under that name
+            # would clobber the real context.
             for src_id, source_handle, tgt_handle in wired:
+                if tgt_handle == CONTEXT_PORT_NAME:
+                    continue
                 found, value = _wired_value(outputs, node_id, src_id, source_handle, tgt_handle)
                 if not found:
                     continue

@@ -6,6 +6,7 @@ suitable for frontend rendering as a ComfyUI-style node palette.
 
 import contextlib
 import hashlib
+import inspect
 import json
 from collections import deque
 from functools import cache
@@ -43,6 +44,80 @@ if _ROLE_EXCLUDED is not None:
     EXCLUDED_FIELDS: Set[str] = _HARD_EXCLUDED | _ROLE_EXCLUDED
 else:
     EXCLUDED_FIELDS = _HARD_EXCLUDED
+
+# ---------------------------------------------------------------------------
+# Runtime _execute parameters — the second dataflow surface.
+#
+# Action subclasses receive data two ways: declared model fields (editable
+# config, instantiated via cls(**config)) and the framework-injected context
+# that lands on the *_execute* signature when the WorkFlow runner calls
+# ``_execute(**context)``.  Model fields become config fields; *runtime
+# parameters* become read-only input ports so blueprint graphs can wire them
+# (e.g. GenerateInitialOutline's ``article_proposal``).
+# ---------------------------------------------------------------------------
+
+#: _execute parameter names that are framework plumbing, never dataflow ports.
+_RUNTIME_PLUMBING: Set[str] = {
+    "self",
+    "_",
+    "cxt",
+    "ctx",
+    "context",
+    "supervisor",
+    "task_input",
+    "task_output",
+    "args",
+    "kwargs",
+}
+
+#: Port name for whole-context display wires (see _consumes_context).
+CONTEXT_PORT_NAME = "context"
+
+
+def _execute_params(cls: Type[Action]) -> List[str]:
+    """Non-plumbing named parameters of *cls*._execute (no **kwargs)."""
+    params: List[str] = []
+    try:
+        sig = inspect.signature(cls._execute)
+    except (TypeError, ValueError):
+        return params
+    for name, param in sig.parameters.items():
+        if name in _RUNTIME_PLUMBING:
+            continue
+        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY):
+            params.append(name)
+    return params
+
+
+def _required_execute_params(cls: Type[Action]) -> List[str]:
+    """Non-plumbing _execute parameters without a default value."""
+    try:
+        sig = inspect.signature(cls._execute)
+    except (TypeError, ValueError):
+        return []
+    required = []
+    for name, param in sig.parameters.items():
+        if name in _RUNTIME_PLUMBING:
+            continue
+        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY) and param.default is param.empty:
+            required.append(name)
+    return required
+
+
+def _consumes_context(cls: Type[Action]) -> bool:
+    """True when *cls*._execute receives the whole workflow context.
+
+    Either via a ``**kwargs`` catch-all (novel actions take ``**cxt``) or a
+    named context parameter.  Such steps are dataflow-connected to every
+    predecessor through the shared context even without a field match.
+    """
+    try:
+        sig = inspect.signature(cls._execute)
+    except (TypeError, ValueError):
+        return False
+    return any(p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()) or any(
+        name in {"cxt", "ctx", "context"} for name in sig.parameters
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -272,14 +347,19 @@ def _concrete_action_subclasses() -> Set[Type[Action]]:
             continue
         seen.add(cls)
 
-        # Check if it's concrete (has _execute defined differently from Action)
-        has_own_execute = "_execute" in cls.__dict__ and cls.__dict__["_execute"] is not Action.__dict__["_execute"]
-
-        # Also check if the class is not abstract (ABC check)
+        # Concrete = instantiable and runnable: no abstract methods and the
+        # resolved _execute is a real implementation (not the abstract base
+        # stub).  The inherited case matters: generic bases like
+        # StoreDocuments implement _execute once and parameterised subclasses
+        # (StoreArticleEssence) reuse it without declaring their own.
         is_abstract = getattr(cls, "__abstractmethods__", None)
         is_abstract_class = bool(is_abstract)
+        resolves_own_execute = cls._execute is not Action.__dict__["_execute"]
+        # Generic aliases (e.g. RetrieveFromPersistent[TypeVar]) are not real
+        # classes; their mangled __name__ gives them away.
+        is_generic_alias = "[" in cls.__name__
 
-        if has_own_execute and not is_abstract_class:
+        if not is_abstract_class and resolves_own_execute and not is_generic_alias:
             concrete.add(cls)
 
         queue.extend(cls.__subclasses__())
@@ -376,9 +456,14 @@ _ACTION_MODULE_CANDIDATES: List[str] = [
     "fabricatio_actions.actions.output",
     "fabricatio_actions.actions.fs",
     "fabricatio_novel.actions.novel",
+    "fabricatio_novel.actions.novel_mental",
+    "fabricatio_novel.actions.novel_rag",
+    "fabricatio_novel.actions.enrich",
     "fabricatio_novel.actions.illustration",
     "fabricatio_anki.actions",
     "fabricatio_typst.actions",
+    "fabricatio_typst.actions.article",
+    "fabricatio_typst.actions.article_rag",
     "fabricatio_comfyui.actions",
     "fabricatio_capabilities.actions",
     "fabricatio_improve.actions",
@@ -415,16 +500,51 @@ def build_node_registry() -> Dict[str, Any]:
             doc = (cls.__doc__ or "").strip()
             first_line = doc.split("\n")[0].strip() if doc else ""
 
+            model_ports = _extract_input_ports(cls)
+
+            # Runtime _execute parameters become read-only input ports (wired
+            # from a predecessor's output; never config-editable — they are
+            # not model fields).  A whole-context consumer additionally gets
+            # the CONTEXT_PORT_NAME display port so blueprint graphs can show
+            # the implicit context dataflow between steps.
+            seen = {p["name"] for p in model_ports}
+            runtime_ports: List[Dict[str, Any]] = []
+            for param_name in _execute_params(cls):
+                if param_name in seen:
+                    continue
+                seen.add(param_name)
+                runtime_ports.append(
+                    {
+                        "name": param_name,
+                        "type": "Any",
+                        "optional": True,
+                        "description": f"Runtime parameter of {cls.__name__}, resolved from the workflow context",
+                        "widget": "text",
+                    }
+                )
+            if _consumes_context(cls) and CONTEXT_PORT_NAME not in seen:
+                runtime_ports.append(
+                    {
+                        "name": CONTEXT_PORT_NAME,
+                        "type": "Any",
+                        "optional": True,
+                        "description": "Whole execution context from preceding steps (display-only wire)",
+                        "widget": "text",
+                    }
+                )
+
             entry: Dict[str, Any] = {
                 "type": cls.__name__,
                 "title": first_line or cls.__name__,
                 "description": doc,
                 "category": _derive_category(cls),
-                "input_ports": (input_ports := _extract_input_ports(cls)),
+                "input_ports": [*model_ports, *runtime_ports],
                 "output_ports": _extract_output_ports(cls),
                 "capabilities": _extract_capabilities(cls),
                 "ctx_override": getattr(cls, "ctx_override", False),
-                "config_fields": list(input_ports),
+                # Only model fields are editable config; runtime params are
+                # dataflow-only and must never reach cls(**config).
+                "config_fields": model_ports,
             }
             # Content hash for change detection; the wire node field
             # ``schema_version`` is a numeric generation marker, not this hash.

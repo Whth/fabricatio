@@ -10,6 +10,12 @@ from typing import Any, Dict, Iterator, List, Tuple, Type
 from pydantic.fields import FieldInfo
 
 from fabricatio_core.models.action import Action, WorkFlow
+from fabricatio_webui.registry import (
+    CONTEXT_PORT_NAME,
+    _consumes_context,
+    _execute_params,
+    _required_execute_params,
+)
 
 #: Packages whose ``workflows`` subpackage is introspected for blueprints.
 _WORKFLOW_PACKAGES: List[str] = ["fabricatio_novel", "fabricatio_typst"]
@@ -69,7 +75,7 @@ def _graph_from_workflow(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
-    prev: Tuple[str, str] | None = None
+    prev: Tuple[str, str, str] | None = None
 
     for index, step in enumerate(wf.iter_actions()):
         type_name = type(step).__name__
@@ -86,26 +92,57 @@ def _graph_from_workflow(
             }
         )
         if prev is not None:
-            prev_id, prev_key = prev
-            if prev_key in type(step).model_fields:
+            prev_id, prev_instance_key, prev_port_key = prev
+            target_handle = _wire_target(step, prev_instance_key)
+            if target_handle is not None:
                 edges.append(
                     {
-                        "id": f"e_{prev_id}_{prev_key}_{node_id}_{prev_key}",
+                        "id": f"e_{prev_id}_{prev_instance_key}_{node_id}_{target_handle}",
                         "source": prev_id,
-                        "source_handle": prev_key,
+                        # Renderable port name: instances may override output_key
+                        # (e.g. DumpNovel(output_key="task_output")), but the
+                        # node's output port comes from the class default.
+                        "source_handle": prev_port_key,
                         "target": node_id,
-                        "target_handle": prev_key,
+                        "target_handle": target_handle,
                     }
                 )
-        prev = (node_id, _output_key(type(step)))
+        # The *instance* output_key is what lands in the workflow context at
+        # runtime (steps may override it, e.g. ExtractArticleEssence(output_key="documents")).
+        instance_key = step.output_key or _output_key(type(step))
+        prev = (node_id, instance_key, _output_key(type(step)))
 
     return nodes, edges
+
+
+def _wire_target(step: Action, prev_key: str) -> str | None:
+    """Find the next step's input handle for the previous step's output key.
+
+    Hierarchical, matching the runtime dataflow:
+      1. exact model field (editable config wire),
+      2. exact non-plumbing ``_execute`` parameter (context-resolved input),
+      3. the single required non-plumbing parameter (e.g. DumpFinalizedOutput
+         receives the outline via ``to_dump``),
+      4. the whole-context display port when the step consumes ``**context``.
+    Returns None when the step takes no dataflow input at all.
+    """
+    step_type = type(step)
+    if prev_key in step_type.model_fields:
+        return prev_key
+    if prev_key in _execute_params(step_type):
+        return prev_key
+    required = _required_execute_params(step_type)
+    if len(required) == 1:
+        return required[0]
+    if _consumes_context(step_type):
+        return CONTEXT_PORT_NAME
+    return None
 
 
 def _workflow_doc(wf: WorkFlow) -> Dict[str, Any]:
     nodes, edges = _graph_from_workflow(wf)
     steps = list(wf.iter_actions())
-    task_output_key = _output_key(type(steps[-1])) if steps else ""
+    task_output_key = steps[-1].output_key or (_output_key(type(steps[-1])) if steps else "")
     return {
         "name": wf.name,
         "namespace": _slugify(wf.name),
