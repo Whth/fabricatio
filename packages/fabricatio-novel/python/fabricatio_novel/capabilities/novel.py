@@ -1,5 +1,8 @@
+"""Novel composition capabilities — the NovelCompose base class."""
+
 from abc import ABC
-from typing import Awaitable, Callable, List, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Optional, Tuple, Unpack
+
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.utils import dump_card
@@ -11,11 +14,11 @@ from fabricatio_core.rust import PLAN, SLOW, SMOL, TASK, detect_language
 from fabricatio_core.utils import no_default, ok
 
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.chapter_context import ChapterContext
 from fabricatio_novel.models.draft import NovelDraft
 from fabricatio_novel.models.novel import Chapter, Novel
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import ChapterSummary, Script
-from fabricatio_novel.utils import last_paragraph
 
 
 class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
@@ -87,25 +90,39 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         outline: str,
         language: Optional[str] = None,
         send_to: str | None = PLAN,
-        **kwargs: Unpack[ValidateKwargs[NovelDraft]],
-    ) -> NovelDraft | None:
+        **kwargs: Unpack[ValidateKwargs[NovelDraft | None]],
+    ) -> NovelDraft:
         """Generate a draft for the novel based on the provided outline."""
         logger.debug(f"Creating draft with outline: {outline[:200]}...")
         detected_language = language or detect_language(outline)
         logger.debug(f"Detected language: {detected_language}")
 
-        prompt = TEMPLATE_MANAGER.render_template(
+        prompt = await self.prepare_draft_prompt(detected_language, outline)
+
+        result = ok(await self.propose(NovelDraft, prompt, send_to=send_to, **kwargs))
+        logger.info(f"Draft created successfully: '{result.title}' ({result.expected_word_count} words)")
+        return await self.post_draft_gen(result)
+
+    async def prepare_draft_prompt(self, detected_language: str, outline: str) -> str:
+        """Build and render the draft prompt from the outline.
+
+        Subclasses override to replace the template, inject extra context, or
+        call out to external services before the draft is proposed.
+        """
+        prompt: str = TEMPLATE_MANAGER.render_template(
             novel_config.novel_draft_requirement_template,
             {"outline": outline, "language": detected_language},
         )
         logger.debug(f"Rendered draft prompt:\n{prompt}")
+        return prompt
 
-        result = await self.propose(NovelDraft, prompt, send_to=send_to, **kwargs)
-        if result:
-            logger.info(f"Draft created successfully: '{result.title}' ({result.expected_word_count} words)")
-        else:
-            logger.warn("Draft generation returned None.")
-        return result
+    async def post_draft_gen(self, novel_draft: NovelDraft) -> NovelDraft:
+        """Post-process the generated draft before it is returned.
+
+        Subclasses override to mutate or replace the draft (e.g. inject
+        metadata, adjust titles). Default is a no-op passthrough.
+        """
+        return novel_draft
 
     async def create_characters(
         self, draft: NovelDraft, **kwargs: Unpack[ValidateKwargs[CharacterCard]]
@@ -182,6 +199,8 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         characters: List[CharacterCard],
         guidance: Optional[str] = None,
         send_to: str | None = TASK,
+        *,
+        context: Optional[ChapterContext] = None,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str]:
         """Generate chapters sequentially with rolling context.
@@ -192,60 +211,146 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         when non-empty) — the structured summary alone is too lossy to anchor
         the next chapter's opening beat, so we also hand the writer the closing
         paragraph of what came before.
+
+        ``context`` is the sealed per-chapter channel: the loop sets its inputs
+        once per run via chainable setters (``set_draft`` / ``set_chapter_plans``
+        / ``set_characters`` / ``set_guidance``) and accumulates every chapter
+        via ``add_summary`` / ``add_content`` as self-describing ``(index, item)``
+        tuples in ``chapter_summaries`` / ``chapter_contents`` — hooks see ALL
+        chapters, past, present and planned. The current position is
+        ``len(context.chapter_contents)`` (one tuple per completed chapter);
+        per-chapter views (``chapter_plan()``, ``previous_summary()``,
+        ``previous_chapter_tail()``, ``current_summary()``) are plain methods
+        accepting a chapter index (default -1), not stored fields, so no field
+        duplicates another. Mixins may subclass the channel to carry their own
+        cross-hook state (default ``None`` → a base ``ChapterContext`` is
+        created for the run). The capability itself stays stateless — all
+        per-run state lives in the caller-owned context. The returned list is
+        ``context.contents()`` — the unpacked chapter contents, in order.
         """
         logger.debug(f"Generating chapter contents sequentially for {len(chapter_plans)} script(s)")
         if not chapter_plans:
             logger.warn("No scripts provided for chapter generation.")
             return []
 
-        character_prompt = dump_card(*characters)
-        logger.debug(f"Using {len(characters)} character(s) context for chapter generation")
+        context = context or ChapterContext()
+        # Run-wide inputs: set once via chainable setters (they never change across iterations).
+        context.set_draft(draft).set_chapter_plans(chapter_plans).set_characters(characters).set_guidance(guidance)
 
-        chapter_contents: List[str] = []
-        previous_summary: Optional[ChapterSummary] = None
-        previous_chapter_tail: Optional[str] = None
         for i, cp in enumerate(chapter_plans):
             logger.debug(f"Generating chapter {i + 1}/{len(chapter_plans)}: {cp.formatted_chapter_title}")
 
-            # 1. Build prompt context with cross-chapter information
-            prompt_ctx: dict = {
-                "script": cp.script.as_prompt(),
-                "characters": character_prompt,
-                "language": draft.language,
-                "global_writing_constraint": draft.global_writing_constraint,
-                "guidance": guidance,
-                "writing_constrain": cp.draft.writing_constrain,
-                "expected_word_count": cp.expected_word_count,
-                "chapter_title": cp.formatted_chapter_title,
-                "novel_title": draft.title,
-                "novel_synopsis": draft.synopsis,
-                "all_chapters_titles": draft.all_chapters_titles,
-                "previous_summary": previous_summary.as_prompt() if previous_summary else None,
-                "previous_chapter_tail": previous_chapter_tail,
-            }
-
-            rendered: str = TEMPLATE_MANAGER.render_template(novel_config.chapter_requirement_template, prompt_ctx)
+            # 1. Hook: subclass builds the prompt context AND renders the final prompt.
+            #    chapter_index() == i here (the content tuple is appended last).
+            rendered = await self.prepare_chapter_prompt(context)
             # 2. Generate chapter content
             raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
 
-            chapter_contents.append(raw_chapter)
             logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_chapter)} chars)")
 
-            # 3. Summarize chapter for next iteration's context
-            previous_summary = await self.summarize_chapter(
-                cp.formatted_chapter_title, raw_chapter, draft.language, previous_summary, **kwargs
+            # 3. Summarize chapter into the channel history
+            summary = await self.summarize_chapter(
+                cp.formatted_chapter_title, raw_chapter, draft.language, context.previous_summary(), **kwargs
             )
-            if previous_summary:
+            if summary:
+                context.add_summary(i, summary)
                 logger.debug(
-                    f"Chapter {i + 1} summarized: {len(previous_summary.key_events)} events, "
-                    f"{len(previous_summary.unresolved_threads)} open threads, "
-                    f"{len(previous_summary.numerical_stat)} numerical stats"
+                    f"Chapter {i + 1} summarized: {len(summary.key_events)} events, "
+                    f"{len(summary.unresolved_threads)} open threads, "
+                    f"{len(summary.numerical_stat)} numerical stats"
                 )
-            # 4. Track last paragraph of the prior chapter for the next iteration's prompt
-            previous_chapter_tail = last_paragraph(raw_chapter)
+                # 3b. Hook: allow subclass to react to each chapter summary
+                await self.after_chapter_summarize(context)
 
-        logger.info(f"Generated {len(chapter_contents)} chapter content(s) sequentially")
-        return chapter_contents
+            # 4. Record the content LAST: chapter_index() is len(chapter_contents),
+            #    so recording at iteration end keeps the position at chapter i
+            #    for the whole iteration (both hooks see the same current chapter).
+            context.add_content(i, raw_chapter)
+
+        logger.info(f"Generated {len(context.chapter_contents)} chapter content(s) sequentially")
+        return context.contents()
+
+    # ── Chapter pipeline hooks (override in subclasses) ──
+
+    async def prepare_chapter_prompt(self, ctx: ChapterContext) -> str:
+        """Hook: build and render the chapter prompt.
+
+        Sealed inside the hook by design — the base loop hands it the run's
+        inputs plus full history via the ``ctx`` channel (all chapter plans,
+        all summaries and contents so far, current position) and takes back
+        only the final prompt string. The default builds the base vars via
+        :meth:`_chapter_prompt_vars`, merges the :meth:`extra_chapter_prompt_vars`
+        contributions, and renders ``novel_config.chapter_requirement_template``.
+
+        Subclasses override to swap the template, inject extra fields, mutate
+        caller-owned inputs, or call external services before render — and
+        SHOULD delegate to ``await super().prepare_chapter_prompt(ctx)`` so
+        sibling mixins still contribute through the same seam.
+
+        Args:
+            ctx: The sealed per-chapter context (inputs set by the loop).
+        """
+        prompt_vars = self._chapter_prompt_vars(ctx)
+        prompt_vars.update(self.extra_chapter_prompt_vars(ctx))
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.chapter_requirement_template,
+            prompt_vars,
+        )
+
+    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
+        """Hook: contribute extra template vars for the chapter requirement prompt.
+
+        No-op default. Mixins override to add feature-specific context
+        (mental states, writing style docs, …) to the rendered chapter prompt
+        without re-implementing the render — the default
+        :meth:`prepare_chapter_prompt` merges the returned dict into
+        :meth:`_chapter_prompt_vars` before rendering. Called once per chapter
+        with the same ``ctx`` channel as the prompt hook.
+
+        Args:
+            ctx: The sealed per-chapter context (inputs set by the loop).
+        """
+        return {}
+
+    def _chapter_prompt_vars(self, ctx: ChapterContext) -> dict:
+        """Build the base template variables for the chapter requirement.
+
+        Internal helper: the default :meth:`prepare_chapter_prompt` renders
+        with these vars; subclasses reuse it when they need the base fields
+        plus their own additions.
+        """
+        if ctx.draft is None or ctx.chapter_plans is None or ctx.characters is None:
+            raise RuntimeError("ChapterContext inputs must be populated by create_chapters before hooks fire")
+        plan = ctx.chapter_plan()
+        if plan is None:
+            raise RuntimeError("ChapterContext inputs must be populated by create_chapters before hooks fire")
+        previous_summary = ctx.previous_summary()
+        return {
+            "script": plan.script.as_prompt(),
+            "characters": dump_card(*ctx.characters),
+            "language": ctx.draft.language,
+            "global_writing_constraint": ctx.draft.global_writing_constraint,
+            "guidance": ctx.guidance,
+            "writing_constrain": plan.draft.writing_constrain,
+            "expected_word_count": plan.expected_word_count,
+            "chapter_title": plan.formatted_chapter_title,
+            "novel_title": ctx.draft.title,
+            "novel_synopsis": ctx.draft.synopsis,
+            "all_chapters_titles": ctx.draft.all_chapters_titles,
+            "previous_summary": previous_summary.as_prompt() if previous_summary else None,
+            "previous_chapter_tail": ctx.previous_chapter_tail(),
+        }
+
+    async def after_chapter_summarize(self, ctx: ChapterContext) -> None:
+        """React to each chapter summary after it is generated.
+
+        Default no-op. The just-generated summary is already appended to the
+        channel as :attr:`ChapterContext.current_summary` when this fires.
+        Subclasses override to evolve per-run state carried in ``ctx`` (mutate
+        the caller-owned channel in place — the capability itself stays
+        stateless).
+        """
+        pass
 
     async def summarize_chapter(
         self,
