@@ -4,6 +4,7 @@ import type { Connection } from '@vue-flow/core'
 import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
 import { api } from '@/api/client'
 import { useUiStore } from '@/stores/ui'
+import { autoLayout, collectNodeSizes, type LayoutSize } from '@/utils/autoLayout'
 
 export interface FabricatioNodeData {
   title: string
@@ -273,6 +274,21 @@ export const useWorkflowStore = defineStore('workflow', () => {
     node.data.config = { ...node.data.config, [key]: value }
   }
 
+  /**
+   * Lay the open workflow out left-to-right (longest-path columns).
+   * Sizes are measured from the rendered DOM when available, else
+   * estimated. Undoable via Ctrl+Z (snapshot pushed first).
+   */
+  function applyAutoLayout(sizes?: ReadonlyMap<string, LayoutSize>) {
+    if (nodes.value.length === 0) return
+    pushSnapshot()
+    const layout = autoLayout(nodes.value, edges.value, sizes ?? collectNodeSizes())
+    nodes.value = nodes.value.map((n) => {
+      const p = layout.get(n.id)
+      return p ? { ...n, position: p } : n
+    })
+  }
+
   /** Set a single input value on a node. */
   function setNodeInput(nodeId: string, key: string, value: unknown) {
     const node = nodes.value.find((n) => n.id === nodeId)
@@ -402,6 +418,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     moveNode,
     setNodeConfig,
     setNodeInput,
+    applyAutoLayout,
     toJSON,
     fromJSON,
     clear,

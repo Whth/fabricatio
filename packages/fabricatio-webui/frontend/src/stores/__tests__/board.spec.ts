@@ -196,6 +196,35 @@ describe('board store blueprint drops', () => {
       'Read a Text File',
     ])
   })
+
+  it('auto-lays dropped blueprint nodes into left-to-right columns', () => {
+    const store = useBoardStore()
+    store.blueprints.push({
+      id: 'chain',
+      name: 'Chain',
+      description: '',
+      category: 'novel',
+      nodeCount: 2,
+      build: () => ({
+        name: 'Chain',
+        namespace: 'chain',
+        nodes: [
+          { id: 'A_1', type: 'GenerateNovel', title: 'A', pos: [60, 40], inputs: {}, config: {}, schema_version: 1 },
+          { id: 'B_2', type: 'DumpNovel', title: 'B', pos: [60, 200], inputs: {}, config: {}, schema_version: 1 },
+        ],
+        edges: [
+          { id: 'e', source: 'A_1', source_handle: 'novel', target: 'B_2', target_handle: 'novel' },
+        ],
+        init_context: {},
+      }),
+    })
+    const wf = store.addBlueprintWorkflow('chain', 0)
+    const [a, b] = wf!.nodes
+    // Chain: A in column 0, B one column right; the vertical stack is gone.
+    expect(a.pos).toEqual([0, 0])
+    expect(b.pos![0]).toBeGreaterThan(a.pos![0])
+    expect(b.pos![1]).toBe(0)
+  })
 })
 
 describe('board store reorder + clipboard', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, markRaw, onMounted, onUnmounted } from 'vue'
+import { ref, markRaw, onMounted, onUnmounted, watch } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import type { NodeMouseEvent, Connection } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
@@ -62,6 +62,8 @@ const {
   findNode,
   onConnectStart,
   onConnectEnd,
+  onNodesInitialized,
+  fitView,
 } = useVueFlow({
   defaultEdgeOptions: { type: 'smoothstep', animated: false },
   isValidConnection: (connection: Connection) => {
@@ -209,11 +211,37 @@ function onDuplicate() {
   }
 }
 
+/** Relayout the open workflow left-to-right, then frame it in the viewport. */
+function onAutoLayout() {
+  wfStore.applyAutoLayout()
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.2, duration: 300 })
+  })
+}
+
+// fit-view-on-init runs before node dimensions are measured, so it fits a
+// partially-measured graph (a wide laid-out workflow opens half off-screen).
+// Fit when all nodes are measured instead; guard so node additions (which
+// also emit nodesInitialized) never yank the viewport. A workflow switch
+// replaces both arrays together — reset then so the new graph gets fitted.
+let fittedOnce = false
+watch([() => wfStore.nodes, () => wfStore.edges], () => {
+  fittedOnce = false
+})
+onNodesInitialized(() => {
+  if (fittedOnce) return
+  fittedOnce = true
+  requestAnimationFrame(() => {
+    fitView({ padding: 0.15, duration: 300 })
+  })
+})
+
 onMounted(() => {
   const offs = [
     hotkeys.register('delete', onDelete),
     hotkeys.register('backspace', onDelete),
     hotkeys.register('mod+d', onDuplicate),
+    hotkeys.register('mod+shift+f', onAutoLayout),
     hotkeys.register('escape', () => wfStore.selectNode(null)),
   ]
   onUnmounted(() => offs.forEach((off) => off()))
@@ -308,7 +336,7 @@ function onDrop(ev: DragEvent) {
       :default-edge-options="{ type: 'smoothstep', animated: false }"
       :snap-to-grid="uiStore.settings.snapToGrid"
       :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
-      fit-view-on-init
+      :min-zoom="0.1"
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
       @pane-context-menu="onPaneContextMenu"

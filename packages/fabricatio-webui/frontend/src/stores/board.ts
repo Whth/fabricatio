@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { ActionDefJSON, BoardJSON, NodeTypeDefinition, PortDefinition, RoleJSON, WorkflowJSON } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { blueprintFromJSON, type Blueprint } from '@/data/blueprints'
+import { layoutWorkflowJSON } from '@/utils/autoLayout'
 
 /**
  * The board document: roles with their workflows, plus board-level custom
@@ -297,6 +298,10 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
   const bp = blueprints.value.find((b) => b.id === blueprintId)
   if (!role || !bp) return null
   const wf = bp.build()
+  // Blueprint positions are a naive vertical stack (x=60 for every node);
+  // lay the graph out left-to-right so the first open is readable. Sizes
+  // are estimated from the registry — the canvas is not mounted yet.
+  layoutWorkflowJSON(wf, useWorkflowStore().nodeTypes)
   const names = new Set(role.workflows.map((w) => w.name ?? ''))
   let name = bp.name
   let n = 2

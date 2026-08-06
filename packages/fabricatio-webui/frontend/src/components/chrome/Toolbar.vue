@@ -8,7 +8,7 @@ import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
 import RunDialog from '@/components/chrome/RunDialog.vue'
-import { Play, Square, Save, FolderOpen, Trash2, Search, Settings, BookOpen } from '@lucide/vue'
+import { Play, Square, Save, FolderOpen, Trash2, Search, Settings, BookOpen, Wand2 } from '@lucide/vue'
 
 const wfStore = useWorkflowStore()
 const boardStore = useBoardStore()
@@ -91,6 +91,11 @@ function handleStop() {
   interruptWorkflow()
 }
 
+function onAutoLayout() {
+  if (boardStore.layer !== 'workflow') return
+  wfStore.applyAutoLayout()
+}
+
 function onKeyDown(ev: KeyboardEvent) {
   if (ev.key === 'Escape') {
     if (loadOpen.value) loadOpen.value = false
@@ -155,6 +160,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
         <button class="btn btn-icon" title="Search nodes and commands (Ctrl+F)" @click="uiStore.togglePalette()">
           <Search :size="16" />
+        </button>
+
+        <button
+          class="btn btn-icon"
+          title="Auto layout workflow (Ctrl+Shift+F)"
+          :disabled="boardStore.layer !== 'workflow'"
+          @click="onAutoLayout"
+        >
+          <Wand2 :size="16" />
         </button>
       </div>
 
