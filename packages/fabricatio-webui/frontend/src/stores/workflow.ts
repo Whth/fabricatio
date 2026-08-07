@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { Connection } from '@vue-flow/core'
-import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
+import type { NodeTypeDefinition, PortDefinition, WorkflowJSON } from '@/types/api'
 import { api } from '@/api/client'
 import { useUiStore } from '@/stores/ui'
 import { autoLayout, collectNodeSizes, type LayoutSize } from '@/utils/autoLayout'
@@ -14,7 +14,7 @@ export interface FabricatioNodeData {
   inputPorts: Array<{ name: string; type: string; optional: boolean }>
   outputPorts: Array<{ name: string; type: string }>
   capabilities: string[]
-  configFields: Array<{ name: string; type: string; optional: boolean; description?: string }>
+  configFields: PortDefinition[]
   inputs: Record<string, unknown>
   config: Record<string, unknown>
   nodeId: string

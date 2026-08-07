@@ -15,7 +15,9 @@ export interface PortDefinition {
   step?: number
   placeholder?: string
   separator?: string
-}
+  /** MRO owner class name from the Python registry — grouping key for arg folding. */
+  group?: string
+ }
 
 /** Wire-format (snake_case) — matches Rust NodeTypeDefinition serde output. */
 export interface NodeTypeDefinition {
