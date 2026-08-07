@@ -1,7 +1,7 @@
 """Novel composition capabilities — the NovelCompose base class."""
 
 from abc import ABC
-from typing import Any, Dict, List, Optional, Tuple, Unpack
+from typing import List, Optional, Tuple, Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCard
@@ -292,8 +292,10 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         inputs plus full history via the ``ctx`` channel (all chapter plans,
         all summaries and contents so far, current position) and takes back
         only the final prompt string. The default builds the base vars via
-        :meth:`_chapter_prompt_vars`, merges the :meth:`extra_chapter_prompt_vars`
-        contributions, and renders ``novel_config.chapter_requirement_template``.
+        :meth:`_chapter_prompt_vars`, merges the vars the
+        :meth:`extra_chapter_prompt_vars` hook wrote to
+        ``ctx.chapter_prompt_vars``, and renders
+        ``novel_config.chapter_requirement_template``.
 
         Subclasses override to swap the template, inject extra fields, mutate
         caller-owned inputs, or call external services before render — and
@@ -304,26 +306,28 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             ctx: The sealed per-chapter context (inputs set by the loop).
         """
         prompt_vars = self._chapter_prompt_vars(ctx)
-        prompt_vars.update(self.extra_chapter_prompt_vars(ctx))
+        ctx.reset_prompt_vars()
+        self.extra_chapter_prompt_vars(ctx)
+        prompt_vars.update(ctx.chapter_prompt_vars)
         return TEMPLATE_MANAGER.render_template(
             novel_config.chapter_requirement_template,
             prompt_vars,
         )
 
-    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
+    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> None:
         """Hook: contribute extra template vars for the chapter requirement prompt.
 
         No-op default. Mixins override to add feature-specific context
         (mental states, writing style docs, …) to the rendered chapter prompt
         without re-implementing the render — the default
-        :meth:`prepare_chapter_prompt` merges the returned dict into
-        :meth:`_chapter_prompt_vars` before rendering. Called once per chapter
-        with the same ``ctx`` channel as the prompt hook.
+        :meth:`prepare_chapter_prompt` merges the vars the hook wrote to
+        ``ctx.chapter_prompt_vars`` (via :meth:`ChapterContext.add_prompt_vars`)
+        into :meth:`_chapter_prompt_vars` before rendering. Called once per
+        chapter with the same ``ctx`` channel as the prompt hook.
 
         Args:
             ctx: The sealed per-chapter context (inputs set by the loop).
         """
-        return {}
 
     def _chapter_prompt_vars(self, ctx: ChapterContext) -> dict:
         """Build the base template variables for the chapter requirement.

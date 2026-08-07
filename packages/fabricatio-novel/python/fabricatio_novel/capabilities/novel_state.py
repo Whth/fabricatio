@@ -138,16 +138,16 @@ class NovelComposeState(NovelCompose):
 
     # ── Chapter hooks ──
 
-    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
+    def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> None:
         """Contribute the Character State Board to the chapter prompt template vars.
 
-        Cooperative: merges the super() chain's contribution first so sibling
-        mixins (e.g. mental states) are not shadowed in diamonds.
+        Cooperative: delegates to the super() chain first, then adds its own
+        key to ``ctx.chapter_prompt_vars`` — sibling mixins each add their own
+        keys, so diamonds compose without shadowing.
         """
-        merged = super().extra_chapter_prompt_vars(ctx)
+        super().extra_chapter_prompt_vars(ctx)
         if isinstance(ctx, StateChapterContext):
-            merged["character_state_board"] = state_board_context(ctx)
-        return merged
+            ctx.add_prompt_vars({"character_state_board": state_board_context(ctx)})
 
     async def after_chapter_gen(self, ctx: ChapterContext) -> None:
         """Audit the raw chapter: extract states, judge plausibility, regenerate once on violations."""

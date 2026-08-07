@@ -27,7 +27,7 @@ could drift out of sync. Mixins add their own fields for cross-hook state
 no mixin-specific state.
 """
 
-from typing import List, Optional, Self, Tuple
+from typing import Any, Dict, List, Optional, Self, Tuple
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core.models.generic import Base
@@ -90,6 +90,15 @@ class ChapterContext(Base):
     until the first chapter is staged.
     """
 
+    chapter_prompt_vars: Dict[str, Any] = Field(default_factory=dict)
+    """Extra template vars for the current chapter-requirement render.
+
+    Populated by ``extra_chapter_prompt_vars`` hook implementations via
+    :meth:`add_prompt_vars`; the base ``prepare_chapter_prompt`` merges these
+    into the rendered vars and resets them at the start of every render —
+    per-render scratch space, not run history.
+    """
+
     # ── Value assignment (chainable methods — the loop never assigns fields) ──
 
     def set_draft(self, draft: NovelDraft) -> Self:
@@ -139,6 +148,26 @@ class ChapterContext(Base):
         :meth:`pending_chapter` before summarizing.
         """
         self.staged_chapter = (idx, content)
+        return self
+
+    def add_prompt_vars(self, prompt_vars: Dict[str, Any]) -> Self:
+        """Merge extra template vars for the current chapter prompt and return self.
+
+        Called by ``extra_chapter_prompt_vars`` hook implementations to
+        contribute feature-specific template vars (state boards, mental
+        states, …) to the upcoming chapter-requirement render. Vars
+        accumulate until the render resets them via :meth:`reset_prompt_vars`.
+        """
+        self.chapter_prompt_vars.update(prompt_vars)
+        return self
+
+    def reset_prompt_vars(self) -> Self:
+        """Clear the accumulated chapter prompt vars and return self.
+
+        Called by the base ``prepare_chapter_prompt`` at the start of every
+        render so a chapter never sees the previous render's vars.
+        """
+        self.chapter_prompt_vars.clear()
         return self
 
     def pending_chapter(self, idx: int = -1) -> Optional[str]:

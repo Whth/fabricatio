@@ -114,7 +114,7 @@ class TestChapterStateModels:
 
 
 class TestMentalCooperativeMerge:
-    """Mental's extra vars survive the cooperative merge unchanged when it is the sole override."""
+    """Mental's extra vars land on the channel unchanged when it is the sole override."""
 
     @pytest.mark.asyncio
     async def test_sole_override_output_preserved(self, sample_character: CharacterCard) -> None:
@@ -127,9 +127,50 @@ class TestMentalCooperativeMerge:
 
         role = _MentalRole(name="mental-merge-regression")
         ctx = MentalChapterContext(character_states={sample_character.name: MentalState.from_card(sample_character)})
-        vars_ = role.extra_chapter_prompt_vars(ctx)
-        assert set(vars_) == {"character_mental_states"}
-        assert "Hero" in vars_["character_mental_states"]
+        assert role.extra_chapter_prompt_vars(ctx) is None
+        assert set(ctx.chapter_prompt_vars) == {"character_mental_states"}
+        assert "Hero" in ctx.chapter_prompt_vars["character_mental_states"]
+
+
+class TestPromptVarsChannel:
+    """chapter_prompt_vars is channel state mutated via chainable writers."""
+
+    def test_add_and_reset_prompt_vars(self) -> None:
+        """add_prompt_vars merges and chains; reset_prompt_vars clears for the next render."""
+        ctx = ChapterContext()
+        assert ctx.add_prompt_vars({"a": "1"}).add_prompt_vars({"b": "2"}) is ctx
+        assert ctx.chapter_prompt_vars == {"a": "1", "b": "2"}
+        ctx.reset_prompt_vars()
+        assert ctx.chapter_prompt_vars == {}
+
+    @pytest.mark.asyncio
+    async def test_prepare_resets_vars_every_render(
+        self,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+    ) -> None:
+        """A later render never sees prompt vars contributed by an earlier render."""
+
+        class _OnceRole(LLMTestRole, NovelCompose):
+            """Adds a prompt var only on the first hook call."""
+
+            _once_var_added: bool = PrivateAttr(default=False)
+
+            def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> None:
+                if not self._once_var_added:
+                    self._once_var_added = True
+                    ctx.add_prompt_vars({"once": "1"})
+
+        role = _OnceRole(name="novel-prompt-reset")
+        chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
+        ctx = (
+            ChapterContext().set_draft(sample_draft).set_chapter_plans(chapter_plans).set_characters([sample_character])
+        )
+        await role.prepare_chapter_prompt(ctx)
+        assert ctx.chapter_prompt_vars == {"once": "1"}
+        await role.prepare_chapter_prompt(ctx)
+        assert ctx.chapter_prompt_vars == {}
 
 
 class _StateTestRole(LLMTestRole, NovelComposeState):
@@ -219,9 +260,9 @@ class TestStateChannelHook:
                 ]
             )
         )
-        vars_ = role.extra_chapter_prompt_vars(ctx)
-        assert "character_state_board" in vars_
-        assert "Hero: standing (end of chapter 0)" in vars_["character_state_board"]
+        role.extra_chapter_prompt_vars(ctx)
+        assert "character_state_board" in ctx.chapter_prompt_vars
+        assert "Hero: standing (end of chapter 0)" in ctx.chapter_prompt_vars["character_state_board"]
 
     @pytest.mark.asyncio
     async def test_no_board_without_state_context(
@@ -232,7 +273,8 @@ class TestStateChannelHook:
         """A plain channel contributes no board vars."""
         role = _StateTestRole(name="novel-state-board-skip")
         ctx = ChapterContext().set_draft(sample_draft).set_characters([sample_character])
-        assert role.extra_chapter_prompt_vars(ctx) == {}
+        assert role.extra_chapter_prompt_vars(ctx) is None
+        assert ctx.chapter_prompt_vars == {}
 
     @pytest.mark.asyncio
     async def test_regeneration_on_violations(
@@ -471,7 +513,7 @@ class TestStateDiamond:
         sample_draft: NovelDraft,
         sample_character: CharacterCard,
     ) -> None:
-        """Both feature boards survive the cooperative extra_chapter_prompt_vars merge."""
+        """Both feature boards land on the channel through the cooperative extra_chapter_prompt_vars."""
         from fabricatio_character.models.mental import MentalState
 
         role = _DiamondRole(name="novel-diamond-vars")
@@ -489,11 +531,11 @@ class TestStateDiamond:
                 ]
             )
         )
-        vars_ = role.extra_chapter_prompt_vars(ctx)
-        assert "character_state_board" in vars_
-        assert "character_mental_states" in vars_
-        assert "Hero: standing (end of chapter 0)" in vars_["character_state_board"]
-        assert "Hero" in vars_["character_mental_states"]
+        role.extra_chapter_prompt_vars(ctx)
+        assert "character_state_board" in ctx.chapter_prompt_vars
+        assert "character_mental_states" in ctx.chapter_prompt_vars
+        assert "Hero: standing (end of chapter 0)" in ctx.chapter_prompt_vars["character_state_board"]
+        assert "Hero" in ctx.chapter_prompt_vars["character_mental_states"]
 
     @pytest.mark.asyncio
     async def test_prepare_injects_board_mental_and_style_docs(
