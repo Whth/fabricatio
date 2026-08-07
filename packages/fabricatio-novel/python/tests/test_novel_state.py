@@ -1,14 +1,16 @@
 """Tests for fabricatio-novel character state consistency (base seam + NovelComposeState)."""
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import pytest
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_router_usage
+from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.capabilities.novel_state import NovelComposeState, StateChapterContext
 from fabricatio_novel.models.chapter_context import ChapterContext
+from fabricatio_novel.models.chapter_state import ChapterStateRecord, CharacterState
 from fabricatio_novel.models.draft import ChapterDraft, NovelDraft
 from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.scripting import ChapterSummary, Script
@@ -125,6 +127,109 @@ class TestMentalCooperativeMerge:
         vars_ = role.extra_chapter_prompt_vars(ctx)
         assert set(vars_) == {"character_mental_states"}
         assert "Hero" in vars_["character_mental_states"]
+
+
+class _StateTestRole(LLMTestRole, NovelComposeState):
+    """Test role combining LLMTestRole with NovelComposeState."""
+
+    _extraction_raws: List[str] = PrivateAttr(default_factory=list)
+
+    async def _extract_state_record(self, ctx: StateChapterContext, raw: str) -> Optional[ChapterStateRecord]:
+        self._extraction_raws.append(raw)
+        return await super()._extract_state_record(ctx, raw)
+
+
+class TestStateChannelHook:
+    """The state gate runs over the caller-owned channel via after_chapter_gen."""
+
+    @pytest.mark.asyncio
+    async def test_clean_extraction_commits_to_channel(
+        self,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+    ) -> None:
+        """A clean record commits end states to history, local sequences, and no violations."""
+        role = _StateTestRole(name="novel-state-hook")
+        chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
+        record = ChapterStateRecord(
+            characters=[
+                CharacterState(
+                    character="Hero",
+                    states=["standing by the window", "walking to the door"],
+                    paragraphs=[0, 1],
+                    chapter_end_state="walking to the door",
+                )
+            ],
+            violations=[],
+        )
+        ctx = (
+            StateChapterContext()
+            .set_draft(sample_draft)
+            .set_chapter_plans(chapter_plans)
+            .set_characters([sample_character])
+            .set_pending_chapter(0, CHAPTER_TEXT)
+        )
+        with install_router_usage(*return_model_json_router_usage(record)):
+            await role.after_chapter_gen(ctx)
+
+        assert ctx.character_state_histories == {"Hero": [(0, "walking to the door")]}
+        assert ctx.character_in_chapter_states == {"Hero": ["standing by the window", "walking to the door"]}
+        assert ctx.state_violations == []
+        assert role._extraction_raws == [CHAPTER_TEXT]
+
+    @pytest.mark.asyncio
+    async def test_skips_without_state_context(
+        self,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+        sample_script: Script,
+    ) -> None:
+        """A plain channel means the gate delegates without extracting or mutating."""
+        role = _StateTestRole(name="novel-state-skip")
+        chapter_plans = ChapterPlan.from_draft(sample_draft, [sample_script])
+        ctx = (
+            ChapterContext()
+            .set_draft(sample_draft)
+            .set_chapter_plans(chapter_plans)
+            .set_characters([sample_character])
+            .set_pending_chapter(0, CHAPTER_TEXT)
+        )
+        # No router responses installed: any LLM call would fail — the gate must not run.
+        await role.after_chapter_gen(ctx)
+        assert role._extraction_raws == []
+        assert ctx.pending_chapter() == CHAPTER_TEXT
+
+    @pytest.mark.asyncio
+    async def test_board_injected_via_extra_chapter_prompt_vars(
+        self,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+    ) -> None:
+        """The state board reflects the latest history entry per character."""
+        role = _StateTestRole(name="novel-state-board")
+        ctx = StateChapterContext().set_draft(sample_draft).set_characters([sample_character])
+        ctx.record_chapter_states(
+            ChapterStateRecord(
+                characters=[
+                    CharacterState(character="Hero", states=["standing"], paragraphs=[0], chapter_end_state="standing")
+                ]
+            )
+        )
+        vars_ = role.extra_chapter_prompt_vars(ctx)
+        assert "character_state_board" in vars_
+        assert "Hero: standing (end of chapter 0)" in vars_["character_state_board"]
+
+    @pytest.mark.asyncio
+    async def test_no_board_without_state_context(
+        self,
+        sample_draft: NovelDraft,
+        sample_character: CharacterCard,
+    ) -> None:
+        """A plain channel contributes no board vars."""
+        role = _StateTestRole(name="novel-state-board-skip")
+        ctx = ChapterContext().set_draft(sample_draft).set_characters([sample_character])
+        assert role.extra_chapter_prompt_vars(ctx) == {}
 
 
 class TestBaseSeam:
