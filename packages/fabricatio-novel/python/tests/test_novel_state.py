@@ -535,3 +535,40 @@ class TestStateDiamond:
         assert "Character State Board" in rendered
         assert "Character Psychological States" in rendered
         assert "Hero: standing (end of chapter 0)" in rendered
+
+
+class TestStateActions:
+    """State-consistency action classes shape and MRO."""
+
+    def test_actions_inherit_capability_and_action(self) -> None:
+        """`GenerateNovelState` / `GenerateChaptersFromScriptsWithState` inherit the capability and `Action`."""
+        from fabricatio_core.models.action import Action
+        from fabricatio_novel.actions.novel_state import (
+            GenerateChaptersFromScriptsWithState,
+            GenerateNovelState,
+        )
+
+        assert issubclass(GenerateNovelState, NovelComposeState)
+        assert issubclass(GenerateNovelState, Action)
+        assert issubclass(GenerateChaptersFromScriptsWithState, NovelComposeState)
+        assert issubclass(GenerateChaptersFromScriptsWithState, Action)
+
+    def test_actions_have_ctx_override_true(self) -> None:
+        """Both actions follow project convention `ctx_override=True`."""
+        from fabricatio_novel.actions.novel_state import (
+            GenerateChaptersFromScriptsWithState,
+            GenerateNovelState,
+        )
+
+        assert GenerateNovelState.ctx_override is True
+        assert GenerateChaptersFromScriptsWithState.ctx_override is True
+
+    def test_actions_expose_output_keys(self) -> None:
+        """`output_key` defaults mirror the mental actions (`novel` / `novel_chapter_contents`)."""
+        from fabricatio_novel.actions.novel_state import (
+            GenerateChaptersFromScriptsWithState,
+            GenerateNovelState,
+        )
+
+        assert GenerateNovelState.model_fields["output_key"].default == "novel"
+        assert GenerateChaptersFromScriptsWithState.model_fields["output_key"].default == "novel_chapter_contents"

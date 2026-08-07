@@ -4,6 +4,7 @@ Registers onto the shared ``app`` from :mod:`fabricatio_novel.cli`:
 
 - ``w``  — :func:`write_novel`
 - ``wm`` — :func:`write_novel_with_mental` (character psychology tracking)
+- ``ws`` — :func:`write_novel_with_state` (character state consistency tracking)
 """
 
 from pathlib import Path
@@ -111,3 +112,52 @@ def write_novel_with_mental(  # noqa: PLR0913
         )
     else:
         _exit_on_error("❌ Failed to generate novel with mental states.")
+
+
+@app.command(name="ws")
+def write_novel_with_state(  # noqa: PLR0913
+    *,
+    outline: str = OUTLINE,
+    outline_file: Path = OUTLINE_FILE,
+    output_path: Path = OUTPUT_PATH,
+    font_file: Path = FONT_FILE,
+    cover_image: Path = COVER_IMAGE,
+    language: str = LANGUAGE,
+    chapter_guidance: str = CHAPTER_GUIDANCE,
+    guidance_file: Path = GUIDANCE_FILE,
+    persist_dir: Path = PERSIST_DIR,
+) -> None:
+    """Generate a novel with character state consistency tracking."""
+    from fabricatio_novel.workflows.novel_state import DebugNovelWithStateWorkflow
+
+    state_ns = "write_state"
+    Role.with_bio(name="state_writer").subscribe(
+        Event.quick_instantiate(state_ns), DebugNovelWithStateWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    typer.echo(f"Starting state-consistent novel generation: '{outline_content[:30]}...'")
+
+    task = Task(name="Write novel with state consistency").update_init_context(
+        novel_outline=outline_content,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+    )
+
+    result = task.delegate_blocking(state_ns)
+
+    if result:
+        typer.secho(
+            f"✅ Novel with state consistency successfully generated: {result}",
+            fg=typer.colors.GREEN,
+            bold=True,
+        )
+    else:
+        _exit_on_error("❌ Failed to generate novel with state consistency.")

@@ -7,7 +7,7 @@ its commands onto the app. Command implementations live in
 
 Module layout:
 
-- :mod:`fabricatio_novel.commands.core`             — ``w``, ``wm``
+- :mod:`fabricatio_novel.commands.core`             — ``w``, ``wm``, ``ws``
 - :mod:`fabricatio_novel.commands.rag`              — ``wr``, ``wrm``  (lancedb)
 - :mod:`fabricatio_novel.commands.illustration`     — ``wi``, ``wmi``  (comfyui), ``i`` (loaded)
 - :mod:`fabricatio_novel.commands.rag_illustration` — ``wri``, ``wrmi`` (comfyui + lancedb)
