@@ -84,6 +84,25 @@ class _RecordingRole(LLMTestRole, NovelCompose):
         return await super().after_chapter_summarize(ctx)
 
 
+class TestMentalCooperativeMerge:
+    """Mental's extra vars survive the cooperative merge unchanged when it is the sole override."""
+
+    @pytest.mark.asyncio
+    async def test_sole_override_output_preserved(self, sample_character: CharacterCard) -> None:
+        """A sole mental override still contributes exactly its own board vars."""
+        from fabricatio_character.models.mental import MentalState
+        from fabricatio_novel.capabilities.novel_mental import MentalChapterContext, NovelComposeMental
+
+        class _MentalRole(LLMTestRole, NovelComposeMental):
+            pass
+
+        role = _MentalRole(name="mental-merge-regression")
+        ctx = MentalChapterContext(character_states={sample_character.name: MentalState.from_card(sample_character)})
+        vars_ = role.extra_chapter_prompt_vars(ctx)
+        assert set(vars_) == {"character_mental_states"}
+        assert "Hero" in vars_["character_mental_states"]
+
+
 class TestBaseSeam:
     """The base loop stages the raw chapter and keeps chapter_index() == i at every hook."""
 

@@ -111,10 +111,15 @@ class NovelComposeMental(NovelCompose, UseMind):
     # ── Chapter hooks ──
 
     def extra_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
-        """Contribute current mental states to the chapter prompt template vars."""
+        """Contribute current mental states to the chapter prompt template vars.
+
+        Cooperative: merges the super() chain's contribution first so sibling
+        mixins (e.g. character state boards) are not shadowed in diamonds.
+        """
+        merged = super().extra_chapter_prompt_vars(ctx)
         if isinstance(ctx, MentalChapterContext) and ctx.character_states:
-            return {"character_mental_states": mental_states_context(ctx.character_states)}
-        return {}
+            merged["character_mental_states"] = mental_states_context(ctx.character_states)
+        return merged
 
     async def after_chapter_summarize(self, ctx: ChapterContext) -> None:
         """Evolve character mental states after each chapter summary."""
