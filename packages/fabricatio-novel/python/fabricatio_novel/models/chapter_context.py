@@ -22,7 +22,8 @@ completed chapter — so the loop never maintains a separate index field that
 could drift out of sync. Mixins add their own fields for cross-hook state
 (e.g. ``MentalChapterContext`` in
 ``fabricatio_novel.capabilities.novel_mental``, ``RAGChapterContext`` in
-``fabricatio_novel.capabilities.novel_rag``); the base model itself carries
+``fabricatio_novel.capabilities.novel_rag``, ``StateChapterContext`` in
+``fabricatio_novel.capabilities.novel_state``); the base model itself carries
 no mixin-specific state.
 """
 
@@ -80,6 +81,15 @@ class ChapterContext(Base):
     position).
     """
 
+    staged_chapter: Optional[Tuple[int, str]] = None
+    """The chapter currently being generated, staged as (chapter_index, raw content).
+
+    Set by the loop via :meth:`set_pending_chapter` right before
+    :meth:`after_chapter_gen` fires; the hook may replace it; the loop reads it
+    back (via :meth:`pending_chapter`) and summarizes the FINAL text. None
+    until the first chapter is staged.
+    """
+
     # ── Value assignment (chainable methods — the loop never assigns fields) ──
 
     def set_draft(self, draft: NovelDraft) -> Self:
@@ -119,6 +129,34 @@ class ChapterContext(Base):
         """
         self.chapter_contents.append((idx, content))
         return self
+
+    def set_pending_chapter(self, idx: int, content: str) -> Self:
+        """Stage a chapter's raw content as the pending (idx, content) tuple and return self.
+
+        Called by the loop right after generation, BEFORE ``after_chapter_gen``
+        fires; the hook may call it again to replace the staged text (e.g.
+        regeneration), and the loop reads the final text back via
+        :meth:`pending_chapter` before summarizing.
+        """
+        self.staged_chapter = (idx, content)
+        return self
+
+    def pending_chapter(self, idx: int = -1) -> Optional[str]:
+        """Staged raw content of the chapter currently being generated.
+
+        Available inside :meth:`after_chapter_gen` (the loop stages the text
+        right before the hook fires); None otherwise.
+
+        Args:
+            idx: -1 (default) for the pipeline's current staged chapter, or an
+                absolute chapter index (None if the staged chapter is not that
+                index).
+        """
+        if self.staged_chapter is None:
+            return None
+        if idx == -1 or self.staged_chapter[0] == idx:
+            return self.staged_chapter[1]
+        return None
 
     # ── Views (plain methods over the canonical lists — not stored fields) ──
     # Each view accepts an explicit chapter ``idx`` (default -1 = the pipeline's

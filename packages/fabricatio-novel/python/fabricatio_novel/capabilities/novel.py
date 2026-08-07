@@ -222,7 +222,12 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         per-chapter views (``chapter_plan()``, ``previous_summary()``,
         ``previous_chapter_tail()``, ``current_summary()``) are plain methods
         accepting a chapter index (default -1), not stored fields, so no field
-        duplicates another. Mixins may subclass the channel to carry their own
+        duplicates another. The raw text of the chapter being generated is
+        staged via ``set_pending_chapter`` right before
+        :meth:`after_chapter_gen` fires, and the loop summarizes whatever the
+        hook leaves staged — so a hook can regenerate the chapter before
+        anything downstream consumes it. Mixins may subclass the channel to
+        carry their own
         cross-hook state (default ``None`` → a base ``ChapterContext`` is
         created for the run). The capability itself stays stateless — all
         per-run state lives in the caller-owned context. The returned list is
@@ -243,10 +248,18 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             # 1. Hook: subclass builds the prompt context AND renders the final prompt.
             #    chapter_index() == i here (the content tuple is appended last).
             rendered = await self.prepare_chapter_prompt(context)
-            # 2. Generate chapter content
+            # 2. Generate chapter content and stage it on the channel
             raw_chapter = ok(await self.aask(rendered, send_to=send_to, **kwargs))
 
             logger.info(f"Chapter {i + 1}/{len(chapter_plans)} generated ({len(raw_chapter)} chars)")
+
+            # 2b. Hook: audit/revise the raw chapter BEFORE it is summarized.
+            #     The raw text is staged via set_pending_chapter; the hook may
+            #     replace it (e.g. regeneration on state violations); the loop
+            #     summarizes the FINAL text.
+            context.set_pending_chapter(i, raw_chapter)
+            await self.after_chapter_gen(context)
+            raw_chapter = context.pending_chapter() or raw_chapter
 
             # 3. Summarize chapter into the channel history
             summary = await self.summarize_chapter(
@@ -264,7 +277,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
 
             # 4. Record the content LAST: chapter_index() is len(chapter_contents),
             #    so recording at iteration end keeps the position at chapter i
-            #    for the whole iteration (both hooks see the same current chapter).
+            #    for the whole iteration (every hook sees the same current chapter).
             context.add_content(i, raw_chapter)
 
         logger.info(f"Generated {len(context.chapter_contents)} chapter content(s) sequentially")
@@ -349,6 +362,19 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         Subclasses override to evolve per-run state carried in ``ctx`` (mutate
         the caller-owned channel in place — the capability itself stays
         stateless).
+        """
+        pass
+
+    async def after_chapter_gen(self, ctx: ChapterContext) -> None:
+        """Audit/revise the just-generated chapter BEFORE it is summarized.
+
+        Default no-op. Fires once per chapter right after the raw text is
+        staged on the channel via :meth:`ChapterContext.set_pending_chapter`
+        and before summarization: the staged text is available at
+        :meth:`ChapterContext.pending_chapter`, and ``chapter_index()`` is
+        still at the chapter being worked on. Subclasses may replace the
+        staged text (e.g. regenerate on violation) so the loop summarizes the
+        FINAL text; the capability itself stays stateless.
         """
         pass
 
