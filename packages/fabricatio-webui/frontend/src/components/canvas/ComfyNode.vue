@@ -6,6 +6,7 @@ import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 import { categoryColor } from '@/utils/categoryColors'
 import { useOutputPreview } from '@/composables/useOutputPreview'
+import { groupConfigFields, type ArgGroup } from '@/utils/argGroups'
 import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ id: string; data: any }>()
@@ -82,6 +83,50 @@ function hasOutput(key: string): boolean {
   return execStore.nodeOutputs[props.id]?.[key] !== undefined
 }
 
+// ── Arg grouping ────────────────────────────────────────────────────────────────
+
+const argGroups = computed<ArgGroup[]>(() =>
+  groupConfigFields(
+    (props.data.configFields ?? []) as PortDefinition[],
+    (props.data.nodeType as string) ?? '',
+  ),
+)
+
+/** Show group headers only when more than one effective group exists. */
+const showGroups = computed(() => argGroups.value.length > 1)
+
+/** Groups explicitly expanded by the user. */
+const expandedGroups = ref<Set<string>>(new Set())
+
+/** Is a group currently expanded?
+ * Inherited groups default to collapsed unless the user toggled them open.
+ * Own group is always expanded.
+ * Any group that has a wired field is also effectively expanded (handle must exist). */
+function isGroupExpanded(g: ArgGroup): boolean {
+  if (g.own) return true
+  if (g.fields.some((f) => incomingHandles.value.has(f.name))) return true
+  return expandedGroups.value.has(g.name)
+}
+
+function toggleGroup(g: ArgGroup) {
+  const next = new Set(expandedGroups.value)
+  if (next.has(g.name)) {
+    next.delete(g.name)
+  } else {
+    next.add(g.name)
+  }
+  expandedGroups.value = next
+}
+
+/** Rows to render for a group: all fields when expanded, wired-only when collapsed. */
+function groupRows(g: ArgGroup): PortDefinition[] {
+  return isGroupExpanded(g)
+    ? g.fields
+    : g.fields.filter((f) => incomingHandles.value.has(f.name))
+}
+
+// ── Node collapse (whole-node) ─────────────────────────────────────────────────
+
 const collapsed = ref(false)
 const widgetCount = computed(() => props.data.configFields?.length ?? 0)
 const collapsible = computed(() => widgetCount.value > 6)
@@ -136,29 +181,48 @@ const statusLabel = computed(() => {
          stack every handle of a side at the node's vertical center and
          route wires to that point instead of to the row. -->
     <div class="port-col inputs">
-      <div v-for="f in data.configFields" :key="f.name" class="port-row input">
-        <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle port-handle-inline" />
-        <NodeWidget
-          v-if="!incomingHandles.has(f.name)"
-          :field="f"
-          :model-value="fieldValue(f)"
-          @update:model-value="updateField(f, $event)"
-        />
-        <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
-          <span class="wired-label">{{ f.name }}</span>
-          <span class="wired-controls">
-            <span class="wired-chip">← {{ wiredPort(f.name) }}</span>
-            <button
-              class="wired-unwire"
-              title="Disconnect this input"
-              @mousedown.stop
-              @click.stop="unwire(f.name)"
-            >
-              &times;
-            </button>
+      <template v-for="g in argGroups" :key="'g-' + g.name">
+        <!-- Group header (only when >1 effective group) -->
+        <div
+          v-if="showGroups"
+          class="arg-group-header nodrag"
+          :class="{ collapsed: !isGroupExpanded(g) }"
+          @click.stop="toggleGroup(g)"
+        >
+          <span class="group-chevron">{{ isGroupExpanded(g) ? '▾' : '▸' }}</span>
+          <span class="group-name">{{ g.name }}</span>
+          <span class="group-count">{{ g.fields.length }}</span>
+        </div>
+
+        <!-- Field rows for this group -->
+        <div
+          v-for="f in groupRows(g)"
+          :key="f.name"
+          class="port-row input"
+        >
+          <Handle :id="f.name" type="target" :position="Position.Left" class="port-handle port-handle-inline" />
+          <NodeWidget
+            v-if="!incomingHandles.has(f.name)"
+            :field="f"
+            :model-value="fieldValue(f)"
+            @update:model-value="updateField(f, $event)"
+          />
+          <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
+            <span class="wired-label">{{ f.name }}</span>
+            <span class="wired-controls">
+              <span class="wired-chip">← {{ wiredPort(f.name) }}</span>
+              <button
+                class="wired-unwire"
+                title="Disconnect this input"
+                @mousedown.stop
+                @click.stop="unwire(f.name)"
+              >
+                &times;
+              </button>
+            </span>
           </span>
-        </span>
-      </div>
+        </div>
+      </template>
 
       <!-- Defensive: any input port the registry does not expose as a config field -->
       <div v-for="p in extraInputPorts" :key="'extra-' + p.name" class="port-row port-row-io">
@@ -365,6 +429,48 @@ const statusLabel = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* ── Arg group headers ─────────────────────────────────────────────────────── */
+.arg-group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ctrl-gap);
+  padding: 2px var(--ctrl-gap);
+  margin-top: var(--sp-1);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  user-select: none;
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.arg-group-header:hover {
+  background: var(--bg-2);
+  color: var(--fg-1);
+}
+
+.arg-group-header.collapsed {
+  color: var(--fg-3);
+}
+
+.group-chevron {
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.group-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+.group-count {
+  color: var(--fg-3);
+  font-size: 10px;
+}
+
 
 /* ── Handles ─────────────────────────────────────────────────────────────── */
 .port-handle {
