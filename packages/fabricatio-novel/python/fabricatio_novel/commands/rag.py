@@ -4,6 +4,7 @@ Registers onto the shared ``app`` from :mod:`fabricatio_novel.cli`:
 
 - ``wr``  — :func:`write_novel_with_rag`
 - ``wrm`` — :func:`write_novel_with_mental_rag`
+- ``wsr`` — :func:`write_novel_with_state_rag`
 """
 
 from pathlib import Path
@@ -146,3 +147,56 @@ def write_novel_with_mental_rag(  # noqa: PLR0913
         typer.secho(f"✅ Novel with RAG+Mental successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
     else:
         _exit_on_error("❌ Failed to generate novel with RAG+Mental.")
+
+
+@app.command(name="wsr")
+@cfg_on(["lancedb"])
+def write_novel_with_state_rag(  # noqa: PLR0913
+    *,
+    outline: str = OUTLINE,
+    outline_file: Path = OUTLINE_FILE,
+    rag_query: str = _RAG_QUERY,
+    output_path: Path = OUTPUT_PATH,
+    font_file: Path = FONT_FILE,
+    cover_image: Path = COVER_IMAGE,
+    language: str = LANGUAGE,
+    chapter_guidance: str = CHAPTER_GUIDANCE,
+    guidance_file: Path = GUIDANCE_FILE,
+    persist_dir: Path = PERSIST_DIR,
+    rag_limit: int = _RAG_LIMIT,
+) -> None:
+    """Generate a novel with RAG writing styles + character state consistency."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.novel_state_rag import DebugNovelWithStateRAGWorkflow
+
+    state_rag_ns = "write_state_rag"
+    Role.with_bio(name="state_rag_writer").subscribe(
+        Event.quick_instantiate(state_rag_ns), DebugNovelWithStateRAGWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    typer.echo(f"Starting RAG+State novel generation: '{outline_content[:30]}...'")
+    typer.echo(f"Writing style query: '{rag_query}'")
+
+    task = Task(name="Write novel with RAG+State").update_init_context(
+        novel_outline=outline_content,
+        writing_style_requirement=rag_query,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+        ),
+    )
+
+    result = task.delegate_blocking(state_rag_ns)
+
+    if result:
+        typer.secho(f"✅ Novel with RAG+State successfully generated: {result}", fg=typer.colors.GREEN, bold=True)
+    else:
+        _exit_on_error("❌ Failed to generate novel with RAG+State.")
