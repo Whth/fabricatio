@@ -28,6 +28,43 @@ class WidgetProbe(Action):
         return None
 
 
+class GroupProbeMixin(Action):
+    """MRO probe: fields declared on this mixin should report it as the group."""
+
+    mixin_field: Optional[str] = None
+
+
+class GroupProbeAction(GroupProbeMixin):
+    """MRO probe: own field should report this class as the group."""
+
+    own_field: Optional[str] = None
+
+    async def _execute(self, **cxt: Any) -> Any:
+        return None
+
+
+def test_config_fields_carry_mro_owner_group() -> None:
+    """Each config field reports the MRO class that declares it."""
+    from fabricatio_webui.registry import _extract_input_ports
+
+    ports = _extract_input_ports(GroupProbeAction)
+    by_name = {p["name"]: p for p in ports}
+
+    # Field declared on the mixin → group is the mixin class name
+    assert "mixin_field" in by_name
+    assert by_name["mixin_field"]["group"] == "GroupProbeMixin"
+
+    # Field declared on the concrete action → group is the leaf class name
+    assert "own_field" in by_name
+    assert by_name["own_field"]["group"] == "GroupProbeAction"
+
+    # Every port carries a group key
+    for p in ports:
+        assert "group" in p, f"{p['name']} is missing 'group'"
+        assert isinstance(p["group"], str)
+        assert p["group"]
+
+
 def test_widget_hint_table() -> None:
     """The annotation-to-widget table matches the spec (§2.3)."""
     assert _widget_hint(bool, True, True)["widget"] == "toggle"
