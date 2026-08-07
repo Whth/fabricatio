@@ -1,0 +1,9 @@
+{{#if states}}Current states:
+{{#each states}}{{name}}: {{#if has_chapter}}{{state}} (end of chapter {{chapter}}){{else}}no state recorded{{/if}}
+{{/each}}
+
+{{/if}}{{#if warnings}}Warnings:
+{{#each warnings}}WARNING: {{this}}
+{{/each}}
+
+{{/if}}

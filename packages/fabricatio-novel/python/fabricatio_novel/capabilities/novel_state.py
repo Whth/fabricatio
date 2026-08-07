@@ -208,58 +208,52 @@ class NovelComposeState(NovelCompose):
 
     def _previous_states_context(self, ctx: StateChapterContext) -> str:
         """Render per-character previous chapter-end states (reachability baseline)."""
-        if ctx.characters is None:
-            return "none"
-        lines: List[str] = []
-        for card in ctx.characters:
-            history = ctx.character_state_histories.get(card.name, [])
-            if history:
-                idx, state = history[-1]
-                lines.append(f"{card.name}: {state} (end of chapter {idx})")
-            else:
-                lines.append(f"{card.name}: none (first chapter)")
-        return "\n".join(lines)
+        states: List[Dict[str, Any]] = []
+        if ctx.characters is not None:
+            for card in ctx.characters:
+                history = ctx.character_state_histories.get(card.name, [])
+                if history:
+                    idx, state = history[-1]
+                    states.append({"name": card.name, "state": state, "chapter": idx, "has_chapter": True})
+                else:
+                    states.append({"name": card.name, "state": None, "chapter": None, "has_chapter": False})
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.chapter_previous_states_template,
+            {"states": states},
+        ).strip()
 
     def _build_rewrite_request(self, raw: str, violations: List[str]) -> str:
-        """Build the REWRITE REQUEST appendix for the regeneration prompt."""
-        lines = [
-            "REWRITE REQUEST (state consistency audit failed):",
-            "The chapter draft below violates character state consistency:",
-            *[f"- {v}" for v in violations],
-            "Rewrite the chapter so EVERY violation above is resolved: states must "
-            "change only through described motion/action, and the chapter must end in "
-            "a state plausibly reachable from its beginning.",
-            "DRAFT TO REWRITE:",
-            raw,
-        ]
-        return "\n".join(lines)
+        """Render the REWRITE REQUEST appendix for the regeneration prompt."""
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.chapter_rewrite_request_template,
+            {"violations": violations, "draft": raw},
+        )
 
 
 def state_board_context(ctx: StateChapterContext) -> str:
     """Render the Character State Board as concise prompt injection."""
-    sections: List[str] = []
     names = set(ctx.character_state_histories)
     if ctx.characters:
         names |= {card.name for card in ctx.characters}
-    state_lines: List[str] = []
+    states: List[Dict[str, Any]] = []
     for name in sorted(names):
         history = ctx.character_state_histories.get(name, [])
         if history:
             idx, state = history[-1]
-            state_lines.append(f"{name}: {state} (end of chapter {idx})")
+            states.append({"name": name, "state": state, "chapter": idx, "has_chapter": True})
         else:
-            state_lines.append(f"{name}: no state recorded")
-    if state_lines:
-        sections.append("Current states:\n" + "\n".join(state_lines))
+            states.append({"name": name, "state": None, "chapter": None, "has_chapter": False})
+    warnings: List[str] = []
     if ctx.state_violations:
         seen = set()
-        warnings = []
         for violation in ctx.state_violations:
             if violation not in seen:
                 seen.add(violation)
-                warnings.append(f"WARNING: {violation}")
-        sections.append("Warnings:\n" + "\n".join(warnings))
-    return "\n\n".join(sections)
+                warnings.append(violation)
+    return TEMPLATE_MANAGER.render_template(
+        novel_config.character_state_board_template,
+        {"states": states, "warnings": warnings},
+    ).strip()
 
 
 def number_paragraphs(raw: str) -> str:
