@@ -27,7 +27,7 @@ could drift out of sync. Mixins add their own fields for cross-hook state
 no mixin-specific state.
 """
 
-from typing import Any, Dict, List, Optional, Self, Tuple
+from typing import Dict, List, Optional, Self, Tuple
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core.models.generic import Base
@@ -90,13 +90,14 @@ class ChapterContext(Base):
     until the first chapter is staged.
     """
 
-    chapter_prompt_vars: Dict[str, Any] = Field(default_factory=dict)
+    chapter_prompt_vars: Dict[str, str] = Field(default_factory=dict)
     """Extra template vars for the current chapter-requirement render.
 
     Populated by ``extra_chapter_prompt_vars`` hook implementations via
     :meth:`add_prompt_vars`; the base ``prepare_chapter_prompt`` merges these
     into the rendered vars and resets them at the start of every render —
-    per-render scratch space, not run history.
+    per-render scratch space, not run history. Values are rendered prompt
+    fragments (strings); the key set is the template contract.
     """
 
     # ── Value assignment (chainable methods — the loop never assigns fields) ──
@@ -150,7 +151,7 @@ class ChapterContext(Base):
         self.staged_chapter = (idx, content)
         return self
 
-    def add_prompt_vars(self, prompt_vars: Dict[str, Any]) -> Self:
+    def add_prompt_vars(self, prompt_vars: Dict[str, str]) -> Self:
         """Merge extra template vars for the current chapter prompt and return self.
 
         Called by ``extra_chapter_prompt_vars`` hook implementations to
