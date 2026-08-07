@@ -372,6 +372,22 @@ def _concrete_action_subclasses() -> Set[Type[Action]]:
 # ---------------------------------------------------------------------------
 
 
+def _mro_field_owner(cls: Type[Action], field_name: str) -> str:
+    """Return the first class in *cls*'s MRO that declares *field_name*.
+
+    Pydantic v2 keeps each class's declared annotations on its own
+    ``__annotations__``, so walking the MRO leaf-first attributes a field to
+    the most-derived class that declares it.  The result is the ``group``
+    key used by the workflow UI to fold inherited (scoped-config) fields.
+    Falls back to *cls* itself for fields injected without annotations.
+    """
+    for base in cls.__mro__:
+        annotations = getattr(base, "__annotations__", None)
+        if annotations and field_name in annotations:
+            return base.__name__
+    return cls.__name__
+
+
 def _extract_input_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
     """Extract input ports from *cls* model fields, excluding infrastructure fields."""
     ports: List[Dict[str, Any]] = []
@@ -408,6 +424,9 @@ def _extract_input_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
 
         # Widget hint for the inline editor
         schema.update(_widget_hint(ann, has_default, field_info.default))
+
+        # MRO owner class name — drives arg-grouping in the workflow UI
+        schema["group"] = _mro_field_owner(cls, field_name)
 
         ports.append(schema)
 
