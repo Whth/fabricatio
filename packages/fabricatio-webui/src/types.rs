@@ -35,6 +35,11 @@ pub struct PortDefinition {
     pub placeholder: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub separator: Option<String>,
+    /// MRO owner class name for grouped rendering of config fields (Python
+    /// registry only; absent for legacy registries — frontend falls back to
+    /// flat rendering).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -469,6 +474,24 @@ mod tests {
             Some(&["gpt-4o".to_string(), "gpt-4o-mini".to_string()][..])
         );
         assert_eq!(p.default.as_ref().and_then(|v| v.as_str()), Some("gpt-4o"));
+    }
+    #[test]
+    fn port_group_round_trip() {
+        let raw = r#"{"name":"llm_send_to","type":"str","optional":true,
+            "default":null,"group":"LLMScopedConfig"}"#;
+        let p: PortDefinition = serde_json::from_str(raw).unwrap();
+        assert_eq!(p.group.as_deref(), Some("LLMScopedConfig"));
+        // serialising back includes the field
+        let s = serde_json::to_string(&p).unwrap();
+        assert!(s.contains(r#""group":"LLMScopedConfig""#), "serialised: {s}");
+    }
+
+    #[test]
+    fn port_group_absent_defaults_none() {
+        // no group key → None (skip_serializing_if None means it is absent)
+        let raw = r#"{"name":"own_field","type":"str","optional":false}"#;
+        let p: PortDefinition = serde_json::from_str(raw).unwrap();
+        assert!(p.group.is_none());
     }
 
     #[test]
