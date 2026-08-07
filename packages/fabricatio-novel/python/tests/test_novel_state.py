@@ -84,6 +84,30 @@ class _RecordingRole(LLMTestRole, NovelCompose):
         return await super().after_chapter_summarize(ctx)
 
 
+class TestChapterStateModels:
+    """The extraction models validate and round-trip through JSON."""
+
+    def test_record_roundtrip_validation(self) -> None:
+        """A ChapterStateRecord validates, keeps anchors aligned, and survives JSON round-trip."""
+        from fabricatio_novel.models.chapter_state import ChapterStateRecord, CharacterState
+
+        record = ChapterStateRecord(
+            characters=[
+                CharacterState(
+                    character="Hero",
+                    states=["standing by the window", "seated"],
+                    paragraphs=[0, 3],
+                    chapter_end_state="seated",
+                )
+            ],
+            violations=["Hero: paragraph 3 seated with no described motion"],
+        )
+        assert record.characters[0].chapter_end_state == "seated"
+        assert len(record.characters[0].paragraphs) == len(record.characters[0].states)
+        restored = ChapterStateRecord.model_validate_json(record.model_dump_json())
+        assert restored == record
+
+
 class TestMentalCooperativeMerge:
     """Mental's extra vars survive the cooperative merge unchanged when it is the sole override."""
 

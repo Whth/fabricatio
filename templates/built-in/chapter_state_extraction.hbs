@@ -1,0 +1,35 @@
+You are auditing a novel chapter for CHARACTER STATE CONSISTENCY.
+
+Language: {{ language }}
+
+Characters to track:
+{{#each characters}}
+- {{this}}
+{{/each}}
+
+Previous chapter-end states (reachability baseline):
+{{ previous_states }}
+
+Chapter content (paragraph-numbered, 0-based):
+{{ chapter_content }}
+
+For EVERY character listed above, extract their ordered sequence of states at
+each paragraph where a state is established or changes. A state is a free-form
+short phrase describing physical/circumstantial position, posture, hold,
+location, or any other salient observable (e.g. "standing by the window",
+"seated at the desk", "holding the letter"). Record the 0-based paragraph
+index of each entry. Merge consecutive repeated states. A character absent
+from the chapter has an empty states list and their chapter_end_state is their
+previous state verbatim.
+
+JUDGE two things:
+1. LOCAL adjacency: every consecutive transition within a character's sequence
+   must be bridged by described motion or action in the prose. A posture or
+   location flip with no bridging description is a violation.
+2. GLOBAL reachability: each character's chapter_end_state must be plausibly
+   reachable from their previous chapter-end state given the chapter's
+   described events. An unreachable jump is a violation.
+
+Report violations as concise strings referencing the character name and
+paragraph indices (e.g. "Hero: paragraph 7 seated at the window -> paragraph 9
+standing at the door with no described motion"). Empty list when clean.

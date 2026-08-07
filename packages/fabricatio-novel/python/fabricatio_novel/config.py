@@ -24,6 +24,8 @@ class NovelConfig:
     """template used to render novel draft requirements."""
     chapter_summarization_template: str = "built-in/chapter_summarization"
     """template used to render chapter summarization prompts for cross-chapter context tracking."""
+    chapter_state_extraction_template: str = "built-in/chapter_state_extraction"
+    """template used to render the character state extraction + consistency audit prompt."""
     writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
     """template used to render writing style documents as prompts (content only, no metadata)."""
     writing_style_query_refine_template: str = "built-in/writing_style_query_refine"
