@@ -1,7 +1,7 @@
 """Novel composition capabilities — the NovelCompose base class."""
 
 from abc import ABC
-from typing import List, Optional, Tuple, Unpack
+from typing import Any, Dict, List, Optional, Tuple, Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCard
@@ -329,7 +329,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
             ctx: The sealed per-chapter context (inputs set by the loop).
         """
 
-    def _chapter_prompt_vars(self, ctx: ChapterContext) -> dict:
+    def _chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
         """Build the base template variables for the chapter requirement.
 
         Internal helper: the default :meth:`prepare_chapter_prompt` renders
