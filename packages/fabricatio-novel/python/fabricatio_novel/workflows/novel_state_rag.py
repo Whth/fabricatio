@@ -6,6 +6,7 @@ cfg(feats=["workflows"])
 from fabricatio_actions.actions.output import PersistentAll  # noqa: I001
 from fabricatio_core import WorkFlow
 
+from fabricatio_novel.actions.illustration import IllustrateNovel
 from fabricatio_novel.actions.novel import (
     AssembleNovelFromComponents,
     DumpNovel,
@@ -72,3 +73,29 @@ ValidatedNovelWithStateRAGWorkflow = WorkFlow(
     ),
 )
 """Production-grade novel generation with RAG writing styles + state consistency and quality validation."""
+
+
+# ==============================
+# ✍️🧩🎨 RAG + State + Illustrated Pipeline
+# ==============================
+DebugStateRAGIllustratedNovelWorkflow = WorkFlow(
+    name="DebugStateRAGIllustratedNovelWorkflow",
+    description="Step-by-step RAG + state-consistency novel generation with illustration for debugging.",
+    steps=(
+        GenerateNovelDraft,
+        PersistentAll,
+        GenerateCharactersFromDraft,
+        PersistentAll,
+        GenerateScriptsFromDraftAndCharacters,
+        PersistentAll,
+        GenerateChaptersFromScriptsWithStateRAG,
+        PersistentAll,
+        AssembleNovelFromComponents,
+        PersistentAll,
+        IllustrateNovel,
+        PersistentAll,
+        DumpNovel().to_task_output(),
+        PersistentAll,
+    ),
+)
+"""Debug each stage of RAG + state-consistency + illustrated pipeline."""

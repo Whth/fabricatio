@@ -4,6 +4,7 @@ Registers onto the shared ``app`` from :mod:`fabricatio_novel.cli`:
 
 - ``wri``  — :func:`write_rag_illustrated_novel`
 - ``wrmi`` — :func:`write_rag_mental_illustrated_novel`
+- ``wsri`` — :func:`write_rag_state_illustrated_novel`
 """
 
 from pathlib import Path
@@ -220,3 +221,94 @@ def write_rag_mental_illustrated_novel(  # noqa: PLR0913
         )
     else:
         _exit_on_error("❌ Failed to generate RAG+Mental+Illustrated novel.")
+
+
+@app.command(name="wsri")
+@cfg_on(["comfyui", "lancedb"])
+def write_rag_state_illustrated_novel(  # noqa: PLR0913
+    *,
+    outline: str = OUTLINE,
+    outline_file: Path = OUTLINE_FILE,
+    rag_query: str = _RAG_QUERY,
+    output_path: Path = OUTPUT_PATH,
+    font_file: Path = FONT_FILE,
+    cover_image: Path = COVER_IMAGE,
+    language: str = LANGUAGE,
+    chapter_guidance: str = CHAPTER_GUIDANCE,
+    guidance_file: Path = GUIDANCE_FILE,
+    persist_dir: Path = PERSIST_DIR,
+    rag_limit: int = _RAG_LIMIT,
+    image_root: Path = _IMAGE_ROOT,
+    workflow_template: Optional[Path] = _WORKFLOW_TEMPLATE,
+    illustration_budget: int = _ILLUST_BUDGET,
+    illustration_language: str = _ILLUST_LANG,
+    illustration_guideline: str = _ILLUST_GUIDELINE,
+    illustration_guideline_file: Path = _ILLUST_GUIDELINE_FILE,
+    illustration_prompt_guideline: str = _ILLUST_PROMPT_GUIDELINE,
+    illustration_prompt_guideline_file: Path = _ILLUST_PROMPT_GUIDELINE_FILE,
+    comfyui_timeout: float = _COMFYUI_TIMEOUT,
+    comfyui_base_url: str = _COMFYUI_BASE_URL,
+) -> None:
+    """Generate a RAG-augmented novel with character state consistency + ComfyUI illustrations."""
+    from fabricatio_novel.models.novel_rag import WritingStyleFetchConfig
+    from fabricatio_novel.workflows.novel_state_rag import DebugStateRAGIllustratedNovelWorkflow
+
+    rag_state_illus_ns = "write_rag_state_illustrated"
+    Role.with_bio(name="rag_state_illustrator").subscribe(
+        Event.quick_instantiate(rag_state_illus_ns), DebugStateRAGIllustratedNovelWorkflow
+    ).dispatch()
+
+    outline_content = _resolve_text_or_file(outline, outline_file, flag="outline", required=True)
+    guidance_content = _resolve_text_or_file(chapter_guidance, guidance_file, flag="guidance")
+
+    illust_guideline_content = _resolve_text_or_file(
+        illustration_guideline,
+        illustration_guideline_file,
+        flag="illust-guideline",
+        file_desc="illustration guideline",
+        default=None,
+    )
+
+    illust_prompt_guideline_content = _resolve_text_or_file(
+        illustration_prompt_guideline,
+        illustration_prompt_guideline_file,
+        flag="illust-prompt-guideline",
+        file_desc="illustration prompt guideline",
+        default=None,
+    )
+
+    typer.echo(f"Starting RAG+State+Illustrated novel generation: '{outline_content[:30]}...'")
+    typer.echo(f"Writing style query: '{rag_query}'")
+
+    task = Task(name="Write RAG state illustrated novel").update_init_context(
+        novel_outline=outline_content,
+        writing_style_requirement=rag_query,
+        output_path=output_path,
+        novel_font_file=font_file,
+        cover_image=cover_image,
+        novel_language=language,
+        chapter_guidance=guidance_content,
+        persist_dir=persist_dir,
+        image_root=image_root,
+        writing_style_fetch_config=WritingStyleFetchConfig(
+            limit=rag_limit,
+        ),
+        workflow_template=workflow_template,
+        illustration_budget=illustration_budget,
+        illustration_language=illustration_language,
+        illustration_guideline=illust_guideline_content,
+        illustration_prompt_guideline=illust_prompt_guideline_content,
+        comfyui_timeout=comfyui_timeout,
+        comfyui_base_url=comfyui_base_url,
+    )
+
+    result = task.delegate_blocking(rag_state_illus_ns)
+
+    if result:
+        typer.secho(
+            f"✅ RAG+State+Illustrated novel successfully generated: {result}",
+            fg=typer.colors.GREEN,
+            bold=True,
+        )
+    else:
+        _exit_on_error("❌ Failed to generate RAG+State+Illustrated novel.")
