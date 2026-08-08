@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import final, Generator
+from typing import final, Generator, Self
 
 from pydantic import Field
 
@@ -27,6 +27,11 @@ class CharactorTrace(SketchedAble):
             card = card.apply(diff)
             yield card
         yield self.end
+
+    @final
+    def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
+        self.interpolates = diffs
+        return self
 
 
 class ContextBase(WordCount, PersistentAble, ABC):
