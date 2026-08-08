@@ -1468,10 +1468,6 @@ class TemplateManager:
     @typing.overload
     def render_template(self, name: str, data: typing.List[typing.Dict[str, typing.Any]]) -> typing.List[str]: ...
     @typing.overload
-    def render_template(
-        self, name: str, data: typing.List[typing.Dict[str, typing.Any]] | typing.Dict[str, typing.Any]
-    ) -> typing.List[str] | str: ...
-    @typing.overload
     def render_template_raw(self, template: str, data: typing.Dict[str, typing.Any]) -> str: ...
     @typing.overload
     def render_template_raw(

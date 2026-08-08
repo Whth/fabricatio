@@ -2,7 +2,7 @@ use crate::hbs_helpers::*;
 use error_mapping::*;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{Handlebars, no_escape};
+use handlebars::{no_escape, Handlebars};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -12,7 +12,7 @@ use pythonize::depythonize;
 
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use serde_json::{Value, to_string};
+use serde_json::{to_string, Value};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
@@ -333,10 +333,7 @@ pyo3_stub_gen::inventory::submit! {
             def render_template(self,name:str,data: typing.Dict[str,typing.Any]) -> str: ...
             @overload
             def render_template(self,name:str,data: typing.List[typing.Dict[str,typing.Any]]) -> typing.List[str]: ...
-            @typing.overload
-            def render_template(
-                self, name: str, data: typing.List[typing.Dict[str, typing.Any]] | typing.Dict[str, typing.Any]
-            ) -> typing.List[str] | str: ...
+
 
             @overload
             def render_template_raw(self,template: str,data: typing.Dict[str,typing.Any]) -> str: ...
