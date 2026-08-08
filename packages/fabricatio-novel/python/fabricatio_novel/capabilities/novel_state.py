@@ -110,6 +110,19 @@ class StateChapterContext(ChapterContext):
             return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
         return CharacterStateEntry(name=name)
 
+    def _previous_states_context(self) -> str:
+        """Render per-character previous chapter-end states (reachability baseline)."""
+        entries: List[CharacterStateEntry] = []
+        if self.characters is not None:
+            entries = [
+                self._board_entry(card.name, self.character_state_histories.get(card.name, []))
+                for card in self.characters
+            ]
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.chapter_previous_states_template,
+            {"states": [entry.model_dump() for entry in entries]},
+        ).strip()
+
 
 class NovelComposeState(NovelCompose):
     """Mixin that adds character state consistency to novel composition.
@@ -222,23 +235,11 @@ class NovelComposeState(NovelCompose):
             {
                 "language": ctx.draft.language,
                 "characters": [card.name for card in ctx.characters],
-                "previous_states": self._previous_states_context(ctx),
+                "previous_states": ctx._previous_states_context(),
                 "chapter_content": number_paragraphs(raw),
             },
         )
         return await self.propose(ChapterStateRecord, prompt, send_to=SMOL)
-
-    def _previous_states_context(self, ctx: StateChapterContext) -> str:
-        """Render per-character previous chapter-end states (reachability baseline)."""
-        entries: List[CharacterStateEntry] = []
-        if ctx.characters is not None:
-            entries = [
-                ctx._board_entry(card.name, ctx.character_state_histories.get(card.name, [])) for card in ctx.characters
-            ]
-        return TEMPLATE_MANAGER.render_template(
-            novel_config.chapter_previous_states_template,
-            {"states": [entry.model_dump() for entry in entries]},
-        ).strip()
 
     def _build_rewrite_request(self, raw: str, violations: List[str]) -> str:
         """Render the REWRITE REQUEST appendix for the regeneration prompt."""
