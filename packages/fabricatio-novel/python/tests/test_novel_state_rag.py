@@ -183,7 +183,7 @@ class TestCombinedCapability:
         role = _StateRAGTestRole(name="novel-state-rag-build")
         ctx = await role.build_chapter_context([sample_character])
         assert isinstance(ctx, StateRAGChapterContext)
-        assert ctx.character_state_histories == {}
+        assert ctx.state_ledger.histories == {}
         assert ctx.characters is None
 
 
@@ -278,9 +278,8 @@ class TestFullLoop:
             )
 
         assert chapter_contents == [CHAPTER_TEXT]
-        assert ctx.character_state_histories == {"Hero": [(0, "walking to the door")]}
-        assert ctx.character_in_chapter_states == {"Hero": ["standing by the window", "walking to the door"]}
-        assert ctx.state_violations == []
+        assert ctx.state_ledger.histories == {"Hero": [(0, "walking to the door")]}
+        assert ctx.state_ledger.violations == []
         assert role._extraction_raws == [CHAPTER_TEXT]
         assert "style-1" in plan.script.global_prompt
         assert role.ranked_queries == []
@@ -346,8 +345,8 @@ class TestFullLoop:
 
         assert chapter_contents == [rewritten]
         assert role._extraction_raws == [CHAPTER_TEXT, rewritten]
-        assert ctx.character_state_histories == {"Hero": [(0, "standing at the door")]}
-        assert ctx.state_violations == ["Hero: paragraph 1 at the door with no described motion"]
+        assert ctx.state_ledger.histories == {"Hero": [(0, "standing at the door")]}
+        assert ctx.state_ledger.violations == ["Hero: paragraph 1 at the door with no described motion"]
         assert "style-1" in plan.script.global_prompt
 
 

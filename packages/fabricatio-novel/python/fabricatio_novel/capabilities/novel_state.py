@@ -8,7 +8,8 @@ reachability are judged in the same batched call, and violations trigger ONE
 regeneration pass. A Character State Board is injected into the chapter prompt
 so the writer keeps every character consistent. The capability itself stays
 stateless — all per-run state lives in the caller-owned
-:class:`StateChapterContext` channel.
+:class:`StateChapterContext` channel, whose state domain (histories,
+violations, board/baseline rendering) is sealed in :class:`StateLedger`.
 
 Usage::
 
@@ -18,7 +19,7 @@ Usage::
         pass
 """
 
-from typing import Dict, List, Optional, Self, Tuple, Unpack
+from typing import List, Optional, Self, Unpack
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import TEMPLATE_MANAGER, logger
@@ -28,9 +29,10 @@ from fabricatio_core.utils import no_default, ok
 from pydantic import Field
 
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.capabilities.state_ledger import StateLedger
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter_context import ChapterContext
-from fabricatio_novel.models.chapter_state import ChapterStateRecord, CharacterStateEntry, StateBoard
+from fabricatio_novel.models.chapter_state import ChapterStateRecord
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.utils import number_paragraphs
 
@@ -39,99 +41,42 @@ class StateChapterContext(ChapterContext):
     """Chapter context extended with character state consistency tracking.
 
     The caller passes it as ``context`` to ``create_chapters``; the state
-    hooks mutate the fields in place, so the caller observes the evolution
-    without any instance state on the capability.
+    domain (histories, violations, board/baseline rendering) is sealed in
+    :class:`StateLedger` and mutated through the thin chainable delegates
+    below, so the caller observes the evolution without any instance state on
+    the capability.
     """
 
-    character_state_histories: Dict[str, List[Tuple[int, str]]] = Field(default_factory=dict)
-    """Global layer: character name -> [(chapter_index, end state), ...] in chapter order."""
-
-    character_in_chapter_states: Dict[str, List[str]] = Field(default_factory=dict)
-    """Local layer: character name -> this chapter's change-point state sequence."""
-
-    state_violations: List[str] = Field(default_factory=list)
-    """Durable log of human-readable violations across all chapters."""
+    state_ledger: StateLedger = Field(default_factory=StateLedger)
+    """Sealed state-domain store: histories + violations + board/baseline renders."""
 
     def extend_state_violations(self, violations: List[str]) -> Self:
-        """Append violations to the durable log and return self (chainable)."""
-        self.state_violations.extend(violations)
+        """Append violations to the ledger's durable store and return self (chainable)."""
+        self.state_ledger.extend_violations(violations)
         return self
 
     def record_chapter_states(self, record: ChapterStateRecord) -> Self:
-        """Commit one chapter's extraction record to the channel and return self (chainable).
-
-        Appends each character's end state to the global history (tagged with
-        the current chapter index), replaces the local change-point sequence,
-        carries forward the previous end state for characters absent from the
-        record (re-appended under the current chapter index; skipped when they
-        have no history entry), removes absent characters from the local
-        layer, and logs the record's residual violations.
-        """
-        current = self.chapter_index()
-        recorded = set()
-        for cs in record.characters:
-            recorded.add(cs.character)
-            history = self.character_state_histories.get(cs.character, [])
-            self.character_state_histories[cs.character] = [*history, (current, cs.chapter_end_state)]
-            if cs.states:
-                self.character_in_chapter_states[cs.character] = list(cs.states)
-            else:
-                self.character_in_chapter_states.pop(cs.character, None)
-        known = set(self.character_state_histories)
-        if self.characters:
-            known |= {card.name for card in self.characters}
-        for name in known - recorded:
-            history = self.character_state_histories.get(name, [])
-            if history:
-                self.character_state_histories[name] = [*history, (current, history[-1][1])]
-            self.character_in_chapter_states.pop(name, None)
-        self.state_violations.extend(record.violations)
+        """Commit one chapter's extraction record to the ledger and return self (chainable)."""
+        self.state_ledger.record(record, self.chapter_index(), self.characters)
         return self
 
     def state_board_context(self) -> str:
         """Render the Character State Board as concise prompt injection."""
-        names = set(self.character_state_histories)
-        if self.characters:
-            names |= {card.name for card in self.characters}
-        board = StateBoard(
-            states=[self._board_entry(name, self.character_state_histories.get(name, [])) for name in sorted(names)],
-            warnings=list(dict.fromkeys(self.state_violations)),
-        )
-        return TEMPLATE_MANAGER.render_template(
-            novel_config.character_state_board_template,
-            board.model_dump(),
-        ).strip()
-
-    @staticmethod
-    def _board_entry(name: str, history: List[Tuple[int, str]]) -> CharacterStateEntry:
-        """Build the board row for one character from its global history."""
-        if history:
-            idx, state = history[-1]
-            return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
-        return CharacterStateEntry(name=name)
+        return self.state_ledger.board_context(self.characters)
 
     def _previous_states_context(self) -> str:
         """Render per-character previous chapter-end states (reachability baseline)."""
-        entries: List[CharacterStateEntry] = []
-        if self.characters is not None:
-            entries = [
-                self._board_entry(card.name, self.character_state_histories.get(card.name, []))
-                for card in self.characters
-            ]
-        return TEMPLATE_MANAGER.render_template(
-            novel_config.chapter_previous_states_template,
-            {"states": [entry.model_dump() for entry in entries]},
-        ).strip()
+        return self.state_ledger.previous_states_context(self.characters)
 
 
 class NovelComposeState(NovelCompose):
     """Mixin that adds character state consistency to novel composition.
 
-    The caller-owned :class:`StateChapterContext` carries the histories and
-    violations through the base ``create_chapters`` loop; the hooks
-    (:meth:`extra_chapter_prompt_vars` / :meth:`after_chapter_gen`) inject the
-    state board and run the audit gate. The capability itself stays stateless
-    between runs.
+    The caller-owned :class:`StateChapterContext` carries the
+    :class:`StateLedger` (histories + violations) through the base
+    ``create_chapters`` loop; the hooks (:meth:`extra_chapter_prompt_vars` /
+    :meth:`after_chapter_gen`) inject the state board and run the audit gate.
+    The capability itself stays stateless between runs.
     """
 
     # ── Public API ──
@@ -194,13 +139,16 @@ class NovelComposeState(NovelCompose):
 
         record = await self._extract_state_record(ctx, raw)
         if record is None:
-            ctx.extend_state_violations(
-                [f"State extraction failed for chapter {ctx.chapter_index()} — chapter end states unknown"]
-            )
+            message = f"State extraction failed for chapter {ctx.chapter_index()} — chapter end states unknown"
+            ctx.extend_state_violations([message])
+            logger.warn(message)
             return
 
         if record.violations:
             ctx.extend_state_violations(record.violations)
+            logger.info(
+                f"Chapter {ctx.chapter_index() + 1}: {len(record.violations)} violation(s) found — regenerating once"
+            )
             rendered = await self.prepare_chapter_prompt(ctx)
             rewrite = self._build_rewrite_request(raw, record.violations)
             new_raw = ok(await self.aask(f"{rendered}\n\n{rewrite}"))
@@ -208,12 +156,12 @@ class NovelComposeState(NovelCompose):
 
             final = await self._extract_state_record(ctx, new_raw)
             if final is None:
-                ctx.extend_state_violations(
-                    [
-                        f"State re-extraction failed for chapter {ctx.chapter_index()} "
-                        "after regeneration — chapter end states unknown"
-                    ]
+                message = (
+                    f"State re-extraction failed for chapter {ctx.chapter_index()} "
+                    "after regeneration — chapter end states unknown"
                 )
+                ctx.extend_state_violations([message])
+                logger.warn(message)
                 return
             ctx.record_chapter_states(final)
             logger.info(
@@ -223,12 +171,14 @@ class NovelComposeState(NovelCompose):
             return
 
         ctx.record_chapter_states(record)
+        logger.debug(f"Chapter {ctx.chapter_index() + 1}: tracked {len(record.characters)} character(s), 0 violations")
 
     # ── Helpers ──
 
     async def _extract_state_record(self, ctx: StateChapterContext, raw: str) -> Optional[ChapterStateRecord]:
         """Run the batched state extraction + plausibility judgment over raw prose."""
         if ctx.characters is None or ctx.draft is None:
+            logger.debug(f"State extraction skipped for chapter {ctx.chapter_index() + 1}: channel inputs unset")
             return None
         prompt = TEMPLATE_MANAGER.render_template(
             novel_config.chapter_state_extraction_template,

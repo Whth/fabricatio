@@ -53,8 +53,8 @@ class CharacterStateEntry(Base):
 class StateBoard(Base):
     """Serialized payload for the Character State Board template.
 
-    Built on the caller-owned channel by ``StateChapterContext.state_board_context``
-    and dumped with ``model_dump()`` at the template engine boundary.
+    Built by ``StateLedger.board_context`` (delegated through the caller-owned
+    channel) and dumped with ``model_dump()`` at the template engine boundary.
     """
 
     states: List[CharacterStateEntry] = Field(default_factory=list)

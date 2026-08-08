@@ -217,9 +217,8 @@ class TestStateChannelHook:
         with install_router_usage(*return_model_json_router_usage(record)):
             await role.after_chapter_gen(ctx)
 
-        assert ctx.character_state_histories == {"Hero": [(0, "walking to the door")]}
-        assert ctx.character_in_chapter_states == {"Hero": ["standing by the window", "walking to the door"]}
-        assert ctx.state_violations == []
+        assert ctx.state_ledger.histories == {"Hero": [(0, "walking to the door")]}
+        assert ctx.state_ledger.violations == []
         assert role._extraction_raws == [CHAPTER_TEXT]
 
     @pytest.mark.asyncio
@@ -325,9 +324,9 @@ class TestStateChannelHook:
             await role.after_chapter_gen(ctx)
 
         assert ctx.pending_chapter() == rewritten
-        assert ctx.character_state_histories == {"Hero": [(0, "standing at the door")]}
+        assert ctx.state_ledger.histories == {"Hero": [(0, "standing at the door")]}
         assert role._extraction_raws == [CHAPTER_TEXT, rewritten]
-        assert ctx.state_violations == ["Hero: paragraph 1 at the door with no described motion"]
+        assert ctx.state_ledger.violations == ["Hero: paragraph 1 at the door with no described motion"]
 
     @pytest.mark.asyncio
     async def test_residual_violations_accepted_after_one_pass(
@@ -367,11 +366,11 @@ class TestStateChannelHook:
 
         assert ctx.pending_chapter() == rewritten
         assert role._extraction_raws == [CHAPTER_TEXT, rewritten]
-        assert ctx.state_violations == [
+        assert ctx.state_ledger.violations == [
             "Hero: standing at the door in paragraph 1 with no described motion",
             "Hero: paragraph 1 posture flip still unbridged",
         ]
-        assert ctx.character_state_histories == {"Hero": [(0, "standing")]}
+        assert ctx.state_ledger.histories == {"Hero": [(0, "standing")]}
 
     @pytest.mark.asyncio
     async def test_extraction_failure_soft_skips(
@@ -397,9 +396,8 @@ class TestStateChannelHook:
         ):
             await role.after_chapter_gen(ctx)
 
-        assert ctx.character_state_histories == {}
-        assert ctx.character_in_chapter_states == {}
-        assert ctx.state_violations == ["State extraction failed for chapter 0 — chapter end states unknown"]
+        assert ctx.state_ledger.histories == {}
+        assert ctx.state_ledger.violations == ["State extraction failed for chapter 0 — chapter end states unknown"]
         assert ctx.pending_chapter() == CHAPTER_TEXT
         assert role._extraction_raws == [CHAPTER_TEXT]
 
