@@ -519,6 +519,15 @@ def build_node_registry() -> Dict[str, Any]:
             doc = (cls.__doc__ or "").strip()
             first_line = doc.split("\n")[0].strip() if doc else ""
 
+            # __source__ is set by PyO3 stubgen for Rust-backed actions that
+            # have no real Python source; fall back gracefully.
+            source_lines: str = getattr(cls, "__source__", None) or ""
+            if not source_lines:
+                try:
+                    source_lines = inspect.getsource(cls)
+                except Exception:  # noqa: BLE001
+                    source_lines = ""
+
             model_ports = _extract_input_ports(cls)
 
             # Runtime _execute parameters become read-only input ports (wired
@@ -564,6 +573,8 @@ def build_node_registry() -> Dict[str, Any]:
                 # Only model fields are editable config; runtime params are
                 # dataflow-only and must never reach cls(**config).
                 "config_fields": model_ports,
+                # Raw Python source for the read-only source viewer.
+                "source_code": source_lines,
             }
             # Content hash for change detection; the wire node field
             # ``schema_version`` is a numeric generation marker, not this hash.

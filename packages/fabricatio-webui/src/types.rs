@@ -59,6 +59,9 @@ pub struct NodeTypeDefinition {
     /// registry did not provide it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema_version: Option<String>,
+    /// Raw Python source for the read-only source viewer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_code: Option<String>,
 }
 
 /// One package-defined blueprint offered by the board sidebar (derived from
