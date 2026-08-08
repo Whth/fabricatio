@@ -19,7 +19,7 @@ Usage::
 """
 
 import re
-from typing import Any, Dict, List, Optional, Self, Tuple, Unpack
+from typing import Dict, List, Optional, Self, Tuple, Unpack
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import TEMPLATE_MANAGER, logger
@@ -31,7 +31,7 @@ from pydantic import Field
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter_context import ChapterContext
-from fabricatio_novel.models.chapter_state import ChapterStateRecord
+from fabricatio_novel.models.chapter_state import ChapterStateRecord, CharacterStateEntry, StateBoard
 from fabricatio_novel.models.novel import Novel
 
 
@@ -147,7 +147,7 @@ class NovelComposeState(NovelCompose):
         """
         super().extra_chapter_prompt_vars(ctx)
         if isinstance(ctx, StateChapterContext):
-            ctx.add_prompt_vars({"character_state_board": state_board_context(ctx)})
+            ctx.add_prompt_vars({"character_state_board": self.state_board_context(ctx)})
 
     async def after_chapter_gen(self, ctx: ChapterContext) -> None:
         """Audit the raw chapter: extract states, judge plausibility, regenerate once on violations."""
@@ -208,18 +208,15 @@ class NovelComposeState(NovelCompose):
 
     def _previous_states_context(self, ctx: StateChapterContext) -> str:
         """Render per-character previous chapter-end states (reachability baseline)."""
-        states: List[Dict[str, Any]] = []
+        entries: List[CharacterStateEntry] = []
         if ctx.characters is not None:
-            for card in ctx.characters:
-                history = ctx.character_state_histories.get(card.name, [])
-                if history:
-                    idx, state = history[-1]
-                    states.append({"name": card.name, "state": state, "chapter": idx, "has_chapter": True})
-                else:
-                    states.append({"name": card.name, "state": None, "chapter": None, "has_chapter": False})
+            entries = [
+                self._board_entry(card.name, ctx.character_state_histories.get(card.name, []))
+                for card in ctx.characters
+            ]
         return TEMPLATE_MANAGER.render_template(
             novel_config.chapter_previous_states_template,
-            {"states": states},
+            {"states": [entry.model_dump() for entry in entries]},
         ).strip()
 
     def _build_rewrite_request(self, raw: str, violations: List[str]) -> str:
@@ -229,31 +226,27 @@ class NovelComposeState(NovelCompose):
             {"violations": violations, "draft": raw},
         )
 
+    def state_board_context(self, ctx: StateChapterContext) -> str:
+        """Render the Character State Board as concise prompt injection."""
+        names = set(ctx.character_state_histories)
+        if ctx.characters:
+            names |= {card.name for card in ctx.characters}
+        board = StateBoard(
+            states=[self._board_entry(name, ctx.character_state_histories.get(name, [])) for name in sorted(names)],
+            warnings=list(dict.fromkeys(ctx.state_violations)),
+        )
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.character_state_board_template,
+            board.model_dump(),
+        ).strip()
 
-def state_board_context(ctx: StateChapterContext) -> str:
-    """Render the Character State Board as concise prompt injection."""
-    names = set(ctx.character_state_histories)
-    if ctx.characters:
-        names |= {card.name for card in ctx.characters}
-    states: List[Dict[str, Any]] = []
-    for name in sorted(names):
-        history = ctx.character_state_histories.get(name, [])
+    @staticmethod
+    def _board_entry(name: str, history: List[Tuple[int, str]]) -> CharacterStateEntry:
+        """Build the board row for one character from its global history."""
         if history:
             idx, state = history[-1]
-            states.append({"name": name, "state": state, "chapter": idx, "has_chapter": True})
-        else:
-            states.append({"name": name, "state": None, "chapter": None, "has_chapter": False})
-    warnings: List[str] = []
-    if ctx.state_violations:
-        seen = set()
-        for violation in ctx.state_violations:
-            if violation not in seen:
-                seen.add(violation)
-                warnings.append(violation)
-    return TEMPLATE_MANAGER.render_template(
-        novel_config.character_state_board_template,
-        {"states": states, "warnings": warnings},
-    ).strip()
+            return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
+        return CharacterStateEntry(name=name)
 
 
 def number_paragraphs(raw: str) -> str:
