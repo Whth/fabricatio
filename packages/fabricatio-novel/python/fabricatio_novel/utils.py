@@ -32,4 +32,10 @@ def last_paragraph(text: str, k: int = 12) -> str:
     return "(......)\n" + "\n".join(paragraphs[-k:]) if paragraphs else ""
 
 
-__all__ = ["formated_title", "last_paragraph"]
+def number_paragraphs(raw: str) -> str:
+    """Number the raw chapter's blank-line-separated paragraphs (0-based ``P0:``, ``P1:``, ...)."""
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", raw) if p.strip()]
+    return "\n\n".join(f"P{i}: {p}" for i, p in enumerate(paragraphs))
+
+
+__all__ = ["formated_title", "last_paragraph", "number_paragraphs"]

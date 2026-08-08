@@ -18,7 +18,6 @@ Usage::
         pass
 """
 
-import re
 from typing import Dict, List, Optional, Self, Tuple, Unpack
 
 from fabricatio_character.models.character import CharacterCard
@@ -33,6 +32,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter_context import ChapterContext
 from fabricatio_novel.models.chapter_state import ChapterStateRecord, CharacterStateEntry, StateBoard
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.utils import number_paragraphs
 
 
 class StateChapterContext(ChapterContext):
@@ -247,9 +247,3 @@ class NovelComposeState(NovelCompose):
             idx, state = history[-1]
             return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
         return CharacterStateEntry(name=name)
-
-
-def number_paragraphs(raw: str) -> str:
-    """Number the raw chapter's blank-line-separated paragraphs (0-based ``P0:``, ``P1:``, ...)."""
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", raw) if p.strip()]
-    return "\n\n".join(f"P{i}: {p}" for i, p in enumerate(paragraphs))
