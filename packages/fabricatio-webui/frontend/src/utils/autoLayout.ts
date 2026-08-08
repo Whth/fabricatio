@@ -20,6 +20,10 @@ export const NODE_WIDTH = 360
 export const GAP_X = 100
 /** Vertical gap between rows within a column. */
 export const GAP_Y = 60
+/** Maximum nodes per column before wrapping into sub-rows. */
+export const MAX_ROWS_PER_COL = 7
+/** Estimated height of a node for layout purposes (used when DOM is not measured). */
+export const ESTIMATED_NODE_HEIGHT = 130
 
 /**
  * Estimate a node's rendered height from its port-row count. Rows are
@@ -68,6 +72,7 @@ export function autoLayout(
   sizes: ReadonlyMap<string, LayoutSize> = new Map(),
   gapX = GAP_X,
   gapY = GAP_Y,
+  maxColumnsPerRow = 3,
 ): Map<string, { x: number; y: number }> {
   const out = new Map<string, string[]>()
   const preds = new Map<string, string[]>()
@@ -131,19 +136,38 @@ export function autoLayout(
     ordered.set(l, ids)
   }
 
-  // Place columns left to right, rows top to bottom.
-  const result = new Map<string, { x: number; y: number }>()
+  const colWidths = new Map<number, number>()
   for (const l of sortedLayers) {
     const ids = ordered.get(l)!
-    const colWidth = ids.reduce(
-      (w, id) => Math.max(w, sizes.get(id)?.width ?? NODE_WIDTH),
-      0,
-    )
-    let y = 0
+    colWidths.set(l, ids.reduce((w, id) => Math.max(w, sizes.get(id)?.width ?? NODE_WIDTH), 0))
+  }
+
+  const result = new Map<string, { x: number; y: number }>()
+  let rowY = 0
+  let colIndex = 0
+  let rowHeight = 0
+
+  for (const l of sortedLayers) {
+    const colX = colIndex * (colWidths.get(l)! + gapX)
+    const ids = ordered.get(l)!
+
+    let nodeY = rowY
+    let maxH = 0
     for (const id of ids) {
-      const h = sizes.get(id)?.height ?? estimateNodeHeight(4)
-      result.set(id, { x: l * (colWidth + gapX), y })
-      y += h + gapY
+      const h = sizes.get(id)?.height ?? ESTIMATED_NODE_HEIGHT
+      result.set(id, { x: colX, y: nodeY })
+      nodeY += h + gapY
+      maxH = Math.max(maxH, h)
+    }
+
+    rowHeight = Math.max(rowHeight, maxH)
+    colIndex++
+
+    // Wrap to next row when column limit is reached.
+    if (colIndex >= maxColumnsPerRow) {
+      rowY += rowHeight + gapY
+      colIndex = 0
+      rowHeight = 0
     }
   }
   return result
