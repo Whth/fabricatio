@@ -10,6 +10,7 @@ import { groupConfigFields, type ArgGroup } from '@/utils/argGroups'
 import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ id: string; data: any }>()
+const emit = defineEmits<{ 'open-source': [nodeType: string] }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
 const { show } = useOutputPreview()
@@ -152,8 +153,8 @@ const statusLabel = computed(() => {
       :style="{ background: categoryColor(data.category) }"
     ></div>
 
-    <!-- Title bar -->
-    <div class="node-title" @dblclick.stop="collapsible && (collapsed = !collapsed)">
+    <!-- Title bar — double-click opens source viewer -->
+    <div class="node-title" @dblclick.stop="emit('open-source', data.nodeType)">
       <span class="title-dot" :style="{ background: categoryColor(data.category) }"></span>
       <span class="title-text">{{ data.title }}</span>
       <span class="title-spacer"></span>
@@ -166,7 +167,7 @@ const statusLabel = computed(() => {
         @click.stop="collapsed = !collapsed"
         :title="collapsed ? 'Expand widgets' : 'Collapse widgets'"
       >
-        {{ collapsed ? '+' : '&#8722;' }}
+        {{ collapsed ? '+' : '−' }}
       </span>
     </div>
 

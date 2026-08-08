@@ -32,6 +32,8 @@ export interface NodeTypeDefinition {
   config_fields: PortDefinition[]
   /** 8-hex content fingerprint for change detection. NOT the wire node schema_version. */
   schema_version?: string
+  /** Raw Python source for the read-only source viewer. */
+  source_code?: string
 }
 
 // ── Board JSON (format_version 2: role-driven documents) ──────────────────────

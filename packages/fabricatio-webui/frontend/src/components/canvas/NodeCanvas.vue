@@ -15,6 +15,7 @@ import { Crosshair } from '@lucide/vue'
 import ComfyNode from './ComfyNode.vue'
 import AddNodeMenu from './AddNodeMenu.vue'
 import CommandPalette from '@/components/chrome/CommandPalette.vue'
+import ActionSourceDialog from '@/components/chrome/ActionSourceDialog.vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
@@ -31,6 +32,7 @@ let suppressContextMenuUntil = 0
 const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
+const sourceViewer = ref<{ nodeType: string } | null>(null)
 
 /** True if wiring source → target would close a cycle (target already reaches source). */
 function wouldCreateCycle(source: string, target: string): boolean {
@@ -126,10 +128,10 @@ onConnectEnd((event) => {
 
 function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
-  // Double-click drills into the action layer (definition editor).
+  // Double-click opens the Python source viewer.
   if (ev.event.detail === 2) {
     const type = (ev.node.data as unknown as FabricatioNodeData)?.nodeType
-    if (type) boardStore.enterAction(type)
+    if (type) sourceViewer.value = { nodeType: type }
   }
 }
 
@@ -378,6 +380,13 @@ function onDrop(ev: DragEvent) {
       <span class="shortcut"><kbd>Del</kbd> Delete</span>
       <span class="shortcut"><kbd>Esc</kbd> Deselect</span>
     </div>
+
+    <!-- Read-only Python source viewer -->
+    <ActionSourceDialog
+      v-if="sourceViewer"
+      :node-type="sourceViewer.nodeType"
+      @close="sourceViewer = null"
+    />
   </div>
 </template>
 
