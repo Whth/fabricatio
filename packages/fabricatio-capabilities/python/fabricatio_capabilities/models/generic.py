@@ -6,15 +6,15 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
-from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
-from fabricatio_core.rust import blake3_hash
 from pydantic import (
     BaseModel,
 )
 
 from fabricatio_capabilities.config import capabilities_config
+from fabricatio_core import TEMPLATE_MANAGER
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
+from fabricatio_core.rust import blake3_hash
 
 
 class ModelHash(Base, ABC):
@@ -271,7 +271,8 @@ class Patch[T](ProposedAble, ABC):
             # copy the desc info of each corresponding fields from ref_cls
             for field_name in [f for f in cls.model_fields if f in (set(ref_cls.model_fields) - excluded_fields)]:
                 my_schema["properties"][field_name]["description"] = (
-                    ref_cls.model_fields[field_name].description or my_schema["properties"][field_name]["description"]
+                        ref_cls.model_fields[field_name].description or my_schema["properties"][field_name][
+                    "description"]
                 )
             my_schema["description"] = ref_cls.__doc__
             my_schema["title"] = ref_cls.__name__
@@ -438,8 +439,16 @@ class AsPrompt(ABC):
 class WordCount(Base, ABC):
     """Class that includes a word count attribute."""
 
-    expected_word_count: int
+    expected_word_count: int = 0
     """Expected word count of this research component."""
+
+    def expect_(self, word_count: int) -> Self:
+        self.expected_word_count = word_count
+        return self
+
+    def allocate(self, weights: list[float]) -> list[int]:
+        normalized_weights = [w / sum(weights) for w in weights]
+        return [int(round(w * self.expected_word_count)) for w in normalized_weights]
 
     @property
     def exact_word_count(self) -> int:
