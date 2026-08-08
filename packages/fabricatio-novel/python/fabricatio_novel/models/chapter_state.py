@@ -53,7 +53,7 @@ class CharacterStateEntry(Base):
 class StateBoard(Base):
     """Serialized payload for the Character State Board template.
 
-    Built on the caller-owned channel by ``NovelComposeState.state_board_context``
+    Built on the caller-owned channel by ``StateChapterContext.state_board_context``
     and dumped with ``model_dump()`` at the template engine boundary.
     """
 

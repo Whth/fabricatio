@@ -88,6 +88,28 @@ class StateChapterContext(ChapterContext):
         self.state_violations.extend(record.violations)
         return self
 
+    def state_board_context(self) -> str:
+        """Render the Character State Board as concise prompt injection."""
+        names = set(self.character_state_histories)
+        if self.characters:
+            names |= {card.name for card in self.characters}
+        board = StateBoard(
+            states=[self._board_entry(name, self.character_state_histories.get(name, [])) for name in sorted(names)],
+            warnings=list(dict.fromkeys(self.state_violations)),
+        )
+        return TEMPLATE_MANAGER.render_template(
+            novel_config.character_state_board_template,
+            board.model_dump(),
+        ).strip()
+
+    @staticmethod
+    def _board_entry(name: str, history: List[Tuple[int, str]]) -> CharacterStateEntry:
+        """Build the board row for one character from its global history."""
+        if history:
+            idx, state = history[-1]
+            return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
+        return CharacterStateEntry(name=name)
+
 
 class NovelComposeState(NovelCompose):
     """Mixin that adds character state consistency to novel composition.
@@ -147,7 +169,7 @@ class NovelComposeState(NovelCompose):
         """
         super().extra_chapter_prompt_vars(ctx)
         if isinstance(ctx, StateChapterContext):
-            ctx.add_prompt_vars({"character_state_board": self.state_board_context(ctx)})
+            ctx.add_prompt_vars({"character_state_board": ctx.state_board_context()})
 
     async def after_chapter_gen(self, ctx: ChapterContext) -> None:
         """Audit the raw chapter: extract states, judge plausibility, regenerate once on violations."""
@@ -211,8 +233,7 @@ class NovelComposeState(NovelCompose):
         entries: List[CharacterStateEntry] = []
         if ctx.characters is not None:
             entries = [
-                self._board_entry(card.name, ctx.character_state_histories.get(card.name, []))
-                for card in ctx.characters
+                ctx._board_entry(card.name, ctx.character_state_histories.get(card.name, [])) for card in ctx.characters
             ]
         return TEMPLATE_MANAGER.render_template(
             novel_config.chapter_previous_states_template,
@@ -225,25 +246,3 @@ class NovelComposeState(NovelCompose):
             novel_config.chapter_rewrite_request_template,
             {"violations": violations, "draft": raw},
         )
-
-    def state_board_context(self, ctx: StateChapterContext) -> str:
-        """Render the Character State Board as concise prompt injection."""
-        names = set(ctx.character_state_histories)
-        if ctx.characters:
-            names |= {card.name for card in ctx.characters}
-        board = StateBoard(
-            states=[self._board_entry(name, ctx.character_state_histories.get(name, [])) for name in sorted(names)],
-            warnings=list(dict.fromkeys(ctx.state_violations)),
-        )
-        return TEMPLATE_MANAGER.render_template(
-            novel_config.character_state_board_template,
-            board.model_dump(),
-        ).strip()
-
-    @staticmethod
-    def _board_entry(name: str, history: List[Tuple[int, str]]) -> CharacterStateEntry:
-        """Build the board row for one character from its global history."""
-        if history:
-            idx, state = history[-1]
-            return CharacterStateEntry(name=name, state=state, chapter=idx, has_chapter=True)
-        return CharacterStateEntry(name=name)
