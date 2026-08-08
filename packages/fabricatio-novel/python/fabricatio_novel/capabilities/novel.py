@@ -292,7 +292,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         inputs plus full history via the ``ctx`` channel (all chapter plans,
         all summaries and contents so far, current position) and takes back
         only the final prompt string. The default builds the base vars via
-        :meth:`_chapter_prompt_vars`, merges the vars the
+        :meth:`prepare_chapter_prompt_vars`, merges the vars the
         :meth:`extra_chapter_prompt_vars` hook wrote to
         ``ctx.chapter_prompt_vars``, and renders
         ``novel_config.chapter_requirement_template``.
@@ -305,7 +305,7 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         Args:
             ctx: The sealed per-chapter context (inputs set by the loop).
         """
-        prompt_vars = self._chapter_prompt_vars(ctx)
+        prompt_vars = self.prepare_chapter_prompt_vars(ctx)
         ctx.reset_prompt_vars()
         self.extra_chapter_prompt_vars(ctx)
         prompt_vars.update(ctx.chapter_prompt_vars)
@@ -322,14 +322,14 @@ class NovelCompose(CharacterCompose, Propose, UseLLM, ABC):
         without re-implementing the render — the default
         :meth:`prepare_chapter_prompt` merges the vars the hook wrote to
         ``ctx.chapter_prompt_vars`` (via :meth:`ChapterContext.add_prompt_vars`)
-        into :meth:`_chapter_prompt_vars` before rendering. Called once per
+        into :meth:`prepare_chapter_prompt_vars` before rendering. Called once per
         chapter with the same ``ctx`` channel as the prompt hook.
 
         Args:
             ctx: The sealed per-chapter context (inputs set by the loop).
         """
 
-    def _chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
+    def prepare_chapter_prompt_vars(self, ctx: ChapterContext) -> Dict[str, Any]:
         """Build the base template variables for the chapter requirement.
 
         Internal helper: the default :meth:`prepare_chapter_prompt` renders
