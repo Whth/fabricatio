@@ -18,8 +18,10 @@ classifiers = [
 requires-python = ">=3.12,<3.15"
 dependencies = [
     "fabricatio-character",
-    "fabricatio-comfyui",
     "fabricatio-core",
+    "fabricatio-improve",
+    "fabricatio-judge",
+    "fabricatio-rule",
     "pydantic>=2.11.9",
 ]
 
