@@ -56,16 +56,19 @@ class TestNovelContext:
             .set_language("English")
             .set_content("He left.")
             .set_previous_content("Before.")
+            .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", expected_word_count=100))
         )
         story = StoryContext().set_title("St1").set_description("The departure.").set_expected_word_count(100)
         story.add_scene_context(scene)
-        story.set_scene_plan([ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
+        story.set_story_plan(StoryPlan(title="St1", description="The departure.", expected_word_count=100))
         chapter = ChapterContext().set_title("Ch1").set_description("The start.").set_expected_word_count(100)
         chapter.add_story_context(story)
-        chapter.set_story_plan([StoryPlan(title="St1", description="The departure.", expected_word_count=100)])
+        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start.", expected_word_count=100))
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
-        novel.set_chapter_plan([ChapterPlan(title="Ch1", description="The start.", expected_word_count=100)])
+        novel.set_novel_plan(
+            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100, series_bible=SeriesBible())
+        )
 
         assert scene.title == "S1"
         assert scene.content == "He left."
@@ -74,9 +77,14 @@ class TestNovelContext:
         assert story.scene_context == [scene]
         assert chapter.story_context == [story]
         assert novel.chapter_context == [chapter]
-        assert novel.chapter_plan[0].title == "Ch1"
-        assert chapter.story_plan[0].title == "St1"
-        assert story.scene_plan[0].title == "S1"
+        assert novel.novel_plan is not None
+        assert novel.novel_plan.title == "The Hero"
+        assert chapter.chapter_plan is not None
+        assert chapter.chapter_plan.title == "Ch1"
+        assert story.story_plan is not None
+        assert story.story_plan.title == "St1"
+        assert scene.scene_plan is not None
+        assert scene.scene_plan.title == "S1"
 
 
 class TestCharactorTrace:
@@ -261,7 +269,14 @@ class TestNovelPlan:
         assert len(novel.chapter) == 1
         assert novel.chapter[0].title == "Ch1"
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
-        assert ctx.chapter_plan[0].title == "Ch1"
+        assert ctx.novel_plan is not None
+        assert ctx.novel_plan.title == "The Search"
+        assert ctx.chapter_context[0].chapter_plan is not None
+        assert ctx.chapter_context[0].chapter_plan.title == "Ch1"
+        assert ctx.chapter_context[0].story_context[0].story_plan is not None
+        assert ctx.chapter_context[0].story_context[0].story_plan.title == "St1"
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
@@ -302,8 +317,10 @@ class TestNovelPlan:
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
         assert len(ctx.chapter_context) == 1
         assert len(ctx.chapter_context[0].story_context) == 1
-        assert ctx.chapter_context[0].story_plan[0].title == "St1"
-        assert ctx.chapter_context[0].story_context[0].scene_plan[0].title == "S1"
+        assert ctx.chapter_context[0].story_context[0].story_plan is not None
+        assert ctx.chapter_context[0].story_context[0].story_plan.title == "St1"
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
 
