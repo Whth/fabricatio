@@ -16,6 +16,7 @@ Allocate the character's states below to the sub elements, in story order.
 - Output a JSON array of arrays of CharacterCardDiff objects, one inner array per sub element in the order listed above.
 - Assign every state to exactly one sub element; do not drop or duplicate states.
 - Only include fields that actually change; leave unchanged fields out.
+- Every entry must include a `reason` explaining why the state changes.
 - Output `[]` for a sub element where the character does not change.
 - Stay consistent with the arc; do not contradict earlier states.
 

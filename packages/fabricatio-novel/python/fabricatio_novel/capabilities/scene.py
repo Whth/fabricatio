@@ -3,7 +3,6 @@ from typing import Sequence, Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCardDiff
-from fabricatio_character.utils import dump_card
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, TextCapturer, detect_language
@@ -126,7 +125,7 @@ class SceneCompose(CharacterCompose, ABC):
                     "title": ctx.title,
                     "description": ctx.description,
                     "outline": getattr(ctx, "outline", ""),
-                    "chain": "\n\n".join(dump_card(card) for card in trace.iter_charactor_cards()),
+                    "chain": trace.dump_to_prompt(),
                     "language": ctx.language,
                 },
             )
@@ -168,7 +167,7 @@ class SceneCompose(CharacterCompose, ABC):
                     "title": ctx.title,
                     "description": ctx.description,
                     "children": [{"title": child.title, "description": child.description} for child in children],
-                    "chain": "\n\n".join(dump_card(card) for card in trace.iter_charactor_cards()),
+                    "chain": trace.dump_to_prompt(),
                     "language": ctx.language,
                 },
             )

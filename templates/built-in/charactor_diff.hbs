@@ -14,6 +14,7 @@ Extend the character's state chain with the states that occur within this elemen
 ## Requirements
 - Output a JSON array of CharacterCardDiff objects in story order.
 - Only include fields that actually change; leave unchanged fields out.
+- Every entry must include a `reason` explaining why the state changes.
 - Output `[]` when the character does not change within this element.
 - Stay consistent with the arc so far; do not contradict earlier states.
 

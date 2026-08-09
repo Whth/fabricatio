@@ -5,7 +5,6 @@ from pydantic import Field
 
 from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
-from fabricatio_character.utils import dump_card
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
 
@@ -36,6 +35,26 @@ class CharactorTrace(SketchedAble):
     def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
         self.interpolates = diffs
         return self
+
+    @final
+    def dump_to_prompt(self) -> str:
+        """Render the trace as a natural-language description of the evolution.
+
+        The starting card is rendered once; each interpolated diff then
+        describes only its changed fields (before → after) with its
+        reason, skipping redundant repeats of unchanged fields to save
+        tokens.
+        """
+        card = self.start
+        lines = [
+            f"{card.name} — {card.role}. look: {card.look} | act: {card.act} | want: {card.want} | flaw: {card.flaw}"
+        ]
+        for index, diff in enumerate(self.interpolates, start=1):
+            changes = diff.model_dump(exclude_none=True, exclude={"reason"})
+            steps = "; ".join(f"{field}: {getattr(card, field)} → {value}" for field, value in changes.items())
+            lines.append(f"{index}. {steps} — {diff.reason}" if steps else f"{index}. {diff.reason}")
+            card = card.apply(diff)
+        return "\n".join(lines)
 
 
 class ContextBase(WordCount, PersistentAble, ABC):
@@ -83,8 +102,8 @@ class ContextBase(WordCount, PersistentAble, ABC):
         return self
 
     def dump_charactors(self) -> str:
-        """Render every character's state chain for prompts, in trace order."""
-        return "\n\n".join(dump_card(*trace.iter_charactor_cards()) for trace in self.charactor_trace)
+        """Render every character's evolution for prompts, in trace order."""
+        return "\n\n".join(trace.dump_to_prompt() for trace in self.charactor_trace)
 
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.

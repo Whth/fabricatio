@@ -127,8 +127,8 @@ class TestCharactorTrace:
         start = card()
         trace = CharactorTrace(
             start=start,
-            end=start.apply(CharacterCardDiff(look="scarred")),
-            interpolates=[CharacterCardDiff(look="scarred")],
+            end=start.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
+            interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
         )
         cards: List[CharacterCard] = list(trace.iter_charactor_cards())
         assert cards[0] is start
@@ -138,9 +138,43 @@ class TestCharactorTrace:
     def test_intepl_replaces_interpolates_and_returns_self(self) -> None:
         start = card()
         trace = CharactorTrace(start=start, end=start)
-        diff = CharacterCardDiff(look="wounded")
+        diff = CharacterCardDiff(look="wounded", reason="fell in battle")
         assert trace.intepl([diff]) is trace
         assert trace.interpolates == [diff]
+
+    def test_dump_to_prompt_shows_start_and_only_changed_fields(self) -> None:
+        """Assert the prompt renders the identity once and each change with its reason."""
+        start = card()
+        trace = CharactorTrace(
+            start=start,
+            end=start.apply(CharacterCardDiff(look="wounded", reason="fell in battle")).apply(
+                CharacterCardDiff(act="cautious", reason="learned from defeat")
+            ),
+            interpolates=[
+                CharacterCardDiff(look="wounded", reason="fell in battle"),
+                CharacterCardDiff(act="cautious", reason="learned from defeat"),
+            ],
+        )
+        prompt = trace.dump_to_prompt()
+        lines = prompt.splitlines()
+        assert lines[0].startswith("Hero — protagonist.")
+        assert "look: tall" in lines[0]
+        assert "flaw: stubborn" in lines[0]
+        assert "look: tall → wounded" in lines[1]
+        assert "fell in battle" in lines[1]
+        assert "act: brave → cautious" in lines[2]
+        assert "learned from defeat" in lines[2]
+        # unchanged fields are not repeated per step
+        assert prompt.count("flaw: stubborn") == 1
+        assert prompt.count("want: seek truth") == 1
+
+    def test_dump_to_prompt_without_changes_is_just_identity(self) -> None:
+        """Assert a fresh trace renders only its starting card line."""
+        start = card()
+        trace = CharactorTrace(start=start, end=start)
+        assert trace.dump_to_prompt() == (
+            "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
+        )
 
 
 class TestFromContext:
@@ -236,10 +270,10 @@ class TestCharactorTraces:
             title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible
         )
         hero = card()
-        d_novel = CharacterCardDiff(look="wounded")
-        d_chapter = CharacterCardDiff(act="cautious")
-        d_story = CharacterCardDiff(flaw="distrustful")
-        d_scene = CharacterCardDiff(want="find his father")
+        d_novel = CharacterCardDiff(look="wounded", reason="fell in battle")
+        d_chapter = CharacterCardDiff(act="cautious", reason="learned from defeat")
+        d_story = CharacterCardDiff(flaw="distrustful", reason="betrayed once")
+        d_scene = CharacterCardDiff(want="find his father", reason="learned the truth")
         chapter_plans_json = [{"title": "Ch1", "description": "The start.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
@@ -281,8 +315,8 @@ class TestCharactorTraces:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
         hero = card()
-        d1 = CharacterCardDiff(look="wounded")
-        d2 = CharacterCardDiff(look="scarred")
+        d1 = CharacterCardDiff(look="wounded", reason="fell in battle")
+        d2 = CharacterCardDiff(look="scarred", reason="took a blade")
         ctx.set_charactor_traces([CharactorTrace(start=hero, end=hero.apply(d1).apply(d2), interpolates=[d1, d2])])
         child_a = ChapterContext(title="Ch1", description="The start.")
         child_b = ChapterContext(title="Ch2", description="The road.")
@@ -309,12 +343,14 @@ class TestCharactorTraces:
         ctx.charactor_trace = [
             CharactorTrace(
                 start=hero,
-                end=hero.apply(CharacterCardDiff(look="scarred")),
-                interpolates=[CharacterCardDiff(look="scarred")],
+                end=hero.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
+                interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
             )
         ]
         requirement = await role.prepare_scene_requirement(ctx)
-        assert requirement.count("Hero") >= 2
+        assert "Hero — protagonist." in requirement
+        assert "look: tall → scarred" in requirement
+        assert "took a blade" in requirement
 
 
 class TestNovelCompose:
@@ -335,7 +371,7 @@ class TestNovelCompose:
         trace = CharactorTrace(start=card(), end=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         ctx.charactor_trace.append(trace)
-        expected_diff = CharacterCardDiff(look="scarred")
+        expected_diff = CharacterCardDiff(look="scarred", reason="took a blade")
         with install_router_usage(
             *return_mixed_router_usage(
                 Value([expected_diff.model_dump()], "json"),
