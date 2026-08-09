@@ -11,7 +11,6 @@ class SceneContext(Titled, Described, ContextBase):
     """The scene's own plan."""
 
     content: str = ""
-    previous_content: str = ""
 
     def set_scene_plan(self, plan: ScenePlan) -> Self:
         self.scene_plan = plan
@@ -19,8 +18,4 @@ class SceneContext(Titled, Described, ContextBase):
 
     def set_content(self, content: str) -> Self:
         self.content = content
-        return self
-
-    def set_previous_content(self, previous_content: str) -> Self:
-        self.previous_content = previous_content
         return self

@@ -46,7 +46,7 @@ class SceneCompose(CharacterCompose, ABC):
             "expected_word_count": ctx.expected_word_count,
             "characters": characters,
             "language": ctx.language or detect_language(ctx.description),
-            "previous_content": ctx.previous_content,
+            "prefixed_content": ctx.prefixed_content,
         }
 
     async def prepare_scene_requirement(

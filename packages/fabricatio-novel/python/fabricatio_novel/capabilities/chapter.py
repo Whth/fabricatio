@@ -81,6 +81,9 @@ class ChapterCompose(StoryCompose, ABC):
         for story_ctx in ctx.story_context:
             story_ctx.set_series_bible(ctx.series_bible)
         for story_ctx in ctx.story_context:
+            story_ctx.set_prefixed_content(
+                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_story_content()) if p)
+            )
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 return None
         return Chapter.from_context(ctx)

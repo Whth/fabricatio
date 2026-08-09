@@ -45,10 +45,17 @@ class ContextBase(WordCount, PersistentAble, ABC):
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
     """The novel's setting bible (设定集); threaded down from the novel context."""
 
+    prefixed_content: str = ""
+    """Everything composed before this element in the novel; injected by the parent before composition."""
+
     def set_language(self, language: str) -> Self:
         self.language = language
         return self
 
     def set_series_bible(self, series_bible: SeriesBible) -> Self:
         self.series_bible = series_bible
+        return self
+
+    def set_prefixed_content(self, prefixed_content: str) -> Self:
+        self.prefixed_content = prefixed_content
         return self

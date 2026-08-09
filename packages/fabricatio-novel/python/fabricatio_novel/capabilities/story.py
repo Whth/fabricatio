@@ -80,13 +80,12 @@ class StoryCompose(SceneCompose, ABC):
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         for scene_ctx in ctx.scene_context:
             scene_ctx.set_series_bible(ctx.series_bible)
-        accumulated = ""
         for scene_ctx in ctx.scene_context:
-            scene_ctx.set_previous_content(accumulated)
+            scene_ctx.set_prefixed_content(
+                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_scene_content()) if p)
+            )
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 return None
-            if scene_ctx.content:
-                accumulated = f"{accumulated}\n\n{scene_ctx.content}" if accumulated else scene_ctx.content
         return Story.from_context(ctx)
 
     async def compose_story(

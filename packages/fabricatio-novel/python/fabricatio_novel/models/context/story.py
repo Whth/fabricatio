@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Generator, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
@@ -13,6 +13,13 @@ class StoryContext(Titled, Described, ContextBase):
     """The story's own plan; proposed before the scene contexts are created."""
 
     scene_context: list[SceneContext] = Field(default_factory=list)
+
+    @final
+    def iter_scene_content(self) -> Generator[str, None, None]:
+        """Yield each scene's composed content, in story order."""
+        for scene_ctx in self.scene_context:
+            if scene_ctx.content:
+                yield scene_ctx.content
 
     def set_story_plan(self, plan: StoryPlan) -> Self:
         self.story_plan = plan

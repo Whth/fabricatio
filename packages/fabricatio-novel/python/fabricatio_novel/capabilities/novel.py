@@ -94,6 +94,9 @@ class NovelCompose(ChapterCompose, ABC):
         for chapter_ctx in ctx.chapter_context:
             chapter_ctx.set_series_bible(ctx.series_bible)
         for chapter_ctx in ctx.chapter_context:
+            chapter_ctx.set_prefixed_content(
+                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_chapter_content()) if p)
+            )
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 return None
         logger.info(f"Composed {len(ctx.chapter_context)} chapter(s)")

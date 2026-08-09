@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Generator, Self, final
 
 from fabricatio_core.rust import detect_language
 from pydantic import Field
@@ -19,6 +19,12 @@ class NovelContext(ContextBase):
     """The novel's own plan; proposed before the chapter contexts are created."""
 
     chapter_context: list[ChapterContext] = Field(default_factory=list)
+
+    @final
+    def iter_chapter_content(self) -> Generator[str, None, None]:
+        """Yield each chapter's composed content, in novel order."""
+        for chapter_ctx in self.chapter_context:
+            yield from chapter_ctx.iter_story_content()
 
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         self.novel_plan = plan

@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Generator, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
@@ -13,6 +13,12 @@ class ChapterContext(Titled, Described, ContextBase):
     """The chapter's own plan; proposed before the story contexts are created."""
 
     story_context: list[StoryContext] = Field(default_factory=list)
+
+    @final
+    def iter_story_content(self) -> Generator[str, None, None]:
+        """Yield each story's composed content, in chapter order."""
+        for story_ctx in self.story_context:
+            yield from story_ctx.iter_scene_content()
 
     def set_chapter_plan(self, plan: ChapterPlan) -> Self:
         self.chapter_plan = plan
