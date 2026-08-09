@@ -15,8 +15,16 @@ from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.novel import Novel, NovelMetadata
-from fabricatio_novel.models.plan import ChapterPlan, NovelPlan, ScenePlan, StoryPlan
+from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.plan import (
+    ChapterPlan,
+    ChapterPlans,
+    NovelPlan,
+    ScenePlan,
+    ScenePlans,
+    StoryPlan,
+    StoryPlans,
+)
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.models.series_book import SeriesBible
@@ -41,6 +49,31 @@ class TestNovelContext:
     def test_create_with_explicit_language(self) -> None:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         assert ctx.language == "English"
+
+    def test_contexts_are_chainable(self) -> None:
+        scene = (
+            SceneContext()
+            .set_title("S1")
+            .set_description("Leaving home.")
+            .set_expected_word_count(100)
+            .set_language("English")
+            .set_content("He left.")
+            .set_previous_content("Before.")
+        )
+        story = StoryContext().set_title("St1").set_description("The departure.").set_expected_word_count(100)
+        story.add_scene_context(scene)
+        chapter = ChapterContext().set_title("Ch1").set_description("The start.").set_expected_word_count(100)
+        chapter.add_story_context(story)
+        novel = NovelContext.create("The hero.", language="English")
+        novel.add_chapter_context(chapter)
+
+        assert scene.title == "S1"
+        assert scene.content == "He left."
+        assert scene.previous_content == "Before."
+        assert scene.language == "English"
+        assert story.scene_context == [scene]
+        assert chapter.story_context == [story]
+        assert novel.chapter_context == [chapter]
 
 
 class TestCharactorTrace:
@@ -146,7 +179,7 @@ class TestNovelCompose:
         chapter_ctx.story_context.append(story_ctx)
         ctx.chapter_context.append(chapter_ctx)
 
-        meta = NovelMetadata(
+        meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=40,
@@ -195,36 +228,28 @@ class TestNovelCompose:
 
 
 class TestNovelPlan:
-    """Test suite for planning an empty context tree."""
+    """Test suite for progressive planning of an empty context tree."""
 
     async def test_compose_novel_plans_empty_tree(self) -> None:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
-        meta = NovelMetadata(
+        meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
             series_bible=SeriesBible(),
         )
-        plan = NovelPlan(
-            chapters=[
-                ChapterPlan(
-                    title="Ch1",
-                    description="The hero sets out.",
-                    expected_word_count=100,
-                    stories=[
-                        StoryPlan(
-                            title="St1",
-                            description="The departure.",
-                            expected_word_count=100,
-                            scenes=[ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)],
-                        )
-                    ],
-                )
-            ]
+        chapter_plans = ChapterPlans(
+            chapters=[ChapterPlan(title="Ch1", description="The hero sets out.", expected_word_count=100)]
         )
+        story_plans = StoryPlans(
+            stories=[StoryPlan(title="St1", description="The departure.", expected_word_count=100)]
+        )
+        scene_plans = ScenePlans(scenes=[ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
         expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
-        with install_router_usage(*return_model_json_router_usage(meta, plan, expected_scene)):
+        with install_router_usage(
+            *return_model_json_router_usage(meta, chapter_plans, story_plans, scene_plans, expected_scene)
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -237,12 +262,38 @@ class TestNovelPlan:
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
-        meta = NovelMetadata(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
+        meta = NovelPlan(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
         with install_router_usage(
             *return_model_json_router_usage(meta)[:1], "not valid json", "still not json", "nope"
         ):
             novel = await role.compose_novel(ctx)
         assert novel is None
+
+    async def test_compose_novel_expands_stories_for_prefilled_chapter(self) -> None:
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx.add_chapter_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
+
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=100,
+            series_bible=SeriesBible(),
+        )
+        story_plans = StoryPlans(
+            stories=[StoryPlan(title="St1", description="The departure.", expected_word_count=100)]
+        )
+        scene_plans = ScenePlans(scenes=[ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
+        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
+
+        with install_router_usage(*return_model_json_router_usage(meta, story_plans, scene_plans, expected_scene)):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        assert novel.chapter[0].story[0].scenes[0].content == "He left."
+        assert len(ctx.chapter_context) == 1
+        assert len(ctx.chapter_context[0].story_context) == 1
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
 
 class TestNovelEpub:
