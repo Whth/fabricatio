@@ -241,7 +241,9 @@ class TestNovelCompose:
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == "He left."
+        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == (
+            "### S1\n\n> Leaving home.\n\nHe left."
+        )
         assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == ""
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
@@ -287,7 +289,7 @@ class TestPrefixAccumulation:
             result = await role.compose_story(story)
         assert result is not None
         assert scene_1.prefixed_content == ""
-        assert scene_2.prefixed_content == "He left."
+        assert scene_2.prefixed_content == "### S1\n\n> Leaving home.\n\nHe left."
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         role = NovelRole(name="novel_role")
@@ -302,9 +304,10 @@ class TestPrefixAccumulation:
         with install_router_usage(*return_model_json_router_usage(expected_1, expected_2)):
             result = await role.compose_chapter(chapter)
         assert result is not None
+        story_a_block = "## StA\n\n> A.\n\n### S1\n\n> Leaving home.\n\nAlpha."
         assert story_a.prefixed_content == ""
-        assert story_b.prefixed_content == "Alpha."
-        assert story_b.scene_context[0].prefixed_content == "Alpha."
+        assert story_b.prefixed_content == story_a_block
+        assert story_b.scene_context[0].prefixed_content == story_a_block
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         role = NovelRole(name="novel_role")
@@ -339,13 +342,21 @@ class TestPrefixAccumulation:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
+        chapter_1_block = (
+            "# Ch1\n\n> The start.\n\n"
+            "## StA\n\n> Leaving home.\n\n### S1\n\n> Leaving home.\n\nA.\n\n"
+            "## StB\n\n> A stranger appears.\n\n### S2\n\n> A stranger appears.\n\nB."
+        )
+        story_c_block = "## StC\n\n> The journey.\n\n### S3\n\n> The journey.\n\nC."
         assert chapter_1.prefixed_content == ""
-        assert chapter_2.prefixed_content == "A.\n\nB."
-        assert chapter_1.story_context[1].prefixed_content == "A."
-        assert chapter_2.story_context[0].prefixed_content == "A.\n\nB."
-        assert chapter_2.story_context[1].prefixed_content == "A.\n\nB.\n\nC."
-        assert chapter_2.story_context[0].scene_context[0].prefixed_content == "A.\n\nB."
-        assert chapter_2.story_context[1].scene_context[0].prefixed_content == "A.\n\nB.\n\nC."
+        assert chapter_2.prefixed_content == chapter_1_block
+        assert chapter_1.story_context[1].prefixed_content == (
+            "## StA\n\n> Leaving home.\n\n### S1\n\n> Leaving home.\n\nA."
+        )
+        assert chapter_2.story_context[0].prefixed_content == chapter_1_block
+        assert chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{story_c_block}"
+        assert chapter_2.story_context[0].scene_context[0].prefixed_content == chapter_1_block
+        assert chapter_2.story_context[1].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{story_c_block}"
 
 
 class TestNovelPlan:

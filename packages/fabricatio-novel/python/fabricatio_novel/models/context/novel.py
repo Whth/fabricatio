@@ -47,19 +47,6 @@ class NovelContext(UpdateFrom, ContextBase):
         """Yield this novel's chapter contexts, in composition order."""
         yield from self.chapter_context
 
-    @final
-    def iter_prefixed_contexts(self) -> Generator[ChapterContext, None, None]:
-        """Set each chapter's running prefixed content in place and yield it.
-
-        Composed content is read live at each step, so in-place updates made
-        while iterating are reflected in the following chapters' prefixes.
-        """
-        prefix = self.prefixed_content
-        for chapter_ctx in self.chapter_context:
-            chapter_ctx.set_prefixed_content(prefix)
-            yield chapter_ctx
-            prefix = "\n\n".join(p for p in (prefix, *chapter_ctx.iter_story_content()) if p)
-
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         self.novel_plan = plan
         return self

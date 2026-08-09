@@ -1,4 +1,4 @@
-from typing import Generator, Self, final
+from typing import ClassVar, Generator, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
@@ -9,6 +9,8 @@ from fabricatio_novel.models.plan import ChapterPlan
 
 
 class ChapterContext(Titled, Described, ContextBase):
+    heading_level: ClassVar[str] = "#"
+
     chapter_plan: ChapterPlan | None = None
     """The chapter's own plan; proposed before the story contexts are created."""
 
@@ -24,19 +26,6 @@ class ChapterContext(Titled, Described, ContextBase):
     def iter_child_contexts(self) -> Generator[StoryContext, None, None]:
         """Yield this chapter's story contexts, in composition order."""
         yield from self.story_context
-
-    @final
-    def iter_prefixed_contexts(self) -> Generator[StoryContext, None, None]:
-        """Set each story's running prefixed content in place and yield it.
-
-        Composed content is read live at each step, so in-place updates made
-        while iterating are reflected in the following stories' prefixes.
-        """
-        prefix = self.prefixed_content
-        for story_ctx in self.story_context:
-            story_ctx.set_prefixed_content(prefix)
-            yield story_ctx
-            prefix = "\n\n".join(p for p in (prefix, *story_ctx.iter_scene_content()) if p)
 
     def set_chapter_plan(self, plan: ChapterPlan) -> Self:
         self.chapter_plan = plan
