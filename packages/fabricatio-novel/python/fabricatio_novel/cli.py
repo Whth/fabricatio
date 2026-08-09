@@ -70,7 +70,6 @@ def _compose(ctx: NovelContext, role: NovelCompose, send_to: str) -> Optional[No
 def _persist(
     novel: Novel,
     persist_dir: Path,
-    language: str | None = None,
     output: Optional[Path] = None,
     font: Optional[Path] = None,
     cover: Optional[Path] = None,
@@ -78,7 +77,7 @@ def _persist(
     persist_dir.mkdir(parents=True, exist_ok=True)
     novel.persist(persist_dir)
     epub_path = persist_dir / output if output else persist_dir / "novel.epub"
-    novel.dump_epub(epub_path, language=language, font=font, cover=cover)
+    novel.dump_epub(epub_path, font=font, cover=cover)
     typer.secho(
         f"✅ Novel '{novel.title}' generated with {len(novel.chapter)} chapter(s)\n"
         f"   JSON:  {persist_dir}\n"
@@ -232,7 +231,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     if novel is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    _persist(novel, persist_dir, ctx.language, output=output, font=font, cover=cover)
+    _persist(novel, persist_dir, output=output, font=font, cover=cover)
 
 
 @app.command(name="wr")
@@ -283,7 +282,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     if novel is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    _persist(novel, persist_dir, ctx.language, output=output, font=font, cover=cover)
+    _persist(novel, persist_dir, output=output, font=font, cover=cover)
 
 
 @app.command(name="store-refs")

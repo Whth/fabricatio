@@ -426,7 +426,7 @@ class TestNovelEpub:
         font_file.write_bytes(b"\x00\x01fake font bytes")
         cover_file = tmp_path / "cover.png"
         cover_file.write_bytes(b"\x89PNG\r\n\x1a\nfake image bytes")
-        path = novel.dump_epub(tmp_path / "novel.epub", language="English", font=font_file, cover=cover_file)
+        path = novel.dump_epub(tmp_path / "novel.epub", font=font_file, cover=cover_file)
         assert path.exists()
         assert path.stat().st_size > 0
 
@@ -435,8 +435,6 @@ class TestNovelEpub:
             assert names[0] == "mimetype", f"mimetype must be the first entry, got {names[:3]}"
             assert zf.read("mimetype") == b"application/epub+zip"
             assert "META-INF/container.xml" in names
-            opf = next(n for n in names if n.endswith("content.opf"))
-            assert "<dc:language>en</dc:language>" in zf.read(opf).decode("utf-8")
             assert any(name.endswith("nav.xhtml") for name in names)
             chapter_files = [n for n in names if n.endswith(".xhtml") and not n.endswith("nav.xhtml")]
             assert len(chapter_files) == 1, f"expected 1 chapter xhtml, got {chapter_files}"
