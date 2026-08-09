@@ -11,6 +11,11 @@ Write a single scene of the novel in full prose.
 
 Respond entirely in "{{ language }}".
 
+{{#if bible_context}}
+{{ bible_context }}
+
+---
+{{/if}}
 {{#if previous_content}}
 # Previous Content
 

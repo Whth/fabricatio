@@ -38,8 +38,23 @@ class NovelConfig:
     charactor_diff_template: str = "built-in/charactor_diff"
     """template used to analyze how a character evolves inside a scene."""
 
+    setting_bible_characters_template: str = "built-in/setting_bible_characters"
+    """template used to propose the bible's character roster as a single string."""
+
+    setting_bible_background_template: str = "built-in/setting_bible_background"
+    """template used to propose the bible's background settings as a list of strings."""
+
+    setting_bible_context_template: str = "built-in/setting_bible_context"
+    """template used to render the bible block injected into scene prompts."""
+
+    setting_bible_export_template: str = "built-in/setting_bible_export"
+    """template used to render the bible as a human-readable markdown document."""
+
     writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
     """template used to render writing style documents as prompts."""
+
+    writing_style_digest_template: str = "built-in/writing_style_digest"
+    """template used to condense retrieved writing style documents into a guideline."""
 
     enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
     """template used to render enriched reference documents as prompts."""
