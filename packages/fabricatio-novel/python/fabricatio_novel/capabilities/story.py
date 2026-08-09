@@ -67,10 +67,10 @@ class StoryCompose(SceneCompose, ABC):
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
             if scene_plans is None:
                 return None
-            ctx.set_scene_plan(scene_plans)
             for scene_plan in scene_plans:
                 ctx.add_scene_context(
                     SceneContext()
+                    .set_scene_plan(scene_plan)
                     .set_title(scene_plan.title)
                     .set_description(scene_plan.description)
                     .set_expected_word_count(scene_plan.expected_word_count)
