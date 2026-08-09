@@ -7,6 +7,8 @@ from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import SketchedAble
 
+from fabricatio_novel.models.series_book import SeriesBible
+
 
 class CharactorTrace(SketchedAble):
     start: CharacterCard
@@ -40,6 +42,13 @@ class ContextBase(WordCount, PersistentAble, ABC):
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
 
+    series_bible: SeriesBible = Field(default_factory=SeriesBible)
+    """The novel's setting bible (设定集); threaded down from the novel context."""
+
     def set_language(self, language: str) -> Self:
         self.language = language
+        return self
+
+    def set_series_bible(self, series_bible: SeriesBible) -> Self:
+        self.series_bible = series_bible
         return self

@@ -4,7 +4,6 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
@@ -74,7 +73,8 @@ class NovelCompose(ChapterCompose, ABC):
         ctx.title = plan.title
         ctx.description = plan.description
         ctx.expected_word_count = plan.expected_word_count
-        ctx.series_bible = plan.series_bible
+        if not plan.series_bible.is_empty():
+            ctx.series_bible = plan.series_bible
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
@@ -88,6 +88,7 @@ class NovelCompose(ChapterCompose, ABC):
                         expected_word_count=chapter_plan.expected_word_count,
                     )
                     .set_language(ctx.language)
+                    .set_series_bible(ctx.series_bible)
                     .set_chapter_plan(chapter_plan)
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")

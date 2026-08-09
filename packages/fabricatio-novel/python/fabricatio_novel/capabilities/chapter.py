@@ -75,6 +75,7 @@ class ChapterCompose(StoryCompose, ABC):
                         expected_word_count=story_plan.expected_word_count,
                     )
                     .set_language(ctx.language)
+                    .set_series_bible(ctx.series_bible)
                     .set_story_plan(story_plan)
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")

@@ -1,12 +1,11 @@
 from typing import Self
 
+from fabricatio_core.rust import detect_language
 from pydantic import Field
 
-from fabricatio_core.rust import detect_language
 from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import NovelPlan
-from fabricatio_novel.models.series_book import SeriesBible
 
 
 class NovelContext(ContextBase):
@@ -16,16 +15,10 @@ class NovelContext(ContextBase):
     title: str = ""
     description: str = ""
 
-    series_bible: SeriesBible = Field(default_factory=SeriesBible)
-
     novel_plan: NovelPlan | None = None
     """The novel's own plan; proposed before the chapter contexts are created."""
 
     chapter_context: list[ChapterContext] = Field(default_factory=list)
-
-    def set_series_bible(self, series_bible: SeriesBible) -> Self:
-        self.series_bible = series_bible
-        return self
 
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         self.novel_plan = plan
