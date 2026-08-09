@@ -67,12 +67,13 @@ class StoryCompose(SceneCompose, ABC):
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
             if scene_plans is None:
                 return None
-            for scene_plan in scene_plans:
+            counts = ctx.allocate([s.weight for s in scene_plans]) if scene_plans else []
+            for scene_plan, count in zip(scene_plans, counts, strict=True):
                 ctx.add_scene_context(
                     SceneContext(
                         title=scene_plan.title,
                         description=scene_plan.description,
-                        expected_word_count=scene_plan.expected_word_count,
+                        expected_word_count=count,
                     )
                     .set_language(ctx.language)
                     .set_scene_plan(scene_plan)

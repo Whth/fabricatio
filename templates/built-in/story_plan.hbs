@@ -7,8 +7,8 @@ Plan the stories (剧情段) of the chapter from its plan.
 - 1-3 stories per chapter.
 - Story titles must be concise and evocative.
 - Story descriptions must be 1-2 sentences covering what happens.
-- Story word counts must sum to the chapter's expected word count.
-- Output a JSON array of stories. Each story has `title`, `description`, and `expected_word_count`.
+- Assign each story a relative `weight` by narrative importance; the chapter's expected word count is allocated proportionally.
+- Output a JSON array of stories. Each story has `title`, `description`, and `weight`.
 
 ## Chapter
 Title: {{ title }}

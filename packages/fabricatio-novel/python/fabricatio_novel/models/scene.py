@@ -1,10 +1,12 @@
 from typing import Self
 
+from fabricatio_capabilities.models.generic import WordCount
+
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import ScenePlan
 
 
-class Scene(ScenePlan):
+class Scene(ScenePlan, WordCount):
     content: str
 
     @classmethod

@@ -11,16 +11,25 @@ from pydantic import BaseModel, Field, TypeAdapter
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class ScenePlan(SketchedAble, Titled, Described, WordCount):
-    """Plan of a single scene: title, description, expected word count."""
+class ScenePlan(SketchedAble, Titled, Described):
+    """Plan of a single scene: title, description, and word-count weight."""
+
+    weight: float = 1.0
+    """Relative importance for allocating the story's expected word count."""
 
 
-class StoryPlan(SketchedAble, Titled, Described, WordCount):
-    """Plan of a single story: title, description, expected word count."""
+class StoryPlan(SketchedAble, Titled, Described):
+    """Plan of a single story: title, description, and word-count weight."""
+
+    weight: float = 1.0
+    """Relative importance for allocating the chapter's expected word count."""
 
 
-class ChapterPlan(SketchedAble, Titled, Described, WordCount):
-    """Plan of a single chapter: title, description, expected word count."""
+class ChapterPlan(SketchedAble, Titled, Described):
+    """Plan of a single chapter: title, description, and word-count weight."""
+
+    weight: float = 1.0
+    """Relative importance for allocating the novel's expected word count."""
 
 
 class NovelPlan(SketchedAble, Titled, Described, WordCount):

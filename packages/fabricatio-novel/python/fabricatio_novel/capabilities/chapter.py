@@ -67,12 +67,13 @@ class ChapterCompose(StoryCompose, ABC):
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
                 return None
-            for story_plan in story_plans:
+            counts = ctx.allocate([s.weight for s in story_plans]) if story_plans else []
+            for story_plan, count in zip(story_plans, counts, strict=True):
                 ctx.add_story_context(
                     StoryContext(
                         title=story_plan.title,
                         description=story_plan.description,
-                        expected_word_count=story_plan.expected_word_count,
+                        expected_word_count=count,
                     )
                     .set_language(ctx.language)
                     .set_story_plan(story_plan)

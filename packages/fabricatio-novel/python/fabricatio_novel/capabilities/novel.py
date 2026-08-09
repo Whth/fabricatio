@@ -75,12 +75,13 @@ class NovelCompose(ChapterCompose, ABC):
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
                 return None
-            for chapter_plan in chapter_plans:
+            counts = ctx.allocate([p.weight for p in chapter_plans]) if chapter_plans else []
+            for chapter_plan, count in zip(chapter_plans, counts, strict=True):
                 ctx.add_chapter_context(
                     ChapterContext(
                         title=chapter_plan.title,
                         description=chapter_plan.description,
-                        expected_word_count=chapter_plan.expected_word_count,
+                        expected_word_count=count,
                     )
                     .set_language(ctx.language)
                     .set_chapter_plan(chapter_plan)

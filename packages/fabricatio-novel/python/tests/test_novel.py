@@ -89,14 +89,14 @@ class TestNovelContext:
             .set_language("English")
             .set_content("He left.")
             .set_prefixed_content("Before.")
-            .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", expected_word_count=100))
+            .set_scene_plan(ScenePlan(title="S1", description="Leaving home."))
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
         story.add_scene_context(scene)
-        story.set_story_plan(StoryPlan(title="St1", description="The departure.", expected_word_count=100))
+        story.set_story_plan(StoryPlan(title="St1", description="The departure."))
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
         chapter.add_story_context(story)
-        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start.", expected_word_count=100))
+        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start."))
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
@@ -401,9 +401,9 @@ class TestNovelPlan:
             expected_word_count=100,
             series_bible=SeriesBible(),
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "expected_word_count": 100}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
         responses = return_mixed_router_usage(
             Value(meta, "model"),
             Value(chapter_plans_json, "json"),
@@ -450,8 +450,8 @@ class TestNovelPlan:
             expected_word_count=100,
             series_bible=SeriesBible(),
         )
-        story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
 
         responses = return_mixed_router_usage(
             Value(meta, "model"),
@@ -471,6 +471,45 @@ class TestNovelPlan:
         assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
         assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
+
+
+class TestWordCountAllocation:
+    """Test suite for LLM-weighted word count allocation across planning levels."""
+
+    async def test_allocates_word_counts_by_plan_weights(self) -> None:
+        """Assert plan weights drive the allocated word counts down the whole tree."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        meta = NovelPlan(
+            title="The Search", description="A hero searching.", expected_word_count=400, series_bible=SeriesBible()
+        )
+        chapter_plans_json = [
+            {"title": "Ch1", "description": "The start.", "weight": 3.0},
+            {"title": "Ch2", "description": "The road.", "weight": 1.0},
+        ]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                Value(chapter_plans_json, "json"),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("### S1\n\n> Leaving home.\n\nA."),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("### S1\n\n> Leaving home.\n\nB."),
+            )
+        ):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        assert ctx.chapter_context[0].expected_word_count == 300
+        assert ctx.chapter_context[1].expected_word_count == 100
+        assert ctx.chapter_context[0].story_context[0].expected_word_count == 300
+        assert ctx.chapter_context[1].story_context[0].expected_word_count == 100
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].expected_word_count == 300
+        assert ctx.chapter_context[1].story_context[0].scene_context[0].expected_word_count == 100
 
 
 class TestNovelEpub:
