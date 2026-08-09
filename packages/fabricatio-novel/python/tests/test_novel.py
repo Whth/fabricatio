@@ -53,7 +53,7 @@ class TestNovelContext:
             SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
             .set_language("English")
             .set_content("He left.")
-            .set_previous_content("Before.")
+            .set_prefixed_content("Before.")
             .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", expected_word_count=100))
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
@@ -70,7 +70,7 @@ class TestNovelContext:
 
         assert scene.title == "S1"
         assert scene.content == "He left."
-        assert scene.previous_content == "Before."
+        assert scene.prefixed_content == "Before."
         assert scene.language == "English"
         assert story.scene_context == [scene]
         assert chapter.story_context == [story]
@@ -210,8 +210,8 @@ class TestNovelCompose:
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].previous_content == "He left."
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].previous_content == ""
+        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == "He left."
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == ""
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         role = NovelRole(name="novel_role")
@@ -220,10 +220,10 @@ class TestNovelCompose:
             novel = await role.compose_novel(ctx)
         assert novel is None
 
-    async def test_prepare_scene_requirement_renders_previous_content_after_static_head(self) -> None:
+    async def test_prepare_scene_requirement_renders_prefixed_content_after_static_head(self) -> None:
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        ctx.previous_content = "He walked into the dark."
+        ctx.prefixed_content = "He walked into the dark."
 
         requirement = await role.prepare_scene_requirement(ctx)
 
@@ -234,6 +234,87 @@ class TestNovelCompose:
         assert requirement.index("A stranger appears.") > requirement.index("## Scene")
         # the per-scene word count must not sit inside the static Requirements block
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
+
+
+class TestPrefixAccumulation:
+    """Test suite for prefixed_content dependency injection across levels."""
+
+    def _scene_ctx(self, title: str, description: str) -> SceneContext:
+        return SceneContext(title=title, description=description, expected_word_count=20)
+
+    async def test_compose_story_injects_prefix_across_scenes(self) -> None:
+        role = NovelRole(name="novel_role")
+        story = StoryContext(title="St1", description="The departure.")
+        scene_1 = self._scene_ctx("S1", "Leaving home.")
+        scene_2 = self._scene_ctx("S2", "A stranger appears.")
+        story.add_scene_context(scene_1).add_scene_context(scene_2)
+        expected_1 = Scene(title="S1", description="Leaving home.", expected_word_count=20, content="He left.")
+        expected_2 = Scene(
+            title="S2", description="A stranger appears.", expected_word_count=20, content="A stranger appeared."
+        )
+        with install_router_usage(*return_model_json_router_usage(expected_1, expected_2)):
+            result = await role.compose_story(story)
+        assert result is not None
+        assert scene_1.prefixed_content == ""
+        assert scene_2.prefixed_content == "He left."
+
+    async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
+        role = NovelRole(name="novel_role")
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        story_a = StoryContext(title="StA", description="A.")
+        story_a.add_scene_context(self._scene_ctx("S1", "Leaving home."))
+        story_b = StoryContext(title="StB", description="B.")
+        story_b.add_scene_context(self._scene_ctx("S2", "A stranger appears."))
+        chapter.add_story_context(story_a).add_story_context(story_b)
+        expected_1 = Scene(title="S1", description="Leaving home.", expected_word_count=20, content="Alpha.")
+        expected_2 = Scene(title="S2", description="A stranger appears.", expected_word_count=20, content="Beta.")
+        with install_router_usage(*return_model_json_router_usage(expected_1, expected_2)):
+            result = await role.compose_chapter(chapter)
+        assert result is not None
+        assert story_a.prefixed_content == ""
+        assert story_b.prefixed_content == "Alpha."
+        assert story_b.scene_context[0].prefixed_content == "Alpha."
+
+    async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx.title = "The Search"
+        ctx.description = "A hero searching."
+        ctx.expected_word_count = 80
+
+        def story(title: str, scene_title: str, scene_description: str) -> StoryContext:
+            s = StoryContext(title=title, description=scene_description)
+            s.add_scene_context(self._scene_ctx(scene_title, scene_description))
+            return s
+
+        chapter_1 = ChapterContext(title="Ch1", description="The start.")
+        chapter_1.add_story_context(story("StA", "S1", "Leaving home."))
+        chapter_1.add_story_context(story("StB", "S2", "A stranger appears."))
+        chapter_2 = ChapterContext(title="Ch2", description="The road.")
+        chapter_2.add_story_context(story("StC", "S3", "The journey."))
+        chapter_2.add_story_context(story("StD", "S4", "The arrival."))
+        ctx.add_chapter_context(chapter_1).add_chapter_context(chapter_2)
+
+        meta = NovelPlan(
+            title="The Search", description="A hero searching.", expected_word_count=80, series_bible=SeriesBible()
+        )
+        scenes = [
+            Scene(title="S1", description="Leaving home.", expected_word_count=20, content="A."),
+            Scene(title="S2", description="A stranger appears.", expected_word_count=20, content="B."),
+            Scene(title="S3", description="The journey.", expected_word_count=20, content="C."),
+            Scene(title="S4", description="The arrival.", expected_word_count=20, content="D."),
+        ]
+        with install_router_usage(*return_model_json_router_usage(meta, *scenes)):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        assert chapter_1.prefixed_content == ""
+        assert chapter_2.prefixed_content == "A.\n\nB."
+        assert chapter_1.story_context[1].prefixed_content == "A."
+        assert chapter_2.story_context[0].prefixed_content == "A.\n\nB."
+        assert chapter_2.story_context[1].prefixed_content == "A.\n\nB.\n\nC."
+        assert chapter_2.story_context[0].scene_context[0].prefixed_content == "A.\n\nB."
+        assert chapter_2.story_context[1].scene_context[0].prefixed_content == "A.\n\nB.\n\nC."
 
 
 class TestNovelPlan:

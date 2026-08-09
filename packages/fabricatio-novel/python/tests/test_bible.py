@@ -169,7 +169,7 @@ class TestBibleConsumption:
         role = BibleRole(name="bible_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_series_bible(self._bible())
-        ctx.previous_content = "He walked into the dark."
+        ctx.prefixed_content = "He walked into the dark."
 
         requirement = await role.prepare_scene_requirement(ctx)
 
