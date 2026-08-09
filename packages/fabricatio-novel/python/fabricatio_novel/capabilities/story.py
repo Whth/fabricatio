@@ -69,12 +69,13 @@ class StoryCompose(SceneCompose, ABC):
                 return None
             for scene_plan in scene_plans:
                 ctx.add_scene_context(
-                    SceneContext()
-                    .set_scene_plan(scene_plan)
-                    .set_title(scene_plan.title)
-                    .set_description(scene_plan.description)
-                    .set_expected_word_count(scene_plan.expected_word_count)
+                    SceneContext(
+                        title=scene_plan.title,
+                        description=scene_plan.description,
+                        expected_word_count=scene_plan.expected_word_count,
+                    )
                     .set_language(ctx.language)
+                    .set_scene_plan(scene_plan)
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         accumulated = ""

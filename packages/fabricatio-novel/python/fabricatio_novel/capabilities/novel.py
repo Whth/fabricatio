@@ -70,9 +70,11 @@ class NovelCompose(ChapterCompose, ABC):
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
             return None
-        ctx.set_novel_plan(plan).set_title(plan.title).set_description(plan.description).set_expected_word_count(
-            plan.expected_word_count
-        ).set_series_bible(plan.series_bible)
+        ctx.set_novel_plan(plan)
+        ctx.title = plan.title
+        ctx.description = plan.description
+        ctx.expected_word_count = plan.expected_word_count
+        ctx.series_bible = plan.series_bible
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
@@ -80,12 +82,13 @@ class NovelCompose(ChapterCompose, ABC):
                 return None
             for chapter_plan in chapter_plans:
                 ctx.add_chapter_context(
-                    ChapterContext()
-                    .set_chapter_plan(chapter_plan)
-                    .set_title(chapter_plan.title)
-                    .set_description(chapter_plan.description)
-                    .set_expected_word_count(chapter_plan.expected_word_count)
+                    ChapterContext(
+                        title=chapter_plan.title,
+                        description=chapter_plan.description,
+                        expected_word_count=chapter_plan.expected_word_count,
+                    )
                     .set_language(ctx.language)
+                    .set_chapter_plan(chapter_plan)
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         for chapter_ctx in ctx.chapter_context:

@@ -5,7 +5,7 @@ from pydantic import Field
 
 from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
-from fabricatio_core.models.generic import Described, SketchedAble, Titled
+from fabricatio_core.models.generic import SketchedAble
 
 
 class CharactorTrace(SketchedAble):
@@ -31,25 +31,6 @@ class CharactorTrace(SketchedAble):
     @final
     def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
         self.interpolates = diffs
-        return self
-
-
-class ChainableContext(Titled, Described, WordCount):
-    """Chainable assignment mixin for context classes (Rust-builder style)."""
-
-    title: str = ""
-    description: str = ""
-
-    def set_title(self, title: str) -> Self:
-        self.title = title
-        return self
-
-    def set_description(self, description: str) -> Self:
-        self.description = description
-        return self
-
-    def set_expected_word_count(self, expected_word_count: int) -> Self:
-        self.expected_word_count = expected_word_count
         return self
 
 

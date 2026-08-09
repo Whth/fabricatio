@@ -3,15 +3,18 @@ from typing import Self
 from pydantic import Field
 
 from fabricatio_core.rust import detect_language
-from fabricatio_novel.models.context.base import ChainableContext, ContextBase
+from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class NovelContext(ChainableContext, ContextBase):
+class NovelContext(ContextBase):
     outline: str
     language: str
+
+    title: str = ""
+    description: str = ""
 
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
 

@@ -49,19 +49,16 @@ class TestNovelContext:
 
     def test_contexts_are_chainable(self) -> None:
         scene = (
-            SceneContext()
-            .set_title("S1")
-            .set_description("Leaving home.")
-            .set_expected_word_count(100)
+            SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
             .set_language("English")
             .set_content("He left.")
             .set_previous_content("Before.")
             .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", expected_word_count=100))
         )
-        story = StoryContext().set_title("St1").set_description("The departure.").set_expected_word_count(100)
+        story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
         story.add_scene_context(scene)
         story.set_story_plan(StoryPlan(title="St1", description="The departure.", expected_word_count=100))
-        chapter = ChapterContext().set_title("Ch1").set_description("The start.").set_expected_word_count(100)
+        chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
         chapter.add_story_context(story)
         chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start.", expected_word_count=100))
         novel = NovelContext.create("The hero.", language="English")

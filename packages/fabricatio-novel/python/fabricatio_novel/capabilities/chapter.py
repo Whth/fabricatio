@@ -69,12 +69,13 @@ class ChapterCompose(StoryCompose, ABC):
                 return None
             for story_plan in story_plans:
                 ctx.add_story_context(
-                    StoryContext()
-                    .set_story_plan(story_plan)
-                    .set_title(story_plan.title)
-                    .set_description(story_plan.description)
-                    .set_expected_word_count(story_plan.expected_word_count)
+                    StoryContext(
+                        title=story_plan.title,
+                        description=story_plan.description,
+                        expected_word_count=story_plan.expected_word_count,
+                    )
                     .set_language(ctx.language)
+                    .set_story_plan(story_plan)
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         for story_ctx in ctx.story_context:

@@ -1,13 +1,14 @@
 from typing import Self
 
+from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
-from fabricatio_novel.models.context.base import ChainableContext, ContextBase
+from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
 
 
-class StoryContext(ChainableContext, ContextBase):
+class StoryContext(Titled, Described, ContextBase):
     story_plan: StoryPlan | None = None
     """The story's own plan; proposed before the scene contexts are created."""
 

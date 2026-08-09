@@ -1,10 +1,12 @@
 from typing import Self
 
-from fabricatio_novel.models.context.base import ChainableContext, ContextBase
+from fabricatio_core.models.generic import Described, Titled
+
+from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.plan import ScenePlan
 
 
-class SceneContext(ChainableContext, ContextBase):
+class SceneContext(Titled, Described, ContextBase):
     scene_plan: ScenePlan | None = None
     """The scene's own plan."""
 
