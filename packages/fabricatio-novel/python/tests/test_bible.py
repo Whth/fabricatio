@@ -213,8 +213,8 @@ class TestBibleConsumption:
         assert "Qi is the vital energy" in block
         assert "The Azure Sect rules the north." in block
 
-    async def test_prepare_scene_requirement_injects_bible_before_previous_content(self) -> None:
-        """Assert the run-constant bible block leads the per-scene content."""
+    async def test_prepare_scene_requirement_injects_bible_after_previous_content(self) -> None:
+        """Assert the bible block follows the previous content, outside the shared static prefix."""
         role = BibleRole(name="bible_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_series_bible(self._bible())
@@ -224,8 +224,9 @@ class TestBibleConsumption:
 
         assert requirement.startswith("# Scene Writing")
         assert "## Setting Bible" in requirement
-        # run-constant bible block sits in the shared prefix, before per-scene content
-        assert requirement.index("## Setting Bible") < requirement.index("# Previous Content")
+        # the bible is not run-constant (extensions may grow it mid-run), so it must not sit
+        # inside the shared static prefix; it follows the per-scene previous content
+        assert requirement.index("## Setting Bible") > requirement.index("# Previous Content")
         assert requirement.index("He walked into the dark.") > requirement.index("# Previous Content")
 
     async def test_prepare_scene_requirement_without_bible_matches_base(self) -> None:

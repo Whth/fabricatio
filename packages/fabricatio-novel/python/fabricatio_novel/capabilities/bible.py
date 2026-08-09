@@ -138,7 +138,7 @@ class BibleCompose(SceneCompose, ABC):
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
-        """Render the scene requirement with the setting bible block after the static head."""
+        """Render the scene requirement with the setting bible block after the previous content."""
         bible_context = self.render_bible_context(ctx)
         if not bible_context:
             return await super().prepare_scene_requirement(ctx, **kwargs)
@@ -150,9 +150,9 @@ class BibleCompose(SceneCompose, ABC):
     def render_bible_context(self, ctx: SceneContext) -> str:
         """Render the bible block for the scene prompt.
 
-        The block is run-constant (identical for every scene call of the run),
-        so it is injected right after the static head — before previous_content —
-        keeping it inside the shared prompt prefix.
+        The block is not run-constant — extensions may grow it (for
+        example by adding background settings) mid-run — so it is injected
+        after the previous content, outside the shared static prefix.
         """
         if ctx.series_bible is None or ctx.series_bible.is_empty():
             return ""
