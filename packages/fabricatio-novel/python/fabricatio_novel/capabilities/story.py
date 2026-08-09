@@ -9,7 +9,7 @@ from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.plan import ScenePlans
+from fabricatio_novel.models.plan import ScenePlan, plan_list_question, plan_list_validator
 from fabricatio_novel.models.story import Story
 
 
@@ -38,7 +38,7 @@ class StoryCompose(SceneCompose, ABC):
         ctx: StoryContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ScenePlans | None:
+    ) -> list[ScenePlan] | None:
         logger.debug(f"Planning scenes for story '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.scene_plan_template,
@@ -49,7 +49,12 @@ class StoryCompose(SceneCompose, ABC):
                 "language": ctx.language,
             },
         )
-        return await self.propose(ScenePlans, requirement, send_to, **kwargs)
+        return await self.aask_validate(
+            plan_list_question(requirement, ScenePlan),
+            plan_list_validator(ScenePlan),
+            send_to=send_to,
+            **kwargs,
+        )
 
     async def generate_story(
         self,
@@ -59,10 +64,11 @@ class StoryCompose(SceneCompose, ABC):
     ) -> Story | None:
         logger.debug(f"Generating story '{ctx.title}'")
         if not ctx.scene_context:
-            plans = await self.plan_scenes(ctx, send_to, **kwargs)
-            if plans is None:
+            scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
+            if scene_plans is None:
                 return None
-            for scene_plan in plans.scenes:
+            ctx.set_scene_plan(scene_plans)
+            for scene_plan in scene_plans:
                 ctx.add_scene_context(
                     SceneContext()
                     .set_title(scene_plan.title)

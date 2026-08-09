@@ -10,7 +10,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.models.plan import ChapterPlans, NovelPlan
+from fabricatio_novel.models.plan import ChapterPlan, NovelPlan, plan_list_question, plan_list_validator
 
 
 class NovelCompose(ChapterCompose, ABC):
@@ -38,7 +38,7 @@ class NovelCompose(ChapterCompose, ABC):
         ctx: NovelContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ChapterPlans | None:
+    ) -> list[ChapterPlan] | None:
         logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.chapter_plan_template,
@@ -49,7 +49,12 @@ class NovelCompose(ChapterCompose, ABC):
                 "description": ctx.description,
             },
         )
-        return await self.propose(ChapterPlans, requirement, send_to, **kwargs)
+        return await self.aask_validate(
+            plan_list_question(requirement, ChapterPlan),
+            plan_list_validator(ChapterPlan),
+            send_to=send_to,
+            **kwargs,
+        )
 
     async def generate_novel(
         self,
@@ -70,10 +75,11 @@ class NovelCompose(ChapterCompose, ABC):
         ).set_series_bible(plan.series_bible)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.chapter_context:
-            plans = await self.plan_chapters(ctx, send_to, **kwargs)
-            if plans is None:
+            chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
+            if chapter_plans is None:
                 return None
-            for chapter_plan in plans.chapters:
+            ctx.set_chapter_plan(chapter_plans)
+            for chapter_plan in chapter_plans:
                 ctx.add_chapter_context(
                     ChapterContext()
                     .set_title(chapter_plan.title)

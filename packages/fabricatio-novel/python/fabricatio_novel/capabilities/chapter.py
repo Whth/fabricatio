@@ -10,7 +10,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.plan import StoryPlans
+from fabricatio_novel.models.plan import StoryPlan, plan_list_question, plan_list_validator
 
 
 class ChapterCompose(StoryCompose, ABC):
@@ -38,7 +38,7 @@ class ChapterCompose(StoryCompose, ABC):
         ctx: ChapterContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> StoryPlans | None:
+    ) -> list[StoryPlan] | None:
         logger.debug(f"Planning stories for chapter '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.story_plan_template,
@@ -49,7 +49,12 @@ class ChapterCompose(StoryCompose, ABC):
                 "language": ctx.language,
             },
         )
-        return await self.propose(StoryPlans, requirement, send_to, **kwargs)
+        return await self.aask_validate(
+            plan_list_question(requirement, StoryPlan),
+            plan_list_validator(StoryPlan),
+            send_to=send_to,
+            **kwargs,
+        )
 
     async def generate_chapter(
         self,
@@ -59,10 +64,11 @@ class ChapterCompose(StoryCompose, ABC):
     ) -> Chapter | None:
         logger.debug(f"Generating chapter '{ctx.title}'")
         if not ctx.story_context:
-            plans = await self.plan_stories(ctx, send_to, **kwargs)
-            if plans is None:
+            story_plans = await self.plan_stories(ctx, send_to, **kwargs)
+            if story_plans is None:
                 return None
-            for story_plan in plans.stories:
+            ctx.set_story_plan(story_plans)
+            for story_plan in story_plans:
                 ctx.add_story_context(
                     StoryContext()
                     .set_title(story_plan.title)
