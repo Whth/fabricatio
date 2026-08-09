@@ -48,6 +48,35 @@ class TestNovelContext:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         assert ctx.language == "English"
 
+    def test_update_from_adopts_plan_fields(self) -> None:
+        ctx = NovelContext.create("The hero.", language="English")
+        plan = NovelPlan(
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=100,
+            series_bible=SeriesBible(characters="Hero — brave protagonist."),
+        )
+        result = ctx.update_from(plan)
+        assert result is ctx
+        assert ctx.title == "The Search"
+        assert ctx.description == "A hero searching."
+        assert ctx.expected_word_count == 100
+        assert ctx.series_bible == plan.series_bible
+
+    def test_update_from_keeps_preset_bible_when_plan_bible_empty(self) -> None:
+        ctx = NovelContext.create("The hero.", language="English")
+        bible = SeriesBible(characters="Hero — brave protagonist.")
+        ctx.set_series_bible(bible)
+        plan = NovelPlan(title="The Search", description="A hero searching.", expected_word_count=100)
+        ctx.update_from(plan)
+        assert ctx.title == "The Search"
+        assert ctx.series_bible is bible
+
+    def test_update_from_rejects_non_plan(self) -> None:
+        ctx = NovelContext.create("The hero.", language="English")
+        with pytest.raises(TypeError):
+            ctx.update_from("not a plan")  # type: ignore[arg-type]
+
     def test_contexts_are_chainable(self) -> None:
         scene = (
             SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
