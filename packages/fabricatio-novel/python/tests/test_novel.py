@@ -178,15 +178,20 @@ class TestNovelCompose:
             novel = await role.compose_novel(ctx)
         assert novel is None
 
-    async def test_prepare_scene_requirement_renders_previous_content_at_top(self) -> None:
+    async def test_prepare_scene_requirement_renders_previous_content_after_static_head(self) -> None:
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.previous_content = "He walked into the dark."
 
         requirement = await role.prepare_scene_requirement(ctx)
 
-        assert requirement.index("He walked into the dark.") < requirement.index("# Scene Writing")
-        assert requirement.index("A stranger appears.") > requirement.index("# Scene Writing")
+        # the static head (incl. per-run language) leads so it stays prefix-cacheable
+        assert requirement.startswith("# Scene Writing")
+        assert requirement.index("Respond entirely in") < requirement.index("# Previous Content")
+        assert requirement.index("He walked into the dark.") > requirement.index("# Previous Content")
+        assert requirement.index("A stranger appears.") > requirement.index("## Scene")
+        # the per-scene word count must not sit inside the static Requirements block
+        assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
 
 
 class TestNovelPlan:

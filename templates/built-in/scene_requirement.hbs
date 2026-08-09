@@ -1,3 +1,16 @@
+# Scene Writing
+
+## Goal
+Write a single scene of the novel in full prose.
+
+## Requirements
+- Follow the scene's title and description exactly.
+- Keep the characters' established traits, speech patterns, and motivations consistent with their character cards.
+- Only include events and details that belong to this scene; do not advance other plotlines.
+- Output the scene as JSON with the fields `title`, `description`, `expected_word_count`, and `content`.
+
+Respond entirely in "{{ language }}".
+
 {{#if previous_content}}
 # Previous Content
 
@@ -7,23 +20,10 @@ The story so far. Continue seamlessly from where it ends; do not repeat or contr
 
 ---
 {{/if}}
-# Scene Writing
-
-## Goal
-Write a single scene of the novel in full prose.
-
-## Requirements
-- Follow the scene's title and description exactly.
-- Write approximately {{ expected_word_count }} words.
-- Keep the characters' established traits, speech patterns, and motivations consistent with their character cards.
-- Only include events and details that belong to this scene; do not advance other plotlines.
-- Output the scene as JSON with the fields `title`, `description`, `expected_word_count`, and `content`.
-
 ## Scene
 Title: {{ title }}
 Description: {{ description }}
+- Write approximately {{ expected_word_count }} words.
 
 ## Characters
 {{ characters }}
-
-Respond entirely in "{{ language }}".
