@@ -88,10 +88,11 @@ class NovelCompose(ChapterCompose, ABC):
                         expected_word_count=chapter_plan.expected_word_count,
                     )
                     .set_language(ctx.language)
-                    .set_series_bible(ctx.series_bible)
                     .set_chapter_plan(chapter_plan)
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
+        for chapter_ctx in ctx.chapter_context:
+            chapter_ctx.set_series_bible(ctx.series_bible)
         for chapter_ctx in ctx.chapter_context:
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 return None

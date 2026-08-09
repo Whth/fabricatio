@@ -75,10 +75,11 @@ class ChapterCompose(StoryCompose, ABC):
                         expected_word_count=story_plan.expected_word_count,
                     )
                     .set_language(ctx.language)
-                    .set_series_bible(ctx.series_bible)
                     .set_story_plan(story_plan)
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
+        for story_ctx in ctx.story_context:
+            story_ctx.set_series_bible(ctx.series_bible)
         for story_ctx in ctx.story_context:
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 return None

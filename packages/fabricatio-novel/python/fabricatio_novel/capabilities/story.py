@@ -75,10 +75,11 @@ class StoryCompose(SceneCompose, ABC):
                         expected_word_count=scene_plan.expected_word_count,
                     )
                     .set_language(ctx.language)
-                    .set_series_bible(ctx.series_bible)
                     .set_scene_plan(scene_plan)
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
+        for scene_ctx in ctx.scene_context:
+            scene_ctx.set_series_bible(ctx.series_bible)
         accumulated = ""
         for scene_ctx in ctx.scene_context:
             scene_ctx.set_previous_content(accumulated)
